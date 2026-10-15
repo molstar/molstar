@@ -69,6 +69,10 @@ spec built with Vite too.
 **Default build** (`pnpm build` → `build/`, split into chunks): `assets/index-*.js` 3,236.5 kB (894.6 kB gzip, 712.9 kB
 brotli) and a 2.0 kB chunk (1.0 kB gzip), `index.html` 1.1 kB.
 
+**Engine alone** (no Prism: a bare `PluginContext` with the same four registry entries, a canvas, and the same load; one
+file): 2,187.8 kB, 608.7 kB gzipped, 491.0 kB brotli. So about two thirds of the minimal Prism viewer is the engine, and
+the Prism viewer and its shell add about 1.07 MB (about 0.29 MB gzipped).
+
 The page renders 1CBS about 1 s after load on a laptop (`structure-shown` mark: 0.95 s from the single-file preview, 1.1
 s from the dev server; network included, a rough first number, not a benchmark).
 
@@ -87,11 +91,17 @@ an unminified build (6.0 MB of module code in all):
   remove every tab and button; overrides take parts out at run time, not out of the bundle.
 - **No way to drop the rail**: with every tab and button removed, the shell still draws its empty 44 px right rail.
   `compactRail` only hides it behind a button in the canvas's corner.
-- **MolScript transpilers**: `@molstar/model`'s `Script` imports `@molstar/query-language` and with it the Jmol, PyMOL
-  and VMD transpilers (about 190 kB unminified), although only MolScript is needed.
-- **The engine floor**: `@molstar/graphics` is 1.8 MB unminified (shaders 300 kB, the render passes 290 kB, geometry 260
-  kB, every structure visual 230 kB), `@molstar/model`'s structure 490 kB, `@molstar/io`'s CIF reader 270 kB. Those are
-  the cost of any Mol\* canvas; narrowing them is the engine packages' work, not the viewer spec's.
+- **MolScript transpilers**: the viewer's `targets/compile.ts` imports `@molstar/query-language/compile`, which
+  registers the Jmol, PyMOL and VMD transpilers (118 kB unminified, more with their shared code), although only
+  MolScript is needed. The bare engine does not have them.
+- **Engine code only the viewer reaches**: about 350 kB more unminified than the bare engine has, from what the viewer's
+  API imports: the interaction computations (hydrogen bonds, charges, refinement) and their cylinder representations,
+  the volume streaming behavior, isosurface and marching cubes, the focus representation and camera behaviors, the
+  valence model.
+- **The engine floor** (2,188 kB minified, 609 kB gzipped alone, see below): `@molstar/graphics` is 1.8 MB unminified
+  (shaders 300 kB, the render passes 290 kB, geometry 260 kB, every structure visual 230 kB), `@molstar/model`'s
+  structure 490 kB, `@molstar/io`'s CIF reader 270 kB. Those are the cost of any Mol\* canvas; narrowing them is the
+  engine packages' work, not the viewer spec's.
 - **`PrismViewerBehaviors` and `DefaultRegistry` are not the floor**: this example imports neither (`sources/base.ts`
   and `default-spec.ts` are the only modules that do, and nothing in the composition path imports them).
 - **`@molstar/ai-fibers`** (44 kB unminified) is in the bundle through the viewer's imports, although `agent: false`.
