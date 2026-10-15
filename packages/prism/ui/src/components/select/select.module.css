@@ -114,6 +114,50 @@
   }
 }
 
+.group {
+  display: grid;
+}
+
+/* A group's fold: its name, a chevron turned while it is open (Mol*'s categories, as v5 lists them). */
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+}
+
+.groupChevron {
+  flex: none;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+/* Its options, set in under the fold. */
+.groupBody {
+  display: grid;
+  padding-left: var(--msp-space-3);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .check {
   flex: none;
   visibility: hidden;

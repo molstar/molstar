@@ -8,7 +8,8 @@
 
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Structure } from '@molstar/model/model/structure';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
+import type { Model, Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import { observableState } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
@@ -17,6 +18,8 @@ import type {
   RepresentationQuickChange,
   RepresentationQuickModel,
 } from '../model/representation-quick.js';
+import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
+import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import { gestureSteps } from './gesture-steps.js';
 
 // A structure representation's quick settings over the API (model/representation-quick.ts): its params rebuilt from the
@@ -39,8 +42,16 @@ const CommonTypes: readonly [string, string][] = [
   ['ball-and-stick', 'Ball & stick'],
   ['spacefill', 'Spacefill'],
   ['molecular-surface', 'Surface'],
-  ['gaussian-surface', 'Gaussian'],
+  ['gaussian-surface', 'Gaussian surface'],
 ];
+
+const TypeIcons: Readonly<Record<string, IconName>> = {
+  cartoon: 'cartoon',
+  'ball-and-stick': 'ball-and-stick',
+  spacefill: 'spacefill',
+  'molecular-surface': 'surface',
+  'gaussian-surface': 'volume',
+};
 
 /** The color themes offered at once, in order (those that apply). */
 const CommonThemes: readonly [string, string][] = [
@@ -54,6 +65,36 @@ const CommonThemes: readonly [string, string][] = [
 ];
 
 const round = (x: number) => Math.round(x * 1000) / 1000;
+
+/**
+ * A predicted model, by positive evidence: ModelCIF's local quality metrics (AlphaFold DB, ModelArchive), or no
+ * experimental method at all (a predictor's PDB file, whose B-factors are pLDDT).
+ */
+function isPredicted(model: Model): boolean {
+  const source = model.sourceData;
+  if (!MmcifFormat.is(source)) return false;
+  if (source.data.frame.categories.ma_qa_metric_local) return true;
+  return source.data.db.exptl.method.rowCount === 0;
+}
+const sameChoices = (a: readonly QuickChoice[], b: readonly QuickChoice[]) =>
+  a.length === b.length && a.every((c, i) => c.id === b[i].id && c.swatch === b[i].swatch);
+
+/** A legend as a CSS background: a scale's gradient, a table's first colors as bands. */
+function legendSwatch(legend: ScaleLegend | TableLegend | undefined): string | undefined {
+  const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
+  if (legend?.kind === 'scale-legend') {
+    const colors = legend.colors.map((c) => (Array.isArray(c) ? c[0] : c) as number);
+    return colors.length ? `linear-gradient(90deg, ${colors.map(hex).join(', ')})` : undefined;
+  }
+  if (legend?.kind === 'table-legend') {
+    const colors = legend.table.slice(0, 6).map(([, c]) => c as number);
+    if (!colors.length) return undefined;
+    const w = 100 / colors.length;
+    const bands = colors.map((c, i) => `${hex(c)} ${(i * w).toFixed(1)}% ${((i + 1) * w).toFixed(1)}%`);
+    return `linear-gradient(90deg, ${bands.join(', ')})`;
+  }
+  return undefined;
+}
 
 export function createRepresentationQuick(
   plugin: PluginContext,
@@ -85,18 +126,45 @@ export function createRepresentationQuick(
     current: string,
     ok: (id: string) => boolean,
     label: (id: string) => string,
+    extra: (id: string) => Partial<QuickChoice>,
   ) => {
-    const list: QuickChoice[] = common.filter(([id]) => ok(id)).map(([id, l]) => ({ id, label: l }));
-    if (current && !list.some((c) => c.id === current)) list.push({ id: current, label: label(current) });
+    const list: QuickChoice[] = common.filter(([id]) => ok(id)).map(([id, l]) => ({ id, label: l, ...extra(id) }));
+    if (current && !list.some((c) => c.id === current)) {
+      list.push({ id: current, label: label(current), ...extra(current) });
+    }
     return list;
   };
+  /** A theme's colors on this structure (its legend, with its defaults), once each. */
+  const swatches = new Map<string, string | undefined>();
+  const swatchOf = (id: string): Partial<QuickChoice> => {
+    if (id === 'uniform') return {};
+    if (!swatches.has(id)) {
+      const s = structure();
+      let swatch: string | undefined;
+      try {
+        const provider = themes.colorThemeRegistry.get(id);
+        if (s && provider) swatch = legendSwatch(provider.factory({ structure: s }, themeDefaults(id) as never).legend);
+      } catch {
+        swatch = undefined;
+      }
+      swatches.set(id, swatch);
+    }
+    const swatch = swatches.get(id);
+    return swatch ? { swatch } : {};
+  };
+  const iconOf = (id: string): Partial<QuickChoice> => (TypeIcons[id] ? { icon: TypeIcons[id] } : {});
   const typeOk = (id: string) => {
     const s = structure();
     return registry.has(id) && !!s && registry.get(id).isApplicable(s);
   };
   const themeOk = (id: string) => {
     const s = structure();
-    return themes.colorThemeRegistry.has(id) && !!s && themes.colorThemeRegistry.get(id).isApplicable({ structure: s });
+    if (!themes.colorThemeRegistry.has(id) || !s || !themes.colorThemeRegistry.get(id).isApplicable({ structure: s })) {
+      return false;
+    }
+    // pLDDT only for a prediction: the theme takes any B-factors of a model not marked experimental, and an older file
+    // (no determination methodology) of an X-ray structure passes; its B-factors are not confidences.
+    return id !== 'plddt-confidence' || s.models.some(isPredicted);
   };
 
   const types = observableState<readonly QuickChoice[]>([]);
@@ -115,8 +183,16 @@ export function createRepresentationQuick(
     const th = o?.color !== undefined ? 'uniform' : (o?.theme ?? p.colorTheme.name);
     type.set(t);
     theme.set(th);
-    types.set(choices(CommonTypes, t, typeOk, (id) => registry.get(id)?.label ?? id));
-    themeChoices.set(choices(CommonThemes, th, themeOk, (id) => themes.colorThemeRegistry.get(id)?.label ?? id));
+    const typeList = choices(CommonTypes, t, typeOk, (id) => registry.get(id)?.label ?? id, iconOf);
+    if (!sameChoices(types.value, typeList)) types.set(typeList);
+    const themeList = choices(
+      CommonThemes,
+      th,
+      themeOk,
+      (id) => themes.colorThemeRegistry.get(id)?.label ?? id,
+      swatchOf,
+    );
+    if (!sameChoices(themeChoices.value, themeList)) themeChoices.set(themeList);
     color.set(o?.color ?? (p.colorTheme.name === 'uniform' ? (p.colorTheme.params.value as number) : undefined));
     opacity.set(o?.opacity ?? p.type.params.alpha);
     const base = typeDefaults(p.type.name)?.sizeFactor;

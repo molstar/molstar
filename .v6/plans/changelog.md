@@ -145,6 +145,11 @@ the [API change ledger](breaking-v6-changes.md).
   playback card (play or pause, the position to click or drag, the time, stop, close) and a canvas button while there
   is a player, so it can be paused or stopped with the card shut; the playback card opens for a story loaded before
   its views came.
+- Prism viewer: the quick type and color of a representation drawn as what they are (the types' icons in a segmented
+  strip, the themes as tiles in their colors on the structure); pLDDT offered only for a prediction (ModelCIF quality
+  metrics, or no experimental method); a component's inspector lists its representations to open; Contents has a
+  summary (entities by type, chains, residues, atoms); Focus is one row for the scene.
+- Prism UI: a select's options are grouped by Mol*'s categories, each group a fold (the current option's open).
 - Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
   the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
 - `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as

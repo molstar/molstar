@@ -8,61 +8,96 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Choices } from '@molstar/prism-ui';
+import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { map } from 'rxjs';
-import type { RepresentationQuickModel } from '../../model/representation-quick.js';
+import { combineLatest, map, type Observable } from 'rxjs';
+import type { QuickChoice, RepresentationQuickModel } from '../../model/representation-quick.js';
 import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/representation-quick.module.css.js';
 
-// A structure representation's quick settings (model/representation-quick.ts), above its whole form: its type and color
-// theme as choices (a click applies one), one color from a row of swatches (the whole picker behind the chevron), the
-// opacity and the size as sliders (a drag is one undo step).
+// A structure representation's quick settings (model/representation-quick.ts), above its whole form. Each setting is a
+// row: its name and the current value, then the choices drawn as what they are: the types as their icons in one segmented
+// strip, the color themes as tiles painted with their colors on this structure (one color: its own swatch). One color
+// opens the row of swatches (the whole picker behind its chevron); opacity and size are sliders. A drag is one undo step.
 
 export function RepresentationQuick(props: { model: RepresentationQuickModel }) {
   const { model } = props;
+  const labelOf = (list: Observable<readonly QuickChoice[]>, id: Observable<string>) =>
+    combineLatest([list, id]).pipe(map(([l, i]) => l.find((c) => c.id === i)?.label ?? i));
   return (
     <section class={classes.quick} aria-label="Quick settings">
-      {/* The choices change with the structure (what applies) only: rebuilt when they do. */}
-      <For each={model.types.pipe(map((t) => [t]))} key={(t) => t.map((c) => c.id).join()}>
-        {(types) => (
-          <Choices
-            label="Type"
-            choices={types}
-            active={model.type}
-            onPick={(id) => {
-              model.change({ type: id });
-              model.settle();
-            }}
-          />
-        )}
-      </For>
-      <For each={model.themes.pipe(map((t) => [t]))} key={(t) => t.map((c) => c.id).join()}>
-        {(themes) => (
-          <Choices
-            label="Color"
-            choices={themes}
-            active={model.theme}
-            onPick={(id) => {
-              model.change({ theme: id, color: undefined });
-              model.settle();
-            }}
-          />
-        )}
-      </For>
-      <Show when={model.theme.pipe(map((t) => t === 'uniform'))}>
-        {() => (
-          <QuickColorRow
-            label="Color"
-            value={model.color}
-            onPick={(c) => {
-              model.change({ theme: 'uniform', color: c });
-              model.settle();
-            }}
-            onInput={(c) => model.change({ theme: 'uniform', color: c })}
-          />
-        )}
-      </Show>
+      <div class={classes.setting}>
+        <div class={classes.head}>
+          <span class={classes.name}>Type</span>
+          <span class={classes.value}>{labelOf(model.types, model.type)}</span>
+        </div>
+        <div class={classes.segments} role="radiogroup" aria-label="Type">
+          <For each={model.types} key={(c) => c.id}>
+            {(c) => (
+              <button
+                type="button"
+                role="radio"
+                class={classes.segment}
+                aria-checked={model.type.pipe(map((t) => t === c.id))}
+                aria-label={c.label}
+                data-tip={c.label}
+                onClick={() => {
+                  model.change({ type: c.id });
+                  model.settle();
+                }}
+              >
+                {c.icon ? <Icon name={c.icon} size={18} /> : <span class={classes.segmentText}>{c.label}</span>}
+              </button>
+            )}
+          </For>
+        </div>
+      </div>
+      <div class={classes.setting}>
+        <div class={classes.head}>
+          <span class={classes.name}>Color</span>
+          <span class={classes.value}>{labelOf(model.themes, model.theme)}</span>
+        </div>
+        <div class={classes.tiles} role="radiogroup" aria-label="Color">
+          <For each={model.themes} key={(c) => c.id}>
+            {(c) => (
+              <button
+                type="button"
+                role="radio"
+                class={classes.tile}
+                classList={{ [classes.unpainted]: !c.swatch && c.id !== 'uniform' }}
+                style={{
+                  background:
+                    c.id === 'uniform'
+                      ? model.color.pipe(map((v) => (v === undefined ? '' : `#${v.toString(16).padStart(6, '0')}`)))
+                      : (c.swatch ?? ''),
+                }}
+                aria-checked={model.theme.pipe(map((t) => t === c.id))}
+                aria-label={c.label}
+                data-tip={c.label}
+                onClick={() => {
+                  model.change({ theme: c.id, color: undefined });
+                  model.settle();
+                }}
+              >
+                {c.id === 'uniform' ? <span class={classes.one} aria-hidden="true" /> : null}
+              </button>
+            )}
+          </For>
+        </div>
+        <Show when={model.theme.pipe(map((t) => t === 'uniform'))} reveal>
+          {() => (
+            <QuickColorRow
+              label="Color"
+              value={model.color}
+              onPick={(c) => {
+                model.change({ theme: 'uniform', color: c });
+                model.settle();
+              }}
+              onInput={(c) => model.change({ theme: 'uniform', color: c })}
+            />
+          )}
+        </Show>
+      </div>
       <Show when={model.opacity.pipe(map((o) => o !== undefined))}>
         {() => (
           <QuickRange

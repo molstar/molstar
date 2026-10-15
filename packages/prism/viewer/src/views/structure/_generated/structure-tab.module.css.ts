@@ -14,6 +14,16 @@ export const classes = {
   'actionLabel': 'msp-viewer-structure-tab-actionLabel',
   'actions': 'msp-viewer-structure-tab-actions',
   'chevron': 'msp-viewer-structure-tab-chevron',
+  'child': 'msp-viewer-structure-tab-child',
+  'childChevron': 'msp-viewer-structure-tab-childChevron',
+  'childDescription': 'msp-viewer-structure-tab-childDescription',
+  'childEye': 'msp-viewer-structure-tab-childEye',
+  'childHidden': 'msp-viewer-structure-tab-childHidden',
+  'childIcon': 'msp-viewer-structure-tab-childIcon',
+  'childLabel': 'msp-viewer-structure-tab-childLabel',
+  'childOpen': 'msp-viewer-structure-tab-childOpen',
+  'children': 'msp-viewer-structure-tab-children',
+  'childrenTitle': 'msp-viewer-structure-tab-childrenTitle',
   'fact': 'msp-viewer-structure-tab-fact',
   'facts': 'msp-viewer-structure-tab-facts',
   'inspection': 'msp-viewer-structure-tab-inspection',
@@ -280,6 +290,81 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 
 .msp-viewer-structure-tab-optionsContent {
   padding: var(--msp-space-2) var(--msp-space-3);
+}
+
+.msp-viewer-structure-tab-children {
+  margin: 0 calc(-1 * var(--msp-space-2));
+  display: grid;
+}
+
+.msp-viewer-structure-tab-childrenTitle {
+  padding: 0 var(--msp-space-2) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-viewer-structure-tab-child {
+  border-radius: var(--msp-radius-md);
+  align-items: center;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-structure-tab-childHidden {
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-viewer-structure-tab-childOpen {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: max(30px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  text-align: left;
+  flex: 1;
+  display: flex;
+}
+
+.msp-viewer-structure-tab-childIcon {
+  color: var(--msp-color-text-muted);
+  flex: none;
+}
+
+.msp-viewer-structure-tab-childLabel {
+  flex: none;
+  font-weight: 500;
+}
+
+.msp-viewer-structure-tab-childDescription {
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  flex: 1;
+  overflow: hidden;
+}
+
+.msp-viewer-structure-tab-childChevron {
+  color: var(--msp-color-text-subtle);
+  flex: none;
+}
+
+.msp-viewer-structure-tab-childEye {
+  width: 28px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
 }
 }
 `);

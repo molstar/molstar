@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cbs, headlessViewer, until } from '../../_test/harness.js';
+import { cbs, crambin, headlessViewer, until } from '../../_test/harness.js';
 import type { SceneNode } from '../../model/scene.js';
 import type { PrismViewer } from '../../viewer.js';
 
@@ -15,9 +15,9 @@ import type { PrismViewer } from '../../viewer.js';
 // and themes that apply, a theme or one color picked, another type keeping the color and opacity, the size as a multiple
 // of the type's default, a drag one undo step.
 
-async function cartoon() {
+async function cartoon(file = cbs()) {
   const v = await headlessViewer();
-  await v.api.load.files({ files: [cbs()] });
+  await v.api.load.files({ files: [file] });
   await until(() => v.views.scene.roots.value.length > 0);
   const find = (nodes: readonly SceneNode[]): SceneNode | undefined => {
     for (const n of nodes) {
@@ -46,6 +46,12 @@ describe('the quick settings of a structure representation', () => {
     expect(quick.type.value).toBe('cartoon');
     expect(quick.opacity.value).toBe(1);
     expect(quick.size.value).toBe(1);
+  });
+
+  it('offers no pLDDT for an experimental structure whose file does not say how it was determined', async () => {
+    // Crambin's file predates the determination methodology Mol*'s pLDDT theme looks for; it has an X-ray method.
+    const { quick } = await cartoon(crambin());
+    expect(quick.themes.value.map((t) => t.id)).not.toContain('plddt-confidence');
   });
 
   it('sets a theme, one color, another type keeping the color and opacity, and the size', async () => {

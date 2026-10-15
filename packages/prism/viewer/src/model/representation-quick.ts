@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 
 // A structure representation's quick settings (parity.md §2): what people change most, above its whole form: the type,
@@ -14,6 +15,10 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 export interface QuickChoice {
   readonly id: string;
   readonly label: string;
+  /** A type's icon. */
+  readonly icon?: IconName;
+  /** A theme's colors on this structure, as a CSS background (from its legend); none for one color (its own). */
+  readonly swatch?: string;
 }
 
 export interface RepresentationQuickChange {

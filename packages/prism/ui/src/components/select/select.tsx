@@ -18,7 +18,8 @@ import { Icon } from '../icon/icon.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
-export type SelectOption = readonly [value: string, label: string];
+/** An option: its value, its label, and the group it is listed under (Mol*'s option categories), if any. */
+export type SelectOption = readonly [value: string, label: string, group?: string];
 
 export interface SelectProps {
   options: readonly SelectOption[];
@@ -106,7 +107,8 @@ export function SelectButton(props: {
 
 /**
  * The options, inline: the current one marked; focused on open (the current option), arrows move, Enter or a click
- * picks, Esc closes, and so does a click elsewhere.
+ * picks, Esc closes, and so does a click elsewhere. Options with a group are listed under it as v5 lists Mol*'s
+ * categories: each group a fold, the current option's open, the others closed; options without one come first.
  */
 export function OptionList(props: {
   options: readonly SelectOption[];
@@ -116,8 +118,65 @@ export function OptionList(props: {
   /** Floating over the page (a popover): the wheel stays in it. Inline (default), at its ends it scrolls the panel. */
   floating?: boolean;
 }) {
+  // The current value when opened: its group starts open.
+  let current: string | undefined;
+  bind(props.value, (v) => {
+    current = v;
+  });
   const buttons: HTMLButtonElement[] = [];
-  const focus = (i: number) => buttons[Math.max(0, Math.min(buttons.length - 1, i))]?.focus();
+  // What the arrows move over: the options and the group heads that show (not inside a closed group).
+  const navigable = () =>
+    [...list.querySelectorAll<HTMLElement>('[role="option"], [data-group-head]')].filter((b) => !b.closest('[hidden]'));
+  const focus = (i: number) => {
+    const all = navigable();
+    all[Math.max(0, Math.min(all.length - 1, i))]?.focus();
+  };
+  const option = ([value, label]: SelectOption) => {
+    const button = (
+      <button
+        type="button"
+        role="option"
+        class={classes.option}
+        aria-selected={props.value.pipe(
+          map((v) => v === value),
+          distinctUntilChanged(),
+        )}
+        onClick={() => props.onPick(value)}
+      >
+        <span>{label}</span>
+        <Icon name="check" size={14} class={classes.check} />
+      </button>
+    ) as HTMLButtonElement;
+    buttons.push(button);
+    return button;
+  };
+  const groups = new Map<string, SelectOption[]>();
+  const loose: SelectOption[] = [];
+  for (const o of props.options) {
+    if (!o[2]) loose.push(o);
+    else if (groups.has(o[2])) groups.get(o[2])!.push(o);
+    else groups.set(o[2], [o]);
+  }
+  const group = (name: string, options: readonly SelectOption[]) => {
+    const open = observableState(options.some((o) => o[0] === current));
+    return (
+      <div class={classes.group} role="group" aria-label={name}>
+        <button
+          type="button"
+          class={classes.groupHead}
+          data-group-head=""
+          aria-expanded={open}
+          onClick={() => open.set(!open.value)}
+        >
+          <Icon name="chevron-right" size={13} class={classes.groupChevron} />
+          <span>{name}</span>
+        </button>
+        <div class={classes.groupBody} hidden={open.asReadonly.pipe(map((o) => !o))}>
+          {options.map(option)}
+        </div>
+      </div>
+    );
+  };
   const list = (
     <ScrollArea
       class={classes.list}
@@ -125,51 +184,29 @@ export function OptionList(props: {
       chain={!props.floating}
       role="listbox"
       onKeyDown={(e) => {
-        const i = buttons.indexOf(activeElement(list) as HTMLButtonElement);
+        const all = navigable();
+        const i = all.indexOf(activeElement(list) as HTMLElement);
         if (e.key === 'ArrowDown') focus(i + 1);
         else if (e.key === 'ArrowUp') focus(i - 1);
         else if (e.key === 'Home') focus(0);
-        else if (e.key === 'End') focus(buttons.length - 1);
+        else if (e.key === 'End') focus(all.length - 1);
         else if (e.key === 'Escape') props.onClose();
         else return;
         e.preventDefault();
         e.stopPropagation();
       }}
     >
-      {props.options.map(([value, label]) => {
-        const button = (
-          <button
-            type="button"
-            role="option"
-            class={classes.option}
-            aria-selected={props.value.pipe(
-              map((v) => v === value),
-              distinctUntilChanged(),
-            )}
-            onClick={() => props.onPick(value)}
-          >
-            <span>{label}</span>
-            <Icon name="check" size={14} class={classes.check} />
-          </button>
-        ) as HTMLButtonElement;
-        buttons.push(button);
-        return button;
-      })}
+      {loose.map(option)}
+      {[...groups].map(([name, options]) => group(name, options))}
     </ScrollArea>
   ) as HTMLElement;
-  // Focus the current option once placed; close on a press outside the list (its scrollbar too) and its button.
-  let current: string | undefined;
-  bind(props.value, (v) => {
-    current = v;
+  // Focus the current option once placed (else the first that shows); close on a press outside the list (its scrollbar
+  // too) and its button.
+  queueMicrotask(() => {
+    const at = buttons.find((b, i) => props.options[i]?.[0] === current && !b.closest('[hidden]'));
+    if (at) at.focus();
+    else focus(0);
   });
-  queueMicrotask(() =>
-    focus(
-      Math.max(
-        0,
-        props.options.findIndex((o) => o[0] === current),
-      ),
-    ),
-  );
   const onDown = (e: PointerEvent) => {
     const target = eventTarget(e) as Element;
     if (isInside(e, list) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;

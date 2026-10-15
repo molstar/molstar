@@ -85,7 +85,7 @@ describe('the sequence API', () => {
   it('is ambiguous for a name two loaded structures share, and follows either by state ref', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     expectOk(await v.api.run('load.files', { files: [cbs()] }, { copy: true }));
-    const roots = v.views.scene.roots.value.filter((n) => n.kind !== 'measurements');
+    const roots = v.views.scene.roots.value.filter((n) => n.kind === 'structure');
     expect(roots).toHaveLength(2);
     const r = await v.api.sequence!.follow({ structure: '1cbs' });
     expect(r).toMatchObject({ ok: false, code: 'ambiguous' });

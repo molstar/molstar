@@ -376,22 +376,26 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     return n;
   };
 
-  // The focus group: always under a structure, so the tree does not shift as the focus comes and goes; its rows are the
-  // focus behavior's components (the target, its surroundings) while something is focused.
-  const focusNode = (structureRef: string, parts: readonly StructureComponentRef[]): Node => {
-    const id = `${structureRef}#focus`;
-    let n = nodes.get(id);
+  // The focus: one row at the top level, after the structures (the focus is one, whichever structure it is on), always
+  // there so the tree does not shift as it comes and goes; its rows are the focus behavior's components (the target, its
+  // surroundings) while something is focused.
+  const FocusId = 'scene#focus';
+  const focusNode = (
+    parts: readonly { component: StructureComponentRef; structure: string }[],
+    name?: string,
+  ): Node => {
+    let n = nodes.get(FocusId);
     if (!n) {
       const target = () => {
         const data = plugin.managers.structure.focus.current?.loci;
         return data && !StructureElement.Loci.isEmpty(data) ? data : undefined;
       };
-      n = new Node(id, 'focus', 'focus', 'Focus', false, {
+      n = new Node(FocusId, 'focus', 'focus', 'Focus', false, {
         visibility: (hide) => {
-          for (const c of focusParts(plugin, structureRef)) {
+          for (const { component, structure } of focusPartsNow) {
             void api.run('component.visibility', {
-              component: c.cell.transform.ref,
-              structure: structureRef,
+              component: component.cell.transform.ref,
+              structure,
               visible: !hide,
             });
           }
@@ -408,17 +412,20 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       });
       n.removable = false;
       n.menu = [{ id: 'clear', label: 'Clear focus', icon: 'x', run: () => void api.run('focus.clear') }];
-      nodes.set(id, n);
+      nodes.set(FocusId, n);
     }
-    const atoms = parts.find((c) => c.cell.transform.tags?.includes(StructureFocusRepresentationTags.TargetSel))?.cell
-      .obj?.data.elementCount;
+    focusPartsNow = parts;
+    const atoms = parts.find((p) =>
+      p.component.cell.transform.tags?.includes(StructureFocusRepresentationTags.TargetSel),
+    )?.component.cell.obj?.data.elementCount;
     n.set(
       'Focus',
-      atoms ? `${atoms.toLocaleString('en')} ${atoms === 1 ? 'atom' : 'atoms'}` : 'none',
-      parts.length > 0 && parts.every((c) => !!c.cell.state.isHidden),
+      atoms ? `${atoms.toLocaleString('en')} ${atoms === 1 ? 'atom' : 'atoms'}${name ? ` · ${name}` : ''}` : 'none',
+      parts.length > 0 && parts.every((p) => !!p.component.cell.state.isHidden),
     );
     return n;
   };
+  let focusPartsNow: readonly { component: StructureComponentRef; structure: string }[] = [];
 
   // A component left empty by hidden contents (the hierarchy leaves it out): its row stays, hidden, saying why; showing
   // the contents again brings it back as it was.
@@ -560,6 +567,9 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     const names = structureNames(list);
     const seen = new Set<string>();
     const top: SceneNode[] = [];
+    const allFocused: SceneNode[] = [];
+    const allFocusParts: { component: StructureComponentRef; structure: string }[] = [];
+    let focusedOn: string | undefined;
     for (const s of list) {
       const ref = s.cell.transform.ref;
       const sn = structureNode(s, names.get(ref) ?? ref);
@@ -597,13 +607,10 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         rest.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
         kids.splice(0, kids.length, first, ...rest);
       }
-      const fn = focusNode(
-        ref,
-        focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount),
-      );
-      seen.add(fn.id);
-      fn.setChildren(focused);
-      kids.push(fn);
+      const parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
+      if (parts.length) focusedOn = names.get(ref) ?? ref;
+      for (const component of parts) allFocusParts.push({ component, structure: ref });
+      allFocused.push(...focused);
       // The model's unit cell, under the first of its structures (another structure of the same model shares it).
       const cell = s.model?.unitcell;
       if (cell?.cell.obj?.data?.repr && !seen.has(cell.cell.transform.ref)) {
@@ -623,6 +630,13 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       }
       sn.setChildren(kids);
       top.push(sn);
+    }
+    if (list.length) {
+      // Named by its structure when there are several.
+      const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
+      seen.add(fn.id);
+      fn.setChildren(allFocused);
+      top.push(fn);
     }
     const volumes = plugin.managers.volume.hierarchy.current.volumes;
     const volumeLabels = namesOf(volumes);
@@ -820,6 +834,40 @@ function componentMenu(
     },
     // Remove comes from the tree (the row is removable), set apart in the danger color.
   ];
+}
+
+/**
+ * A structure's contents in a few facts: its entities by type (polymer, branched, non-polymer, water), its chains, its
+ * polymer residues, atoms, and models when there are several.
+ */
+export function contentsFacts(s: Structure): [string, string][] {
+  const { entities } = s.model;
+  const present = new Set<string>();
+  const chains = new Set<string>();
+  const loc = StructureElement.Location.create(s);
+  for (const unit of s.units) {
+    loc.unit = unit as Unit;
+    loc.element = unit.elements[0];
+    present.add(StructureProperties.chain.label_entity_id(loc));
+    chains.add(`${unit.conformation.operator.name}:${StructureProperties.chain.label_asym_id(loc)}`);
+  }
+  const byType = new Map<string, number>();
+  for (let i = 0; i < entities.data._rowCount; i++) {
+    if (!present.has(entities.data.id.value(i))) continue;
+    const type = entities.data.type.value(i) || 'other';
+    byType.set(type, (byType.get(type) ?? 0) + 1);
+  }
+  const order = ['polymer', 'branched', 'non-polymer', 'water', 'macrolide', 'other'];
+  const types = [...byType].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  const n = (x: number) => x.toLocaleString('en');
+  const facts: [string, string][] = [
+    ['Entities', `${n(present.size)}${types.length ? ` (${types.map(([t, c]) => `${c} ${t}`).join(', ')})` : ''}`],
+    ['Chains', n(chains.size)],
+    ['Residues', n(s.polymerResidueCount)],
+    ['Atoms', n(s.elementCount)],
+  ];
+  if (s.models.length > 1) facts.push(['Models', n(s.models.length)]);
+  return facts;
 }
 
 /** A structure's entities, each with its chains (lazy contents, decision 18: a row's eye hides it). */
@@ -1419,6 +1467,11 @@ function inspect(
         ['Range', `${signed(stats.min)} … ${signed(stats.max)}`],
       ],
     };
+  }
+  if (node.kind === 'contents') {
+    // A structure's contents (its id is the structure's ref + '#contents'): what it is made of, at a glance.
+    const s = dataOf(plugin, node.id.slice(0, node.id.indexOf('#')));
+    if (s) return { node, form: undefined, slot, facts: contentsFacts(s) };
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
     const data = cell.obj.data as ParticleList;

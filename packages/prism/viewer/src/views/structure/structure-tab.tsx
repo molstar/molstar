@@ -14,8 +14,8 @@ import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
-import { Show } from '@molstar/prism-ui/dom/control-flow';
-import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
+import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
@@ -200,7 +200,7 @@ export function StructureTab(props: StructureTabProps) {
               when={scene.picked}
               fallback={() => <p class={classes.inspectorEmpty}>Select an item in the tree to edit its properties.</p>}
             >
-              {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} />}
+              {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} onPick={(n) => scene.pick(n)} />}
             </Show>
           )}
         >
@@ -240,7 +240,7 @@ function RowInspector(props: { row: SceneRowPick }) {
 /** Rows that stand for a feature (on or off), not for something drawn (shown or hidden). */
 const TurnsOn: ReadonlySet<string> = new Set(['extension', 'unit-cell']);
 
-function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
+function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPick(node: SceneNode): void }) {
   const { node, form, slot } = props.inspection;
   return (
     <div class={classes.inspection}>
@@ -281,6 +281,9 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
           ))}
         </div>
       ) : null}
+      {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
+          tree's chevron. */}
+      {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
       {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}
       {props.inspection.quick ? <RepresentationQuick model={props.inspection.quick} /> : null}
       {/* A map's levels (the iso values and colors people change most), above the whole form. */}
@@ -309,6 +312,43 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
         ) : null
       ) : null}
     </div>
+  );
+}
+
+/** A component's representations in its inspector: icon, name, what it is colored by, its eye; a click opens it. */
+function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
+  const reprs = props.node.children.pipe(map((c) => c.filter((n) => n.kind === 'representation')));
+  return (
+    <Show when={reprs.pipe(map((r) => r.length > 0))}>
+      {() => (
+        <section class={classes.children} aria-label="Representations">
+          <span class={classes.childrenTitle}>Representations</span>
+          <For each={reprs} key={(n) => n.id}>
+            {(n) => (
+              <div class={classes.child} classList={{ [classes.childHidden]: n.isHidden }}>
+                <button type="button" class={classes.childOpen} onClick={() => props.onPick(n)}>
+                  <Icon name={n.icon} size={15} class={classes.childIcon} />
+                  <span class={classes.childLabel}>{n.label}</span>
+                  <span class={classes.childDescription}>{n.description}</span>
+                  <Icon name="chevron-right" size={14} class={classes.childChevron} />
+                </button>
+                <button
+                  type="button"
+                  class={classes.childEye}
+                  aria-label={n.isHidden.pipe(map((h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`)))}
+                  data-tip={n.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+                  onClick={() => n.toggleVisibility()}
+                >
+                  <Show when={n.isHidden} fallback={() => <Icon name="eye" size={14} />}>
+                    {() => <Icon name="eye-off" size={14} />}
+                  </Show>
+                </button>
+              </div>
+            )}
+          </For>
+        </section>
+      )}
+    </Show>
   );
 }
 

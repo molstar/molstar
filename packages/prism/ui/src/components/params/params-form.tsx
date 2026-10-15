@@ -562,7 +562,8 @@ function SelectRow(props: {
   const { options, binding } = props;
   const open = observableState(false);
   const index = binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))));
-  const indexed = options.map(([, label], i) => [String(i), label] as const);
+  // Mol*'s option categories are the list's groups.
+  const indexed = options.map(([, label, group], i) => [String(i), label, group] as const);
   return (
     <>
       <div class={classes.row}>

@@ -265,3 +265,79 @@
 .optionsContent {
   padding: var(--msp-space-2) var(--msp-space-3);
 }
+
+/* A component's representations: rows to open them (their inspector), each with its eye. */
+.children {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.childrenTitle {
+  padding: 0 var(--msp-space-2) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.child {
+  display: flex;
+  align-items: center;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.childHidden {
+  color: var(--msp-color-text-subtle);
+}
+
+.childOpen {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: max(30px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  text-align: left;
+}
+
+.childIcon {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.childLabel {
+  flex: none;
+  font-weight: 500;
+}
+
+.childDescription {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.childChevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.childEye {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}

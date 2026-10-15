@@ -22,7 +22,8 @@ describe('the scene', () => {
   it('shows each structure with its contents and components, by entry name', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const roots = v.views.scene.roots.value;
-    expect(kinds(roots)).toEqual(['structure:1CBS']);
+    // The structure, then the focus (one row for the scene).
+    expect(kinds(roots)).toEqual(['structure:1CBS', 'focus:Focus']);
     const children = roots[0].children.value;
     expect(children[0].kind).toBe('contents');
     expect(children.filter((c) => c.kind === 'component').length).toBeGreaterThan(0);
@@ -34,7 +35,7 @@ describe('the scene', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const before = v.views.scene.roots.value[0];
     await v.api.load.files({ files: [crambin()] });
-    const after = data(v.views.scene.roots.value);
+    const after = v.views.scene.roots.value.filter((n) => n.kind === 'structure');
     expect(after).toHaveLength(2);
     expect(after[0]).toBe(before);
     await v.api.structure.visibility({ structure: '1cbs', visible: false });
@@ -188,8 +189,8 @@ describe('the scene: volumes and particles', () => {
   it('shows a volume as a top-level node with its representations, next to structures', async () => {
     const v = await headlessViewer({ files: [cbs(), mapFile()] });
     const roots = v.views.scene.roots.value;
-    expect(kinds(roots)).toEqual(['structure:1CBS', 'volume:test.ccp4']);
-    const volume = roots[1];
+    expect(kinds(roots)).toEqual(['structure:1CBS', 'focus:Focus', 'volume:test.ccp4']);
+    const volume = roots[2];
     expect(volume.icon).toBe('volume');
     expect(volume.description.value).toMatch(/12 × 12 × 12 · 1\.5 Å/);
     const reps = volume.children.value;
