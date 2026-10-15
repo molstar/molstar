@@ -13,6 +13,7 @@ import { ApiArea, ApiResult } from './area.js';
 import { StructureParam } from './params.js';
 import { isFailure } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
+import { duration as cameraDuration } from './camera.js';
 
 // `focus` (operations.md §2, plan 2.3): Mol*'s focus (`managers.structure.focus`), the one part of a structure the
 // views dwell on, and, where the host has a canvas, the camera moves to it. View state: no history step
@@ -53,7 +54,7 @@ export class FocusApi extends ApiArea {
       }
       const focus = ctx.plugin.managers.structure.focus;
       focus.setFromLoci(part.loci);
-      if (canvas) ctx.plugin.managers.camera.focusLoci(part.loci);
+      if (canvas) ctx.plugin.managers.camera.focusLoci(part.loci, { durationMs: cameraDuration(ctx) });
       return ApiResult.ok(
         `Focused on ${part.selected.line}.`,
         { view: true },

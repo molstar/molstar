@@ -152,7 +152,8 @@ export class CameraApi extends ApiArea {
 const round = (v: number) => Math.round(v * 10) / 10;
 
 /** Milliseconds of the transition: none when the person asks for less motion. */
-function duration(ctx: { modules: { has(key: 'page'): boolean } }): number {
+/** The camera's animation, or a cut where the person prefers reduced motion (README §3.7). */
+export function duration(ctx: { modules: { has(key: 'page'): boolean } }): number {
   return ctx.modules.has('page') && prefersReducedMotion() ? 0 : ZoomDurationMs;
 }
 
