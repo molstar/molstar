@@ -15,6 +15,7 @@ import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
+import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
 
 /**
  * The scene as one tree: structures → components → representations, volumes, measurements. Rows are keyed by node, so
@@ -24,7 +25,7 @@ import { classes } from './_generated/scene-tree.module.css.js';
 export function SceneTree(props: { scene: SceneModel }) {
   const { scene } = props;
   return (
-    <div class={classes.tree} role="tree" aria-label="Scene">
+    <div class={classes.tree} role="tree" aria-label="Scene" tabIndex={0} onKeyDown={treeKeys} onFocusIn={treeFocus}>
       <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
         {(node) => <TreeNode scene={scene} node={node} depth={0} />}
       </For>
@@ -45,9 +46,10 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
     distinctUntilChanged(),
   );
   return (
-    <div role="treeitem" aria-expanded={open} aria-selected={picked}>
+    <div role="treeitem" aria-expanded={open} aria-selected={picked} tabIndex={-1} class={classes.item}>
       <div
         data-tip-row=""
+        data-tree-row=""
         class={classes.row}
         classList={{ [classes.hidden]: node.isHidden, [classes.picked]: picked }}
         style={{ '--msp-tree-depth': depth }}
@@ -59,6 +61,8 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
           type="button"
           class={classes.expander}
           classList={{ [classes.leaf]: hasChildren.pipe(map((h) => !h)) }}
+          data-tree-toggle=""
+          tabIndex={-1}
           aria-label="Expand"
           onClick={(e) => {
             e.stopPropagation();

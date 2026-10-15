@@ -21,6 +21,20 @@
   font-size: var(--msp-font-size-sm);
 }
 
+/* A tree item: focusable by the keyboard (dom/tree-keys.ts); its row shows the focus, not the item (which holds its
+   children). */
+.item {
+  outline: none;
+}
+
+.item:focus-visible > .row {
+  box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+}
+
+.tree:focus-visible {
+  outline: none;
+}
+
 .row {
   display: flex;
   align-items: center;

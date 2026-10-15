@@ -18,6 +18,7 @@ export const classes = {
   'empty': 'msp-viewer-scene-tree-empty',
   'expander': 'msp-viewer-scene-tree-expander',
   'hidden': 'msp-viewer-scene-tree-hidden',
+  'item': 'msp-viewer-scene-tree-item',
   'keep': 'msp-viewer-scene-tree-keep',
   'kind': 'msp-viewer-scene-tree-kind',
   'label': 'msp-viewer-scene-tree-label',
@@ -44,6 +45,18 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   padding: var(--msp-space-4);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
+}
+
+.msp-viewer-scene-tree-item {
+  outline: none;
+}
+
+.msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-row {
+  box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+}
+
+.msp-viewer-scene-tree-tree:focus-visible {
+  outline: none;
 }
 
 .msp-viewer-scene-tree-row {

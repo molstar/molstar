@@ -18,6 +18,7 @@ import { ActionBlock } from '../home/home-tab.js';
 import { classes as tree } from '../structure/_generated/scene-tree.module.css.js';
 import { classes as tab } from '../structure/_generated/structure-tab.module.css.js';
 import { classes } from './_generated/state-tree-tab.module.css.js';
+import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
 
 /**
  * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with the updates, the
@@ -42,7 +43,14 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   return (
     <div class={tab.tab}>
       <ScrollArea edge class={tab.tree}>
-        <div class={`${tree.tree} ${classes.tree}`} role="tree" aria-label="State tree">
+        <div
+          class={`${tree.tree} ${classes.tree}`}
+          role="tree"
+          aria-label="State tree"
+          tabIndex={0}
+          onKeyDown={treeKeys}
+          onFocusIn={treeFocus}
+        >
           <For
             each={model.roots}
             key={(n) => n.ref}
@@ -94,9 +102,10 @@ function Cell(props: {
     collapsed.set(next);
   };
   return (
-    <div role="treeitem" aria-expanded={expanded} aria-selected={selected}>
+    <div role="treeitem" aria-expanded={expanded} aria-selected={selected} tabIndex={-1} class={tree.item}>
       <div
         data-tip-row=""
+        data-tree-row=""
         class={tree.row}
         classList={{ [tree.hidden]: hidden, [tree.picked]: selected }}
         style={{ '--msp-tree-depth': depth }}
@@ -106,6 +115,8 @@ function Cell(props: {
           type="button"
           class={tree.expander}
           classList={{ [tree.leaf]: !hasChildren }}
+          data-tree-toggle=""
+          tabIndex={-1}
           aria-label="Expand"
           onClick={(e) => {
             e.stopPropagation();
