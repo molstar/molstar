@@ -14,6 +14,7 @@ import {
   ActionFooter,
   type CanvasToolbarItem,
   domView,
+  onCleanup,
   ParamsForm,
   SectionList,
   type ShellModel,
@@ -26,14 +27,19 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { map, type Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
+import type { SelectionSummaryModel } from '../model/selection.js';
+import type { StyleLayerInfo } from '../sources/style-layers.js';
+import { SelectionSummary } from '../views/selection/selection-summary.js';
+import { StyleLayers } from '../views/selection/style-layers.js';
+import { createStyleLayersModel } from './style-layers.js';
 
 // The core's shared homes for features' sections (viewer-spec.md §3.1, the `ViewerSlot`s): the Selection tab
 // (`selection`: what to do with the selection; Measure and Superpose come with their features) and the Export card
 // (`export`: image and session with their features, geometry, models, video with Mol*'s extensions). The Export
 // button shows once something exports.
 
-/** The Selection tab: its slot's sections, folded until one is opened (the selection bar opens one). */
-export function selectionTab(selection: ReadonlyState<string | undefined>): ShellTab {
+/** The Selection tab: what is selected, then its slot's sections, folded until one is opened (the selection bar opens one). */
+export function selectionTab(selection: SelectionSummaryModel): ShellTab {
   return {
     id: 'selection',
     title: 'Selection',
@@ -42,19 +48,22 @@ export function selectionTab(selection: ReadonlyState<string | undefined>): Shel
     render: domView(({ ctx }) => (
       <div style="display: grid; gap: var(--msp-space-2)">
         {/* What the sections below act on. */}
-        <p style="margin: 0; padding: var(--msp-space-2) var(--msp-space-3); color: var(--msp-color-text-muted)">
-          {selection.pipe(
-            map((s) => (s ? `Selected: ${s}` : 'Nothing is selected: pick on the canvas or in the sequence.')),
-          )}
-        </p>
+        <SelectionSummary model={selection} />
         <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} collapsed />
       </div>
     )),
   };
 }
 
-/** The core's sections in the Selection tab: style what is selected, make a component of it. */
-export function selectionSections(api: ViewerApi, selection: ReadonlyState<string | undefined>): ShellSection[] {
+/**
+ * The core's sections in the Selection tab: style what is selected (and the style layers applied, `sources.layers`),
+ * make a component of it.
+ */
+export function selectionSections(
+  api: ViewerApi,
+  selection: ReadonlyState<string | undefined>,
+  layers: ReadonlyState<readonly StyleLayerInfo[]>,
+): ShellSection[] {
   // Nothing to act on without a selection: the buttons say so.
   const none = selection.pipe(map((s) => !s));
   return [
@@ -63,8 +72,18 @@ export function selectionSections(api: ViewerApi, selection: ReadonlyState<strin
       slot: 'selection',
       title: 'Color, transparency, glow',
       icon: 'palette',
+      keywords: ['overpaint', 'color', 'transparency', 'emissive', 'glow', 'layers', 'clear'],
       order: 0,
-      render: domView(() => <StyleSelection api={api} none={none} />),
+      render: domView(() => {
+        const host = createStyleLayersModel(api, layers);
+        onCleanup(() => host.dispose());
+        return (
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr)">
+            <StyleSelection api={api} none={none} />
+            <StyleLayers model={host.model} />
+          </div>
+        );
+      }),
     },
     {
       id: 'selection-component',
@@ -96,7 +115,13 @@ function StyleSelection(props: { api: ViewerApi; none: Observable<boolean> }) {
           { isFlat: true },
         ),
         transparency: PD.Group(
-          { alpha: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }, { label: 'Opacity' }) },
+          {
+            alpha: PD.Numeric(
+              0.5,
+              { min: 0, max: 1, step: 0.05 },
+              { label: 'Transparency', description: '0: opaque, 1: hidden' },
+            ),
+          },
           {
             isFlat: true,
           },
@@ -131,6 +156,7 @@ function StyleSelection(props: { api: ViewerApi; none: Observable<boolean> }) {
         icon="paintbrush"
         label="Apply"
         busy={busy.asReadonly}
+        disabled={props.none}
         onReset={() => form.reset()}
         onApply={apply}
       />

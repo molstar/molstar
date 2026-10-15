@@ -17,6 +17,8 @@ import { structureNames } from './naming.js';
 import { createPointerSources, type PointerSources } from './pointer.js';
 import { createSettingsSources, type SettingsSources } from './settings.js';
 import { fromBehavior, fromChanged, SourceScope, sameItems, scanList } from './state.js';
+import { readStyleLayers, sameStyleLayers, type StyleLayerInfo } from './style-layers.js';
+import { watchedState } from './watched.js';
 
 // The viewer's sources (state.md §4): read-only states over the plugin, the only code besides `api/` that reads it.
 // What views, view models, the API's results and the agent's account read. Built per area as each is built (plan).
@@ -72,6 +74,11 @@ export interface ViewerSources {
   readonly formats: readonly string[];
   /** The Settings tab's groups with their current values. */
   readonly settings: SettingsSources;
+  /**
+   * The style layers applied (color, transparency, glow, material, clipping; `style-layers.ts`): followed only while
+   * subscribed, re-read once per animation frame, and only walked again when a layer cell changed.
+   */
+  readonly layers: ReadonlyState<readonly StyleLayerInfo[]>;
 }
 
 /** The sources and their disposer, kept by whoever made them. */
@@ -125,8 +132,14 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   const interaction = createInteractionSources(scope, plugin);
   const formats = plugin.dataFormats.options.map(([, label]) => label);
   const settings = createSettingsSources(scope, plugin);
+  const memo = {};
+  const layers = watchedState(
+    () => readStyleLayers(plugin, memo),
+    () => [plugin.state.data.events.changed, plugin.managers.structure.hierarchy.behaviors.selection],
+    { compare: sameStyleLayers },
+  );
   return {
-    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats, settings },
+    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats, settings, layers },
     dispose: () => scope.dispose(),
   };
 }

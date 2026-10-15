@@ -10,8 +10,10 @@
 
 import { mapState } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
-import type { SelectionModel } from '../model/selection.js';
+import type { SelectionModel, SelectionPart, SelectionSummaryModel } from '../model/selection.js';
 import type { InteractionSources } from '../sources/interaction.js';
+import type { PickedStructure } from '../sources/selection.js';
+import { sameItems } from '../sources/state.js';
 import type { CanvasMode, Granularity, ModeSwitchProps } from '../views/canvas/mode-switch.js';
 
 // The canvas's interaction chrome over the viewer (plan 2.3): the mode switch and the picking level (Mol*'s selection
@@ -62,6 +64,51 @@ export function selectionModel(
     ],
     clear: () => void api.select.clear(),
   };
+}
+
+/** Where in a structure the selection is: "chain A · 60 atoms"; with several structures, "chains A, B · 8 residues · 120 atoms". */
+function partDetail(p: PickedStructure, several: boolean): string {
+  const chains =
+    p.chains.length === 0
+      ? ''
+      : p.chains.length === 1
+        ? `chain ${p.chains[0]}`
+        : p.chains.length <= 4
+          ? `chains ${p.chains.join(', ')}`
+          : `${p.chains.length} chains`;
+  // One structure: the summary above counts the residues already.
+  const residues = several && p.residues > 1 ? `${p.residues.toLocaleString('en-US')} residues` : '';
+  const atoms = `${p.atoms.toLocaleString('en-US')} atom${p.atoms === 1 ? '' : 's'}`;
+  return [chains, residues, atoms].filter(Boolean).join(' · ');
+}
+
+const samePart = (a: SelectionPart, b: SelectionPart) => a.id === b.id && a.label === b.label && a.detail === b.detail;
+
+/**
+ * The selection at the top of the Selection tab: the summary, a line per structure it is in (the interaction source's
+ * `picked`, followed only while the tab shows), Focus (`focus.set`) and Clear (`select.clear`).
+ */
+export function selectionSummaryModel(interaction: InteractionSources, api: ViewerApi): SelectionSummaryModel {
+  return {
+    summary: interaction.selection,
+    parts: mapState(
+      interaction.picked,
+      (list) => list.map((p) => ({ id: p.ref, label: p.label, detail: partDetail(p, list.length > 1) })),
+      (a, b) => sameItems(a, b, samePart),
+    ),
+    selectMode: interaction.selectionMode,
+    pickLevel: mapState(interaction.granularity, (g) => pickLevelLabel(g), Object.is),
+    startSelecting: () => void api.select.mode({ on: true }),
+    focus: () => void api.focus.set({ target: 'selection' }),
+    clear: () => void api.select.clear(),
+  };
+}
+
+/** A granularity as the picking level menu says it ("Residue", "Chain (all instances)"). */
+function pickLevelLabel(value: string): string {
+  const g = Granularities.find((x) => x.value === value);
+  if (!g) return value;
+  return g.group ? `${g.label} (${g.group.toLowerCase()})` : g.label;
 }
 
 export { ModeSwitch, PickLevel } from '../views/canvas/mode-switch.js';

@@ -83,6 +83,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `representation.clipping` | Exclude from clipping |  | target, groups, structure, language |
 | `representation.color` | Color |  | target, color, theme, structure, language |
 | `representation.emissive` | Set emissive strength |  | target, strength, structure, language |
+| `representation.layer-remove` | Remove a style layer |  | layer |
+| `representation.layer-update` | Change a style layer |  | layer, value |
+| `representation.layers` | List the style layers | read | structure |
 | `representation.material` | Set material |  | material, component, structure |
 | `representation.remove` | Remove a representation | destructive | component, type, structure |
 | `representation.reset` | Reset a style layer |  | layer, structure |
@@ -146,6 +149,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `superpose.chains` | Superpose by chains |  | targets, alignSequences, traceOnly |
 | `superpose.db` | Superpose by UniProt (SIFTS) |  | structures, traceOnly |
 | `superpose.ligands` | Superpose by ligands |  | targets |
+| `superpose.list` | List the superpositions | read |  |
+| `superpose.remove` | Remove a superposition |  | structure |
 | `superpose.tm-align` | Superpose by TM-align |  | targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |

@@ -23,11 +23,17 @@ import { trace } from '@molstar/plugin/state/queries/structure/structure';
 import { polymer } from '@molstar/plugin/state/queries/structure/type';
 import type { StructureRef as HierarchyStructure } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StateTransform } from '@molstar/core/state';
+import type { PluginContext } from '@molstar/plugin/context';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResult } from '../../api/area.js';
 import { isFailure, labelOf, loadedStructures, pickNamed } from '../../api/scope.js';
 import type { ResolvedPart } from '../../api/targets.js';
 import type { TargetValue } from '../../api/target-param.js';
+import { structureNames } from '../../sources/naming.js';
 import { polymerPart } from '../../sources/selection.js';
+import { sameItems } from '../../sources/state.js';
+import { watchedState } from '../../sources/watched.js';
 import type { Scoped } from '../../targets/types.js';
 
 // The `superpose` area (operations.md §2, state.md: "the algorithms move out of the view into the API"): each operation
@@ -217,11 +223,33 @@ interface Move {
   readonly extra: Partial<SuperposedStructure>;
 }
 
+/**
+ * What a superposition records on the transform it writes (tags, so it follows the state: Undo, sessions): what the
+ * structure was superposed onto, how, and the RMSD. Mol*'s own panel writes the first tag only.
+ */
+const Recorded = { onto: 'superposed-onto:', method: 'superposed-by:', rmsd: 'superposed-rmsd:' } as const;
+
+function recordTags(reference: string, method: SuperposeMethod, rmsd: number, kept: readonly string[] = []): string[] {
+  return [
+    ...kept.filter((t) => t !== SuperpositionTag && !Object.values(Recorded).some((p) => t.startsWith(p))),
+    SuperpositionTag,
+    `${Recorded.onto}${reference}`,
+    `${Recorded.method}${method}`,
+    `${Recorded.rmsd}${Number.isFinite(rmsd) ? rmsd.toFixed(3) : 'NaN'}`,
+  ];
+}
+
 /** Writes the moves as one tree update (an existing conformation transform is updated, else one is inserted). */
-async function apply(ctx: ApiContext, reference: Member, moves: readonly Move[]): Promise<SuperposedStructure[]> {
+async function apply(
+  ctx: ApiContext,
+  method: SuperposeMethod,
+  reference: Member,
+  moves: readonly Move[],
+): Promise<SuperposedStructure[]> {
   // The reference may have been moved itself: its transform leads, as the classic panel's `coordinateSystem`.
   const cs = reference.structure.transform?.cell.obj?.data.coordinateSystem;
   const lead = cs && !Mat4.isIdentity(cs.matrix) ? cs.matrix : undefined;
+  const referenceRef = reference.structure.cell.transform.ref;
   const state = ctx.plugin.state.data;
   const build = state.build();
   let any = false;
@@ -240,12 +268,86 @@ async function apply(ctx: ApiContext, reference: Member, moves: readonly Move[])
     any = true;
     const params = { transform: { name: 'matrix' as const, params: { data: Mat4.clone(matrix), transpose: false } } };
     const existing = m.member.structure.transform?.cell;
-    if (existing) build.to(existing).update(params);
-    else build.to(m.member.structure.cell).insert(TransformStructureConformation, params, { tags: SuperpositionTag });
+    if (existing) {
+      build.to(existing).update(params);
+      // The record replaces an earlier one (the builder has no tag removal: its tree does).
+      build.currentTree.setTags(
+        existing.transform.ref,
+        recordTags(referenceRef, method, m.rmsd, existing.transform.tags),
+      );
+    } else {
+      build
+        .to(m.member.structure.cell)
+        .insert(TransformStructureConformation, params, { tags: recordTags(referenceRef, method, m.rmsd) });
+    }
   }
   if (any) await ctx.plugin.runTask(state.updateTree(build));
   return out;
 }
+
+// --- the superpositions made ------------------------------------------------------------------------------------
+
+/** A structure that a superposition moved, as its transform records it (`superpose.list`, the Superpose section). */
+export interface SuperposedInfo {
+  readonly structure: { readonly ref: string; readonly label: string };
+  /** What it was superposed onto; undefined when not recorded (Mol*'s own panel) or no longer loaded. */
+  readonly reference?: { readonly ref: string; readonly label: string };
+  readonly method?: SuperposeMethod;
+  readonly rmsd?: number;
+}
+
+/** Each method as a person says it. */
+export const SuperposeMethodNames: Readonly<Record<SuperposeMethod, string>> = {
+  chains: 'chains',
+  'tm-align': 'TM-align',
+  ligands: 'ligands',
+  atoms: 'atoms',
+  db: 'UniProt',
+};
+
+/** The superposition in words: "1W0E onto 1TQN by chains, RMSD 0.78 Å". */
+export function superposedLine(s: SuperposedInfo): string {
+  const how = [s.reference ? `onto ${s.reference.label}` : '', s.method ? `by ${SuperposeMethodNames[s.method]}` : '']
+    .filter(Boolean)
+    .join(' ');
+  const rmsd = s.rmsd !== undefined && Number.isFinite(s.rmsd) ? `, RMSD ${fixed(s.rmsd)} Å` : '';
+  return `${s.structure.label} ${how || 'superposed'}${rmsd}`;
+}
+
+/**
+ * The structures a superposition moved and that are still where it put them: their conformation transform carries the
+ * superposition's tag and is not the identity (a reset puts them back where they were loaded).
+ */
+export function readSuperposed(plugin: PluginContext): SuperposedInfo[] {
+  const structures = plugin.managers.structure.hierarchy.current.structures;
+  const names = structureNames(structures);
+  const out: SuperposedInfo[] = [];
+  for (const s of structures) {
+    const t = s.transform?.cell.transform;
+    if (!t || !StateTransform.hasTag(t, SuperpositionTag)) continue;
+    if (Mat4.isIdentity(currentMatrix(s), Epsilon)) continue;
+    const tag = (prefix: string) => t.tags?.find((x) => x.startsWith(prefix))?.slice(prefix.length);
+    const ref = s.cell.transform.ref;
+    const onto = tag(Recorded.onto);
+    const method = tag(Recorded.method) as SuperposeMethod | undefined;
+    const rmsd = tag(Recorded.rmsd);
+    out.push({
+      structure: { ref, label: names.get(ref) ?? ref },
+      ...(onto && names.has(onto) ? { reference: { ref: onto, label: names.get(onto)! } } : {}),
+      ...(method && method in SuperposeMethodNames ? { method } : {}),
+      ...(rmsd !== undefined && rmsd !== 'NaN' ? { rmsd: Number(rmsd) } : {}),
+    });
+  }
+  return out;
+}
+
+const sameSuperposed = (a: SuperposedInfo, b: SuperposedInfo) =>
+  a.structure.ref === b.structure.ref &&
+  a.structure.label === b.structure.label &&
+  a.reference?.ref === b.reference?.ref &&
+  a.reference?.label === b.reference?.label &&
+  a.method === b.method &&
+  a.rmsd === b.rmsd;
 
 const fixed = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : String(n));
 
@@ -339,6 +441,89 @@ const needsTwo = (ctx: ApiAreaContext) =>
 export class SuperposeApi extends ApiArea {
   readonly id = 'superpose';
 
+  #made: ReadonlyState<readonly SuperposedInfo[]> | undefined;
+
+  /**
+   * The structures superposed now (`readSuperposed`), following the state while watched (the Superpose section's list;
+   * prism AGENTS.md, hidden UI: nothing listens while nobody looks), read once per animation frame.
+   */
+  get made(): ReadonlyState<readonly SuperposedInfo[]> {
+    const plugin = this.ctx.plugin;
+    this.#made ??= watchedState(
+      () => readSuperposed(plugin),
+      () => [plugin.state.data.events.changed, plugin.managers.structure.hierarchy.behaviors.selection],
+      { compare: (a, b) => sameItems(a, b, sameSuperposed) },
+    );
+    return this.#made;
+  }
+
+  readonly list = this.operation({
+    id: 'superpose.list',
+    title: 'List the superpositions',
+    params: {},
+    read: true,
+    async run(_, ctx) {
+      const list = readSuperposed(ctx.plugin);
+      if (!list.length) return ApiResult.ok('No structure is superposed.', {}, { value: list });
+      return ApiResult.ok(list.map(superposedLine).join('\n'), {}, { value: list });
+    },
+  });
+
+  // Undoes a superposition where it stands (not by history): the structure goes back where it was loaded (a
+  // superposition replaces any earlier transform, so there is nothing else to restore) and its record goes.
+  readonly remove = this.operation({
+    id: 'superpose.remove',
+    title: 'Remove a superposition',
+    params: {
+      structure: PD.Text('', {
+        description: 'A superposed structure by label or state ref; empty: every superposed structure',
+      }),
+    },
+    when: (ctx) => (readSuperposed(ctx.plugin).length ? true : 'No structure is superposed.'),
+    async run({ structure }, ctx) {
+      const made = readSuperposed(ctx.plugin);
+      if (!made.length) return ApiResult.already('No structure is superposed.');
+      let doomed = made;
+      if (structure) {
+        const all = loadedStructures(ctx);
+        const s = pickNamed(all, structure, {
+          what: 'structure',
+          ids: (x) => [x.cell.transform.ref],
+          names: (x) => [labelOf(ctx, x), x.cell.obj?.label],
+          describe: (x) => `${labelOf(ctx, x)} (${x.cell.transform.ref})`,
+          none: { message: 'Nothing is loaded.', hint: 'Load structures first.' },
+        });
+        if (isFailure(s)) return s;
+        doomed = made.filter((m) => m.structure.ref === s.cell.transform.ref);
+        if (!doomed.length) {
+          return ApiResult.already(`${labelOf(ctx, s)} is not superposed.`);
+        }
+      }
+      const identity = { transform: { name: 'matrix' as const, params: { data: Mat4.identity(), transpose: false } } };
+      const state = ctx.plugin.state.data;
+      const build = state.build();
+      for (const m of doomed) {
+        const cell = loadedStructures(ctx).find((x) => x.cell.transform.ref === m.structure.ref)?.transform?.cell;
+        if (!cell) continue;
+        build.to(cell).update(identity);
+        build.currentTree.setTags(
+          cell.transform.ref,
+          (cell.transform.tags ?? []).filter(
+            (t) => t !== SuperpositionTag && !Object.values(Recorded).some((p) => t.startsWith(p)),
+          ),
+        );
+      }
+      await ctx.plugin.runTask(state.updateTree(build));
+      if (ctx.modules.has('canvas')) ctx.plugin.managers.camera.reset();
+      const names = doomed.map((m) => m.structure.label).join(', ');
+      return ApiResult.ok(
+        `Put ${names} back where ${doomed.length === 1 ? 'it was' : 'they were'} loaded.`,
+        { nodes: doomed.map((m) => m.structure.ref), view: true },
+        { value: doomed },
+      );
+    },
+  });
+
   readonly chains = this.operation({
     id: 'superpose.chains',
     title: 'Superpose by chains',
@@ -362,7 +547,7 @@ export class SuperposeApi extends ApiArea {
         if (Number.isNaN(rmsd)) return noRmsd(ms[0].label);
         moves.push({ member: ms[i], matrix: bTransform, rmsd, paired: nAlignedElements, extra: {} });
       }
-      const results = await apply(ctx, ms[0], moves);
+      const results = await apply(ctx, 'chains', ms[0], moves);
       return finish(ctx, 'chains', ms[0], results, `by chains${alignSequences ? ' (sequence-aligned)' : ''}`);
     },
   });
@@ -411,7 +596,7 @@ export class SuperposeApi extends ApiArea {
           'Check that the chains are of the same kind of molecule.',
         );
       }
-      const results = await apply(ctx, ms[0], moves);
+      const results = await apply(ctx, 'tm-align', ms[0], moves);
       return finish(ctx, 'tm-align', ms[0], results, 'by TM-align');
     },
   });
@@ -473,7 +658,7 @@ export class SuperposeApi extends ApiArea {
           'Ligands superpose when they share atoms or a common scaffold.',
         );
       }
-      const results = await apply(ctx, ms[0], moves);
+      const results = await apply(ctx, 'ligands', ms[0], moves);
       return finish(ctx, 'ligands', ms[0], results, 'by ligands', warnings);
     },
   });
@@ -516,7 +701,7 @@ export class SuperposeApi extends ApiArea {
         if (Number.isNaN(rmsd)) return noRmsd(ms[0].label);
         moves.push({ member: ms[i], matrix: bTransform, rmsd, paired: nAlignedElements, extra: {} });
       }
-      const results = await apply(ctx, ms[0], moves);
+      const results = await apply(ctx, 'atoms', ms[0], moves);
       return finish(ctx, 'atoms', ms[0], results, 'by atoms');
     },
   });
@@ -601,7 +786,7 @@ export class SuperposeApi extends ApiArea {
         paired: e.transform.nAlignedElements,
         extra: {},
       }));
-      const results = await apply(ctx, members0, moves);
+      const results = await apply(ctx, 'db', members0, moves);
       return finish(ctx, 'db', members0, results, 'by UniProt mapping', warnings);
     },
   });

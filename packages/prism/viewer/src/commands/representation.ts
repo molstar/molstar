@@ -98,5 +98,19 @@ export function representationCommands(api: ViewerApi): CommandDefinition<Viewer
       alias: ['reset color', 'reset transparency', 'clear color', 'clear style', 'reset style', 'reset emissive'],
       action: 'Reset',
     }),
+    operationCommand(api, api.representation.layerUpdate, {
+      category,
+      icon: 'pencil',
+      title: 'Change a style layer…',
+      alias: ['edit color', 'change color', 'edit transparency', 'edit glow', 'edit layer', 'edit overpaint'],
+      action: 'Change',
+    }),
+    operationCommand(api, api.representation.layerRemove, {
+      category,
+      icon: 'trash-2',
+      title: 'Remove a style layer…',
+      alias: ['remove color', 'delete color', 'remove overpaint', 'remove transparency', 'remove glow', 'remove layer'],
+      action: 'Remove',
+    }),
   ];
 }

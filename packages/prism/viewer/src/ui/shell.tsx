@@ -48,7 +48,14 @@ import { settingsTab } from './settings.js';
 import { LegendCard } from '../sequence/legend-card.js';
 import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
 import { SequenceControl } from '../sequence/sequence-control.js';
-import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
+import {
+  ModeSwitch,
+  modeSwitchProps,
+  PickLevel,
+  SelectionBar,
+  selectionModel,
+  selectionSummaryModel,
+} from './interaction.js';
 import { StructureTab } from '../views/structure/structure-tab.js';
 import { StructureCommandGroups, structureCommands } from './structure-commands.js';
 import { HelpProse } from '../views/help/help-prose.js';
@@ -334,8 +341,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
   }
   // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
-  unregister.push(shell.registerTabs(own('tab', [selectionTab(sources.interaction.selection)])));
-  unregister.push(shell.registerSections(own('section', selectionSections(person, sources.interaction.selection))));
+  unregister.push(shell.registerTabs(own('tab', [selectionTab(selectionSummaryModel(sources.interaction, person))])));
+  unregister.push(
+    shell.registerSections(own('section', selectionSections(person, sources.interaction.selection, sources.layers))),
+  );
   const exporting = exportCard(shell);
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
   unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));

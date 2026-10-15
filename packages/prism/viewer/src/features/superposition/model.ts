@@ -9,13 +9,15 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { MessageKind } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import { mapState } from '@molstar/prism-ui/reactive/map-state';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { combineLatest, type Subscription } from 'rxjs';
+import { sameItems } from '../../sources/state.js';
 import type { ViewerApi } from '../../api/area.js';
-import type { SuperpositionEntry, SuperpositionModel } from '../../model/superposition.js';
+import type { SuperposedEntry, SuperpositionEntry, SuperpositionModel } from '../../model/superposition.js';
 import type { PickedStructure } from '../../sources/selection.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
-import type { SuperposeMethod } from './operations.js';
+import { type SuperposedInfo, type SuperposeMethod, SuperposeMethodNames, superposedLine } from './operations.js';
 
 // The view model of the Superpose section (state.md: "the algorithms move out of the view into the API"): the form, what
 // the method would use (the selection of each structure, or every structure for UniProt) and Superpose, which calls
@@ -75,6 +77,21 @@ export interface Superposition extends SuperpositionModel {
 const MinAtoms = 3;
 
 const count = (n: number, what: string) => `${n} ${what}${n === 1 ? '' : 's'}`;
+
+/** A superposition made, as its row says it: "onto 1TQN · chains · 0.78 Å" (the RMSD). */
+export function superposedEntry(s: SuperposedInfo): SuperposedEntry {
+  const detail = [
+    s.reference ? `onto ${s.reference.label}` : 'superposed',
+    s.method ? SuperposeMethodNames[s.method] : '',
+    s.rmsd !== undefined && Number.isFinite(s.rmsd) ? `${s.rmsd.toFixed(2)} Å` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return { id: s.structure.ref, label: s.structure.label, detail, line: superposedLine(s) };
+}
+
+const sameEntry = (a: SuperposedEntry, b: SuperposedEntry) =>
+  a.id === b.id && a.label === b.label && a.detail === b.detail && a.line === b.line;
 
 /** Why a method cannot use this selection, or undefined. Mirrors what `superpose.*` checks of each target. */
 export function problemOf(
@@ -148,6 +165,19 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
     sub = combineLatest([form.values, deps.sources.structures, deps.sources.interaction.picked]).subscribe(refresh);
   };
 
+  // The superpositions made, from the state (a watched source: it follows the tree only while the list shows).
+  const area = deps.api.superpose;
+  const made = area
+    ? mapState(
+        area.made,
+        (list) => list.map(superposedEntry),
+        (a, b) => sameItems(a, b, sameEntry),
+      )
+    : undefined;
+  const report = (r: { ok: boolean; did?: string; message?: string; hint?: string }) => {
+    if (!r.ok) deps.notify(r.hint ? `${r.message} ${r.hint}` : (r.message ?? ''), 'error');
+  };
+
   const superpose = async () => {
     if (busy || !ready.value) return;
     busy = true;
@@ -183,6 +213,13 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
     blocked: blocked.asReadonly,
     focus: (id) => void deps.api.focus.set({ target: 'selection', structure: id }),
     superpose: () => void superpose(),
+    ...(made
+      ? {
+          made,
+          remove: (id: string) => void deps.api.superpose?.remove({ structure: id }).then(report),
+          clear: () => void deps.api.superpose?.remove({ structure: '' }).then(report),
+        }
+      : {}),
     setActive,
     dispose() {
       setActive(false);

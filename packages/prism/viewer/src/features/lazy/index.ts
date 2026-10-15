@@ -32,13 +32,17 @@ export const LazySuperposition: LazyViewerExtension = {
         order: 3,
       },
     ],
-    operations: ops([
-      ['superpose.chains', 'Superpose by chains'],
-      ['superpose.tm-align', 'Superpose by TM-align'],
-      ['superpose.ligands', 'Superpose by ligands'],
-      ['superpose.atoms', 'Superpose by atoms'],
-      ['superpose.db', 'Superpose by UniProt (SIFTS)'],
-    ]),
+    operations: [
+      ...ops([
+        ['superpose.chains', 'Superpose by chains'],
+        ['superpose.tm-align', 'Superpose by TM-align'],
+        ['superpose.ligands', 'Superpose by ligands'],
+        ['superpose.atoms', 'Superpose by atoms'],
+        ['superpose.db', 'Superpose by UniProt (SIFTS)'],
+        ['superpose.remove', 'Remove a superposition'],
+      ]),
+      { id: 'superpose.list', title: 'List the superpositions', read: true },
+    ],
     commands: [
       { id: 'superpose.open', title: 'Superpose structures…', category: 'Superposition', icon: 'layers' },
       ...ops([
@@ -48,6 +52,7 @@ export const LazySuperposition: LazyViewerExtension = {
         ['superpose.atoms', 'Superpose by atoms'],
         ['superpose.db', 'Superpose by UniProt (SIFTS)'],
       ]).map((c) => ({ ...c, category: 'Superposition', icon: 'layers' as const })),
+      { id: 'superpose.remove', title: 'Remove a superposition…', category: 'Superposition', icon: 'rotate-ccw' },
     ],
   },
   load: async () => (await import('../superposition/index.js')).SuperpositionFeature,

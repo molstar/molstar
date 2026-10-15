@@ -17,6 +17,7 @@ import { cbs, crambin, expectOk, headlessViewer, recordRuns, until } from '../..
 import type { PrismViewer } from '../../../viewer.js';
 import { SuperpositionFeature } from '../index.js';
 import { createSuperpositionModel } from '../model.js';
+import type { SuperposeApi } from '../operations.js';
 
 // The `superposition` feature (operations.md §2, `superpose`): each operation superposes structures onto the first and is
 // one history step. The fixtures are copies of one file, one of them moved by a known transform, so the answer is known:
@@ -530,6 +531,110 @@ describe('the Superpose view model', () => {
       expect(messages[0]).toMatch(/^success: Superposed/);
       expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), Undone, 0.02)).toBe(true);
     } finally {
+      model.dispose();
+    }
+  });
+});
+
+describe('superpose.list and superpose.remove', () => {
+  const listed = async (api: SuperposeApi) => {
+    const r = await api.list();
+    expectOk(r);
+    return r.value ?? [];
+  };
+
+  /** The unmoved copy superposed onto the moved one: it gets the move (a transform that is not the identity). */
+  async function superposed() {
+    const t = await twoCopies();
+    const r = await t.api.chains({
+      targets: [
+        { target: 'polymer', structure: t.mobile },
+        { target: 'polymer', structure: t.ref },
+      ],
+    });
+    expectOk(r);
+    return t;
+  }
+
+  it('lists what a superposition moved, onto what and how, from the transform it recorded', async () => {
+    const { v, ref, mobile, api } = await superposed();
+    const r = await api.list();
+    expectOk(r);
+    expect(r.value).toHaveLength(1);
+    expect(r.value![0]).toMatchObject({ structure: { ref }, reference: { ref: mobile }, method: 'chains' });
+    expect(r.value![0].rmsd).toBeLessThan(0.05);
+    expect(r.did).toMatch(/onto .* by chains, RMSD 0\.0/);
+    // The record follows the state: Undo takes it with the transform.
+    expectOk(await v.api.history.undo());
+    expect(await listed(api)).toHaveLength(0);
+  });
+
+  it('records on a transform that was there already, replacing an earlier record', async () => {
+    const { v, ref, mobile, api } = await twoCopies();
+    // The mobile copy has an untagged transform (moved by hand): superposed onto the reference it ends at the identity,
+    // which is not listed (it is where it was loaded).
+    expectOk(
+      await api.chains({
+        targets: [
+          { target: 'polymer', structure: ref },
+          { target: 'polymer', structure: mobile },
+        ],
+      }),
+    );
+    expect(await listed(api)).toHaveLength(0);
+    const tags = mobileOf(v, mobile).transform!.cell.transform.tags ?? [];
+    expect(tags.filter((t) => t.startsWith('superposed-onto:'))).toEqual([`superposed-onto:${ref}`]);
+  });
+
+  it('puts a structure back where it was loaded, one history step; Undo superposes it again', async () => {
+    const { v, ref, api } = await superposed();
+    const before = await steps(v);
+    const r = await api.remove({ structure: ref });
+    expectOk(r);
+    expect(r.changed.nodes).toEqual([ref]);
+    expect(Mat4.isIdentity(matrixOf(mobileOf(v, ref)), 1e-6)).toBe(true);
+    expect(await listed(api)).toHaveLength(0);
+    expect(mobileOf(v, ref).transform!.cell.transform.tags ?? []).not.toContain('SuperpositionTransform');
+    expect(await steps(v)).toBe(before + 1);
+
+    // Nothing superposed: nothing to remove (the command is disabled with the reason).
+    expect(await api.remove({ structure: ref })).toMatchObject({ ok: false, code: 'blocked' });
+    expectOk(await v.api.history.undo());
+    expect(await listed(api)).toHaveLength(1);
+  });
+
+  it('removes every superposition with no structure named, and refuses a name that is not loaded', async () => {
+    const { api } = await superposed();
+    expect(await api.remove({ structure: 'no-such' })).toMatchObject({ ok: false, code: 'not-found' });
+    expectOk(await api.remove({}));
+    expect(await listed(api)).toHaveLength(0);
+    expect(await api.remove({})).toMatchObject({ ok: false, code: 'blocked' });
+  });
+
+  it("the section's model lists them while active, and removes and clears them", async () => {
+    const { v, api } = await superposed();
+    const messages: string[] = [];
+    const model = createSuperpositionModel({
+      api: v.api,
+      sources: v.sources,
+      notify: (text: string, kind?: string) => messages.push(`${kind}: ${text}`),
+    });
+    model.setActive(true);
+    const seen: number[] = [];
+    const sub = model.made!.subscribe((l) => seen.push(l.length));
+    try {
+      expect(model.made!.value).toHaveLength(1);
+      expect(model.made!.value[0].detail).toMatch(/^onto .* · chains · 0\.0\d Å$/);
+      model.remove!(model.made!.value[0].id);
+      await until(() => seen[seen.length - 1] === 0);
+      expect(await listed(api)).toHaveLength(0);
+      expectOk(await v.api.history.undo());
+      await until(() => seen[seen.length - 1] === 1);
+      model.clear!();
+      await until(() => seen[seen.length - 1] === 0);
+      expect(messages).toEqual([]);
+    } finally {
+      sub.unsubscribe();
       model.dispose();
     }
   });

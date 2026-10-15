@@ -13,11 +13,13 @@ import { ActionFooter } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import { For } from '@molstar/prism-ui/dom/control-flow';
 import type { SuperpositionModel } from '../../model/superposition.js';
+import { Superposed } from '../selection/superposed.js';
 import { classes } from './_generated/superpose.module.css.js';
 
 /**
  * Superposing structures (the Selection tab's Superpose section, after Mol*'s): the method and its options, what it
- * would superpose (one selection per structure, a click focuses one; or what to select), and Superpose.
+ * would superpose (one selection per structure, a click focuses one; or what to select), Superpose, and the
+ * superpositions made (each removed by itself, or all).
  */
 export function Superpose(props: { model: SuperpositionModel }) {
   const { model } = props;
@@ -49,6 +51,10 @@ export function Superpose(props: { model: SuperpositionModel }) {
         onReset={() => model.form.reset()}
         onApply={() => model.superpose()}
       />
+      {/* The superpositions made: removed here (they go back where they were loaded), as measurements are. */}
+      {model.made && model.remove ? (
+        <Superposed made={model.made} remove={(id) => model.remove?.(id)} clear={model.clear} />
+      ) : null}
     </div>
   );
 }

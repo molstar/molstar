@@ -17,6 +17,16 @@ export interface SuperpositionEntry {
   problem?: string;
 }
 
+/** A superposition made: the structure moved ("1TQN") and how ("onto 1CBS · chains · RMSD 0.53 Å"). */
+export interface SuperposedEntry {
+  /** The moved structure's state ref. */
+  id: string;
+  label: string;
+  detail: string;
+  /** All of it in words ("1W0E onto 1TQN by chains, RMSD 0.78 Å"), for the tooltip. */
+  line: string;
+}
+
 /**
  * Superposing structures (Mol*'s superposition controls, implemented over the selection and the superposition utils):
  * a method (chains, TM-align, UniProt, ligands, atoms) with its options, the selections it would use (one per structure;
@@ -36,4 +46,10 @@ export interface SuperpositionModel {
   blocked?: ReadonlyState<string | undefined>;
   focus(id: string): void;
   superpose(): void;
+  /** The superpositions made (the structures still where one put them), each removable; absent: not listed. */
+  made?: ReadonlyState<readonly SuperposedEntry[]>;
+  /** Puts a superposed structure back where it was loaded. */
+  remove?(id: string): void;
+  /** Puts every superposed structure back. */
+  clear?(): void;
 }

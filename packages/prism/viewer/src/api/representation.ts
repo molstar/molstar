@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateSelection } from '@molstar/core/state';
+import type { Color } from '@molstar/core/util/color';
 import { decodeColor } from '@molstar/core/util/color/utils';
 import { Material } from '@molstar/core/util/material';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -23,11 +23,7 @@ import { setStructureClipping } from '@molstar/plugin/state/helpers/structure-cl
 import { setStructureEmissive } from '@molstar/plugin/state/helpers/structure-emissive';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { setStructureTransparency } from '@molstar/plugin/state/helpers/structure-transparency';
-import { ClippingStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/clipping';
-import { EmissiveStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/emissive';
-import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
-import { TransparencyStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/transparency';
-import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
+import { type ApiAreaContext, type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
 import { ComponentParam, EveryStructureParam, mergeParams, StructureParam } from './params.js';
 import {
   componentName,
@@ -38,6 +34,16 @@ import {
   oneStructure,
   someStructures,
 } from './scope.js';
+import {
+  readStyleLayers,
+  StyleLayerCells,
+  type StyleLayerInfo,
+  type StyleLayerKind,
+  StyleLayerKinds,
+  styleLayerCellsOf,
+  styleLayerId,
+  styleLayerKey,
+} from '../sources/style-layers.js';
 import { setRepresentation } from './set-representation.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
@@ -50,19 +56,10 @@ import { LanguageParam, TargetParam } from './target-param.js';
 // says so (`already`, no history step).
 
 // The layers (the plugin's `state/helpers/structure-*.ts`): which transformer holds them under a representation, and
-// the tag those helpers give its cells (they keep it private).
-const Layers = {
-  color: { transformer: OverpaintStructureRepresentation3DFromBundle, tag: 'overpaint-controls', name: 'color' },
-  transparency: {
-    transformer: TransparencyStructureRepresentation3DFromBundle,
-    tag: 'transparency-controls',
-    name: 'transparency',
-  },
-  emissive: { transformer: EmissiveStructureRepresentation3DFromBundle, tag: 'emissive-controls', name: 'emissive' },
-  clipping: { transformer: ClippingStructureRepresentation3DFromBundle, tag: 'clipping-controls', name: 'clipping' },
-} as const;
+// the tag those helpers give its cells (they keep it private); `sources/style-layers.ts` reads them for people.
+const Layers = StyleLayerCells;
 
-type LayerKind = keyof typeof Layers;
+type LayerKind = StyleLayerKind;
 
 /** The Mol* clipping groups, by name. */
 const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Names[];
@@ -453,37 +450,208 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: clears a layer: every representation of the structure (or all) loses what it holds.
+  // operations.md §2: clears a layer: every representation of the structure (or all) loses what it holds; `all`: every
+  // kind at once (the Selection tab's Clear all), one step.
   readonly reset = this.operation({
     id: 'representation.reset',
     title: 'Reset a style layer',
     params: {
-      layer: PD.Select<LayerKind>('color', [
+      layer: PD.Select<LayerKind | 'all'>('color', [
         ['color', 'Color'],
         ['transparency', 'Transparency'],
         ['emissive', 'Emissive'],
+        ['substance', 'Material'],
         ['clipping', 'Clipping'],
+        ['all', 'All layers'],
       ]),
       structure: EveryStructureParam(),
     },
     async run({ layer, structure }, ctx) {
-      if (!(layer in Layers)) {
-        return ApiResult.fail('invalid', `There is no layer '${layer}'.`, `Layers: ${Object.keys(Layers).join(', ')}.`);
+      if (layer !== 'all' && !(layer in Layers)) {
+        return ApiResult.fail(
+          'invalid',
+          `There is no layer '${layer}'.`,
+          `Layers: ${Object.keys(Layers).join(', ')}, all.`,
+        );
       }
       const targets = someStructures(ctx, structure || undefined);
       if (isFailure(targets)) return targets;
       const reprs = targets.flatMap((s) => s.components.flatMap((c) => c.representations));
-      const cells = layerCells(ctx, layer, reprs);
+      const kinds = layer === 'all' ? StyleLayerKinds : [layer];
+      const cells = kinds.flatMap((k) => layerCells(ctx, k, reprs));
       const names = targets.map((x) => labelOf(ctx, x)).join(', ');
-      if (!cells.length) return ApiResult.already(`${names} has no ${Layers[layer].name} to reset.`);
+      const what = layer === 'all' ? 'style layers' : Layers[layer].name;
+      if (!cells.length) return ApiResult.already(`${names} has no ${what} to reset.`);
       const update = ctx.plugin.state.data.build();
       for (const c of cells) update.delete(c.ref);
       await update.commit({ doNotUpdateCurrent: true });
-      return ApiResult.ok(`Reset the ${Layers[layer].name} of ${names}.`, {
+      return ApiResult.ok(`Reset the ${what} of ${names}.`, {
         nodes: [...new Set(cells.map((c) => c.parent))],
       });
     },
   });
+
+  // The applied layers, one per value of a kind on a structure (`sources/style-layers.ts`): what the Selection tab
+  // lists, and the ids `layer-update` and `layer-remove` take.
+  readonly layers = this.operation({
+    id: 'representation.layers',
+    title: 'List the style layers',
+    params: { structure: EveryStructureParam() },
+    read: true,
+    async run({ structure }, ctx) {
+      const targets = someStructures(ctx, structure || undefined);
+      if (isFailure(targets)) return targets;
+      const refs = new Set(targets.map((t) => t.cell.transform.ref));
+      const list = readStyleLayers(ctx.plugin).filter((l) => refs.has(l.structure.ref));
+      if (!list.length) {
+        return ApiResult.ok(
+          `${targets.map((t) => labelOf(ctx, t)).join(', ')} has no style layers.`,
+          {},
+          { value: list },
+        );
+      }
+      return ApiResult.ok(list.map((l) => `${l.id}: ${layerLine(l)}`).join('\n'), {}, { value: list });
+    },
+  });
+
+  // One layer's value changed where it is (a color, a transparency, an emissive strength): the Selection tab's edit.
+  readonly layerUpdate = this.operation({
+    id: 'representation.layer-update',
+    title: 'Change a style layer',
+    params: (ctx) => ({
+      layer: LayerParam(ctx, (l) => l.kind === 'color' || l.kind === 'transparency' || l.kind === 'emissive'),
+      value: PD.Text('', {
+        description: 'The new value: a CSS color for a color layer; 0 to 1 for transparency (1: hidden) and emissive',
+      }),
+    }),
+    when: (ctx) => (ctx.sources.layers.value.length ? true : 'No style layers are applied.'),
+    async run({ layer, value }, ctx) {
+      const found = findLayer(ctx, layer);
+      if (isFailure(found)) return found;
+      const { kind } = found;
+      let patch: { color: Color } | { value: number };
+      if (kind === 'color') {
+        if (found.clear)
+          return ApiResult.fail('invalid', 'A color reset has no color to change.', 'Remove it instead.');
+        const color = decodeColor(value);
+        if (color === undefined) {
+          return ApiResult.fail(
+            'invalid',
+            `'${value}' is not a color.`,
+            'Give a CSS color: a name (red), #rrggbb, or rgb(r, g, b).',
+          );
+        }
+        patch = { color };
+      } else if (kind === 'transparency' || kind === 'emissive') {
+        const n = Number(value);
+        if (!value.trim() || !Number.isFinite(n) || n < 0 || n > 1) {
+          return ApiResult.fail('invalid', `'${value}' is not a number from 0 to 1.`);
+        }
+        patch = { value: n };
+      } else {
+        return ApiResult.fail(
+          'invalid',
+          `A ${Layers[kind].name} layer is not changed in place.`,
+          'Remove it and apply another to the target.',
+        );
+      }
+      const next = styleLayerKey(kind, patch);
+      const id = styleLayerId(kind, found.structure.ref, next);
+      if (next === found.value) return ApiResult.already(`It is already ${next}.`, { value: { id } });
+      const touched = await editLayerCells(ctx, found, (l) => ({ ...l, ...patch }));
+      return ApiResult.ok(
+        `Changed the ${Layers[kind].name} of ${found.where} (${found.structure.label}) from ${found.value} to ${next}.`,
+        { nodes: touched },
+        { value: { id } },
+      );
+    },
+  });
+
+  // One layer removed from every representation of its structure (the rest of the kind stays): the Selection tab's ✕.
+  readonly layerRemove = this.operation({
+    id: 'representation.layer-remove',
+    title: 'Remove a style layer',
+    params: (ctx) => ({ layer: LayerParam(ctx) }),
+    when: (ctx) => (ctx.sources.layers.value.length ? true : 'No style layers are applied.'),
+    async run({ layer }, ctx) {
+      const found = findLayer(ctx, layer);
+      if (isFailure(found)) return found;
+      const touched = await editLayerCells(ctx, found, () => undefined);
+      return ApiResult.ok(`Removed ${layerLine(found)}.`, { nodes: touched });
+    },
+  });
+}
+
+// --- the layers by id -------------------------------------------------------------------------------------------
+
+/** A layer for people: "color #e0523a on A:10-17 of 1CBS". */
+function layerLine(l: StyleLayerInfo): string {
+  const what =
+    l.kind === 'color'
+      ? l.clear
+        ? 'the color reset'
+        : `color ${l.value}`
+      : l.kind === 'substance'
+        ? l.clear
+          ? 'the material reset'
+          : `material ${l.value}`
+        : l.kind === 'clipping'
+          ? `the clipping exclusion (${l.value})`
+          : `${Layers[l.kind].name} ${l.value}`;
+  return `${what} on ${l.where} of ${l.structure.label}`;
+}
+
+/** A layer by id, its choices the layers applied now (those `keep` keeps). */
+function LayerParam(ctx: ApiAreaContext, keep: (l: StyleLayerInfo) => boolean = () => true) {
+  const list = ctx.sources.layers.value.filter(keep);
+  return PD.Select<string>(
+    list[0]?.id ?? '',
+    list.map((l) => [l.id, layerLine(l)] as [string, string]),
+    { description: 'A style layer by id, as representation.layers lists them' },
+  );
+}
+
+function findLayer(ctx: ApiContext, id: string): StyleLayerInfo | ApiFailure {
+  const list = readStyleLayers(ctx.plugin);
+  const found = list.find((l) => l.id === id);
+  if (found) return found;
+  return ApiResult.fail(
+    'not-found',
+    `There is no style layer '${id}'.`,
+    list.length ? `Layers: ${list.map((l) => l.id).join(', ')}.` : 'No style layers are applied.',
+  );
+}
+
+/**
+ * Each cell that holds the layer gets it changed (`edit` gives the new one) or removed (`edit` gives undefined); a cell
+ * left without layers is deleted. One tree update; the representations touched are returned.
+ */
+async function editLayerCells(
+  ctx: ApiContext,
+  layer: StyleLayerInfo,
+  edit: (l: Record<string, unknown>) => Record<string, unknown> | undefined,
+): Promise<string[]> {
+  const state = ctx.plugin.state.data;
+  const update = state.build();
+  const touched = new Set<string>();
+  for (const ref of layer.cells) {
+    const transform = state.tree.transforms.get(ref);
+    if (!transform) continue;
+    const params = transform.params as { layers: Record<string, unknown>[] };
+    const next: Record<string, unknown>[] = [];
+    for (const l of params.layers) {
+      if (styleLayerKey(layer.kind, l) !== layer.value) next.push(l);
+      else {
+        const edited = edit(l);
+        if (edited) next.push(edited);
+      }
+    }
+    if (next.length) update.to(ref).update({ ...params, layers: next });
+    else update.delete(ref);
+    touched.add(transform.parent);
+  }
+  await update.commit({ doNotUpdateCurrent: true });
+  return [...touched];
 }
 
 // --- what the operations act on ---------------------------------------------------------------------------------
@@ -589,13 +757,9 @@ interface LayerCell {
 
 /** The layer cells of `kind` under these representations. */
 function layerCells(ctx: ApiContext, kind: LayerKind, reprs: readonly StructureRepresentationRef[]): LayerCell[] {
-  const { transformer, tag } = Layers[kind];
-  const state = ctx.plugin.state.data;
   const out: LayerCell[] = [];
   for (const r of reprs) {
-    for (const cell of state.select(
-      StateSelection.Generators.ofTransformer(transformer, r.cell.transform.ref).withTag(tag),
-    )) {
+    for (const cell of styleLayerCellsOf(ctx.plugin, kind, r.cell.transform.ref)) {
       out.push({ ref: cell.transform.ref, parent: r.cell.transform.ref, params: cell.transform.params });
     }
   }

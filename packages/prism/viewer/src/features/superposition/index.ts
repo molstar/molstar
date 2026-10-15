@@ -119,6 +119,13 @@ export const SuperpositionFeature: ViewerExtension = {
         { category, icon: 'layers', alias: ['superpose uniprot', 'sifts'], action: 'Superpose' },
         'The structures',
       ),
+      operationCommand(api, s.remove, {
+        category,
+        icon: 'rotate-ccw',
+        title: 'Remove a superposition…',
+        alias: ['remove superposition', 'undo superposition', 'reset superposition', 'unsuperpose'],
+        action: 'Remove',
+      }),
     ];
   },
   ui: async (ctx) => (await import('./ui.js')).superpositionUI(ctx),

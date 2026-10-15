@@ -62,6 +62,9 @@ export interface PickedStructure {
   /** "42 residues (350 atoms) in chains A and B". */
   readonly line: string;
   readonly atoms: number;
+  readonly residues: number;
+  /** The author chains it is in, in structure order. */
+  readonly chains: readonly string[];
   /** Atoms in polymer entities, and the chains (units) they are in. */
   readonly polymerAtoms: number;
   readonly polymerChains: number;
@@ -71,11 +74,14 @@ export interface PickedStructure {
 
 export function pickedOf(ref: string, label: string, loci: StructureElement.Loci): PickedStructure {
   const part = polymerPart(loci);
+  const selected = summarize(loci);
   return {
     ref,
     label,
-    line: summarize(loci).line,
-    atoms: StructureElement.Loci.size(loci),
+    line: selected.line,
+    atoms: selected.atoms,
+    residues: selected.residues,
+    chains: selected.chains,
     polymerAtoms: StructureElement.Loci.size(part),
     polymerChains: part.elements.length,
     ligand: !!isSingleLigandLoci(loci),
@@ -87,6 +93,9 @@ export const samePicked = (a: PickedStructure, b: PickedStructure) =>
   a.label === b.label &&
   a.line === b.line &&
   a.atoms === b.atoms &&
+  a.residues === b.residues &&
+  a.chains.length === b.chains.length &&
+  a.chains.every((c, i) => c === b.chains[i]) &&
   a.polymerAtoms === b.polymerAtoms &&
   a.polymerChains === b.polymerChains &&
   a.ligand === b.ligand;
