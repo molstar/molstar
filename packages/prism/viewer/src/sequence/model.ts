@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui';
+import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
 import type { FormatResult, Loaders } from '@molstar/seq-core/format';
 import { MolstarSvsEntry, type StructureSource } from '@molstar/seq-molstar-poc';

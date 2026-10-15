@@ -9,6 +9,7 @@
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import {
+  type CanvasInk,
   CommandManager,
   type CommandDefinition,
   createUiTransactionCoordinator,
@@ -34,6 +35,12 @@ import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
 import { createHomeActions } from './sources/home.js';
 import { createSceneSource } from './sources/scene.js';
+import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
+import { SequenceApi } from './api/sequence.js';
+import { DefaultSequenceTheme } from './sequence/document.js';
+import { createSequenceViewers, type SequenceStyle, type SequenceViewers } from './sequence/model.js';
+import type { TracksRail } from './sequence/presets.js';
+import { rafScheduler, type Scheduler } from '@molstar/seq-viewer';
 import { SourceScope } from './sources/state.js';
 import { createComponentOptionsForm, createPresetsModel, createQuickStylesModel } from './sources/structure-tab.js';
 import { createTargetResolver } from './sources/targets.js';
@@ -66,6 +73,15 @@ export interface PrismViewerViews {
   readonly quickStyles: QuickStylesModel;
   /** Home's loading actions, from the registry. */
   readonly homeActions: ReadonlyState<readonly HomeAction[]>;
+  /** The one sequence viewer and what it follows (sequence.md); undefined when the spec has none. */
+  readonly sequence?: ViewerSequence;
+}
+
+/** The sequence view's models: the viewer, its source, and the canvas ink it is skinned with (set by the page). */
+export interface ViewerSequence {
+  readonly viewers: SequenceViewers;
+  readonly source: SequenceSource;
+  setInk(ink: CanvasInk): void;
 }
 
 export interface ViewerError {
@@ -215,6 +231,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
     const quickStyles = createQuickStylesModel(person);
     const homeActions = createHomeActions(viewScope, plugin, person);
+    const sequence = spec.sequence === false ? undefined : createSequence(viewScope, plugin, host, o.modules, spec);
+    if (sequence) disposers.push(() => sequence.viewers.dispose());
     for (const e of eager) {
       for (const [id, factory] of Object.entries(e.api ?? {})) disposers.push(host.addArea(id, factory));
       for (const c of e.contributes?.(host.areaContext) ?? []) {
@@ -291,7 +309,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           work(plugin, host.bind({ origin: { kind: 'script' }, within: context })),
         ),
       managers,
-      views: { scene, presets, componentOptions, quickStyles, homeActions },
+      views: { scene, presets, componentOptions, quickStyles, homeActions, ...(sequence ? { sequence } : {}) },
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
@@ -356,4 +374,70 @@ function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues)
   });
   const navigation = new NavigationManager({ docks: nav });
   return { viewState, navigation };
+}
+
+/** Frames for the sequence view: the page's, or timers headless. */
+function sequenceFrames(page: boolean): Scheduler {
+  return rafScheduler({
+    requestAnimationFrame: page
+      ? (cb) => requestAnimationFrame(cb)
+      : (cb) => setTimeout(() => cb(performance.now()), 16) as unknown as number,
+    cancelAnimationFrame: page ? (id) => cancelAnimationFrame(id) : (id) => clearTimeout(id),
+    setTimeout: (cb, ms) => setTimeout(cb, ms) as unknown as number,
+    clearTimeout: (id) => clearTimeout(id),
+    now: () => performance.now(),
+  });
+}
+
+/**
+ * The sequence (sequence.md, plan 2.4): its viewer over the structure the source follows, its area in the API, and its
+ * state in snapshots (`prism-viewer.sequence`, sequence.md §7.1).
+ */
+function createSequence(
+  scope: SourceScope,
+  plugin: PluginContext,
+  host: ViewerApiHost,
+  modules: readonly ApiModuleKey[],
+  spec: PrismViewerSpec,
+): ViewerSequence {
+  const link = host.api.as({ kind: 'link' });
+  const source = createSequenceSource(scope, plugin, link);
+  const ink = observableState<CanvasInk>({ theme: 'light', color: '#ffffff' });
+  const viewers = createSequenceViewers({
+    ink: ink.asReadonly,
+    structure: source.structure,
+    actions: source.actions,
+    scheduler: sequenceFrames(modules.includes('page')),
+  });
+  const viewer = viewers.get();
+  const initial = spec.sequence ? spec.sequence.style : undefined;
+  if (initial === 'text') viewer.setStyle('compact');
+  scope.add(host.addArea('sequence', (ctx) => new SequenceApi(ctx, viewer, source)));
+  scope.add(
+    plugin.state.registerCustomState('prism-viewer.sequence', {
+      get: () => ({
+        version: 1,
+        style: viewer.style.value,
+        colors: viewer.theme.value.letters,
+        rail: viewer.rail.value,
+        structure: source.followed.value,
+      }),
+      set: (value) => {
+        const v = value as
+          | { version: number; style: SequenceStyle; colors: string | null; rail: TracksRail; structure?: string }
+          | undefined;
+        if (!v || v.version !== 1) {
+          viewer.setStyle(initial === 'text' ? 'compact' : 'tracks');
+          viewer.setTheme(DefaultSequenceTheme);
+          source.setFollowed(undefined);
+          return;
+        }
+        viewer.setStyle(v.style);
+        viewer.setTheme({ letters: v.colors });
+        if (v.rail) viewer.setRail(v.rail);
+        source.setFollowed(v.structure);
+      },
+    }),
+  );
+  return { viewers, source, setInk: (i) => ink.set(i) };
 }

@@ -36,6 +36,9 @@ import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styl
 import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
+import { LegendCard } from '../sequence/legend-card.js';
+import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
+import { SequenceControl } from '../sequence/sequence-control.js';
 import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import { StructureTab } from '../views/structure/structure-tab.js';
 import type { ViewerCore } from '../viewer.js';
@@ -172,6 +175,68 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   );
 
   const hasData = sources.empty.pipe(map((e) => !e));
+  const sequence = core.views.sequence;
+  const seqLines = observableState<readonly string[]>([]);
+  const hoverLines = observableState<readonly string[]>([]);
+  const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLines.value);
+  const hoverSubs = [seqLines.asReadonly.subscribe(mergeHover), sources.pointer.hoverLines.subscribe(mergeHover)];
+  if (sequence) {
+    const viewer = sequence.viewers.get();
+    const inkToSeq = ink.subscribe((i) => sequence.setInk(i));
+    hoverSubs.push(inkToSeq);
+    unregister.push(core.registerCommands(sequenceCommands(viewer, shell, person)));
+    unregister.push(
+      shell.registerOverlays([
+        { id: LegendOverlay, title: 'Sequence colors', render: domView(() => <LegendCard viewer={viewer} />) },
+      ]),
+    );
+    // The band, there while a structure is shown (prism-sequence.md §2.2); the first one shows it.
+    let dropTab: (() => void) | undefined;
+    let shownBefore = false;
+    const bandSub = viewer.structure.subscribe((shown) => {
+      if (!shown) {
+        dropTab?.();
+        dropTab = undefined;
+        return;
+      }
+      if (dropTab) return;
+      dropTab = shell.registerTabs([
+        {
+          id: 'sequence',
+          title: 'Sequence',
+          icon: 'sequence',
+          dock: 'top',
+          frame: 'none',
+          render: domView(({ ctx }) => (
+            <SequenceControl
+              viewer={viewer}
+              view3d={(s) => sequence.source.view3d(s, () => void person.camera.reset())}
+              shell={ctx.shell}
+              dock={ctx.dock ?? 'top'}
+              onHover={(lines) => seqLines.set(lines)}
+            />
+          )),
+        },
+      ]);
+      if (!shownBefore) shell.show('sequence');
+      shownBefore = true;
+    });
+    hoverSubs.push(bandSub);
+    unregister.push(() => dropTab?.());
+    unregister.push(
+      shell.registerToolbar([
+        {
+          id: 'sequence',
+          place: 'canvas',
+          group: 'view',
+          icon: 'sequence',
+          title: 'Sequence',
+          visible: viewer.structure.pipe(map((s) => s !== undefined)),
+          menu: sequenceMenu(viewer, shell, (id) => managers.commands.open(id)),
+        },
+      ]),
+    );
+  }
   const modeProps = modeSwitchProps(sources.interaction, person);
   const selection = selectionModel(sources.interaction, person);
   unregister.push(
@@ -271,7 +336,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         canvas={canvasHost}
         overlays={
           <Show when={hasData}>
-            {() => <HoverLabel model={{ lines: sources.pointer.hoverLines }} area={() => canvasHost} />}
+            {() => <HoverLabel model={{ lines: hoverLines.asReadonly }} area={() => canvasHost.parentElement} />}
           </Show>
         }
         ink={ink}
@@ -314,6 +379,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     shell,
     root,
     dispose() {
+      for (const s of hoverSubs) s.unsubscribe();
       document.removeEventListener('keydown', onKey);
       for (const u of unregister.reverse()) u();
       disposeRender();

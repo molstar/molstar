@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type CanvasInk, parseColor } from '@molstar/prism-ui';
+import { type CanvasInk, parseColor } from '@molstar/prism-ui/core';
 import { DarkSkin, DefaultSkin, type Skin } from '@molstar/seq-viewer';
 
 // The sequence view's colors from the canvas ink (prism-sequence.md §5): Seq*'s skin, written from the ink's theme and

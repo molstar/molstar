@@ -8,6 +8,15 @@ how both document languages, MolViewSpec and SeqViewSpec, fit. Builds on the fir
 
 Status: **accepted** (2026-10-15).
 
+**As built (plan 2.4, 2026-10-15).** `sources/sequence.ts` follows a structure (`sequence.follow` overrides the rule),
+hands the sequence the plugin's own parse (`StructureSource.of` on the trajectory the 3D view drew), and is the link's
+3D side: hover and selection read from the plugin, highlight, selection and focus written as operations with origin
+`link`, one channel at a time in the order sent. The track menus' coloring is `representation.color`. The `sequence`
+area (`style`, `colors`, `follow`, `get`) exists when the spec has a sequence; its state is `prism-viewer.sequence`
+(§7.1). Still the first slice's: the document is `sequenceDocument` (the follow and secondary-structure rules in one
+builder); the behaviors of §3 come with the first extension that needs one (model-archive's pLDDT track, plan phase 5),
+and the loaders' `load` (§2) with `load.url` (the `loaders` feature, phase 3).
+
 ## 1. Two engines, one viewer
 
 | Engine                        | Owns                                                                                                    | Its document                     |

@@ -31,13 +31,23 @@ const Rails: readonly { id: string; label: string; rail: TracksRail }[] = [
 const schemeId = (name: string | null) => `sequence.colors.${name === null ? 'none' : name.replace(':', '-')}`;
 const schemeLabel = (name: string | null) => (name === null ? 'No colors' : (colorScheme(name)?.label ?? name));
 
-export function sequenceCommands(viewer: SequenceViewer, shell: ShellModel): CommandDefinition<any>[] {
+export function sequenceCommands(
+  viewer: SequenceViewer,
+  shell: ShellModel,
+  /** The viewer's API (the person's): style and colors change through it, as steps (sequence.md §7). */
+  api?: { run(id: string, values?: Readonly<Record<string, unknown>>): Promise<unknown> },
+): CommandDefinition<any>[] {
   const hide = () => {
     if (shell.dock('top').active.value) shell.toggle('top');
   };
   const show = (style: 'compact' | 'tracks') => {
-    viewer.setStyle(style);
+    if (api) void api.run('sequence.style', { style: style === 'compact' ? 'text' : 'tracks' });
+    else viewer.setStyle(style);
     shell.show('sequence');
+  };
+  const color = (letters: string | null) => {
+    if (api) void api.run('sequence.colors', { scheme: letters ?? 'none' });
+    else viewer.setTheme({ letters });
   };
   return [
     {
@@ -79,7 +89,7 @@ export function sequenceCommands(viewer: SequenceViewer, shell: ShellModel): Com
         title: name === null ? 'Sequence: no colors' : `Sequence colors: ${schemeLabel(name)}`,
         category: 'Sequence',
         icon: 'palette',
-        run: () => (viewer.setTheme({ letters: name }), done(`Sequence colors: ${schemeLabel(name).toLowerCase()}`)),
+        run: () => (color(name), done(`Sequence colors: ${schemeLabel(name).toLowerCase()}`)),
       }),
     ),
     {
