@@ -108,14 +108,46 @@ export interface AgentPolicy {
   /** A turn begins: what was allowed for the last one is not for this one; the hosts its request names are. */
   beginTurn(requestHosts?: readonly string[]): void;
   readonly rules: DomainRules;
+  /**
+   * The https hosts a network call reaches that are not allowed yet (what "Allow this domain" would allow); empty when
+   * it reaches none, or asks for another reason (an address not https, an operation that does not say).
+   */
+  blockedHosts(def: OperationDefinition<any, any>, values: Readonly<Record<string, unknown>>): string[];
+  /** A tool's blocked hosts from its arguments (registered by the tools that reach addresses). */
+  registerHosts(tool: string, hosts: (args: unknown) => string[]): void;
+  /** A waiting call's blocked hosts, by its tool and arguments; empty when the tool reaches none. */
+  hostsOf(tool: string, args: unknown): string[];
 }
 
 export function createAgentPolicy(o: { checkpointing: ReadonlyState<boolean>; rules?: DomainRules }): AgentPolicy {
   const rules = o.rules ?? createDomainRules();
   let turnAllowed = false;
   let turnHosts = new Set<string>();
+  const tools = new Map<string, (args: unknown) => string[]>();
   return {
     rules,
+    blockedHosts(def, values) {
+      if (def.approval !== 'network' || !def.addresses) return [];
+      const hosts = new Set<string>();
+      for (const a of def.addresses(values as never)) {
+        if (typeof a !== 'string' || allowedAddress(a, rules, turnHosts)) continue;
+        const host = hostOf(a);
+        // Not https (or not a URL written whole): no domain rule allows it; it asks every time.
+        if (!host) return [];
+        hosts.add(host);
+      }
+      return [...hosts];
+    },
+    registerHosts(tool, hosts) {
+      tools.set(tool, hosts);
+    },
+    hostsOf(tool, args) {
+      try {
+        return tools.get(tool)?.(args) ?? [];
+      } catch {
+        return [];
+      }
+    },
     approves(def, values) {
       if (def.approval === 'destructive' || def.approval === 'upload') return false;
       if (def.approval === 'network') {

@@ -34,6 +34,8 @@ export interface CommandRun {
   detail?: string;
   /** Leaves the page or cannot be undone: it waited for the person's Allow. */
   approval?: boolean;
+  /** Waiting for an address no rule allows yet: its host, which "Allow this domain" allows (agent.md §4). */
+  domain?: string;
   time: Date;
   durationMs?: number;
 }
@@ -145,6 +147,11 @@ export interface AgentModel {
   stop(): void;
   /** Answers a run waiting for approval. */
   approve(runId: string, allow: boolean): void;
+  /**
+   * Allows the waiting call and its host from now on: for this session, or kept in this browser (agent.md §4); the
+   * rules are listed in the Storage view, each with Forget.
+   */
+  allowDomain?(runId: string, scope: 'session' | 'browser'): void;
   /** Restores the checkpoint before the turn (only the latest turn has one, until the next action). */
   undo(turnId: string): void;
   /** Closes the turn's card to its line (a running turn goes on). */

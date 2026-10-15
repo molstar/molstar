@@ -10,11 +10,12 @@ import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { observableState } from '@molstar/prism-ui/core';
+import { createDomainRules, type DomainRules } from '@molstar/prism-viewer/agent/policies';
 import { createViewerAgent } from '@molstar/prism-viewer/agent/session';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentTurn, HistoryItem } from '../../model.js';
 import { createViewerAgentModel } from '../agent-model.js';
 import type { ViewerAISettings } from '../settings-model.js';
@@ -55,12 +56,13 @@ async function until(check: () => boolean, ms = 10_000): Promise<void> {
 
 const call = (tool: string, args: Record<string, unknown> = {}) => ({ tool, arguments: args as never });
 
-function modelOn(v: PrismViewer, script: ModelStep[], chosen = true) {
+function modelOn(v: PrismViewer, script: ModelStep[], chosen = true, rules?: DomainRules) {
   const model = scriptedModel(script);
   const setup = observableState(chosen ? { provider: 'scripted', model: 'scripted' } : undefined);
   const settings = { setup: setup.asReadonly } as unknown as ViewerAISettings;
   const agent = createViewerAgent({
     viewer: v,
+    ...(rules ? { rules } : {}),
     models: {
       adapterFor: (p) => (p === 'scripted' ? model.adapter : undefined),
       default: { provider: 'scripted', model: 'scripted' },
@@ -134,6 +136,39 @@ describe('the assistant over the viewer agent', () => {
     expect(m.turn.value?.text).toBe('Removed.');
     m.dispose();
     agent.dispose();
+  });
+
+  it("offers to allow a waiting call's domain: allowed, the call goes on and the next one to it does not ask", async () => {
+    const text = await cbs().text();
+    vi.stubGlobal('fetch', async () => new Response(text, { status: 200 }));
+    try {
+      const v = await headlessViewer({ files: [] });
+      const rules = createDomainRules();
+      const url = 'https://data.example.org/1cbs.cif';
+      const { m, agent } = modelOn(
+        v,
+        [
+          { calls: [call('load_url', { url, format: 'mmcif' })] },
+          { calls: [call('load_url', { url, format: 'mmcif' })] },
+          { text: 'Loaded twice.' },
+        ],
+        true,
+        rules,
+      );
+      m.ask('load it');
+      await until(() => settled(m.turn.value));
+      const waiting = m.turn.value!.runs.find((r) => r.status === 'waiting')!;
+      expect(waiting).toMatchObject({ command: 'load_url', domain: 'data.example.org' });
+      m.allowDomain!(waiting.id, 'session');
+      expect(rules.list()).toEqual([{ domain: 'data.example.org', scope: 'session' }]);
+      // The second call to it goes without asking.
+      await until(() => m.turn.value?.status === 'done');
+      expect(m.turn.value?.runs.filter((r) => r.command === 'load_url').map((r) => r.status)).toEqual(['done', 'done']);
+      m.dispose();
+      agent.dispose();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('opens the setup when no model is chosen, and asks nothing', async () => {

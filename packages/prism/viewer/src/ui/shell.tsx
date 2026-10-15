@@ -559,8 +559,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         try {
           const assistant = await createAssistant({
             viewer: core,
-            createAgent: (models) => {
-              const agent = createViewerAgent({ viewer: core, models });
+            createAgent: (models, options) => {
+              const agent = createViewerAgent({
+                viewer: core,
+                models,
+                ...(options?.rules ? { rules: options.rules } : {}),
+              });
               agents.push(agent);
               return agent;
             },

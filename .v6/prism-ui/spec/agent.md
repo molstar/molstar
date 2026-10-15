@@ -94,7 +94,10 @@ As little in the way as is reasonable (decision 26):
   Storage view and in Settings, each removable. https only. As built (G6): an operation says what a call reaches,
   `addresses(values)` on the values it will run with (`[]`: the known services and the servers the viewer is configured
   with); one that does not say always asks, and so does an address that is not https written whole. The request's
-  https hosts go for that turn. Not yet: Allow this domain and its listing (the turn card offers Allow and Deny); a
+  https hosts go for that turn. Allow this domain is built: a waiting call whose addresses leave one https host not
+  allowed offers Deny, Allow once and Allow <host> (with Remember: in this browser, the assistant's prefs; else for
+  the session); the policy names it (`blockedHosts`, `hostsOf`), the rules are the assistant's (`createDomainRules`,
+  passed to `createAgent`) and the Storage view lists them with Forget. Not yet: a listing in Settings; a
   color theme or preset that fetches as it applies (validation reports, assembly symmetry) is reached through the core
   `color` and `apply_preset` tools, which carry no addresses: the ones registered today reach only the known services.
 - **Ask every time**: sending anything out (`upload`: remote states) and closing or clearing a session (`destructive`).

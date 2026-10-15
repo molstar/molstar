@@ -12,6 +12,7 @@ import type { ModelSource } from '@molstar/ai-session';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { Observable } from 'rxjs';
+import type { DomainRules } from './agent/policies.js';
 import type { createViewerAgent, ViewerAgent } from './agent/session.js';
 import type { PrismViewer } from './viewer.js';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
@@ -116,7 +117,8 @@ export interface PrismViewerAgentSpec {
  */
 export interface AssistantHost {
   readonly viewer: PrismViewer;
-  readonly createAgent: (models: ModelSource) => ViewerAgent;
+  /** The viewer's agent over these models; `rules`: the domains the person allowed (agent.md §4, the assistant's). */
+  readonly createAgent: (models: ModelSource, options?: { readonly rules?: DomainRules }) => ViewerAgent;
 }
 
 /** The assistant's parts in the page: its views, the command menu's Ask row, its turn card under the status line. */

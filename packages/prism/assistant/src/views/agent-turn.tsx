@@ -262,19 +262,43 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
             </ScrollArea>
             {/* A run waiting for the person: what it does, why it asks, and the answer. */}
             <Show when={waiting}>
-              {(run) => (
-                <div class={classes.approval} role="group" aria-label="Approval">
-                  <span class={classes.approvalText}>
-                    Allow “{run.title}”? <span class={classes.approvalWhy}>{run.detail}</span>
-                  </span>
-                  <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, false)}>
-                    Deny
-                  </button>
-                  <button type="button" class={classes.allow} onClick={() => agent.approve(run.id, true)}>
-                    Allow
-                  </button>
-                </div>
-              )}
+              {(run) => {
+                let remember: HTMLInputElement | undefined;
+                return (
+                  <div class={classes.approval} role="group" aria-label="Approval">
+                    <span class={classes.approvalText}>
+                      Allow “{run.title}”? <span class={classes.approvalWhy}>{run.detail}</span>
+                    </span>
+                    <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, false)}>
+                      Deny
+                    </button>
+                    {run.domain && agent.allowDomain ? (
+                      <>
+                        <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, true)}>
+                          Allow once
+                        </button>
+                        {/* Its host from now on (agent.md §4): this session, or remembered in this browser. */}
+                        <label class={classes.remember}>
+                          <input type="checkbox" ref={(el: HTMLInputElement) => (remember = el)} />
+                          Remember
+                        </label>
+                        <button
+                          type="button"
+                          class={classes.allow}
+                          title={`Allow ${run.domain} from now on (Storage lists it, with Forget)`}
+                          onClick={() => agent.allowDomain!(run.id, remember?.checked ? 'browser' : 'session')}
+                        >
+                          Allow {run.domain}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" class={classes.allow} onClick={() => agent.approve(run.id, true)}>
+                        Allow
+                      </button>
+                    )}
+                  </div>
+                );
+              }}
             </Show>
             <Show when={running.pipe(map((r) => !r))}>
               {() => (

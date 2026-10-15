@@ -20,7 +20,8 @@ import { AssistantTab } from '../views/assistant-tab.js';
 import { createViewerAgentModel } from './agent-model.js';
 import { createInspectorSources } from './inspector-sources.js';
 import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs } from './settings-model.js';
-import { keysStorageSource } from './storage.js';
+import { domainsStorageSource, keptDomains, keysStorageSource } from './storage.js';
+import { createDomainRules } from '@molstar/prism-viewer/agent/policies';
 
 // The assistant in the viewer's page (viewer-spec.md §2.4, plan 4.4): its tab (the model setup, the Inspect rows), the
 // command menu's Ask row, the turn card under the status line, the Inspector (a page over the app, with its commands);
@@ -49,15 +50,23 @@ export const createAssistant: AssistantFactory = createAssistantWith();
 async function makeAssistant(host: AssistantHost, options: AssistantOptions): Promise<AssistantUI> {
   const { notifications } = host.viewer.managers;
   const keys = options.keys ?? createKeyStore();
-  const settings = createAISettings(keys, options.prefs ?? localPrefs(), {
+  const prefs = options.prefs ?? localPrefs();
+  // Domains the person allowed (agent.md §4): for the session, or kept in this browser (the prefs, as a list).
+  const rules = createDomainRules(keptDomains(prefs.get('domains')), (browser) =>
+    prefs.set('domains', JSON.stringify(browser)),
+  );
+  const settings = createAISettings(keys, prefs, {
     report: (text) => notifications.post(text, 'warning'),
     ...(options.provided ? { provided: options.provided } : {}),
   });
   await settings.load();
-  const agent = host.createAgent({
-    adapterFor: (provider) => settings.adapterFor(provider),
-    default: settings.setup.value ?? Fallback,
-  });
+  const agent = host.createAgent(
+    {
+      adapterFor: (provider) => settings.adapterFor(provider),
+      default: settings.setup.value ?? Fallback,
+    },
+    { rules },
+  );
   const openSetup = () => void host.viewer.api.as({ kind: 'person' }).view.open({ tab: 'assistant.tab.assistant' });
   const model = createViewerAgentModel(host.viewer, agent, settings, { openSetup });
   // The Inspector (Trace, Tools, Limits) over the agent's session and toolkit, a page over the app (agent.md §1).
@@ -72,6 +81,7 @@ async function makeAssistant(host: AssistantHost, options: AssistantOptions): Pr
   // The stored keys in the viewer's Storage view (journal.md §7), by provider and scope, never the key; last, so a
   // failure above leaves nothing registered.
   const unregisterKeys = host.viewer.storage.register(keysStorageSource(keys, settings));
+  const unregisterDomains = host.viewer.storage.register(domainsStorageSource(rules));
   return {
     ui: {
       tabs: [
@@ -102,6 +112,7 @@ async function makeAssistant(host: AssistantHost, options: AssistantOptions): Pr
       sources.dispose();
       agent.dispose();
       unregisterKeys();
+      unregisterDomains();
     },
   };
 }

@@ -171,8 +171,8 @@ a place for data:
   keys (`assistant/src/viewer/storage.ts`: provider and scope, never the key; Forget goes through the setup's
   `removeKey`). The view is a folded "Storage" section at the end of the Settings tab, always (the assistant's Trace,
   Tools and Limits are not built); it says the origin, lists only while open and shown, and asks before Forget
-  everything. IndexedDB is opened only when the records' database exists. Not built: domain rules (the assistant keeps
-  none; "Allow this domain" lasts for the page), the assistant's own choices in localStorage (`prism-assistant.setup`,
+  everything. IndexedDB is opened only when the records' database exists. The assistant's domain rules are listed ("Allowed
+  domains": kept in this browser or for the session, each with Forget). Not built: the assistant's own choices in localStorage (`prism-assistant.setup`,
   `.providers`) and its per-browser scrambling key (IndexedDB `prism-assistant-keys`), the bound on kept records (§5),
   removal offered on its own (the age is only marked), and a refresh while the view stays open (a Keep in History shows
   when the view is opened again).

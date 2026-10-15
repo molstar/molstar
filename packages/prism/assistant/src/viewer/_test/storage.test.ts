@@ -11,7 +11,8 @@ import { createStorageModel } from '@molstar/prism-viewer/storage/model';
 import { describe, expect, it } from 'vitest';
 import { createKeyStore, type KeyStoreOptions } from '../../keys.js';
 import { createAISettings, type SettingsPrefs } from '../settings-model.js';
-import { keysStorageSource } from '../storage.js';
+import { createDomainRules } from '@molstar/prism-viewer/agent/policies';
+import { domainsStorageSource, keptDomains, keysStorageSource } from '../storage.js';
 
 // The assistant's keys in the viewer's Storage view (journal.md §7): by provider and scope, never the key; Forget
 // removes it from the store and from the setup.
@@ -96,5 +97,20 @@ describe("the assistant's keys in Storage", () => {
     await model.forgetEverything();
     expect(model.sources.value[0].entries).toEqual([]);
     expect(local.length + session.length).toBe(0);
+  });
+});
+
+describe('the allowed domains in the Storage view', () => {
+  it('lists each rule with where it lasts, forgets one, and reads the kept list back', async () => {
+    const rules = createDomainRules(keptDomains('["kept.org", 3, "bad domain"]'));
+    rules.allow('session.org', 'session');
+    const source = domainsStorageSource(rules);
+    expect((await source.list()).map((e) => [e.label, e.detail])).toEqual([
+      ['kept.org', 'The assistant reaches it without asking, in this browser'],
+      ['session.org', 'For this session'],
+    ]);
+    await source.forget!('kept.org');
+    expect(rules.list().map((r) => r.domain)).toEqual(['session.org']);
+    expect(keptDomains('not json')).toEqual([]);
   });
 });

@@ -95,4 +95,20 @@ describe('the agent policy', () => {
     rules.remove('kept.org');
     expect(saved).toEqual(['browser.org']);
   });
+
+  it("names a waiting network call's hosts that a domain rule would allow, and none once allowed", () => {
+    const rules = createDomainRules();
+    const p = createAgentPolicy({ checkpointing: observableState(true).asReadonly, rules });
+    const fetches = op({ read: true, approval: 'network', addresses: ({ url }: { url: string }) => [url] } as never);
+    expect(p.blockedHosts(fetches, { url: 'https://data.example.org/x.cif' })).toEqual(['data.example.org']);
+    // A known service, or an address no domain rule can allow (not https): nothing to offer.
+    expect(p.blockedHosts(fetches, { url: 'https://files.rcsb.org/x.cif' })).toEqual([]);
+    expect(p.blockedHosts(fetches, { url: 'http://data.example.org/x.cif' })).toEqual([]);
+    p.registerHosts('fetch_it', (args) => p.blockedHosts(fetches, args as { url: string }));
+    expect(p.hostsOf('fetch_it', { url: 'https://data.example.org/y' })).toEqual(['data.example.org']);
+    expect(p.hostsOf('other_tool', {})).toEqual([]);
+    rules.allow('example.org', 'session');
+    expect(p.hostsOf('fetch_it', { url: 'https://data.example.org/y' })).toEqual([]);
+    expect(p.approves(fetches, { url: 'https://data.example.org/y' })).toBe(true);
+  });
 });

@@ -219,6 +219,7 @@
 /* A run waiting for the person: the question and the answers, set apart by the accent's soft wash. */
 .approval {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--msp-space-2);
   margin: 0 var(--msp-space-2) var(--msp-space-2);
@@ -262,6 +263,16 @@
   &:hover {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
   }
+}
+
+/* Remember a domain's Allow in this browser (else for the session). */
+.remember {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
 }
 
 .footer {

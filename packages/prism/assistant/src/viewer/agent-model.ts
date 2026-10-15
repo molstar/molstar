@@ -143,7 +143,18 @@ export function createViewerAgentModel(
                   time: new Date(),
                 }),
               ),
-          ].map((x) => (waiting.has(x.id) ? { ...x, status: 'waiting' as RunStatus, approval: true } : x)),
+          ].map((x) => {
+            if (!waiting.has(x.id)) return x;
+            // One host to allow: the card offers it (several, or an address no rule can allow: Allow once only).
+            const p = pending.find((q) => q.callId === x.id);
+            const hosts = p ? agent.policy.hostsOf(p.tool, p.args) : [];
+            return {
+              ...x,
+              status: 'waiting' as RunStatus,
+              approval: true,
+              ...(hosts.length === 1 ? { domain: hosts[0] } : {}),
+            };
+          }),
         },
         of,
       );
@@ -252,6 +263,12 @@ export function createViewerAgentModel(
       if (live || agent.session.busy || agent.parked) {
         agent.stop().catch((e) => notifications.post(`The turn could not be stopped: ${messageOf(e)}`, 'warning'));
       }
+    },
+    allowDomain(runId, scope) {
+      const run = turn.value?.runs.find((r) => r.id === runId);
+      if (!run?.domain) return;
+      agent.policy.rules.allow(run.domain, scope);
+      this.approve(runId, true);
     },
     approve(runId, allow) {
       const t = turn.value;

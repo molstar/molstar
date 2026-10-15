@@ -99,6 +99,10 @@ export function operationTool(
   // cannot be undone asks once). A read or a view change that reaches no address never asks.
   const asks = mayAsk(definition);
   const valuesOf = (args: Json) => ({ ...shape.toValues((args ?? {}) as Record<string, unknown>), ...spec.fixed });
+  // A network call waiting for the person: the hosts "Allow this domain" would allow (agent.md §4).
+  if (policy && definition.approval === 'network') {
+    policy.registerHosts(spec.id, (args) => policy.blockedHosts(definition, valuesOf(args as Json)));
+  }
   return tool({
     id: spec.id,
     // What this viewer cannot do at all is said; what cannot be done now (nothing loaded) is the call's answer.
