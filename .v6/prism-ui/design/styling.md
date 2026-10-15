@@ -252,6 +252,9 @@ interaction; no layout shift when content loads.
   paints are budgeted: `backdrop-filter` re-blurs whenever what is under it changes, and over the 3D canvas that is
   every rendered frame, so glass over the canvas is kept to small areas and measured (a frameless dock tab draws none).
   Large blurred shadows likewise.
+- **Hover is instant**: no transition on a hover's colors (background, color, border, shadow). A fade there lands the
+  highlight late (it reads as lag) and, on a quick sweep along a row of buttons, leaves the one just left still lit, so
+  a neighbour seems to blink (David, 2026-10-15: the rail). Motion stays for what moves (transform, opacity, scale).
 - **Containment**: panels and cards set `contain: layout paint` (or `content` where their size is known), so a change
   inside does not relayout the shell (as built: the canvas cards `content`; a dock panel `layout style`, its splitter
   hanging over the edge, and its scrolling body `layout paint`; History's list `content`); closed or off-screen panels are not rendered or use `content-visibility: auto`.

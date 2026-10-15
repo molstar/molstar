@@ -134,9 +134,7 @@
   border-radius: 3px;
   background: color-mix(in oklab, var(--msp-color-text), transparent 72%);
   /* Wider under the pointer by `scale` (composited); its length follows the content at once (styling.md §5). */
-  transition:
-    scale var(--msp-motion-fast) var(--msp-ease),
-    background-color var(--msp-motion-fast) var(--msp-ease);
+  transition: scale var(--msp-motion-fast) var(--msp-ease);
 
   [data-orientation="vertical"] > & {
     width: 4px;

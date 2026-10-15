@@ -190,10 +190,9 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   &:before {
     content: "";
     background: var(--msp-color-border-strong);
+    border-radius: 50%;
     width: 6px;
     height: 6px;
-    transition: background-color var(--msp-motion-fast) var(--msp-ease);
-    border-radius: 50%;
   }
 
   &:hover:before {

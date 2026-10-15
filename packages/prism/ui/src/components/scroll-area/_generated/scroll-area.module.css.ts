@@ -125,8 +125,7 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
 
 .msp-scroll-area-thumb {
   background: color-mix(in oklab, var(--msp-color-text), transparent 72%);
-  transition: scale var(--msp-motion-fast) var(--msp-ease),
-    background-color var(--msp-motion-fast) var(--msp-ease);
+  transition: scale var(--msp-motion-fast) var(--msp-ease);
   border-radius: 3px;
   flex: none;
 

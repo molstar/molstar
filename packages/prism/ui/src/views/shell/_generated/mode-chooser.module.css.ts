@@ -104,7 +104,6 @@ defineStyles('views/shell/mode-chooser.module.css', `@layer msp.components {
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   text-align: left;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   grid-template-columns: auto minmax(0, 1fr);
   display: grid;
 

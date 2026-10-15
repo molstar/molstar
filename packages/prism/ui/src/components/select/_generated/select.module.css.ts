@@ -43,7 +43,6 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   display: flex;
 
   &[data-size="sm"] {

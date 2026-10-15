@@ -143,8 +143,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   height: max(36px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   place-items: center;
   display: grid;
 

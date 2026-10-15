@@ -40,8 +40,6 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   width: var(--msp-stack-row, 40px);
   height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   place-items: center;
   display: grid;
 

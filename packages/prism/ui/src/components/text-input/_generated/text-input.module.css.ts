@@ -25,7 +25,6 @@ defineStyles('components/text-input/text-input.module.css', `@layer msp.componen
   color: var(--msp-color-text);
   font: inherit;
   font-size: var(--msp-font-size-sm);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   border: 0;
   margin: 0;
 

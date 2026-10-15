@@ -215,7 +215,6 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   margin-left: var(--msp-space-3);
   background: var(--msp-color-pressed);
   box-shadow: inset 0 0 0 1px var(--msp-field-edge);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   border-radius: 7px;
   flex: none;
   position: relative;

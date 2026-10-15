@@ -102,8 +102,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   width: 100%;
   height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
   color: var(--msp-color-text-muted);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   place-items: center;
   display: grid;
 

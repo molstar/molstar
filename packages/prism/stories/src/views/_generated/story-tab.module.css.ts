@@ -61,7 +61,6 @@ defineStyles('stories/views/story-tab.module.css', `@layer msp.components {
   height: 28px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   display: flex;
 
   &:hover {

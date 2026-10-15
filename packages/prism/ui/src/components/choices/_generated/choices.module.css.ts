@@ -50,7 +50,6 @@ defineStyles('components/choices/choices.module.css', `@layer msp.components {
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   display: flex;
 
   &:hover {

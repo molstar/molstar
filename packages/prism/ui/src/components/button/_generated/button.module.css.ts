@@ -34,8 +34,6 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-md);
   white-space: nowrap;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   display: inline-flex;
 
   &:hover:not(:disabled) {

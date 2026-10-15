@@ -43,7 +43,6 @@
   color: var(--msp-color-accent);
   font-size: var(--msp-font-size-sm);
   font-weight: 600;
-  transition: color var(--msp-motion-fast) var(--msp-ease);
 
   /* Hover: darker, and the label underlined (no fill, as everywhere in the footer). */
   &:hover:not(:disabled) {
