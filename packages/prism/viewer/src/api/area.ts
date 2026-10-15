@@ -267,6 +267,7 @@ export interface CoreApi {
   readonly load: import('./load.js').LoadApi;
   readonly session: import('./session.js').SessionApi;
   readonly structure: import('./structure.js').StructureApi;
+  readonly contents: import('./contents.js').ContentsApi;
   readonly component: import('./component.js').ComponentApi;
   readonly representation: import('./representation.js').RepresentationApi;
   readonly select: import('./select.js').SelectApi;

@@ -27,6 +27,7 @@ import {
 import { CameraApi } from './camera.js';
 import { CanvasApi } from './canvas.js';
 import { ComponentApi } from './component.js';
+import { ContentsApi } from './contents.js';
 import { FocusApi } from './focus.js';
 import { HighlightApi } from './highlight.js';
 import { HistoryApi } from './history.js';
@@ -56,6 +57,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   load: (c) => new LoadApi(c),
   session: (c) => new SessionApi(c),
   structure: (c) => new StructureApi(c),
+  contents: (c) => new ContentsApi(c),
   component: (c) => new ComponentApi(c),
   representation: (c) => new RepresentationApi(c),
   select: (c) => new SelectApi(c),

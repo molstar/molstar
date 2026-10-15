@@ -12,6 +12,7 @@ import { Material } from '@molstar/core/util/material';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
+import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { isSurfaceRepresentationType } from '@molstar/plugin/state/helpers/structure-representation-params';
 import type {
   StructureComponentRef,
@@ -64,6 +65,53 @@ const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Name
 
 export class RepresentationApi extends ApiArea {
   readonly id = 'representation';
+
+  // The inspector's form (plan 2.2): a representation's whole params, by its state ref; equal params: already.
+  readonly update = this.operation({
+    id: 'representation.update',
+    title: 'Update a representation',
+    params: {
+      representation: PD.Text('', { description: 'A representation by state ref' }),
+      params: PD.Value<Record<string, unknown>>(
+        {},
+        { description: "The representation's params (type, color theme, size theme)" },
+      ),
+    },
+    surface: { kind: 'ui-only', reason: "The inspector's form; tools use set, color and size" },
+    async run({ representation, params }, ctx) {
+      const cell = ctx.plugin.state.data.cells.get(representation);
+      if (!cell || !representationRef(ctx, representation)) {
+        return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
+      }
+      const current = cell.transform.params as Record<string, unknown>;
+      const next = mergeParams(current, params);
+      if (JSON.stringify(next) === JSON.stringify(current))
+        return ApiResult.already('The representation is already so.');
+      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, representation, next, 'Representation');
+      return ApiResult.ok('Updated the representation.', { nodes: [representation] });
+    },
+  });
+
+  // A representation row's eye (the scene tree): its cell and what hangs off it (its layers) shown or hidden.
+  readonly visibility = this.operation({
+    id: 'representation.visibility',
+    title: 'Show or hide a representation',
+    params: {
+      representation: PD.Text('', { description: 'A representation by state ref' }),
+      visible: PD.Boolean(true),
+    },
+    async run({ representation, visible }, ctx) {
+      const cell = ctx.plugin.state.data.cells.get(representation);
+      if (!cell || !representationRef(ctx, representation)) {
+        return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
+      }
+      if (!!cell.state.isHidden === !visible) {
+        return ApiResult.already(`The representation is already ${visible ? 'shown' : 'hidden'}.`);
+      }
+      setSubtreeVisibility(ctx.plugin.state.data, representation, !visible);
+      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} the representation.`, { nodes: [representation] });
+    },
+  });
 
   // operations.md §2: on a component, the representation of a type: added if absent, its params updated if present.
   readonly set = this.operation({
@@ -475,6 +523,14 @@ interface RepresentationParams {
 const typeOf = (r: StructureRepresentationRef) => (r.cell.transform.params as RepresentationParams).type.name;
 const refOf = (r: StructureRepresentationRef) => r.cell.transform.ref;
 const componentName = (c: StructureComponentRef) => c.cell.obj?.label || c.key || c.cell.transform.ref;
+
+/** A representation of the scene by state ref. */
+function representationRef(ctx: ApiContext, ref: string): StructureRepresentationRef | undefined {
+  for (const s of loadedStructures(ctx)) {
+    for (const c of s.components) for (const r of c.representations) if (r.cell.transform.ref === ref) return r;
+  }
+  return undefined;
+}
 
 function typeIds(ctx: ApiContext): string {
   return ctx.plugin.representation.structure.registry.types.map((t) => t[0]).join(', ');

@@ -9,9 +9,11 @@
 import { StateTransform, StateTree } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
+import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
+import { reapplyContents } from './contents.js';
 import { isFailure, labelOf, oneStructure, someStructures } from './scope.js';
 
 // `structure` (operations.md §2, plan 2.2): the scene outline (`get`), representation presets by id, the model of a
@@ -70,6 +72,8 @@ export class StructureApi extends ApiArea {
         );
       }
       await ctx.plugin.managers.structure.component.applyPreset(applicable, provider);
+      // What the person hid (entities, chains) stays hidden in the preset's components (decision 18).
+      await reapplyContents(ctx, freshStructures(ctx, applicable));
       return ApiResult.ok(`Applied ${provider.display.name} to ${applicable.map((x) => labelOf(ctx, x)).join(', ')}.`, {
         nodes: applicable.map((s) => s.cell.transform.ref),
       });
@@ -187,6 +191,12 @@ function entryRoot(ctx: ApiContext, ref: string): string {
     if (!parent || parent === StateTransform.RootRef || tree.children.get(parent).size !== 1) return current;
     current = parent;
   }
+}
+
+/** The current hierarchy's refs of these structures (their components rebuilt). */
+function freshStructures(ctx: ApiContext, list: readonly StructureRef[]): StructureRef[] {
+  const refs = new Set(list.map((s) => s.cell.transform.ref));
+  return ctx.plugin.managers.structure.hierarchy.current.structures.filter((s) => refs.has(s.cell.transform.ref));
 }
 
 function presetIds(ctx: ApiContext): string[] {

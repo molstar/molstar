@@ -22,6 +22,7 @@ import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/
 import type { Expression } from '@molstar/query-language/language/expression';
 import { compileTarget, fromMolqlJson, PERSON_KEYWORDS, readKeyword, type Target } from '../targets/index.js';
 import { type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
+import { reapplyContents } from './contents.js';
 import { isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
@@ -216,6 +217,12 @@ export class ComponentApi extends ApiArea {
               `'${text}' selects nothing in ${parts.map((p) => p.structure.label).join(', ')}.`,
             );
       }
+      // What the person hid (entities, chains) stays out of the new components too (decision 18).
+      const touched = new Set(created.map((c) => c.structure));
+      await reapplyContents(
+        ctx,
+        loadedStructures(ctx).filter((x) => touched.has(labelOf(ctx, x))),
+      );
       const did = created
         .map(
           (c) =>

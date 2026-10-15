@@ -64,12 +64,12 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
 | `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary), `mvs`, `svs`, `snapshot` (url or remote id), `trajectory`, `volume` | — | core; loaders |
 | `session`      | `open` (`.molx`, `.molj`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove`                  | `remote.list`                 | core; remote feature |
-| `structure`    | `preset` (hierarchy and representation presets by id), `model`, `assembly`, `type`                                          | `get` (the scene outline)     | core                |
-| `contents`     | `visibility` (entity or chain: left out of the representations)                                                             | `get` (entities, chains)      | core                |
+| `structure`    | `preset` (hierarchy and representation presets by id), `model`, `assembly`, `visibility`, `remove` (the whole entry)        | `get` (the scene outline)     | core                |
+| `contents`     | `visibility` (entity or chain: left out of every component, below)                                                          | `get` (entities, chains)      | core                |
 | `component`    | `add` (target, label), `modify` (target, mode `union`/`subtract`/`intersect`), `remove`, `rename`, `visibility`, `options` (hydrogens, quality, lighting, …) | — | core |
-| `representation` | `set` (on a component: type and params), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays), `emissive`, `material`, `clipping` (target: the other selection layers), `reset` (a layer) | — | core |
+| `representation` | `set` (on a component: type and params), `update` (a representation's params, the inspector), `visibility` (a row's eye), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays), `emissive`, `material`, `clipping` (target: excluded from the clip objects, Mol*'s clipping layer), `reset` (a layer) | — | core |
 | `annotations`  | `apply` (what the structure carries: quality scores, validation, charges; extensions register what they can apply) | `list` | core; extensions |
-| `styles`       | `apply` (quick style by id: Default, Cartoon, Spacefill, Surface, Illustrative)                                             | —                             | core                |
+| `styles`       | `apply` (quick style by id: `default`, `cartoon`, `spacefill`, `surface` (representation presets); `plain`, `illustrative` (looks)) | —                     | core                |
 | `volume`       | `isovalue`, `representation`, `streaming`                                                                                   | `get`                         | core                |
 | `particles`    | `representation`                                                                                                            | `get`                         | core                |
 | `select`       | `set` (target, mode `set`/`add`/`remove`/`intersect`), `all`, `clear`, `invert`, `around` (radius), `expand` (to residues, chains, …); `mode`, `granularity` | `get` (what is selected) | core           |
@@ -89,6 +89,11 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `history`      | `undo`, `undo-turn` (redo later, sequence.md §7.3)                                                                          | `list`                        | core                |
 | `view`         | `open` (tab, card, section, page; `reveal` a node), `expand`, `fullscreen`, `theme` (UI only, no history step)               | —                             | core                |
 
+- **Hiding contents** (decision 18): `contents.visibility` makes each component of the structure hold "what it held,
+  except the hidden entities and chains" (a MolScript `exceptBy` over the component's own selection); the components'
+  own params and the hidden set are the viewer's state (`registerCustomState('prism-viewer.contents')`, so snapshots
+  and checkpoints carry them), and the operations that make components (`structure.preset`, `component.add`) apply it
+  inside their step. A component left empty is a null cell, restored when the part is shown again.
 - **Events** for embedding hosts (v5's `structureInteractivity`): `viewer.events.hover` and `viewer.events.click`,
   with the target under the pointer (README §3.6).
 - **From** says which feature brings the area (viewer-spec.md §3.1): `core` is always there; a feature's areas come and
