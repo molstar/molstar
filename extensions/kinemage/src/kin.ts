@@ -354,7 +354,6 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage, visibilityState?: Kin
 
     // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
     // There are three vertices per triangle.
-    // TODO: Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
     const numTriangles = coords.length / 9;
     let prevTriangleNormal: Vec3 | undefined = undefined;
     for (let i = 0; i < numTriangles; i++) {
@@ -415,7 +414,7 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage, visibilityState?: Kin
       // not be exactly on top of each other so that we only see the front face of each.
       let n = Vec3.zero();
       Vec3.triangleNormal(n, a, b, c);
-      if (i % 2 === 1) {
+      if (ribbonObject.pairTriangleNormals && i % 2 === 1) {
         // For ribbons, every other triangle is meant to be paired with the previous one to make a quad with the same normal.
         // So use the same normal for every other triangle.
         n = prevTriangleNormal || n;
