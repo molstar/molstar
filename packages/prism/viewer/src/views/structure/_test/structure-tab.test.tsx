@@ -43,18 +43,20 @@ describe('StructureTab', () => {
     expect(rows().length).toBeLessThan(before);
   });
 
-  it('offers to show a hidden node in its inspector, not only by its eye', () => {
+  it("shows and hides a node from its inspector's header, not only by its eye", () => {
     const { container, row } = mount();
     row('Water').click();
-    const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
-    const show = [...inspector().querySelectorAll('button')].find((b) => b.textContent === 'Show')!;
-    expect(show).toBeDefined();
-    show.click();
+    const eye = () => container.querySelector<HTMLButtonElement>('[aria-label="Inspector"] header button')!;
+    expect(eye().title).toBe('Show');
+    expect(eye().getAttribute('aria-pressed')).toBe('true');
+    eye().click();
     expect(row('Water').querySelector('button[title=Hide]')).not.toBeNull();
-    expect([...inspector().querySelectorAll('button')].some((b) => b.textContent === 'Show')).toBe(false);
+    expect(eye().title).toBe('Hide');
+    eye().click();
+    expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
   });
 
-  it("shows an extension's row in the inspector when picked (its controls, Turn on while off), not under it", () => {
+  it("shows an extension's row in the inspector when picked (its controls, turned on and off at its header), not under it", () => {
     const scene = mockScene();
     const shell = new ShellModel();
     const shown = observableState(false);
@@ -86,8 +88,13 @@ describe('StructureTab', () => {
     expect(inspector.textContent).toContain('Membrane');
     expect(row.parentElement!.textContent).not.toContain('Fit…');
     expect(inspector.textContent).toContain('Fit…');
-    ([...inspector.querySelectorAll('button')].find((b) => b.textContent === 'Turn on') as HTMLButtonElement).click();
+    const eye = inspector.querySelector<HTMLButtonElement>('header button')!;
+    expect(eye.title).toBe('Turn on');
+    eye.click();
     expect(shown.value).toBe(true);
+    expect(eye.title).toBe('Turn off');
+    eye.click();
+    expect(shown.value).toBe(false);
     // A node picked takes its place.
     scene.pick(scene.roots.value[0]);
     expect(container.querySelector('[aria-label="Inspector"]')!.textContent).not.toContain('Fit…');

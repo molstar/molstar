@@ -50,7 +50,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
       const row = tree?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(node.id)}"]`);
-      row?.scrollIntoView({ block: 'nearest' });
+      row?.scrollIntoView?.({ block: 'nearest' });
     });
   });
   onCleanup(() => cancelAnimationFrame(frame));

@@ -116,6 +116,17 @@
   text-transform: capitalize;
 }
 
+/* The header's eye (show or hide, turn on or off): quiet at the end, the text color while hidden or off. */
+.inspectorEye {
+  flex: none;
+  margin: calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) auto;
+  color: var(--msp-color-text-muted);
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-text);
+  }
+}
+
 /* An item with nothing to set: a quiet line instead of an empty space. */
 .nothing {
   margin: 0;

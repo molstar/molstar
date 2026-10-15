@@ -32,6 +32,7 @@ export const classes = {
   'inspectorActions': 'msp-viewer-structure-tab-inspectorActions',
   'inspectorContent': 'msp-viewer-structure-tab-inspectorContent',
   'inspectorEmpty': 'msp-viewer-structure-tab-inspectorEmpty',
+  'inspectorEye': 'msp-viewer-structure-tab-inspectorEye',
   'inspectorHeader': 'msp-viewer-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-viewer-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-viewer-structure-tab-inspectorTitle',
@@ -147,6 +148,16 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+.msp-viewer-structure-tab-inspectorEye {
+  margin: calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) auto;
+  color: var(--msp-color-text-muted);
+  flex: none;
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-viewer-structure-tab-nothing {

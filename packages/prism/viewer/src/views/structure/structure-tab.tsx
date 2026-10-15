@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { debounceTime, map } from 'rxjs';
+import { debounceTime, map, type Observable } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
@@ -209,29 +209,43 @@ export function StructureTab(props: StructureTabProps) {
   );
 }
 
-/** An extension's row in the inspector: its label, its line, Turn on while off, and its controls. */
+/** An extension's row in the inspector: its label, its line, its eye (turn it on or off), and its controls. */
 function RowInspector(props: { row: SceneRowPick }) {
   const { row } = props;
-  const off = row.shown ? row.shown.pipe(map((s) => !s)) : undefined;
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
         <span class={classes.inspectorTitle}>{row.label}</span>
         <span class={classes.inspectorKind}>{row.description ?? ''}</span>
+        {row.shown && row.onToggle ? (
+          <VisibilityToggle hidden={row.shown.pipe(map((s) => !s))} feature onToggle={() => row.onToggle?.()} />
+        ) : null}
       </header>
-      {off && row.onToggle ? (
-        <Show when={off}>
-          {() => (
-            <div class={classes.inspectorActions}>
-              <button type="button" class={classes.inspectorAction} onClick={() => row.onToggle?.()}>
-                <span>Turn on</span>
-              </button>
-            </div>
-          )}
-        </Show>
-      ) : null}
       {row.body ? row.body() : <p class={classes.nothing}>Nothing to set here.</p>}
     </div>
+  );
+}
+
+/**
+ * The inspector's eye at its header's end, as the tree row's: Show or Hide what is drawn, Turn on or off a feature
+ * (the unit cell, the streaming, an extension's row); marked while hidden or off, so the way back is where it was.
+ */
+function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean; onToggle(): void }) {
+  const [on, off] = props.feature ? ['Turn off', 'Turn on'] : ['Hide', 'Show'];
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      class={classes.inspectorEye}
+      icon={
+        <Show when={props.hidden} fallback={() => <Icon name="eye" />}>
+          {() => <Icon name="eye-off" />}
+        </Show>
+      }
+      title={props.hidden.pipe(map((h) => (h ? off : on)))}
+      pressed={props.hidden}
+      onClick={() => props.onToggle()}
+    />
   );
 }
 
@@ -248,6 +262,11 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPi
         <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
           {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
         </Show>
+        <VisibilityToggle
+          hidden={node.isHidden}
+          feature={TurnsOn.has(node.kind)}
+          onToggle={() => node.toggleVisibility()}
+        />
       </header>
       {props.inspection.facts?.length ? (
         <dl class={classes.facts}>
@@ -259,17 +278,6 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPi
           ))}
         </dl>
       ) : null}
-      {/* Off or hidden (the streaming not on, the unit cell not shown): turning it on is here too, not only its row's
-          eye. */}
-      <Show when={node.isHidden}>
-        {() => (
-          <div class={classes.inspectorActions}>
-            <button type="button" class={classes.inspectorAction} onClick={() => node.toggleVisibility()}>
-              <span>{TurnsOn.has(node.kind) ? 'Turn on' : 'Show'}</span>
-            </button>
-          </div>
-        )}
-      </Show>
       {props.inspection.actions?.length ? (
         <div class={classes.inspectorActions}>
           {props.inspection.actions.map((a) => (
