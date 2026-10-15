@@ -38,7 +38,7 @@ import type { SequenceBehavior, SequenceOffer, SequenceShown, SequenceTrackMenuI
 import { legendOf, type SequenceLegend, withTracks } from './legend.js';
 import { PrismRegistry } from './palette.js';
 import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
-import { type SequenceFonts, skinFor } from './skin.js';
+import { type SequenceFonts, skinFor, plainCellHex } from './skin.js';
 
 // The sequence model (prism-sequence.md §2.1): owns the Seq* contexts, one per id ('default' only for now), and keeps
 // each in step with what the viewer follows: the canvas ink (its skin), the structure the 3D view shows (its
@@ -274,6 +274,8 @@ class Viewer implements SequenceViewer {
       deps.ink.subscribe((ink) => {
         this.applySkin(ink);
         this.refreshLegend();
+        // No colors: the letters' cells are the surface's color, which changed.
+        if (this.themeState.value.letters === null) void this.build();
       }),
       deps.structure.subscribe(() => void this.build()),
     );
@@ -396,6 +398,8 @@ class Viewer implements SequenceViewer {
   setTheme(theme: SequenceTheme) {
     if (theme.letters === this.themeState.value.letters) return;
     this.themeState.set(theme);
+    // Text mode: the letters in the scheme's colors, or plain text.
+    this.seq.setRenderProps({ wrappedColors: theme.letters !== null });
     this.refreshLegend();
     void this.build();
   }
@@ -427,7 +431,12 @@ class Viewer implements SequenceViewer {
     const override = this.overrideState.value;
     const svs =
       override && host.ref === override.structure
-        ? svsDocument(override.document, { key: host.key, format: host.source.format, theme: this.themeState.value })
+        ? svsDocument(override.document, {
+            key: host.key,
+            format: host.source.format,
+            theme: this.themeState.value,
+            plain: plainCellHex(this.deps.ink.value),
+          })
         : undefined;
     const doc =
       svs?.doc ??
@@ -436,6 +445,7 @@ class Viewer implements SequenceViewer {
         key: host.key,
         format: host.source.format,
         theme: this.themeState.value,
+        plain: plainCellHex(this.deps.ink.value),
         ligands: host.ligands,
       });
     // A new structure is not shown as the old one while its document is made.

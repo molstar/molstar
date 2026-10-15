@@ -110,6 +110,26 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
+  it('draws no colors as plain letters: cells in the surface color, the text in the ink', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    h.viewer.setStyle('compact');
+    h.viewer.setTheme({ letters: null });
+    await settled(h);
+    h.scheduler.advance(50);
+    const shown = JSON.stringify(h.viewer.seq.document.shown.value);
+    expect(shown).toContain('"theme":"uniform"');
+    expect(shown).not.toContain('prism:residues');
+    expect(h.viewer.seq.layout.props('main').wrappedColors).toBe(false);
+    // Colors again: the text is tinted again.
+    h.viewer.setTheme({ letters: 'taylor' });
+    await settled(h);
+    h.scheduler.advance(50);
+    expect(h.viewer.seq.layout.props('main').wrappedColors).toBe(true);
+    h.viewers.dispose();
+  });
+
   it('writes the theme into the document and keeps the set (so the link stays valid)', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
@@ -289,7 +309,7 @@ describe('the sequence model', () => {
 
   it('the document lists only the ligands the 3D view draws (the same list), and every one when none is given', async () => {
     const host = await hostStructure();
-    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null } };
+    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null }, plain: '#ffffff' };
     const options = (ligands?: string[]) => {
       const text = JSON.stringify(sequenceDocument({ ...base, ...(ligands ? { ligands } : {}) }));
       const node = (JSON.parse(text) as { root: unknown }).root;

@@ -34,6 +34,17 @@ export const hostFileOf = (key: string) => `structure:${key}`;
 export interface SequenceTheme {
   readonly letters: string | null;
 }
+
+/**
+ * The letters' color: a scheme, or for no colors one quiet color (`plain`, the surface a shade toward the text): a
+ * neutral strip, the letters in the text's contrast. SVS has no "no color" for a layer (a null color is the type's default, which
+ * colors by residue); text mode's plain letters are the render's (`wrappedColors` off).
+ */
+function lettersColor(theme: SequenceTheme, plain: string) {
+  return theme.letters === null
+    ? { theme: 'uniform', params: { color: plain } }
+    : { theme: 'scheme', params: { name: theme.letters } };
+}
 export const DefaultSequenceTheme: SequenceTheme = { letters: 'prism:residues' };
 
 export function sequenceDocument(o: {
@@ -41,6 +52,8 @@ export function sequenceDocument(o: {
   key: string;
   format: StructureFormat;
   theme: SequenceTheme;
+  /** The cells' one color for no colors (`lettersColor`). */
+  plain: string;
   /** Only the ligands of these chemical components become units (the ones the 3D view draws); absent: all. */
   ligands?: readonly string[];
 }): SeqViewSpecDoc {
@@ -52,7 +65,7 @@ export function sequenceDocument(o: {
     ...(o.ligands ? { options: { ligand_comps: [...o.ligands] } } : {}),
   });
   const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' });
-  const letters = o.theme.letters === null ? {} : { color: { theme: 'scheme', params: { name: o.theme.letters } } };
+  const letters = { color: lettersColor(o.theme, o.plain) };
   // One document for both styles: Text draws the ruler nowhere, secondary structure as underlines and a behavior's values
   // (a pLDDT track) as strips (Seq*'s lanes); Tracks draws each as a track.
   section.track({ ref: 'ruler', label: '' }).ruler();
@@ -125,7 +138,7 @@ export interface SvsShown {
  */
 export function svsDocument(
   svs: SeqViewSpecDoc,
-  o: { key: string; format: StructureFormat; theme: SequenceTheme },
+  o: { key: string; format: StructureFormat; theme: SequenceTheme; plain: string },
 ): SvsShown | undefined {
   const doc = structuredClone(svs);
   const found = firstStructureComplex(doc);
@@ -158,8 +171,7 @@ export function svsDocument(
     // The person's colors over the document's (sequence.md §6).
     if (n.kind === 'layer' && n.params?.type === 'letters') {
       const { color: _, ...rest } = n.params;
-      n.params =
-        o.theme.letters === null ? rest : { ...rest, color: { theme: 'scheme', params: { name: o.theme.letters } } };
+      n.params = { ...rest, color: lettersColor(o.theme, o.plain) };
     }
   });
   if (!data || !section || !after) return undefined;
