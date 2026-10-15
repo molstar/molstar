@@ -152,6 +152,8 @@ the [API change ledger](breaking-v6-changes.md).
   command menu renders its options as they scroll in; History reads only what is new
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
+- Prism viewer: Seq* is its own chunk (`sequence.runtime` in the spec), loaded when a structure is first shown: the
+  app's first load is 1.25 MB gzipped (from 1.68)
 - Prism viewer: the assistant's Inspector (Trace, Tools, Limits) over the real agent, opened from the Assistant tab's
   Inspect rows, the turn card's trace and the Assistant trace/tools/limits commands; extensions' views may add `pages`
 - Prism viewer: the params form lays params out as v5 does (a choice's own params behind its settings button, an

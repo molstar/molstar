@@ -29,4 +29,5 @@ export { StateTreeTab } from './views/state-tree/state-tree-tab.js';
 export { SceneRow, type SceneRowProps } from './views/structure/scene-row.js';
 export { SceneRowSlot } from './views/structure/scene-tree.js';
 export { StructureTab } from './views/structure/structure-tab.js';
-export * from './sequence/index.js';
+// The sequence's types; its values (Seq* and the views over it) are its own chunk: `@molstar/prism-viewer/sequence/index`.
+export type * from './sequence/index.js';

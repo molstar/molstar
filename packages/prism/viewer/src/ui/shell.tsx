@@ -45,9 +45,6 @@ import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard, selectionSections, selectionTab } from './panels.js';
 import { settingsTab } from './settings.js';
-import { LegendCard } from '../sequence/legend-card.js';
-import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
-import { SequenceControl } from '../sequence/sequence-control.js';
 import {
   ModeSwitch,
   modeSwitchProps,
@@ -276,69 +273,34 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     seqHoverSub.unsubscribe();
     pointerHoverSub.unsubscribe();
   });
-  // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays.
+  // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays. Its views come with its
+  // runtime (its own chunk), once the core has loaded it (a structure shown).
   if (sequence && core.options.ui.showSequence) {
-    const viewer = sequence.viewers.get();
     const inkToSeq = ink.subscribe((i) => sequence.setInk(i));
     unregister.push(() => inkToSeq.unsubscribe());
-    unregister.push(core.registerCommands(sequenceCommands(viewer, shell, person)));
-    unregister.push(
-      shell.registerOverlays([
-        ...own('overlay', [
-          { id: LegendOverlay, title: 'Sequence colors', render: domView(() => <LegendCard viewer={viewer} />) },
-        ]),
-      ]),
-    );
-    // The band, there while a structure is shown (prism-sequence.md §2.2); the first one shows it.
-    let dropTab: (() => void) | undefined;
-    let shownBefore = false;
-    const bandSub = viewer.structure.subscribe((shown) => {
-      if (!shown) {
-        dropTab?.();
-        dropTab = undefined;
-        return;
-      }
-      if (dropTab) return;
-      const tabs = own<Parameters<typeof shell.registerTabs>[0][number]>('tab', [
-        {
-          id: 'sequence',
-          title: 'Sequence',
-          icon: 'sequence',
-          dock: 'top',
-          frame: 'none',
-          render: domView(({ ctx }) => (
-            <SequenceControl
-              viewer={viewer}
-              view3d={(s) => sequence.source.view3d(s, () => void person.camera.reset())}
-              shell={ctx.shell}
-              dock={ctx.dock ?? 'top'}
-              onHover={(lines) => seqLines.set(lines)}
-            />
-          )),
-        },
-      ]);
-      if (!tabs.length) return;
-      dropTab = shell.registerTabs(tabs);
-      if (!shownBefore) shell.show('sequence');
-      shownBefore = true;
+    let dropUI: (() => void) | undefined;
+    let gone = false;
+    const uiSub = sequence.viewers.subscribe((viewers) => {
+      if (!viewers || dropUI) return;
+      void sequence.load().then(({ runtime }) => {
+        if (gone || dropUI) return;
+        dropUI = runtime.sequenceShellUI({
+          viewers,
+          source: sequence.source,
+          shell,
+          person,
+          registerCommands: (defs) => core.registerCommands(defs),
+          own,
+          openCommand: (id) => void managers.commands.open(id),
+          onHover: (lines) => seqLines.set(lines),
+        });
+      });
     });
-    unregister.push(() => bandSub.unsubscribe());
-    unregister.push(() => dropTab?.());
-    unregister.push(
-      shell.registerToolbar(
-        own('toolbar', [
-          {
-            id: 'sequence',
-            place: 'canvas',
-            group: 'view',
-            icon: 'sequence',
-            title: 'Sequence',
-            visible: viewer.structure.pipe(map((s) => s !== undefined)),
-            menu: sequenceMenu(viewer, shell, (id) => managers.commands.open(id)),
-          },
-        ]),
-      ),
-    );
+    unregister.push(() => {
+      gone = true;
+      uiSub.unsubscribe();
+      dropUI?.();
+    });
   }
   // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
   unregister.push(shell.registerTabs(own('tab', [selectionTab(selectionSummaryModel(sources.interaction, person))])));

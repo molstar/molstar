@@ -14,7 +14,7 @@ import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 describe('the sequence API', () => {
   it('colors the letters as a step: set, already so, and Undo restores', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const viewer = v.views.sequence!.viewers.get();
+    const viewer = (await v.views.sequence!.load()).viewers.get();
     const before = viewer.theme.value.letters;
     const steps = v.managers.history.steps.value.length;
 
@@ -33,7 +33,7 @@ describe('the sequence API', () => {
 
   it("turns the letters' colors off with 'none'", async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const viewer = v.views.sequence!.viewers.get();
+    const viewer = (await v.views.sequence!.load()).viewers.get();
     expectOk(await v.api.sequence!.colors({ scheme: 'none' }));
     expect(viewer.theme.value.letters).toBeNull();
     expect(await v.api.sequence!.colors({ scheme: 'none' })).toMatchObject({ ok: true, unchanged: true });
@@ -41,7 +41,7 @@ describe('the sequence API', () => {
 
   it('describes the view: the structure it follows, its style and colors, after each change', async () => {
     const v = await headlessViewer({ files: [cbs(), crambin()] });
-    const viewer = v.views.sequence!.viewers.get();
+    const viewer = (await v.views.sequence!.load()).viewers.get();
     const get = async () => {
       const r = await v.api.sequence!.get();
       expectOk(r);

@@ -18,7 +18,7 @@ describe('the sequence', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const seq = v.views.sequence!;
     expect(seq.source.structure.value?.title).toBe('1CBS');
-    const viewer = seq.viewers.get();
+    const viewer = (await seq.load()).viewers.get();
     await until(() => !!viewer.structure.value);
     expect(viewer.structure.value?.title).toBe('1CBS');
   });
@@ -35,7 +35,7 @@ describe('the sequence', () => {
 
   it('changes its style as a step, and Undo brings it back (its state is in the checkpoint)', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const viewer = v.views.sequence!.viewers.get();
+    const viewer = (await v.views.sequence!.load()).viewers.get();
     expect(viewer.style.value).toBe('tracks');
     expectOk(await v.api.sequence!.style({ style: 'text' }));
     expect(viewer.style.value).toBe('compact');
@@ -84,5 +84,24 @@ describe('the sequence', () => {
     const v = await headlessViewer({ spec: { sequence: false } });
     expect(v.views.sequence).toBeUndefined();
     expect(v.api.sequence).toBeUndefined();
+  });
+
+  it('loads its runtime only when a structure is shown, and applies a saved state given before', async () => {
+    // A state saved with the text style, a structure followed.
+    const a = await headlessViewer({ files: [cbs()] });
+    expectOk(await a.api.sequence!.style({ style: 'text' }));
+    const snapshot = a.plugin.state.getSnapshot({ camera: false, canvas3d: false });
+
+    const v = await headlessViewer();
+    const seq = v.views.sequence!;
+    expect(seq.viewers.value).toBeUndefined();
+    // The state arrives before the runtime: kept, then applied.
+    await v.plugin.state.setSnapshot(snapshot);
+    await until(() => !!seq.viewers.value);
+    const viewer = seq.viewers.value!.get();
+    await until(() => viewer.style.value === 'compact');
+    expect(
+      v.plugin.state.getSnapshot({ camera: false, canvas3d: false }).custom?.['prism-viewer.sequence'],
+    ).toMatchObject({ style: 'compact' });
   });
 });

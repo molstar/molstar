@@ -71,6 +71,12 @@ export interface PrismViewerPluginParts {
 
 /** §2.3 */
 export interface PrismViewerSequenceSpec {
+  /**
+   * Seq* and the views over it, its own chunk (`() => import('@molstar/prism-viewer/sequence/runtime')`): loaded when a
+   * structure is first shown, or an operation or a saved state needs it; without a sequence in the spec, none of it is
+   * bundled.
+   */
+  readonly runtime: () => Promise<typeof import('./sequence/runtime.js')>;
   /** The viewer's sequence behaviors (follow, secondary structure); extensions add theirs. */
   readonly behaviors: readonly SequenceBehavior[];
   /** The initial style; Tracks by default. */

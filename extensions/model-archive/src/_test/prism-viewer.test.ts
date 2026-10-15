@@ -73,7 +73,7 @@ describe('the model-archive extension in the Prism viewer', () => {
 
   it('adds the pLDDT track to the sequence, with its menu and its bands, only for a model that carries it', async () => {
     const v = await viewer([alphafold()]);
-    const seq = v.views.sequence!.viewers.get();
+    const seq = (await v.views.sequence!.load()).viewers.get();
     await until(() => JSON.stringify(seq.seq.document.shown.value).includes(`"ref":"${PlddtTrack}"`));
     expect(seq.legend.value.sections?.map((s) => s.title)).toEqual(['Secondary structure', 'Model confidence']);
     expect(seq.trackActions(PlddtTrack).map((a) => a.label)).toEqual(['Color by pLDDT']);
@@ -81,7 +81,7 @@ describe('the model-archive extension in the Prism viewer', () => {
     await until(() => polymerThemes(v).includes('plddt-confidence'));
     // An experimental structure: no track, no bands.
     const other = await viewer([cbs()]);
-    const plain = other.views.sequence!.viewers.get();
+    const plain = (await other.views.sequence!.load()).viewers.get();
     await until(() => plain.shown.value !== undefined);
     expect(JSON.stringify(plain.seq.document.shown.value)).not.toContain(PlddtTrack);
     expect(plain.legend.value.sections?.map((s) => s.title)).toEqual(['Secondary structure']);

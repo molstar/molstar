@@ -25,12 +25,10 @@ import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
-import { fromJSON, readDocument } from '@molstar/seq-core/format';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
 import { messageOf } from '../../api/run.js';
 import { labelOf, loadedStructures } from '../../api/scope.js';
 import { currentStateServer, openStateFrom, stateAddress, transformersOf } from '../../api/state-open.js';
-import { svsStructureSource } from '../../sequence/document.js';
 
 // The `loaders` feature's operations (operations.md §2, the `load` row; README §3.2): Mol*'s own loaders
 // (`@molstar/plugin-extension/loaders`: the plugin's state actions and builders) as operations of the core's `load`
@@ -718,6 +716,8 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
       return ApiResult.fail('invalid', 'SeqViewSpec archives (.svsx) are not read yet.', 'Give its .svsj document.');
     }
     // The document: JSON or MessagePack from an address, JSON as data; its envelope checked (Seq* checks the rest).
+    // Seq*'s readers come with the sequence's runtime (its own chunk).
+    const { fromJSON, readDocument, svsStructureSource } = await sequence.runtime();
     let read: ReturnType<typeof readDocument>;
     try {
       read = address

@@ -39,10 +39,13 @@ async function headlessViewer(o: { files: File[] }): Promise<PrismViewer> {
     const r = await v.api.load.files({ files: [f] });
     if (!r.ok) throw new Error(r.message);
   }
+  // The sequence's runtime, which a shown structure loads: in before the turns, so they do not wait on its import.
+  if (o.files.length) await v.views.sequence?.load();
   return v;
 }
 
-async function until(check: () => boolean, ms = 3000): Promise<void> {
+// A surface is computed in some turns: a second alone, a few under a full parallel run.
+async function until(check: () => boolean, ms = 10_000): Promise<void> {
   const t0 = Date.now();
   while (!check()) {
     if (Date.now() - t0 > ms) throw new Error(`timed out after ${ms} ms`);

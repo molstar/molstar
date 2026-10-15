@@ -74,12 +74,19 @@ nothing, a page that drives the viewer itself leaves it off.
 
 ```ts
 interface PrismViewerSequenceSpec {
+  readonly runtime: () => Promise<SequenceRuntime>;            // Seq* and the views over it, its own chunk:
+                                                               // () => import('@molstar/prism-viewer/sequence/runtime')
   readonly behaviors: readonly SequenceBehavior[];             // the viewer's (follow, secondary structure); extensions
                                                                // add theirs (§3: model-archive's pLDDT and PAE, validation)
   readonly style?: 'tracks' | 'text';                          // the initial one; Tracks by default
   readonly seq?: (base: SeqViewerSpec) => SeqViewerSpec;       // Seq*'s own spec (its behaviors, registry, render props)
 }
 ```
+
+The runtime loads when a structure is first shown, or when an operation (`sequence.*`, `load.svs`) or a saved state
+needs it; until then the core holds the plugin side only (`sources/sequence.ts`) and a saved state as given
+(`views.sequence.viewers` is undefined, `load()` makes them). A page shows its first frame without Seq\* (the app's
+initial load: 4.25 MB, 1.25 MB gzipped, from 5.46 and 1.68), and a spec that names no runtime has none of it.
 
 `false` builds no sequence viewer (no band, no Sequence button, no sequence commands or tools). One viewer, keyed
 `'default'` (sequence.md §6).

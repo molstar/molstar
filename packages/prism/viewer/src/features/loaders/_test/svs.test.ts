@@ -33,13 +33,16 @@ afterEach(() => {
 
 const steps = (v: PrismViewer) => v.managers.history.steps.value.length;
 const structures = (v: PrismViewer) => v.plugin.managers.structure.hierarchy.current.structures;
-const seqOf = (v: PrismViewer) => v.views.sequence!.viewers.get();
+// Loaded by then (a structure shown, or load.svs).
+const seqOf = (v: PrismViewer) => v.views.sequence!.viewers.value!.get();
 /** The SVS is shown: the sequence's document is it (its section), over the structure the link maps. */
+const loaded = (v: PrismViewer) => !!v.views.sequence!.viewers.value;
 const showsSvs = (v: PrismViewer) =>
+  loaded(v) &&
   seqOf(v).structure.value?.complex === 'cbs' &&
   !!seqOf(v).seq.document.base.value?.root.children?.some((n) => n.kind === 'view' && n.ref === 'svs-view');
 const showsBuilt = (v: PrismViewer, title: string) =>
-  seqOf(v).structure.value?.title === title && seqOf(v).structure.value?.complex === 'structure';
+  loaded(v) && seqOf(v).structure.value?.title === title && seqOf(v).structure.value?.complex === 'structure';
 
 async function viewer(files: File[] = [cbs()]) {
   const v = await headlessViewer({ extensions: [LoadersFeature], files });

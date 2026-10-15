@@ -37,7 +37,8 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
       ExportImageFeature,
       ExportSessionFeature,
     ],
-    sequence: { behaviors: [] },
+    // Seq*, its own chunk (loaded when a structure is first shown).
+    sequence: { runtime: () => import('./sequence/runtime.js'), behaviors: [] },
     agent: {},
   };
 }

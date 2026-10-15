@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { GraphResult } from '@molstar/seq-viewer';
 import type { SequenceOverride, SequenceViewer } from '../sequence/model.js';
+import type { LoadedSequence } from '../viewer.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
 import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
@@ -29,10 +30,21 @@ export class SequenceApi extends ApiArea {
 
   constructor(
     ctx: ApiAreaContext,
-    private readonly viewer: SequenceViewer,
+    /** The sequence's runtime and viewers, loaded on first need (its own chunk, viewer-spec.md §2.3). */
+    private readonly loaded: () => Promise<LoadedSequence>,
     private readonly source: SequenceSource,
   ) {
     super(ctx);
+  }
+
+  /** The viewer, once its runtime is in. */
+  async #viewer(): Promise<SequenceViewer> {
+    return (await this.loaded()).viewers.get();
+  }
+
+  /** The runtime's module: Seq*'s readers for the loaders (`load.svs`). */
+  async runtime(): Promise<LoadedSequence['runtime']> {
+    return (await this.loaded()).runtime;
   }
 
   readonly style = this.operation({
@@ -49,9 +61,10 @@ export class SequenceApi extends ApiArea {
       ]),
     },
     run: async ({ style }) => {
+      const viewer = await this.#viewer();
       const want = style === 'text' ? 'compact' : 'tracks';
-      if (this.viewer.style.value === want) return ApiResult.already(`The sequence is already shown as ${style}.`);
-      this.viewer.setStyle(want);
+      if (viewer.style.value === want) return ApiResult.already(`The sequence is already shown as ${style}.`);
+      viewer.setStyle(want);
       return ApiResult.ok(`The sequence is shown as ${style}.`, { sequence: true });
     },
   });
@@ -65,10 +78,11 @@ export class SequenceApi extends ApiArea {
     },
     params: { scheme: PD.Select(Schemes[0][0], Schemes, { description: 'A letter color scheme' }) },
     run: async ({ scheme }) => {
+      const viewer = await this.#viewer();
       const letters = scheme === 'none' ? null : scheme;
-      if (this.viewer.theme.value.letters === letters)
+      if (viewer.theme.value.letters === letters)
         return ApiResult.already(`The letters are already colored by ${scheme}.`);
-      this.viewer.setTheme({ letters });
+      viewer.setTheme({ letters });
       return ApiResult.ok(`The letters are colored by ${scheme}.`, { sequence: true });
     },
   });
@@ -100,9 +114,10 @@ export class SequenceApi extends ApiArea {
    * Shows a loaded SeqViewSpec over its structure (sequence.md §6): the loaders' `load.svs` calls it inside its run, so
    * it is part of that step. Not an operation of its own: the document comes from a load.
    */
-  showDocument(override: SequenceOverride): Promise<GraphResult> {
+  async showDocument(override: SequenceOverride): Promise<GraphResult> {
+    const viewer = await this.#viewer();
     this.source.show(override.structure);
-    return this.viewer.setOverride(override);
+    return viewer.setOverride(override);
   }
 
   readonly get = this.operation({
@@ -111,16 +126,17 @@ export class SequenceApi extends ApiArea {
     params: {},
     read: true,
     run: async () => {
-      const shown = this.viewer.structure.value;
-      const style = this.viewer.style.value === 'compact' ? 'text' : 'tracks';
-      const override = shown ? this.viewer.override.value : undefined;
+      const viewer = await this.#viewer();
+      const shown = viewer.structure.value;
+      const style = viewer.style.value === 'compact' ? 'text' : 'tracks';
+      const override = shown ? viewer.override.value : undefined;
       const document = override
         ? (override.document.metadata?.title ?? override.url ?? 'a loaded document')
         : undefined;
       const value = {
         structure: shown?.title,
         style,
-        colors: this.viewer.theme.value.letters ?? 'none',
+        colors: viewer.theme.value.letters ?? 'none',
         ...(document ? { document } : {}),
       };
       const what = document ? `The SeqViewSpec ${document} over ${shown?.title}` : `The sequence of ${shown?.title}`;

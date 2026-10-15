@@ -10,7 +10,7 @@ import { type Structure, StructureElement } from '@molstar/model/model/structure
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import { StructureSource, type StructureFormat } from '@molstar/seq-molstar-poc';
+import type { StructureFormat, StructureSource } from '@molstar/seq-molstar-poc';
 import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
@@ -127,7 +127,14 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       key,
       ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
-      source: StructureSource.of(trajectory, format),
+      // Seq*'s source over the 3D view's parse (`StructureSource.of`, made here: Seq* is the sequence's own chunk).
+      source: {
+        kind: 'molstar:structure-source',
+        format,
+        trajectory,
+        frame: null,
+        structures: new Map(),
+      } satisfies StructureSource,
       structure: data,
     });
   };
