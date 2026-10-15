@@ -222,6 +222,75 @@ describe('highlight', () => {
     expectOk(await v.api.highlight.clear());
     expect(await v.api.highlight.set({ target: 'chain Z' })).toMatchObject({ ok: false, code: 'not-found' });
   });
+
+  it("lights the sequence too when asked (the marks' hover), and clears it", async () => {
+    const v = await setup();
+    expectOk(await v.api.highlight.set({ target: 'ligand' }));
+    expect(v.sources.marks.hover.value).toBeUndefined();
+    expectOk(await v.api.highlight.set({ target: 'A:10', sequence: true }));
+    expect(v.sources.marks.hover.value).toMatchObject({ owner: 'highlight' });
+    expect(StructureElement.Loci.isEmpty(v.sources.marks.hover.value!.loci)).toBe(false);
+    expectOk(await v.api.highlight.clear());
+    expect(v.sources.marks.hover.value).toBeUndefined();
+  });
+
+  it("marks an owner's ranges in their tones on the representations, as view state, and takes them off", async () => {
+    const v = await setup();
+    const before = steps(v);
+    const reprs = () =>
+      v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap((c) =>
+        c.representations.map((r) => r.cell.obj!.data.repr),
+      );
+    const layers = () => reprs().map((r) => r.state.overpaint.layers.length);
+    const frame = () => new Promise<void>((r) => setTimeout(r, 20));
+    expect(layers().every((n) => n === 0)).toBe(true);
+
+    const r = await v.api.highlight.mark({
+      owner: 'plot',
+      marks: [
+        { id: 'a', tone: 'highlight', label: 'Aligned A 1–10', target: 'A:1-10' },
+        { id: 'b', tone: 'accent', target: 'A:50-60' },
+      ],
+    });
+    expectOk(r);
+    expect(r.did).toBe('Marked Aligned A 1–10; A:50-60.');
+    expect(v.sources.marks.marks.value.map((m) => [m.owner, m.id, m.tone])).toEqual([
+      ['plot', 'a', 'highlight'],
+      ['plot', 'b', 'accent'],
+    ]);
+    await frame();
+    // The polymer's representation has both; the ligand's neither.
+    expect(Math.max(...layers())).toBe(2);
+    expect(steps(v)).toBe(before);
+
+    // Another owner's marks stay when one clears its own.
+    expectOk(await v.api.highlight.mark({ owner: 'other', marks: [{ id: 'x', tone: 'accent', target: 'ligand' }] }));
+    expectOk(await v.api.highlight.unmark({ owner: 'plot' }));
+    expect(v.sources.marks.marks.value.map((m) => m.owner)).toEqual(['other']);
+    expectOk(await v.api.highlight.unmark({ owner: 'other' }));
+    await frame();
+    expect(layers().every((n) => n === 0)).toBe(true);
+
+    // The rest greyed: a layer under the marks on every representation, the ligand's (none of the marks) too.
+    expectOk(
+      await v.api.highlight.mark({
+        owner: 'plot',
+        dimRest: true,
+        marks: [{ id: 'a', tone: 'accent', target: 'A:1-10' }],
+      }),
+    );
+    await frame();
+    expect(Math.max(...layers())).toBe(2);
+    expect(Math.min(...layers())).toBe(1);
+    expectOk(await v.api.highlight.unmark({ owner: 'plot' }));
+    await frame();
+    expect(layers().every((n) => n === 0)).toBe(true);
+
+    expect(await v.api.highlight.mark({ owner: '', marks: [] })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(
+      await v.api.highlight.mark({ owner: 'plot', marks: [{ id: 'z', tone: 'accent', target: 'chain Z' }] }),
+    ).toMatchObject({ ok: false, code: 'not-found' });
+  });
 });
 
 describe('camera', () => {

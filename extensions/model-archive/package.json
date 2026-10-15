@@ -23,6 +23,11 @@
       "types": "./lib/pae/ui.d.ts",
       "import": "./lib/pae/ui.js"
     },
+    "./pae/plot": {
+      "molstar-src": "./src/pae/plot.tsx",
+      "types": "./lib/pae/plot.d.ts",
+      "import": "./lib/pae/plot.js"
+    },
     "./_test/*": null
   },
   "files": [

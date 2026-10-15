@@ -15,6 +15,7 @@ import { mountSection } from '@molstar/seq-viewer/canvas';
 import { combineLatest, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
+import type { MarksSource } from '../sources/marks.js';
 import { linkSequence, type SequenceView3D } from './link.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
@@ -38,6 +39,8 @@ export interface SequenceControlProps {
   textHeight?: number;
   /** The Seq* hover label as lines for the shell's hover label (`[]`: none), once a frame and only when it changes. */
   onHover?: (lines: readonly string[]) => void;
+  /** A view's marks and hover (marks.md): shown here too, through the link. */
+  marks?: MarksSource;
 }
 
 /** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */
@@ -87,7 +90,7 @@ export function SequenceControl(props: SequenceControlProps) {
   onCleanup(() => cancelAnimationFrame(fontFrame));
 
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
-  if (props.view3d) onCleanup(linkSequence(viewer, props.view3d));
+  if (props.view3d) onCleanup(linkSequence(viewer, props.view3d, props.marks ? { marks: props.marks } : undefined));
 
   // The track menus (prism-sequence.md §4): the browser's context-menu request on a track (a right-click, Ctrl+click on
   // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and

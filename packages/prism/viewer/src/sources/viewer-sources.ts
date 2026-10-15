@@ -13,6 +13,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
 import { createInteractionSources, type InteractionSources } from './interaction.js';
+import { createMarksSource, type MarksSource } from './marks.js';
 import { structureNames } from './naming.js';
 import { createPointerSources, type PointerSources } from './pointer.js';
 import { createSettingsSources, type SettingsSources } from './settings.js';
@@ -79,6 +80,8 @@ export interface ViewerSources {
    * subscribed, re-read once per animation frame, and only walked again when a layer cell changed.
    */
   readonly layers: ReadonlyState<readonly StyleLayerInfo[]>;
+  /** A view's marks and hover on the scene (marks.md): in the 3D view and the sequence, never a history step. */
+  readonly marks: MarksSource;
 }
 
 /** The sources and their disposer, kept by whoever made them. */
@@ -139,7 +142,19 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
     { compare: sameStyleLayers },
   );
   return {
-    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats, settings, layers },
+    sources: {
+      canvas,
+      structures,
+      empty,
+      busy,
+      tasks,
+      pointer,
+      interaction,
+      formats,
+      settings,
+      layers,
+      marks: createMarksSource(scope, plugin),
+    },
     dispose: () => scope.dispose(),
   };
 }

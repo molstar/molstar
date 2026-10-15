@@ -310,6 +310,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           own,
           openCommand: (id) => void managers.commands.open(id),
           onHover: (lines) => seqLines.set(lines),
+          marks: sources.marks,
         });
       });
     });

@@ -9,6 +9,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { unzip } from '@molstar/core/util/zip/zip';
 import { story } from '@molstar/prism-ui/testing/index';
 import { RealViewerStory } from '@molstar/prism-viewer/testing/real-viewer';
 import { FullPrismViewerSpec } from '../full-spec.js';
@@ -57,6 +59,40 @@ export const Pae: StoryObj = {
           ]);
           const matrix: number[][] = (Array.isArray(pae) ? pae[0] : pae).predicted_aligned_error;
           const loaded = await v.api.load.data!({ data: withPairwisePae(cif, matrix), format: 'mmcif' });
+          if (!loaded.ok) throw new Error(loaded.message);
+          await v.api.view.open({ card: 'model-archive.overlay.pae' });
+        }}
+      />
+    )),
+};
+
+/**
+ * The predicted aligned error of a complex: ModelArchive's ma-bak-cepc-0100, a predicted interaction between two yeast
+ * ribosomal proteins (RPS4B, chain A, 261 residues; RPS24B, chain B, 135), its PAE taken from the entry's accompanying
+ * archive (ModelArchive keeps it there, a partial ModelCIF of `ma_qa_metric_local_pairwise`) and put into the model,
+ * loaded, the PAE card open: the plot's chain bands and boundaries, a box across them. Network.
+ */
+export const PaeComplex: StoryObj = {
+  name: 'PAE (complex)',
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        spec={() => FullPrismViewerSpec()}
+        setup={async (v) => {
+          const entry = 'https://modelarchive.org/api/projects/ma-bak-cepc-0100';
+          const [cif, archive] = await Promise.all([
+            fetch(`${entry}?type=basic__model_file_name`).then((r) => r.text()),
+            fetch(`${entry}?type=materials_procedures__accompanying_data_file_name`).then((r) => r.arrayBuffer()),
+          ]);
+          const files = await unzip(SyncRuntimeContext, archive);
+          const name = Object.keys(files).find((f) => f.endsWith('_predicted_aligned_error_v1.cif'));
+          const file = name && files[name];
+          if (!(file instanceof Uint8Array)) throw new Error('The archive has no PAE.');
+          const pairwise = /loop_\n_ma_qa_metric_local_pairwise\.[\s\S]*?(?=\nloop_|\n#|$)/.exec(
+            new TextDecoder().decode(file),
+          );
+          if (!pairwise) throw new Error('The PAE file has no ma_qa_metric_local_pairwise loop.');
+          const loaded = await v.api.load.data!({ data: `${cif.trimEnd()}\n${pairwise[0]}\n#\n`, format: 'mmcif' });
           if (!loaded.ok) throw new Error(loaded.message);
           await v.api.view.open({ card: 'model-archive.overlay.pae' });
         }}

@@ -8,19 +8,31 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, Legend, onCleanup, Select, Show } from '@molstar/prism-ui';
+import { domView, Select, Show } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { type SceneNode, SceneRow } from '@molstar/prism-viewer';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
-import { type PaeMatrix, PaeColorStyles, paeCellAt, paeCellLabel, paeChains, paeImage, paePairTarget } from './data.js';
+import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
+import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';
+import { PaePlot } from './plot.js';
 
 // The PAE card (parity.md §6, "PAE plot"; v5's Predicted Aligned Error panel, anew): the predicted aligned error of a
-// model as a heat map, one pixel per residue pair, drawn once into a canvas. The pointer names the cell under it (read
-// and written once per frame), a click selects its two residues (`select.set`, as the person). The matrix comes from
-// the `model-archive` area; the card opens from the toolbar while a loaded model has a PAE, or by
-// `model-archive.show-pae`.
+// model as a heat map (plot.tsx), as AlphaFold DB draws it. The cell under the pointer is lit in the 3D view and the
+// sequence, a click selects its two residues, a box marks its aligned and scored ranges in both until cleared (marks.md);
+// all through the API as the person. The matrix comes from the `model-archive` area; the card opens from the toolbar
+// while a loaded model has a PAE, or by `model-archive.show-pae`; the plot is also a row under such a structure in the
+// Structure panel, shown in its inspector.
 
 export const PaeCard = 'model-archive.overlay.pae';
+/** The PAE's row in the Structure panel, under a structure that has one. */
+export const PaeRow = 'model-archive.row.pae';
+
+/** "149 residues · 2 chains": what the row says of a matrix. */
+const paeDescription = (m: PaeMatrix | undefined) => {
+  if (!m) return undefined;
+  const chains = new Set(m.residues.map((r) => r.chain)).size;
+  return `${m.size} residues${chains > 1 ? ` · ${chains} chains` : ''}`;
+};
 
 const Quiet = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-xs)';
 
@@ -71,15 +83,34 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
                 {(s) => {
                   const m = area.paeMatrix(s.ref);
                   if (!m) return <p style={`margin: 0; ${Quiet}`}>{s.label} has no PAE.</p>;
-                  return (
-                    <PaePlot
-                      matrix={m}
-                      onPick={(i, j) => void ctx.api.select.set({ target: paePairTarget(m, i, j), structure: s.ref })}
-                    />
-                  );
+                  return <PaeView ctx={ctx} structure={s.ref} matrix={m} />;
                 }}
               </Show>
             </div>
+          );
+        }),
+      },
+    ],
+    // In the Structure panel too: a row under a structure that has a PAE; picked, the plot in the inspector.
+    rows: [
+      {
+        id: PaeRow,
+        when: (node) => node.kind === 'structure' && area.hasPae(node.id),
+        render: domView(({ ctx: view }) => {
+          const structure = (view.subject as SceneNode).id;
+          return (
+            <SceneRow
+              label="Predicted aligned error"
+              description={of(paeDescription(area.paeMatrix(structure)))}
+              body={() => {
+                const m = area.paeMatrix(structure);
+                return m ? (
+                  <PaeView ctx={ctx} structure={structure} matrix={m} />
+                ) : (
+                  <p style={`margin: 0; ${Quiet}`}>No PAE.</p>
+                );
+              }}
+            />
           );
         }),
       },
@@ -100,88 +131,52 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
   };
 }
 
-/** The heat map with the chains along it, the cell under the pointer, and the scale. */
-export function PaePlot(props: { matrix: PaeMatrix; onPick(i: number, j: number): void }) {
-  const m = props.matrix;
-  const canvas = (
-    <canvas
-      width={m.size}
-      height={m.size}
-      role="img"
-      aria-label={`${m.name}: ${m.size} by ${m.size} residues`}
-      style="display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; cursor: crosshair; border-radius: var(--msp-radius-sm); background: var(--msp-color-well)"
-    />
-  ) as HTMLCanvasElement;
-  const g = canvas.getContext('2d');
-  if (g) {
-    const image = g.createImageData(m.size, m.size);
-    paeImage(m, image.data);
-    g.putImageData(image, 0, 0);
-  }
-
-  const readout = (<p style={`margin: 0; min-height: 1.5em; ${Quiet}`} aria-live="polite" />) as HTMLElement;
-  const idle = 'Point at a cell; a click selects its two residues.';
-  readout.textContent = idle;
-
-  // Pointer-rate input, handled once per frame: the frame reads the plot's box, then writes the line (styling.md §5).
-  let frame = 0;
-  let x = 0;
-  let y = 0;
-  let inside = false;
-  let cell = -1;
-  const update = () => {
-    frame = 0;
-    const r = canvas.getBoundingClientRect();
-    const at = inside && r.width > 0 ? paeCellAt(m, (x - r.left) / r.width, (y - r.top) / r.height) : undefined;
-    const next = at ? at.i * m.size + at.j : -1;
-    if (next === cell) return;
-    cell = next;
-    readout.textContent = at ? paeCellLabel(m, at.i, at.j) : idle;
-  };
-  const schedule = (e: PointerEvent, over: boolean) => {
-    x = e.clientX;
-    y = e.clientY;
-    inside = over;
-    if (!frame) frame = requestAnimationFrame(update);
-  };
-  canvas.addEventListener('pointermove', (e) => schedule(e, true));
-  canvas.addEventListener('pointerleave', (e) => schedule(e, false));
-  canvas.addEventListener('click', (e) => {
-    const r = canvas.getBoundingClientRect();
-    const at = paeCellAt(m, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
-    if (at) props.onPick(at.i, at.j);
-  });
-  onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
-  });
-
-  const chains = paeChains(m);
+/**
+ * The plot on a structure, acting through the API as the person: the cell under the pointer lit in the 3D view and the
+ * sequence (`highlight.set`), a click selecting its two residues, a box marking its aligned range (highlight tone) and
+ * scored range (accent tone) in both (`highlight.mark`, marks.md) until cleared.
+ */
+export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix: PaeMatrix }) {
+  const { ctx, structure, matrix: m } = props;
+  const api = ctx.api;
   return (
-    <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
-      {canvas}
-      {chains.length > 1 ? (
-        <div style={`display: flex; ${Quiet}`} aria-label="Chains">
-          {chains.map((c) => (
-            <span style={`flex: ${c.to - c.from} 1 0; min-width: 0; overflow: hidden; text-align: center`}>
-              {c.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {readout}
-      <Legend
-        ramps={[
-          {
-            stops: [
-              { t: 0, color: PaeColorStyles.low },
-              { t: 1, color: PaeColorStyles.high },
-            ],
-            lo: '0 Å',
-            hi: `${m.max.toFixed(0)} Å`,
-            caption: 'Expected position error',
-          },
-        ]}
-      />
-    </div>
+    <PaePlot
+      matrix={m}
+      colors={ctx.sources.marks.colors}
+      onHover={(cell) =>
+        void (cell
+          ? api.highlight.set({ target: paePairTarget(m, cell.i, cell.j), structure, sequence: true })
+          : api.highlight.clear())
+      }
+      onPick={(i, j) => void api.select.set({ target: paePairTarget(m, i, j), structure })}
+      onBox={(b) =>
+        void (b
+          ? api.highlight.mark({
+              owner: PaeMarksOwner,
+              structure,
+              // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
+              dimRest: true,
+              // The scored last: painted over the aligned where they overlap, as the plot draws them.
+              marks: [
+                {
+                  id: 'aligned',
+                  tone: 'highlight',
+                  label: `Aligned ${paeRangeLabel(m, b.i0, b.i1)}`,
+                  target: paeRangeTarget(m, b.i0, b.i1),
+                },
+                {
+                  id: 'scored',
+                  tone: 'accent',
+                  label: `Scored ${paeRangeLabel(m, b.j0, b.j1)}`,
+                  target: paeRangeTarget(m, b.j0, b.j1),
+                },
+              ],
+            })
+          : api.highlight.unmark({ owner: PaeMarksOwner }))
+      }
+    />
   );
 }
+
+/** The PAE plot's marks' owner (marks.md). */
+export const PaeMarksOwner = 'model-archive.pae';

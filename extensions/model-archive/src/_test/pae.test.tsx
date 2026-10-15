@@ -11,13 +11,25 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { StructureElement } from '@molstar/model/model/structure';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type PaeMatrix, paeCellAt, paeCellLabel, paeChains, paeImage, paePairTarget } from '../pae/data.js';
+import {
+  type PaeMatrix,
+  paeBoxMean,
+  paeCellAt,
+  paeCellLabel,
+  paeChains,
+  paeImage,
+  paePairTarget,
+  paeRangeLabel,
+  paeRangeTarget,
+  paeTicks,
+} from '../pae/data.js';
 import { paeUI } from '../pae/ui.js';
 import { ModelArchiveExtension } from '../prism-viewer.js';
 
@@ -167,7 +179,8 @@ describe('the PAE drawing', () => {
   });
 
   it('names cells, their residues as a target, and the chains along the axis', () => {
-    expect(paeCellAt(tiny, 0.75, 0.25)).toEqual({ i: 1, j: 0 });
+    // x is the scored residue (j), y the aligned (i), as AlphaFold DB draws it.
+    expect(paeCellAt(tiny, 0.75, 0.25)).toEqual({ i: 0, j: 1 });
     expect(paeCellAt(tiny, 1, 0.5)).toBeUndefined();
     expect(paePairTarget(tiny, 0, 1)).toBe('A:5, B:7A');
     expect(paePairTarget(tiny, 1, 1)).toBe('B:7A');
@@ -213,7 +226,7 @@ describe('model-archive.pae', () => {
 });
 
 describe('the PAE card', () => {
-  it('draws the matrix, names the cell under the pointer, and a click selects its two residues', async () => {
+  it('draws the matrix; the pointer lights its cell, a press selects it, a box marks its two ranges, moves and resizes until cleared', async () => {
     const put = vi.fn();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
       () =>
@@ -222,7 +235,7 @@ describe('the PAE card', () => {
           putImageData: put,
         }) as never,
     );
-    vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
       left: 0,
       top: 0,
       width: 400,
@@ -236,24 +249,88 @@ describe('the PAE card', () => {
 
     const host = document.createElement('div');
     document.body.append(host);
-    ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
+    const unmount = ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
     const canvas = host.querySelector('canvas')!;
     expect(canvas.width).toBe(4);
     expect(put).toHaveBeenCalledTimes(1);
-    expect(host.textContent).toContain('B');
+    const plot = host.querySelector<HTMLElement>('[role="img"]')!;
+    const pointer = (type: string, x: number, y: number) =>
+      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
 
-    // (300, 50): residue 3 (B 1) against residue 0 (A 1).
-    canvas.dispatchEvent(new MouseEvent('pointermove', { clientX: 300, clientY: 50 }));
-    await until(() => host.textContent?.includes('B 1 LYS · A 1 ALA · 7.0 Å') ?? false);
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: 300, clientY: 50 }));
+    // (300, 50): aligned on residue 0 (A 1), residue 3 (B 1) scored; lit in the sequence too (the marks' hover).
+    pointer('pointermove', 300, 50);
+    await until(() => host.textContent?.includes('A 1 ALA · B 1 LYS · 7.0 Å') ?? false);
+    await until(() => v.sources.marks.hover.value !== undefined);
+    expect(v.sources.marks.hover.value?.owner).toBe('highlight');
+
+    // A press without a drag picks the cell: its two residues selected.
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
     await until(() => v.sources.interaction.selection.value !== undefined);
     const selected = await v.api.select.get({});
     expect(selected.ok && JSON.stringify(selected.value)).toMatch(/"residues":2|2 residues/);
+
+    // A drag from (0, 0) to (3, 2): aligned A 1–3 and B 1, scored A 1–3; marked, summed up, its mean error.
+    const steps = v.managers.history.steps.value.length;
+    pointer('pointerdown', 50, 50);
+    pointer('pointermove', 250, 350);
+    pointer('pointerup', 250, 350);
+    await until(() => v.sources.marks.marks.value.length === 2);
+    const marks = v.sources.marks.marks.value;
+    expect(marks.map((m) => [m.owner, m.id, m.tone, m.label])).toEqual([
+      ['model-archive.pae', 'aligned', 'highlight', 'Aligned A 1–3, B 1'],
+      ['model-archive.pae', 'scored', 'accent', 'Scored A 1–3'],
+    ]);
+    expect(marks.map((m) => StructureElement.Loci.size(m.loci))).toEqual([4, 3]);
+    expect(host.textContent).toContain('Aligned A 1–3, B 1');
+    expect(host.textContent).toContain('Mean error 3.3 Å');
+    // Marks are view state: no step.
+    expect(v.managers.history.steps.value.length).toBe(steps);
+
+    // Dragged from inside, the box moves (one column right); by its left edge, it resizes (back to column 0).
+    const scored = () => v.sources.marks.marks.value.find((m) => m.id === 'scored')?.label;
+    pointer('pointermove', 150, 200);
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(plot.style.cursor).toBe('move');
+    pointer('pointerdown', 150, 200);
+    pointer('pointermove', 250, 200);
+    pointer('pointerup', 250, 200);
+    await until(() => scored() === 'Scored A 2–3, B 1');
+    pointer('pointerdown', 102, 200);
+    pointer('pointermove', 10, 200);
+    pointer('pointerup', 10, 200);
+    await until(() => scored() === 'Scored A 1–3, B 1');
+
+    // The ✕ on the box's corner clears the box and its marks.
+    const corner = host.querySelector<HTMLButtonElement>('button[title="Clear the box"]')!;
+    expect(corner.style.display).toBe('grid');
+    corner.click();
+    await until(() => v.sources.marks.marks.value.length === 0);
+    expect(host.textContent).not.toContain('Mean error');
+    unmount();
   });
 
   it('has no toolbar button while no loaded model has a PAE', async () => {
     const v = await viewer([cbs()]);
     const ui = paeUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
     expect(await firstValueFrom(ui.toolbar![0].visible!)).toBe(false);
+  });
+
+  it('ticks residue numbers at a round step per chain, names runs as targets and words, and averages a box', () => {
+    // Chain A 1–120, chain B 1–80.
+    const residues = [
+      ...Array.from({ length: 120 }, (_, k) => ({ chain: 'A', seq: k + 1, insCode: '', name: 'ALA' })),
+      ...Array.from({ length: 80 }, (_, k) => ({ chain: 'B', seq: k + 1, insCode: '', name: 'GLY' })),
+    ];
+    const size = residues.length;
+    const values = new Float32Array(size * size).map((_, k) => (Math.floor(k / size) < 120 ? 2 : 20));
+    const big: PaeMatrix = { name: 'PAE', size, values, max: 20, residues };
+    expect(paeTicks(big, 6).map((t) => `${residues[t.at].chain}${t.label}`)).toEqual(['A50', 'A100', 'B50']);
+    expect(paeRangeTarget(big, 54, 99)).toBe('A:55-100');
+    expect(paeRangeTarget(big, 110, 124)).toBe('A:111-120, B:1-5');
+    expect(paeRangeLabel(big, 124, 110)).toBe('A 111–120, B 1–5');
+    // Rows 0–1 are 2, rows 120 on are 20.
+    expect(paeBoxMean(big, 0, 1, 0, 9)).toBe(2);
+    expect(paeBoxMean(big, 119, 120, 0, 0)).toBe(11);
   });
 });
