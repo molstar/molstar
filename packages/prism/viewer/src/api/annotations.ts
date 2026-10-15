@@ -115,7 +115,7 @@ export class AnnotationsApi extends ApiArea {
       if (!carrying.length) {
         return Result.fail(
           'not-found',
-          `${list.map((s) => labelOf(ctx, s)).join(', ')} carries no ${provider.title.toLowerCase()}.`,
+          `${list.map((s) => labelOf(ctx, s)).join(', ')} carries no ${inSentence(provider.title)}.`,
         );
       }
       const nodes: string[] = [];
@@ -125,9 +125,14 @@ export class AnnotationsApi extends ApiArea {
         nodes.push(...(r.changed.nodes ?? []));
       }
       return Result.ok(
-        `Showing ${provider.title.toLowerCase()} on ${carrying.map((s) => labelOf(ctx, s)).join(', ')}.`,
+        `Showing ${inSentence(provider.title)} on ${carrying.map((s) => labelOf(ctx, s)).join(', ')}.`,
         { nodes },
       );
     },
   });
+}
+
+/** A title inside a sentence: "Secondary structure" → "secondary structure"; an acronym stays (pLDDT, QMEAN). */
+function inSentence(title: string): string {
+  return /^[A-Z][a-z]/.test(title) ? title[0].toLowerCase() + title.slice(1) : title;
 }

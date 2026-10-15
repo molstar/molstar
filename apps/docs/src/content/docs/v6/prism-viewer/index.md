@@ -40,8 +40,8 @@ The build holds `index.html`, `index.js` with its `chunks/` and `prism-viewer.js
 
 ## URL parameters
 
-The app reads its parameters from the query string, with v5's names. Names are case-insensitive, the first of a name
-wins, and an empty value counts as absent. A parameter the app does not know is ignored, and the console logs the
+The app reads its parameters from the query string, with v5's names. Names are case-sensitive (lower case), the first of
+a name wins, and an empty value counts as absent. A parameter the app does not know is ignored, and the console logs the
 ignored names once.
 
 ### Loading
@@ -116,4 +116,4 @@ The URL is read by the app, not by the library. A page that creates its own view
 - **Assistant** is an optional tab and an Ask row in the command menu. It exists only when the app includes the
   [assistant](/docs/v6/prism-viewer/assistant/).
 
-Hiding or replacing any of these is done with [overrides](/docs/v6/prism-viewer/embedding/#spec).
+Hiding or replacing any of these is done with [overrides](/docs/v6/prism-viewer/embedding/#the-spec).

@@ -10,7 +10,7 @@ per area, and each area has operations as methods:
 const viewer = await createPrismViewer({ target, spec });
 const { api } = viewer;
 
-await api.load.entry({ source: 'pdb', id: '1tqn' });
+await api.run('load.entry', { source: 'pdb', id: '1tqn' });
 await api.styles.apply({ style: 'cartoon' });
 await api.representation.color({ target: 'ligand', color: 'red' });
 await api.select.set({ target: 'A:120-130' });
@@ -18,8 +18,9 @@ await api.camera.frame({ target: 'selection' });
 ```
 
 Every operation takes one object of values and returns a promise of a result. Values you leave out take their defaults,
-so `api.component.add({ target: 'resn HEM' })` is a whole call. A second optional argument is
-`{ signal?: AbortSignal; copy?: boolean }`.
+so `api.component.add({ target: 'resn HEM' })` is a whole call. Operations a feature adds to a core area (the loaders'
+`load.entry`) are optional members (`api.load.entry?.(…)`); `api.run('load.entry', …)` reaches them by id. A second
+optional argument is `{ signal?: AbortSignal; copy?: boolean }`.
 
 Operations never throw. A failure is a result.
 
@@ -108,9 +109,9 @@ Extensions add areas of their own, under their id. A script that imports an exte
 
 ```ts
 // Load, then show a ligand.
-await api.load.entry({ source: 'afdb', id: 'Q8W3K0' });
-await api.load.url({ url: 'https://example.org/model.cif', format: 'mmcif' });
-await api.load.mvs({ url: 'https://example.org/story.mvsj' });
+await api.run('load.entry', { source: 'afdb', id: 'Q8W3K0' });
+await api.run('load.url', { url: 'https://example.org/model.cif', format: 'mmcif' });
+await api.run('load.mvs', { url: 'https://example.org/story.mvsj' });
 
 // Select and focus. Neither is a history step.
 await api.select.set({ target: 'A:248-256' });

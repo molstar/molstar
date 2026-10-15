@@ -5,11 +5,12 @@ element, and the URL. Status: **accepted** (2026-10-15).
 
 ## 1. `apps/prism-viewer`
 
-- **Private and thin** (README §2.4): `index.html`, `src/index.ts` (the spec: `DefaultPrismViewerSpec()`, the extension
-  list, options from the URL, the assistant's import, `persist`; viewer-spec.md §5), a favicon.
+- **Private and thin** (README §2.4): `index.html`, `src/index.ts` (the page: the viewer, the URL's loads or the light
+  restore), `src/spec.ts` (the spec: `FullPrismViewerSpec()`, options from the URL, the assistant's import, `persist`;
+  viewer-spec.md §5), `src/extensions.ts` and `src/data-extensions.ts` (the extension list), a favicon.
 - **The extension list** (`MolstarViewerExtensions`) is the app's: the viewer's own features come with
-  `DefaultPrismViewerSpec()`; the app adds Mol\*'s extensions, data-only ones through `pluginExtension`, heavy ones lazy
-  (video export, Zenodo, the PAE view).
+  `DefaultPrismViewerSpec()`; the app adds Mol\*'s extensions, the data-only ones as plain `{ id, title, plugin }`
+  entries, heavy ones lazy (video export, Zenodo; the PAE view when it is built).
 - **Build**: ESM with code splitting, one chunk per lazy feature and extension and one for the assistant, content-hashed
   file names (esbuild: `scripts/esbuild/app.mjs` builds IIFE today and gains a splitting mode; the `molstar`
   distribution's ESM build already has shared chunks). Prism's CSS is in its JS modules, so there is no stylesheet.
@@ -18,8 +19,9 @@ element, and the URL. Status: **accepted** (2026-10-15).
   (agent.md §4). A publish adds files rather than replacing the site, so the hashed chunks of the last few versions
   stay for tabs left open across a deploy (journal.md §7); `index.html` is not cached. Chunks load relative to the
   entry, so the app works from any base path.
-- **Size**: the first chunk is what opening an empty viewer needs; a budget per chunk is set once the first build
-  exists and checked in CI.
+- **Size**: the first chunk is what opening an empty viewer needs; a budget per file (`molstar.budgets` in the app's
+  manifest: `index.js` 3.2 MB, `prism-viewer.js` 8 MB, minified) fails a production build that outgrows it. Not yet:
+  hashed entry names, the assistant's chunk loaded on first use rather than at start.
 
 ## 2. The single-file viewer
 
@@ -30,7 +32,7 @@ element, and the URL. Status: **accepted** (2026-10-15).
   extensions) and without the assistant (a host that wants it uses the app or composes the packages). The name differs
   from `DefaultPrismViewerSpec()` (the built-ins only) on purpose.
 - Published with the app (GitHub Pages) and copied into the `molstar` distribution (`build/prism-viewer/`, as
-  `build/viewer` is today). A host composing its own viewer from npm imports the extensions it wants instead.
+  `build/viewer` is today): not yet. Its images (backgrounds) are inlined as data URLs. A host composing its own viewer from npm imports the extensions it wants instead.
 
 ```html
 <script type="module">

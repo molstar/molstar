@@ -232,12 +232,27 @@ async function buildPackage(rawPkg) {
       entryNames: undefined,
       chunkNames: undefined,
       outfile: path.join(outdir, cfg.single.filename),
+      // Images inlined (a background's picture): no request beside the file.
+      plugins: options.plugins.filter((p) => p.name !== 'molstar-static-assets'),
+      loader: { '.jpg': 'dataurl', '.jpeg': 'dataurl', '.png': 'dataurl', '.gif': 'dataurl', '.svg': 'dataurl' },
     };
     if (dev) {
       const ctx = await esbuild.context(singleOptions);
       await ctx.watch();
       contexts.push(ctx);
     } else await esbuild.build(singleOptions);
+  }
+  // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`).
+  if (!dev) {
+    for (const f of fs.readdirSync(outdir)) if (f.endsWith('.js.map')) await fs.promises.rm(path.join(outdir, f));
+    const over = Object.entries(cfg.budgets ?? {})
+      .map(([file, budget]) => [file, budget, fs.statSync(path.join(outdir, file)).size])
+      .filter(([, budget, size]) => size > budget);
+    if (over.length) {
+      throw new Error(
+        `${pkg.name}: over budget: ${over.map(([f, b, s]) => `${f} ${(s / 1e6).toFixed(2)} MB > ${(b / 1e6).toFixed(2)} MB`).join(', ')}`,
+      );
+    }
   }
   for (const theme of cfg.themes ?? []) {
     const themeRoot = path.join(dir, 'src/theme');

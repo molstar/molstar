@@ -22,7 +22,7 @@ const viewer = await createPrismViewer({
   spec: DefaultPrismViewerSpec(),
 });
 
-await viewer.api.load.entry({ source: 'pdb', id: '1tqn' });
+await viewer.api.run('load.entry', { source: 'pdb', id: '1tqn' });
 // ...
 await viewer.dispose();
 ```
@@ -77,7 +77,7 @@ it and needs no build step:
     target: document.getElementById('viewer'),
     spec: FullPrismViewerSpec(),
   });
-  await viewer.api.load.entry({ id: '1cbs' });
+  await viewer.api.run('load.entry', { id: '1cbs' });
 </script>
 ```
 
@@ -105,9 +105,10 @@ and not part of the `molstar` distribution.
 | `export-session`  | `session.save`.                                                                                     |
 
 `FullPrismViewerSpec()` is the default spec with Mol\*'s extensions added after the built-in ones. It lives in the app
-(and in `prism-viewer.js`), because the extensions depend on the viewer. Today it adds
-[model quality](/docs/v6/prism-viewer/extensions/#an-example-model-quality) (pLDDT and QMEAN). The app's own spec is the
-full spec with the URL's options and the assistant.
+(and in `prism-viewer.js`), because the extensions depend on the viewer: model quality
+([the example](/docs/v6/prism-viewer/extensions/#an-example-model-quality)), model and geometry export, video export and
+Zenodo (lazy), assembly symmetry, membrane orientation, Kinemage and the data-only extensions. The app's own spec is the
+full spec with the URL's options, the assistant and `persist`.
 
 A spec has these fields, all but `plugin` optional:
 
@@ -126,11 +127,13 @@ A spec has these fields, all but `plugin` optional:
 Overrides name a part as `<owner>.<kind>.<name>` and a command by its own id. `null` removes, an object replaces fields:
 
 ```ts
-const spec = DefaultPrismViewerSpec();
-spec.overrides = {
-  'core.toolbar.reset': null,                         // no reset button
-  'camera.reset': null,                               // and no reset command
-  'measurements.section.measure': { title: 'Distances' },
+const spec = {
+  ...DefaultPrismViewerSpec(),
+  overrides: {
+    'core.toolbar.reset': null,                         // no reset button
+    'camera.reset': null,                               // and no reset command
+    'measurements.section.measure': { title: 'Distances' },
+  },
 };
 ```
 
@@ -154,7 +157,7 @@ const viewer = await createPrismViewer({
     ...FullPrismViewerSpec(),
     options: {
       canvas: { background: '#ffffff' },
-      ui: { collapsed: true, buttons: { animation: false } },
+      ui: { collapsed: true, showSequence: false },
     },
     ui: { theme: 'dark' },
   },

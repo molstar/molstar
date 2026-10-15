@@ -10,7 +10,7 @@ stability promise beyond the repository's.
 
 <!-- prettier-ignore-start -->
 :::caution[Work in progress]
-Extensions are being ported. `apps/prism-viewer/src/extensions.ts` lists the ones the app ships; today that is model quality.
+`apps/prism-viewer/src/extensions.ts` lists the extensions the app ships: model quality, model and geometry export, video export, Zenodo, assembly symmetry, membrane orientation, Kinemage and the data-only ones.
 :::
 <!-- prettier-ignore-end -->
 
@@ -90,11 +90,13 @@ through operations.
 The composition changes any part by its id, whoever registered it:
 
 ```ts
-const spec = FullPrismViewerSpec();
-spec.overrides = {
-  'model-archive.sequence.plddt': null,                        // no pLDDT track
-  'geo-export.section.export': { title: 'Export geometry' },    // a new title
-  'model-archive.color-qmean': null,                           // a command, by its command id
+const spec = {
+  ...FullPrismViewerSpec(),
+  overrides: {
+    'model-archive.sequence.plddt': null,                        // no pLDDT track
+    'geo-export.section.export': { title: 'Export geometry' },    // a new title
+    'model-archive.color-qmean': null,                           // a command, by its command id
+  },
 };
 ```
 

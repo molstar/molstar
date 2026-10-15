@@ -55,6 +55,10 @@
     "single": {
       "entry": "src/single.ts",
       "filename": "prism-viewer.js"
+    },
+    "budgets": {
+      "index.js": 3200000,
+      "prism-viewer.js": 8000000
     }
   }
 }
