@@ -104,3 +104,22 @@ describe('the viewer agent', () => {
     agent.dispose();
   });
 });
+
+describe('the viewer agent while undo is off', () => {
+  it('asks before the first change of the turn, then lets the rest go', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    v.managers.history.setCheckpointing(false);
+    const { agent } = agentOn(v, [
+      { calls: [call('apply_style', { style: 'surface' })] },
+      { calls: [call('color', { target: 'ligand', color: 'red' })] },
+      { text: 'Done.' },
+    ]);
+    const r = await agent.turn('surface, ligand red');
+    expect(r.status).toBe('awaiting-approval');
+    expect(r.approval?.[0].tool).toBe('apply_style');
+    const done = await agent.resume({ [r.approval![0].callId]: 'allow' });
+    expect(done?.status).toBe('completed');
+    expect(done?.tools.map((t) => [t.name, t.status])).toContainEqual(['color', 'succeeded']);
+    agent.dispose();
+  });
+});

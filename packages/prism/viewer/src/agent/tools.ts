@@ -18,6 +18,7 @@ import {
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ApiResult, Changed, OperationDefinition, ViewerApi } from '../api/area.js';
 import { paramsShape } from './params.js';
+import type { AgentPolicy } from './policies.js';
 
 // The agent's tools (agent.md §2): thin adapters over operations. A tool takes flat fields in the model's words, maps
 // them to an operation's values and runs it with the agent's origin (one run path: the history, the checkpoint and the
@@ -66,36 +67,16 @@ export interface OperationToolSpec {
   readonly formats?: Readonly<Record<string, string>>;
 }
 
-/** Network addresses the agent may reach without asking (agent.md §4): the known data services. */
-export const KnownServices: readonly string[] = [
-  'rcsb.org',
-  'www.ebi.ac.uk',
-  'ebi.ac.uk',
-  'pdbj.org',
-  'alphafold.ebi.ac.uk',
-  'alphafold.com',
-  'modelarchive.org',
-  'uniprot.org',
-  'pdbe.org',
-];
-
-/** Whether an address is one of the known services (https only). */
-export function isKnownAddress(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'https:') return false;
-    return KnownServices.some((host) => u.hostname === host || u.hostname.endsWith(`.${host}`));
-  } catch {
-    return false;
-  }
-}
-
 /**
  * A tool over an operation. Its input is the operation's params as field shapes (`paramsShape`), described now: a
  * registry's choices are what they are when the agent starts (a tool's definition is refreshed between turns when the
  * registry changes, agent.md §2).
  */
-export function operationTool(viewer: AgentViewer, spec: OperationToolSpec): ToolRegistration<ViewerAgentApi> {
+export function operationTool(
+  viewer: AgentViewer,
+  spec: OperationToolSpec,
+  policy?: AgentPolicy,
+): ToolRegistration<ViewerAgentApi> {
   const described = viewer.describe(spec.operation);
   if (!described) throw new Error(`No operation '${spec.operation}' for the tool '${spec.id}'.`);
   const { definition } = described;
@@ -113,9 +94,11 @@ export function operationTool(viewer: AgentViewer, spec: OperationToolSpec): Too
     ),
   );
   const shape = paramsShape(asText, { formats: spec.formats ?? targetFormats(offered) });
-  // Destructive and upload ask; network asks only for addresses that are not the known services (agent.md §4).
-  const asks =
-    definition.approval === 'destructive' || definition.approval === 'upload' || definition.approval === 'network';
+  // Every change goes through the policy, decided at call time (agent.md §4: destructive and upload ask; network by
+  // address; a change while the turn cannot be undone asks once). Reads never ask.
+  const changes = !definition.read && definition.history !== false && definition.undoable !== false;
+  const asks = !definition.read && (changes || !!definition.approval);
+  definition.approval === 'destructive' || definition.approval === 'upload' || definition.approval === 'network';
   return tool({
     id: spec.id,
     description: describe(spec, definition, described.available),
@@ -125,8 +108,8 @@ export function operationTool(viewer: AgentViewer, spec: OperationToolSpec): Too
     // A read or an already-so answer is safe to repeat; a change is not.
     idempotent: !!definition.read,
     approval: asks,
-    ...(definition.approval === 'network'
-      ? { approvedBy: (args: Json) => addressesIn(args).every(isKnownAddress) }
+    ...(asks
+      ? { approvedBy: (args: Json) => (policy ? policy.approves(definition, args) : !definition.approval) }
       : {}),
     run: async ({ args, api, signal }) => {
       const values = { ...shape.toValues(args as Record<string, unknown>), ...spec.fixed };
@@ -150,12 +133,6 @@ function targetFormats(params: PD.Params): Record<string, string> {
     if (p.type === 'value' && typeof p.defaultValue === 'string') out[name] = 'target';
   }
   return out;
-}
-
-/** The addresses a call's arguments name (a url field, or a value that is one). */
-function addressesIn(args: Json): string[] {
-  if (!args || typeof args !== 'object' || Array.isArray(args)) return [];
-  return Object.values(args).filter((v): v is string => typeof v === 'string' && /^https?:\/\//i.test(v));
 }
 
 /** An operation's result as the model reads it (ai-tools `render`: did, changed, warnings, body, next). */

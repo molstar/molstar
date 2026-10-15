@@ -7,6 +7,7 @@
  */
 
 import { createToolkit, type ToolGroup, type Toolkit, type ToolRegistration } from '@molstar/ai-tools';
+import type { AgentPolicy } from './policies.js';
 import { type AgentViewer, type OperationToolSpec, operationTool, tool, type ViewerAgentApi } from './tools.js';
 
 // The core and the skills (agent.md §3): a small core from the first turn (Stories' is about 24 tools); the rest in
@@ -223,8 +224,12 @@ function ownTools(): ToolRegistration<ViewerAgentApi>[] {
 }
 
 /** The tools of a skill the viewer has now (a tool whose operation is missing is left out). */
-function toolsOf(viewer: AgentViewer, specs: readonly OperationToolSpec[]): ToolRegistration<ViewerAgentApi>[] {
-  return specs.filter((s) => viewer.describe(s.operation)).map((s) => operationTool(viewer, s));
+function toolsOf(
+  viewer: AgentViewer,
+  specs: readonly OperationToolSpec[],
+  policy?: AgentPolicy,
+): ToolRegistration<ViewerAgentApi>[] {
+  return specs.filter((s) => viewer.describe(s.operation)).map((s) => operationTool(viewer, s, policy));
 }
 
 export interface ViewerToolkitOptions {
@@ -232,17 +237,19 @@ export interface ViewerToolkitOptions {
   readonly loadExtension: (id: string) => Promise<boolean>;
   /** Whether an extension is lazy and not loaded yet. */
   readonly isStub: (id: string) => boolean;
+  /** What goes without asking (agent.md §4). */
+  readonly policy?: AgentPolicy;
 }
 
 /** The viewer's toolkit: the core, and the skills (lazy ones over lazy features). */
 export function createViewerToolkit(viewer: AgentViewer, options: ViewerToolkitOptions): Toolkit<ViewerAgentApi> {
-  const core = [...toolsOf(viewer, CoreTools), ...ownTools()];
+  const core = [...toolsOf(viewer, CoreTools, options.policy), ...ownTools()];
   const eager = Skills.filter((s) => !s.feature || !options.isStub(s.feature));
   const lazy = Skills.filter((s) => s.feature && options.isStub(s.feature));
   const groups: ToolGroup<ViewerAgentApi>[] = [];
   const tools = [...core];
   for (const s of eager) {
-    const own = toolsOf(viewer, s.tools);
+    const own = toolsOf(viewer, s.tools, options.policy);
     if (!own.length) continue;
     tools.push(...own);
     groups.push({ ...groupOf(s), tools: own.map((t) => t.definition.tool.id) });
@@ -258,10 +265,10 @@ export function createViewerToolkit(viewer: AgentViewer, options: ViewerToolkitO
           // The stubs declare their operations' approvals (viewer-spec.md §3): a turn knows from its start which ask.
           pending: s.tools
             .filter((t) => viewer.describe(t.operation))
-            .map((t) => ({ id: t.id, approval: !!viewer.describe(t.operation)!.definition.approval })),
+            .map((t) => ({ id: t.id, approval: !viewer.describe(t.operation)!.definition.read })),
           load: async () => {
             if (!(await options.loadExtension(s.feature!))) throw new Error(`${s.title} could not be loaded.`);
-            const own = toolsOf(viewer, s.tools);
+            const own = toolsOf(viewer, s.tools, options.policy);
             removeStub();
             toolkit.add({ tools: own, groups: [{ ...groupOf(s), tools: own.map((t) => t.definition.tool.id) }] });
           },

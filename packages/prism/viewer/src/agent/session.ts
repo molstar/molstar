@@ -11,6 +11,7 @@ import type { Toolkit } from '@molstar/ai-tools';
 import { AgentSession, type ModelChoice, type ModelSource, type TurnHooks, type TurnResult } from '@molstar/ai-session';
 import type { PrismViewer } from '../viewer.js';
 import { createAccount } from './account.js';
+import { type AgentPolicy, createAgentPolicy, type DomainRules } from './policies.js';
 import { createViewerToolkit } from './toolkit.js';
 import type { AgentViewer, ViewerAgentApi } from './tools.js';
 
@@ -27,6 +28,8 @@ export interface ViewerAgentOptions<M extends ModelChoice = ModelChoice> {
   readonly harnessId?: string;
   /** More guidance after the viewer's (an app's words). */
   readonly guidance?: string;
+  /** Domains the person allowed (the assistant keeps them; agent.md §4). */
+  readonly rules?: DomainRules;
 }
 
 export interface ViewerAgent<M extends ModelChoice = ModelChoice> {
@@ -37,6 +40,8 @@ export interface ViewerAgent<M extends ModelChoice = ModelChoice> {
   /** Goes on with a parked turn (an approval) with the person's decisions. */
   resume(decisions: Readonly<Record<string, 'allow' | 'deny'>>, hooks?: TurnHooks): Promise<TurnResult | undefined>;
   stop(): Promise<void>;
+  /** What goes without asking, and its domain rules (Allow this domain). */
+  readonly policy: AgentPolicy;
   /** The agent's last finished turn (Undo turn's). */
   readonly lastTurn: string | undefined;
   dispose(): void;
@@ -68,9 +73,14 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
   };
   const isStub = (id: string) =>
     viewer.extensions.status(id)?.value === 'stub' || viewer.extensions.status(id)?.value === 'failed';
+  const policy = createAgentPolicy({
+    checkpointing: viewer.managers.history.checkpointing,
+    ...(o.rules ? { rules: o.rules } : {}),
+  });
   const toolkit = createViewerToolkit(agentViewer, {
     loadExtension: (id) => viewer.extensions.load(id),
     isStub,
+    policy,
   });
   const api: ViewerAgentApi = { viewer: agentViewer, account: createAccount(viewer) };
   const session = new AgentSession<ViewerAgentApi, M>({
@@ -99,6 +109,7 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
     onTurn: (e) => {
       if (e.kind === 'begun' && current !== e.turnId) {
         endGroup?.();
+        policy.beginTurn();
         current = e.turnId;
         endGroup = viewer.managers.history.beginGroup(label, { kind: 'agent', turn: e.turnId });
       }
@@ -117,6 +128,7 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
   return {
     session,
     toolkit,
+    policy,
     get lastTurn() {
       return last;
     },
@@ -135,6 +147,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       return settle(r);
     },
     async resume(decisions, hooks) {
+      // The person allowed a call: the turn's changes go for the rest of it (undo off asks once).
+      if (Object.values(decisions).includes('allow')) policy.allowedForTurn();
       const r = await session.resume(wrap(hooks, 'Assistant'), decisions);
       return r ? settle(r) : undefined;
     },
