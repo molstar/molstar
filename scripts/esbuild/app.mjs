@@ -162,14 +162,25 @@ async function buildPackage(rawPkg) {
   await fs.promises.mkdir(outdir, { recursive: true });
   const filename = cfg.filename ?? (pkg.kind === 'example' ? 'index.js' : 'molstar.js');
   const outfile = path.join(outdir, filename);
+  // `format: "esm"` (the Prism viewer, app.md §2): an ES module entry with lazy chunks beside it, loaded by
+  // `<script type="module">`; the default is one IIFE file with a global.
+  const esm = cfg.format === 'esm';
+  const output = esm
+    ? {
+        format: 'esm',
+        splitting: true,
+        outdir,
+        entryNames: path.basename(filename, '.js'),
+        chunkNames: 'chunks/[name]-[hash]',
+      }
+    : { format: 'iife', globalName: cfg.globalName ?? 'molstar', outfile };
+  if (esm) await fs.promises.rm(path.join(outdir, 'chunks'), { recursive: true, force: true });
   const options = {
     absWorkingDir: root,
     entryPoints: [entry],
     bundle: true,
     platform: 'browser',
-    format: 'iife',
-    globalName: cfg.globalName ?? 'molstar',
-    outfile,
+    ...output,
     tsconfig: fs.existsSync(path.join(dir, 'tsconfig.json'))
       ? path.join(dir, 'tsconfig.json')
       : path.join(root, 'tsconfig.json'),

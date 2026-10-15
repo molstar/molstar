@@ -614,6 +614,28 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/prism-viewer:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   apps/viewer:
     dependencies:
       '@molstar/anvil-extension':

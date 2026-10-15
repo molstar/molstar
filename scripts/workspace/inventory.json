@@ -31,6 +31,12 @@
       "private": false
     },
     {
+      "name": "@molstar/prism-viewer-app",
+      "path": "apps/prism-viewer",
+      "kind": "app",
+      "private": true
+    },
+    {
       "name": "@molstar/chem-comp-dict-cli",
       "path": "cli/chem-comp-dict",
       "kind": "cli",

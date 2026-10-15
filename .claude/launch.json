@@ -4,20 +4,54 @@
     {
       "name": "storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@molstar/storybook", "storybook", "--ci", "--no-open"],
+      "runtimeArgs": [
+        "--filter",
+        "@molstar/storybook",
+        "storybook",
+        "--ci",
+        "--no-open"
+      ],
       "port": 6006
     },
     {
       "name": "storybook-6007",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@molstar/storybook", "exec", "storybook", "dev", "-p", "6007", "--ci", "--no-open"],
+      "runtimeArgs": [
+        "--filter",
+        "@molstar/storybook",
+        "exec",
+        "storybook",
+        "dev",
+        "-p",
+        "6007",
+        "--ci",
+        "--no-open"
+      ],
       "port": 6007
     },
     {
       "name": "docs",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@molstar/docs", "dev", "--port", "4321"],
+      "runtimeArgs": [
+        "--filter",
+        "@molstar/docs",
+        "dev",
+        "--port",
+        "4321"
+      ],
       "port": 4321
+    },
+    {
+      "name": "prism-viewer",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/esbuild/app.mjs",
+        "apps/prism-viewer",
+        "--dev",
+        "--port",
+        "1340"
+      ],
+      "port": 1340
     }
   ]
 }

@@ -1,0 +1,307 @@
+/** @jsxImportSource @molstar/prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import {
+  type CanvasBackgroundProps,
+  CommandMenu,
+  canvasInk,
+  domView,
+  FullscreenModel,
+  formatChord,
+  HelpPanel,
+  HoverLabel,
+  isMac,
+  LogView,
+  MolstarWordmark,
+  observableState,
+  render,
+  ShellModel,
+  ShellView,
+  Show,
+  ThemeModel,
+  UIThemes,
+} from '@molstar/prism-ui';
+import { ownsKey } from '@molstar/prism-ui/dom/events';
+// The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
+import '@molstar/prism-ui/styles/base';
+import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
+import { map } from 'rxjs';
+import type { HomeModel } from '../model/home.js';
+import { hoverLines } from '../sources/hover-lines.js';
+import { HomeTab } from '../views/home/home-tab.js';
+import type { ViewerCore } from '../viewer.js';
+import { CanvasBindings } from './bindings.js';
+
+// The viewer on a page (viewer-spec.md §6, plan 1.4): the shell over the viewer's managers, rendered into the target's
+// shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
+// 29); styles are adopted into its shadow root (library.md §3).
+
+defineStyles(
+  'prism-viewer.host',
+  '@layer msp.reset { :host { display: block; position: relative; overflow: hidden; contain: content; } }',
+);
+
+/** Files that open as a session rather than as data. */
+const SessionFile = /\.(molx|molj)$/i;
+
+export interface MountedShell {
+  readonly shell: ShellModel;
+  readonly root: HTMLElement;
+  dispose(): void;
+}
+
+export async function mountShell(core: ViewerCore, target: HTMLElement): Promise<MountedShell> {
+  const { plugin, managers, sources, spec } = core;
+  const person = core.api.as({ kind: 'person' });
+
+  const shadow = target.shadowRoot ?? target.attachShadow({ mode: 'open' });
+  adoptStyles(shadow);
+  const root = document.createElement('div');
+  root.className = 'msp-root';
+  root.style.cssText = 'position: absolute; inset: 0';
+  shadow.appendChild(root);
+
+  const layout = spec.ui?.layout ?? {};
+  const shell = new ShellModel({
+    ...layout,
+    viewState: managers.viewState,
+    navigation: managers.navigation,
+  });
+  if (layout.compactRail) shell.setCompactRail(true);
+  if (layout.mode) shell.setMode(layout.mode);
+  const theme = new ThemeModel(spec.ui?.theme ?? 'light');
+  const stopTheme = theme.applyTo(root);
+  const fullscreen = new FullscreenModel(() => target);
+
+  // The canvas: the plugin is mounted here once the shell is in the page and has a size.
+  const canvasHost = (<div style="position: absolute; inset: 0" data-msp-canvas="" />) as HTMLElement;
+
+  // The ink follows the plugin's canvas props (the background); white until the canvas exists.
+  const inkProps = observableState<CanvasBackgroundProps>({ renderer: { backgroundColor: 0xffffff } });
+  const inkSub = sources.canvas.subscribe((c) => {
+    if (c) inkProps.set(c.props as unknown as CanvasBackgroundProps);
+  });
+  const ink = canvasInk(inkProps.asReadonly);
+
+  const hover = observableState<readonly string[]>([]);
+  const hoverSub = plugin.behaviors.labels.highlight.subscribe((h) => hover.set(hoverLines(h.labels)));
+
+  const openFiles = (files: readonly File[]) => {
+    const sessions = files.filter((f) => SessionFile.test(f.name));
+    const data = files.filter((f) => !SessionFile.test(f.name));
+    if (sessions.length) void person.session.open({ file: sessions[0] as never });
+    if (data.length) void person.load.files({ files: data as never });
+  };
+
+  const home: HomeModel = {
+    actions: observableState([]).asReadonly,
+    formats: plugin.dataFormats.options.map(([, label]) => label),
+    openFiles,
+    session: {
+      isEmpty: sources.empty,
+      summary: sources.structures.pipe(map(summaryOf)) as never,
+      clear: () => void person.session.clear(),
+    },
+  };
+  Object.defineProperty(home.session!.summary, 'value', { get: () => summaryOf(sources.structures.value) });
+
+  const commandMenuOpen = observableState(false);
+  const commandMenuGroup = observableState<string | undefined>(undefined);
+  const openCommandMenu = (group?: string) => {
+    commandMenuGroup.set(group);
+    commandMenuOpen.set(true);
+  };
+
+  const unregister: (() => void)[] = [];
+  unregister.push(
+    shell.registerTabs([
+      {
+        id: 'home',
+        compactBar: true,
+        title: 'Home',
+        heading: () => <MolstarWordmark live />,
+        icon: 'prism',
+        order: 0,
+        place: 'head',
+        render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
+      },
+      {
+        id: 'log',
+        title: 'Log',
+        icon: 'scroll-text',
+        order: 2.5,
+        place: 'foot',
+        render: domView(() => <LogView status={managers.notifications} />),
+      },
+      {
+        id: 'help',
+        title: 'Help',
+        icon: 'circle-help',
+        order: 2.8,
+        place: 'foot',
+        render: domView(() => <HelpPanel commands={managers.commands} bindings={CanvasBindings} />),
+      },
+    ]),
+  );
+
+  const hasData = sources.empty.pipe(map((e) => !e));
+  unregister.push(
+    shell.registerToolbar([
+      {
+        id: 'theme',
+        priority: 100,
+        icon: 'sun',
+        title: 'Theme',
+        face: theme.theme.pipe(
+          map((t) => {
+            const current = UIThemes.find((u) => u.id === t)!;
+            return { icon: current.icon, title: `Theme: ${current.title}` };
+          }),
+        ),
+        run: () => theme.next(),
+      },
+      {
+        id: 'palette',
+        priority: -1,
+        icon: 'command',
+        title: 'Command menu',
+        caption: formatChord({ key: 'k', mod: true }),
+        run: () => openCommandMenu(),
+      },
+      {
+        id: 'reset',
+        place: 'canvas',
+        group: 'canvas',
+        visible: hasData,
+        icon: 'focus',
+        title: 'Reset camera',
+        run: () => void person.camera.reset(),
+      },
+      {
+        id: 'expand',
+        place: 'canvas',
+        group: 'canvas',
+        visible: hasData,
+        icon: 'fullscreen',
+        title: 'Fullscreen',
+        pressed: fullscreen.active,
+        run: () => fullscreen.toggle(),
+      },
+    ]),
+  );
+  unregister.push(
+    managers.commands.register([
+      {
+        id: 'help.show',
+        title: 'Keyboard and mouse',
+        alias: ['help', 'shortcuts', 'keys', 'bindings', 'controls'],
+        category: 'Help',
+        icon: 'circle-help',
+        shortcut: { key: '?' },
+        run: () => {
+          shell.show('help');
+          return { message: '' };
+        },
+      },
+      {
+        id: 'view.theme',
+        title: 'Next theme',
+        alias: ['theme', 'dark', 'light'],
+        category: 'View',
+        icon: 'sun-moon',
+        run: () => {
+          theme.next();
+          return { message: '' };
+        },
+      },
+    ]),
+  );
+
+  // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
+  const onKey = (e: KeyboardEvent) => {
+    if (!ownsKey(root, e)) return;
+    const mod = isMac() ? e.metaKey : e.ctrlKey;
+    if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
+      e.preventDefault();
+      openCommandMenu();
+    } else if (!commandMenuOpen.value && managers.commands.handleKey(e, isMac())) e.preventDefault();
+  };
+  document.addEventListener('keydown', onKey);
+
+  // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab.
+  const start = layout.start;
+  if (start && !core.options.ui.collapsed) shell.show(start);
+  else managers.navigation.setDock('right', { collapsed: true });
+  shell.mount();
+
+  const disposeRender = render(
+    () => (
+      <ShellView
+        shell={shell}
+        status={managers.notifications}
+        canvas={canvasHost}
+        overlays={
+          <Show when={hasData}>{() => <HoverLabel model={{ lines: hover.asReadonly }} area={() => canvasHost} />}</Show>
+        }
+        ink={ink}
+        empty={sources.empty}
+        onDropFiles={openFiles}
+        dropFormats={home.formats}
+        onOpenLog={() => shell.show('log')}
+        commandMenu={
+          <Show when={commandMenuOpen}>
+            {() => (
+              <CommandMenu
+                manager={managers.commands}
+                group={commandMenuGroup.value}
+                onClose={() => {
+                  commandMenuOpen.set(false);
+                  commandMenuGroup.set(undefined);
+                }}
+              />
+            )}
+          </Show>
+        }
+      />
+    ),
+    root,
+  );
+
+  // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  const mounted = await plugin.mountAsync(canvasHost);
+  if (!mounted) managers.notifications.post('The canvas could not start: WebGL is not available.', 'error');
+
+  return {
+    shell,
+    root,
+    dispose() {
+      document.removeEventListener('keydown', onKey);
+      for (const u of unregister.reverse()) u();
+      disposeRender();
+      shell.unmount();
+      shell.retire();
+      inkSub.unsubscribe();
+      hoverSub.unsubscribe();
+      ink.dispose();
+      stopTheme();
+      fullscreen.dispose();
+      plugin.unmount();
+      root.remove();
+      releaseStyles(shadow);
+    },
+  };
+}
+
+function summaryOf(list: readonly { label: string; atoms: number }[]): string {
+  if (!list.length) return 'Nothing loaded';
+  if (list.length === 1) return `${list[0].label} · ${list[0].atoms.toLocaleString('en')} atoms`;
+  return `${list.length} structures · ${list.reduce((n, s) => n + s.atoms, 0).toLocaleString('en')} atoms`;
+}

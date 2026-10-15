@@ -1,0 +1,39 @@
+{
+  "name": "@molstar/prism-viewer-app",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism viewer: the app (page, URL options, the extension list), built as ESM with chunks",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null
+  },
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/prism-viewer --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/prism-viewer --dev"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "filename": "index.js"
+  }
+}

@@ -30,7 +30,7 @@ export class HistoryApi extends ApiArea {
     async run(_, ctx) {
       const r = await ctx.managers.history.undo();
       if (!r.ok) return ApiResult.fail('blocked', r.reason);
-      return ApiResult.ok(`Undid ${lowerFirst(r.step.label)}.`, { view: true });
+      return ApiResult.ok(`Undone: ${r.step.label}.`, { view: true });
     },
   });
 
@@ -71,8 +71,4 @@ export class HistoryApi extends ApiArea {
       );
     },
   });
-}
-
-function lowerFirst(s: string): string {
-  return s && s[0] === s[0].toUpperCase() && s[1] !== s[1]?.toUpperCase() ? s[0].toLowerCase() + s.slice(1) : s;
 }

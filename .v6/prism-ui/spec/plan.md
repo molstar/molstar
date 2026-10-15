@@ -66,7 +66,8 @@ app and run headless.
 4. **First areas**: `canvas.background`, `camera.reset`, `load.files`, `structure.get`; the shell over the real managers
    with the canvas mounted; Home's drop target.
 5. **`apps/prism-viewer`**: the page, the entry, an ESM build with splitting (`scripts/esbuild/app.mjs` gains the
-   mode), a GitHub Pages preview from the branch.
+   mode: `molstar.format: "esm"`), previewed as a static build on the developer's machine (David, 2026-10-15: no
+   Pages deployment for now; `pnpm --filter @molstar/prism-viewer-app build`, served from `apps/prism-viewer/build`).
 6. **Tests**: headless integration tests (create, load a fixture, an operation, undo, with no canvas); a real-plugin
    Storybook story of the shell.
 
