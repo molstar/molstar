@@ -25,6 +25,7 @@ const localPath = path.join(deployDir, 'data');
 const repositoryPath = path.join(deployDir, 'molstar.github.io');
 const buildPaths = {
   viewer: path.join(root, 'distributions/molstar/build/viewer'),
+  prismViewer: path.join(root, 'distributions/molstar/build/prism-viewer'),
   stories: path.join(root, 'distributions/molstar/build/mvs-stories'),
   mesoscale: path.join(root, 'apps/mesoscale-explorer/build'),
   example: (name) => path.join(root, 'examples', name, 'build'),
@@ -57,6 +58,14 @@ function copyViewer() {
   fsExtra.copySync(path.join(dataDir, 'pwa'), viewerDeployPath, { overwrite: true });
   addVersion(path.join(viewerDeployPath, 'sw.js'));
 }
+/** The Prism viewer (v6), beside the classic one: its page at `prism-viewer/`. */
+function copyPrismViewer() {
+  console.log('\n### copy Prism viewer files');
+  const target = path.join(localPath, 'prism-viewer');
+  fsExtra.copySync(buildPaths.prismViewer, target, { overwrite: true });
+  addAnalytics(path.join(target, 'index.html'));
+}
+
 function copyMesoscale() {
   console.log('\n### copy mesoscale explorer files');
   const target = path.join(localPath, 'me/viewer');
@@ -78,6 +87,7 @@ function copyDemo(name) {
 function copyFiles() {
   console.log('\n### copy apps and demos');
   copyViewer();
+  copyPrismViewer();
   copyMesoscale();
   copyMVSStories();
   copyDemo('lighting');

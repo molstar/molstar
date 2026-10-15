@@ -47,6 +47,10 @@ export const StoryPackages: StoryPackage[] = [
     group: 'Prism',
     plugins: (root) => [cssModulesPlugin([cssPackage(root, 'viewer')])],
   },
+  // The app (`apps/prism-viewer`): the viewer as the app composes it, with Mol*'s extensions (Prism › App).
+  { dir: 'apps/prism-viewer', group: 'Prism' },
+  // The MolViewSpec stories example's stories in the Prism viewer (Prism › MVS stories).
+  { dir: 'examples/mvs-stories', group: 'Prism' },
   {
     dir: 'packages/prism/stories',
     group: 'Prism',

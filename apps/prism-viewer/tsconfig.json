@@ -7,7 +7,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**"],
   "references": [
     {
       "path": "../../packages/core"

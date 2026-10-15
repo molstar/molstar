@@ -24,6 +24,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/esbuild/app.mjs", "apps/prism-viewer", "--dev", "--port", "1340"],
       "port": 1340
+    },
+    {
+      "name": "distribution",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "1350", "--directory", "distributions/molstar/build"],
+      "port": 1350
     }
   ]
 }

@@ -44,6 +44,8 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
+    "@molstar/prism-ui": "workspace:*",
+    "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",
     "typescript": "catalog:"

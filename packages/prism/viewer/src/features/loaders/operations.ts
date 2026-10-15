@@ -872,6 +872,15 @@ export const TrajectoryParams = {
   preset: PD.Text('default', { description: "The structure preset: 'default' or 'all-models'" }),
 };
 
+/** A file's name from its address (the last part of its path); the address when it has none. */
+function fileNameOf(url: string): string {
+  try {
+    return decodeURIComponent(new URL(url, 'http://x/').pathname.split('/').filter(Boolean).pop() ?? url);
+  } catch {
+    return url;
+  }
+}
+
 async function loadTrajectory(
   ctx: ApiContext,
   p: {
@@ -888,7 +897,12 @@ async function loadTrajectory(
   await plugin.initialized;
   await plugin.dataTransaction(
     async () => {
-      const modelData = await plugin.builders.data.download({ url: p.model, isBinary: p.modelBinary });
+      // Named by their files (not their whole addresses): the structure's row says protein.pdb.
+      const modelData = await plugin.builders.data.download({
+        url: p.model,
+        isBinary: p.modelBinary,
+        label: fileNameOf(p.model),
+      });
       const isTopology = plugin.dataFormats.options.some(
         ([n, , c]) => n === p.modelFormat && c === TopologyFormatCategory,
       );
@@ -899,7 +913,11 @@ async function loadTrajectory(
         const trajectory = await plugin.builders.structure.parseTrajectory(modelData, p.modelFormat as 'mmcif');
         model = await plugin.builders.structure.createModel(trajectory);
       }
-      const coordData = await plugin.builders.data.download({ url: p.coordinates, isBinary: p.coordinatesBinary });
+      const coordData = await plugin.builders.data.download({
+        url: p.coordinates,
+        isBinary: p.coordinatesBinary,
+        label: fileNameOf(p.coordinates),
+      });
       const coords = await plugin.dataFormats.get(p.coordinatesFormat)!.parse(plugin, coordData);
       const trajectory = await plugin
         .build()

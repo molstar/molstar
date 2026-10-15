@@ -10,88 +10,145 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
-import { ViewerShellStory } from '../../testing/shell-story.js';
+import { ExampleFiles, RealViewerStory } from '../../testing/real-viewer.js';
+import type { PrismViewer } from '../../viewer.js';
+
+// The viewer mode: the real viewer (`createPrismViewer`, the viewer's default spec) over the repository's example
+// files. A few stories reach the network (an EMDB map, a state server): said on them.
 
 const meta: Meta = { title: 'Shell/Viewer mode', parameters: { layout: 'fullscreen' } };
 export default meta;
 
-/** The command menu open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
-export const CommandMenuOpen: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} commandMenu={true} />}</div>),
-};
+/** Clicks a button of the shell by its accessible name (the shell is in a shadow root). */
+function click(v: PrismViewer, label: string) {
+  const root = [...document.querySelectorAll('*')].find((e) => e.shadowRoot)?.shadowRoot;
+  void v;
+  root?.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)?.click();
+}
 
-/** Nothing loaded: Home is the open tab. */
+/** Nothing loaded: Home is open (`ui.homeWhenEmpty`), where loading starts. */
 export const Empty: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={false} />}</div>),
+  render: () =>
+    story(() => (
+      <RealViewerStory spec={(base) => ({ ...base, options: { ...base.options, ui: { homeWhenEmpty: true } } })} />
+    )),
 };
 
-/** A structure loaded: the Structure tab, a status message, a running task and the selection chip. */
+/** A structure loaded (1CBS): the sequence band, the canvas, the Structure tab. */
 export const Loaded: StoryObj<{ compact: boolean }> = {
   args: { compact: false },
   render: (args) =>
-    story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} compact={args.compact} />}</div>),
-};
-
-/** Several structures: four CYP3A4 structures superposed on 1TQN, collapsed but the first. */
-/**
- * A session with snapshots and a multi-model trajectory: playback appears at the top left only because the data has
- * something to play (plain 1TQN has neither).
- */
-export const SessionWithPlayback: StoryObj = {
-  render: () =>
     story(() => (
-      <div style="height: 100vh">
-        <ViewerShellStory loaded={true} playback={{ snapshots: true, trajectory: true }} />
+      <div style="height: 100vh; display: grid; place-items: center; background: var(--msp-color-border)">
+        <RealViewerStory
+          load={[ExampleFiles.cbs]}
+          style={args.compact ? 'width: 390px; height: 760px' : 'width: 100vw; height: 100vh'}
+          setup={(v) => v.views.shell?.show('structure')}
+        />
       </div>
     )),
 };
 
+/** The command menu open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
+export const CommandMenuOpen: StoryObj = {
+  render: () => story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => click(v, 'Command menu')} />),
+};
+
+/** Several structures: 1CBS, crambin and gramicidin, each its row in the tree. */
 export const ManyStructures: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} preset="many" />}</div>),
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        load={[ExampleFiles.cbs, ExampleFiles.crambin, ExampleFiles.grm]}
+        setup={(v) => v.views.shell?.show('structure')}
+      />
+    )),
 };
 
-/** An EMDB entry: the map is a top-level volume next to the fitted model (EMD-2984 and 5A1A). */
+/** Playback: a trajectory's frames (the trajectory bar) and two snapshots (the snapshots card). */
+export const Playback: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        setup={async (v) => {
+          await v.api.load.trajectory?.({
+            model: ExampleFiles.trajectoryModel,
+            modelFormat: 'pdb',
+            modelBinary: false,
+            coordinates: ExampleFiles.trajectoryCoordinates,
+            coordinatesFormat: 'dcd',
+            coordinatesBinary: true,
+          });
+          await v.api.snapshot?.add({ name: 'The whole protein' });
+          await v.api.snapshot?.add({ name: 'Again, for the playback' });
+        }}
+      />
+    )),
+};
+
+/** An EMDB entry and its fitted model (EMD-2984 and 5A1A): the map is a volume next to the structure. Network. */
 export const EmdbMap: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} preset="em" />}</div>),
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        setup={async (v) => {
+          await v.api.load.entry?.({ source: 'pdb', id: '5A1A' });
+          await v.api.load.entry?.({ source: 'emdb', id: 'EMD-2984' });
+          v.views.shell?.show('structure');
+        }}
+      />
+    )),
 };
 
-/**
- * The chrome over the canvas follows the canvas background automatically (light glass on a light background, dark on
- * a dark one), whatever the UI theme. Pick a background color in the controls.
- */
+/** The canvas background: the canvas' chrome (the toolbar, the band, the status) follows its color. */
 export const CanvasBackground: StoryObj<{ background: string }> = {
   args: { background: '#14181f' },
   argTypes: { background: { control: 'color' } },
   render: (args) =>
-    story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} background={args.background} />}</div>),
-};
-
-/** A command opened the Export panel at a section ("Export animation…" in the command menu). */
-export const ExportAtSection: StoryObj = {
-  render: () =>
     story(() => (
-      <div style="height: 100vh">
-        <ViewerShellStory loaded={true} openExportAt="animation" />
-      </div>
+      <RealViewerStory
+        load={[ExampleFiles.cbs]}
+        setup={(v) => void v.api.canvas.background({ color: args.background })}
+      />
     )),
 };
 
-/**
- * The panel pinned (the pin in its header): it sits beside the canvas, which makes room, instead of floating over it;
- * for workflows that keep a panel open the whole time.
- */
+/** A command opened the Export card at a section (Session & state). */
+export const ExportAtSection: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        load={[ExampleFiles.cbs]}
+        setup={(v) => void v.api.view.open({ card: 'core.overlay.export', section: 'export-session.section.session' })}
+      />
+    )),
+};
+
+/** The panel pinned: the canvas gives it room instead of running under it. */
 export const Pinned: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} pinned={true} />}</div>),
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        load={[ExampleFiles.cbs]}
+        setup={(v) => {
+          v.views.shell?.show('structure');
+          v.views.shell?.setPinned('right', true);
+        }}
+      />
+    )),
 };
 
-/** Remote states turned on in the spec: a Remote states card next to Export, and the server's states on Home. */
+/** Remote states on in the spec: a Remote states card next to Export, the server's states on Home. Network. */
 export const RemoteStates: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} remoteStates={true} />}</div>),
-};
-
-/** A busy state server (50 states): the lists scroll on their own, on Home and in the Remote states card. */
-export const ManyRemoteStates: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={false} remoteStates={50} />}</div>),
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        spec={(base) => ({
+          ...base,
+          options: { ...base.options, ui: { showRemoteStates: true, homeWhenEmpty: true } },
+        })}
+      />
+    )),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */
@@ -100,18 +157,15 @@ export const Compact: StoryObj = {
     story(() => (
       <div style="height: 100vh; display: grid; place-items: center; background: var(--msp-color-border)">
         <div style="width: 390px; height: 760px; border-radius: 16px; overflow: hidden; box-shadow: var(--msp-shadow-overlay)">
-          <ViewerShellStory loaded={true} />
+          <RealViewerStory load={[ExampleFiles.cbs]} style="height: 100%" />
         </div>
       </div>
     )),
 };
 
 /**
- * Expand by context, in real frames of the Loaded story (hover the canvas's Expand button, at the top right):
- * - an iframe that allows fullscreen (`allow="fullscreen"`): the button is Fullscreen, since expanding would only fill
- *   the frame; Escape leaves it;
- * - an iframe that does not: Expand fills the frame, and Fullscreen beside it says why it is not possible;
- * - a page (open it below): Expand fills the page, Fullscreen beside it.
+ * Expand or fullscreen, by context: in a frame that allows fullscreen the button is Fullscreen; in one that does not,
+ * Expand (the canvas fills the viewer).
  */
 export const ExpandByContext: StoryObj = {
   parameters: { layout: 'fullscreen' },
@@ -145,11 +199,7 @@ export const ExpandByContext: StoryObj = {
     }),
 };
 
-/**
- * Help, a tab at the rail's foot that stays open while you try things on the canvas (the rail's ?, the "Keyboard and mouse" command on ?, the command menu's ?): the canvas's mouse and
- * touch bindings (the mode's), the keys that work everywhere, and every command with a shortcut, from the registry as
- * it is; two commands on one key would be flagged first.
- */
+/** Help: the keys and the mouse, and the viewer's words. */
 export const Help: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} openTab="help" />}</div>),
+  render: () => story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => v.views.shell?.show('help')} />),
 };

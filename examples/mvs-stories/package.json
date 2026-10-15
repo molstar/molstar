@@ -54,10 +54,13 @@
     "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "catalog:",
+    "@molstar/prism-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "react-dom": ">=16.14.0"

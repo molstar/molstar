@@ -6,7 +6,7 @@
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
   },
   "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**"],
   "references": [
     {
       "path": "../../packages/core"
