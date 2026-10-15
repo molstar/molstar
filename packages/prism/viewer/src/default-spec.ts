@@ -10,6 +10,7 @@ import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
 import { ExportImageFeature } from './features/export-image/index.js';
 import { ExportSessionFeature } from './features/export-session/index.js';
 import { LazyStateTree, LazySuperposition } from './features/lazy/index.js';
+import { LoadersFeature } from './features/loaders/index.js';
 import { MeasurementsFeature } from './features/measurements/index.js';
 import { SnapshotsFeature } from './features/snapshots/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
@@ -24,6 +25,7 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
   return {
     plugin: prismViewerPluginParts(),
     extensions: [
+      LoadersFeature,
       CanvasSettingsFeature,
       MeasurementsFeature,
       LazySuperposition,

@@ -56,3 +56,44 @@ export function optionsFromUrl(search: string): PartialOptions {
     },
   };
 }
+
+/**
+ * Every parameter the URL table knows (app.md §4), besides the load parameters (`LoadUrlParameters`, the loaders
+ * feature's): the options' names, and the ones the app or v5 handled that the viewer drops or reads elsewhere.
+ */
+export const KnownUrlParameters: readonly string[] = [
+  'pixel-scale',
+  'pick-scale',
+  'transparency',
+  'resolution-mode',
+  'power-preference',
+  'prefer-webgl1',
+  'allow-major-performance-caveat',
+  'disable-antialiasing',
+  'illumination',
+  'bg-color',
+  'viewport-background-color',
+  'viewport-focus-behavior',
+  'pdb-provider',
+  'emdb-provider',
+  'map-provider',
+  'volume-streaming-server',
+  'volume-streaming-disabled',
+  'state-server',
+  'collapse-left-panel',
+  'hide-controls',
+  'show-toggle-fullscreen',
+  'debug-mode',
+  'timing-mode',
+  'pick-padding',
+];
+
+/** The parameters of a query string that are in neither list (names as typed, once each; matched case-insensitively). */
+export function unknownUrlParameters(search: string, loadParameters: readonly string[]): string[] {
+  const known = new Set([...KnownUrlParameters, ...loadParameters]);
+  const unknown = new Set<string>();
+  for (const name of new URLSearchParams(search).keys()) {
+    if (!known.has(name.toLowerCase())) unknown.add(name);
+  }
+  return [...unknown];
+}

@@ -64,7 +64,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 
 | Area           | Operations (first pass)                                                                                                     | Reads                         | From                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
-| `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary), `mvs`, `svs`, `snapshot` (url or remote id), `trajectory`, `volume` | — | core; loaders |
+| `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary), `mvs`, `snapshot` (url or remote id; `svs` later, with SeqViewSpec documents), `trajectory`, `volume` | — | core; loaders |
 | `session`      | `open` (`.molx`, `.molj`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove`                  | `remote.list`                 | core; remote feature |
 | `structure`    | `preset` (hierarchy and representation presets by id), `model`, `assembly`, `visibility`, `remove` (the whole entry)        | `get` (the scene outline)     | core                |
 | `contents`     | `visibility` (entity or chain: left out of every component, below)                                                          | `get` (entities, chains)      | core                |

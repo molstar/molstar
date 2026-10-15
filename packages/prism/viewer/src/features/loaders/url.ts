@@ -1,0 +1,146 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { ApiResult, ViewerApi } from '../../api/area.js';
+
+// The load parameters of the URL (app.md §4, the table; v5's `apps/viewer` names kept): read once, when the viewer is
+// ready, and run as the `load.*` operations with the `url` origin, in v5's order. DOM-free: the app passes
+// `location.search`.
+
+/** One load the URL asks for: an operation and its values. */
+export interface UrlLoad {
+  readonly operation: string;
+  readonly values: Record<string, unknown>;
+}
+
+/** The load parameters (the ones this module reads), for the app's "unknown parameter" log. */
+export const LoadUrlParameters: readonly string[] = [
+  'snapshot-id',
+  'snapshot-url',
+  'snapshot-url-type',
+  'structure-url',
+  'structure-url-format',
+  'structure-url-is-binary',
+  'mvs-url',
+  'mvs-data',
+  'mvs-format',
+  'pdb',
+  'pdb-ihm',
+  'pdb-dev',
+  'emdb',
+  'afdb',
+  'model-archive',
+  'url',
+  'url-format',
+  'url-is-binary',
+];
+
+/** The parameters of a query string: names lowercased, the first of a name wins; values decoded as v5 does (`+` stays). */
+export function parseSearch(search: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const part of search.replace(/^\?/, '').split('&')) {
+    if (!part) continue;
+    const eq = part.indexOf('=');
+    const name = decode(eq < 0 ? part : part.slice(0, eq)).toLowerCase();
+    if (!out.has(name)) out.set(name, eq < 0 ? '' : decode(part.slice(eq + 1)));
+  }
+  return out;
+}
+
+function decode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
+/** The loads a query string asks for, in order. Empty values are absent, as in v5. */
+export function loadsFromUrl(search: string): UrlLoad[] {
+  const q = parseSearch(search);
+  const get = (name: string) => q.get(name)?.trim() || undefined;
+  const flag = (name: string) => ['1', 'true'].includes(get(name)?.toLowerCase() ?? '');
+  const loads: UrlLoad[] = [];
+
+  const snapshotId = get('snapshot-id');
+  if (snapshotId) loads.push({ operation: 'load.snapshot', values: { id: snapshotId } });
+
+  const snapshotUrl = get('snapshot-url');
+  if (snapshotUrl) {
+    loads.push({
+      operation: 'load.snapshot',
+      values: { url: snapshotUrl, type: get('snapshot-url-type')?.toLowerCase() ?? 'molj' },
+    });
+  }
+
+  const structureUrl = get('structure-url');
+  if (structureUrl) {
+    loads.push({
+      operation: 'load.url',
+      values: {
+        url: structureUrl,
+        format: get('structure-url-format')?.toLowerCase() ?? 'mmcif',
+        binary: flag('structure-url-is-binary'),
+      },
+    });
+  }
+
+  // Both is an error, not a guess: the operation says so (v5 logs it and ignores both).
+  const mvsUrl = get('mvs-url');
+  const mvsData = get('mvs-data');
+  if (mvsUrl || mvsData) {
+    loads.push({
+      operation: 'load.mvs',
+      values: {
+        ...(mvsUrl ? { url: mvsUrl } : {}),
+        ...(mvsData ? { data: mvsData } : {}),
+        format: get('mvs-format')?.toLowerCase() ?? 'mvsj',
+      },
+    });
+  }
+
+  for (const [name, source] of [
+    ['pdb', 'pdb'],
+    ['pdb-ihm', 'pdb-ihm'],
+    ['pdb-dev', 'pdb-ihm'], // deprecated, the same
+    ['emdb', 'emdb'],
+    ['afdb', 'afdb'],
+    ['model-archive', 'model-archive'],
+  ] as const) {
+    const id = get(name);
+    if (id) loads.push({ operation: 'load.entry', values: { source, id } });
+  }
+
+  const url = get('url');
+  if (url) {
+    // v5 needs `url-format`; without it the format is read from the address.
+    loads.push({
+      operation: 'load.url',
+      values: { url, format: get('url-format') ?? 'auto', binary: flag('url-is-binary') },
+    });
+  }
+  return loads;
+}
+
+/** What one URL load did. */
+export interface UrlLoadResult extends UrlLoad {
+  readonly result: ApiResult;
+}
+
+/**
+ * Runs the loads of a query string one after the other, as the `url` origin (the history and the run log say who asked).
+ * A failed one is in the results, and does not stop the rest.
+ */
+export async function runUrlLoads(api: ViewerApi, search: string): Promise<UrlLoadResult[]> {
+  const asUrl = api.as({ kind: 'url' });
+  const results: UrlLoadResult[] = [];
+  for (const load of loadsFromUrl(search)) {
+    results.push({ ...load, result: await asUrl.run(load.operation, load.values) });
+  }
+  return results;
+}
