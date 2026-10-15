@@ -216,6 +216,8 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
 
   private isStopped = true;
   private isApplying = false;
+  /** The frame being applied (`applyAsync`): `stop` waits for it, so what comes after (a snapshot) is not overwritten. */
+  private applying: Promise<void> = Promise.resolve();
 
   async start() {
     if (!this._current) return;
@@ -244,6 +246,9 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
 
   async stop() {
     this.isStopped = true;
+    // A frame under way (a snapshot transition's partial state, applied asynchronously) lands before `stop` returns:
+    // else it would land after what replaces the animation (applying another snapshot) and overwrite it.
+    await this.applying;
     if (this.state.animationState !== 'stopped') {
       const current = this._current;
       if (current?.anim.teardown) {
@@ -268,15 +273,15 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     return this.state.animationState === 'playing';
   }
 
-  private async applyAsync() {
+  private applyAsync() {
     if (this.isApplying) return;
 
     this.isApplying = true;
-    try {
-      await this.applyFrame();
-    } finally {
-      this.isApplying = false;
-    }
+    this.applying = this.applyFrame()
+      .catch((e) => console.error('Failed to apply an animation frame', e))
+      .finally(() => {
+        this.isApplying = false;
+      });
   }
 
   private async applyFrame(animation?: PluginAnimationManager.AnimationInfo) {
