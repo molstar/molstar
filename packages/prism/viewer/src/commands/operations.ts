@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { CommandDefinition, IconName, KeyChord } from '@molstar/prism-ui/core';
 import type { OperationFn, ViewerApi } from '../api/area.js';
 import { filePickers, filesOf } from '../api/files.js';
@@ -52,7 +53,7 @@ export function operationCommand(
   const form = () => {
     const params = api.describe(def.id)?.params ?? {};
     const open = Object.keys(params).filter((k) => !(k in fixed));
-    return open.length ? filePickers(Object.fromEntries(open.map((k) => [k, params[k]]))) : undefined;
+    return open.length ? formParams(Object.fromEntries(open.map((k) => [k, params[k]]))) : undefined;
   };
   const files = new Set(
     Object.entries(api.describe(def.id)?.params ?? {})
@@ -82,6 +83,17 @@ export function operationCommand(
       return { ...r, undoable: !def.read && def.history !== false };
     },
   };
+}
+
+/** A form for an operation's params: file pickers for files, text fields for targets. */
+function formParams(params: PD.Params): PD.Params {
+  const out = filePickers(params);
+  for (const [k, p] of Object.entries(out)) {
+    if (p.type === 'value' && typeof p.defaultValue === 'string') {
+      out[k] = PD.Text(p.defaultValue, { label: p.label, description: p.description });
+    }
+  }
+  return out;
 }
 
 function formatValues(values: Readonly<Record<string, unknown>>): string {

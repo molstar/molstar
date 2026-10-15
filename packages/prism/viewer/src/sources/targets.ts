@@ -12,7 +12,15 @@ import type { StructureRef } from '@molstar/plugin/state/manager/structure/hiera
 import type { ApiErrorCode, ApiFailure } from '../api/area.js';
 import type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from '../api/targets.js';
 import { findStructure, structureNames } from './naming.js';
-import { evaluateTarget, formatTarget, type PersonKeyword, type Target, toMolqlJson } from '../targets/index.js';
+import { isLociTarget } from '../api/target-param.js';
+import {
+  evaluateTarget,
+  summarize,
+  formatTarget,
+  type PersonKeyword,
+  type Target,
+  toMolqlJson,
+} from '../targets/index.js';
 
 // The target resolver over the plugin (targets.md §1–2, plan 2.1): a target, in any of its forms, compiled to MolQL
 // (the `targets/` port) and evaluated on the structures it applies to. Named structure (a state ref or a label), else
@@ -58,6 +66,21 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
       }
       const all = structures();
       if (!all.length) return fail('not-found', 'Nothing is loaded.', 'Load a structure first.');
+      // Loci from code in the page (the sequence link): on the structure they belong to, never stored.
+      if (isLociTarget(target)) {
+        const loci = target.loci;
+        const s = all.find((x) => x.cell.obj?.data.root === loci.structure.root);
+        if (!s) return fail('not-found', 'Those loci are on no loaded structure.');
+        const selected = summarize(loci);
+        return {
+          ok: true,
+          parts: [{ structure: { ref: s.cell.transform.ref, label: nameOf(s) }, loci, selected }],
+          scope: 'named',
+          summary: selected.line,
+          empty: selected.atoms === 0,
+          stored: undefined,
+        };
+      }
 
       let scope: StructureRef[];
       let scoping: ResolvedTarget['scope'];
