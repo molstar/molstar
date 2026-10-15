@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { SceneNode } from '../../model/scene.js';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
 import { ExampleFiles, RealViewerStory } from '../../testing/real-viewer.js';
@@ -119,6 +120,30 @@ export const EmdbDirectVolume: StoryObj = {
           v.views.shell?.show('structure');
           const map = v.views.scene.roots.value.find((n) => n.kind === 'volume');
           v.views.scene.pick(map?.children.value.find((n) => n.label.value.toLowerCase().includes('direct')) ?? map);
+        }}
+      />
+    )),
+};
+
+/** A representation picked (1CBS's cartoon): its quick settings (type, color, opacity, size) above its whole form. */
+export const RepresentationPicked: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        load={[ExampleFiles.cbs]}
+        setup={async (v) => {
+          v.views.shell?.show('structure');
+          const find = (nodes: readonly SceneNode[]): SceneNode | undefined => {
+            for (const n of nodes) {
+              if (n.kind === 'representation') return n;
+              const inner = find(n.children.value);
+              if (inner) return inner;
+            }
+            return undefined;
+          };
+          const polymer = v.views.scene.roots.value[0]?.children.value.find((n) => n.kind === 'component');
+          if (polymer && !polymer.isExpanded.value) polymer.toggleExpanded();
+          v.views.scene.pick(find(v.views.scene.roots.value));
         }}
       />
     )),

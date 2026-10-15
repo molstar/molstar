@@ -9,6 +9,7 @@
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import type { RepresentationQuickModel } from './representation-quick.js';
 import type { VolumeLevelsModel } from './volume-levels.js';
 import type { VolumeTransferModel } from './volume-transfer.js';
 
@@ -97,6 +98,8 @@ export interface SceneInspection {
   levels?: readonly VolumeLevelsModel[];
   /** A direct volume's transfer function (opacity and color over the map's values), above the form. */
   transfer?: readonly VolumeTransferModel[];
+  /** A structure representation's quick settings (type, color, opacity, size), above the form. */
+  quick?: RepresentationQuickModel;
 }
 
 export interface SceneModel {

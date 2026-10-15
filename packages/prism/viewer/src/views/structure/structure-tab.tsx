@@ -23,6 +23,7 @@ import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { VolumeLevels } from '../volume/volume-levels.js';
+import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
@@ -280,6 +281,8 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
           ))}
         </div>
       ) : null}
+      {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}
+      {props.inspection.quick ? <RepresentationQuick model={props.inspection.quick} /> : null}
       {/* A map's levels (the iso values and colors people change most), above the whole form. */}
       {props.inspection.levels?.map((levels) => (
         <VolumeLevels model={levels} />

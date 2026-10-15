@@ -66,6 +66,7 @@ import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
+import { createRepresentationQuick, type RepresentationQuickSource } from './representation-quick.js';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -346,6 +347,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     n.set(reprLabel(plugin, r), colorLabel(plugin, r), !!r.cell.state.isHidden);
     // An open inspector follows the cell (Undo, another surface), without reporting it as an edit.
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    (inspections.get(ref)?.quick as RepresentationQuickSource | undefined)?.refresh();
     return n;
   };
 
@@ -1463,12 +1465,15 @@ function inspect(
         volume && direct
           ? createVolumeTransfer(plugin, api, () => volumeRefOf(plugin, volume), node.id, unit)
           : undefined;
+      // A structure representation: its quick settings above the whole form.
+      const quick = node.kind === 'representation' ? createRepresentationQuick(plugin, api, node.id) : undefined;
       return {
         node,
         form,
         slot,
         ...(levels?.levels.value.length ? { levels: [levels] } : {}),
         ...(transfer ? { transfer: [transfer] } : {}),
+        ...(quick ? { quick } : {}),
       };
     }
   }

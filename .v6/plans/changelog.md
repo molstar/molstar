@@ -138,6 +138,9 @@ the [API change ledger](breaking-v6-changes.md).
   log scale, Mol*'s presets), the area under it in the colors painted there, the volume-value theme's stops on the same
   axis (a stop on a point moves with it), Colors at peaks (pressed again, it cycles colors); previews while dragging
   are throttled, the final value applies on release, one undo step a drag.
+- Prism viewer: a structure representation's quick settings above its whole form: its type and color theme as
+  choices, one color from a row of swatches, the opacity and the size as sliders (a drag is one undo step); a map
+  level's color from the same row.
 - Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
   the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
 - `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as
