@@ -788,13 +788,13 @@ class KinParser {
           // new list of masters, so we do that here as well.  We avoid checking to see if
           // the subgroup exists already, and just overwrite it with the new definition.
           //if (!kinemage.subgroupDict[combinedName]) {
-            kinemage.subgroupDict[combinedName] = {
-              dominant: false,
-              // If the groupFlag includes "off", set off to true; otherwise, set it to false.
-              off: groupFlags['off'] ? true : false,
-              group: currentGroup,
-            };
-            currentSubgroupMasters = groupMasters;
+          kinemage.subgroupDict[combinedName] = {
+            dominant: false,
+            // If the groupFlag includes "off", set off to true; otherwise, set it to false.
+            off: groupFlags['off'] ? true : false,
+            group: currentGroup,
+          };
+          currentSubgroupMasters = groupMasters;
           //}
           currentSubgroup = combinedName;
 
