@@ -191,11 +191,16 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const seqLines = observableState<readonly string[]>([]);
   const hoverLines = observableState<readonly string[]>([]);
   const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLines.value);
-  const hoverSubs = [seqLines.asReadonly.subscribe(mergeHover), sources.pointer.hoverLines.subscribe(mergeHover)];
+  const seqHoverSub = seqLines.asReadonly.subscribe(mergeHover);
+  const pointerHoverSub = sources.pointer.hoverLines.subscribe(mergeHover);
+  unregister.push(() => {
+    seqHoverSub.unsubscribe();
+    pointerHoverSub.unsubscribe();
+  });
   if (sequence) {
     const viewer = sequence.viewers.get();
     const inkToSeq = ink.subscribe((i) => sequence.setInk(i));
-    hoverSubs.push(inkToSeq);
+    unregister.push(() => inkToSeq.unsubscribe());
     unregister.push(core.registerCommands(sequenceCommands(viewer, shell, person)));
     unregister.push(
       shell.registerOverlays([
@@ -233,7 +238,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       if (!shownBefore) shell.show('sequence');
       shownBefore = true;
     });
-    hoverSubs.push(bandSub);
+    unregister.push(() => bandSub.unsubscribe());
     unregister.push(() => dropTab?.());
     unregister.push(
       shell.registerToolbar([
@@ -398,7 +403,6 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     shell,
     root,
     dispose() {
-      for (const s of hoverSubs) s.unsubscribe();
       document.removeEventListener('keydown', onKey);
       for (const u of unregister.reverse()) u();
       disposeRender();
