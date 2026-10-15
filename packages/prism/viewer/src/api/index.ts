@@ -44,6 +44,7 @@ import { StructureApi } from './structure.js';
 import { StylesApi } from './styles.js';
 import type { TargetResolver } from './targets.js';
 import { ParticlesApi } from './particles.js';
+import { TrajectoryApi } from './trajectory.js';
 import { ViewApi } from './view.js';
 import { VolumeApi } from './volume.js';
 
@@ -75,6 +76,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
   settings: (c) => new SettingsApi(c),
+  trajectory: (c) => new TrajectoryApi(c),
 };
 
 export interface ViewerApiDeps {

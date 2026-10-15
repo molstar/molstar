@@ -28,6 +28,7 @@ import {
   ShellView,
   Show,
   ThemeModel,
+  TrajectoryBar,
   UIThemes,
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
@@ -48,6 +49,7 @@ import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } 
 import { StructureTab } from '../views/structure/structure-tab.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
+import { createTrajectoryControls } from './trajectory.js';
 
 // The viewer on a page (viewer-spec.md §6, plan 1.4): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
@@ -275,6 +277,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const exporting = exportCard(shell);
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
   unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));
+  // The trajectory bar over the canvas while the structure in view has several models (`trajectory.*`).
+  const trajectory = createTrajectoryControls(core.plugin, person);
+  unregister.push(trajectory.dispose);
   const modeProps = modeSwitchProps(sources.interaction, person);
   const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
   unregister.push(
@@ -384,6 +389,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             {() => <HoverLabel model={{ lines: hoverLines.asReadonly }} area={() => canvasHost.parentElement} />}
           </Show>
         }
+        playback={<Show when={hasData}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}
         ink={ink}
         empty={sources.empty}
         context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}

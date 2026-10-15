@@ -12,6 +12,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
 import type { HistoryManager, HistoryPort } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
+import { isViewing } from './trajectory.js';
 
 // The history's checkpoints (sequence.md §7.2): the plugin's state directly, never its snapshot manager (whose
 // `getStateSnapshot` adds entries and whose restore clears; review F1). What undo restores: the data tree, behavior
@@ -96,6 +97,8 @@ export function watchOutsideChanges(plugin: PluginContext, history: HistoryManag
     if (history.applying || !transform || isBehaviorOwned(transform)) return;
     // Snapshots playing are a presentation, not edits: the steps before stay undoable (sequence.md §7.3).
     if (plugin.managers.snapshot.state.isPlaying) return;
+    // So are the frames stepped through and the animations played (the trajectory and animation areas).
+    if (isViewing(plugin)) return;
     history.invalidate('Changed outside the viewer: this step can no longer be undone.');
   };
   const transformOf = (ref: string): StateTransform | undefined =>

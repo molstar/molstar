@@ -43,7 +43,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | selection mode, granularity                                           | the canvas mode switch                                                | `selection.mode`             | mocked |
 | selection toolbar (union, subtract, intersect, set; by query or residue list; theme layers: color, transparency, emissive, material, clipping, resets; component and Modify by Selection; help) | the selection bar and Selection tab; `select` commands with targets ([targets.md](targets.md)) | `select.*`, `selection.*` | mocked |
 | focus (click, history; the focus picker's per-ligand and per-residue entries) | focus from the selection bar, the sequence, the scene tree; the picker's entries as `focus.set` targets in the command menu (`focus` group, ligands and residues as completions); the history as recent targets | `focus.*` | mocked (partly) |
-| procedural animation                                                  | Animation card › Procedural                                           | `animation.*`                | mocked |
+| procedural animation                                                  | Animation card › Procedural                                           | `animation.*`                | built (`animation.wiggle`) |
 
 ## 4. The canvas
 
@@ -55,8 +55,8 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | illumination, XR                                                      | toolbar Rendering menu                                                | `canvas.illumination`, `canvas.xr` | illumination built (`canvas-settings`); XR mocked |
 | expand, fullscreen                                                    | toolbar Expand / Fullscreen                                           | `view.expand`, `view.fullscreen` | mocked |
 | toggle controls                                                       | the rail (compact rail)                                               | `navigation.*`               | mocked |
-| animation (snapshots, trajectory, spin, rock), snapshot stepper, description | Animation card; playback card top left; description markdown   | `animation.*`, `snapshot.*`  | mocked |
-| trajectory controls                                                   | trajectory bar                                                        | `trajectory.*`               | mocked |
+| animation (snapshots, trajectory, spin, rock), snapshot stepper, description | Animation card; playback card top left; description markdown   | `animation.*`, `snapshot.*`  | built (`animation`; the snapshot card is an overlay for now) |
+| trajectory controls                                                   | trajectory bar                                                        | `trajectory.*`               | built (the trajectory bar over `trajectory.*`) |
 | hover labels                                                          | hover label at the cursor                                             | none (state only)            | built  |
 | toasts, task progress (abortable), log                                | status column, busy overlay, History tab (journal.md §3)              | none (state only)            | mocked |
 | drag-and-drop overlay                                                 | the shell's drop target                                               | `load.files`                 | mocked |
