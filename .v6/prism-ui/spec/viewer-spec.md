@@ -52,12 +52,14 @@ const PrismViewerOptions = {                                   // PD params; a v
                        allowMajorPerformanceCaveat, disableAntialiasing, illumination }),
   canvas: PD.Group({ background, focusBehavior: 'default' | 'secondary-zoom' | 'disabled' }),
   data: PD.Group({ pdbProvider, emdbProvider, volumeStreamingServer, volumeStreamingDisabled,
-                   stateServer, saccharideCompIdMapType, customFormats }),
+                   stateServer, saccharideCompIdMapType }),
   ui: PD.Group({ showSequence, showHistory, showRemoteStates, collapsed, buttons: { reset, screenshot, expand,
                  fullscreen, settings, selectionMode, animation, trajectory } }),
 };
 ```
 
+- **In code**: `packages/prism/viewer/src/options.ts`; `auto` (transparency, resolution, WebGL 1) leaves the plugin's
+  own detection. Turned into config items and canvas props by `sources/compose-plugin.ts`.
 - **One definition, three readers**: `createPrismViewer({ options })` in code, the URL (v5's parameter names kept,
   `pixel-scale`, `pdb-provider`, `hide-controls`, …; the full list is [app.md](app.md) §4), and the Settings tab, which
   shows the same params. A value becomes config items and canvas props (renderer, data), the camera behaviors chosen
@@ -142,7 +144,7 @@ interface ViewerExtension {
   readonly id: string;                                         // 'geo-export'; every part id starts with it (§4)
   readonly title: string;
   readonly plugin?: Partial<PrismViewerPluginParts>;         // registry, behaviors, config
-  readonly api?: (ctx: ApiContext) => ApiModule;               // its operations, under its namespace (api.md)
+  readonly api?: (ctx: ApiAreaContext, origin: RunOrigin, group?: object) => ApiArea;  // its area, bound per origin (api.md §6)
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition[];
   readonly tools?: readonly ToolRegistration<ViewerApi>[];     // registered into the dynamic toolkit (agent.md §3)
   readonly skills?: readonly ToolGroup<ViewerApi>[];           // never core tools
@@ -278,7 +280,7 @@ mount the canvas and render the shell; `ready` is set last, and only then do URL
 | v5                                                                         | `PrismViewerSpec`                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `extensions`, `disabledExtensions` (names in `ExtensionMap`)               | `extensions` (a list; leave one out)                                       |
-| `customFormats`                                                            | `options.data.customFormats` (registered last, as in v5)                   |
+| `customFormats`                                                            | an extension's registry entry, `pluginExtension('custom-formats', { registry: [{ formats }] })`, listed last (a PD value cannot hold providers) |
 | `layoutIsExpanded`, `layoutShowControls`, `layoutControlsDisplay`          | `ui.layout` (`mode`, docks)                                                |
 | `layoutShowSequence`, `layoutShowLog`, `layoutShowRemoteState`, `layoutShowLeftPanel`, `collapseLeftPanel`, `collapseRightPanel` | `options.ui` (the log is History, the panels the shell's) |
 | `rcsbAssemblySymmetryDefaultServerType`, `…DefaultServerUrl`, `…ApplyColors` | the assembly-symmetry extension's settings                                |

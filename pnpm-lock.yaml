@@ -2978,12 +2978,21 @@ importers:
       '@molstar/model-archive-extension':
         specifier: workspace:*
         version: link:../../../extensions/model-archive
+      '@molstar/mvs':
+        specifier: workspace:*
+        version: link:../../mvs/runtime
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../plugin/core
+      '@molstar/plugin-headless':
+        specifier: workspace:*
+        version: link:../../plugin/headless
       '@molstar/prism-ui':
         specifier: workspace:*
         version: link:../ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
       '@molstar/seq-core':
         specifier: workspace:*
         version: link:../../sequences/core

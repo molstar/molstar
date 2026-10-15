@@ -183,9 +183,15 @@ export class HistoryManager<C = unknown> {
    * succeeds, its checkpoint restored when it fails. Inside an atomic group it is part of the group; an open group of
    * its origin (an agent's turn) gets it as one more run.
    */
-  async run<T>(label: string, origin: HistoryOrigin, work: () => Promise<T>, options: RunOptions<T> = {}) {
+  async run<T>(
+    label: string | ((value: T) => string),
+    origin: HistoryOrigin,
+    work: () => Promise<T>,
+    options: RunOptions<T> = {},
+  ) {
     const atomic = this.#atomic;
     if (atomic) return this.#runInAtomic(atomic, label, work, options);
+    const labelOf = (value: T) => (typeof label === 'function' ? label(value) : label);
     // In flight from the moment it is asked for: Undo waits for queued runs too.
     this.#running.set(this.#running.value + 1);
     this.#updateBlocked();
@@ -210,14 +216,14 @@ export class HistoryManager<C = unknown> {
         return { value, restored } satisfies StepOutcome<T>;
       }
       if (joining && top) {
-        top.step = { ...top.step, runs: [...top.step.runs, label] };
+        top.step = { ...top.step, runs: [...top.step.runs, labelOf(value)] };
         this.#publish();
         return { value, restored: false, step: top.step } satisfies StepOutcome<T>;
       }
       const step = this.#push(
-        group ? group.label : label,
+        group ? group.label : labelOf(value),
         origin,
-        [label],
+        [labelOf(value)],
         options.undoable === false ? undefined : checkpoint.value,
         options.undoable === false ? 'It cannot be undone' : checkpoint.unsafe,
         group?.key,
@@ -375,14 +381,14 @@ export class HistoryManager<C = unknown> {
 
   async #runInAtomic<T>(
     group: AtomicGroup<C>,
-    label: string,
+    label: string | ((value: T) => string),
     work: () => Promise<T>,
     options: RunOptions<T>,
   ): Promise<StepOutcome<T>> {
     this.#running.set(this.#running.value + 1);
     try {
       const value = await work();
-      if (!options.failed?.(value)) group.runs.push(label);
+      if (!options.failed?.(value)) group.runs.push(typeof label === 'function' ? label(value) : label);
       return { value, restored: false };
     } finally {
       this.#running.set(this.#running.value - 1);

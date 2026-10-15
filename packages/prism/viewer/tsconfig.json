@@ -36,6 +36,15 @@
     },
     {
       "path": "../../sequences/molstar-poc"
+    },
+    {
+      "path": "../../mvs/runtime"
+    },
+    {
+      "path": "../../query-language"
+    },
+    {
+      "path": "../../plugin/headless"
     }
   ]
 }
