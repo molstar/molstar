@@ -219,11 +219,11 @@ itself, which keeps it honest.
 | loading: Home (the registry's actions, `load.action`), drag and drop (`load.files`), `.molx` / `.molj` | `snapshots` (Snapshots tab, the playback card)                                         |
 | the scene: Structure tab, scene tree, inspectors, presets, quick styles, components             | `state-tree` (State tree tab); lazy                                                         |
 | selection, focus and targets; the history; the agent's account                                  | `animation` (Animation card), `canvas-settings` (Canvas settings card)                      |
-| the sequence viewer (configured by `sequence`, §2.3)                                            | `export-image`, `export-session`; `remote-states` (behind its setting); lazy                |
-|                                                                                                 | `loaders` (database and URL loaders, `load.entry`, `load.url`, `load.mvs`, `load.svs`, `load.snapshot`; URL parameters) |
+| the sequence viewer (configured by `sequence`, §2.3)                                            | `export-image`, `export-session` (eager); `remote-states` (behind its setting; lazy)       |
+|                                                                                                 | `loaders` (database and URL loaders, `load.entry`, `load.url`, `load.mvs`, `load.snapshot`; URL parameters; `load.svs` later) |
 
 - **One module per feature** (review F44): `@molstar/prism-viewer/features/<name>` exports the feature itself;
-  `@molstar/prism-viewer/features/lazy` exports a stub for each (`lazyFeatures.superposition`), whose `load` imports the
+  `@molstar/prism-viewer/features/lazy` exports a stub for each (`LazyFeatures.superposition`), whose `load` imports the
   feature's module, so importing the lazy list pulls in none of the features' code. The default list takes the lazy
   form for the heavier ones; an app that wants everything up front lists the features themselves (or sets
   `preload: true` on a lazy entry: loaded during creation, before `ready`, still its own chunk).

@@ -95,8 +95,9 @@ Accepted when: everything in parity.md §2 and §3 marked core is built over a r
 1. **The extension API**: `ViewerExtension`, stubs that declare every part and operation, lazy loading and replay,
    overrides by part id, one module per feature (viewer-spec.md §3–4).
 2. **The features**, one PR each, the lighter first: `canvas-settings`, `snapshots` (with playback), `export-image`,
-   `export-session`, `animation` and `trajectory`, `measurements`, `state-tree`, `loaders` (the URL table, app.md §4),
-   `remote-states` (its client out of the classic view), `superposition` (its algorithms out of the classic view).
+   `export-session`, `animation` (the trajectory is in the core, `api/trajectory.ts`), `measurements`, `state-tree`,
+   `loaders` (the URL table, app.md §4), `remote-states` (its client out of the classic view), `superposition` (its
+   algorithms out of the classic view).
 3. **Settings and History**: the Settings tab over the options and the plugin's settings; History over the record's
    memory rows (journal.md §3).
 
