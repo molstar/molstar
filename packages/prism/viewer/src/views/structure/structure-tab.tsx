@@ -21,7 +21,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { classes } from './_generated/structure-tab.module.css.js';
-import { SceneTree } from './scene-tree.js';
+import { NodeActions, SceneTree } from './scene-tree.js';
 
 export interface StructureTabProps {
   shell: ShellModel;
@@ -173,18 +173,16 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
       ) : null}
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
-      {/* Nothing to show (no settings, facts, actions or contributed sections): say so, not an empty space. */}
-      {!form && !props.inspection.facts?.length && !props.inspection.actions?.length ? (
-        <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
-          {() => (
-            <p class={classes.nothing}>
-              Nothing to set here.
-              {(node.menu?.length ?? 0) > 0 || node.removable !== false
-                ? ' Its ⋯ menu has what you can do with it.'
-                : ''}
-            </p>
-          )}
-        </Show>
+      {/* Nothing to set (no form or actions of its own): what can be done with it is shown here, its row menu's
+          entries; with none, say so rather than leave an empty space. */}
+      {!form && !props.inspection.actions?.length ? (
+        (node.menu?.length ?? 0) > 0 || node.removable !== false ? (
+          <NodeActions node={node} />
+        ) : !props.inspection.facts?.length ? (
+          <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
+            {() => <p class={classes.nothing}>Nothing to set here.</p>}
+          </Show>
+        ) : null
       ) : null}
     </div>
   );

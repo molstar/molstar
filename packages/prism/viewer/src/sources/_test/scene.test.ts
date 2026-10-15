@@ -13,7 +13,10 @@ import type { SceneNode } from '../../model/scene.js';
 
 // The scene source (plan 2.2): the Structure tab's tree over a real plugin.
 
-const kinds = (nodes: readonly SceneNode[]) => nodes.map((n) => `${n.kind}:${n.label.value}`);
+/** The data's nodes: the Measurements group stays out while it is empty (it is there once something is loaded). */
+const data = (nodes: readonly SceneNode[]) =>
+  nodes.filter((n) => !(n.kind === 'measurements' && n.children.value.length === 0));
+const kinds = (nodes: readonly SceneNode[]) => data(nodes).map((n) => `${n.kind}:${n.label.value}`);
 
 describe('the scene', () => {
   it('shows each structure with its contents and components, by entry name', async () => {
@@ -31,7 +34,7 @@ describe('the scene', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const before = v.views.scene.roots.value[0];
     await v.api.load.files({ files: [crambin()] });
-    const after = v.views.scene.roots.value;
+    const after = data(v.views.scene.roots.value);
     expect(after).toHaveLength(2);
     expect(after[0]).toBe(before);
     await v.api.structure.visibility({ structure: '1cbs', visible: false });
@@ -204,7 +207,7 @@ describe('the scene: volumes and particles', () => {
     expect(volume.children.value[0]).toBe(rep);
     expect(rep.description.value).toMatch(/1\.00 σ/);
     await v.api.load.files({ files: [mapFile('other.ccp4')] });
-    expect(v.views.scene.roots.value).toHaveLength(2);
+    expect(data(v.views.scene.roots.value)).toHaveLength(2);
     expect(v.views.scene.roots.value[0]).toBe(volume);
   });
 
@@ -263,7 +266,7 @@ describe('the scene: volumes and particles', () => {
     expect(v.views.scene.picked.value).toBeUndefined();
 
     await v.api.history.undo();
-    expect(v.views.scene.roots.value.map((n) => n.label.value)).toEqual(['test.ccp4']);
+    expect(data(v.views.scene.roots.value).map((n) => n.label.value)).toEqual(['test.ccp4']);
   });
 
   it('removes one volume representation from its row', async () => {
@@ -273,7 +276,7 @@ describe('the scene: volumes and particles', () => {
     volume.children.value[0].remove();
     await until(() => runs.length >= 1);
     expect(volume.children.value).toHaveLength(0);
-    expect(v.views.scene.roots.value).toHaveLength(1);
+    expect(data(v.views.scene.roots.value)).toHaveLength(1);
   });
 
   it('shows particle lists with their representations, facts and form', async () => {

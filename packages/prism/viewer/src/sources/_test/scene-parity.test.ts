@@ -28,7 +28,9 @@ describe('the unit cell row', () => {
     expect(row.description.value).toBe('P 21 21 21');
     expect(row.isHidden.value).toBe(true);
     expect(row.removable).toBe(false);
-    expect(v.views.scene.roots.value[0].children.value.at(-1)).toBe(row);
+    // After the components (the volume streaming row, when the entry has density, follows it).
+    const kids = v.views.scene.roots.value[0].children.value;
+    expect(kids.indexOf(row)).toBeGreaterThan(kids.findLastIndex((k) => k.kind === 'component'));
 
     const runs = recordRuns(v);
     row.toggleVisibility();

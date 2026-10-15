@@ -196,7 +196,26 @@ function ExtensionRow(props: { section: ShellSection; shell: ShellModel; node: S
 }
 
 /** A row's menu: its own entries, then Remove (set apart, in the danger color) when it can be removed. */
-function menuOf(node: SceneNode): SceneMenuItem[] {
+/**
+ * A node's actions shown in place (the inspector of a node with nothing to set: its row menu's entries, not hidden
+ * behind ⋯); sub-entries open in place, as in the row menu.
+ */
+export function NodeActions(props: { node: SceneNode }) {
+  const items = menuOf(props.node);
+  if (!items.length) return null;
+  return (
+    <div
+      class={classes.menu}
+      role="menu"
+      aria-label={`${props.node.label.value}: actions`}
+      style={{ '--msp-tree-depth': 0 }}
+    >
+      <MenuItems items={items} onDone={() => {}} />
+    </div>
+  );
+}
+
+export function menuOf(node: SceneNode): SceneMenuItem[] {
   const own = node.menu ?? [];
   if (node.removable === false) return [...own];
   return [...own, { id: 'remove', label: 'Remove', icon: 'trash-2', danger: true, run: () => node.remove() }];

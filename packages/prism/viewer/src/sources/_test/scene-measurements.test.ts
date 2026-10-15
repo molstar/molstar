@@ -15,9 +15,12 @@ describe('the scene tree', () => {
   it('lists measurements in their group, and removes one through measure.remove', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const scene = v.views.scene;
-    expect(scene.roots.value.some((n) => n.kind === 'measurements')).toBe(false);
+    // There, empty, once something is loaded (its inspector says how to measure).
+    const measurementsGroup = () => scene.roots.value.find((n) => n.kind === 'measurements');
+    expect(measurementsGroup()?.children.value).toEqual([]);
+    expect(measurementsGroup()?.description.value).toBe('none');
     expectOk(await v.api.run('measure.orientation', { target: 'ligand' }));
-    await until(() => scene.roots.value.some((n) => n.kind === 'measurements'));
+    await until(() => (measurementsGroup()?.children.value.length ?? 0) > 0);
     const group = scene.roots.value.find((n) => n.kind === 'measurements')!;
     expect(group.children.value).toHaveLength(1);
     const row = group.children.value[0];
@@ -25,6 +28,7 @@ describe('the scene tree', () => {
     const runs = recordRuns(v);
     row.remove();
     await until(() => runs.some((r) => r.operation === 'measure.remove'));
-    await until(() => !v.views.scene.roots.value.some((n) => n.kind === 'measurements'));
+    // The group stays, empty again.
+    await until(() => measurementsGroup()?.children.value.length === 0);
   });
 });

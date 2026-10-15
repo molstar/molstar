@@ -66,6 +66,14 @@ const StaticQueries: Readonly<Record<string, Expression>> = {
 /** One per viewer: the area holds it, the scene's other operations reapply it. */
 const states = new WeakMap<object, { value: ContentsState }>();
 
+/** What is hidden of a structure (the scene's contents rows show it); empty when nothing is. */
+export function hiddenContents(
+  plugin: object,
+  structureRef: string,
+): { readonly entities: readonly string[]; readonly chains: readonly string[] } {
+  return states.get(plugin)?.value.hidden[structureRef] ?? { entities: [], chains: [] };
+}
+
 function stateOf(ctx: ApiAreaContext): { value: ContentsState } {
   let s = states.get(ctx.plugin);
   if (!s) {

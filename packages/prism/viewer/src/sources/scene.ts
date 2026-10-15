@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { hiddenContents } from '../api/contents.js';
+import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { StateObjectCell } from '@molstar/core/state';
@@ -251,6 +253,26 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     return n;
   };
 
+  /**
+   * Volume streaming not on yet, for a structure that has density to stream (v5's Volume Streaming row, parity.md §2):
+   * a hidden row whose eye turns streaming on.
+   */
+  const streamingOffNode = (structureRef: string): Node => {
+    const id = `${structureRef}#streaming-off`;
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(id, 'extension', 'volume', 'Volume streaming', false, {
+        visibility: (hide) => {
+          if (!hide) void api.run('volume.streaming', { structure: structureRef, enabled: true });
+        },
+      });
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    n.set('Volume streaming', 'off', true);
+    return n;
+  };
+
   const componentNode = (c: StructureComponentRef, structureRef: string): Node => {
     const ref = c.cell.transform.ref;
     let n = nodes.get(ref);
@@ -315,15 +337,18 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       const node = new Node(id, 'contents', 'list-tree', 'Contents', false, {});
       node.lazy = true;
       node.removable = false;
-      node.load = () => {
-        node.lazy = false;
-        const data = s.cell.obj?.data;
-        if (!data) return;
-        node.setChildren(entities(data, structureRef, nodes, api));
-      };
       n = node;
       nodes.set(id, n);
     }
+    // The structure as it is now: a load computes the rows, and once they are shown each sync refreshes them (what is
+    // hidden, a changed structure).
+    const node = n;
+    node.load = () => {
+      node.lazy = false;
+      const data = s.cell.obj?.data;
+      if (data) node.setChildren(entities(plugin, data, structureRef, nodes, api));
+    };
+    if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
     n.set('Contents', data ? `${data.model.entities.data._rowCount} entities` : undefined, false);
     return n;
@@ -476,6 +501,10 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         const vn = streamingNode(streaming, ref);
         seen.add(vn.id);
         kids.push(vn);
+      } else if (canStream(plugin, s)) {
+        const vn = streamingOffNode(ref);
+        seen.add(vn.id);
+        kids.push(vn);
       }
       sn.setChildren(kids);
       top.push(sn);
@@ -512,10 +541,12 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
     // through `measure.*` (the measurements feature), their hover and focus through the measured atoms.
+    // The group is there once something is loaded, empty or not: its inspector says how to measure.
     const measured = readMeasurements(plugin);
-    if (measured.length) {
+    if (measured.length || top.length) {
       const gn = measurementsNode();
       seen.add(gn.id);
+      gn.set('Measurements', measurementCounts(measured), false);
       gn.setChildren(
         measured.map((m) => {
           const mn = measurementNode(m);
@@ -668,7 +699,14 @@ function componentMenu(
 }
 
 /** A structure's entities, each with its chains (lazy contents, decision 18: a row's eye hides it). */
-function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, api: ViewerApi): SceneNode[] {
+function entities(
+  plugin: PluginContext,
+  s: Structure,
+  structureRef: string,
+  nodes: Map<string, Node>,
+  api: ViewerApi,
+): SceneNode[] {
+  const hidden = hiddenContents(plugin, structureRef);
   const { entities } = s.model;
   const byEntity = new Map<string, Map<string, number>>();
   const loc = StructureElement.Location.create(s);
@@ -693,11 +731,16 @@ function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, 
       n = new Node(key, 'entity', 'shapes', label, false, {
         visibility: (hide) =>
           void api.run('contents.visibility', { structure: structureRef, entity: id, visible: !hide }),
+        highlight: (on) =>
+          on
+            ? void api.run('highlight.set', { target: { loci: contentsLoci(dataOf(plugin, structureRef) ?? s, id) } })
+            : void api.run('highlight.clear'),
       });
       n.removable = false;
       nodes.set(key, n);
     }
-    n.set(label, `${entities.data.type.value(i)} · ${chains.size} chain${chains.size === 1 ? '' : 's'}`, false);
+    const entityHidden = hidden.entities.includes(id);
+    n.set(label, `${entities.data.type.value(i)} · ${chains.size} chain${chains.size === 1 ? '' : 's'}`, entityHidden);
     n.menu = contentsMenu(api, () => contentsLoci(s, id), label);
     const chainNodes: SceneNode[] = [];
     for (const [chain, atoms] of chains) {
@@ -706,11 +749,18 @@ function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, 
       if (!c) {
         c = new Node(ck, 'chain', 'sequence', `Chain ${chain}`, false, {
           visibility: (hide) => void api.run('contents.visibility', { structure: structureRef, chain, visible: !hide }),
+          highlight: (on) =>
+            on
+              ? void api.run('highlight.set', {
+                  target: { loci: contentsLoci(dataOf(plugin, structureRef) ?? s, id, chain) },
+                })
+              : void api.run('highlight.clear'),
         });
         c.removable = false;
         nodes.set(ck, c);
       }
-      c.set(`Chain ${chain}`, `${atoms.toLocaleString('en')} atoms`, false);
+      // Hidden itself, or with its entity (its own eye then shows the entity's state).
+      c.set(`Chain ${chain}`, `${atoms.toLocaleString('en')} atoms`, entityHidden || hidden.chains.includes(chain));
       c.menu = contentsMenu(api, () => contentsLoci(s, id, chain), `${label} · chain ${chain}`);
       chainNodes.push(c);
     }
@@ -718,6 +768,29 @@ function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, 
     out.push(n);
   }
   return out;
+}
+
+/** "1 distance, 2 angles", or "none" (the group's description). */
+function measurementCounts(list: readonly MeasuredCell[]): string {
+  if (!list.length) return 'none';
+  const counts = new Map<string, number>();
+  for (const m of list) counts.set(m.kind, (counts.get(m.kind) ?? 0) + 1);
+  return [...counts]
+    .map(
+      ([kind, n]) => `${n} ${MeasureKinds[kind as keyof typeof MeasureKinds].title.toLowerCase()}${n === 1 ? '' : 's'}`,
+    )
+    .join(', ');
+}
+
+/** Whether a structure has density to stream (v5's Volume Streaming action applies to it). */
+function canStream(plugin: PluginContext, s: StructureRef): boolean {
+  const cell = s.cell;
+  return !!cell.obj && !!InitVolumeStreaming.definition.isApplicable?.(cell.obj, cell.transform, plugin);
+}
+
+/** A structure's data as it is now, by ref (a row's actions outlive the structure they were made with). */
+function dataOf(plugin: PluginContext, ref: string): Structure | undefined {
+  return plugin.state.data.cells.get(ref)?.obj?.data as Structure | undefined;
 }
 
 /** The atoms of an entity, or of one of its chains, in a structure. */
