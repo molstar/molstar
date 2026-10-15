@@ -84,6 +84,9 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
 - **Values colored by their values.** Bars, a line or an area in the layer's color theme at each value (a column's
   mean zoomed out); a line changes color halfway between two positions, so a pLDDT line reads in its bands; with
   no theme, one color. [Case 8](?path=/story/seq-cases-viewer--case-8).
+- **Line styles.** A ranges layer's items solid, dashed, dotted, wavy, double, boxed or highlighted (`line_style`: one
+  style for the layer, or a column of the rows through `field_line_style`), in tracks, in the text (a highlight or a
+  box also behind the line's letters) and in an SVG export.
 - **Logo.** Stacked letters by bits or probability. [Case 3](?path=/story/seq-cases-viewer--case-3).
 - **Pairs.** Arcs within and between blocks, ends with glyphs, all or on hover.
   [Case 4](?path=/story/seq-cases-viewer--case-4), [case 7](?path=/story/seq-cases-viewer--case-7).
@@ -166,9 +169,9 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
 - **Selecting text.** A text view selects as an editor does: a click selects a residue (again, clears it; a double
   click is a click); a drag selects positions line by line to the nearest one under the pointer, outside the canvas
   too, scrolling a box past its edges; a click on an underline selects its item. In every section
-  Shift with a click or a drag extends a range of positions or columns (made in any view) keeping its far end, and
-  adds or removes an item (with `shiftPositions: "toggle"` it adds or removes positions too, a drag removing when
-  pressed on a selected one); Ctrl/⌘ adds or removes; where a double click zooms, a click selects once the double-click time has passed, so a
+  Shift with a click or a drag adds or removes an item or a position (a drag removing when pressed on a selected
+  one); with `shiftPositions: "extend"` it extends a range of positions or columns (made in any view) from the anchor
+  instead, keeping its far end; Ctrl/⌘ adds or removes; where a double click zooms, a click selects once the double-click time has passed, so a
   double click never selects. The text sits inset from the canvas's edges, in the `wrapped` or the `compact` preset.
   [p53: text and tracks](?path=/story/seq-cases-viewer--case-1) (its Text choice switches the preset).
 - **Text for a host.** Render props shape the text view: `wrappedAlign: "center"` and `wrappedMaxWidth` (a centered
@@ -200,7 +203,7 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
 - **Location sets and bookmarks.** A section's `highlights` show annotations (a SeqQL query node
   among them) persistently, each entry a highlight channel: a band behind the tracks, or the
   overlay's highlight or accent; Nightingale lights them as its `highlight`. Bookmarks are an inline
-  ranges set the `bookmark.add`, `bookmark.remove` and `bookmark.step` actions edit and step through. [Location sets and bookmarks](?path=/story/seq-query-and-search-search--location-sets),
+  ranges set the `bookmark.add` (with a label and a `color`), `bookmark.remove` and `bookmark.step` actions edit and step through; the `Annotations` part (`/react`, `/dom`) is that as a panel: add the selection with a label and a color, a ranges track over the set draws it, in the text view and the tracks view alike ([Publication tracks](?path=/story/seq-text-view--publication-tracks)). [Location sets and bookmarks](?path=/story/seq-query-and-search-search--location-sets),
   [finding things in p53](?path=/story/seq-cases-viewer--case-18).
 - **The hover card.** Items with a host's actions (`UI.ItemActions`) get an interactive card after a short rest: the
   hover's label and a button per action; it stays while the pointer crosses into it, and closes on leaving, Escape,

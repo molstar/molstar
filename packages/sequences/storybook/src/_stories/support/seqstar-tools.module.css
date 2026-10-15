@@ -62,6 +62,28 @@
   }
 }
 
+/* A viewer with a column beside it (a story's panel), under it when the card is narrower than 720 px. */
+.asideBox {
+  container-type: inline-size;
+}
+.withAside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--msp-space-4);
+  align-items: start;
+}
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-3);
+  min-width: 0;
+}
+@container (max-width: 720px) {
+  .withAside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* A crop of a canvas, enlarged by whole pixels so every device pixel stays a square. */
 .crop {
   display: block;

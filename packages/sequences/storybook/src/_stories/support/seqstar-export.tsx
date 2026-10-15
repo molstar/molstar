@@ -22,7 +22,7 @@ import { Choices, TextAction } from '../ui/index.js';
 import f from './seqstar-format.module.css';
 import { PrismCanvas, prism } from './seqstar-prism.js';
 import t from './seqstar-tools.module.css';
-import { useCaseContext, useStoryUi } from './seqstar-viewer.js';
+import { type Mounted, useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 /** A file the export made: the SVG as the action offered it, or the PNG the page drew from it. */
 interface Made {
@@ -61,7 +61,21 @@ async function rasterize(svg: string): Promise<{ png: Blob; w: number; h: number
 }
 
 /** One document: its live viewer and the export buttons, the made files and the figure beside the canvas. */
-export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: string; note: string }) {
+export function ExportCard({
+  doc,
+  label,
+  note,
+  controls,
+  aside,
+}: {
+  doc: SeqViewSpecDoc;
+  label: string;
+  note: string;
+  /** A story's own controls, over the live viewer (its context once made); the export is of the viewer as they leave it. */
+  controls?: (m: Mounted | null) => ReactNode;
+  /** A column beside the live viewer (about 260 px; under it when the card is narrow), once its context is made. */
+  aside?: (m: Mounted) => ReactNode;
+}) {
   const [scale, setScale] = useState(1);
   const [background, setBackground] = useState(false);
   const [side, setSide] = useState(false);
@@ -174,6 +188,23 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
   ) : (
     <div className={f.status}>Loading…</div>
   );
+  const live = (
+    <div className={f.stack}>
+      <div className={f.subheading}>The live viewer (canvas)</div>
+      {viewer}
+    </div>
+  );
+  const withAside =
+    aside && m ? (
+      <div className={t.asideBox}>
+        <div className={t.withAside}>
+          {live}
+          <div className={t.aside}>{aside(m)}</div>
+        </div>
+      </div>
+    ) : (
+      live
+    );
   const exported = (
     <div className={f.stack}>
       <div className={f.subheading}>
@@ -216,6 +247,7 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
           side by side
         </label>
       </div>
+      {controls?.(m)}
       {error && <div className={f.status}>{error}</div>}
       <table className={t.files}>
         <thead>
@@ -258,18 +290,12 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
       </table>
       {side ? (
         <div className={t.pair}>
-          <div className={f.stack}>
-            <div className={f.subheading}>The live viewer (canvas)</div>
-            {viewer}
-          </div>
+          {withAside}
           {exported}
         </div>
       ) : (
         <>
-          <div className={f.stack}>
-            <div className={f.subheading}>The live viewer (canvas)</div>
-            {viewer}
-          </div>
+          {withAside}
           {exported}
         </>
       )}

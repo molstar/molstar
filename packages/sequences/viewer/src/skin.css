@@ -113,6 +113,7 @@
   .seqv-export,
   .seqv-issues,
   .seqv-search,
+  .seqv-annotations,
   .seqv-busy,
   .seqv-state
 ) {
@@ -137,7 +138,16 @@
   font: var(--seq-font-size, 12px) / 1.4 var(--seq-font-ui);
 }
 /* A part a host places outside the root reads as one inside it. */
-:where(.seqv-root, .seqv-bar, .seqv-section-header, .seqv-switches, .seqv-legend, .seqv-player, .seqv-search) button {
+:where(
+  .seqv-root,
+  .seqv-bar,
+  .seqv-section-header,
+  .seqv-switches,
+  .seqv-legend,
+  .seqv-player,
+  .seqv-search,
+  .seqv-annotations
+) button {
   font: inherit;
   color: inherit;
 }
@@ -148,7 +158,16 @@ fieldset:where(.seqv-player, .seqv-switch, .seqv-chips) {
   padding: 0;
   border: 0;
 }
-:where(.seqv-root, .seqv-bar, .seqv-section-header, .seqv-switches, .seqv-legend, .seqv-player, .seqv-search)
+:where(
+    .seqv-root,
+    .seqv-bar,
+    .seqv-section-header,
+    .seqv-switches,
+    .seqv-legend,
+    .seqv-player,
+    .seqv-search,
+    .seqv-annotations
+  )
   :focus-visible {
   outline: 2px solid var(--seq-focus-ring);
   outline-offset: 1px;
@@ -184,6 +203,7 @@ fieldset:where(.seqv-player, .seqv-switch, .seqv-chips) {
 .seqv-tab-label,
 .seqv-legend-name,
 .seqv-player-title,
+.seqv-annotation-label,
 .seqv-search-status {
   overflow: hidden;
   white-space: nowrap;
@@ -1077,4 +1097,106 @@ fieldset:where(.seqv-player, .seqv-switch, .seqv-chips) {
 .seqv-search-input:focus-visible {
   outline: 2px solid var(--seq-focus-ring);
   outline-offset: 1px;
+}
+
+/*
+ * The Annotations part: a label, a color and "Add from selection" in a row; the count; the annotations, each a button
+ * that reveals it (swatch, label, positions) and a delete.
+ */
+.seqv-annotations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+/* Wraps where the panel is narrow: the place choice, then the color and the label, the button after them. */
+.seqv-annotations-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.seqv-annotations-place {
+  flex: none;
+}
+.seqv-annotations-label {
+  flex: 1 1 6em;
+  min-width: 0;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-annotations-label::placeholder {
+  color: var(--seq-ink-quiet);
+}
+.seqv-annotations-status {
+  font-size: var(--seqv-small);
+}
+.seqv-annotations-color {
+  flex: none;
+  box-sizing: border-box;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  cursor: pointer;
+}
+.seqv-annotations-style {
+  flex: none;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-annotations-add {
+  flex: none;
+  background: var(--seqv-control);
+}
+.seqv-annotations-add[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+.seqv-annotation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seqv-annotation {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.seqv-annotation-go {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  padding: 2px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.seqv-annotation-go:hover {
+  background: var(--seqv-control-hover);
+}
+.seqv-annotation-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }

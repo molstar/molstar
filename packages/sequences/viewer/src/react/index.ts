@@ -14,6 +14,8 @@
 
 export type { MenuItem } from '../chrome.js';
 export { withDownloadExport } from '../dom/export.js';
+export type { AnnotationPlace } from '../annotations.js';
+export { AnnotationsPanel, type AnnotationsPanelProps } from './annotations.js';
 export {
   type DerivedOptions,
   type HintProps,
