@@ -24,7 +24,7 @@ import type { SeqBehaviorProvider } from './behaviors.js';
 import { CommandsBehavior, SeqCommands } from './commands.js';
 import type { SeqViewerConfigItem } from './config.js';
 import {
-  ContextMenuBehavior,
+  RevealHighlightBehavior,
   CursorBehavior,
   FocusViewportBehavior,
   HeaderHoverBehavior,
@@ -163,11 +163,11 @@ export const SeqViewerBehaviors = {
 };
 
 /**
- * Built-in behaviors not in `DefaultSeqViewerSpec`: a host adds them (`SeqViewerSpec.Behavior(…)`). `ContextMenu`: a
- * secondary press asks for a track's menu at the pointer (seqspec:interaction#the-track-menu).
+ * Built-in behaviors not in `DefaultSeqViewerSpec`: a host adds them (`SeqViewerSpec.Behavior(…)`). `RevealHighlight`:
+ * a linked view's highlight, rested, comes into view (seqspec:interaction#highlight).
  */
 export const SeqViewerOptionalBehaviors = {
-  ContextMenu: ContextMenuBehavior,
+  RevealHighlight: RevealHighlightBehavior,
 };
 
 /** A new object each call. */

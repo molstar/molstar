@@ -31,13 +31,15 @@ import { type Assembled, Graph, type SeqGraph, type Skin } from './graph.js';
 import { cutHeaderText } from './header-text.js';
 import { Highlight, type HighlightManager } from './highlight.js';
 import { Hover, type HoverManager, type PointerState } from './hover.js';
-import { InputDispatcher, type InputSink, type InteractionEvents } from './input.js';
+import { InputDispatcher, type SeqInput } from './input.js';
+import { Interaction, type SeqInteraction } from './interaction.js';
 import { type LabelManager, Labels } from './labels.js';
 import { DefaultRenderProps, type LayoutManager, Layouts, mergeProps, type RenderProps } from './layout.js';
 import type { SeqLociAny } from './lineage.js';
 import { SetChannels } from './location-sets.js';
 import { snapshotHints } from './prefetch.js';
-import { isCoordinates } from './projection.js';
+import { type Coordinates, isCoordinates } from './projection.js';
+import { type RevealOptions, revealTarget } from './reveal.js';
 import { type RefManager, Refs } from './refs.js';
 import { type SeqViewerRegistry, type SeqViewerRegistryEntry, ViewerRegistry } from './registry.js';
 import { Results, type ResultsManager } from './results.js';
@@ -90,29 +92,8 @@ export interface PatchEvent {
   readonly origin: Origin;
 }
 
-export interface ActivateEvent {
-  readonly section: string;
-  readonly track: string;
-  readonly origin: Origin;
-}
-/** `events.menu` (seqspec:interaction#the-track-menu): a track's, and where it was asked from. */
-export interface MenuEvent extends ActivateEvent {
-  /**
-   * From the pointer (the `contextMenu` behavior, origin `pointer`): where it was, in the surface's px; from the
-   * keyboard (origin `keyboard`), -1 both: a host places the menu at the cursor's track.
-   */
-  readonly x: number;
-  readonly y: number;
-}
+/** What is not input (input is `interaction`'s streams, seqspec:interaction#streams). */
 export interface SeqViewerEvents {
-  /** A track header activated (the `headers` behavior; the `keyboard` behavior's Enter on a header). */
-  readonly activate: SeqEvent<ActivateEvent>;
-  /**
-   * A track's menu asked for: the `keyboard` behavior's Shift+F10 or ContextMenu on the cursor's track, or a secondary
-   * press with the `contextMenu` behavior (a host adds it; with the pointer's place). A UI opens it. The record is
-   * reused: read it during the call.
-   */
-  readonly menu: SeqEvent<MenuEvent>;
   /** A new issue from a node, the engine, a registration, a behavior or a command. */
   readonly issue: SeqEvent<SeqIssue>;
   readonly log: SeqEvent<LogEntry>;
@@ -191,12 +172,18 @@ export interface SeqViewerContext {
   readonly layout: LayoutManager;
   /** Data held by region, loaded by view (seqspec:sources#the-viewers-side). */
   readonly streams: StreamManager;
-  /** Base events (seqspec:interaction#input-events), from the records given to `input`. */
-  readonly interaction: InteractionEvents;
+  /**
+   * Input for consumers (seqspec:interaction#streams): streams of fresh payloads after the behaviors ran, observe-only,
+   * scoped by `on`; built only while observed.
+   */
+  readonly interaction: SeqInteraction;
   /** Requests by registered id (seqspec:viewer#commands): `dispatch` from code, `run` from plain data. */
   readonly commands: CommandManager;
-  /** Where the engine (or a test) hands input records. */
-  readonly input: InputSink;
+  /**
+   * Where the engine (or a test) hands input records; `events`, the base events behaviors claim from
+   * (seqspec:interaction#input-events), for behavior authors.
+   */
+  readonly input: SeqInput;
   readonly behaviors: BehaviorManager;
   /** Written by the input dispatcher. */
   readonly pointer: Live<PointerState>;
@@ -211,6 +198,14 @@ export interface SeqViewerContext {
   readonly viewports: ViewportManager;
   readonly scrollGroups: ScrollGroupManager;
   readonly focus: FocusManager;
+  /**
+   * Brings a target (loci, `Coordinates`, or a list: their hull) into view in every section that shows it, or
+   * `opts.section`, changing no selection, focus or zoom: text scrolls its lines in, tracks pan at their cell; only
+   * where it is not shown already (seqspec:interaction#focus). False: no section shows it. The context's, not a
+   * manager's: it holds no state (a focus is state, a reveal a move) and needs both the projector (the viewports) and
+   * the text's lines (the layout).
+   */
+  reveal(target: SeqLociAny | Coordinates | readonly (SeqLociAny | Coordinates)[], opts?: RevealOptions): boolean;
   readonly selection: SelectionManager;
   readonly refs: RefManager;
   /** Results an application found, lit and stepped (seqspec:interaction#results); bookmarks step through it too. */
@@ -292,9 +287,8 @@ class Context implements SeqViewerContext {
   readonly input: InputDispatcher;
   readonly behaviors: Behaviors;
   readonly commands: Commands;
-  readonly activateEvent: SeqEventEmitter<ActivateEvent>;
-  readonly menuEvent: SeqEventEmitter<MenuEvent>;
-  private readonly menuAsked = { section: '', track: '', origin: 'api' as Origin, x: -1, y: -1 };
+  /** The public streams (`interaction`), fed by the dispatcher. */
+  readonly out: Interaction;
   readonly layout: Layouts;
   readonly streams: Streams;
   readonly viewports: Viewports;
@@ -342,11 +336,7 @@ class Context implements SeqViewerContext {
     this.issueEvent = event(onError);
     this.logEvent = event(onError);
     this.patchEvent = event(onError);
-    this.activateEvent = event(onError);
-    this.menuEvent = event(onError);
     this.events = {
-      activate: this.activateEvent,
-      menu: this.menuEvent,
       issue: this.issueEvent,
       log: this.logEvent,
       patch: this.patchEvent,
@@ -469,7 +459,13 @@ class Context implements SeqViewerContext {
       letters: (data, s, at, n, out) => this.streams.lettersAt?.(data, s, at, n, out) ?? 0,
       cutText: (h) => cutHeaderText(this, h),
     });
+    this.out = new Interaction({
+      sectionRef: (i) => this.layout.sectionRef(i),
+      assembled: () => this.graph.assembled.value,
+      now: () => this.scheduler.now(),
+    });
     this.input = new InputDispatcher({
+      out: this.out,
       layout: this.layout,
       pointer: this.pointer,
       hover: this.hover,
@@ -516,27 +512,8 @@ class Context implements SeqViewerContext {
       this.watch(s, update);
   }
 
-  get interaction(): InteractionEvents {
-    return this.input.events;
-  }
-
-  /** The `headers` behavior's activation (`events.activate`). */
-  activate(section: string, track: string, origin: Origin) {
-    this.activateEvent.emit({ section, track, origin });
-  }
-
-  /**
-   * `events.menu` (the `keyboard` behavior's menu key, `contextMenu`'s press): one record, reused (a held key allocates
-   * nothing).
-   */
-  openMenu(section: string, track: string, origin: Origin, x = -1, y = -1) {
-    const e = this.menuAsked;
-    e.section = section;
-    e.track = track;
-    e.origin = origin;
-    e.x = x;
-    e.y = y;
-    this.menuEvent.emit(e);
+  get interaction(): SeqInteraction {
+    return this.out.api;
   }
 
   /** A subscription of the context's own, guarded. */
@@ -552,6 +529,10 @@ class Context implements SeqViewerContext {
     }
   }
 
+  reveal(target: SeqLociAny | Coordinates | readonly (SeqLociAny | Coordinates)[], opts?: RevealOptions): boolean {
+    this.check();
+    return revealTarget(this.viewports, this.layout, target, opts);
+  }
   register(entry: SeqViewerRegistryEntry | readonly SeqViewerRegistryEntry[]) {
     this.check();
     return this.registry.register(entry);
@@ -691,6 +672,7 @@ class Context implements SeqViewerContext {
     if (this.disposed) return;
     this.behaviors.dispose();
     this.input.dispose();
+    this.out.dispose();
     this.scheduler.clearAll();
     this.graph.dispose();
     this.disposed = true;
@@ -718,8 +700,6 @@ class Context implements SeqViewerContext {
     this.issueEvent.complete();
     this.logEvent.complete();
     this.patchEvent.complete();
-    this.activateEvent.complete();
-    this.menuEvent.complete();
     this.registry.dispose();
   }
 }

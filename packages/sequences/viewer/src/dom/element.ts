@@ -47,6 +47,7 @@ import {
   type PartProps,
   ScrollArea,
 } from './core.js';
+import { listenChrome } from './chrome-input.js';
 import { withDownloadExport } from './export.js';
 import { HoverCardPart } from './hover-card.js';
 import * as P from './parts.js';
@@ -111,6 +112,8 @@ export function mountSeqViewerRoot(
   const root = h('div', { class: cx('seqv-root', ui.className), tabindex: -1 });
   container.append(root);
   const parts = compose(root);
+  // The chrome's input through `context.interaction` (seqspec:interaction#streams).
+  const unlisten = listenChrome(root, context);
   const live = h('span', { 'aria-live': 'polite', class: 'seqv-sr-only' });
   root.append(live);
   const sub = context.labels.current.subscribe((l) => {
@@ -119,6 +122,7 @@ export function mountSeqViewerRoot(
   return {
     root,
     dispose() {
+      unlisten();
       off([sub, ...parts]);
       root.remove();
     },

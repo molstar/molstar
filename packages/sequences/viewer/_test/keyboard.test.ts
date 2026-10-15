@@ -46,7 +46,15 @@ const walk = (t: Driven, section: string, key: string, n: number) =>
 
 describe('exact bindings', () => {
   it('KeyBinding: Ctrl, Meta and Alt exact; Shift only for a named key; `code` for the physical key', () => {
-    const k = (key: string, modifiers = 0, code = '') => ({ section: 0, key, code, modifiers, typing: false, time: 0 });
+    const k = (key: string, modifiers = 0, code = '') => ({
+      section: 0,
+      key,
+      code,
+      modifiers,
+      typing: false,
+      time: 0,
+      native: null,
+    });
     const m = (b: object, key: string, modifiers = 0, code = '') => KeyBinding.matches(b, k(key, modifiers, code));
     expect(m({ key: '+' }, '+')).toBe(true);
     expect(m({ key: '+' }, '+', Modifier.shift)).toBe(true); // Shift is in the value of a printable key
@@ -143,11 +151,14 @@ describe('exact bindings', () => {
     expect(t.key(S, 'q')).toBe(false);
   });
 
-  it('Shift+F10 and ContextMenu are handled and leave the cursor where it is; F10 alone is not', async () => {
+  it('Shift+F10 and ContextMenu are handled where a menu subscriber took them, the cursor left where it is; F10 alone is not', async () => {
     const t = await family();
     t.focus(S);
     t.key(S, 'ArrowRight');
     const at = cursor(t);
+    // No subscriber prevented the key's default: the browser's menu is the page's.
+    expect(t.key(S, 'ContextMenu')).toBe(false);
+    t.ctx.interaction.menu.subscribe((e) => e.native.preventDefault());
     expect(t.key(S, 'F10', { shift: true })).toBe(true);
     expect(t.key(S, 'ContextMenu')).toBe(true);
     expect(t.key(S, 'F10')).toBe(false);
@@ -162,6 +173,7 @@ describe('exact bindings', () => {
         modifiers: Modifier.shift,
         typing: false,
         time: 0,
+        native: null,
       }),
     ).toBe(true);
   });
@@ -247,7 +259,7 @@ describe('the cursor on the headers and rows', () => {
   it('Enter on a header activates it; Shift+Enter too; a stale header never beats Enter on data', async () => {
     const t = await family();
     const activated: string[] = [];
-    t.ctx.events.activate.subscribe((e) => activated.push(`${e.section} ${e.track} ${e.origin}`));
+    t.ctx.interaction.activate.subscribe((e) => activated.push(`${e.part.section} ${e.part.track} ${e.origin}`));
     t.focus(S);
     t.key(S, 'ArrowRight');
     t.key(S, 'Enter');

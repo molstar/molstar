@@ -7,8 +7,8 @@
  */
 
 // The viewer's edge: nothing in src/ reaches outside it by a path, and its only dependencies are the core's entries,
-// rxjs, React (the /react entry), Node's built-ins and Playwright (the CLI's rasterizer, loaded when present). Its
-// inner layering is layers.grit's.
+// Mol*'s core (its input and binding vocabulary), rxjs, React (the /react entry), Node's built-ins and Playwright (the
+// CLI's rasterizer, loaded when present). Its inner layering is layers.grit's.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 const SRC = fileURLToPath(new URL('../src', import.meta.url));
 const EXTERNAL =
-  /^(?:@molstar\/seq-core\/|@molstar\/seq-viewer(?:\/|$)|rxjs(?:\/|$)|react(?:-dom)?(?:\/|$)|node:|playwright$)/;
+  /^(?:@molstar\/seq-core\/|@molstar\/seq-viewer(?:\/|$)|@molstar\/core\/|rxjs(?:\/|$)|react(?:-dom)?(?:\/|$)|node:|playwright$)/;
 /** Static imports and re-exports (up to their `from`), bare imports, and dynamic imports. */
 const SPECIFIER =
   /^(?:import|export)\s[^;]*?[\s}*]from\s*["']([^"']+)["']|^import\s*["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']/gm;

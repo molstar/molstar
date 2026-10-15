@@ -15,6 +15,7 @@
 import { type ConfigManager, SeqViewerConfig } from './config.js';
 import { Hit, HitKey, HitRegion } from './hit.js';
 import type { HoverManager, PointerState } from './hover.js';
+import type { Interaction, SeqNativeEvent } from './interaction.js';
 import type { LayoutManager } from './layout.js';
 import type { Scheduler } from './scheduler.js';
 import { event, type SeqEvent, type SeqEventEmitter, type WritableLive } from './state.js';
@@ -47,6 +48,8 @@ export interface PointerInput {
    */
   overX: number;
   overY: number;
+  /** The DOM event while the sink handles it (the public streams' `native`); null otherwise and headless. */
+  native: SeqNativeEvent | null;
 }
 /** Deltas in CSS px (the engine converts line and page modes). */
 export interface WheelInput {
@@ -57,6 +60,7 @@ export interface WheelInput {
   deltaY: number;
   modifiers: number;
   time: number;
+  native: SeqNativeEvent | null;
 }
 export interface KeyInput {
   /** The focused surface's section. */
@@ -69,6 +73,7 @@ export interface KeyInput {
   /** The event's target is an editable element: the key is the page's, never the viewer's. */
   typing: boolean;
   time: number;
+  native: SeqNativeEvent | null;
 }
 /** The records' doubles are created as doubles (0.5): a Smi field turning Double deprecates the record's map. */
 export const Inputs = {
@@ -84,11 +89,25 @@ export const Inputs = {
     pointerId: 0,
     overX: 0.5,
     overY: 0.5,
+    native: null,
   }),
-  wheel: (): WheelInput => ({ section: -1, x: 0.5, y: 0.5, deltaX: 0.5, deltaY: 0.5, modifiers: 0, time: 0.5 }),
-  key: (): KeyInput => ({ section: -1, key: '', code: '', modifiers: 0, typing: false, time: 0.5 }),
+  wheel: (): WheelInput => ({
+    section: -1,
+    x: 0.5,
+    y: 0.5,
+    deltaX: 0.5,
+    deltaY: 0.5,
+    modifiers: 0,
+    time: 0.5,
+    native: null,
+  }),
+  key: (): KeyInput => ({ section: -1, key: '', code: '', modifiers: 0, typing: false, time: 0.5, native: null }),
 };
 
+/** `ctx.input`: the sink, and the base events behaviors subscribe and claim (seqspec:interaction#input-events). */
+export interface SeqInput extends InputSink {
+  readonly events: InteractionEvents;
+}
 export interface InputSink {
   pointer(e: PointerInput): void;
   /** True: handled; the engine prevents the page's default. */
@@ -96,7 +115,13 @@ export interface InputSink {
   key(e: KeyInput): boolean;
   /** A surface gained or lost keyboard focus. */
   focus(section: number, focused: boolean): void;
-  leave(section: number): void;
+  /** `native`: the DOM's `pointerleave`, for the public `leave` (its `relatedTarget`). */
+  leave(section: number, native?: SeqNativeEvent | null): void;
+  /**
+   * The browser's context-menu request at the record's point (seqspec:interaction#the-track-menu): `pointerId` -1 when
+   * it came from the keyboard (the menu key, Shift+F10, assistive technology), its point then the keyboard cursor's.
+   */
+  menu(e: PointerInput): void;
   /** A press or drag in progress ends as a cancel; `section`: only if it started on that surface. */
   cancel(section?: number): void;
   /** The engine is about to draw: a re-hit waiting for the frame (`InputDispatcher.moved`) runs now, drawn with it. */
@@ -111,6 +136,10 @@ export class PointerEvt {
   claim(name: string) {
     if (this.owner === '') this.owner = name;
   }
+}
+/** The context-menu request; `keyboard`: from a key, placed at the keyboard cursor by the behavior that claims it. */
+export class MenuEvt extends PointerEvt {
+  keyboard = false;
 }
 export interface ClickEvt {
   readonly input: PointerInput;
@@ -158,6 +187,11 @@ export interface InteractionEvents {
   readonly key: SeqEvent<KeyEvt>;
   readonly focus: SeqEvent<{ section: number; focused: boolean }>;
   readonly leave: SeqEvent<{ section: number }>;
+  /**
+   * The browser's context-menu request (a secondary press, Ctrl+click on macOS, the menu key): claimable as
+   * `doubleClick`; from the keyboard, the `keyboard` behavior claims it and writes its cursor's cell into the hit.
+   */
+  readonly menu: SeqEvent<MenuEvt>;
 }
 
 export interface Trigger {
@@ -220,9 +254,11 @@ export interface InputHost {
   active(): boolean;
   setDrag(drag: DragState | null): void;
   onError(e: unknown): void;
+  /** The public streams, fed after the behaviors, only when observed (seqspec:interaction#streams). */
+  readonly out: Interaction;
 }
 
-export class InputDispatcher implements InputSink {
+export class InputDispatcher implements SeqInput {
   readonly events: { readonly [K in keyof InteractionEvents]: SeqEventEmitter<EventOf<K>> };
   private readonly host: InputHost;
   private readonly pe = new PointerEvt();
@@ -237,6 +273,18 @@ export class InputDispatcher implements InputSink {
   private readonly ke: KeyEvt = { input: Inputs.key(), handled: false };
   private readonly fe = { section: -1, focused: false };
   private readonly le = { section: -1 };
+  private readonly me = new MenuEvt();
+  /** A menu key's record (`keyMenu`). */
+  private readonly km = Inputs.pointer();
+  /**
+   * The section a key's menu was asked on (-1: none) and whether its default was prevented: the browser's own
+   * context-menu event that follows it is the same ask (`menu`). A press, a later key, the section's blur or the
+   * pointer leaving it ends it (a browser that sends none must not swallow a later request).
+   */
+  private armed = -1;
+  private armedPrevented = false;
+  private readonly out: Interaction;
+  private readonly s: Interaction['subjects'];
   private readonly hit = Hit.create();
   /** The last hovered element's `HitKey`; -2: none since a leave or a cancel. */
   private readonly last = new Int32Array(HitKey.SIZE).fill(-2);
@@ -271,6 +319,8 @@ export class InputDispatcher implements InputSink {
 
   constructor(host: InputHost) {
     this.host = host;
+    this.out = host.out;
+    this.s = host.out.subjects;
     const e = <T>() => event<T>(host.onError);
     this.events = {
       pointer: e(),
@@ -282,12 +332,14 @@ export class InputDispatcher implements InputSink {
       key: e(),
       focus: e(),
       leave: e(),
+      menu: e(),
     };
     this.at[4] = Number.NEGATIVE_INFINITY;
   }
 
   pointer(e: PointerInput) {
     if (!this.host.active()) return;
+    if (e.type === PointerType.down) this.armed = -1;
     // One pointer at a time; a move with no button down while pressed, or a down again (from any pointer: a touch whose
     // release the page lost leaves the next touch, with a new id, ending it), follows a release we never saw: the
     // press ends first, released at the last point it saw, so its gesture completes. Another pointer's moves and ups
@@ -366,6 +418,7 @@ export class InputDispatcher implements InputSink {
     if (!HitKey.same(h, this.last)) {
       HitKey.write(h, this.last);
       this.events.hover.emit(this.pe);
+      if (this.s.hover.observed) this.out.pointer('hover', 'pointer', null, h, this.pe.owner);
     } else if (refresh) this.host.hover.refresh();
   }
 
@@ -440,10 +493,12 @@ export class InputDispatcher implements InputSink {
     if (!HitKey.same(h, this.last)) {
       HitKey.write(h, this.last);
       this.events.hover.emit(pe);
+      if (this.s.hover.observed) this.out.pointer('hover', 'pointer', e, h, pe.owner);
     }
     const at = this.at;
     if (t === PointerType.down) {
       this.owner = pe.owner;
+      if (this.s.press.observed) this.out.pointer('press', 'pointer', e, h, pe.owner);
       this.still = pe.owner !== '';
       this.de.button = e.button;
       at[0] = at[2] = e.x;
@@ -508,6 +563,7 @@ export class InputDispatcher implements InputSink {
       d.owner = this.owner;
       d.dx = d.dy = d.totalX = d.totalY = 0.5;
       this.events.drag.emit(d);
+      if (this.s.drag.observed) this.out.drag(d, this.pressSection);
       this.host.setDrag(null);
     }
     this.pressed = this.dragging = this.still = false;
@@ -530,7 +586,10 @@ export class InputDispatcher implements InputSink {
     d.owner = this.owner;
     if (phase === DragPhase.start) this.dragging = true;
     // An unclaimed drag does nothing: its moves and end are not emitted.
-    if (phase === DragPhase.start || d.owner !== '') this.events.drag.emit(d);
+    if (phase === DragPhase.start || d.owner !== '') {
+      this.events.drag.emit(d);
+      if (this.s.drag.observed) this.out.drag(d, this.pressSection);
+    }
     if (phase === DragPhase.start && d.owner !== '') {
       this.owner = d.owner;
       this.host.setDrag({ section: d.start.section, owner: d.owner, region: d.start.region });
@@ -561,6 +620,7 @@ export class InputDispatcher implements InputSink {
     this.clicked[0] = section;
     this.clicked[1] = button;
     this.events.click.emit(c);
+    if (this.s.click.observed) this.out.click(c, 'pointer', this.owner);
   }
 
   wheel(e: WheelInput): boolean {
@@ -574,6 +634,7 @@ export class InputDispatcher implements InputSink {
       w.input = e;
       w.handled = false;
       this.events.wheel.emit(w);
+      if (this.s.wheel.observed) this.out.wheel(w);
     } finally {
       this.depth--;
     }
@@ -582,11 +643,14 @@ export class InputDispatcher implements InputSink {
   }
 
   key(e: KeyInput): boolean {
+    // A later key ends a key menu's wait for its browser request (`keyMenu` below arms it again).
+    this.armed = -1;
     if (!this.host.active() || e.typing) return false;
     const k = this.ke as { input: KeyInput; handled: boolean };
     k.input = e;
     k.handled = false;
     this.events.key.emit(k);
+    if (this.s.key.observed) this.out.key(e, k.handled);
     return k.handled;
   }
 
@@ -613,19 +677,86 @@ export class InputDispatcher implements InputSink {
     this.synthetic = true;
     try {
       this.events.click.emit(c);
+      if (this.s.click.observed) this.out.click(c, 'keyboard', '');
     } finally {
       this.synthetic = false;
     }
   }
 
+  /**
+   * The browser's context-menu request (seqspec:interaction#the-track-menu): hit at its point (from the keyboard: at the
+   * cursor's cell, which the `keyboard` behavior writes), then the base `menu` and the public one. The first after a
+   * key's menu on the same section, with no press between, is that ask again: not emitted, its default prevented as the
+   * key's was. Edge-rate.
+   */
+  menu(e: PointerInput) {
+    if (!this.host.active()) return;
+    if (this.armed >= 0 && this.armed === e.section) {
+      this.armed = -1;
+      if (this.armedPrevented) e.native?.preventDefault();
+      return;
+    }
+    this.armed = -1;
+    this.ask(e);
+  }
+
+  /** A menu key (the `keyboard` behavior's): a keyboard request at the cursor; true: its default was prevented. */
+  keyMenu(k: KeyInput): boolean {
+    if (!this.host.active()) return false;
+    const r = this.km;
+    r.type = PointerType.down;
+    r.section = k.section;
+    r.buttons = 0;
+    r.button = -1;
+    r.modifiers = k.modifiers;
+    r.time = k.time;
+    r.pointerId = -1;
+    r.native = k.native;
+    try {
+      const prevented = this.ask(r);
+      this.armed = k.section;
+      this.armedPrevented = prevented;
+      return prevented;
+    } finally {
+      r.native = null;
+    }
+  }
+
+  private ask(e: PointerInput): boolean {
+    const keyboard = e.pointerId === -1;
+    const m = this.me;
+    const h = m.hit;
+    m.input = e;
+    m.owner = '';
+    m.keyboard = keyboard;
+    // From the keyboard nothing is under a point until the cursor's behavior places it.
+    if (keyboard) e.x = e.y = -1;
+    h.x = e.x;
+    h.y = e.y;
+    this.host.layout.hitTestAt(e.section, h);
+    h.section = e.section;
+    this.events.menu.emit(m);
+    if (!this.s.menu.observed) return false;
+    return this.out.pointer('menu', keyboard ? 'keyboard' : 'pointer', e, h, m.owner);
+  }
+
+  /** A track header activated (`headers`, the keyboard's Enter): the public `activate`, only when observed. */
+  activate(hit: Hit, input: PointerInput | KeyInput, owner: string) {
+    if (!this.host.active() || !this.s.activate.observed) return;
+    if ('key' in input) this.out.keyed('activate', input, hit, owner);
+    else this.out.pointer('activate', 'pointer', input, hit, owner);
+  }
+
   focus(section: number, focused: boolean) {
+    if (!focused && this.armed === section) this.armed = -1;
     if (!this.host.active()) return;
     this.fe.section = section;
     this.fe.focused = focused;
     this.events.focus.emit(this.fe);
   }
 
-  leave(section: number) {
+  leave(section: number, native: SeqNativeEvent | null = null) {
+    if (this.armed === section) this.armed = -1;
     if (!this.host.active()) return;
     const p = this.host.pointer;
     p.current.section = -1;
@@ -635,6 +766,7 @@ export class InputDispatcher implements InputSink {
     this.hit.region = HitRegion.none;
     this.le.section = section;
     this.events.leave.emit(this.le);
+    if (this.s.leave.observed) this.out.leave(section, native);
   }
 
   dispose() {

@@ -165,7 +165,7 @@ export type Driven = Awaited<ReturnType<typeof driven>>;
 export function subscriptions(ctx: SeqViewerContext): number {
   const count = (s: object) => (s as { subscriberCount: number }).subscriberCount;
   let n = 0;
-  for (const e of Object.values(ctx.interaction)) n += count(e);
+  for (const e of Object.values(ctx.input.events)) n += count(e);
   for (const s of [ctx.hover.live.version, ctx.ui.drag, ctx.focus.changed, ctx.scrollGroups.groups]) n += count(s);
   for (const s of [ctx.labels.providers, ctx.graph.assembled, ctx.ui.window.version]) n += count(s);
   for (const ref of ctx.viewports.sections.value) n += count(ctx.viewports.get(ref)?.live.version as object);

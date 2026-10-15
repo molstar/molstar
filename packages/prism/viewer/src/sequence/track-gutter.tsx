@@ -17,7 +17,8 @@ import { classes } from './_generated/track-gutter.module.css.js';
 // The tracks' left gutter (prism-sequence.md §9, round 3): a coloring icon per track row that has one (the action of the
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
 // tops and heights are read from Seq*'s section layout when the layout is rebuilt, never per frame or pointer move; the
-// pointer only compares the row it is over with the last, and the DOM changes when that differs.
+// row the pointer is over is Seq*'s `interaction.hover` (its track, whatever part of the row), which fires only when
+// what is under the pointer changes, and the DOM changes when the track differs.
 
 /** A track row that has an icon: its place in the section (px from the surface's top). */
 export interface GutterRow {
@@ -55,10 +56,8 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   const gutter = (<div class={classes.gutter} />) as HTMLElement;
   root.append(gutter);
 
-  let rows: GutterRow[] = [];
   const buttons = new Map<string, { el: HTMLElement; coloring: TrackColoring }>();
   let over: string | undefined;
-  let rect: DOMRect | undefined;
 
   const refresh = () => {
     for (const { el, coloring } of buttons.values()) {
@@ -83,11 +82,9 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
     const view = a?.view;
     gutter.replaceChildren();
     buttons.clear();
-    rows = [];
     over = undefined;
-    rect = undefined;
     if (!layout || !view || viewer.style.value !== 'tracks') return;
-    rows = gutterRows(
+    const rows = gutterRows(
       layout,
       (t) => a.set.strings.get(view.resolved.tracks.ref[t]),
       (ref) => viewer.trackColoring(ref) !== undefined,
@@ -134,18 +131,11 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   const style = viewer.style.subscribe(follow);
   const structure = viewer.structure.subscribe(follow);
 
-  const rowAt = (y: number) => {
-    for (const r of rows) if (y >= r.top && y < r.top + r.height) return r.track;
-    return undefined;
-  };
-  const onMove = (e: PointerEvent) => {
-    rect ??= surface.getBoundingClientRect();
-    hover(rowAt(e.clientY - rect.top));
-  };
-  const onLeave = () => {
-    rect = undefined;
-    hover(undefined);
-  };
+  const hovers = seq.interaction.on('hover', { section: SectionRef });
+  const hovered = hovers.subscribe((e) =>
+    hover(e.part.track !== null && buttons.has(e.part.track) ? e.part.track : undefined),
+  );
+  const onLeave = () => hover(undefined);
   // The icons are not inside the surface: the pointer going onto one is still over its row.
   const onSurfaceLeave = (e: PointerEvent) => {
     if (!gutter.contains(e.relatedTarget as Node | null)) onLeave();
@@ -153,7 +143,6 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   const onGutterLeave = (e: PointerEvent) => {
     if (!surface.contains(e.relatedTarget as Node | null)) onLeave();
   };
-  surface.addEventListener('pointermove', onMove);
   surface.addEventListener('pointerleave', onSurfaceLeave);
   gutter.addEventListener('pointerleave', onGutterLeave);
 
@@ -162,7 +151,7 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
     sections.unsubscribe();
     style.unsubscribe();
     structure.unsubscribe();
-    surface.removeEventListener('pointermove', onMove);
+    hovered.unsubscribe();
     surface.removeEventListener('pointerleave', onSurfaceLeave);
     gutter.removeEventListener('pointerleave', onGutterLeave);
     gutter.remove();

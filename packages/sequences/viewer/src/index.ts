@@ -32,6 +32,7 @@ export {
   type SeqBehaviorProvider,
   SeqBehaviors,
 } from './behaviors.js';
+export type { BindingDescription, BindingDescriptions, SeqBindingInfo } from './bindings.js';
 export { Channel, ChannelMarks, type ChannelSources } from './channels.js';
 // The default UIs' compositions and what a host's own composition reads (seqspec:interaction#slots-and-chrome).
 export {
@@ -62,8 +63,6 @@ export {
   type TrackActionList,
 } from './config.js';
 export {
-  type ActivateEvent,
-  type MenuEvent,
   createSeqViewer,
   DarkSkin,
   DefaultSkin,
@@ -80,12 +79,12 @@ export {
   type BehaviorKit,
   CursorBehavior,
   defineBehavior,
-  ContextMenuBehavior,
   FocusViewportBehavior,
   HeaderHoverBehavior,
   HoverBehavior,
   HoverLabelBehavior,
   HoverRowBehavior,
+  RevealHighlightBehavior,
   ScrollGroupsBehavior,
   SnapshotControlsBehavior,
 } from './default-behaviors.js';
@@ -104,6 +103,7 @@ export type {
 export { type CytoBands, ideogramNavigator } from './draw/ideogram.js';
 export type { DynamicSource, HeldNode } from './dynamic.js';
 export type { FocusChange, FocusEntry, FocusManager } from './focus.js';
+export { REVEAL_PAD, type RevealOptions } from './reveal.js';
 export { FollowBehavior } from './follow.js';
 export {
   DoubleClickZoomBehavior,
@@ -155,14 +155,35 @@ export {
   type KeyEvt,
   type KeyInput,
   type KeyTrigger,
+  MenuEvt,
   Modifier,
   PointerEvt,
   type PointerInput,
   PointerType,
+  type SeqInput,
   type Trigger,
   type WheelEvt,
   type WheelInput,
 } from './input.js';
+export type {
+  SeqAt,
+  SeqChromeKind,
+  SeqChromeStream,
+  SeqClickEvent,
+  SeqDragEvent,
+  SeqInputEvent,
+  SeqInputScope,
+  SeqInteraction,
+  SeqKeyEvent,
+  SeqNativeEvent,
+  SeqPart,
+  SeqPartKind,
+  SeqPlace,
+  SeqRegionKind,
+  SeqStreamName,
+  SeqStreams,
+  SeqWheelEvent,
+} from './interaction.js';
 export { KeyboardBehavior } from './keyboard.js';
 export { DefaultLabelProviders } from './label-providers.js';
 export type {

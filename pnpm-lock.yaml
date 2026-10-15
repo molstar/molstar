@@ -3242,6 +3242,9 @@ importers:
 
   packages/sequences/viewer:
     dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
       '@molstar/seq-core':
         specifier: workspace:*
         version: link:../core
