@@ -19,6 +19,7 @@ export class ViewApi extends ApiArea {
   readonly open = this.operation({
     id: 'view.open',
     title: 'Open a panel',
+    surface: { kind: 'agent-only', reason: 'People click the panel; the agent opens it.' },
     params: {
       tab: PD.Text('', {
         description: 'A tab by part id (core.tab.home, snapshots.tab.snapshots) or a core tab: home, structure, …',
@@ -50,6 +51,7 @@ export class ViewApi extends ApiArea {
   readonly close = this.operation({
     id: 'view.close',
     title: 'Close the open panel and card',
+    surface: { kind: 'agent-only', reason: 'People click the panel; the agent opens it.' },
     params: {},
     history: false,
     async run(_, ctx) {

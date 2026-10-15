@@ -45,7 +45,7 @@ export const LoadersFeature: ViewerExtension = {
   contributes: () => loadersOperations(),
   commands: (api) => {
     const load = api.load;
-    if (!load.entry || !load.url || !load.mvs || !load.snapshot) return [];
+    if (!load.entry || !load.url || !load.mvs || !load.snapshot || !load.trajectory || !load.volume) return [];
     return [
       operationCommand(api, load.entry, {
         category: 'Load',
@@ -70,6 +70,18 @@ export const LoadersFeature: ViewerExtension = {
         icon: 'folder-open',
         action: 'Load',
         alias: ['session', 'state', 'molj', 'molx'],
+      }),
+      operationCommand(api, load.trajectory, {
+        category: 'Load',
+        icon: 'trajectory',
+        action: 'Load',
+        alias: ['md', 'molecular dynamics', 'xtc', 'dcd', 'trr', 'coordinates', 'topology'],
+      }),
+      operationCommand(api, load.volume, {
+        category: 'Load',
+        icon: 'volume',
+        action: 'Load',
+        alias: ['map', 'density', 'mrc', 'ccp4', 'cube', 'dsn6', 'em map'],
       }),
     ];
   },

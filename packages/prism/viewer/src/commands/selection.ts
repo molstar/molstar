@@ -55,6 +55,18 @@ export function selectionCommands(api: ViewerApi): CommandDefinition<ViewerComma
       alias: ['expand', 'whole residues', 'whole chains'],
       action: 'Expand',
     }),
+    operationCommand(api, api.select.mode, {
+      category: 'Selection',
+      icon: 'mouse-pointer-click',
+      alias: ['selection mode', 'click to select', 'pick mode'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.select.granularity, {
+      category: 'Selection',
+      icon: 'pick-residue',
+      alias: ['picking level', 'granularity', 'pick residues', 'pick atoms', 'pick chains'],
+      action: 'Set',
+    }),
     operationCommand(api, api.focus.set, {
       category: 'Selection',
       icon: 'crosshair',

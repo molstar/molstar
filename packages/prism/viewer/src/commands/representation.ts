@@ -62,6 +62,36 @@ export function representationCommands(api: ViewerApi): CommandDefinition<Viewer
       alias: ['remove representation', 'hide representation', 'delete representation'],
       action: 'Remove',
     }),
+    operationCommand(api, api.representation.visibility, {
+      category,
+      icon: 'eye',
+      alias: ['show representation', 'toggle representation'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.representation.size, {
+      category,
+      icon: 'maximize-2',
+      alias: ['size', 'thickness', 'radius', 'scale', 'size theme'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.representation.emissive, {
+      category,
+      icon: 'sun',
+      alias: ['emissive', 'glow', 'emission'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.representation.material, {
+      category,
+      icon: 'sparkles',
+      alias: ['material', 'metalness', 'roughness', 'shiny', 'matte'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.representation.clipping, {
+      category,
+      icon: 'crop',
+      alias: ['clipping', 'exclude from clipping', 'clip', 'clip objects'],
+      action: 'Set',
+    }),
     operationCommand(api, api.representation.reset, {
       category,
       icon: 'rotate-ccw',

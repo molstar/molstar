@@ -37,6 +37,10 @@ export class SequenceApi extends ApiArea {
   readonly style = this.operation({
     id: 'sequence.style',
     title: 'Show the sequence as tracks or text',
+    surface: {
+      kind: 'agent-only',
+      reason: "The sequence's menu and its commands (sequence.text, sequence.tracks, …) set it.",
+    },
     params: {
       style: PD.Select<'tracks' | 'text'>('tracks', [
         ['tracks', 'Tracks'],
@@ -54,6 +58,10 @@ export class SequenceApi extends ApiArea {
   readonly colors = this.operation({
     id: 'sequence.colors',
     title: "Color the sequence's letters",
+    surface: {
+      kind: 'agent-only',
+      reason: "The sequence's menu and its commands (sequence.text, sequence.tracks, …) set it.",
+    },
     params: { scheme: PD.Select(Schemes[0][0], Schemes, { description: 'A letter color scheme' }) },
     run: async ({ scheme }) => {
       const letters = scheme === 'none' ? null : scheme;
@@ -67,6 +75,10 @@ export class SequenceApi extends ApiArea {
   readonly follow = this.operation({
     id: 'sequence.follow',
     title: 'Show the sequence of a structure',
+    surface: {
+      kind: 'agent-only',
+      reason: "The sequence's menu and its commands (sequence.text, sequence.tracks, …) set it.",
+    },
     params: {
       structure: StructureParam('A structure by label or state ref; empty: the one the person works with'),
     },

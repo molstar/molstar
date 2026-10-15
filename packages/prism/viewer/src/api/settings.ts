@@ -141,6 +141,7 @@ export class SettingsApi extends ApiArea {
   readonly set = this.operation({
     id: 'settings.set',
     title: 'Change settings',
+    surface: { kind: 'agent-only', reason: 'The Settings tab is its form.' },
     params: {
       group: PD.Select<SettingsGroupId>(
         'appearance',

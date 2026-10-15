@@ -51,6 +51,13 @@ export function componentCommands(api: ViewerApi): CommandDefinition<ViewerComma
       alias: ['component options', 'hydrogens', 'quality', 'representation options'],
       action: 'Set',
     }),
+    operationCommand(api, api.contents.visibility, {
+      category,
+      icon: 'eye',
+      title: 'Show or hide an entity or chain…',
+      alias: ['show entity', 'hide entity', 'show chain', 'hide chain', 'toggle chain'],
+      action: 'Set',
+    }),
     operationCommand(api, api.component.list, {
       category,
       icon: 'list',

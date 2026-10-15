@@ -272,6 +272,7 @@ export class SnapshotApi extends ApiArea {
   readonly update = this.operation({
     id: 'snapshot.update',
     title: 'Edit a snapshot',
+    surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: UpdateParams,
     undoable: false,
     async run({ entry, name, description, key, showFor, clear }, ctx) {
@@ -305,6 +306,7 @@ export class SnapshotApi extends ApiArea {
   readonly replace = this.operation({
     id: 'snapshot.replace',
     title: 'Replace a snapshot with the current view',
+    surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: ReplaceParams,
     undoable: false,
     async run({ entry, showFor, options }, ctx) {
@@ -324,6 +326,7 @@ export class SnapshotApi extends ApiArea {
   readonly move = this.operation({
     id: 'snapshot.move',
     title: 'Move a snapshot',
+    surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: MoveParams,
     undoable: false,
     async run({ entry, position }, ctx) {
@@ -355,6 +358,7 @@ export class SnapshotApi extends ApiArea {
   readonly remove = this.operation({
     id: 'snapshot.remove',
     title: 'Remove a snapshot',
+    surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: { entry: EntryParam(ByIdNameOrKey) },
     undoable: false,
     approval: 'destructive',
@@ -373,6 +377,7 @@ export class SnapshotApi extends ApiArea {
   readonly clear = this.operation({
     id: 'snapshot.clear',
     title: 'Remove all snapshots',
+    surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: {},
     undoable: false,
     approval: 'destructive',

@@ -22,6 +22,7 @@ export class HighlightApi extends ApiArea {
   readonly set = this.operation({
     id: 'highlight.set',
     title: 'Highlight',
+    surface: { kind: 'ui-only', reason: 'Hover and the sequence link light things up; nothing to run on purpose.' },
     params: {
       target: TargetParam('What to highlight: ligand, A:120-130, resn HEM, …'),
       structure: StructureParam(),
@@ -57,6 +58,7 @@ export class HighlightApi extends ApiArea {
   readonly clear = this.operation({
     id: 'highlight.clear',
     title: 'Clear the highlight',
+    surface: { kind: 'ui-only', reason: 'Hover and the sequence link light things up; nothing to run on purpose.' },
     params: {},
     history: false,
     async run(_, ctx) {

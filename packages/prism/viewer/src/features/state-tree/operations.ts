@@ -203,6 +203,7 @@ export class StateApi extends ApiArea {
   readonly update = this.operation({
     id: 'state.update',
     title: 'Update a state cell',
+    surface: { kind: 'agent-only', reason: "The State tree tab's forms." },
     params: {
       ref: RefParam(),
       params: PD.Value<Record<string, unknown>>(
@@ -236,6 +237,7 @@ export class StateApi extends ApiArea {
   readonly action = this.operation({
     id: 'state.action',
     title: 'Apply an action to a state cell',
+    surface: { kind: 'agent-only', reason: "The State tree tab's forms." },
     params: {
       ref: RefParam(),
       action: PD.Text('', { description: 'An action applicable to the cell, by name: add-representation, …' }),

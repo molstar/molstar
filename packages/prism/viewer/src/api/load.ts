@@ -30,6 +30,7 @@ export class LoadApi extends ApiArea {
   readonly action = this.operation({
     id: 'load.action',
     title: 'Run a loading action',
+    surface: { kind: 'ui-only', reason: "Home's action blocks are its form; the agent uses load.entry and load.url." },
     params: {
       action: PD.Text('', { description: 'A loading action by name: download-structure, download-density, …' }),
       params: PD.Value<Record<string, unknown>>(
