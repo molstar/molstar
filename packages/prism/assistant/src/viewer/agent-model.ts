@@ -122,6 +122,7 @@ export function createViewerAgentModel(
     if (r.status === 'awaiting-approval') {
       pending = r.approval ?? [];
       decided.clear();
+      notifications.announce('The assistant is waiting for your approval.');
       const waiting = new Set(pending.map((p) => p.callId));
       update(
         {
@@ -150,10 +151,16 @@ export function createViewerAgentModel(
     }
     pending = [];
     decided.clear();
+    const status = r.status === 'completed' ? 'done' : r.status === 'stopped' ? 'stopped' : 'failed';
+    const text = r.text || t.text || (r.error ?? '');
+    // The finished reply, said once (the card's text streams and is not live; README §3.7).
+    notifications.announce(
+      status === 'done' ? `Assistant: ${text || 'done'}` : `Assistant ${status}${text ? `: ${text}` : ''}`,
+    );
     update(
       {
-        status: r.status === 'completed' ? 'done' : r.status === 'stopped' ? 'stopped' : 'failed',
-        text: r.text || t.text || (r.error ?? ''),
+        status,
+        text,
         ...(r.usage ? { usage: { input: r.usage.input, output: r.usage.output } } : {}),
         durationMs: Date.now() - started,
       },

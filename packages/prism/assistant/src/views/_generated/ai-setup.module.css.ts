@@ -69,7 +69,7 @@ defineStyles('assistant/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-assistant-ai-setup-scope {
-  height: 22px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -137,7 +137,7 @@ defineStyles('assistant/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-assistant-ai-setup-action {
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 84%);
@@ -187,7 +187,7 @@ defineStyles('assistant/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-assistant-ai-setup-link {
-  height: 22px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -200,7 +200,7 @@ defineStyles('assistant/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-assistant-ai-setup-fold {
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -242,9 +242,9 @@ defineStyles('assistant/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-assistant-ai-setup-refresh {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
-  width: 24px;
-  height: 24px;
   color: var(--msp-color-text-muted);
   place-items: center;
   display: grid;

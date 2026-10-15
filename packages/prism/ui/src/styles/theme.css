@@ -18,14 +18,21 @@
     color-scheme: light;
     --msp-color-bg: #eeece7;
     --msp-color-text: #332b1f;
-    --msp-color-accent: #ae5d04;
+    /* The accent and the status colors are also text: each at least 4.5:1 on a panel (README §3.7). */
+    --msp-color-accent: #995103;
     --msp-color-accent-strong: #974102;
     --msp-color-danger: #c4091f;
-    --msp-color-success: #078a40;
-    --msp-color-warning: #b7860b;
+    --msp-color-success: #057434;
+    --msp-color-warning: #805d05;
     --msp-color-info: #5e3673;
+    /* Text on an accent fill (the command menu's Run). */
+    --msp-color-on-accent: #fff;
     /* Shades go toward this color: darker on light themes, lighter on dark ones. */
     --msp-shade: #000;
+    /* How far muted and subtle text go toward the background: as far as they can while they keep 4.5:1 (muted on
+       controls and hover fills, subtle on panels; README §3.7). */
+    --msp-mix-muted: 24%;
+    --msp-mix-subtle: 31%;
     /* The logo's colors, left to right (the wordmark's flash). */
     --msp-color-brand-1: #7a4f2f;
     --msp-color-brand-2: #e0ae2c;
@@ -43,7 +50,10 @@
     --msp-color-success: #0cca5d;
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
+    --msp-color-on-accent: #111318;
     --msp-shade: #fff;
+    --msp-mix-muted: 25%;
+    --msp-mix-subtle: 35%;
 
     --msp-step-control: 10%;
     --msp-step-hover: 15%;
@@ -58,13 +68,18 @@
     color-scheme: dark;
     --msp-color-bg: #2d3e50;
     --msp-color-text: #edf1f2;
-    --msp-color-accent: #3b9ad9;
+    /* Lighter than the classic blue theme's, for 4.5:1 as text on the mid-tone panels (README §3.7). */
+    --msp-color-accent: #77b6e5;
     --msp-color-accent-strong: #ffffff;
-    --msp-color-danger: #ff5a4f;
+    --msp-color-danger: #ff9083;
     --msp-color-success: #0cca5d;
     --msp-color-warning: #fcc937;
-    --msp-color-info: #b18ac6;
+    --msp-color-info: #c3a4d3;
+    --msp-color-on-accent: #14202c;
     --msp-shade: #fff;
+    /* A mid-tone base leaves less room: muted and subtle text stay nearer the text. */
+    --msp-mix-muted: 18%;
+    --msp-mix-subtle: 30%;
 
     --msp-step-control: 10%;
     --msp-step-hover: 15%;
@@ -87,6 +102,7 @@
     --msp-color-success: #3ddc84;
     --msp-color-warning: #ffd60a;
     --msp-color-info: #d0a8ff;
+    --msp-color-on-accent: #000;
     --msp-shade: #fff;
 
     --msp-step-control: 16%;
@@ -109,7 +125,10 @@
       --msp-color-success: #0cca5d;
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
+      --msp-color-on-accent: #111318;
       --msp-shade: #fff;
+      --msp-mix-muted: 25%;
+      --msp-mix-subtle: 35%;
 
       --msp-step-control: 10%;
       --msp-step-hover: 15%;
@@ -138,11 +157,15 @@
     --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-pressed, 13%));
     --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 15%);
     --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 28%);
-    --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 33%);
-    --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 55%);
+    --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) var(--msp-mix-muted, 24%));
+    --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) var(--msp-mix-subtle, 31%));
     --msp-color-accent-muted: color-mix(in oklab, var(--msp-color-accent), var(--msp-color-bg) 80%);
     --msp-color-focus-ring: var(--msp-color-accent);
     --msp-color-scrim: rgb(0 0 0 / 0.35);
+    /* A field's edge (inputs, selects, switches) and a pressed or selected control's: none in the quiet themes (the
+       fill marks them), a line of 3:1 or more where contrast matters (below; WCAG 1.4.11). Drawn as an inset shadow. */
+    --msp-field-edge: transparent;
+    --msp-selected-edge: transparent;
 
     /* Glass: everything floating over the canvas (toolbar, cards, pills, labels). Flat: translucency, blur, and a
        hairline edge (drawn as a spread shadow, so it takes no layout) that keeps a card apart from a canvas of the same
@@ -228,6 +251,8 @@
     --msp-glass-bg: var(--msp-color-panel);
     --msp-glass-panel-bg: var(--msp-color-panel);
     --msp-glass-edge: var(--msp-color-border-strong);
+    --msp-field-edge: var(--msp-color-border-strong);
+    --msp-selected-edge: var(--msp-color-accent);
   }
 
   @media (prefers-contrast: more) {
@@ -239,6 +264,8 @@
       --msp-glass-bg: var(--msp-color-panel);
       --msp-glass-panel-bg: var(--msp-color-panel);
       --msp-glass-edge: var(--msp-color-border-strong);
+      --msp-field-edge: var(--msp-color-border-strong);
+      --msp-selected-edge: var(--msp-color-accent);
     }
   }
 

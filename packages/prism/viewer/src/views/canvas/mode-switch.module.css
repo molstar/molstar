@@ -38,6 +38,8 @@
 
   &[aria-pressed="true"] {
     background: var(--msp-color-control);
+    /* Marked by more than a shade where contrast matters (theme.css, --msp-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-text);
   }
 }

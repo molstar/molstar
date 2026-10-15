@@ -45,6 +45,7 @@ export const classes = {
   'scrim': 'msp-command-menu-scrim',
   'sentence': 'msp-command-menu-sentence',
   'spacer': 'msp-command-menu-spacer',
+  'srOnly': 'msp-command-menu-srOnly',
   'tail': 'msp-command-menu-tail',
   'token': 'msp-command-menu-token',
   'value': 'msp-command-menu-value',
@@ -193,6 +194,10 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
     background: var(--msp-color-hover);
   }
 
+  &[aria-selected="true"] .msp-command-menu-rowMeta {
+    color: var(--msp-color-text-muted);
+  }
+
   &[aria-disabled="true"] {
     color: var(--msp-color-text-subtle);
   }
@@ -213,7 +218,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   overflow: hidden;
 
   & mark {
-    color: var(--msp-color-accent);
+    color: var(--msp-color-accent-strong);
     background: none;
     font-weight: 600;
   }
@@ -292,15 +297,15 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-accent);
-  color: #fff;
+  color: var(--msp-color-on-accent);
   font-size: var(--msp-font-size-sm);
   font-weight: 600;
   display: flex;
 
   & kbd {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-on-accent), transparent 50%);
     color: inherit;
     background: none;
-    box-shadow: inset 0 0 0 1px #ffffff80;
   }
 }
 
@@ -443,6 +448,15 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
   display: flex;
+}
+
+.msp-command-menu-srOnly {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 }
 `);

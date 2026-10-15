@@ -118,14 +118,14 @@ export function MultiSelectRow(props: {
 }
 
 /** Three numbers in a row (x, y, z), each its own small field. */
-export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding }) {
+export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; label?: string }) {
   const { binding } = props;
   return (
     <div class={classes.vec}>
       {(['x', 'y', 'z'] as const).map((axis, i) => (
         <input
           class={form.number}
-          aria-label={axis}
+          aria-label={props.label ? `${props.label} ${axis}` : axis}
           data-tip={axis}
           value={binding.value.pipe(map((v: number[]) => trim(v?.[i])))}
           onChange={(e) => {
@@ -168,6 +168,7 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
             return (
               <input
                 class={form.number}
+                aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
                 value={binding.value.pipe(map((m: ArrayLike<number>) => trim(m?.[index])))}
                 onChange={(e) => {
                   const n = Number(e.currentTarget.value);
@@ -186,7 +187,7 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
 }
 
 /** An interval: one track, two knobs (the low and the high end), the range on the right. */
-export function IntervalControl(props: { param: PD.Interval; binding: FieldBinding }) {
+export function IntervalControl(props: { param: PD.Interval; binding: FieldBinding; label?: string }) {
   const { param, binding } = props;
   const min = param.min ?? 0;
   const max = param.max ?? 1;
@@ -200,7 +201,7 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
       min={String(min)}
       max={String(max)}
       step={String(step)}
-      aria-label={i === 0 ? 'From' : 'To'}
+      aria-label={`${props.label ? `${props.label} ` : ''}${i === 0 ? 'from' : 'to'}`}
       value={binding.value.pipe(map((v: [number, number]) => String(v?.[i] ?? (i ? max : min))))}
       onInput={(e) => {
         const n = Number(e.currentTarget.value);
@@ -305,11 +306,12 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
 }
 
 /** A URL: its address as text. */
-export function UrlControl(props: { binding: FieldBinding }) {
+export function UrlControl(props: { binding: FieldBinding; labelId?: string }) {
   const { binding } = props;
   return (
     <input
       class={form.input}
+      aria-labelledby={props.labelId}
       placeholder="https://…"
       value={binding.value.pipe(map((v: Asset.Url | undefined) => v?.url ?? ''))}
       onChange={(e) => binding.set(Asset.Url(e.currentTarget.value))}

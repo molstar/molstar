@@ -346,6 +346,10 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           (def.history !== false || isStubDefinition(def))
         ) {
           notifications.post(result.did, 'info');
+        } else if (r.origin.kind === 'person' && def && !def.read && /^(select|focus|measure)\./.test(r.operation)) {
+          // A selection, a focus or a measurement by target is how a person without sight picks (README §3.7): its
+          // result is said (the live region), with no message on show.
+          notifications.announce(result.did);
         }
       }),
       plugin.events.log.subscribe((e) => {

@@ -39,6 +39,7 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;

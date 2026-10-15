@@ -15,13 +15,16 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     color-scheme: light;
     --msp-color-bg: #eeece7;
     --msp-color-text: #332b1f;
-    --msp-color-accent: #ae5d04;
+    --msp-color-accent: #995103;
     --msp-color-accent-strong: #974102;
     --msp-color-danger: #c4091f;
-    --msp-color-success: #078a40;
-    --msp-color-warning: #b7860b;
+    --msp-color-success: #057434;
+    --msp-color-warning: #805d05;
     --msp-color-info: #5e3673;
+    --msp-color-on-accent: #fff;
     --msp-shade: #000;
+    --msp-mix-muted: 24%;
+    --msp-mix-subtle: 31%;
     --msp-color-brand-1: #7a4f2f;
     --msp-color-brand-2: #e0ae2c;
     --msp-color-brand-3: #6f9a80;
@@ -38,7 +41,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-success: #0cca5d;
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
+    --msp-color-on-accent: #111318;
     --msp-shade: #fff;
+    --msp-mix-muted: 25%;
+    --msp-mix-subtle: 35%;
     --msp-step-control: 10%;
     --msp-step-hover: 15%;
     --msp-step-pressed: 20%;
@@ -52,13 +58,16 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     color-scheme: dark;
     --msp-color-bg: #2d3e50;
     --msp-color-text: #edf1f2;
-    --msp-color-accent: #3b9ad9;
+    --msp-color-accent: #77b6e5;
     --msp-color-accent-strong: #fff;
-    --msp-color-danger: #ff5a4f;
+    --msp-color-danger: #ff9083;
     --msp-color-success: #0cca5d;
     --msp-color-warning: #fcc937;
-    --msp-color-info: #b18ac6;
+    --msp-color-info: #c3a4d3;
+    --msp-color-on-accent: #14202c;
     --msp-shade: #fff;
+    --msp-mix-muted: 18%;
+    --msp-mix-subtle: 30%;
     --msp-step-control: 10%;
     --msp-step-hover: 15%;
     --msp-step-pressed: 20%;
@@ -78,6 +87,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-success: #3ddc84;
     --msp-color-warning: #ffd60a;
     --msp-color-info: #d0a8ff;
+    --msp-color-on-accent: #000;
     --msp-shade: #fff;
     --msp-step-control: 16%;
     --msp-step-hover: 24%;
@@ -99,7 +109,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
       --msp-color-success: #0cca5d;
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
+      --msp-color-on-accent: #111318;
       --msp-shade: #fff;
+      --msp-mix-muted: 25%;
+      --msp-mix-subtle: 35%;
       --msp-step-control: 10%;
       --msp-step-hover: 15%;
       --msp-step-pressed: 20%;
@@ -119,11 +132,13 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-pressed, 13%));
     --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 15%);
     --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 28%);
-    --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 33%);
-    --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 55%);
+    --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) var(--msp-mix-muted, 24%));
+    --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) var(--msp-mix-subtle, 31%));
     --msp-color-accent-muted: color-mix(in oklab, var(--msp-color-accent), var(--msp-color-bg) 80%);
     --msp-color-focus-ring: var(--msp-color-accent);
     --msp-color-scrim: #00000059;
+    --msp-field-edge: transparent;
+    --msp-selected-edge: transparent;
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
     --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 5%);
     --msp-glass-filter: blur(20px) saturate(1.4);
@@ -181,6 +196,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-glass-bg: var(--msp-color-panel);
     --msp-glass-panel-bg: var(--msp-color-panel);
     --msp-glass-edge: var(--msp-color-border-strong);
+    --msp-field-edge: var(--msp-color-border-strong);
+    --msp-selected-edge: var(--msp-color-accent);
   }
 
   @media (prefers-contrast: more) {
@@ -192,6 +209,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
       --msp-glass-bg: var(--msp-color-panel);
       --msp-glass-panel-bg: var(--msp-color-panel);
       --msp-glass-edge: var(--msp-color-border-strong);
+      --msp-field-edge: var(--msp-color-border-strong);
+      --msp-selected-edge: var(--msp-color-accent);
     }
   }
 

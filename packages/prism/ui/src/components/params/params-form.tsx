@@ -14,6 +14,7 @@ import { camelCaseToWords } from '@molstar/core/util/string';
 import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { uniqueId } from '../../dom/focus.js';
 import { onCleanup } from '../../dom/scope.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -147,7 +148,9 @@ function ParamRow(props: {
     );
   }
   // Its help (a description, a legend; for a theme choice, the chosen theme's): a ? by the label, opening under the row.
-  const { head, block } = withHelp(label, helpOf(param, binding.value));
+  // The label's text has an id: the row's control is labelled by it (README §3.7: every field has a name).
+  const labelId = uniqueId('msp-field');
+  const { head, block } = withHelp(label, helpOf(param, binding.value), labelId);
   const wrap = (row: Child) => (
     <div hidden={hidden}>
       {row}
@@ -157,7 +160,14 @@ function ParamRow(props: {
   if (param.type === 'mapped') {
     return wrap(
       isOnOff(param) ? (
-        <OnOffControl label={label} head={head} description={param.description} param={param} binding={binding} />
+        <OnOffControl
+          label={label}
+          labelId={labelId}
+          head={head}
+          description={param.description}
+          param={param}
+          binding={binding}
+        />
       ) : (
         <MappedControl label={label} head={head} param={param} binding={binding} />
       ),
@@ -169,7 +179,9 @@ function ParamRow(props: {
     );
   }
   if (param.type === 'color') {
-    return wrap(<ColorRow label={label} head={head} description={param.description} binding={binding} />);
+    return wrap(
+      <ColorRow label={label} labelId={labelId} head={head} description={param.description} binding={binding} />,
+    );
   }
   // Fields that open something under their row.
   if (param.type === 'multi-select')
@@ -199,25 +211,37 @@ function ParamRow(props: {
   return wrap(
     <div class={classes.row}>
       <span class={classes.label}>{head}</span>
-      <div class={classes.control}>{control(param, binding)}</div>
+      <div class={classes.control}>{control(param, binding, labelId, label)}</div>
     </div>,
   );
 }
 
 /** A color: the swatch and its channels (decimal) as a button; the picker opens under the row, full width. */
-function ColorRow(props: { label: string; head?: Child; description?: string; binding: FieldBinding }) {
-  const { binding } = props;
+function ColorRow(props: {
+  label: string;
+  labelId: string;
+  head?: Child;
+  description?: string;
+  binding: FieldBinding;
+}) {
+  const { binding, labelId } = props;
   const open = observableState(false);
   const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
   const channels = binding.value.pipe(map((v: number) => colorToRgb(v)));
   return (
     <>
       <div class={classes.row}>
-        <span class={classes.label}>{props.head ?? props.label}</span>
+        <span class={classes.label}>{props.head ?? <span id={labelId}>{props.label}</span>}</span>
         <div class={classes.control}>
-          <button type="button" class={classes.color} aria-expanded={open} onClick={() => open.set(!open.value)}>
+          <button
+            type="button"
+            class={classes.color}
+            aria-labelledby={`${labelId} ${labelId}-value`}
+            aria-expanded={open}
+            onClick={() => open.set(!open.value)}
+          >
             <span class={classes.swatch} style={{ background: hex }} />
-            <span class={classes.channels} data-tip-overflow="">
+            <span class={classes.channels} id={`${labelId}-value`} data-tip-overflow="">
               {channels}
             </span>
           </button>
@@ -234,8 +258,8 @@ function ColorRow(props: { label: string; head?: Child; description?: string; bi
  * Files (PD.File, PD.FileList): a field like a dropdown's, "Select files…" until some are chosen, then their names; a
  * click picks, files dropped on it are taken too, ✕ clears.
  */
-function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: FieldBinding }) {
-  const { param, binding } = props;
+function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: FieldBinding; labelId?: string }) {
+  const { param, binding, labelId } = props;
   const multiple = param.type === 'file-list';
   const dragging = observableState(false);
   const take = (files: readonly File[]) => {
@@ -262,6 +286,7 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
       <button
         type="button"
         class={classes.filePick}
+        aria-labelledby={labelId ? `${labelId} ${labelId}-value` : undefined}
         onClick={() => input.click()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -275,7 +300,11 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
           take([...(e.dataTransfer?.files ?? [])]);
         }}
       >
-        <span class={classes.fileNames} data-empty={names.pipe(map((n) => (n.length ? undefined : '')))}>
+        <span
+          class={classes.fileNames}
+          id={labelId ? `${labelId}-value` : undefined}
+          data-empty={names.pipe(map((n) => (n.length ? undefined : '')))}
+        >
           {names.pipe(
             map((n) =>
               n.length === 0
@@ -307,12 +336,13 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
   );
 }
 
-function control(param: PD.Any, binding: FieldBinding): Child {
+/** A plain row's control, labelled by the row's label (`labelId`; `label` its text, for the parts of a compound one). */
+function control(param: PD.Any, binding: FieldBinding, labelId: string, label: string): Child {
   switch (param.type) {
     case 'boolean':
-      return <Toggle binding={binding} />;
+      return <Toggle binding={binding} labelId={labelId} />;
     case 'number':
-      return <NumberControl param={param} binding={binding} />;
+      return <NumberControl param={param} binding={binding} labelId={labelId} />;
     case 'text':
       // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
       if (param.multiline) {
@@ -320,6 +350,7 @@ function control(param: PD.Any, binding: FieldBinding): Child {
           <textarea
             class={classes.textarea}
             rows={3}
+            aria-labelledby={labelId}
             value={binding.value}
             placeholder={param.placeholder}
             onChange={(e) => binding.set(e.currentTarget.value)}
@@ -329,6 +360,7 @@ function control(param: PD.Any, binding: FieldBinding): Child {
       return (
         <input
           class={classes.input}
+          aria-labelledby={labelId}
           value={binding.value}
           placeholder={param.placeholder}
           onChange={(e) => binding.set(e.currentTarget.value)}
@@ -336,25 +368,26 @@ function control(param: PD.Any, binding: FieldBinding): Child {
       );
     case 'file':
     case 'file-list':
-      return <FileControl param={param} binding={binding} />;
+      return <FileControl param={param} binding={binding} labelId={labelId} />;
     case 'vec3':
-      return <Vec3Control param={param} binding={binding} />;
+      return <Vec3Control param={param} binding={binding} label={label} />;
     case 'interval':
-      return <IntervalControl param={param} binding={binding} />;
+      return <IntervalControl param={param} binding={binding} label={label} />;
     case 'url':
-      return <UrlControl binding={binding} />;
+      return <UrlControl binding={binding} labelId={labelId} />;
     default:
       return <span class={classes.unsupported}>{param.type}</span>;
   }
 }
 
-function Toggle(props: { binding: FieldBinding }) {
+function Toggle(props: { binding: FieldBinding; labelId?: string }) {
   const { binding } = props;
   return (
     <button
       type="button"
       role="switch"
       class={classes.switch}
+      aria-labelledby={props.labelId}
       aria-checked={binding.value.pipe(map((v) => !!v))}
       onClick={() => binding.set(!binding.get())}
     >
@@ -363,14 +396,15 @@ function Toggle(props: { binding: FieldBinding }) {
   );
 }
 
-function NumberControl(props: { param: PD.Numeric; binding: FieldBinding }) {
-  const { param, binding } = props;
+function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelId?: string }) {
+  const { param, binding, labelId } = props;
   const text = binding.value.pipe(map((v: number) => format(v, param.step)));
   if (param.min === undefined || param.max === undefined) {
     return (
       <input
         class={classes.input}
         type="number"
+        aria-labelledby={labelId}
         step={String(param.step ?? 'any')}
         value={text}
         onChange={(e) => {
@@ -385,6 +419,7 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding }) {
       <input
         class={classes.range}
         type="range"
+        aria-labelledby={labelId}
         min={String(param.min)}
         max={String(param.max)}
         step={String(param.step ?? (param.max - param.min) / 100)}
@@ -399,6 +434,7 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding }) {
       />
       <input
         class={classes.number}
+        aria-labelledby={labelId}
         value={text}
         onChange={(e) => {
           const v = Number(e.currentTarget.value);
@@ -578,6 +614,7 @@ function isOnOff(param: PD.Mapped<any>): boolean {
  */
 function OnOffControl(props: {
   label: string;
+  labelId: string;
   head?: Child;
   description?: string;
   param: PD.Mapped<any>;
@@ -611,9 +648,9 @@ function OnOffControl(props: {
   return (
     <>
       <div class={classes.row}>
-        <span class={classes.label}>{props.head ?? props.label}</span>
+        <span class={classes.label}>{props.head ?? <span id={props.labelId}>{props.label}</span>}</span>
         <div class={classes.control}>
-          <Toggle binding={toggle} />
+          <Toggle binding={toggle} labelId={props.labelId} />
           {hasSettings ? (
             <Show when={on}>
               {() => (
@@ -765,15 +802,19 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
     set: (x) => binding.set({ ...binding.get(), [k]: x }),
   });
   const expression = part('expression');
+  const expressionId = uniqueId('msp-field');
   return (
     <div class={classes.mapped}>
       <SelectRow label={props.label} head={props.head} options={ScriptLanguages} binding={part('language')} />
       <div class={classes.nested}>
         <div class={classes.row}>
-          <span class={classes.label}>Expression</span>
+          <span class={classes.label} id={expressionId}>
+            Expression
+          </span>
           <div class={classes.control}>
             <textarea
               class={classes.textarea}
+              aria-labelledby={expressionId}
               rows={3}
               spellcheck={false}
               value={expression.value}

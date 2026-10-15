@@ -67,7 +67,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 
 @container (width < 296px) {
   .msp-viewer-structure-tab-actions > button:has(.msp-viewer-structure-tab-actionLabel) {
-    width: 24px;
+    width: max(24px, var(--msp-touch-target, 0px));
     padding: 0;
   }
 
@@ -152,7 +152,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 .msp-viewer-structure-tab-inspectorAction {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -220,7 +220,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-preset {
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);

@@ -50,6 +50,8 @@
   border: 0;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
 
@@ -181,6 +183,8 @@
   margin-left: var(--msp-space-3);
   border-radius: 7px;
   background: var(--msp-color-pressed);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   transition: background-color var(--msp-motion-fast) var(--msp-ease);
 
   /* On is a neutral mid-grey, like a slider's filled part: settings are not the action, so no accent. */
@@ -221,6 +225,8 @@
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
 
   &:hover,
   &[aria-expanded="true"] {
@@ -413,6 +419,8 @@
   height: 24px;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
 
   &:hover {
     background: var(--msp-color-hover);

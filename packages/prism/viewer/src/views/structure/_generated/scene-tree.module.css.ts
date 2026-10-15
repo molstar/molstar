@@ -62,10 +62,10 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 .msp-viewer-scene-tree-row {
   align-items: center;
   gap: var(--msp-space-2);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 26px;
   min-width: 0;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
+  content-visibility: auto;
+  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -87,9 +87,9 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-expander {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
-  width: 18px;
-  height: 18px;
   color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
   flex: none;
@@ -147,9 +147,9 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-action {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
-  width: 22px;
-  height: 22px;
   color: var(--msp-color-text-muted);
   opacity: 0;
   place-items: center;
@@ -166,7 +166,7 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-actionSlot {
-  width: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
 }
 
 .msp-viewer-scene-tree-keep {
@@ -191,7 +191,7 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 .msp-viewer-scene-tree-menuItem {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);

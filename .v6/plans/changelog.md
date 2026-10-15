@@ -100,6 +100,13 @@ the [API change ledger](breaking-v6-changes.md).
   compact mode
 - Prism's high-contrast UI theme, and stronger borders and muted text in every theme when the system asks for more
   contrast
+- Prism accessibility (gate G8): every generated form control is named by its label; the command menu is a modal
+  combobox (the highlighted option as the active descendant, the result count said, focus kept and given back); cards,
+  menus and closed panels give the focus back; menus, the canvas toolbar's menus, the picking level and the rail's tab
+  lists take the arrows; muted, subtle, accent and status text at 4.5:1 or more in every theme (light's accent,
+  success and warning darker, blue's accent, danger and info lighter); field and pressed edges in the high-contrast
+  theme and under `prefers-contrast: more`; selections and foci by target, and the assistant's finished reply, said
+  in the one live region; the sequence's keyboard cursor said and ringed; compact panel targets at 44px
 - The Prism viewer's Storage view (Settings): what it keeps in the browser and where (kept records with size and age,
   preferences, the light restore, the assistant's keys by provider and scope), each with Forget, and Forget everything
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),

@@ -70,10 +70,17 @@ export function composePluginSpec(input: ComposeInput): PluginSpec {
 
   config.push(...optionsConfig(options), ...FixedConfig.map(([k, v]) => [k, v] as [PluginConfigItem, unknown]));
   canvas3d = mergeCanvas(canvas3d, optionsCanvas(options));
+  // Reduced motion (README §3.7): the plugin's own camera moves are cuts too (the framing on load, a focus by click).
+  const reduced = prefersReducedMotion();
+  if (reduced) canvas3d = mergeCanvas(canvas3d, { cameraResetDurationMs: 0 });
 
   const spec: PluginSpec = {
     registry,
-    behaviors: behaviors.map((b) => b.behavior),
+    behaviors: behaviors.map(({ behavior: b }) =>
+      reduced && b.transformer === CameraFocusLoci
+        ? PluginSpec.Behavior(CameraFocusLoci, { ...b.defaultParams, durationMs: 0 })
+        : b,
+    ),
     config: lastWins(config),
     canvas3d,
   };
@@ -143,4 +150,8 @@ function lastWins(items: readonly [PluginConfigItem, unknown][]): [PluginConfigI
   const map = new Map<PluginConfigItem, unknown>();
   for (const [k, v] of items) map.set(k, v);
   return [...map];
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

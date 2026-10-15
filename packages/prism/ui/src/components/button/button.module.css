@@ -29,6 +29,8 @@
   &:active:not(:disabled),
   &[aria-pressed="true"] {
     background: var(--msp-color-pressed);
+    /* Marked by more than a shade where contrast matters (theme.css, --msp-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
   }
 
   &:disabled {
@@ -50,6 +52,7 @@
   &:active:not(:disabled),
   &[aria-pressed="true"] {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
   }
 
   &:disabled {
@@ -73,14 +76,15 @@
 }
 
 .small {
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   font-size: var(--msp-font-size-sm);
 }
 
 .tiny {
   gap: var(--msp-space-1);
-  height: 20px;
+  /* 24px at least (WCAG 2.5.8), 44px on touch. */
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   font-size: var(--msp-font-size-xs);
 
@@ -94,12 +98,9 @@
   width: var(--msp-control-height);
   padding: 0;
 
-  &.small {
-    width: 24px;
-  }
-
+  &.small,
   &.tiny {
-    width: 20px;
+    width: max(24px, var(--msp-touch-target, 0px));
   }
 }
 

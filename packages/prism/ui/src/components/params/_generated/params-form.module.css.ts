@@ -94,6 +94,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   border: 0;
@@ -212,6 +213,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   height: 14px;
   margin-left: var(--msp-space-3);
   background: var(--msp-color-pressed);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   transition: background-color var(--msp-motion-fast) var(--msp-ease);
   border-radius: 7px;
   flex: none;
@@ -252,6 +254,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   display: flex;
 
   &:hover, &[aria-expanded="true"] {
@@ -412,10 +415,11 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-file {
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
-  align-items: center;
   width: 100%;
   min-width: 0;
   height: 24px;
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+  align-items: center;
   display: flex;
 
   &:hover {

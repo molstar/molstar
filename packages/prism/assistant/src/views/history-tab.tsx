@@ -61,7 +61,13 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
         fallback={() => <LogView status={props.status} />}
       >
         {() => (
-          <ScrollArea class={classes.list} contentClass={classes.listContent} role="log" aria-label="Commands">
+          <ScrollArea
+            class={classes.list}
+            contentClass={classes.listContent}
+            role="log"
+            aria-live="off"
+            aria-label="Commands"
+          >
             <For
               each={ids}
               fallback={() => (

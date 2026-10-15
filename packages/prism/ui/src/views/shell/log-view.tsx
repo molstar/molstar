@@ -20,8 +20,9 @@ const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-di
 /** The Log tab: every message the status line showed, newest first, with its kind and time. */
 export function LogView(props: { status: StatusModel }) {
   const newestFirst = props.status.history.pipe(map((h) => h.slice().reverse()));
+  // Not live (a log is, by default): each message is said once, by the status line's region (README §3.7).
   return (
-    <div class={classes.log} role="log" aria-label="Log">
+    <div class={classes.log} role="log" aria-live="off" aria-label="Log">
       <For each={newestFirst} key={(m) => m.id} fallback={() => <p class={classes.empty}>No messages yet.</p>}>
         {(m) => (
           <div class={classes.entry} data-kind={m.kind}>

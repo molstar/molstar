@@ -113,6 +113,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
   &[aria-pressed="true"] {
     background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
 }
@@ -164,6 +165,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-cardTitle {
+  font-size: inherit;
+  font-weight: inherit;
   flex: 1;
 }
 

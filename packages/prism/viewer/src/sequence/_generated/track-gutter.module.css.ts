@@ -26,6 +26,7 @@ defineStyles('viewer/sequence/track-gutter.module.css', `@layer msp.components {
 
 .msp-viewer-track-gutter-icon {
   width: 24px;
+  min-height: max(24px, var(--msp-touch-target, 0px));
   margin-left: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);

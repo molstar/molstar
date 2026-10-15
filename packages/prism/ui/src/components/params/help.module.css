@@ -35,6 +35,18 @@
   border-radius: 50%;
   color: var(--msp-color-text-subtle);
   opacity: 0;
+  position: relative;
+
+  /* The hit area: 24px (44px on touch) around the 16px look, over the row's empty space. */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(24px, var(--msp-touch-target, 0px));
+    height: max(24px, var(--msp-touch-target, 0px));
+    transform: translate(-50%, -50%);
+  }
 
   :hover > * > &,
   :hover > &,

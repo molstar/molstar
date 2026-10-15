@@ -10,6 +10,7 @@
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
@@ -45,8 +46,17 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
     map((p) => p === node),
     distinctUntilChanged(),
   );
+  // Named by its own label and description (not the whole subtree it holds).
+  const labelId = uniqueId('msp-tree-label');
   return (
-    <div role="treeitem" aria-expanded={open} aria-selected={picked} tabIndex={-1} class={classes.item}>
+    <div
+      role="treeitem"
+      aria-expanded={open}
+      aria-selected={picked}
+      aria-labelledby={`${labelId} ${labelId}-d`}
+      tabIndex={-1}
+      class={classes.item}
+    >
       <div
         data-tip-row=""
         data-tree-row=""
@@ -74,10 +84,10 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         {/* Only top-level rows carry an icon (a structure, a volume, the measurements): below, the indent shows where a
             row belongs and its label and description say what it is. */}
         {depth === 0 ? <Icon name={node.icon} size={15} class={classes.kind} /> : null}
-        <span class={classes.label} data-tip-part="">
+        <span class={classes.label} id={labelId} data-tip-part="">
           {node.label}
         </span>
-        <span class={classes.description} data-tip-part="">
+        <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
           {node.description}
         </span>
         <span class={classes.actions}>

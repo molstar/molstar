@@ -11,6 +11,7 @@
 // (`@molstar/prism-ui/dom/control-flow`) where they are `.ts`; the JSX import source is `@molstar/prism-ui/dom`.
 
 export * from './dom/control-flow.js';
+export * from './dom/focus.js';
 export * from './dom/jsx-types.js';
 export * from './dom/motion.js';
 export * from './dom/scope.js';

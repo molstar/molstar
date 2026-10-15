@@ -40,6 +40,9 @@ export interface SequenceControlProps {
   onHover?: (lines: readonly string[]) => void;
 }
 
+/** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */
+const CursorSayMs = 300;
+
 /** The text version's lines' height: two or three lines of letters; the rest scrolls. */
 export const TextHeight = 80;
 /** The air above the lines, px (`--msp-space-3`). */
@@ -254,7 +257,41 @@ export function SequenceControl(props: SequenceControlProps) {
     });
   }
 
-  const root = (<div class={classes.root}>{surface}</div>) as HTMLElement;
+  // The keyboard cursor, said (README §3.7): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the cursor
+  // holds the hover), once the arrows rest, in a polite region of the control's own; nothing while the pointer hovers.
+  const cursorSaid = (<span class={classes.said} aria-live="polite" />) as HTMLElement;
+  {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const say = () => {
+      timer = undefined;
+      const text =
+        seq.ui.keyCursor.value && seq.hover.live.current.owner === 'keyboard'
+          ? labelLines(seq.labels.current.value).join(', ')
+          : '';
+      if (cursorSaid.textContent !== text) cursorSaid.textContent = text;
+    };
+    const later = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = setTimeout(say, CursorSayMs);
+    };
+    const moved = seq.ui.keyCursor.subscribe(later);
+    // The labels follow the pointer too: only the cursor's moves are timed (nothing per pointer move).
+    const labelled = seq.labels.current.subscribe(() => {
+      if (seq.ui.keyCursor.value || cursorSaid.textContent) later();
+    });
+    onCleanup(() => {
+      moved.unsubscribe();
+      labelled.unsubscribe();
+      if (timer !== undefined) clearTimeout(timer);
+    });
+  }
+
+  const root = (
+    <div class={classes.root}>
+      {surface}
+      {cursorSaid}
+    </div>
+  ) as HTMLElement;
   // The coloring icons of the tracks (round 3), where the host offers colorings.
   onCleanup(mountTrackGutter(viewer, surface, root));
   return root;

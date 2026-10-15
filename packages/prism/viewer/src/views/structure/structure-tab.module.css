@@ -38,7 +38,7 @@
    read out), so nothing falls off the edge. */
 @container (width < 296px) {
   .actions > button:has(.actionLabel) {
-    width: 24px;
+    width: max(24px, var(--msp-touch-target, 0px));
     padding: 0;
   }
 
@@ -134,7 +134,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -206,7 +206,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);

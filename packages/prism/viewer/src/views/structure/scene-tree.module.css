@@ -40,10 +40,10 @@
   align-items: center;
   gap: var(--msp-space-2);
   min-width: 0;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
   content-visibility: auto;
-  contain-intrinsic-size: auto 26px;
+  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -67,8 +67,9 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  /* 24px at least (WCAG 2.5.8), 44px on touch. */
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
@@ -128,8 +129,8 @@
 .action {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;
@@ -146,7 +147,7 @@
 }
 
 .actionSlot {
-  width: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
 }
 
 /* A hidden node keeps its eye visible: the state is worth seeing at a glance. */
@@ -176,7 +177,7 @@
   grid-template-columns: 14px 1fr;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);

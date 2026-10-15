@@ -106,6 +106,8 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-title {
   min-width: 0;
+  font-size: inherit;
+  font-weight: inherit;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
@@ -151,6 +153,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   &[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
 }

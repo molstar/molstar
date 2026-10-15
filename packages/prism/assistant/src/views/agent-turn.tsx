@@ -210,7 +210,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
           distinctUntilChanged(),
         );
         return (
-          <section class={classes.card} data-status={status} aria-label="Assistant" aria-live="polite">
+          // Not a live region: the text streams in; the finished reply is said once by the shell's region
+          // (README §3.7; agent-model.ts announces it).
+          <section class={classes.card} data-status={status} aria-label="Assistant">
             <header class={classes.header}>
               <Icon name="sparkles" size={14} class={classes.spark} />
               <span class={classes.prompt} data-tip-overflow="">

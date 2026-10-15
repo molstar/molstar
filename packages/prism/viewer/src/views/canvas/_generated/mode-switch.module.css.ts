@@ -52,6 +52,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 
   &[aria-pressed="true"] {
     background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-text);
   }
 }

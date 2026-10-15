@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
@@ -17,6 +17,7 @@ import type { CommandGroup } from '../../commands/types.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
@@ -129,6 +130,10 @@ export function CommandMenu(props: CommandMenuProps) {
     if (o.kind === 'done') props.onClose();
   });
   onCleanup(() => manager.close());
+  // A modal dialog (README §3.7): Tab stays inside it, and closing it gives the focus back to what opened it.
+  const restore = rememberFocus();
+  let menu: HTMLElement | undefined;
+  onCleanup(() => restore(menu));
   return (
     <div
       class={classes.scrim}
@@ -140,8 +145,13 @@ export function CommandMenu(props: CommandMenuProps) {
       <div
         class={classes.menu}
         role="dialog"
+        aria-modal="true"
         aria-label="Commands"
+        ref={(el) => {
+          menu = el;
+        }}
         onKeyDown={(e) => {
+          trapTab(e, e.currentTarget);
           // Escape anywhere in the menu (a run button, a picker) closes it, and nothing behind it.
           if (e.key !== 'Escape' || e.defaultPrevented) return;
           e.preventDefault();
@@ -170,6 +180,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   const group = observableState<string | undefined>(props.group);
   const highlight = observableState(0);
   const message = observableState<string | undefined>(undefined);
+  // The combobox's list and its options' ids: the input names the highlighted one (`aria-activedescendant`).
+  const listId = uniqueId('msp-command-list');
+  const optionId = (i: number) => `${listId}-${i}`;
   const prefixes = [...(props.prefixes ?? []), helpPrefix(props, (t) => setText(t))];
   const prefixOf = (t: string) => prefixes.find((p) => t.startsWith(p.char));
 
@@ -268,6 +281,21 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   });
   // A move of the highlight notifies the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
+  const active = combineLatest([highlight.asReadonly, rows]).pipe(
+    map(([h, r]) => (r.some((x) => x.kind !== 'caption') ? optionId(h) : undefined)),
+    distinctUntilChanged(),
+  );
+  // What a search found, said once the typing pauses (the list itself is not live).
+  const found = combineLatest([text.asReadonly, rows]).pipe(
+    debounceTime(400),
+    map(([t, r]) => {
+      if (!t.trim()) return '';
+      const n = r.filter((x) => x.kind !== 'caption').length;
+      if (n) return n === 1 ? '1 result' : `${n} results`;
+      return props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.';
+    }),
+    distinctUntilChanged(),
+  );
 
   const setText = (t: string) => {
     text.set(t);
@@ -311,7 +339,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
       type="text"
       role="combobox"
       aria-expanded="true"
-      aria-controls="msp-command-menu-list"
+      aria-controls={listId}
+      aria-autocomplete="list"
+      aria-activedescendant={active}
       aria-label="Command"
       placeholder={placeholder}
       spellcheck={false}
@@ -365,11 +395,20 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         </For>
         {input}
       </div>
-      <Show when={message}>{(m) => <p class={classes.message}>{m}</p>}</Show>
+      <Show when={message}>
+        {(m) => (
+          <p class={classes.message} role="alert">
+            {m}
+          </p>
+        )}
+      </Show>
+      <span class={classes.srOnly} role="status" aria-live="polite">
+        {found}
+      </span>
       <ScrollArea
         class={classes.list}
         contentClass={classes.listContent}
-        id="msp-command-menu-list"
+        id={listId}
         role="listbox"
         aria-label="Commands"
       >
@@ -382,13 +421,21 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           )}
         >
           {(row) => {
-            if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
+            // A caption is not an option (a listbox owns options only): read as text, skipped by the highlight.
+            if (row.kind === 'caption')
+              return (
+                <div class={classes.caption} role="presentation">
+                  {row.label}
+                </div>
+              );
             const i = row.index;
+            const id = optionId(i);
             const selected = highlighted.is(i);
             const hover = () => highlight.set(i);
             if (row.kind === 'group')
               return (
                 <GroupRow
+                  id={id}
                   manager={manager}
                   group={row.group}
                   selected={selected}
@@ -397,9 +444,10 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
                 />
               );
             if (row.kind === 'item')
-              return <ItemRow item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
+              return <ItemRow id={id} item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
             return (
               <CommandRow
+                id={id}
                 row={row}
                 path={relativePath(manager, row.match.command.group, group.value)}
                 inGroup={group.value !== undefined}
@@ -527,6 +575,7 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
 }
 
 function GroupRow(props: {
+  id: string;
   manager: CommandManager<any>;
   group: CommandGroup;
   selected: Observable<boolean>;
@@ -536,6 +585,7 @@ function GroupRow(props: {
   const path = props.manager.groupPath(props.group.parent).map((g) => g.title);
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -554,10 +604,17 @@ function GroupRow(props: {
   return el;
 }
 
-function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; onPick(): void; onHover(): void }) {
+function ItemRow(props: {
+  id: string;
+  item: CommandMenuItem;
+  selected: Observable<boolean>;
+  onPick(): void;
+  onHover(): void;
+}) {
   const { item } = props;
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -574,6 +631,7 @@ function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; 
 }
 
 function CommandRow(props: {
+  id: string;
   row: Extract<Row, { kind: 'match' }>;
   /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
   path: readonly string[];
@@ -589,6 +647,7 @@ function CommandRow(props: {
   const title = match.preset ? `${c.title.replace(/…$/, '')} ${match.preset.title}` : c.title;
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -652,13 +711,20 @@ function FormMode(props: {
     map((s) => s.fields.find((f) => f.id === s.field)),
     distinctUntilChanged(),
   );
+  const listId = uniqueId('msp-command-options');
+  const optionId = (i: number) => `${listId}-${i}`;
   const input = (
     <input
       class={classes.input}
       type="text"
       role="combobox"
-      aria-expanded="true"
-      aria-controls="msp-command-menu-completions"
+      aria-expanded={state.pipe(map((s) => s.completions.length > 0))}
+      aria-controls={listId}
+      aria-autocomplete="list"
+      aria-activedescendant={state.pipe(
+        map((s) => (s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined)),
+        distinctUntilChanged(),
+      )}
       aria-label={field.pipe(map((f) => f?.label ?? command.title))}
       placeholder={field.pipe(map((f) => (f ? f.label : 'Enter to run')))}
       spellcheck={false}
@@ -733,13 +799,14 @@ function FormMode(props: {
       <ScrollArea
         class={classes.list}
         contentClass={classes.listContent}
-        id="msp-command-menu-completions"
+        id={listId}
         role="listbox"
         aria-label="Options"
       >
         <For each={state.pipe(map((s) => s.completions))}>
           {(c, i) => (
             <div
+              id={i.pipe(map(optionId))}
               class={classes.row}
               role="option"
               aria-selected={combineLatest([state, i]).pipe(map(([s, j]) => s.pick === j))}

@@ -9,6 +9,7 @@
  */
 
 import { isInside, ownsKey } from '../../dom/events.js';
+import { menuKeys, rememberFocus } from '../../dom/focus.js';
 import { createRoot } from '../../dom/scope.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/context-menu.module.css.js';
@@ -27,7 +28,8 @@ export interface ContextMenuItem {
  * Opens a menu at a point of the viewport (client px), in `root` (the app's root, so its tokens apply): below and to the
  * right of the point, flipped to the other side where it would leave the window (so near the bottom edge it opens upward).
  * It measures once, on opening. Closes on a choice, on Escape, on a press elsewhere and when the window resizes or
- * scrolls; `close` ends it early. Returns that close.
+ * scrolls; `close` ends it early. Returns that close. The arrows move between its items; closed, the focus goes back to
+ * where it was (README §3.7).
  */
 export function openContextMenu(
   root: HTMLElement,
@@ -37,6 +39,7 @@ export function openContextMenu(
 ): () => void {
   let closed = false;
   let dispose = () => {};
+  const restore = rememberFocus();
   const close = () => {
     if (closed) return;
     closed = true;
@@ -45,6 +48,7 @@ export function openContextMenu(
     window.removeEventListener('resize', close);
     window.removeEventListener('scroll', close, true);
     dispose();
+    restore(menu);
     menu.remove();
     onClose?.();
   };
@@ -63,7 +67,7 @@ export function openContextMenu(
   createRoot((d) => {
     dispose = d;
     menu = (
-      <div class={classes.menu} role="menu" onContextMenu={(e: Event) => e.preventDefault()}>
+      <div class={classes.menu} role="menu" onKeyDown={menuKeys} onContextMenu={(e: Event) => e.preventDefault()}>
         {items.map((item) => (
           <button
             type="button"

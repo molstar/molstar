@@ -54,6 +54,7 @@ export class NotificationsManager extends ReactiveModel {
   readonly #tasks = observableState<readonly StatusTask[]>([]);
   readonly #chips = observableState<readonly StatusChip[]>([]);
   readonly #posted = new Subject<StatusMessage>();
+  readonly #spoken = observableState('');
   #serial = 0;
   #fade: ReturnType<typeof setTimeout> | undefined;
 
@@ -79,6 +80,23 @@ export class NotificationsManager extends ReactiveModel {
     return this.#chips.asReadonly;
   }
 
+  /**
+   * What the shell's one polite live region says (README §3.7): the latest message posted or announced. A repeat of the
+   * same words differs by a trailing no-break space, so it is said again.
+   */
+  get spoken(): ReadonlyState<string> {
+    return this.#spoken.asReadonly;
+  }
+
+  /**
+   * Says `text` to screen readers only: the live region, with no message on show and nothing in the history (a
+   * selection's or a focus's result, the assistant's finished reply).
+   */
+  announce(text: string): void {
+    if (!text) return;
+    this.#spoken.set(text === this.#spoken.value ? `${text}\u00a0` : text);
+  }
+
   /** Each message as it is posted (not replayed). */
   get posted(): Observable<StatusMessage> {
     return this.#posted.asObservable();
@@ -88,6 +106,7 @@ export class NotificationsManager extends ReactiveModel {
     const message: StatusMessage = { id: ++this.#serial, kind, text, time: new Date() };
     this.#history.set([message, ...this.#history.value].slice(0, this.options.historySize ?? 200));
     this.#current.set(message);
+    this.announce(text);
     clearTimeout(this.#fade);
     if (kind !== 'error') this.#fade = setTimeout(() => this.dismiss(message.id), this.options.fadeMs ?? 4000);
     this.#posted.next(message);

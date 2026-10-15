@@ -29,7 +29,7 @@ export const CanvasBindings: readonly InputBindingGroup[] = [
       { action: 'Add to the selection', input: ['⇧', 'Click'] },
       { action: 'Select everything between', input: ['⇧', 'Click', 'a second residue'] },
       { action: 'Clear the selection', input: ['Click', 'empty space'] },
-      { action: 'Show what is under the pointer', input: ['Hover'] },
+      { action: 'Show what is under the pointer', input: ['Hover'], or: ['Long press'] },
     ],
   },
 ];

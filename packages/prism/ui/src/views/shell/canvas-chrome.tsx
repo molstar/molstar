@@ -14,6 +14,16 @@ import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
+import {
+  deepActiveElement,
+  focusables,
+  focusedByKeyboard,
+  focusFirstItem,
+  menuKeys,
+  rememberFocus,
+  trapTab,
+  uniqueId,
+} from '../../dom/focus.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
@@ -109,6 +119,12 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
     map(([a, b]) => a || b),
     distinctUntilChanged(),
   );
+  // The menu button pattern (README §3.7): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a button
+  // that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the next button.
+  const expanded = withMenu?.open.asReadonly.pipe(
+    map((o) => o?.item === item),
+    distinctUntilChanged(),
+  );
   return (
     <button
       type="button"
@@ -117,20 +133,31 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       data-tip={withMenu ? undefined : itemTitle(item)}
       data-tip-side={item.place === 'canvas' ? 'top' : 'left'}
       aria-label={itemTitle(item)}
-      aria-pressed={pressed}
+      // Only a button with a state is a toggle (a button that cycles, like the theme, names its state in its label).
+      aria-pressed={item.pressed || item.overlay ? pressed : undefined}
       aria-haspopup={withMenu ? 'menu' : undefined}
+      aria-expanded={expanded}
       data-overlay-trigger={item.overlay ? '' : undefined}
       data-keeps-card={item.keepsCard ? '' : undefined}
       onClick={(e) => {
-        // A button that only holds a menu opens it; otherwise the click runs the button's own action.
-        if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget);
+        // A button that only holds a menu opens it (from the keyboard, at its first item: a click with no pointer
+        // has `detail` 0); otherwise the click runs the button's own action.
+        if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget, e.detail === 0);
         withMenu?.hide();
         if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
         else item.run?.(e.currentTarget);
       }}
+      onKeyDown={
+        withMenu
+          ? (e) => {
+              if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+              e.preventDefault();
+              withMenu.show(item, e.currentTarget, true);
+            }
+          : undefined
+      }
       onPointerEnter={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
       onPointerLeave={withMenu ? () => withMenu.hideSoon() : undefined}
-      onFocus={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
       <ItemIcon item={item} size={item.caption ? 16 : 20} class={classes.face} />
@@ -165,20 +192,25 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
 }
 
 /**
- * The open tool menu of the canvas stack: which button, at what height. Opens on hover or focus, closes a moment after
- * the pointer leaves both the button and the menu (so it can travel between them), on a choice, or on Escape.
+ * The open tool menu of the canvas stack: which button, at what height. Opens on hover or from the keyboard (its
+ * button's ↓, ↑, Enter), closes a moment after the pointer leaves both the button and the menu (so it can travel
+ * between them), when the focus leaves it, on a choice, or on Escape (the focus goes back to its button).
  */
 export class ToolMenus {
-  readonly open = observableState<{ item: CanvasToolbarItem; right: number } | undefined>(undefined);
+  readonly open = observableState<{ item: CanvasToolbarItem; right: number; button: Element } | undefined>(undefined);
   stack: HTMLElement | undefined;
+  /** The open menu's element (`ToolMenu` sets it). */
+  menu: HTMLElement | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
-  show(item: CanvasToolbarItem, button: Element) {
+  /** Opens `item`'s menu by its button; `focus`: at its first item (opened from the keyboard). */
+  show(item: CanvasToolbarItem, button: Element, focus = false) {
     this.keep();
     // The menu opens upward from the stack (a row in the canvas' corner), its right edge level with the button's.
     const right = this.stack ? this.stack.getBoundingClientRect().right - button.getBoundingClientRect().right : 0;
     const current = this.open.value;
-    if (current?.item !== item || current.right !== right) this.open.set({ item, right });
+    if (current?.item !== item || current.right !== right) this.open.set({ item, right, button });
+    if (focus) queueMicrotask(() => this.menu && focusFirstItem(this.menu));
   }
 
   keep() {
@@ -214,48 +246,69 @@ function ToolMenu(props: { menus: ToolMenus }) {
   onCleanup(() => document.removeEventListener('keydown', onKey));
   return (
     <Show when={menus.open}>
-      {(open) => (
-        <div
-          class={classes.toolMenu}
-          style={{ right: `${open.right}px` }}
-          role="menu"
-          aria-label={open.item.title}
-          onPointerEnter={() => menus.keep()}
-          onPointerLeave={() => menus.hideSoon()}
-          onFocusIn={() => menus.keep()}
-          onFocusOut={() => menus.hideSoon()}
-        >
-          <div class={classes.toolMenuCard}>
-            {open.item.menu!.map((m, i, all) => (
-              <>
-                {i > 0 && m.group !== all[i - 1].group ? (
-                  <div class={classes.toolMenuDivider} role="separator" />
-                ) : null}
-                <button
-                  type="button"
-                  role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
-                  aria-checked={m.pressed}
-                  class={classes.toolMenuRow}
-                  disabled={!!m.disabled}
-                  onClick={() => {
-                    menus.hide();
-                    m.run();
-                  }}
-                >
-                  {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
-                  <span class={classes.toolMenuLabel}>
-                    {m.label}
-                    {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
-                  </span>
-                  {m.pressed ? (
-                    <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+      {(open) => {
+        // Closed while it had the focus (Escape, a choice): the focus goes back to its button, not to the page.
+        let hadFocus = false;
+        let el: HTMLElement | undefined;
+        onCleanup(() => {
+          if (menus.menu === el) menus.menu = undefined;
+          if (!hadFocus) return;
+          const now = deepActiveElement();
+          if (!now || el?.contains(now)) (open.button as HTMLElement).focus({ preventScroll: true });
+        });
+        return (
+          <div
+            class={classes.toolMenu}
+            style={{ right: `${open.right}px` }}
+            role="menu"
+            aria-label={open.item.title}
+            ref={(x) => {
+              el = x;
+              menus.menu = x;
+            }}
+            onKeyDown={menuKeys}
+            onPointerEnter={() => menus.keep()}
+            onPointerLeave={() => menus.hideSoon()}
+            onFocusIn={() => {
+              hadFocus = true;
+              menus.keep();
+            }}
+            onFocusOut={() => menus.hideSoon()}
+          >
+            <div class={classes.toolMenuCard}>
+              {open.item.menu!.map((m, i, all) => (
+                <>
+                  {i > 0 && m.group !== all[i - 1].group ? (
+                    <div class={classes.toolMenuDivider} role="separator" />
                   ) : null}
-                </button>
-              </>
-            ))}
+                  <button
+                    type="button"
+                    role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
+                    aria-checked={m.pressed}
+                    class={classes.toolMenuRow}
+                    disabled={!!m.disabled}
+                    onClick={() => {
+                      menus.hide();
+                      m.run();
+                    }}
+                  >
+                    {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+                    <span class={classes.toolMenuLabel}>
+                      {m.label}
+                      {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+                    </span>
+                    {m.pressed ? (
+                      <Show when={m.pressed}>
+                        {() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}
+                      </Show>
+                    ) : null}
+                  </button>
+                </>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      }}
     </Show>
   );
 }
@@ -272,6 +325,7 @@ export function RailMenu(props: { shell: ShellModel }) {
   const lead = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && !i.group)));
   const actions = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && i.group)));
   const tabs = right.tabs.pipe(map((all) => (all.some((t) => t.compactBar) ? all.filter((t) => !t.compactBar) : [])));
+  let list: HTMLElement | undefined;
   const run = (item: CanvasToolbarItem, anchor: Element) => {
     open.set(false);
     if (item.overlay) shell.toggleOverlay(item.overlay, anchor);
@@ -298,53 +352,82 @@ export function RailMenu(props: { shell: ShellModel }) {
           type="button"
           class={classes.railMenuButton}
           aria-label="More"
+          aria-haspopup="menu"
           aria-expanded={open}
           data-tip="More"
-          onClick={() => open.set(!open.value)}
+          onClick={(e) => {
+            open.set(!open.value);
+            // From the keyboard, the menu opens at its first item.
+            if (open.value && e.detail === 0) queueMicrotask(() => list && focusFirstItem(list));
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+            e.preventDefault();
+            open.set(true);
+            queueMicrotask(() => list && focusFirstItem(list));
+          }}
         >
           <Icon name="ellipsis" size={20} />
         </button>
         <Show when={open}>
-          {() => (
-            <div class={classes.railMenuList} role="menu" aria-label="More">
-              <For each={tabs} key={(t) => t.id}>
-                {(tab) => (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    class={classes.toolMenuRow}
-                    onClick={() => {
-                      open.set(false);
-                      shell.show(tab.id);
-                    }}
-                  >
-                    <Icon name={tab.icon} size={16} />
-                    <span class={classes.toolMenuLabel}>{tab.title}</span>
-                    <span />
-                  </button>
-                )}
-              </For>
-              <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
-                {() => <div class={classes.railMenuDivider} />}
-              </Show>
-              <For each={actions} key={(i) => i.id}>
-                {(item) => (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    class={classes.toolMenuRow}
-                    // As on the rail: an item shown only while it applies (Play snapshots with two or more).
-                    hidden={item.visible ? item.visible.pipe(map((v) => !v)) : false}
-                    onClick={(e) => run(item, e.currentTarget)}
-                  >
-                    <ItemIcon item={item} size={16} class={classes.face} />
-                    <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
-                    <span />
-                  </button>
-                )}
-              </For>
-            </div>
-          )}
+          {() => {
+            const restore = rememberFocus();
+            onCleanup(() => restore(list));
+            return (
+              <div
+                class={classes.railMenuList}
+                role="menu"
+                aria-label="More"
+                ref={(el) => {
+                  list = el;
+                }}
+                onKeyDown={(e) => {
+                  menuKeys(e);
+                  if (e.key !== 'Escape') return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  open.set(false);
+                }}
+              >
+                <For each={tabs} key={(t) => t.id}>
+                  {(tab) => (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class={classes.toolMenuRow}
+                      onClick={() => {
+                        open.set(false);
+                        shell.show(tab.id);
+                      }}
+                    >
+                      <Icon name={tab.icon} size={16} />
+                      <span class={classes.toolMenuLabel}>{tab.title}</span>
+                      <span />
+                    </button>
+                  )}
+                </For>
+                <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
+                  {() => <div class={classes.railMenuDivider} />}
+                </Show>
+                <For each={actions} key={(i) => i.id}>
+                  {(item) => (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class={classes.toolMenuRow}
+                      // As on the rail: an item shown only while it applies (Play snapshots with two or more).
+                      hidden={item.visible ? item.visible.pipe(map((v) => !v)) : false}
+                      onClick={(e) => run(item, e.currentTarget)}
+                    >
+                      <ItemIcon item={item} size={16} class={classes.face} />
+                      <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
+                      <span />
+                    </button>
+                  )}
+                </For>
+              </div>
+            );
+          }}
         </Show>
       </div>
     </div>
@@ -415,10 +498,29 @@ export function OverlayHost(props: { shell: ShellModel }) {
 
 function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   const { shell, open } = props;
+  // A card is a dialog (README §3.7: cards trap and restore focus): opened from the keyboard, the focus goes into it;
+  // Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to its button.
+  const restore = rememberFocus(() => open.anchor as HTMLElement | undefined);
+  const byKeyboard = focusedByKeyboard(open.anchor);
+  const titleId = uniqueId('msp-card-title');
+  const pinnedState = shell.dock('right').state.pipe(
+    map((s) => s.pinned),
+    distinctUntilChanged(),
+  );
   const card = (
-    <section class={classes.card} role="dialog" aria-label={open.overlay.title}>
+    <section
+      class={classes.card}
+      role="dialog"
+      aria-modal={pinnedState.pipe(map((p) => !p))}
+      aria-labelledby={titleId}
+      onKeyDown={(e) => {
+        if (!pinned()) trapTab(e, e.currentTarget);
+      }}
+    >
       <header class={classes.cardHeader}>
-        <span class={classes.cardTitle}>{open.overlay.title}</span>
+        <h2 class={classes.cardTitle} id={titleId}>
+          {open.overlay.title}
+        </h2>
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
@@ -448,9 +550,21 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   };
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('pointerdown', onPointer, true);
+  // Into the card: its body's first control once the view is there (a frame), else its Close.
+  let frame = 0;
+  if (byKeyboard) {
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const body = card.querySelector(`.${classes.cardBody}`);
+      const all = focusables(card);
+      (all.find((el) => body?.contains(el)) ?? all[all.length - 1])?.focus();
+    });
+  }
   onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
     doc.removeEventListener('keydown', onKey);
     doc.removeEventListener('pointerdown', onPointer, true);
+    restore(card);
   });
   return card;
 }
@@ -470,7 +584,7 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void;
   return (
     <div class={classes.status}>
       <div class={classes.announce} role="status" aria-live="polite">
-        <Show when={status.current}>{(m) => m.text}</Show>
+        {status.spoken}
       </div>
       <Show when={status.current}>
         {(m) => (

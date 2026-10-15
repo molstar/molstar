@@ -24,6 +24,8 @@
   align-items: center;
   justify-content: center;
   width: 24px;
+  /* The row's height is set inline (22px rows): 24px at least (WCAG 2.5.8), 44px on touch. */
+  min-height: max(24px, var(--msp-touch-target, 0px));
   margin-left: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);

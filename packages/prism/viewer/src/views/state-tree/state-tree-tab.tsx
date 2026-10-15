@@ -10,6 +10,7 @@
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
+import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
@@ -101,8 +102,17 @@ function Cell(props: {
     else next.add(node.ref);
     collapsed.set(next);
   };
+  // Named by its own label and description (not the whole subtree it holds).
+  const labelId = uniqueId('msp-tree-label');
   return (
-    <div role="treeitem" aria-expanded={expanded} aria-selected={selected} tabIndex={-1} class={tree.item}>
+    <div
+      role="treeitem"
+      aria-expanded={expanded}
+      aria-selected={selected}
+      aria-labelledby={`${labelId} ${labelId}-d`}
+      tabIndex={-1}
+      class={tree.item}
+    >
       <div
         data-tip-row=""
         data-tree-row=""
@@ -126,10 +136,10 @@ function Cell(props: {
           <Icon name="chevron-right" size={14} />
         </button>
         {depth === 0 ? <Icon name={node.icon} size={15} class={tree.kind} /> : null}
-        <span class={tree.label} data-tip-part="">
+        <span class={tree.label} id={labelId} data-tip-part="">
           {node.label}
         </span>
-        <span class={tree.description} data-tip-part="">
+        <span class={tree.description} id={`${labelId}-d`} data-tip-part="">
           {node.status === 'error' ? <span class={classes.error}>{node.error ?? 'Error'}</span> : node.description}
         </span>
         <span class={tree.actions}>
