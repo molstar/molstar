@@ -20,6 +20,11 @@ import {
   selectionItems,
 } from '../index.js';
 import { tinyStructure } from './fixture.js';
+import { registerQueryLanguages } from '../languages.js';
+import { AllQueryLanguages } from '../languages/all.js';
+
+// Every query language, as the default spec's viewer has them (targets/languages.ts).
+registerQueryLanguages(AllQueryLanguages);
 
 // Stories Untold's `any-molql` tests, on a structure built in `fixture.ts` (the heme A:500 beside CYS 104).
 

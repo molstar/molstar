@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { QueryLanguageEntry } from './targets/languages.js';
 import type { CanvasMenuItem, ShellModel } from '@molstar/prism-ui/shell/shell';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ModelSource } from '@molstar/ai-session';
@@ -46,6 +47,11 @@ export interface PrismViewerSpec {
   readonly options?: PartialOptions;
   /** In order: the viewer's built-in features first, then Mol*'s and the app's (§3). */
   readonly extensions?: readonly (ViewerExtension | LazyViewerExtension)[];
+  /**
+   * The query languages target text may be written in (targets.md §1), PyMOL first if listed (the default for text):
+   * only these transpilers are bundled. None: keywords, address lists and MolQL selectors only (§2.7).
+   */
+  readonly languages?: readonly QueryLanguageEntry[];
   /** Replace or remove any part by id (§4). */
   readonly overrides?: Readonly<Record<PartId, Part | null>>;
   /** The one sequence viewer, or none (§2.3). */

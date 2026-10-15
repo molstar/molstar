@@ -12,6 +12,7 @@ interface PrismViewerSpec {
   readonly plugin: PrismViewerPluginParts;              // §2.1: the engine's base, before the extensions' parts
   readonly options?: Partial<PrismViewerOptions>;        // §2.2: one PD definition: JS options, URL, Settings
   readonly extensions?: readonly (ViewerExtension | LazyViewerExtension)[];   // §3, in order
+  readonly languages?: readonly QueryLanguageEntry[];   // §2.7: the query languages target text is read in
   readonly overrides?: Readonly<Record<PartId, Part | null>>;                 // §4: replace or remove any part by id
   readonly sequence?: PrismViewerSequenceSpec | false;   // §2.3: the one sequence viewer, or none
   readonly agent?: PrismViewerAgentSpec | false;         // §2.4: the tools and skills, and the assistant that runs them
@@ -159,6 +160,20 @@ Each is optional and absent by default: nothing is kept. The stores are small by
 written, and the viewer says so once (journal.md §6). Every stored value carries a version (journal.md §7). Two live
 viewers on a page with the same `key` are refused at creation, naming it (README decision 29).
 
+### 2.7 `languages`: what target text is read in
+
+```ts
+interface QueryLanguageEntry { id: 'pymol' | 'vmd' | 'jmol' | 'molscript'; name: string; hint: string; transpile(text: string): Expression }
+// @molstar/prism-viewer/targets/languages/{pymol,vmd,jmol,molscript,all}: one module each, so a spec bundles only what it names
+```
+
+The languages a target's query text may be written in (targets.md §1). Keywords, address lists and MolQL selectors are
+always read; text in a language the spec does not list fails, naming the languages it does read. `DefaultPrismViewerSpec`
+lists all four (`AllQueryLanguages`, PyMOL first, the default for text); absent, none: the transpilers (84 kB minified)
+are not in the bundle (`examples/minimal-prism-viewer`). The languages are registered when a viewer is made and are
+code a page has, not a per-viewer setting: two viewers on a page read what either listed. The operations' `language`
+parameter keeps its four values.
+
 ## 3. Extensions
 
 Plain types and helpers, not a framework: every extension lives in this repository (README §2.13), so there is no
@@ -288,7 +303,7 @@ itself, which keeps it honest.
 ## 5. Defaults and the app
 
 `DefaultPrismViewerSpec()` holds the viewer's base: `plugin` (the named parts), the default `sequence` and `agent`
-(no assistant), its own built-in features as `extensions` (§3.1), no `persist`. Mol\*'s extensions are the app's,
+(no assistant), every query language (§2.7), its own built-in features as `extensions` (§3.1), no `persist`. Mol\*'s extensions are the app's,
 since they depend on the viewer (README §3.1). `apps/prism-viewer`:
 
 ```ts

@@ -91,9 +91,9 @@ an unminified build (6.0 MB of module code in all):
   remove every tab and button; overrides take parts out at run time, not out of the bundle.
 - **No way to drop the rail**: with every tab and button removed, the shell still draws its empty 44 px right rail.
   `compactRail` only hides it behind a button in the canvas's corner.
-- **MolScript transpilers**: the viewer's `targets/compile.ts` imports `@molstar/query-language/compile`, which
-  registers the Jmol, PyMOL and VMD transpilers (118 kB unminified, more with their shared code), although only
-  MolScript is needed. The bare engine does not have them.
+- **MolScript transpilers** (resolved): the viewer read target text through `@molstar/query-language/compile`, which
+  brings the Jmol, PyMOL and VMD transpilers. The spec now lists the languages (`languages`, viewer-spec.md §2.7); this
+  composition lists none, so keywords and address lists only, and no transpiler is bundled (84 kB minified less).
 - **Engine code only the viewer reaches**: about 350 kB more unminified than the bare engine has, from what the viewer's
   API imports: the interaction computations (hydrogen bonds, charges, refinement) and their cylinder representations,
   the volume streaming behavior, isosurface and marching cubes, the focus representation and camera behaviors, the

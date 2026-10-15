@@ -55,7 +55,10 @@ describe.each(OptIn)('the opt-in module %s', (name) => {
     const offenders: string[] = [];
     for (const dir of ['src', 'scripts']) {
       for (const file of sources(path.join(root, dir))) {
-        if (fs.readFileSync(file, 'utf8').includes(`'${name}`)) offenders.push(path.relative(root, file));
+        let text = fs.readFileSync(file, 'utf8');
+        // An MDX page's fenced code is an example for the reader, not an import (the introduction's "Using it").
+        if (file.endsWith('.mdx')) text = text.replace(/^```[\s\S]*?^```/gm, '');
+        if (text.includes(`'${name}`)) offenders.push(path.relative(root, file));
       }
     }
     expect(offenders).toEqual([]);

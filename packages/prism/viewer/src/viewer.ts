@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { registerQueryLanguages } from './targets/languages.js';
 import type { FiberRows } from '@molstar/ai-fibers';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
@@ -251,6 +252,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(watchOutsideChanges(plugin, history));
 
+    // The spec's query languages, readable from here on (targets.md §1).
+    registerQueryLanguages(spec.languages ?? []);
     const targets = createTargetResolver(plugin);
     const modules = new Set(o.modules);
     // Operations that load what an extension owns ask the extensions first; set once they are added.

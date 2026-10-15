@@ -19,7 +19,8 @@ interface Scoped { target: Target; structure?: StructureRef }   // StructureRef:
 ```
 
 - **Reading a string**, in order: a keyword, then an address list, then a query text in the given language (PyMOL
-  unless the call says `language: 'vmd' | 'jmol' | 'molscript'`). Permissive as Stories reads small models' input:
+  unless the call says `language: 'vmd' | 'jmol' | 'molscript'`), when the viewer reads it: its spec lists the languages
+  it bundles (viewer-spec.md §2.7; the default spec all four). Permissive as Stories reads small models' input:
   spaces, case, `A/120`, `A 120-130`, a trailing comma are all read; what still does not parse fails with the part that
   did not and a hint.
 - **`selection` and `focus`** are the person's: Mol\*'s current selection and focus, so "color the selection red" and

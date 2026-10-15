@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { AllQueryLanguages } from './targets/languages/all.js';
 import { AnimationFeature } from './features/animation/index.js';
 import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
 import { ExportImageFeature } from './features/export-image/index.js';
@@ -37,6 +38,8 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
       ExportImageFeature,
       ExportSessionFeature,
     ],
+    // PyMOL, VMD, Jmol and MolScript for target text.
+    languages: AllQueryLanguages,
     // Seq*, its own chunk (loaded when a structure is first shown).
     sequence: { runtime: () => import('./sequence/runtime.js'), behaviors: [] },
     agent: {},

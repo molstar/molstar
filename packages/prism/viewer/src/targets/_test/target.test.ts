@@ -23,6 +23,11 @@ import {
 } from '../index.js';
 import { tinyStructure } from './fixture.js';
 import { evaluateTarget } from '../index.js';
+import { registerQueryLanguages } from '../languages.js';
+import { AllQueryLanguages } from '../languages/all.js';
+
+// Every query language, as the default spec's viewer has them (targets/languages.ts).
+registerQueryLanguages(AllQueryLanguages);
 
 function items(text: string): ComponentExpression[] {
   const r = parseAddressList(text);

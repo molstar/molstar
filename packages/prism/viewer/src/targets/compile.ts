@@ -7,10 +7,10 @@
  */
 
 import { compile } from '@molstar/model/script/runtime/query/compiler';
-import { compileScript } from '@molstar/query-language/compile';
 import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 import { Expression } from '@molstar/query-language/language/expression';
 import { expressionValidationIssues } from '@molstar/query-language/language/validation';
+import { queryLanguage, queryLanguages } from './languages.js';
 import type { Failure, MolQLSelector, QueryLanguage } from './types.js';
 
 // Ported from Stories Untold's `any-molql` (compile.ts). Failures are values: `{ ok: false, message, hint }`.
@@ -21,7 +21,8 @@ const QueryHint =
   'Write a keyword (protein, ligand, water, ...), an address list ("A:120-130", "B"), or PyMOL selection text ' +
   '("chain A and resn HIS", "byres polymer within 5 of resn STI").';
 
-const LanguageName: Record<QueryLanguage, string> = {
+/** A language's name for people, whether this viewer reads it or not. */
+export const LanguageName: Record<QueryLanguage, string> = {
   pymol: 'PyMOL',
   vmd: 'VMD',
   jmol: 'Jmol',
@@ -29,35 +30,42 @@ const LanguageName: Record<QueryLanguage, string> = {
 };
 
 /**
- * A selection written as text (PyMOL, VMD or Jmol selection syntax, or MolScript) as MolQL, checked by Mol*'s query
- * compiler. Errors are said in words the writer can act on.
+ * A selection written as text in a query language this viewer reads (its spec's `languages`: PyMOL, VMD, Jmol,
+ * MolScript) as MolQL, checked by Mol*'s query compiler. Errors are said in words the writer can act on.
  */
 export function compileQuery(text: string, language: QueryLanguage = 'pymol'): Compiled {
   const source = text.trim();
   if (!source) return failure('The query is empty.', QueryHint);
+  const entry = queryLanguage(language);
+  if (!entry) {
+    const known = queryLanguages();
+    return known.length
+      ? failure(
+          `This viewer does not read ${LanguageName[language]}.`,
+          `Write it in ${known.map((l) => l.name).join(', ')}, or as a keyword or an address list ("A:100-120").`,
+        )
+      : failure(
+          'It is not a keyword or an address list, and this viewer reads no query language.',
+          'Write a keyword (protein, ligand, water, ...) or an address list ("A:120-130", "B").',
+        );
+  }
   let molql: Expression;
   try {
-    molql = compileScript(language === 'molscript' ? 'mol-script' : language, source);
+    molql = entry.transpile(source);
   } catch (e) {
     // Mol*'s PyMOL parser recurses without end on an operator missing its left side ("polymer and within 5 of ...")
     // and on a group opening with two parentheses ("((a) within 5 of b)"); say what to write instead of "Maximum call
     // stack size".
     if (/call stack/i.test(messageOf(e))) {
       return failure(
-        `${LanguageName[language]} could not read it: the parser went in circles.`,
+        `${entry.name} could not read it: the parser went in circles.`,
         'Give "within" and "around" a left side, and open no group with two parentheses; e.g. "byres (chain A and polymer) within 5 of (resn STI)".',
       );
     }
-    return failure(`${LanguageName[language]} could not read it: ${messageOf(e)}`, languageHint(language));
+    return failure(`${entry.name} could not read it: ${messageOf(e)}`, entry.hint);
   }
   const checked = checkMolQL(molql);
-  return checked === true ? { ok: true, molql } : failure(checked, languageHint(language));
-}
-
-function languageHint(language: QueryLanguage): string {
-  return language === 'pymol'
-    ? 'PyMOL selection syntax, e.g. "chain A and resi 100-120", "resn HIS", "byres polymer within 5 of resn HEM"; or an address list ("A:100-120").'
-    : `${LanguageName[language]} selection syntax, or an address list ("A:100-120") or a keyword (protein, ligand, ...).`;
+  return checked === true ? { ok: true, molql } : failure(checked, entry.hint);
 }
 
 /** Whether a MolQL expression compiles (true), or why not. */
