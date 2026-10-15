@@ -29,7 +29,7 @@ import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
 // orange, aligned in yellow, as the 3D view and the sequence mark them) and its edges projected, dashed, to them.
-// Residue ticks on both axes, chain bands for a complex, a pLDDT strip along both (off until asked for), the scale in
+// Residue ticks on both axes, chain bands for a complex, a pLDDT strip along both (its toggle hides it), the scale in
 // Å. Pointer-rate input is handled once per frame (styling.md §5).
 
 /** A box of cells: aligned rows `i0`–`i1`, scored columns `j0`–`j1` (all in, ordered). */
@@ -453,9 +453,9 @@ export function PaePlot(props: PaePlotProps) {
   );
 
   // The scale: the ramp with a tick each 5 Å (each 10 Å past 40).
-  // pLDDT along both axes (AlphaFold DB's confidence bands), a pixel a residue as the plot's; off until asked for.
+  // pLDDT along both axes (AlphaFold DB's confidence bands), a pixel a residue as the plot's; shown until turned off.
   const plddt = m.plddt;
-  const showPlddt = observableState(false);
+  const showPlddt = observableState(true);
   const stripCanvas = (vertical: boolean) => {
     const c = (
       <canvas

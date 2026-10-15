@@ -269,17 +269,17 @@ describe('the PAE card', () => {
     expect(put).toHaveBeenCalledTimes(3);
     const plot = host.querySelector<HTMLElement>('[role="img"]')!;
 
-    // The pLDDT strips: off until the toggle; then along both axes, with the bands' legend.
+    // The pLDDT strips: along both axes with the bands' legend, until the toggle hides them.
     const toggle = [...host.querySelectorAll('button')].find((b) => b.textContent === 'pLDDT')!;
     const legend = host.querySelector<HTMLElement>('[aria-label="pLDDT bands"]')!;
-    expect(toggle.getAttribute('aria-pressed')).toBe('false');
-    expect(legend.style.display).toBe('none');
-    toggle.click();
     expect(toggle.getAttribute('aria-pressed')).toBe('true');
     expect(legend.style.display).toBe('flex');
     expect(legend.textContent).toContain('Very high > 90');
     toggle.click();
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
     expect(legend.style.display).toBe('none');
+    toggle.click();
+    expect(legend.style.display).toBe('flex');
     const pointer = (type: string, x: number, y: number) =>
       plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
 
