@@ -13,6 +13,7 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { Observable } from 'rxjs';
 import { BuiltInAnnotations } from '../api/annotations.js';
 import type { ViewerApi } from '../api/area.js';
+import type { KeptRecord } from '../journal/record.js';
 
 /**
  * A state action the Home tab offers: one of the actions applicable to the state tree's root (download structure,
@@ -73,6 +74,18 @@ export interface HomeModel {
   session?: SessionModel;
   /** After a load: what the new structure carries beyond the built-ins, offered in one click (parity.md §6a). */
   annotationOffer?: AnnotationOfferModel;
+  /** The records kept in earlier sessions (journal.md §3): listed while shown, one opened read-only in History. */
+  keptRecords?: KeptRecordsHomeModel;
+}
+
+export interface KeptRecordsHomeModel {
+  /** Newest first, this session's own aside. */
+  list: ReadonlyState<readonly KeptRecord[]>;
+  /** Lists now and after each keep or forget, until the returned function is called. */
+  watch(): () => void;
+  /** Shows it in History, read-only, beside whatever is loaded. */
+  open(id: string): void;
+  forget(id: string): Promise<void>;
 }
 
 /** "AF-P04637 has pLDDT": an extension's annotation a structure that just loaded carries. */

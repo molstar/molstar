@@ -17,6 +17,7 @@ import {
   type FiberHost,
   type FiberId,
   type FiberRows,
+  type FiberTable,
   fiberCommandId,
   fiberEntryId,
   fiberId,
@@ -360,63 +361,11 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     ...(o.keepIn ? { keepIn: o.keepIn } : {}),
     async read(limit, before) {
       await chain;
-      const items: RecordItem[] = [];
-      let start = before;
-      let end: number | undefined;
-      let more = false;
-      // Backward windows of at most the fiber's limit, until `limit` entries are read or the record begins.
-      for (let left = Math.max(1, limit); left > 0; ) {
-        const page = await host.window({
-          fiberId: fid,
-          limit: Math.min(left, RecordWindowMax),
-          direction: 'backward',
-          ...(start !== undefined ? { start } : {}),
-        });
-        if ('status' in page) {
-          console.error('[prism-viewer] record: could not read', page);
-          break;
-        }
-        end ??= page.endExclusive;
-        for (let i = page.entries.length - 1; i >= 0; i--) {
-          const item = itemOf(page.entries[i]);
-          if (item) items.push(item);
-        }
-        more = page.hasMore;
-        start = page.start;
-        left -= page.entries.length;
-        if (!page.hasMore || !page.entries.length) break;
-      }
-      return { items, more, start: start ?? 0, end: end ?? start ?? 0 };
+      return readBackward(host, fid, limit, before);
     },
     async readAfter(from, limit) {
       await chain;
-      const entries: FiberEntry[] = [];
-      let start = from;
-      let more = false;
-      // Forward windows of at most the fiber's limit, until `limit` entries are read or the record ends.
-      for (let left = Math.max(1, limit); left > 0; ) {
-        const page = await host.window({
-          fiberId: fid,
-          start,
-          limit: Math.min(left, RecordWindowMax),
-          direction: 'forward',
-        });
-        if ('status' in page) {
-          console.error('[prism-viewer] record: could not read', page);
-          break;
-        }
-        for (const e of page.entries) entries.push(e);
-        more = page.hasMore;
-        if (page.entries.length) start = page.endExclusive;
-        left -= page.entries.length;
-        if (!page.hasMore || !page.entries.length) break;
-      }
-      const items: RecordItem[] = [];
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const item = itemOf(entries[i]);
-        if (item) items.push(item);
-      }
-      return { items, more, start: from, end: start };
+      return readForward(host, fid, from, limit);
     },
     onChange(listener) {
       listeners.add(listener);
@@ -558,6 +507,90 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
  * it ran, the fiber's inactivity timeout) reads as stopped, from what it was begun with; other aborted entries are left
  * out (only turns stream).
  */
+/** Entries newest first: `limit` of them before `before`, in backward windows of at most the fiber's limit. */
+async function readBackward(host: FiberHost, fid: FiberId, limit: number, before?: number): Promise<RecordPage> {
+  const items: RecordItem[] = [];
+  let start = before;
+  let end: number | undefined;
+  let more = false;
+  for (let left = Math.max(1, limit); left > 0; ) {
+    const page = await host.window({
+      fiberId: fid,
+      limit: Math.min(left, RecordWindowMax),
+      direction: 'backward',
+      ...(start !== undefined ? { start } : {}),
+    });
+    if ('status' in page) {
+      console.error('[prism-viewer] record: could not read', page);
+      break;
+    }
+    end ??= page.endExclusive;
+    for (let i = page.entries.length - 1; i >= 0; i--) {
+      const item = itemOf(page.entries[i]);
+      if (item) items.push(item);
+    }
+    more = page.hasMore;
+    start = page.start;
+    left -= page.entries.length;
+    if (!page.hasMore || !page.entries.length) break;
+  }
+  return { items, more, start: start ?? 0, end: end ?? start ?? 0 };
+}
+
+/** Entries at `from` and after, newest first: the oldest `limit` of them, in forward windows. */
+async function readForward(host: FiberHost, fid: FiberId, from: number, limit: number): Promise<RecordPage> {
+  const entries: FiberEntry[] = [];
+  let start = from;
+  let more = false;
+  for (let left = Math.max(1, limit); left > 0; ) {
+    const page = await host.window({
+      fiberId: fid,
+      start,
+      limit: Math.min(left, RecordWindowMax),
+      direction: 'forward',
+    });
+    if ('status' in page) {
+      console.error('[prism-viewer] record: could not read', page);
+      break;
+    }
+    for (const e of page.entries) entries.push(e);
+    more = page.hasMore;
+    if (page.entries.length) start = page.endExclusive;
+    left -= page.entries.length;
+    if (!page.hasMore || !page.entries.length) break;
+  }
+  const items: RecordItem[] = [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const item = itemOf(entries[i]);
+    if (item) items.push(item);
+  }
+  return { items, more, start: from, end: start };
+}
+
+/**
+ * What History reads of a record (journal.md §3): the session's own, or a kept one opened after a reload (Home's list),
+ * read-only.
+ */
+export interface RecordReader {
+  /** It outlives the page. */
+  readonly kept: boolean;
+  read(limit: number, before?: number): Promise<RecordPage>;
+  readAfter(from: number, limit: number): Promise<RecordPage>;
+  onChange(listener: () => void): () => void;
+}
+
+/** A kept record, read-only: what Home opens (journal.md §3, "After a reload"); nothing in it is undone or replayed. */
+export function openKeptRecord(rows: FiberRows, id: string): RecordReader {
+  const host = createFiberHost({ rows });
+  const fid = fiberId(id);
+  return {
+    kept: true,
+    read: (limit, before) => readBackward(host, fid, limit, before),
+    readAfter: (from, limit) => readForward(host, fid, from, limit),
+    onChange: () => () => {},
+  };
+}
+
 function itemOf(e: FiberEntry): RecordItem | undefined {
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;
@@ -621,6 +654,24 @@ async function copyEntry(
       'be kept',
     );
   }
+}
+
+/** The browser's kept records' rows, only when the database exists (listing never makes an empty one). */
+export async function openRecordsRows(): Promise<(FiberRows & { close?(): void }) | undefined> {
+  let idb: IDBFactory | undefined;
+  try {
+    idb = globalThis.indexedDB;
+  } catch {
+    return undefined; // blocked site data
+  }
+  if (!idb) return undefined;
+  if (typeof idb.databases === 'function') {
+    const names = (await idb.databases()).map((d) => d.name);
+    if (!names.includes(RecordsDatabase)) return undefined;
+  }
+  // Loaded when asked, as History's Keep does: a viewer that never lists them never pays for it.
+  const { createIndexedDbRows } = await import('@molstar/ai-components');
+  return createIndexedDbRows<FiberTable>(RecordsDatabase);
 }
 
 // ---- The index of kept records (journal.md §1) ----

@@ -11,6 +11,7 @@
 import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
+  'ask': 'msp-viewer-history-ask',
   'bar': 'msp-viewer-history-bar',
   'caption': 'msp-viewer-history-caption',
   'count': 'msp-viewer-history-count',
@@ -21,6 +22,9 @@ export const classes = {
   'halfTitle': 'msp-viewer-history-halfTitle',
   'history': 'msp-viewer-history-history',
   'keep': 'msp-viewer-history-keep',
+  'kept': 'msp-viewer-history-kept',
+  'keptText': 'msp-viewer-history-keptText',
+  'keptTitle': 'msp-viewer-history-keptTitle',
   'label': 'msp-viewer-history-label',
   'list': 'msp-viewer-history-list',
   'more': 'msp-viewer-history-more',
@@ -134,6 +138,36 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 .msp-viewer-history-caption {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
+}
+
+.msp-viewer-history-ask {
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) 0;
+  flex-wrap: wrap;
+  display: flex;
+}
+
+.msp-viewer-history-kept {
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  display: flex;
+}
+
+.msp-viewer-history-keptText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.msp-viewer-history-keptTitle {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  overflow: hidden;
 }
 
 .msp-viewer-history-more {

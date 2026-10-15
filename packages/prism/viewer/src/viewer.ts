@@ -51,6 +51,7 @@ import { isLazyExtension, type PrismViewerSequenceSpec, type PrismViewerSpec, ty
 import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
+import { createKeptRecordsModel, type KeptRecordsModel } from './journal/kept-records.js';
 import { createSessionRecord, type SessionRecord } from './journal/record.js';
 import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
@@ -140,6 +141,8 @@ export interface PrismViewer {
   readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor'>;
   /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */
   readonly record: SessionRecord;
+  /** The records kept in earlier sessions (journal.md §3, §5): Home's list, one opened read-only in History, Forget. */
+  readonly keptRecords: KeptRecordsModel;
   /** This tab's light restore, when the spec keeps one (`persist.restore`, journal.md §6): the host runs it. */
   readonly restore?: LightRestore;
   /**
@@ -321,6 +324,13 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keepIn = spec.persist?.rows as FiberRows | undefined;
     const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
     disposers.push(() => record.dispose());
+    // The kept records after a reload (journal.md §3, §5): Home lists them, History opens one read-only.
+    const keptRecords = createKeptRecordsModel({
+      record,
+      ...(keepIn ? { rows: keepIn } : {}),
+      max: options.ui.keptRecordsMax,
+    });
+    disposers.push(() => keptRecords.dispose());
     // What is kept and where, with Forget (journal.md §7): the viewer's own sources; the Storage view lists them.
     // The origin that holds it, where there is one (a file: page's is 'null').
     const origin = globalThis.location?.origin;
@@ -422,6 +432,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
       record,
+      keptRecords,
       ...(restore ? { restore } : {}),
       storage,
       spec,

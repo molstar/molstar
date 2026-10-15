@@ -89,6 +89,8 @@ export const PrismViewerOptions = {
      * page drives itself).
      */
     homeWhenEmpty: PD.Boolean(false),
+    /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
+    keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({
       reset: PD.Boolean(true),
       screenshot: PD.Boolean(true),

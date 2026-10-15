@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { FiberRows, FiberTable } from '@molstar/ai-fibers';
+import type { FiberRows } from '@molstar/ai-fibers';
 import {
   createRecordIndex,
   forgetKept,
   keptSize,
+  openRecordsRows,
   type RecordIndex,
-  RecordsDatabase,
   type SessionRecord,
 } from '../journal/record.js';
 import { isListedStore, type ListedStore } from '../persist/stores.js';
@@ -41,24 +41,6 @@ export interface KeptRecordsSource extends StorageSource {
   dispose(): void;
 }
 
-/** The browser's kept records' rows, only when the database exists (listing never makes an empty one). */
-async function openDefaultRows(): Promise<(FiberRows & { close?(): void }) | undefined> {
-  let idb: IDBFactory | undefined;
-  try {
-    idb = globalThis.indexedDB;
-  } catch {
-    return undefined; // blocked site data
-  }
-  if (!idb) return undefined;
-  if (typeof idb.databases === 'function') {
-    const names = (await idb.databases()).map((d) => d.name);
-    if (!names.includes(RecordsDatabase)) return undefined;
-  }
-  // Loaded when asked, as History's Keep does: a viewer that never lists them never pays for it.
-  const { createIndexedDbRows } = await import('@molstar/ai-components');
-  return createIndexedDbRows<FiberTable>(RecordsDatabase);
-}
-
 export function keptRecordsSource(o: KeptRecordsSourceOptions = {}): KeptRecordsSource {
   const now = o.now ?? Date.now;
   const maxAge = (o.maxAgeDays ?? KeptRecordMaxAgeDays) * DayMs;
@@ -69,7 +51,7 @@ export function keptRecordsSource(o: KeptRecordsSourceOptions = {}): KeptRecords
 
   const open = () => {
     opening ??= (async () => {
-      const rows: Opened['rows'] | undefined = o.rows ?? (await openDefaultRows());
+      const rows: Opened['rows'] | undefined = o.rows ?? (await openRecordsRows());
       if (!rows) return undefined;
       if (disposed) {
         if (!o.rows) rows.close?.();

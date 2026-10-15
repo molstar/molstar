@@ -8,7 +8,7 @@
 
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { RunOriginKind } from '../api/area.js';
-import type { RecordEntry, RecordItem, RunEntry, SessionRecord, TurnEntry } from './record.js';
+import type { RecordEntry, RecordItem, RecordReader, RunEntry, TurnEntry } from './record.js';
 
 // What History shows of the session's record (journal.md §3), DOM-free. The record is read in windows, newest first (the
 // newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). After a change it reads only
@@ -88,7 +88,7 @@ const nextFrame = (fn: () => void) => {
   else queueMicrotask(fn);
 };
 
-export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions = {}): HistoryModel {
+export function createHistoryModel(record: RecordReader, o: HistoryModelOptions = {}): HistoryModel {
   const size = o.window ?? HistoryWindow;
   const schedule = o.schedule ?? nextFrame;
   const rows = observableState<readonly HistoryRow[]>([]);

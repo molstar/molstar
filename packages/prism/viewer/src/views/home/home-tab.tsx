@@ -21,6 +21,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { AnnotationOfferModel, HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
+import { KeptRecordsList } from './kept-records.js';
 
 export interface HomeTabProps {
   home: HomeModel;
@@ -68,6 +69,7 @@ export function HomeTab(props: HomeTabProps) {
         </section>
         {props.more?.()}
         {home.remoteStates ? <RemoteStatesList model={home.remoteStates} caption /> : null}
+        {home.keptRecords ? <KeptRecordsList model={home.keptRecords} /> : null}
       </ScrollArea>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>

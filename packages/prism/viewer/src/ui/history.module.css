@@ -109,6 +109,38 @@
   font-size: var(--msp-font-size-xs);
 }
 
+/* Keeping one more than the bound: the question and its two answers, wrapping when narrow. */
+.ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) 0;
+}
+
+/* A kept record opened from Home: its title and when, Forget, and the way back to this session's history. */
+.kept {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.keptText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.keptTitle {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .more {
   display: flex;
   justify-content: center;

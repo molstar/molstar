@@ -1,0 +1,81 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.group {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+.caption {
+  margin: 0;
+  padding: 0 var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+.listContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A record: its title and when it was written (a click opens it), Forget at the end on hover. */
+.record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--msp-radius-md);
+
+  &:hover,
+  &:focus-within {
+    background: var(--msp-color-hover);
+  }
+}
+
+.open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 26px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-inset);
+  color: var(--msp-color-text);
+  text-align: left;
+}
+
+.title {
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.when {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Forget: shown on the row's hover or focus, and while it asks. */
+.forget {
+  visibility: hidden;
+  margin-right: var(--msp-space-1);
+
+  .record:is(:hover, :focus-within) & {
+    visibility: visible;
+  }
+}
+
+.asking {
+  visibility: visible;
+}

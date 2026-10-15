@@ -78,9 +78,12 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
   something watches it; its turn card holds Undo turn while the newest step is that turn's and can be restored.
 - **Without the assistant** History still shows the person's runs; the assistant adds the turn's rendering (the turn card,
   the Inspector's Trace for a turn still in the harness's storage).
-- **After a reload**: only kept records are there (not built yet: the list on Home). Home lists them (title, first and last entries, when); opening one
+- **After a reload**: only kept records are there. Home lists them (title, first and last entries, when); opening one
   shows its record, read-only, beside whatever is loaded now. Nothing in it can be undone or replayed into the current
-  state; it is a record.
+  state; it is a record. As built (`journal/kept-records.ts`, `views/home/kept-records.tsx`): `viewer.keptRecords`
+  lists them (this session's own aside) only while Home shows, from the spec's rows or the browser's database when it
+  exists; a click opens one in History in place of this session's steps (`openKeptRecord`, the same `HistoryModel`
+  over a read-only reader), with "This session" to go back.
 - **Evals and replay**: the eval's run log is this record (memory rows); replaying it in the app reads the same entries
   (README §3.3, Evals).
 
@@ -95,8 +98,9 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 
 ## 5. Session files and kept records
 
-Not built yet: neither the record in session files nor the bound below. Forget is built in the Storage view (§7), not
-yet in Home's list or History's menu.
+Not built yet: the record in session files. Forget is in the Storage view (§7), Home's list and History (this
+session's kept copy: `unkeep`; a kept record opened there); the bound is `ui.keptRecordsMax` (20), and History's Keep
+at the bound names the oldest and asks before forgetting it.
 
 - **In `.molx`, opt-in** (David, 2026-10-15): saving a session offers "Include the session's record"; the record goes in
   as `record.jsonl` beside the snapshot (one entry a line, the envelopes of §2). Opening such a file shows the record in

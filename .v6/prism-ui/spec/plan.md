@@ -115,8 +115,8 @@ test passes (every operation has a command or a tool, or says why).
    (journal.md §7).
    As built: `@molstar/prism-assistant/viewer` (`createAssistant`, viewer-spec.md §2.4): the setup over the key store,
    the agent model (turn card from the session's hooks, approvals answered as the turn asks, Undo turn, the history from
-   the record); History over the record (`journal/history-model.ts`) with "Keep this record". Not yet: the Storage view,
-   Home's kept records.
+   the record); History over the record (`journal/history-model.ts`) with "Keep this record"; the Storage view
+   (journal.md §7); Home's kept records, one opened read-only in History, Forget and the bound (journal.md §3, §5).
 5. **Evals, a first one**: a task on the headless viewer, checked on the state account.
    As built: `agent/eval.ts` (`runEval`: the task's files, its turns with approvals answered as it says, the checks on
    the scene, Undo turn of each turn restoring the outline; the run log), the first-scope tasks in

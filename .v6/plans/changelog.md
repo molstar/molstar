@@ -159,6 +159,9 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: Home lists the records kept in earlier sessions; one opens in History, read-only, beside what is
+  loaded ("This session" goes back); each can be forgotten there, and this session's kept copy from History. At most
+  `ui.keptRecordsMax` (20) are kept: keeping one more names the oldest and asks before forgetting it.
 - Prism viewer: the Story card stays open on a click outside it (Esc or its ✕ close it) and its description fills the
   card; a first heading is left out when the title already says it (a part counter like "[1/2]" aside), whatever order
   the title and description change in. Overlays can be `persistent` and `fill`.

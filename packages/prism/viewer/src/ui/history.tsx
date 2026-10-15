@@ -23,7 +23,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { observableState } from '@molstar/prism-ui/core';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import {
   createHistoryModel,
@@ -32,7 +32,9 @@ import {
   type HistorySessionRow,
   type HistoryTurnRow,
 } from '../journal/history-model.js';
-import { createRecordIndex } from '../journal/record.js';
+import type { OpenedRecord } from '../journal/kept-records.js';
+import { createRecordIndex, type KeptRecord } from '../journal/record.js';
+import { recordSpan } from '../views/home/kept-records.js';
 import type { PrismViewer } from '../viewer.js';
 import { classes } from './_generated/history.module.css.js';
 
@@ -128,7 +130,12 @@ export function historyTab(
           <ScrollArea class={classes.halfBody}>{body()}</ScrollArea>
         </section>
       );
-      const steps = () => <HistoryView viewer={viewer} api={api} />;
+      // A kept record opened from Home shows in its place, read-only, until "Back to this session".
+      const steps = () => (
+        <Show when={viewer.keptRecords.opened} fallback={() => <HistoryView viewer={viewer} api={api} />}>
+          {(opened) => <KeptRecordView viewer={viewer} opened={opened} />}
+        </Show>
+      );
       const log = () => <LogView status={status} />;
       const shown = observableState<'steps' | 'log'>(ctx.focus === 'log' ? 'log' : 'steps');
       return (
@@ -172,6 +179,8 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
   // Turns the person opened stay open when their row is made again (a reply arriving).
   const opened = new Set<string>();
   const keepBusy = observableState(false);
+  // Keeping one more than the bound: the oldest kept record, to forget first (asked).
+  const over = observableState<KeptRecord | undefined>(undefined);
   // Undo turn with later steps above it asks first (the history's `laterSteps`): the row says how many, and offers it.
   const confirm = observableState<{ turn: string; text: string } | undefined>(undefined);
 
@@ -216,22 +225,70 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
         <Show
           when={model.kept}
           fallback={() => (
-            <Button
-              size="xs"
-              variant="ghost"
-              icon={<Icon name="save" size={14} />}
-              title="Keep this session's record in this browser (the record only: no scene, no files)"
-              disabled={keepBusy.asReadonly}
-              onClick={() => {
-                keepBusy.set(true);
-                void keepSessionRecord(viewer).finally(() => keepBusy.set(false));
-              }}
+            <Show
+              when={over.asReadonly}
+              fallback={() => (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  icon={<Icon name="save" size={14} />}
+                  title="Keep this session's record in this browser (the record only: no scene, no files)"
+                  disabled={keepBusy.asReadonly}
+                  onClick={() => {
+                    keepBusy.set(true);
+                    void viewer.keptRecords
+                      .overBound()
+                      .then((oldest) => (oldest ? void over.set(oldest) : keepSessionRecord(viewer).then(() => {})))
+                      .finally(() => keepBusy.set(false));
+                  }}
+                >
+                  Keep this record
+                </Button>
+              )}
             >
-              Keep this record
-            </Button>
+              {(oldest) => (
+                // At the bound (journal.md §5): keeping one more forgets the oldest, asked first.
+                <div class={classes.ask}>
+                  <span class={classes.caption}>
+                    {`${viewer.keptRecords.max} records are kept: forget the oldest, “${oldest.title}”?`}
+                  </span>
+                  <Button
+                    size="xs"
+                    disabled={keepBusy.asReadonly}
+                    onClick={() => {
+                      keepBusy.set(true);
+                      void viewer.keptRecords
+                        .forget(oldest.id)
+                        .then(() => keepSessionRecord(viewer))
+                        .finally(() => {
+                          keepBusy.set(false);
+                          over.set(undefined);
+                        });
+                    }}
+                  >
+                    Forget it and keep
+                  </Button>
+                  <Button size="xs" variant="ghost" onClick={() => over.set(undefined)}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </Show>
           )}
         >
-          {() => <span class={classes.caption}>Kept in this browser</span>}
+          {() => (
+            <>
+              <span class={classes.caption}>Kept in this browser</span>
+              <Button
+                size="xs"
+                variant="ghost"
+                title="Forget the kept copy: it goes on in memory, and can be kept again"
+                onClick={() => void viewer.keptRecords.forget(viewer.record.id)}
+              >
+                Forget
+              </Button>
+            </>
+          )}
         </Show>
       </div>
       {/* The rows in a contained box of their own: the bar's changes do not lay them out, nor theirs the panel. */}
@@ -256,6 +313,75 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
               }}
             />
           )}
+        </For>
+      </div>
+      <Show when={model.more}>
+        {() => (
+          <div class={classes.more}>
+            <Button size="xs" variant="ghost" onClick={() => void model.showEarlier()}>
+              Show earlier
+            </Button>
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/**
+ * A record kept in an earlier session, read-only (journal.md §3, "After a reload"): beside whatever is loaded now,
+ * nothing in it can be undone or replayed. Its title and when, "Back to this session", Forget; its rows as History's.
+ */
+function KeptRecordView(props: { viewer: Pick<PrismViewer, 'keptRecords'>; opened: OpenedRecord }) {
+  const { viewer, opened } = props;
+  const model = createHistoryModel(opened.reader);
+  onActive((active) => model.setActive(active));
+  onCleanup(() => model.dispose());
+  const opens = new Set<string>();
+  const none = of(undefined);
+  const asking = observableState(false);
+  return (
+    <div class={classes.history} aria-label="Kept record">
+      <div class={classes.kept}>
+        <div class={classes.keptText}>
+          <span class={classes.keptTitle}>{opened.record.title}</span>
+          <span class={classes.caption}>Kept record, read-only · {recordSpan(opened.record)}</span>
+        </div>
+        <Show
+          when={asking.asReadonly}
+          fallback={() => (
+            <Button
+              size="xs"
+              variant="ghost"
+              icon={<Icon name="trash-2" />}
+              title="Forget this record"
+              onClick={() => asking.set(true)}
+            />
+          )}
+        >
+          {() => (
+            <Button
+              size="xs"
+              variant="ghost"
+              title="Forget it: it is removed from this browser"
+              onClick={() => void viewer.keptRecords.forget(opened.record.id)}
+            >
+              Forget?
+            </Button>
+          )}
+        </Show>
+        <Button
+          size="xs"
+          icon={<Icon name="chevron-left" />}
+          title="Back to this session's history"
+          onClick={() => viewer.keptRecords.close()}
+        >
+          This session
+        </Button>
+      </div>
+      <div class={classes.list}>
+        <For each={model.rows} key={(r) => r.key} fallback={() => <p class={classes.empty}>Nothing in it.</p>}>
+          {(row) => <Row row={row} opened={opens} latestTurn={none} confirm={none} onUndoTurn={() => {}} />}
         </For>
       </div>
       <Show when={model.more}>

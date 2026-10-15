@@ -177,6 +177,20 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     actions: core.views.homeActions,
     // After a load, what a structure carries beyond the built-ins, offered in one click (parity.md §6a).
     annotationOffer: createAnnotationOffer(person, sources.structures),
+    // The records kept in earlier sessions: one opens in History, read-only (where History is shown).
+    ...(core.options.ui.showHistory
+      ? {
+          keptRecords: {
+            list: core.keptRecords.list,
+            watch: () => core.keptRecords.watch(),
+            forget: (id: string) => core.keptRecords.forget(id),
+            open: (id: string) =>
+              void core.keptRecords.open(id).then((ok) => {
+                if (ok) shell.show('history');
+              }),
+          },
+        }
+      : {}),
     formats: sources.formats,
     openFiles,
     session: {
