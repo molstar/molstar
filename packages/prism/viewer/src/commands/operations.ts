@@ -87,7 +87,7 @@ export function operationCommand(
         values[k] = Array.isArray(api.describe(def.id)?.params[k]?.defaultValue) ? list : (list[0] ?? null);
       }
       const r = await runAsCommand(api, def.id, values);
-      return { ...r, undoable: !def.read && def.history !== false };
+      return { ...r, undoable: !def.read && def.history !== false && def.undoable !== false };
     },
   };
 }

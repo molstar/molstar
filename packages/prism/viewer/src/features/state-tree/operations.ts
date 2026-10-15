@@ -217,6 +217,14 @@ export class StateApi extends ApiArea {
       const name = labelOf(cell);
       if (!cell.params || ref === StateTransform.RootRef)
         return ApiResult.fail('blocked', `${name} has no params to update.`);
+      // Where data comes from (the root's children: a download, a file) is the loaders' and their approvals' (api/area.ts).
+      if (cell.transform.parent === StateTransform.RootRef) {
+        return ApiResult.fail(
+          'blocked',
+          `${name} is where data comes from.`,
+          'Load other data with load.entry or load.url.',
+        );
+      }
       // The patch against the transformer's params: unknown names, wrong types, a select's options, a number's range.
       const checked = checkValues(cell.params.definition, params);
       if (ApiResult.isFailure(checked))
@@ -237,6 +245,8 @@ export class StateApi extends ApiArea {
   readonly action = this.operation({
     id: 'state.action',
     title: 'Apply an action to a state cell',
+    // Actions download (Download Structure, Download Density on the root): network (api/area.ts).
+    approval: 'network',
     surface: { kind: 'agent-only', reason: "The State tree tab's forms." },
     params: {
       ref: RefParam(),

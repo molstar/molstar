@@ -392,6 +392,8 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
   title: 'Load a MolViewSpec',
   params: MvsParams,
   ...network,
+  // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
+  approval: 'destructive',
   async run({ url, data, format, keepCamera }, ctx) {
     const address = url.trim();
     if (address && data.trim()) {
@@ -439,6 +441,8 @@ const snapshot: OperationDefinition<typeof SnapshotParams, Loaded> = {
   title: 'Load a session',
   params: SnapshotParams,
   ...network,
+  // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
+  approval: 'destructive',
   async run({ url, type, id }, ctx) {
     const address = url.trim();
     if (address && id.trim()) return ApiResult.fail('invalid', 'Give a url or an id, not both.');

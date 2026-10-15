@@ -22,7 +22,7 @@ import type {
   ViewRenderer,
 } from '@molstar/prism-ui';
 import type { AnnotationProvider } from './api/annotations.js';
-import type { ApiArea, ApiAreaContext, OperationDefinition, ViewerApi } from './api/area.js';
+import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, ViewerApi } from './api/area.js';
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNodeKind } from './model/scene.js';
 
@@ -266,8 +266,11 @@ export interface LazyViewerExtensionStub {
     readonly slot?: ViewerSlot;
     readonly title?: string;
   }[];
-  /** Calling one of these loads the chunk and replays the call. */
-  readonly operations?: readonly { readonly id: string; readonly title: string }[];
+  /**
+   * Calling one of these loads the chunk and replays the call. Their flags are declared too, so tools and commands see
+   * the policy before the load (checked against the real ones when it loads).
+   */
+  readonly operations?: readonly LazyOperationStub[];
   readonly commands?: readonly {
     readonly id: string;
     readonly title: string;
@@ -284,6 +287,16 @@ export interface LazyViewerExtensionStub {
     readonly representations?: readonly string[];
     readonly themes?: readonly string[];
   };
+}
+
+/** A lazy extension's operation before it loads: its id, title and the flags its definition will have. */
+export interface LazyOperationStub {
+  readonly id: string;
+  readonly title: string;
+  readonly read?: true;
+  readonly undoable?: false;
+  readonly approval?: 'network' | 'upload' | 'destructive';
+  readonly modules?: readonly ApiModuleKey[];
 }
 
 /** What an override puts in a part's place: another of its kind. */

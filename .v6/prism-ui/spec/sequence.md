@@ -193,7 +193,8 @@ restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefin
 - **A step** is one undoable operation run (`api.run`, operations.md §1) or one group. A group is opened with
   `beginGroup(origin)` and closed with `endGroup()`: an agent's turn (keyed by `origin.turn`), a script's
   `viewer.run(label, …)`, a builder's commit. One checkpoint is taken when a step or group opens.
-- **Not steps**: operations with `history: false` (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`, reads);
+- **Not steps**: operations with `history: false` (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`,
+  `trajectory.frame`, playing animations, reads; Undo leaves the frame shown);
   a result that changed nothing (`unchanged`: "it is already so"); an operation that changes nothing the history could
   restore (`undoable: false`, an upload: no checkpoint, recorded only as a run, so Undo of the steps before it still
   works).

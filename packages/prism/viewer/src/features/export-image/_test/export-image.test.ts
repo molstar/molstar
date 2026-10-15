@@ -138,7 +138,7 @@ describe('export image', () => {
     });
     expect(v.api.describe('export.image-copy')?.definition.modules).toEqual(['canvas', 'page']);
     expect(v.api.describe('export.preview')?.definition.surface?.kind).toBe('ui-only');
-    for (const id of ['export.image', 'export.image-copy', 'export.show']) {
+    for (const id of ['export.image', 'export.image-copy', 'export.open']) {
       expect(v.managers.commands.get(id), id).toBeDefined();
     }
   });
@@ -256,7 +256,7 @@ describe('export image', () => {
 
   it('shows the Export card at the Image section', async () => {
     const v = await headlessViewer({ extensions: [ExportImageFeature] });
-    await v.managers.commands.get('export.show')!.run({}, { empty: true }, new AbortController().signal);
+    await v.managers.commands.get('export.open')!.run({}, { empty: true }, new AbortController().signal);
     expect(v.managers.navigation.state.value.card).toEqual({ id: 'export', section: 'export-image.section.image' });
   });
 

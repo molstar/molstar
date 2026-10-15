@@ -41,7 +41,7 @@ export const StateTreeFeature: ViewerExtension = {
         alias: ['delete cell', 'remove cell', 'state remove'],
       }),
       {
-        id: 'state-tree.show',
+        id: 'state-tree.open',
         title: 'Show the state tree',
         category: 'State',
         icon: 'list-tree',

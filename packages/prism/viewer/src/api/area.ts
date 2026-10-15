@@ -187,7 +187,11 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
   readonly history?: false;
   /** Changes nothing the history could restore (an upload): no checkpoint, no step; default true. */
   readonly undoable?: false;
-  /** Asks before it runs, from the agent (agent.md §4). */
+  /**
+   * Asks before it runs, from the agent (agent.md §4). One value: `destructive` (it removes something, or replaces the
+   * scene) wins over `network` (it reaches an address; which addresses ask is the agent's policy at call time);
+   * `upload` sends something out.
+   */
   readonly approval?: 'network' | 'upload' | 'destructive';
   /** What it needs of the host; where one is missing it says why instead of running. */
   readonly modules?: readonly ApiModuleKey[];

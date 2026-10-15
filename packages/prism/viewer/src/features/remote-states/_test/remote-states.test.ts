@@ -87,14 +87,18 @@ describe('remote states', () => {
       expect(v.api.session[member], member).toBeDefined();
       expect(v.managers.commands.get(id), id).toBeDefined();
     }
-    expect(v.managers.commands.get('remote-states.show')).toBeDefined();
-    expect(v.api.describe('session.remote.list')?.definition).toMatchObject({ read: true, modules: ['network'] });
+    expect(v.managers.commands.get('remote-states.open')).toBeDefined();
+    expect(v.api.describe('session.remote.list')?.definition).toMatchObject({
+      read: true,
+      modules: ['network'],
+      approval: 'network',
+    });
     expect(v.api.describe('session.remote.open')?.definition).toMatchObject({
       approval: 'destructive',
       modules: ['network'],
     });
     expect(v.api.describe('session.remote.upload')?.definition).toMatchObject({
-      approval: 'network',
+      approval: 'upload',
       history: false,
       undoable: false,
     });

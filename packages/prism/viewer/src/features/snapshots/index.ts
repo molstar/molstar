@@ -50,7 +50,7 @@ export const SnapshotsFeature: ViewerExtension = {
       operationCommand(api, s.play, { category: 'Snapshots', icon: 'play', alias: ['slideshow', 'tour', 'story'] }),
       operationCommand(api, s.stop, { category: 'Snapshots', icon: 'pause', alias: ['pause', 'stop slideshow'] }),
       {
-        id: 'snapshots.show',
+        id: 'snapshots.open',
         title: 'Show the snapshots',
         category: 'Snapshots',
         icon: 'images',

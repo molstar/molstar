@@ -147,6 +147,20 @@ describe('lazy extensions', () => {
     expect(v.managers.commands.get('xr.enter')).toBeDefined();
   });
 
+  it('declare the flags of their operations before the load, and fail a load whose flags differ', async () => {
+    const { lazy } = lazyXr();
+    const v = await viewer({
+      extensions: [
+        {
+          ...lazy,
+          stub: { ...lazy.stub, operations: [{ id: 'canvas.xr', title: 'Enter XR', approval: 'destructive' }] },
+        },
+      ],
+    });
+    expect(v.api.describe('canvas.xr')?.definition.approval).toBe('destructive');
+    expect(await v.extensions.load('xr')).toBe(false);
+  });
+
   it('fail a load that throws, say why, and load on a retry', async () => {
     let fail = true;
     const { lazy } = lazyXr();

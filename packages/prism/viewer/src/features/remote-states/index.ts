@@ -63,7 +63,7 @@ export const RemoteStatesFeature: ViewerExtension = {
         alias: ['delete remote state'],
       }),
       {
-        id: 'remote-states.show',
+        id: 'remote-states.open',
         title: 'Show the remote states',
         category: 'Remote states',
         icon: 'cloud',

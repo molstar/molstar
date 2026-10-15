@@ -15,7 +15,8 @@ interface Operation<P extends PD.Params = PD.Params, R = unknown> {
   read?: true;                                   // changes nothing: no history step, may run alongside others
   history?: false;                               // changes view state, not content: no history step (select, focus, camera, highlight, view)
   undoable?: false;                              // a step the history cannot restore (an upload); default true
-  approval?: 'network' | 'upload' | 'destructive';   // asks before it runs, from the agent (agent.md §4)
+  approval?: 'network' | 'upload' | 'destructive';   // asks before it runs, from the agent (agent.md §4); one value:
+                                                     // destructive (removes, or replaces the scene) wins over network
   modules?: readonly ApiModuleKey[];             // what it needs of the host (canvas, files, network); absent: says why
   when?(ctx: ApiAreaContext): true | string;     // can it run now; the string is the reason (no origin: commands read it)
   exists?(values, ctx: ApiContext): string | undefined;  // identity: what it would create exists, said as the result (decision 30)
@@ -114,7 +115,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 - **Generated commands** where a list reads better in the menu: one `preset.<id>` per preset, `styles.<id>` per quick
   style, `select.query.<name>` per selection query, one per applicable state action; each runs the same operation with
   that argument fixed.
-- **Opening commands** (`measure.open`, `superpose.open`, `snapshots.show`, `panel.<tab>`) run `view.open`: they are
+- **Opening commands** (`<feature>.open`: `measure.open`, `superpose.open`, `snapshots.open`, `export.open`, …; `panel.<tab>`) run `view.open`: they are
   the way into a custom UI, whose own actions are the area's operations.
 - **Keybindings and toolbar buttons name commands**, never operations directly, so hiding a command hides them too.
 - The menu's groups and prefixes (commands.md §5, §10) stay; the `select` group's shared `mode` is `select.set`'s

@@ -70,7 +70,7 @@ describe('animation', () => {
       'animation.stop',
       'animation.wiggle',
       'animation.wiggle.off',
-      'animation.show',
+      'animation.open',
     ]) {
       expect(v.managers.commands.get(id), id).toBeDefined();
     }

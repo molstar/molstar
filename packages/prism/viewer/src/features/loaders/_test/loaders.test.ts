@@ -83,7 +83,9 @@ describe('loaders: the feature', () => {
     const v = await viewer();
     for (const name of ['entry', 'url', 'mvs', 'snapshot', 'trajectory', 'volume'] as const) {
       expect(v.api.load[name], name).toBeTypeOf('function');
-      expect(v.api.load[name]?.definition.approval, name).toBe('network');
+      // Replacing the scene is destructive, which wins over network (api/area.ts).
+      const replaces = name === 'mvs' || name === 'snapshot';
+      expect(v.api.load[name]?.definition.approval, name).toBe(replaces ? 'destructive' : 'network');
       expect(v.api.load[name]?.definition.modules, name).toEqual(['network']);
     }
     expect((v.api.load as unknown as Record<string, unknown>).svs).toBeUndefined();

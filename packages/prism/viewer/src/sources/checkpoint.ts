@@ -42,8 +42,9 @@ export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerC
   return {
     checkpoint: () => ({ plugin: withoutViewState(plugin.state.getSnapshot(CheckpointParams)) }),
     restore: async (c) => {
-      // The focus is view state: a restore leaves it (and the camera, which the checkpoint does not hold).
-      await plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefined });
+      // The focus is view state: a restore leaves it (and the camera, which the checkpoint does not hold); so is the
+      // frame a trajectory shows (sequence.md §7.3).
+      await plugin.state.setSnapshot({ ...keepFrames(plugin, c.plugin), structureFocus: undefined });
     },
     size: (c) => checkpointSize(c),
   };
@@ -58,6 +59,22 @@ function withoutViewState(snapshot: PluginState.Snapshot): PluginState.Snapshot 
   if (!sequence || !('structure' in sequence)) return snapshot;
   const { structure: _, ...rest } = sequence;
   return { ...snapshot, custom: { ...snapshot.custom, 'prism-viewer.sequence': rest } };
+}
+
+/** A checkpoint's data with each trajectory at the frame it shows now (frames are viewing, not steps). */
+function keepFrames(plugin: PluginContext, snapshot: PluginState.Snapshot): PluginState.Snapshot {
+  const data = snapshot.data;
+  if (!data) return snapshot;
+  let changed = false;
+  const transforms = data.tree.transforms.map((t) => {
+    if (!t.transformer.endsWith('model-from-trajectory')) return t;
+    const now = (plugin.state.data.cells.get(t.ref)?.transform.params as { modelIndex?: number } | undefined)
+      ?.modelIndex;
+    if (now === undefined || now === t.params?.modelIndex) return t;
+    changed = true;
+    return { ...t, params: { ...t.params, modelIndex: now } };
+  });
+  return changed ? { ...snapshot, data: { ...data, tree: { ...data.tree, transforms } } } : snapshot;
 }
 
 /** The checkpoint's JSON size without data payloads (a file's text in a raw-data cell): what the budget measures. */

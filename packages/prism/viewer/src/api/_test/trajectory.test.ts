@@ -59,6 +59,8 @@ describe('trajectory', () => {
     // Moving through frames did not make the step before it unsafe to undo.
     const undone = await v.api.history.undo();
     expectOk(undone);
+    // And Undo leaves the frame shown (frames are viewing, sequence.md §7.3).
+    expect(modelIndex(v)).toBe(1);
   });
 
   it('says when it is already so, and fails for a frame out of range', async () => {

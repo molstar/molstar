@@ -51,7 +51,7 @@ describe('state tree', () => {
   it('has its commands', async () => {
     const v = await viewer();
     const ids = StateTreeFeature.commands!(v.api).map((c) => c.id);
-    expect(ids).toEqual(['state.visibility', 'state.remove', 'state-tree.show']);
+    expect(ids).toEqual(['state.visibility', 'state.remove', 'state-tree.open']);
   });
 
   describe('get', () => {
@@ -432,5 +432,15 @@ describe('state tree', () => {
       expect(d.actions.map((a) => a.name)).toContain('selection');
       expect(v.api.state!.tree.details('nope')).toBeUndefined();
     });
+  });
+});
+
+describe('where data comes from (gate G5)', () => {
+  it('is not changed through state.update, and actions ask as network', async () => {
+    const v = await viewer();
+    const tree = v.plugin.state.data.tree;
+    const source = tree.children.get(StateTransform.RootRef).first()!;
+    expect(await v.api.run('state.update', { ref: source, params: {} })).toMatchObject({ ok: false, code: 'blocked' });
+    expect(v.api.describe('state.action')?.definition.approval).toBe('network');
   });
 });

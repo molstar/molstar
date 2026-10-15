@@ -18,7 +18,7 @@ import { messageOf } from '../../api/run.js';
 // a parameter (empty: the viewer's `state-server` option, which is what the plugin's `CurrentServer` holds), so the
 // views can point at another without a setting of the plugin's. Failures name the server in the hint.
 
-const network = { modules: ['network'] as const };
+const network = { modules: ['network'] as const, approval: 'network' as const };
 
 /** An entry of the server's list, with the addresses that get and remove it. */
 export interface RemoteStateEntry {
@@ -141,8 +141,9 @@ const open: OperationDefinition<typeof OpenParams, void> = {
   id: 'session.remote.open',
   title: 'Open a remote state',
   params: OpenParams,
-  approval: 'destructive',
   ...network,
+  // Destructive wins over network (api/area.ts).
+  approval: 'destructive',
   async run({ entry: key, server: given }, ctx) {
     const server = serverOf(ctx, given);
     const plugin = ctx.plugin;
@@ -181,8 +182,9 @@ const upload: OperationDefinition<typeof UploadParams, void> = {
   params: UploadParams,
   history: false,
   undoable: false,
-  approval: 'network',
   ...network,
+  // It sends the state out (agent.md §4).
+  approval: 'upload',
   when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
   async run({ name, description, playOnLoad, server: given }, ctx) {
     const server = serverOf(ctx, given);
@@ -214,8 +216,9 @@ const remove: OperationDefinition<typeof RemoveParams, void> = {
   title: 'Remove a remote state',
   params: RemoveParams,
   undoable: false,
-  approval: 'destructive',
   ...network,
+  // Destructive wins over network (api/area.ts).
+  approval: 'destructive',
   async run({ entry: key, server: given }, ctx) {
     const server = serverOf(ctx, given);
     try {

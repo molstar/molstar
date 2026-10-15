@@ -13,6 +13,8 @@ import type { LazyViewerExtension } from '../../spec.js';
 // that wants one up front lists the feature itself, or sets `preload: true`.
 
 const ops = (list: readonly [string, string][]) => list.map(([id, title]) => ({ id, title }));
+/** What the network operations declare (their definitions' `modules`). */
+const network = { modules: ['network'] as const };
 
 export const LazySuperposition: LazyViewerExtension = {
   id: 'superposition',
@@ -47,17 +49,17 @@ export const LazyStateTree: LazyViewerExtension = {
   builtIn: true,
   stub: {
     parts: [{ id: 'state-tree.tab.tree', kind: 'tab', title: 'State tree' }],
-    operations: ops([
-      ['state.get', 'Read the state tree'],
-      ['state.visibility', 'Show or hide a state cell'],
-      ['state.update', 'Update a state cell'],
-      ['state.action', 'Apply an action to a state cell'],
-      ['state.remove', 'Remove a state cell'],
-    ]),
+    operations: [
+      { id: 'state.get', title: 'Read the state tree', read: true },
+      { id: 'state.visibility', title: 'Show or hide a state cell' },
+      { id: 'state.update', title: 'Update a state cell' },
+      { id: 'state.action', title: 'Apply an action to a state cell', approval: 'network' },
+      { id: 'state.remove', title: 'Remove a state cell', approval: 'destructive' },
+    ],
     commands: [
       { id: 'state.visibility', title: 'Show or hide a state cell', category: 'State', icon: 'eye' },
       { id: 'state.remove', title: 'Remove a state cell', category: 'State', icon: 'trash-2' },
-      { id: 'state-tree.show', title: 'Show the state tree', category: 'State', icon: 'list-tree' },
+      { id: 'state-tree.open', title: 'Show the state tree', category: 'State', icon: 'list-tree' },
     ],
   },
   load: async () => (await import('../state-tree/index.js')).StateTreeFeature,
@@ -72,14 +74,20 @@ export const LazyRemoteStates: LazyViewerExtension = {
       { id: 'remote-states.overlay.states', kind: 'overlay', title: 'Remote states' },
       { id: 'remote-states.toolbar.states', kind: 'toolbar', title: 'Remote states' },
     ],
-    operations: ops([
-      ['session.remote.list', 'List the remote states'],
-      ['session.remote.open', 'Open a remote state'],
-      ['session.remote.upload', 'Upload the state'],
-      ['session.remote.remove', 'Remove a remote state'],
-    ]),
+    operations: [
+      { id: 'session.remote.list', title: 'List the remote states', read: true, ...network, approval: 'network' },
+      { id: 'session.remote.open', title: 'Open a remote state', ...network, approval: 'destructive' },
+      { id: 'session.remote.upload', title: 'Upload the state', undoable: false, ...network, approval: 'upload' },
+      {
+        id: 'session.remote.remove',
+        title: 'Remove a remote state',
+        undoable: false,
+        ...network,
+        approval: 'destructive',
+      },
+    ],
     commands: [
-      { id: 'remote-states.show', title: 'Show the remote states', category: 'Remote states', icon: 'cloud' },
+      { id: 'remote-states.open', title: 'Show the remote states', category: 'Remote states', icon: 'cloud' },
       ...ops([
         ['session.remote.list', 'List the remote states'],
         ['session.remote.open', 'Open a remote state'],

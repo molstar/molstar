@@ -94,7 +94,7 @@ export const AnimationFeature: ViewerExtension = {
         values: { mode: 'off' },
       }),
       {
-        id: 'animation.show',
+        id: 'animation.open',
         title: 'Show the Animation card',
         category: 'Animation',
         icon: 'clapperboard',

@@ -21,6 +21,7 @@ import {
 import type { ViewerApiHost } from '../api/index.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type {
+  LazyOperationStub,
   LazyViewerExtension,
   PrismViewerPluginParts,
   ViewerExtension,
@@ -231,7 +232,7 @@ export class ExtensionHost {
     const load = () => this.load(lazy.id);
     // Stub operations: each loads the chunk, then runs the real one, as part of the same step. In the extension's own
     // area a stub area; in an area that exists (a built-in feature's in a core area) contributed to it.
-    const byArea = new Map<string, { id: string; title: string }[]>();
+    const byArea = new Map<string, LazyOperationStub[]>();
     for (const op of lazy.stub.operations ?? []) {
       const area = op.id.slice(0, op.id.indexOf('.'));
       if (!byArea.has(area)) byArea.set(area, []);
@@ -287,6 +288,14 @@ export class ExtensionHost {
         if (missing.length) {
           await runAll(parts);
           throw new Error(`${lazy.title} does not bring what its stub declared: ${missing.join(', ')}`);
+        }
+        // The policy declared is the policy it has: tools and commands read it before the load.
+        const differing = (lazy.stub.operations ?? [])
+          .filter((o) => !sameFlags(o, definitions.get(o.id)!))
+          .map((o) => o.id);
+        if (differing.length) {
+          await runAll(parts);
+          throw new Error(`${lazy.title}'s stub declares other flags than it has: ${differing.join(', ')}`);
         }
       } catch (error) {
         this.#installStub(entry);
@@ -344,6 +353,16 @@ export class ExtensionHost {
       entry.ui = port.registerStub(entry.id, stub, () => this.load(entry.id));
     }
   }
+}
+
+/** Whether a stub's declared flags are the definition's (read, undoable, approval, modules). */
+function sameFlags(stub: LazyOperationStub, def: OperationDefinition<any, any>): boolean {
+  return (
+    !!stub.read === !!def.read &&
+    (stub.undoable === false) === (def.undoable === false) &&
+    stub.approval === def.approval &&
+    [...(stub.modules ?? [])].sort().join() === [...(def.modules ?? [])].sort().join()
+  );
 }
 
 /** Disposers run in reverse, emptied. */
@@ -406,7 +425,7 @@ function checkViews(entry: Entry, views: ViewerExtensionUI): { checked: ViewerEx
 
 /** A stub operation: loads the extension, then runs the real one with the same values (one step, the real one's). */
 function stubDefinition(
-  op: { readonly id: string; readonly title: string },
+  op: LazyOperationStub,
   load: () => Promise<boolean>,
   lazy: LazyViewerExtension,
 ): OperationDefinition {
@@ -415,8 +434,12 @@ function stubDefinition(
     title: op.title,
     params: {},
     passValues: true,
-    // The real operation makes the step; the stub only loads and replays.
+    // The real operation makes the step; the stub only loads and replays. Its policy is the declared one.
     history: false,
+    ...(op.read ? { read: true as const } : {}),
+    ...(op.undoable === false ? { undoable: false as const } : {}),
+    ...(op.approval ? { approval: op.approval } : {}),
+    ...(op.modules ? { modules: op.modules } : {}),
     async run(values, ctx) {
       if (!(await load())) {
         return ApiResult.fail('unavailable', `${lazy.title} could not be loaded.`, 'Try again, or reload the page.');
@@ -435,7 +458,7 @@ class StubArea extends ApiArea {
   constructor(
     ctx: ApiAreaContext,
     id: string,
-    ops: readonly { id: string; title: string }[],
+    ops: readonly LazyOperationStub[],
     load: () => Promise<boolean>,
     lazy: LazyViewerExtension,
   ) {

@@ -45,7 +45,7 @@ export const ExportImageFeature: ViewerExtension = {
         action: 'Copy',
       }),
       {
-        id: 'export.show',
+        id: 'export.open',
         title: 'Show the Image export',
         category: 'Export',
         icon: 'camera',
