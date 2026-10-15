@@ -273,7 +273,7 @@ namespace QualityAssessment {
       residueKey.label_seq_id = label_seq_id_2.value(i);
 
       const rI_2 = index.findResidueLabel(residueKey);
-      if (rI_1 < 0) continue;
+      if (rI_2 < 0) continue;
 
       let r1 = values[rI_1];
       if (!r1) {

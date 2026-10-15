@@ -251,3 +251,30 @@
   min-width: 0;
   color: var(--msp-color-text-muted);
 }
+
+/* The result line after a load: what the structure carries, offered in one click (parity.md §6a). */
+.offer {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.offerIcon {
+  flex: none;
+  color: var(--msp-color-accent);
+}
+
+.offerText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}

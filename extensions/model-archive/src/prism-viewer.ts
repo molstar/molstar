@@ -7,16 +7,28 @@
  */
 
 import type { AnnotationProvider } from '@molstar/prism-viewer/api/annotations';
+import { ApiResult } from '@molstar/prism-viewer/api/area';
 import { operationCommand } from '@molstar/prism-viewer/commands/operations';
+import type { ViewerApi } from '@molstar/prism-viewer/api/area';
+import type { CommandDefinition } from '@molstar/prism-ui';
 import type { SequenceBehavior, SequenceShown, ViewerExtension } from '@molstar/prism-viewer/spec';
 import { PLDDTConfidenceColorThemeProvider } from './quality-assessment/color/plddt.js';
 import { QmeanScoreColorThemeProvider } from './quality-assessment/color/qmean.js';
+import { ModelArchiveApi } from './pae/operations.js';
 import { QualityAssessment } from './quality-assessment/prop.js';
+
+declare module '@molstar/prism-viewer/api' {
+  // The `model-archive` area: the extension's own (operations.md §2, extensions add areas).
+  interface ExtensionApis {
+    'model-archive': ModelArchiveApi;
+  }
+}
 
 // Model Archive's quality scores in the Prism viewer (plan 5.1, README decision 27, parity.md §6): commands first. What
 // a predicted model carries is shown through `annotations.apply` (pLDDT, QMEAN as the 3D color), the plugin gets the two
 // color themes, and the sequence a pLDDT track under the letters (a sequence behavior, sequence.md §3) whose menu colors
-// the 3D view by it. The viewer itself knows nothing of pLDDT. The pairwise (PAE) plot waits for a view of its own.
+// the 3D view by it. The viewer itself knows nothing of pLDDT. The pairwise metric (PAE) is the `model-archive` area's
+// `model-archive.pae` and a card of its own (`pae/`, a chunk loaded with the views).
 
 /** The pLDDT track's bands: AlphaFold DB's four, the official hues softened to the sequence palette's key. */
 const Bands = [
@@ -118,9 +130,11 @@ export const ModelArchiveExtension: ViewerExtension = {
     registry: [{ structure: { themes: { color: [PLDDTConfidenceColorThemeProvider, QmeanScoreColorThemeProvider] } } }],
     behaviors: [],
   },
+  api: { 'model-archive': (ctx) => new ModelArchiveApi(ctx) },
   annotations: QualityAnnotations,
   sequence: [PlddtSequenceBehavior],
   commands: (api) => [
+    ...(api['model-archive'] ? paeCommands(api, api['model-archive']) : []),
     operationCommand(api, api.annotations.apply, {
       id: 'model-archive.color-plddt',
       title: 'Color by pLDDT',
@@ -138,4 +152,32 @@ export const ModelArchiveExtension: ViewerExtension = {
       values: { annotation: 'qmean' },
     }),
   ],
+  ui: async (ctx) => (await import('./pae/ui.js')).paeUI(ctx),
 };
+
+/** The PAE card's id (`pae/ui.tsx`), here so the commands do not load the views. */
+const PaeCard = 'model-archive.overlay.pae';
+
+function paeCommands(api: ViewerApi, area: ModelArchiveApi): CommandDefinition<any>[] {
+  return [
+    operationCommand(api, area.pae, {
+      category: 'Structure',
+      icon: 'gauge',
+      alias: ['pae', 'predicted aligned error', 'alphafold', 'model quality'],
+      action: 'Read',
+    }),
+    {
+      id: 'model-archive.show-pae',
+      title: 'Show the PAE plot',
+      category: 'Structure',
+      icon: 'gauge',
+      alias: ['pae', 'predicted aligned error', 'pae plot'],
+      // Opens the card: a view, not a change.
+      async run() {
+        const r = await api.view.open({ card: PaeCard });
+        if (ApiResult.isFailure(r)) throw new Error(r.message);
+        return { message: 'Opened the PAE plot.', ops: `view.open({ card: "${PaeCard}" })` };
+      },
+    },
+  ];
+}

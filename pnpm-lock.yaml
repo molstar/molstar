@@ -2039,6 +2039,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
       '@molstar/prism-viewer':
         specifier: workspace:*
         version: link:../../packages/prism/viewer

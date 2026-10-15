@@ -10,12 +10,14 @@
 
 import { domView, onActive } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
+import { RemoteStatesList } from '../../views/home/home-tab.js';
 import { RemoteStatesPanel } from '../../views/state/remote-states-panel.js';
 import { createRemoteStatesModel } from './model.js';
 
 // The Remote states card (parity.md §1): upload the current state, the states on the server (a click opens one) and the
-// server's address, over the `session.remote.*` operations. One model for the viewer's life, so the address the person
-// typed stays; the list is read each time the card shows.
+// server's address, over the `session.remote.*` operations; and the same list on Home (a section of `home.import`, as
+// the classic Home had it). One model for the viewer's life and both views, so the address the person typed stays; the
+// list is read each time either shows (a folded section or a hidden Home reads nothing: `onActive`).
 
 export function remoteStatesUI(ctx: ViewerUIContext): ViewerExtensionUI {
   if (!ctx.api.session.remoteList) return {};
@@ -24,6 +26,21 @@ export function remoteStatesUI(ctx: ViewerUIContext): ViewerExtensionUI {
     notify: (text, kind) => ctx.managers.notifications.post(text, kind),
   });
   return {
+    sections: [
+      {
+        id: 'remote-states.section.home',
+        slot: 'home.import',
+        title: 'Remote states',
+        icon: 'cloud',
+        // After the loaders' and extensions' import forms.
+        order: 10,
+        keywords: ['remote states', 'state server', 'sessions'],
+        render: domView(() => {
+          onActive((active) => active && model.refresh());
+          return <RemoteStatesList model={model} />;
+        }),
+      },
+    ],
     overlays: [
       {
         id: 'remote-states.overlay.states',

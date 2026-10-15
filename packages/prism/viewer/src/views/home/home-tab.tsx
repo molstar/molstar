@@ -18,7 +18,7 @@ import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
-import type { HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
+import type { AnnotationOfferModel, HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
 
@@ -44,6 +44,7 @@ export function HomeTab(props: HomeTabProps) {
       {/* What scrolls; the hint below stays in view. */}
       <ScrollArea class={classes.content} contentClass={classes.contentInner}>
         {home.session ? <Session session={home.session} /> : null}
+        {home.annotationOffer ? <AnnotationOfferLine model={home.annotationOffer} /> : null}
         {props.modes && props.modes.list.length > 1 ? (
           <Show when={home.session?.isEmpty ?? true}>
             {() => (
@@ -66,7 +67,7 @@ export function HomeTab(props: HomeTabProps) {
           </For>
         </section>
         {props.more?.()}
-        {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
+        {home.remoteStates ? <RemoteStatesList model={home.remoteStates} caption /> : null}
       </ScrollArea>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
@@ -182,14 +183,42 @@ function Session(props: { session: SessionModel }) {
   );
 }
 
-/** Sessions on a state server: the list (newest first), refresh, and the server behind a settings button. */
-function RemoteStates(props: { model: RemoteStatesModel }) {
+/**
+ * The result line after a load (parity.md §6a): "AF-P04637 has pLDDT" with Show (`annotations.apply`, one step) and a
+ * dismiss. Only for what an extension brings; it goes once used or dismissed.
+ */
+function AnnotationOfferLine(props: { model: AnnotationOfferModel }) {
+  const { model } = props;
+  return (
+    <Show when={model.offer}>
+      {(offer) => (
+        <section class={classes.offer} aria-label="Loaded">
+          <Icon name="sparkles" size={14} class={classes.offerIcon} />
+          <span class={classes.offerText} data-tip-overflow="" title={offer.description}>
+            {offer.label} has {offer.title}
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => model.accept()}>
+            Show
+          </Button>
+          <Button size="xs" variant="ghost" icon={<Icon name="x" />} title="Dismiss" onClick={() => model.dismiss()} />
+        </section>
+      )}
+    </Show>
+  );
+}
+
+/**
+ * Sessions on a state server: the list (newest first; a click opens one), refresh, and the server behind a settings
+ * button. Home's own group (`caption`), or the body of the `remote-states` feature's section in `home.import`, whose
+ * header says the title.
+ */
+export function RemoteStatesList(props: { model: RemoteStatesModel; caption?: boolean }) {
   const { model } = props;
   const settings = observableState(false);
   return (
     <section class={classes.group} aria-label="Remote states">
       <div class={classes.captionRow}>
-        <h3 class={classes.caption}>Remote states</h3>
+        {props.caption ? <h3 class={classes.caption}>Remote states</h3> : <span />}
         <span class={classes.captionActions}>
           <Button
             size="xs"

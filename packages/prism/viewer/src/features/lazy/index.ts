@@ -81,6 +81,14 @@ export const LazyRemoteStates: LazyViewerExtension = {
   builtIn: true,
   stub: {
     parts: [
+      {
+        id: 'remote-states.section.home',
+        kind: 'section',
+        slot: 'home.import',
+        title: 'Remote states',
+        icon: 'cloud',
+        order: 10,
+      },
       { id: 'remote-states.overlay.states', kind: 'overlay', title: 'Remote states' },
       { id: 'remote-states.toolbar.states', kind: 'toolbar', title: 'Remote states' },
     ],

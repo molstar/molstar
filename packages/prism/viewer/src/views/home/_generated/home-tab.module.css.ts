@@ -28,6 +28,9 @@ export const classes = {
   'hint': 'msp-viewer-home-tab-hint',
   'home': 'msp-viewer-home-tab-home',
   'none': 'msp-viewer-home-tab-none',
+  'offer': 'msp-viewer-home-tab-offer',
+  'offerIcon': 'msp-viewer-home-tab-offerIcon',
+  'offerText': 'msp-viewer-home-tab-offerText',
   'server': 'msp-viewer-home-tab-server',
   'session': 'msp-viewer-home-tab-session',
   'sessionSummary': 'msp-viewer-home-tab-sessionSummary',
@@ -273,6 +276,32 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   min-width: 0;
   color: var(--msp-color-text-muted);
   flex: 1;
+}
+
+.msp-viewer-home-tab-offer {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  display: flex;
+}
+
+.msp-viewer-home-tab-offerIcon {
+  color: var(--msp-color-accent);
+  flex: none;
+}
+
+.msp-viewer-home-tab-offerText {
+  white-space: nowrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 }
 `);

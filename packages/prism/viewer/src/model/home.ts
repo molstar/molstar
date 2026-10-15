@@ -8,7 +8,11 @@
 
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { Observable } from 'rxjs';
+import { BuiltInAnnotations } from '../api/annotations.js';
+import type { ViewerApi } from '../api/area.js';
 
 /**
  * A state action the Home tab offers: one of the actions applicable to the state tree's root (download structure,
@@ -67,6 +71,89 @@ export interface HomeModel {
   remoteStates?: RemoteStatesModel;
   /** What is loaded now, and clearing it. */
   session?: SessionModel;
+  /** After a load: what the new structure carries beyond the built-ins, offered in one click (parity.md §6a). */
+  annotationOffer?: AnnotationOfferModel;
+}
+
+/** "AF-P04637 has pLDDT": an extension's annotation a structure that just loaded carries. */
+export interface AnnotationOffer {
+  /** The structure's state ref (what `annotations.apply` gets) and its label (what the line says). */
+  structure: string;
+  label: string;
+  /** The annotation's id (`plddt`, `qmean`, `validation`) and title. */
+  annotation: string;
+  title: string;
+  description?: string;
+}
+
+export interface AnnotationOfferModel {
+  /** The offer, while there is one; it follows the structures only while something watches it. */
+  offer: Observable<AnnotationOffer | undefined>;
+  /** Applies it (`annotations.apply`, one step) and puts the offer away. */
+  accept(): void;
+  dismiss(): void;
+}
+
+const BuiltInIds = new Set(BuiltInAnnotations.map((a) => a.id));
+
+/**
+ * Home's result line after a load (parity.md §6a, README decision 27; v5's "Automatic (w/ Annotation)" preset as an
+ * offer): when a structure appears that carries an extension's annotation (pLDDT, QMEAN, validation; never the
+ * built-ins, B-factors and secondary structure, which every file has), offer it. Each structure is asked once, by
+ * `annotations.list` as the person (a read: no step); a declined or applied offer does not come back for it.
+ */
+export function createAnnotationOffer(
+  api: ViewerApi,
+  structures: ReadonlyState<readonly { readonly ref: string; readonly label: string }[]>,
+): AnnotationOfferModel {
+  const current = observableState<AnnotationOffer | undefined>(undefined);
+  const asked = new Set<string>();
+  let token = 0;
+
+  const check = async (list: readonly { readonly ref: string; readonly label: string }[]) => {
+    const shown = current.value;
+    if (shown && !list.some((s) => s.ref === shown.structure)) current.set(undefined);
+    const fresh = list.filter((s) => !asked.has(s.ref));
+    if (!fresh.length) return;
+    for (const s of fresh) asked.add(s.ref);
+    const mine = ++token;
+    // The newest first: the offer is about what just loaded.
+    for (const s of [...fresh].reverse()) {
+      const r = await api.annotations.list({ structure: s.ref });
+      if (mine !== token) return;
+      const found = r.ok ? r.value?.[0]?.annotations.find((a) => !BuiltInIds.has(a.id)) : undefined;
+      if (!found) continue;
+      const provider = api.annotations.providers.value.find((p) => p.id === found.id);
+      current.set({
+        structure: s.ref,
+        label: s.label,
+        annotation: found.id,
+        title: found.title,
+        description: provider?.description,
+      });
+      return;
+    }
+  };
+
+  const offer = new Observable<AnnotationOffer | undefined>((subscriber) => {
+    const watch = structures.subscribe((list) => void check(list));
+    const out = current.asReadonly.subscribe(subscriber);
+    return () => {
+      watch.unsubscribe();
+      out.unsubscribe();
+    };
+  });
+
+  return {
+    offer,
+    accept() {
+      const o = current.value;
+      if (!o) return;
+      current.set(undefined);
+      void api.annotations.apply({ annotation: o.annotation, structure: o.structure });
+    },
+    dismiss: () => current.set(undefined),
+  };
 }
 
 /** The session as Home shows it: what is loaded (a line), and clearing it (the plugin's clear, after a confirmation). */
