@@ -49,6 +49,7 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
+    "fake-indexeddb": "catalog:",
     "@storybook/web-components-vite": "catalog:",
     "@molstar/prism-viewer": "workspace:*"
   }
