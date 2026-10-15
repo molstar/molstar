@@ -17,11 +17,14 @@
 }
 
 /* The playback card: a row each (snapshots, transition, models), a hairline between them; not there with no rows. The
-   rows sit in their views' hosts (display: contents), so they are the grid's items. */
+   rows sit in their views' hosts (display: contents), so they are the grid's items. Compact like the canvas toolbar:
+   as wide as its rows need (a long title fades at its cap), the buttons close together. */
 .deck {
   display: grid;
-  /* As wide as the card: a long title fades in its row rather than widening it. */
+  justify-self: start;
   grid-template-columns: minmax(0, 1fr);
+  width: fit-content;
+  max-width: 100%;
   overflow: clip;
   font-size: var(--msp-font-size-sm);
   border-radius: var(--msp-radius-lg);
@@ -37,6 +40,41 @@
   /* Every row has a hairline above it; the card clips the first one's. */
   & [data-row] {
     box-shadow: 0 -1px 0 var(--msp-color-border);
+  }
+
+  & .bar {
+    gap: 0;
+    height: 32px;
+    padding: 0 var(--msp-space-1);
+  }
+
+  & :is(.rowTitle, .trajectoryLabel) {
+    flex: 0 1 auto;
+    max-width: 168px;
+    padding: 0 var(--msp-space-2);
+    font-weight: 500;
+  }
+
+  /* A short title: the position and the buttons stay at the row's end, under the other rows' buttons. */
+  & .rowTitle {
+    margin-right: auto;
+  }
+
+  & :is(.counter, .position, .time) {
+    font-size: var(--msp-font-size-xs);
+  }
+
+  & .counter {
+    min-width: 36px;
+  }
+
+  & .time {
+    min-width: 56px;
+    padding-right: var(--msp-space-1);
+  }
+
+  & .scrubber {
+    flex: 1 0 96px;
   }
 }
 

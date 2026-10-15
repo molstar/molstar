@@ -46,12 +46,15 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-deck {
+  width: fit-content;
+  max-width: 100%;
   font-size: var(--msp-font-size-sm);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   grid-template-columns: minmax(0, 1fr);
+  justify-self: start;
   display: grid;
   overflow: clip;
 
@@ -61,6 +64,40 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 
   & [data-row] {
     box-shadow: 0 -1px 0 var(--msp-color-border);
+  }
+
+  & .msp-canvas-playback-bar {
+    height: 32px;
+    padding: 0 var(--msp-space-1);
+    gap: 0;
+  }
+
+  & :is(.msp-canvas-playback-rowTitle, .msp-canvas-playback-trajectoryLabel) {
+    max-width: 168px;
+    padding: 0 var(--msp-space-2);
+    flex: 0 auto;
+    font-weight: 500;
+  }
+
+  & .msp-canvas-playback-rowTitle {
+    margin-right: auto;
+  }
+
+  & :is(.msp-canvas-playback-counter, .msp-canvas-playback-position, .msp-canvas-playback-time) {
+    font-size: var(--msp-font-size-xs);
+  }
+
+  & .msp-canvas-playback-counter {
+    min-width: 36px;
+  }
+
+  & .msp-canvas-playback-time {
+    min-width: 56px;
+    padding-right: var(--msp-space-1);
+  }
+
+  & .msp-canvas-playback-scrubber {
+    flex: 1 0 96px;
   }
 }
 
