@@ -550,9 +550,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     let loading: Promise<CommandMenuAssistant | undefined> | undefined;
     const loadAssistant = () =>
       (loading ??= (async (): Promise<CommandMenuAssistant | undefined> => {
-        let chunks: [Awaited<ReturnType<typeof load>>, typeof import('../agent/session.js')];
+        // The assistant's module, with the agent's code (its own chunk; the viewer does not import it).
+        let loaded: Awaited<ReturnType<typeof load>>;
         try {
-          chunks = await Promise.all([load(), import('../agent/session.js')]);
+          loaded = await load();
         } catch (e) {
           // A chunk that does not load (a deploy since the page loaded, journal.md §7): the next use tries again.
           loading = undefined;
@@ -563,7 +564,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           );
           return undefined;
         }
-        const [{ createAssistant }, { createViewerAgent }] = chunks;
+        const { createAssistant, createViewerAgent } = loaded;
         if (closed) return undefined;
         // The agents it made, disposed here if it fails to start (their subscriptions to the viewer would outlive it).
         const agents: { dispose(): void }[] = [];

@@ -8,5 +8,8 @@
 
 // `@molstar/prism-assistant/viewer`: what the viewer's spec loads lazily (`agent.assistant`, viewer-spec.md §2.4).
 export { createAssistant } from './viewer/ui.js';
+// The agent comes with the assistant (the viewer's `agent.assistant` module, viewer-spec.md §2.4): the viewer does not
+// import its code itself.
+export { createViewerAgent } from '@molstar/prism-viewer/agent/session';
 export { createViewerAgentModel, historyItemsOf } from './viewer/agent-model.js';
 export { createAISettings, localPrefs } from './viewer/settings-model.js';

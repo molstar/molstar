@@ -11,7 +11,7 @@ import type { ModelSource } from '@molstar/ai-session';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { Observable } from 'rxjs';
-import type { ViewerAgent } from './agent/session.js';
+import type { createViewerAgent, ViewerAgent } from './agent/session.js';
 import type { PrismViewer } from './viewer.js';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginConfigItem } from '@molstar/plugin/config';
@@ -93,7 +93,14 @@ export interface PrismViewerAgentSpec {
   /** The viewer's skills (default its `Skills`); extensions add theirs. */
   readonly skills?: readonly ViewerSkill[];
   /** The UI: `() => import('@molstar/prism-assistant/viewer')` (its `createAssistant`). */
-  readonly assistant?: () => Promise<{ readonly createAssistant: AssistantFactory }>;
+  /**
+   * Its module brings the agent too (`createViewerAgent`, from `@molstar/prism-viewer/agent/session`): the viewer itself
+   * never imports the agent's code (the AI SDK, zod), so a page without an assistant, the single file, is without it.
+   */
+  readonly assistant?: () => Promise<{
+    readonly createAssistant: AssistantFactory;
+    readonly createViewerAgent: typeof createViewerAgent;
+  }>;
 }
 
 /**

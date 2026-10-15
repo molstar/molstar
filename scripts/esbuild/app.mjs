@@ -134,6 +134,23 @@ function staticAssetsPlugin(outdir) {
     },
   };
 }
+/** The single file's images: copied to `images/` beside it, imported as URLs relative to the module. */
+function moduleRelativeImagesPlugin(outdir) {
+  return {
+    name: 'molstar-module-relative-images',
+    setup(build) {
+      build.onLoad({ filter: /\.(jpg|jpeg|png|gif|svg)$/i }, async ({ path: input }) => {
+        const name = path.basename(input);
+        await fs.promises.mkdir(path.join(outdir, 'images'), { recursive: true });
+        await fs.promises.copyFile(input, path.join(outdir, 'images', name));
+        return {
+          contents: `export default new URL(${JSON.stringify(`./images/${name}`)}, import.meta.url).href;`,
+          loader: 'js',
+        };
+      });
+    },
+  };
+}
 const sourceJsExtensionPlugin = {
   name: 'molstar-source-js-extension',
   setup(build) {
@@ -241,9 +258,12 @@ async function buildPackage(rawPkg) {
       entryNames: undefined,
       chunkNames: undefined,
       outfile: path.join(outdir, cfg.single.filename),
-      // Images inlined (a background's picture): no request beside the file.
-      plugins: options.plugins.filter((p) => p.name !== 'molstar-static-assets'),
-      loader: { '.jpg': 'dataurl', '.jpeg': 'dataurl', '.png': 'dataurl', '.gif': 'dataurl', '.svg': 'dataurl' },
+      // Images beside the file (`images/`), by a URL relative to the module (not the page): fetched only when used (a
+      // background's picture), instead of inlined into every page's download.
+      plugins: [
+        ...options.plugins.filter((p) => p.name !== 'molstar-static-assets'),
+        moduleRelativeImagesPlugin(outdir),
+      ],
     };
     if (dev) {
       const ctx = await esbuild.context(singleOptions);

@@ -128,6 +128,8 @@ a place for data:
   session to keep them").
 - **Per tab and short-lived**: sessionStorage ends with the tab, so nothing accumulates; localStorage holds only
   preferences.
+- **Opt-in** (David, 2026-10-15): a session lives in memory by default; the app keeps the restore only with `?restore`
+  (a host passes `persist.restore` to have it). Nothing of this goes through the assistant's session.
 - Not a record and not undo: the checkpoints stay in memory (§1).
 - **As built** (`sources/restore.ts`, `persist/stores.ts`): `webStore('local' | 'session', { prefix, version, budget })`
   stamps each value with the app's version and drops another's or one over the budget; the restore is written a second

@@ -33,7 +33,7 @@ element, and the URL. Status: **accepted** (2026-10-15).
   from `DefaultPrismViewerSpec()` (the built-ins only) on purpose.
 - Published with the app (GitHub Pages) and copied into the `molstar` distribution (`build/prism-viewer/`, as
   `build/viewer` is today; `scripts/distribution.mjs`), checked by the packed browser smoke (`smoke/browser/prism`: one
-  script request, a load, a lazy extension). Publishing to Pages: not yet. Its images (backgrounds) are inlined. A host composing its own viewer from npm imports the extensions it wants instead.
+  script request, a load, a lazy extension). Publishing to Pages: not yet. Its images (backgrounds) sit beside it in `images/`, by URLs relative to the module, fetched only when a background uses them (inlined, they were 0.8 MB of every page); the agent's code (AI SDK, zod) comes only with an assistant's module, so the file has none. A host composing its own viewer from npm imports the extensions it wants instead.
 
 ```html
 <script type="module">
