@@ -95,6 +95,9 @@ the [API change ledger](breaking-v6-changes.md).
   agent (`apps/prism-viewer` passes it: the person's own keys, kept scrambled)
 - Model Archive's quality in the Prism viewer (`@molstar/model-archive-extension/prism-viewer`): color by pLDDT or
   QMEAN (commands, `annotations.apply`), the pLDDT track in the sequence; sequence behaviors for extensions
+- A colorblind-safe data palette in the Prism viewer (`canvas.palette`, `?palette=colorblind`): the categorical themes
+  take Okabe–Ito, the core's new `okabe-ito` color list; the light restore after a reload; touch targets of 44px in
+  compact mode
 - Prism's high-contrast UI theme, and stronger borders and muted text in every theme when the system asks for more
   contrast
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),

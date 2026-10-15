@@ -99,7 +99,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const kept = preferences?.get('theme');
   const theme = new ThemeModel(UIThemes.some((t) => t.id === kept) ? (kept as UITheme) : (spec.ui?.theme ?? 'light'));
   const stopTheme = theme.applyTo(root);
-  const keepTheme = preferences ? theme.theme.subscribe((t) => preferences.set('theme', t)) : undefined;
+  const keepTheme = theme.theme.subscribe((t) => preferences?.set('theme', t));
   const fullscreen = new FullscreenModel(() => target);
 
   // The canvas: the plugin is mounted here once the shell is in the page and has a size.
@@ -548,7 +548,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       inkSub.unsubscribe();
       ink.dispose();
       stopTheme();
-      keepTheme?.unsubscribe();
+      keepTheme.unsubscribe();
       fullscreen.dispose();
       root.remove();
       releaseStyles(shadow);

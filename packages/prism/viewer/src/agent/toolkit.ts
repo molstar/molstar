@@ -119,6 +119,12 @@ export const Skills: readonly SkillDeclaration[] = [
       },
       { id: 'set_transparency', operation: 'representation.transparency', description: 'Makes a target transparent.' },
       { id: 'hide_contents', operation: 'contents.visibility', description: 'Shows or hides an entity or a chain.' },
+      {
+        id: 'set_palette',
+        operation: 'canvas.palette',
+        description:
+          'Colorblind-safe colors (Okabe–Ito) for chains, entities and other categories, or the default ones.',
+      },
     ],
   },
   {

@@ -49,6 +49,15 @@ export const PrismViewerOptions = {
       ['secondary-zoom', 'Zoom only, secondary button'],
       ['disabled', 'Off'],
     ]),
+    /** README §3.7: the categorical themes' colors (`canvas.palette`). */
+    palette: PD.Select<'default' | 'colorblind'>(
+      'default',
+      [
+        ['default', 'Default'],
+        ['colorblind', 'Colorblind-safe (Okabe–Ito)'],
+      ],
+      { description: 'The colors of chains, entities and other categories' },
+    ),
   }),
   data: PD.Group({
     pdbProvider: PD.Select<'pdbe' | 'rcsb' | 'pdbj'>('pdbe', [

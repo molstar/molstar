@@ -285,6 +285,12 @@ export const ColorLists = {
 
   // Qualitative schemes from ColorBrewer (putting them here so that order in UI is sequential, diverging, cyclical, categorical)
 
+  'okabe-ito': ColorList(
+    'Okabe-Ito',
+    'qualitative',
+    'Okabe-Ito, categorical color scheme distinguishable by people with color vision deficiencies (Okabe & Ito, 2008)',
+    [0xe69f00, 0x56b4e9, 0x009e73, 0xf0e442, 0x0072b2, 0xd55e00, 0xcc79a7, 0x999999],
+  ),
   'set-2': ColorList(
     'Set-2',
     'qualitative',

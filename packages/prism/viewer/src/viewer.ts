@@ -54,6 +54,7 @@ import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js
 import { createSessionRecord, type SessionRecord } from './journal/record.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import { createLightRestore, type LightRestore } from './sources/restore.js';
+import { setDataPalette } from './sources/palette.js';
 import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
@@ -286,6 +287,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keepIn = spec.persist?.rows as FiberRows | undefined;
     const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
     disposers.push(() => record.dispose());
+    // The data palette the options ask for (README §3.7): before anything is loaded, so no step.
+    if (options.canvas.palette !== 'default') await setDataPalette(plugin, options.canvas.palette);
     // The light restore (journal.md §6), written after each step when the spec gives it a store.
     const restore = spec.persist?.restore
       ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {
