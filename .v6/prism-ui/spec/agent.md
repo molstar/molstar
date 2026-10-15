@@ -34,7 +34,8 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
   panes. View tools (open a panel, focus, select, frame) say they leave the structures as they are.
 - **Registry values are open strings** (a preset id, a theme name), checked when the tool runs, with the current
   choices in the description, refreshed as the registry changes (review F2). As built: a select becomes the field's
-  choices when the agent is made, and is not refreshed yet (a theme an extension registers later is refused).
+  choices; between turns the toolkit describes its tools again and replaces the parts whose definitions changed (a
+  theme an extension registered, a feature loaded or left out), so the next turn sees them.
 - **What a tool says it cannot do** is what this viewer cannot do at all (a module it lacks, headless); what cannot be
   done now (nothing loaded) is the call's answer, so descriptions do not change with the scene.
 - **Targets are strings** ([targets.md](targets.md)); the selections skill's guidance teaches the forms.

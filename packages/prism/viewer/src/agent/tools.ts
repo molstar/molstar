@@ -69,7 +69,8 @@ export interface OperationToolSpec {
 
 /**
  * A tool over an operation. Its input is the operation's params as field shapes (`paramsShape`), described now: a
- * registry's choices are what they are when the agent starts (not yet refreshed when a registry changes, agent.md §2).
+ * registry's choices are what they are when it is made; the toolkit makes it again between turns when they change
+ * (`ViewerToolkit.refresh`, agent.md §2).
  */
 export function operationTool(
   viewer: AgentViewer,

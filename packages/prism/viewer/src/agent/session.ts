@@ -189,6 +189,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       // Checked before anything is taken (the notes stay for the next turn).
       if (parked) throw new Error('A turn waits for your approval: answer or stop it first.');
       if (session.busy) throw new Error('A turn is running.');
+      // Between turns: the tools as the viewer is now (a registry's choices, a feature added or gone; agent.md §2).
+      toolkit.refresh();
       prompt = request;
       focus = api.account.focus();
       const said = notes.splice(0);

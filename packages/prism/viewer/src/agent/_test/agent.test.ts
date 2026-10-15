@@ -214,3 +214,19 @@ describe('the viewer agent at G6', () => {
     agent.dispose();
   });
 });
+
+describe('the viewer agent between turns', () => {
+  it('describes its tools again: a theme registered later is in the color tool by the next turn', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const { agent } = agentOn(v, [{ text: 'Hi.' }]);
+    const schema = () => JSON.stringify(agent.toolkit.registration('color')?.definition.inputSchema);
+    expect(schema()).not.toContain('test-theme');
+    const registry = v.plugin.representation.structure.themes.colorThemeRegistry;
+    registry.add({ ...registry.get('uniform'), name: 'test-theme', label: 'Test theme' } as never);
+    await agent.turn('hello');
+    expect(schema()).toContain('test-theme');
+    // Nothing changed since: nothing is replaced.
+    expect((agent.toolkit as unknown as { refresh(): boolean }).refresh()).toBe(false);
+    agent.dispose();
+  });
+});
