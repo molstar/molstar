@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
 import type { PrismViewerSpec } from './spec.js';
 
@@ -17,7 +18,7 @@ import type { PrismViewerSpec } from './spec.js';
 export function DefaultPrismViewerSpec(): PrismViewerSpec {
   return {
     plugin: prismViewerPluginParts(),
-    extensions: [],
+    extensions: [CanvasSettingsFeature],
     sequence: { behaviors: [] },
     agent: {},
   };

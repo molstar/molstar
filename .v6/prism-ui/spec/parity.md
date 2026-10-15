@@ -51,8 +51,8 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------- | ------ |
 | camera reset, zoom, orient and reset axes                             | canvas toolbar Reset menu                                             | `camera.*`                   | mocked |
 | screenshot (preview, crop, copy, download; state import/export; camera info) | Export › Image                                                 | `export.image`               | mocked |
-| canvas settings (background, lighting, camera, clipping)              | Canvas settings card                                                  | `canvas.*`                   | mocked (background built) |
-| illumination, XR                                                      | toolbar Rendering menu                                                | `canvas.illumination`, `canvas.xr` | mocked |
+| canvas settings (background, lighting, camera, clipping)              | Canvas settings card                                                  | `canvas.*`                   | built (`canvas-settings`: `canvas.settings`, `.lighting`, `.camera`, `.clipping`) |
+| illumination, XR                                                      | toolbar Rendering menu                                                | `canvas.illumination`, `canvas.xr` | illumination built (`canvas-settings`); XR mocked |
 | expand, fullscreen                                                    | toolbar Expand / Fullscreen                                           | `view.expand`, `view.fullscreen` | mocked |
 | toggle controls                                                       | the rail (compact rail)                                               | `navigation.*`               | mocked |
 | animation (snapshots, trajectory, spin, rock), snapshot stepper, description | Animation card; playback card top left; description markdown   | `animation.*`, `snapshot.*`  | mocked |
