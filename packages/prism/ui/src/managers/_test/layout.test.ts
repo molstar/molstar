@@ -7,11 +7,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { domView } from '../../dom/view.js';
 import { ShellModel } from '../../shell/shell.js';
 import { NavigationManager } from '../navigation.js';
 import { ViewStateManager } from '../view-state.js';
 
-const tab = (id: string, order = 0) => ({ id, title: id, icon: 'square' as const, order, render: () => null as any });
+const tab = (id: string, order = 0) => ({ id, title: id, icon: 'square' as const, order, render: domView(() => null) });
 
 describe('viewState and navigation', () => {
   it('hold the shell state, and the shell follows them', () => {
