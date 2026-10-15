@@ -228,7 +228,12 @@ function toValue(value: MaybeReactive<string> | undefined): Observable<string | 
  * What floats over the layout, under its anchor and at least as wide (above it when there is no room below): in the top layer
  * (a manual popover), so no panel's clipping or fade cuts it; it follows the anchor as things scroll or resize.
  */
-export function Floating(props: { anchor: HTMLElement; children: Child }) {
+export function Floating(props: {
+  anchor: HTMLElement;
+  children: Child;
+  /** Its edge that lines up with the anchor's: `start` (left, the default) or `end` (a menu from a button at the right). */
+  align?: 'start' | 'end';
+}) {
   const el = (
     <div class={classes.floating} attr:popover="manual">
       {props.children}
@@ -241,7 +246,8 @@ export function Floating(props: { anchor: HTMLElement; children: Child }) {
     const top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
     // At least as wide as the anchor, as wide as its options need; kept on screen.
     el.style.minWidth = `${r.width}px`;
-    el.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 8 - el.offsetWidth))}px`;
+    const left = props.align === 'end' ? r.right - el.offsetWidth : r.left;
+    el.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 8 - el.offsetWidth))}px`;
     el.style.top = `${Math.max(4, top)}px`;
   };
   queueMicrotask(() => {

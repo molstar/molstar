@@ -9,8 +9,9 @@
  */
 
 import { combineLatest, distinctUntilChanged, map, type Observable, of, shareReplay, startWith } from 'rxjs';
-import { Button, colorToHex } from '@molstar/prism-ui';
+import { Button, colorToHex, Floating } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import { isInside } from '@molstar/prism-ui/dom/events';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { bind, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
@@ -144,6 +145,7 @@ function TreeItem(props: {
     distinctUntilChanged(),
   );
   const menuOpen = observableState(false);
+  let menuButton: HTMLElement | undefined;
   const picked = scene.picked.pipe(
     map((p) => p === node),
     distinctUntilChanged(),
@@ -221,7 +223,9 @@ function TreeItem(props: {
               class={classes.action}
               classList={{ [classes.keep]: menuOpen }}
               title="More"
+              aria-haspopup="menu"
               aria-expanded={menuOpen}
+              ref={(el: HTMLElement) => (menuButton = el)}
               onClick={(e) => {
                 e.stopPropagation();
                 menuOpen.set(!menuOpen.value);
@@ -236,7 +240,16 @@ function TreeItem(props: {
         </span>
       </div>
       <Show when={menuOpen}>
-        {() => <RowMenu items={menuOf(node)} depth={depth} onDone={() => menuOpen.set(false)} />}
+        {() => (
+          <RowMenu
+            items={menuOf(node)}
+            anchor={menuButton!}
+            onDone={(refocus) => {
+              menuOpen.set(false);
+              if (refocus) menuButton?.focus();
+            }}
+          />
+        )}
       </Show>
       <Show when={open} reveal>
         {() => {
@@ -332,22 +345,42 @@ export function menuOf(node: SceneNode): SceneMenuItem[] {
 }
 
 /**
- * A row's menu, inline under the row (nothing to clip in a scrolling tree): actions run and close it; entries with
- * sub-entries open them in place, indented.
+ * A row's menu, a popover from its ⋯ button (as the selects and presets open): actions run and close it; entries with
+ * sub-entries open them in place, indented. Escape, or a press outside it and its button, closes it.
  */
-function RowMenu(props: { items: readonly SceneMenuItem[]; depth: number; onDone(): void }) {
+function RowMenu(props: { items: readonly SceneMenuItem[]; anchor: HTMLElement; onDone(refocus?: boolean): void }) {
+  let menu: HTMLElement | undefined;
   // Escape closes the menu first, before the panel it is in (the document's handlers run in capture order).
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     e.preventDefault();
+    props.onDone(true);
+  };
+  const onDown = (e: PointerEvent) => {
+    if (isInside(e, menu) || isInside(e, props.anchor)) return;
     props.onDone();
   };
   document.addEventListener('keydown', onKey, true);
-  onCleanup(() => document.removeEventListener('keydown', onKey, true));
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => {
+    document.removeEventListener('keydown', onKey, true);
+    document.removeEventListener('pointerdown', onDown, true);
+  });
   return (
-    <div class={classes.menu} role="menu" style={{ '--msp-tree-depth': props.depth }}>
-      <MenuItems items={props.items} onDone={props.onDone} />
-    </div>
+    <Floating anchor={props.anchor} align="end">
+      <div
+        class={classes.menu}
+        data-popover=""
+        role="menu"
+        ref={(el: HTMLElement) => {
+          menu = el;
+          // Into it once it shows (the popover opens on the next microtask).
+          requestAnimationFrame(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
+        }}
+      >
+        <MenuItems items={props.items} onDone={() => props.onDone(true)} />
+      </div>
+    </Floating>
   );
 }
 

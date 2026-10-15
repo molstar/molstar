@@ -159,6 +159,8 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: a tree row's ⋯ menu opens as a popover from its button (as the selects and presets do), not inline under
+  the row; Escape or a press outside closes it. Home's extension sections (Zenodo) line up with its actions.
 - Prism viewer: a component's Modify by selection is three icons on its row (include, subtract, intersect), always
   there, unavailable with nothing selected; the inspector's eye is the size of the tree's; Export's first section says
   "Image & animation" once an extension adds the animation; a quick panel's sliders sit together.

@@ -34,6 +34,21 @@ afterEach(() => {
 });
 
 describe('StructureTab', () => {
+  it("opens a row's menu as a popover from its ⋯ button; Escape or a press outside closes it", async () => {
+    const { container, row } = mount();
+    const more = row('Water').querySelector<HTMLButtonElement>('button[title=More]')!;
+    more.click();
+    const menu = () => container.querySelector('[role=menu][data-popover]');
+    expect(menu()).not.toBeNull();
+    expect(more.getAttribute('aria-expanded')).toBe('true');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu()).toBeNull();
+    more.click();
+    expect(menu()).not.toBeNull();
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    expect(menu()).toBeNull();
+  });
+
   it('renders the scene as a tree; hidden nodes keep their eye; collapsing hides children', () => {
     const { rows, row, scene } = mount();
     expect(row('1TQN')).toBeDefined();
