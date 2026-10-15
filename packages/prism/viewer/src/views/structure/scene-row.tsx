@@ -39,6 +39,11 @@ export interface SceneRowProps {
   onToggle?(): void;
   /** The row's controls, under it while it is open (rendered on first open). */
   readonly body?: () => Child;
+  /**
+   * Opens what it stands for in a panel of its own (a card with room for a plot) instead of the inspector: the row's
+   * click, with a panel glyph at its end.
+   */
+  onOpen?(): void;
 }
 
 /**
@@ -55,6 +60,10 @@ export function SceneRow(props: SceneRowProps) {
   // A click picks it, as the tree's other rows: its controls go to the inspector (the tree's host takes the event);
   // with no host to take it (a row on its own), they open under it.
   const pick = () => {
+    if (props.onOpen) {
+      props.onOpen();
+      return;
+    }
     const detail: SceneRowPick = {
       label: props.label,
       ...(props.description ? { description: props.description } : {}),
@@ -125,8 +134,14 @@ export function SceneRow(props: SceneRowProps) {
           ) : (
             <span class={classes.actionSlot} aria-hidden="true" />
           )}
-          {/* The menu's column, so the eye lines up with the tree's. */}
-          <span class={classes.actionSlot} aria-hidden="true" />
+          {/* The menu's column, so the eye lines up with the tree's; a row that opens a panel shows it there. */}
+          {props.onOpen ? (
+            <span class={classes.actionSlot} title="Opens in its own panel">
+              <Icon name="panel-right" size={14} />
+            </span>
+          ) : (
+            <span class={classes.actionSlot} aria-hidden="true" />
+          )}
         </span>
       </div>
       {props.body ? (

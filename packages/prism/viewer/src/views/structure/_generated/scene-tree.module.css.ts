@@ -188,6 +188,8 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 
 .msp-viewer-scene-tree-actionSlot {
   width: max(24px, var(--msp-touch-target, 0px));
+  place-items: center;
+  display: grid;
 }
 
 .msp-viewer-scene-tree-keep {

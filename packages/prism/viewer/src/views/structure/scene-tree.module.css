@@ -166,6 +166,8 @@
 }
 
 .actionSlot {
+  display: grid;
+  place-items: center;
   width: max(24px, var(--msp-touch-target, 0px));
 }
 

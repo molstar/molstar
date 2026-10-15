@@ -581,18 +581,15 @@ export function PaePlot(props: PaePlotProps) {
         <span>↓ Aligned residue</span>
         <span>Scored residue →</span>
       </div>
-      {/* What the pointer or the box says: the cell; or the box's two ranges in their colors and its mean error. */}
-      <Show
-        when={shown.asReadonly}
-        fallback={() => (
-          <p style={`margin: 0; min-height: 1.5em; ${Quiet}`} aria-live="polite">
-            {hoverText.asReadonly.pipe(map((t) => t ?? idle))}
-          </p>
-        )}
-      >
+      {/* What the pointer is on: one line, always there (a box's summary goes at the end, so nothing above moves). */}
+      <p style={`margin: 0; min-height: 1.5em; ${Quiet}`} aria-live="polite">
+        {hoverText.asReadonly.pipe(map((t) => t ?? idle))}
+      </p>
+      {scale}
+      {/* The box's two ranges in their colors and its mean error, last. */}
+      <Show when={shown.asReadonly}>
         {(b) => <BoxSummary matrix={m} box={b} colors={tones.asReadonly} onClear={clear} />}
       </Show>
-      {scale}
     </div>
   );
 }

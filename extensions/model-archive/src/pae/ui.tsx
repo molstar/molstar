@@ -21,7 +21,7 @@ import { PaePlot } from './plot.js';
 // sequence, a click selects its two residues, a box marks its aligned and scored ranges in both until cleared (marks.md);
 // all through the API as the person. The matrix comes from the `model-archive` area; the card opens from the toolbar
 // while a loaded model has a PAE, or by `model-archive.show-pae`; the plot is also a row under such a structure in the
-// Structure panel, shown in its inspector.
+// Structure panel, which opens the card at it.
 
 export const PaeCard = 'model-archive.overlay.pae';
 /** The PAE's row in the Structure panel, under a structure that has one. */
@@ -48,13 +48,14 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const withPae = ctx.sources.structures.pipe(
     map((list) => list.filter((s) => area.hasPae(s.ref)).map((s): Shown => ({ ref: s.ref, label: s.label }))),
   );
+  // The structure the card shows (by ref; none: the first with a PAE): its picker's, or the Structure panel row's.
+  const chosen = observableState<string | undefined>(undefined);
   return {
     overlays: [
       {
         id: PaeCard,
         title: 'Predicted aligned error',
         render: domView(() => {
-          const chosen = observableState<string | undefined>(undefined);
           const shown = combineLatest([withPae, chosen.asReadonly]).pipe(
             map(([list, ref]) => list.find((s) => s.ref === ref) ?? list[0]),
             distinctUntilChanged((a, b) => a?.ref === b?.ref),
@@ -91,7 +92,8 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
         }),
       },
     ],
-    // In the Structure panel too: a row under a structure that has a PAE; picked, the plot in the inspector.
+    // In the Structure panel too: a row under a structure that has a PAE; a click opens the card at it (a plot needs
+    // more room than the inspector has).
     rows: [
       {
         id: PaeRow,
@@ -102,13 +104,9 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
             <SceneRow
               label="Predicted aligned error"
               description={of(paeDescription(area.paeMatrix(structure)))}
-              body={() => {
-                const m = area.paeMatrix(structure);
-                return m ? (
-                  <PaeView ctx={ctx} structure={structure} matrix={m} />
-                ) : (
-                  <p style={`margin: 0; ${Quiet}`}>No PAE.</p>
-                );
+              onOpen={() => {
+                chosen.set(structure);
+                void ctx.api.view.open({ card: PaeCard });
               }}
             />
           );
