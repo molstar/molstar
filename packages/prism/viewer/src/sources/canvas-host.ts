@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
 
@@ -20,13 +21,18 @@ const observers = new WeakMap<PluginContext, ResizeObserver>();
 /** Mounts the plugin's canvas in `host` (a page's viewer); false when the canvas cannot start (no WebGL). */
 export async function mountCanvas(plugin: PluginContext, host: HTMLElement): Promise<boolean> {
   const ok = !!(await plugin.mountAsync(host));
-  if (ok) smoothResizes(plugin);
+  if (ok) {
+    smoothResizes(plugin);
+    longPress(plugin);
+  }
   return ok;
 }
 
 export function unmountCanvas(plugin: PluginContext): void {
   observers.get(plugin)?.disconnect();
   observers.delete(plugin);
+  presses.get(plugin)?.();
+  presses.delete(plugin);
   plugin.unmount();
 }
 
@@ -50,4 +56,53 @@ function smoothResizes(plugin: PluginContext): void {
   const observer = new ResizeObserver(handle);
   observer.observe(root);
   observers.set(plugin, observer);
+}
+
+const presses = new WeakMap<PluginContext, () => void>();
+/** How long a touch is held to be a long press (ms), and how far it may move (px). */
+const PressMs = 450;
+const PressSlop = 8;
+
+/**
+ * Touch (README §3.7): what hover gives a mouse, a long press gives a finger: the label of what is under it (the
+ * plugin's highlight, so the hover label shows it), until the next touch.
+ */
+function longPress(plugin: PluginContext): void {
+  const canvas = plugin.canvas3dContext?.canvas;
+  if (!canvas) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let x = 0;
+  let y = 0;
+  const cancel = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+  const show = () => {
+    timer = undefined;
+    const rect = canvas.getBoundingClientRect();
+    const picked = plugin.canvas3d?.identify(Vec2.create(x - rect.left, y - rect.top));
+    const loci = picked && plugin.canvas3d?.getLoci(picked.id).loci;
+    if (loci) plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
+  };
+  const down = (e: PointerEvent) => {
+    if (e.pointerType !== 'touch') return;
+    cancel();
+    x = e.clientX;
+    y = e.clientY;
+    timer = setTimeout(show, PressMs);
+  };
+  const move = (e: PointerEvent) => {
+    if (timer !== undefined && Math.hypot(e.clientX - x, e.clientY - y) > PressSlop) cancel();
+  };
+  canvas.addEventListener('pointerdown', down);
+  canvas.addEventListener('pointermove', move);
+  canvas.addEventListener('pointerup', cancel);
+  canvas.addEventListener('pointercancel', cancel);
+  presses.set(plugin, () => {
+    cancel();
+    canvas.removeEventListener('pointerdown', down);
+    canvas.removeEventListener('pointermove', move);
+    canvas.removeEventListener('pointerup', cancel);
+    canvas.removeEventListener('pointercancel', cancel);
+  });
 }
