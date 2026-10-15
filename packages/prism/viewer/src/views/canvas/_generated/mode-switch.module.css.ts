@@ -127,7 +127,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 .msp-viewer-mode-switch-levelRow {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);

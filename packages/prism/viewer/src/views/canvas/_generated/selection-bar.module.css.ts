@@ -19,7 +19,7 @@ export const classes = {
 
 defineStyles('viewer/views/canvas/selection-bar.module.css', `@layer msp.components {
 .msp-viewer-selection-bar-bar {
-  height: 34px;
+  height: max(34px, var(--msp-touch-target, 0px));
   padding: 0 0 0 var(--msp-space-4);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
@@ -48,7 +48,7 @@ defineStyles('viewer/views/canvas/selection-bar.module.css', `@layer msp.compone
 }
 
 .msp-viewer-selection-bar-action {
-  width: 34px;
+  width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
   color: var(--msp-color-text-muted);
   flex: none;

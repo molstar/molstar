@@ -135,9 +135,9 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-tab {
+  width: max(36px, var(--msp-touch-target, 0px));
+  height: max(36px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
-  width: 36px;
-  height: 36px;
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -254,7 +254,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & .msp-shell-dock-tab {
     width: 100%;
-    height: var(--msp-rail-button, 40px);
+    height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
     border-radius: 0;
   }
 

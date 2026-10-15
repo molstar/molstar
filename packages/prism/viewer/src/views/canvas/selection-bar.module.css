@@ -9,7 +9,7 @@
 .bar {
   display: flex;
   align-items: center;
-  height: 34px;
+  height: max(34px, var(--msp-touch-target, 0px));
   overflow: hidden;
   padding: 0 0 0 var(--msp-space-4);
   border-radius: var(--msp-radius-lg);
@@ -41,7 +41,7 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
+  width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
   color: var(--msp-color-text-muted);
 

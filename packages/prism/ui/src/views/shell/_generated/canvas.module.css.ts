@@ -99,7 +99,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-tool {
   width: 100%;
-  height: var(--msp-rail-button, 40px);
+  height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -183,7 +183,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-stack {
-  --msp-stack-row: 34px;
+  --msp-stack-row: max(34px, var(--msp-touch-target, 0px));
   position: relative;
 }
 
@@ -439,7 +439,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-2);
   max-width: 100%;
-  height: 34px;
+  height: max(34px, var(--msp-touch-target, 0px));
   padding: 0 0 0 var(--msp-space-3);
   border-radius: var(--msp-radius-lg);
   color: var(--msp-color-text);
@@ -522,7 +522,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-pillButton {
-  width: 34px;
+  width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
   color: var(--msp-color-text-muted);
   flex: none;
@@ -576,9 +576,9 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-railMenuButton {
-  border-radius: var(--msp-radius-md);
   width: 44px;
-  height: 40px;
+  height: max(40px, var(--msp-touch-target, 0px));
+  border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   place-items: center;
   display: grid;
@@ -633,7 +633,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   & .msp-shell-canvas-pill {
     width: 100%;
     max-width: none;
-    height: 34px;
+    height: max(34px, var(--msp-touch-target, 0px));
     padding-left: var(--msp-space-3);
     text-shadow: none;
     box-shadow: none;
