@@ -409,12 +409,30 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   if (agentSpec && agentSpec.assistant) {
     const load = agentSpec.assistant;
     void (async () => {
+      let chunks: [Awaited<ReturnType<typeof load>>, typeof import('../agent/session.js')];
       try {
-        const [{ createAssistant }, { createViewerAgent }] = await Promise.all([load(), import('../agent/session.js')]);
-        if (closed) return;
+        chunks = await Promise.all([load(), import('../agent/session.js')]);
+      } catch (e) {
+        // A chunk that does not load (a deploy since the page loaded, journal.md §7).
+        console.error('[prism-viewer] the assistant did not load:', e);
+        managers.notifications.post(
+          'The assistant could not load. A newer version of the viewer is available: reload.',
+          'error',
+        );
+        return;
+      }
+      const [{ createAssistant }, { createViewerAgent }] = chunks;
+      if (closed) return;
+      // The agents it made, disposed here if it fails to start (their subscriptions to the viewer would outlive it).
+      const agents: { dispose(): void }[] = [];
+      try {
         const assistant = await createAssistant({
           viewer: core,
-          createAgent: (models) => createViewerAgent({ viewer: core, models }),
+          createAgent: (models) => {
+            const agent = createViewerAgent({ viewer: core, models });
+            agents.push(agent);
+            return agent;
+          },
         });
         if (closed) return assistant.dispose();
         unregister.push(port.register('assistant', assistant.ui));
@@ -422,6 +440,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         assistantMenu.set(assistant.commandMenu);
         agentView.set(assistant.agentView);
       } catch (e) {
+        for (const a of agents.splice(0)) a.dispose();
         managers.notifications.post(`The assistant could not start: ${e instanceof Error ? e.message : e}`, 'error');
       }
     })();
@@ -467,17 +486,25 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         onOpenLog={() => shell.show('log')}
         commandMenu={
           <Show when={commandMenuOpen}>
-            {() => (
-              <CommandMenu
-                manager={managers.commands}
-                {...(assistantMenu.value ? { assistant: assistantMenu.value } : {})}
-                group={commandMenuGroup.value}
-                onClose={() => {
-                  commandMenuOpen.set(false);
-                  commandMenuGroup.set(undefined);
-                }}
-              />
-            )}
+            {() => {
+              const menu = (assistant: CommandMenuAssistant | undefined) => (
+                <CommandMenu
+                  manager={managers.commands}
+                  {...(assistant ? { assistant } : {})}
+                  group={commandMenuGroup.value}
+                  onClose={() => {
+                    commandMenuOpen.set(false);
+                    commandMenuGroup.set(undefined);
+                  }}
+                />
+              );
+              // Keyed on the assistant: one that loads while the menu is open gets its Ask row there.
+              return (
+                <Show when={assistantMenu} fallback={() => menu(undefined)}>
+                  {(assistant) => menu(assistant)}
+                </Show>
+              );
+            }}
           </Show>
         }
       />

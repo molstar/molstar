@@ -231,5 +231,18 @@ options in custom state, the selection's history gets what was added, the phone'
 parity.md as built. Left for later phases as parity.md says (the unit cell rows, the Conformation Transform, viewport
 state, XR, toasts, redo).
 
+G6 ran at the end of phase 4 (2026-10-15): three reviewers (the agent's contracts and policies; the record and the
+assistant; tests and docs). Fixed: the network check decided on the values an operation runs with, from the addresses
+it declares (`addresses`), so an address it cannot read whole asks (the reviewers got past the old check with a leading
+space, `//host` and no scheme); a turn at a time (`parked`; a second ask is refused in words; stop and dispose settle a
+parked turn in the record and the history); tool descriptions say what the viewer cannot do, not what the scene does not
+allow now; the spec's and extensions' skills reach the toolkit; `undo_turn`; a change no undo restores asks; quoting
+covers descriptions and notes; the eval gives up cleanly and compares the data tree. The record: keep in the write
+order, one at a time; a heartbeat for open turns; aborted turns read as stopped; reads paged under the window limit;
+the index touched at most once a minute. The assistant: approvals answered one by one, the checkpoint follows the
+history, the setup's choice survives a reload, the key set/remove race. Left, and said in agent.md and journal.md: Allow
+this domain, tool schemas refreshed when registries change, data labels quoted in tool results, opening a kept record
+after a reload (Home's list), SeqQL selections and opening panels as tools.
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

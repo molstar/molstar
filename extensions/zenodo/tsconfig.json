@@ -5,8 +5,12 @@
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_test/**"
+  ],
   "references": [
     {
       "path": "../../packages/plugin/core"
@@ -16,6 +20,12 @@
     },
     {
       "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../packages/prism/ui"
     }
   ]
 }

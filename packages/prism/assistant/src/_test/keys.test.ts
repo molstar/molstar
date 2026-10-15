@@ -238,4 +238,36 @@ describe('key store', () => {
     expect(await store.get('b')).toBeUndefined();
     expect(await store.list()).toEqual([]);
   });
+
+  it('does not write a key back that was removed while it was being sealed', async () => {
+    const { local, base } = world();
+    const store = createKeyStore(base);
+    // Set (it seals, which awaits), and remove before that is done.
+    const setting = store.set('anthropic', secret, 'browser');
+    await store.remove('anthropic');
+    await setting;
+    expect(await store.get('anthropic')).toBeUndefined();
+    expect(local.length).toBe(0);
+    expect(await createKeyStore(base).list()).toEqual([]);
+  });
+
+  it('keeps the later of two sets that race', async () => {
+    const { local, session, base } = world();
+    const store = createKeyStore(base);
+    const first = store.set('anthropic', 'sk-first', 'browser');
+    await store.set('anthropic', 'sk-second', 'session');
+    await first;
+    expect(local.length).toBe(0);
+    expect(await createKeyStore(base).get('anthropic')).toBe('sk-second');
+    expect(session.length).toBe(1);
+  });
+
+  it('does not list a stored key it cannot open', async () => {
+    const { local, base } = world();
+    await createKeyStore(base).set('anthropic', secret, 'browser');
+    // The per-browser key is gone (IndexedDB cleared): the stored value no longer opens.
+    const store = createKeyStore({ ...base, indexedDB: new IDBFactory() });
+    expect(local.length).toBe(1);
+    expect(await store.list()).toEqual([]);
+  });
 });

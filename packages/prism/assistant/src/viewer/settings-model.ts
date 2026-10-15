@@ -67,20 +67,48 @@ export function localPrefs(prefix = 'prism-assistant.'): SettingsPrefs {
   };
 }
 
-export function createAISettings(keys: KeyStore, prefs: SettingsPrefs = localPrefs()): ViewerAISettings {
+export interface AISettingsOptions {
+  /** Says what went wrong in words (a key that could not be kept, an endpoint refused); the viewer's notifications. */
+  readonly report?: (text: string) => void;
+}
+
+/** An own endpoint's URL is https, or http on this machine (model.ts, `AIProvider.baseURL`); never with a login in it. */
+export function checkEndpoint(baseURL: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(baseURL);
+  } catch {
+    return `“${baseURL}” is not a URL.`;
+  }
+  if (url.username || url.password) return 'Give the key in its own field, not in the URL.';
+  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
+  if (url.protocol === 'https:' || (url.protocol === 'http:' && local)) return undefined;
+  return 'The endpoint must be https (or http on localhost).';
+}
+
+export function createAISettings(
+  keys: KeyStore,
+  prefs: SettingsPrefs = localPrefs(),
+  options: AISettingsOptions = {},
+): ViewerAISettings {
+  const report = options.report ?? ((text: string) => console.warn(`[prism-assistant] ${text}`));
   const scopes = new Map<string, KeyScope>();
   const own = new Map<string, OwnProvider>();
   for (const p of parse<OwnProvider[]>(prefs.get('providers')) ?? []) own.set(p.id, p);
-  const models = new Map<string, readonly string[]>();
 
   const providers = observableState<readonly AIProvider[]>([]);
-  const setup = observableState<AISetup | undefined>(parse<AISetup>(prefs.get('setup')));
+  // The person's choice (kept in prefs) apart from the one in effect: a choice whose provider has no key (yet) is not
+  // lost, the first provider with a key stands in for it, and the choice comes back once its key is there.
+  let chosen = parse<AISetup>(prefs.get('setup'));
+  let loaded = false;
+  const setup = observableState<AISetup | undefined>(undefined);
   const publish = () => {
     providers.set([
       ...Builtin.map(
         (b): AIProvider => ({
           ...b,
-          models: models.get(b.id) ?? listedModels(b.id).map((m) => m.id),
+          // The catalog's models; asking each provider's `/models` (refreshModels) is not built yet.
+          models: listedModels(b.id).map((m) => m.id),
           ...(scopes.has(b.id) ? { key: { from: 'here' as const, scope: scopes.get(b.id)! } } : {}),
         }),
       ),
@@ -95,13 +123,28 @@ export function createAISettings(keys: KeyStore, prefs: SettingsPrefs = localPre
         }),
       ),
     ]);
-    // Without a choice, the first provider with a key and its first model.
-    if (!setup.value || !scopes.has(setup.value.provider)) {
+    // Which keys there are is known only once loaded: until then, nothing is in effect.
+    if (!loaded) return;
+    if (chosen && scopes.has(chosen.provider)) setup.set(chosen);
+    else {
       const first = providers.value.find((p) => p.key && p.models.length);
       setup.set(first ? { provider: first.id, model: first.models[0] } : undefined);
     }
   };
   publish();
+
+  /** The scopes as the store has them (after a failure, so what shows is what is kept). */
+  const resync = async () => {
+    try {
+      const listed = await keys.list();
+      scopes.clear();
+      for (const { provider, scope } of listed) scopes.set(provider, scope);
+    } catch (e) {
+      report(`The stored keys could not be read: ${messageOf(e)}`);
+    }
+    loaded = true;
+    publish();
+  };
 
   const adapters = new Map<string, ModelAdapter>();
   const resolveApiKey = (provider: string) => async () => {
@@ -110,13 +153,22 @@ export function createAISettings(keys: KeyStore, prefs: SettingsPrefs = localPre
     return key;
   };
 
+  const labelOf = (provider: string) =>
+    own.get(provider)?.label ?? Builtin.find((b) => b.id === provider)?.label ?? provider;
+  const setKey = (provider: string, key: string, scope: KeyScope) => {
+    scopes.set(provider, scope);
+    adapters.delete(provider);
+    publish();
+    keys.set(provider, key, scope).catch((e) => {
+      report(`The key for ${labelOf(provider)} could not be kept: ${messageOf(e)}`);
+      void resync();
+    });
+  };
+
   return {
     providers: providers.asReadonly,
     setup: setup.asReadonly,
-    async load() {
-      for (const { provider, scope } of await keys.list()) scopes.set(provider, scope);
-      publish();
-    },
+    load: resync,
     adapterFor(provider) {
       if (!scopes.has(provider)) return undefined;
       let adapter = adapters.get(provider);
@@ -135,37 +187,47 @@ export function createAISettings(keys: KeyStore, prefs: SettingsPrefs = localPre
       }
       return adapter;
     },
-    setKey(provider, key, scope) {
-      scopes.set(provider, scope);
-      adapters.delete(provider);
-      void keys.set(provider, key, scope);
-      publish();
-    },
+    setKey,
     removeKey(provider) {
       scopes.delete(provider);
       adapters.delete(provider);
-      void keys.remove(provider);
       publish();
+      keys.remove(provider).catch((e) => {
+        report(`The key for ${labelOf(provider)} could not be removed: ${messageOf(e)}`);
+        void resync();
+      });
     },
     choose(next) {
-      setup.set(next);
+      chosen = next;
       prefs.set('setup', JSON.stringify(next));
+      publish();
     },
     async refreshModels() {
-      // The catalog's models for now; asking each provider's `/models` comes with their adapters.
+      // Not built yet: the catalog's models stand (asking each provider's `/models` comes with their adapters).
       publish();
     },
     async listModels() {
+      // Not built yet: an own endpoint's models are typed in.
       return [];
     },
     addProvider(p) {
-      const id = `own-${p.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      const problem = checkEndpoint(p.baseURL);
+      if (problem) {
+        report(`${p.label || 'The endpoint'} was not added: ${problem}`);
+        return;
+      }
+      // Its id from its name; another endpoint whose name reads alike keeps its own (the same name replaces it).
+      const base = `own-${p.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      let id = base;
+      for (let n = 2; own.has(id) && own.get(id)!.label !== p.label; n++) id = `${base}-${n}`;
       own.set(id, { id, label: p.label, baseURL: p.baseURL, api: p.api, models: p.models });
       prefs.set('providers', JSON.stringify([...own.values()]));
-      this.setKey(id, p.key, p.scope);
+      setKey(id, p.key, p.scope);
     },
   };
 }
+
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 function parse<T>(text: string | undefined): T | undefined {
   if (!text) return undefined;

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { FiberRows } from '@molstar/ai-fibers';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import {
@@ -277,8 +278,10 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       },
     });
     disposers.push(() => extensions.dispose());
-    // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it.
-    const record = await createSessionRecord({ api: host.api, undone: history.undone });
+    // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it, in the spec's
+    // rows when it gives them (`persist.rows`, viewer-spec.md §2.6; typed loosely there, a `FiberRows` here).
+    const keepIn = spec.persist?.rows as FiberRows | undefined;
+    const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
     disposers.push(() => record.dispose());
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
     const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };

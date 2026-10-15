@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import { createHistoryModel, type HistoryRunRow, type HistoryTurnRow } from '../history-model.js';
 import { createSessionRecord } from '../record.js';
+import { fakeApi } from './runs.js';
 
 // What History shows of the record (journal.md §3, plan 4.3).
 
@@ -186,5 +187,73 @@ describe('the History model', () => {
     expect(read).not.toHaveBeenCalled();
     m.dispose();
     record.dispose();
+  });
+
+  it("shows earlier past the fiber's window with a turn under way, and its settling", async () => {
+    const { api, run } = fakeApi();
+    const record = await createSessionRecord({ api });
+    const model = createHistoryModel(record, { window: 200, schedule: queueMicrotask });
+    const turn = record.beginTurn('t1', 'a long turn');
+    for (let i = 0; i < 300; i++) run();
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    expect(model.rows.value).toHaveLength(200);
+    await model.showEarlier();
+    // All of it: 300 runs and the turn.
+    expect(model.rows.value).toHaveLength(301);
+    expect(model.more.value).toBe(false);
+    // A change while the turn, older than the newest window, is open: everything loaded is read again (over 256).
+    run();
+    await record.flush();
+    await model.idle();
+    expect(model.rows.value).toHaveLength(302);
+    await turn.settle({ reply: 'Done.', outcome: 'done' });
+    await model.idle();
+    const last = model.rows.value[model.rows.value.length - 1] as HistoryTurnRow;
+    expect(last).toMatchObject({ kind: 'turn', open: false, outcome: 'done' });
+    expect(new Set(model.rows.value.map((r) => r.key)).size).toBe(302);
+    model.dispose();
+    await record.dispose();
+  });
+
+  it('keeps "Show earlier" in order with a read that starts over', async () => {
+    const { api, run } = fakeApi();
+    const record = await createSessionRecord({ api });
+    const model = createHistoryModel(record, { window: 5, schedule: queueMicrotask });
+    for (let i = 0; i < 12; i++) run();
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    // More new entries than a window (a read that starts over), and "Show earlier", at once.
+    for (let i = 0; i < 8; i++) run();
+    const earlier = model.showEarlier();
+    await record.flush();
+    await earlier;
+    await model.idle();
+    const keys = model.rows.value.map((r) => r.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    model.dispose();
+    await record.dispose();
+  });
+
+  it('shows a turn the fiber aborted as stopped, its runs under it', async () => {
+    const { api, run } = fakeApi();
+    let now = 1_000_000;
+    const record = await createSessionRecord({ api, clock: () => now, every: () => () => undefined });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    record.beginTurn('t1', 'a parked turn');
+    run('Its change', { kind: 'agent', turn: 't1' });
+    await record.flush();
+    now += 61 * 60_000;
+    const model = createHistoryModel(record, { schedule: queueMicrotask });
+    model.setActive(true);
+    await model.idle();
+    const [row] = model.rows.value as HistoryTurnRow[];
+    expect(row).toMatchObject({ kind: 'turn', open: false, outcome: 'stopped', prompt: 'a parked turn' });
+    expect(row.runs.map((r) => r.text)).toEqual(['Its change']);
+    model.dispose();
+    await record.dispose();
+    error.mockRestore();
   });
 });

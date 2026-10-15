@@ -1623,6 +1623,12 @@ importers:
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       '@molstar/query-language':
         specifier: workspace:*
         version: link:../../packages/query-language
@@ -1657,6 +1663,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       '@molstar/query-language':
         specifier: workspace:*
         version: link:../../packages/query-language
@@ -1800,6 +1812,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       rxjs:
         specifier: 'catalog:'
         version: 7.8.2
@@ -1893,6 +1911,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -2013,6 +2037,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -2189,6 +2219,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       h264-mp4-encoder:
         specifier: 'catalog:'
         version: 1.0.12
@@ -2341,6 +2377,12 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -3085,6 +3127,9 @@ importers:
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.5
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

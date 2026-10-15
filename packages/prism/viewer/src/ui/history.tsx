@@ -50,19 +50,34 @@ export function recordTitle(structures: readonly { label: string }[]): string {
   return names.length > 3 ? `${names.slice(0, 3).join(', ')} and ${names.length - 3} more` : names.join(', ');
 }
 
+/** A keep in flight, per record: History's button and the command share it (one copy, one message). */
+const keeping = new WeakMap<object, Promise<boolean>>();
+
 /**
- * "Keep this session's record" (journal.md §1): copies the record into IndexedDB and goes on writing there. Only the
- * record: no state, no files. Says so when it cannot (no IndexedDB), and returns whether it is kept.
+ * "Keep this session's record" (journal.md §1): copies the record into the spec's `persist.rows`, else the browser's
+ * IndexedDB, and goes on writing there. Only the record: no state, no files. Says so when it cannot (no IndexedDB), and
+ * returns whether it is kept.
  */
-export async function keepSessionRecord(
-  viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>,
-): Promise<boolean> {
+export function keepSessionRecord(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
+  const { record } = viewer;
+  if (record.kept) return Promise.resolve(true);
+  let p = keeping.get(record);
+  if (!p) {
+    p = keep(viewer).finally(() => keeping.delete(record));
+    keeping.set(record, p);
+  }
+  return p;
+}
+
+async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
   const { record, sources, managers } = viewer;
-  if (record.kept) return true;
   try {
     // Loaded when asked: the viewer without a kept record never pays for it.
-    const { createIndexedDbRows } = await import('@molstar/ai-components');
-    const rows = createIndexedDbRows<import('@molstar/ai-fibers').FiberTable>(RecordsDatabase);
+    const rows =
+      record.keepIn ??
+      (await import('@molstar/ai-components')).createIndexedDbRows<import('@molstar/ai-fibers').FiberTable>(
+        RecordsDatabase,
+      );
     await record.keep(rows, await createRecordIndex(rows), recordTitle(sources.structures.value));
     managers.notifications.post("This session's record is kept in this browser.", 'info');
     return true;
@@ -95,6 +110,9 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
   onCleanup(() => model.dispose());
   // Turns the person opened stay open when their row is made again (a reply arriving).
   const opened = new Set<string>();
+  const keepBusy = observableState(false);
+  // Undo turn with later steps above it asks first (the history's `laterSteps`): the row says how many, and offers it.
+  const confirm = observableState<{ turn: string; text: string } | undefined>(undefined);
 
   // Undo says what it undoes, or why it cannot.
   const title = history.undoBlocked.pipe(map((reason) => reason ?? 'Undo the latest step'));
@@ -133,7 +151,11 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
               variant="ghost"
               icon={<Icon name="save" size={14} />}
               title="Keep this session's record in this browser (the record only: no scene, no files)"
-              onClick={() => void keepSessionRecord(viewer)}
+              disabled={keepBusy.asReadonly}
+              onClick={() => {
+                keepBusy.set(true);
+                void keepSessionRecord(viewer).finally(() => keepBusy.set(false));
+              }}
             >
               Keep this record
             </Button>
@@ -148,7 +170,14 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
             row={row}
             opened={opened}
             latestTurn={latestTurn}
-            onUndoTurn={(t) => void api.history.undoTurn({ turn: t }).then(say)}
+            confirm={confirm.asReadonly}
+            onUndoTurn={(t, discardLater) => {
+              confirm.set(undefined);
+              void api.history.undoTurn({ turn: t, discardLater }).then((r) => {
+                if (!r.ok && r.code === 'confirm') confirm.set({ turn: t, text: r.message });
+                else say(r);
+              });
+            }}
           />
         )}
       </For>
@@ -169,13 +198,23 @@ interface RowProps {
   row: HistoryRow;
   opened: Set<string>;
   latestTurn: Observable<string | undefined>;
-  onUndoTurn(turn: string): void;
+  /** Undo turn asked first: the turn, and how many later steps would go with it. */
+  confirm: Observable<{ turn: string; text: string } | undefined>;
+  onUndoTurn(turn: string, discardLater?: boolean): void;
 }
 
 function Row(props: RowProps) {
   const { row } = props;
   if (row.kind === 'turn')
-    return <Turn row={row} opened={props.opened} latestTurn={props.latestTurn} onUndoTurn={props.onUndoTurn} />;
+    return (
+      <Turn
+        row={row}
+        opened={props.opened}
+        latestTurn={props.latestTurn}
+        confirm={props.confirm}
+        onUndoTurn={props.onUndoTurn}
+      />
+    );
   if (row.kind === 'run') return <Run row={row} />;
   return <Separator row={row} />;
 }
@@ -293,6 +332,21 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
           )}
         </Show>
       </div>
+      <Show when={props.confirm.pipe(map((c) => (c?.turn === row.turn ? c.text : undefined)))}>
+        {(text) => (
+          <div class={classes.detail}>
+            <span class={classes.unsafe}>{text}.</span>
+            <Button
+              size="xs"
+              variant="ghost"
+              title="Undo this turn and every step made after it"
+              onClick={() => props.onUndoTurn(row.turn, true)}
+            >
+              Undo them too
+            </Button>
+          </div>
+        )}
+      </Show>
     </div>
   );
 }

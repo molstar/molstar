@@ -151,6 +151,33 @@ export function createKeyStore(options: KeyStoreOptions = {}): KeyStore {
 
   /** What is in use: the keys of every scope (a stored one once opened or set), so storage that fails loses nothing. */
   const memory = new Map<string, { key: string; scope: KeyScope }>();
+  /**
+   * Each provider's version, moved by every set and remove: work that awaited (sealing, opening) writes its outcome only
+   * if no set or remove came meanwhile, so a removed key is never written back.
+   */
+  const versions = new Map<string, number>();
+  const bump = (provider: string) => {
+    const v = (versions.get(provider) ?? 0) + 1;
+    versions.set(provider, v);
+    return v;
+  };
+  const current = (provider: string, v: number) => (versions.get(provider) ?? 0) === v;
+
+  /** A stored key opened, kept in memory while still current; undefined when none opens. */
+  async function openStored(provider: string): Promise<{ key: string; scope: KeyScope } | undefined> {
+    const v = versions.get(provider) ?? 0;
+    const name = prefix + provider;
+    for (const scope of ['session', 'browser'] as const) {
+      const envelope = parse(tryRead(storageOf(scope), name));
+      if (!envelope) continue;
+      const key = await open(envelope);
+      if (key === undefined) continue;
+      if (!current(provider, v)) return memory.get(provider);
+      memory.set(provider, { key, scope });
+      return { key, scope };
+    }
+    return undefined;
+  }
 
   let browserKey: Promise<CryptoKey> | undefined;
   /** The per-browser key; a failure is not kept, so IndexedDB granted later is tried again. */
@@ -283,22 +310,12 @@ export function createKeyStore(options: KeyStoreOptions = {}): KeyStore {
 
   return {
     async get(provider) {
-      const held = memory.get(provider);
-      if (held) return held.key;
-      const name = prefix + provider;
-      for (const scope of ['session', 'browser'] as const) {
-        const envelope = parse(tryRead(storageOf(scope), name));
-        if (!envelope) continue;
-        const key = await open(envelope);
-        if (key === undefined) continue;
-        memory.set(provider, { key, scope });
-        return key;
-      }
-      return undefined;
+      return (memory.get(provider) ?? (await openStored(provider)))?.key;
     },
 
     async set(provider, key, scope) {
       const name = prefix + provider;
+      const v = bump(provider);
       memory.set(provider, { key, scope });
       const target = storageOf(scope);
       // A key lives in one scope: the others lose their copy.
@@ -307,13 +324,16 @@ export function createKeyStore(options: KeyStoreOptions = {}): KeyStore {
       }
       if (!target) return; // memory only ('reload'), or no such storage here: kept in memory for the session
       try {
-        target.setItem(name, JSON.stringify(await seal(key)));
+        const sealed = JSON.stringify(await seal(key));
+        // Removed or set again while sealing: that one stands.
+        if (current(provider, v)) target.setItem(name, sealed);
       } catch {
         // storage refused (a private window, full): the key stays in memory for the session
       }
     },
 
     async remove(provider) {
+      bump(provider);
       memory.delete(provider);
       const name = prefix + provider;
       tryRemove(session, name);
@@ -323,12 +343,13 @@ export function createKeyStore(options: KeyStoreOptions = {}): KeyStore {
     async list() {
       const out = new Map<string, KeyScope>();
       for (const [provider, { scope }] of memory) out.set(provider, scope);
-      for (const scope of ['session', 'browser'] as const) {
-        const storage = storageOf(scope);
-        for (const provider of storedProviders(storage)) {
-          if (out.has(provider) || !parse(tryRead(storage, prefix + provider))) continue;
-          out.set(provider, scope);
-        }
+      // A stored key counts only when it opens (an `aes-browser` one does not once IndexedDB was cleared): the setup
+      // then asks for it again rather than show a key that asking would fail on.
+      const stored = new Set([...storedProviders(session), ...storedProviders(local)]);
+      for (const provider of stored) {
+        if (out.has(provider)) continue;
+        const opened = await openStored(provider);
+        if (opened) out.set(provider, opened.scope);
       }
       return [...out].map(([provider, scope]) => ({ provider, scope }));
     },

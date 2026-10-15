@@ -20,11 +20,19 @@ Status: **accepted** (2026-10-15).
   (`createIndexedDbRows('prism-viewer-records')`, `@molstar/ai-components`) and keeps appending there for the rest of
   the session. **Only the record**: no plugin state, no files, no checkpoints, no autosave, so IndexedDB never becomes a
   second file system; the state comes back only from a session file the person saved.
-- The spec chooses the rows (`persist.rows`, viewer-spec.md §2.6); headless hosts and evals use memory.
+- The spec chooses the rows a kept record goes to (`persist.rows`, viewer-spec.md §2.6; the record's `keepIn`); without
+  them "Keep" uses the browser's IndexedDB as above. The record itself starts in memory either way; headless hosts and
+  evals use memory.
+- **The copy is in the write order**: "Keep" runs in the record's one chain of writes, so what is appended while it copies
+  waits and goes to the kept record; one keep runs at a time (the button is off while it does). A copy that fails is
+  removed, and the record goes on in memory.
 - **Listing kept records** (review F19): fibers have no listing by owner, so the viewer keeps a small index of kept
-  records (id, title, first and last time, size) in the same IndexedDB rows, written when a record is kept, appended to
-  or forgotten; a fiber listing in `@molstar/ai-fibers` would replace it (README §4). Copying the memory record into
-  IndexedDB reads its windows and appends them in order with the same entry ids.
+  records (id, title, first and last time; size not yet) in the same IndexedDB rows, written when a record is kept,
+  forgotten, and while it is appended to at most once a minute and at the end of each turn (and when the viewer goes);
+  each write is an entry, folded when listed (folding the index fiber itself as it grows: not yet). A fiber listing in
+  `@molstar/ai-fibers` would replace it (README §4). Copying the memory record into IndexedDB reads its windows and
+  writes them in order with the same entry ids and positions: settled entries settled, a turn under way begun, an aborted
+  one aborted.
 
 ## 2. Entries
 
@@ -37,21 +45,36 @@ Envelopes `{ codec: 'prism-viewer.record.v1', version: 1, value }` of strict JSO
 | `undo`    | which step was undone (a run, or a turn), by whom                                                                     | settled                          |
 | `session` | opened (from what: empty, URL, a file), cleared, saved (to which file)                                                | settled                          |
 
+As built (`journal/record.ts`), not yet everything in the table: a `run` holds its values as summarized JSON (what JSON
+cannot carry said in words, a function as `(function)`, a URL without its query or fragment, long text cut; MolQL
+targets and `changed` not yet). A `turn` holds the prompt, the focus, the reply only when it settles (no deltas yet: History
+shows the turn's runs while it runs, its reply at the end), the outcome and usage; the ids of its runs are not in it (its
+runs name the turn instead), and the model not yet (the agent does not pass it). An `undo` names the step and the turn it
+was part of, not yet by whom; an Undo turn writes one `undo` per step of the turn (one entry naming the turn: not yet). A
+`session` entry holds the event and the API's words for it.
+
 - **Append-only**: an undo is a new entry that names the step; the History view shows the step as undone. Nothing is
   edited in place.
 - **Bounded** by the fiber's limits (entry 1 MB, windows of at most 256); a run's values over a size are kept as a
   summary, and a target's "what it selected" is kept as counts and chains past a few hundred residues (critic, scale).
-- **A turn waiting** for an approval or an `ask` keeps its streaming entry alive (a heartbeat while parked), so the
-  fiber's inactivity timeout never aborts it (review F52).
+- **A turn waiting** for an approval or an `ask` keeps its streaming entry alive (a heartbeat every five minutes while it
+  is open, against the fiber's hour), so the fiber's inactivity timeout never aborts it (review F52). A turn the fiber
+  aborts anyway (the page went away mid-turn) reads as stopped, from what it was begun with. A record that ends (the
+  viewer disposed) settles a turn still open as stopped.
 - **Reads** are windows (newest first), so the History view is a `VirtualList` over windows, however long the session.
   As built (`journal/history-model.ts`): the newest window, "Show earlier" for the one before, read again once per frame
-  after a change and only while the tab is shown; a plain list until a session's rows call for virtualizing.
+  after a change and only while the tab is shown; a plain list until a session's rows call for virtualizing. A read
+  longer than the fiber's window (256) goes in windows; a turn under way older than the newest window has everything
+  loaded read again, so its settling shows.
 
 ## 3. Shown back
 
 - **History** (a core tab, replacing Log; Log's messages stay in the status column): the record, newest first. A
   person's runs one by one, an agent's turn as one item with its prompt, reply and runs under it, undone steps marked.
-  Undo on the latest step (the history manager's), Undo turn on the agent's latest turn.
+  Undo on the latest step (the history manager's), Undo turn on the agent's latest turn; with later steps above it,
+  the row says how many and offers to undo them too.
+- **The assistant's history** (`AgentModel.history`) is History's rows (`rowsOf`) mapped to its items, read only while
+  something watches it; its turn card holds Undo turn while the newest step is that turn's and can be restored.
 - **Without the assistant** History still shows the person's runs; the assistant adds the turn's rendering (the turn card,
   the Inspector's Trace for a turn still in the harness's storage).
 - **After a reload**: only kept records are there (not built yet: the list on Home). Home lists them (title, first and last entries, when); opening one
@@ -70,6 +93,9 @@ Envelopes `{ codec: 'prism-viewer.record.v1', version: 1, value }` of strict JSO
   never shortens the record.
 
 ## 5. Session files and kept records
+
+Not built yet: neither the record in session files nor the bound and Forget below (the index has `forget`; nothing in
+the app calls it).
 
 - **In `.molx`, opt-in** (David, 2026-10-15): saving a session offers "Include the session's record"; the record goes in
   as `record.jsonl` beside the snapshot (one entry a line, the envelopes of §2). Opening such a file shows the record in
@@ -114,7 +140,8 @@ a place for data:
   its tab.
 - **Deploys** (critic): a tab open across a deploy keeps working: hashed chunks of the last few versions stay on the
   site (the publish adds files, it does not replace the branch), and a chunk that fails to load anyway marks its
-  feature failed with "A newer version of the viewer is available: reload".
+  feature failed with "A newer version of the viewer is available: reload" (as built: the assistant's chunk, in the
+  status column).
 - **The Storage view** shows what is kept and where: kept records (count, size, age), preferences, the light restore,
   stored keys (by provider and scope, never the key), domain rules, the origin that holds them, each with Forget, and
   Forget everything. It sits beside the assistant's Trace, Tools and Limits, and in Settings when there is no

@@ -69,6 +69,7 @@
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",
+    "fake-indexeddb": "catalog:",
     "typescript": "catalog:"
   }
 }

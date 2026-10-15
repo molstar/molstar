@@ -14,7 +14,8 @@ import type { RecordEntry, RecordItem, RunEntry, SessionRecord, TurnEntry } from
 // newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). It is read again after a
 // change, once per frame, and only while the tab is active: a hidden tab holds no subscription and reads nothing.
 // The rows: a person's (script's, link's) run is one row; an agent's turn is one row holding its runs; an `undo` entry is
-// no row, it marks the step it undid; a `session` entry is a small separator.
+// no row, it marks the step it undid; a `session` entry is a small separator. What is loaded is a run of positions from
+// the newest down to `floor`; the record reads in windows of at most the fiber's limit (256), however many are asked.
 
 /** Entries read at first, and by each "Show earlier". */
 export const HistoryWindow = 200;
@@ -23,6 +24,9 @@ export interface HistoryRunRow {
   readonly kind: 'run';
   readonly key: string;
   readonly origin: RunOriginKind;
+  /** The operation's id and title. */
+  readonly operation: string;
+  readonly title: string;
   /** What it did, or why it failed. */
   readonly text: string;
   readonly failed: boolean;
@@ -90,8 +94,10 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
   const more = observableState(false);
   const kept = observableState(record.kept);
 
-  /** The loaded entries, by position. */
+  /** The loaded entries, newest first, and the positions their windows covered (`floor` up to `top`, exclusive). */
   let loaded: RecordItem[] = [];
+  let floor = 0;
+  let top = 0;
   let hasMore = false;
   let active = false;
   let disposed = false;
@@ -109,7 +115,7 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
     const sigs = new Map<string, string>();
     const prev = new Map<string, HistoryRow>();
     const out = next.map((row) => {
-      const sig = JSON.stringify(row);
+      const sig = signatureOf(row);
       sigs.set(row.key, sig);
       const same = signatures.get(row.key) === sig ? previous.get(row.key) : undefined;
       const use = same ?? row;
@@ -127,28 +133,27 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
   const refresh = async () => {
     const fresh = await record.read(size);
     if (disposed || !active) return;
-    if (!fresh.more || !loaded.length) {
-      // The window holds the whole record, or nothing is loaded yet.
+    if (!fresh.more || top === 0 || fresh.start > top) {
+      // The window holds the whole record, or nothing is loaded yet, or more new entries came than a window: start over
+      // from the newest; earlier ones come by "Show earlier".
       loaded = fresh.items;
+      floor = fresh.start;
       hasMore = fresh.more;
+    } else if (loaded.some((i) => i.open && i.position < fresh.start)) {
+      // A turn under way, older than this window, may have settled since: read again all that is loaded (in windows).
+      const all = await record.read(fresh.end - floor);
+      if (disposed || !active) return;
+      loaded = all.items;
+      floor = all.start;
+      hasMore = all.more;
     } else {
-      const oldest = fresh.items.length ? fresh.items[fresh.items.length - 1].position : Number.POSITIVE_INFINITY;
-      if (oldest > loaded[0].position + 1) {
-        // More new entries than a window: start over from the newest; earlier ones come by "Show earlier".
-        loaded = fresh.items;
-        hasMore = true;
-      } else if (loaded.some((i) => i.open && i.position < oldest)) {
-        // A turn under way, older than this window, may have settled since: read all that is loaded again.
-        const all = await record.read(Math.max(size, loaded.length));
-        if (disposed || !active) return;
-        loaded = all.items;
-        hasMore = all.more;
-      } else {
-        const older = loaded.filter((i) => i.position < oldest);
-        loaded = [...fresh.items, ...older];
-        if (!older.length) hasMore = fresh.more;
+      loaded = [...fresh.items, ...loaded.filter((i) => i.position < fresh.start)];
+      if (fresh.start <= floor) {
+        floor = fresh.start;
+        hasMore = fresh.more;
       }
     }
+    top = fresh.end;
     publish();
   };
 
@@ -191,15 +196,20 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
         wanted = false;
       }
     },
-    async showEarlier() {
-      await chain;
-      if (!active || disposed || !hasMore || !loaded.length) return;
-      const before = loaded[loaded.length - 1].position;
-      const page = await record.read(size, before);
-      if (!active || disposed) return;
-      loaded = [...loaded, ...page.items];
-      hasMore = page.more && page.items.length > 0;
-      publish();
+    showEarlier() {
+      // In the chain of reads, so a refresh that starts over cannot meet it half way.
+      const next = chain.then(async () => {
+        if (!active || disposed || !hasMore || !loaded.length) return;
+        const page = await record.read(size, floor);
+        if (!active || disposed) return;
+        loaded = [...loaded, ...page.items];
+        // Moves down by the window's positions, items or not (an entry left out does not stop it).
+        floor = page.start;
+        hasMore = page.more;
+        publish();
+      });
+      chain = next.catch((e) => console.error('[prism-viewer] history:', e));
+      return chain;
     },
     async idle() {
       // A scheduled read has not started; wait for it, then for the chain.
@@ -217,10 +227,23 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
   };
 }
 
+/**
+ * What can change in a row once made: entries are append-only, so a run changes only by being undone, a turn by settling
+ * (its reply, outcome) and by its runs; cheaper than comparing the rows' JSON, whole replies included, every frame.
+ */
+function signatureOf(row: HistoryRow): string {
+  if (row.kind === 'run') return row.undone ? 'u' : '';
+  if (row.kind === 'session') return '';
+  const runs = row.runs.map((r) => `${r.key}${r.undone ? 'u' : ''}`).join(',');
+  return `${row.open}|${row.outcome ?? ''}|${row.undone}|${row.reply?.length ?? -1}|${runs}`;
+}
+
 const runRow = (item: RecordItem, e: RunEntry, undone: ReadonlySet<number>): HistoryRunRow => ({
   kind: 'run',
   key: item.id,
   origin: e.origin.kind,
+  operation: e.operation,
+  title: e.title,
   text: e.result.ok ? e.result.did : e.result.message,
   failed: !e.result.ok,
   undone: e.step !== undefined && undone.has(e.step),

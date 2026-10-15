@@ -22,7 +22,8 @@
       "molstar-src": "./src/ui.tsx",
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -40,7 +41,9 @@
     "@molstar/core": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@molstar/plugin-ui": "workspace:*"
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",
