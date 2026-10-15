@@ -8,12 +8,12 @@
 
 import { StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
-import { mapState, type ReadonlyState } from '@molstar/prism-ui/core';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { map, type Observable, share } from 'rxjs';
 import { summarize } from '../targets/index.js';
 import { hoverLines } from './hover-lines.js';
 import { structureNames } from './naming.js';
-import { fromBehavior, type SourceScope } from './state.js';
+import { fromChanged, type SourceScope } from './state.js';
 
 // What is under the pointer (api.md §8: v5's `structureInteractivity`; README §3.6): the hover label's lines, and the
 // hover and click events embedding hosts read, each with the target in the address language (targets.md §1).
@@ -43,8 +43,14 @@ export interface PointerSources {
 }
 
 export function createPointerSources(scope: SourceScope, plugin: PluginContext): PointerSources {
-  const labels = fromBehavior(scope, plugin.behaviors.labels.highlight);
-  const lines = mapState(labels, (l) => hoverLines(l.labels));
+  // The lines are derived on every emission and compared themselves: Mol*'s label manager reuses one `labels` array
+  // (`LociLabelManager.getLabels`), so the event's value looks unchanged to a shallow compare (G8).
+  const lines = fromChanged(
+    scope,
+    () => hoverLines(plugin.behaviors.labels.highlight.value.labels),
+    plugin.behaviors.labels.highlight,
+    sameLines,
+  );
   const toEvent = (e: {
     current: { loci: unknown };
     button: number;
@@ -71,4 +77,8 @@ export function createPointerSources(scope: SourceScope, plugin: PluginContext):
     hover: plugin.behaviors.interaction.hover.pipe(map(toEvent), share()),
     click: plugin.behaviors.interaction.click.pipe(map(toEvent), share()),
   };
+}
+
+function sameLines(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((l, i) => l === b[i]);
 }
