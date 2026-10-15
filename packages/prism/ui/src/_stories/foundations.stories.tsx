@@ -134,7 +134,7 @@ export const Themes: StoryObj = {
   render: () =>
     story(() => (
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-        {['light', 'dark', 'blue'].map((theme) => (
+        {['light', 'dark', 'blue', 'contrast'].map((theme) => (
           <div
             data-msp-theme={theme}
             style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: var(--msp-space-5); display: grid; gap: var(--msp-space-3); font-size: var(--msp-font-size-sm)"

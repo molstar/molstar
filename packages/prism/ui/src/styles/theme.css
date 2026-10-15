@@ -75,6 +75,29 @@
     --msp-color-brand-4: #79bfe6;
   }
 
+  /* High contrast (README §3.7, decision 31): black and white, a yellow accent, and (below) borders and muted text
+     that keep their contrast. */
+  [data-msp-theme="contrast"] {
+    color-scheme: dark;
+    --msp-color-bg: #000;
+    --msp-color-text: #fff;
+    --msp-color-accent: #ffd60a;
+    --msp-color-accent-strong: #ffe866;
+    --msp-color-danger: #ff6b6b;
+    --msp-color-success: #3ddc84;
+    --msp-color-warning: #ffd60a;
+    --msp-color-info: #d0a8ff;
+    --msp-shade: #fff;
+
+    --msp-step-control: 16%;
+    --msp-step-hover: 24%;
+    --msp-step-pressed: 32%;
+    --msp-color-brand-1: #ffb37a;
+    --msp-color-brand-2: #ffe066;
+    --msp-color-brand-3: #9ff0c4;
+    --msp-color-brand-4: #8fd3ff;
+  }
+
   @media (prefers-color-scheme: dark) {
     [data-msp-theme="auto"] {
       color-scheme: dark;
@@ -192,6 +215,31 @@
     /* Content that opens or closes: eases in as well as out, so the growth is even (the quick ease above is mostly
        done in its first frames, which reads as a jump on a tall block). */
     --msp-ease-reveal: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* High contrast: muted text and borders stay readable (WCAG 2.2 AA and more), the glass is opaque. The theme, and
+     any theme when the system asks for more contrast. */
+  [data-msp-theme="contrast"] {
+    --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 12%);
+    --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 25%);
+    --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 45%);
+    --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 70%);
+    --msp-color-accent-muted: color-mix(in oklab, var(--msp-color-accent), var(--msp-color-bg) 60%);
+    --msp-glass-bg: var(--msp-color-panel);
+    --msp-glass-panel-bg: var(--msp-color-panel);
+    --msp-glass-edge: var(--msp-color-border-strong);
+  }
+
+  @media (prefers-contrast: more) {
+    [data-msp-theme] {
+      --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 15%);
+      --msp-color-text-subtle: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 30%);
+      --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 40%);
+      --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 60%);
+      --msp-glass-bg: var(--msp-color-panel);
+      --msp-glass-panel-bg: var(--msp-color-panel);
+      --msp-glass-edge: var(--msp-color-border-strong);
+    }
   }
 
   /* Text drawn over the canvas follows the canvas background, not the UI theme. */
