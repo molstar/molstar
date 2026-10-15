@@ -6,7 +6,7 @@
 
 import { PluginStateAnimation } from '../model.js';
 import { PluginStateObject } from '../../objects.js';
-import { StateTransforms } from '../../transforms.js';
+import { UnwindStructureAssemblyRepresentation3D } from '@molstar/plugin/state/transforms/structure/animation';
 import { StateSelection, StateTransform } from '@molstar/core/state';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -58,21 +58,12 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     let changed = false;
     for (const r of reprs) {
       const unwinds = state.select(
-        StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D,
-          r.transform.ref,
-        ),
+        StateSelection.Generators.ofTransformer(UnwindStructureAssemblyRepresentation3D, r.transform.ref),
       );
       if (unwinds.length > 0) continue;
 
       changed = true;
-      update
-        .to(r)
-        .apply(
-          StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D,
-          { t: 0 },
-          { tags: 'animate-assembly-unwind' },
-        );
+      update.to(r).apply(UnwindStructureAssemblyRepresentation3D, { t: 0 }, { tags: 'animate-assembly-unwind' });
     }
 
     if (!changed) return;
@@ -95,12 +86,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
   async apply(animState, t, ctx) {
     const state = ctx.plugin.state.data;
     const root = !ctx.params.target || ctx.params.target === 'all' ? StateTransform.RootRef : ctx.params.target;
-    const anims = state.select(
-      StateSelection.Generators.ofTransformer(
-        StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D,
-        root,
-      ),
-    );
+    const anims = state.select(StateSelection.Generators.ofTransformer(UnwindStructureAssemblyRepresentation3D, root));
 
     if (anims.length === 0) {
       return { kind: 'finished' };

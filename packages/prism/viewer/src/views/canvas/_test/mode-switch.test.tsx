@@ -1,0 +1,68 @@
+/** @vitest-environment jsdom */
+/** @jsxImportSource @molstar/prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { describe, expect, it } from 'vitest';
+import { render } from '@molstar/prism-ui/dom/render';
+import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { type CanvasMode, ModeSwitch, type ModeSwitchProps, PickLevel } from '../mode-switch.js';
+
+describe('ModeSwitch', () => {
+  it('shows the mode and switches it; the picking levels are listed directly, one click from Select', () => {
+    const mode = observableState<CanvasMode>('interact');
+    const granularity = observableState('residue');
+    const container = document.createElement('div');
+    const props: ModeSwitchProps = {
+      mode: mode.asReadonly,
+      setMode: (m) => mode.set(m),
+      granularity: granularity.asReadonly,
+      granularities: [
+        { value: 'residue', label: 'Residue', icon: 'pick-residue' },
+        { value: 'chain', label: 'Chain', icon: 'pick-chain' },
+        { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
+      ],
+      setGranularity: (g) => granularity.set(g),
+    };
+    render(
+      () => (
+        <>
+          <ModeSwitch {...props} />
+          <PickLevel {...props} />
+        </>
+      ),
+      container,
+    );
+    document.body.append(container);
+    const [interact, select] = container.querySelectorAll<HTMLButtonElement>('.msp-viewer-mode-switch-segment');
+    const rows = () => [...container.querySelectorAll('[role=menuitemradio]')] as HTMLButtonElement[];
+    expect(interact.getAttribute('aria-pressed')).toBe('true');
+
+    // The list is there (shown by CSS on hover or focus of Select): no button to open first, the current one marked.
+    expect(container.querySelector('[aria-haspopup]')).toBeNull();
+    expect(rows().map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    expect(container.querySelector('[role=menu]')?.textContent).toContain('All instances');
+
+    // Picking a level sets it and turns select mode on (it was off).
+    rows()[1].click();
+    expect(granularity.value).toBe('chain');
+    expect(mode.value).toBe('select');
+    expect(select.getAttribute('aria-pressed')).toBe('true');
+    expect(rows().map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+
+    // Another pick keeps select mode on; Interact turns it off and keeps the level.
+    rows()[2].click();
+    expect(granularity.value).toBe('chainInstances');
+    expect(mode.value).toBe('select');
+    interact.click();
+    expect(mode.value).toBe('interact');
+    expect(granularity.value).toBe('chainInstances');
+    container.remove();
+  });
+});

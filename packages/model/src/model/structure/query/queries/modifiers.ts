@@ -22,7 +22,7 @@ import { arraySetAdd } from '@molstar/core/util/array';
 // MmcifFormat needs to be imported as a type otherwise it causes out-of-order
 // code execution in turbopack (and possibly other bundlers)... but interestingly
 // only when ES6 modules are used (CommonJS fine)
-import type { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import type { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
   const builder = source.subsetBuilder(true);

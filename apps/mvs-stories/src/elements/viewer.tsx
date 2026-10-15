@@ -11,7 +11,7 @@ import { StringLike } from '@molstar/core/util/string-like';
 import { PluginComponent } from '@molstar/plugin/state/component';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
@@ -37,6 +37,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
           },
         },
         components: {
+          ...spec.components,
           remoteState: 'none',
           viewport: {
             snapshotDescription: EmptyDescription,

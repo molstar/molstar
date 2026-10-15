@@ -1,0 +1,23 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // _test, bench and scripts (no emit). The scripts are run by Node's type stripping and import with .ts.
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["_test", "bench", "scripts"],
+  "exclude": ["_test/query"],
+  // Mol*'s zip and runtime context come from the built root packages, not their sources (which need the DOM lib).
+  "references": [{ "path": "../../core" }, { "path": "../../io" }]
+}

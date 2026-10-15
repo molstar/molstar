@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { CIF, CifBlock } from '@molstar/io/reader/cif';
 import { toDatabase } from '@molstar/io/reader/cif/schema';
 import { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';

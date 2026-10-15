@@ -6,7 +6,7 @@
   "description": "Mol* docking-viewer",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./index": {
@@ -41,7 +41,8 @@
     "@molstar/plugin": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/core": "workspace:*",
-    "@molstar/graphics": "workspace:*"
+    "@molstar/graphics": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

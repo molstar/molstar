@@ -6,11 +6,8 @@
 
 import type { Structure } from '@molstar/model/model/structure';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  computeInteractions,
-  type Interactions,
-  InteractionsParams as _InteractionsParams,
-} from './interactions/interactions.js';
+import { computeInteractions, type Interactions } from './interactions/interactions.js';
+import { InteractionsParams as _InteractionsParams } from './interactions/params.js';
 import { CustomStructureProperty } from '../common/custom-structure-property.js';
 import type { CustomProperty } from '../common/custom-property.js';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';

@@ -22,7 +22,7 @@ import {
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence.js';
 import { CustomPropertyDescriptor } from '../../custom-property.js';
 import { atom_site_operator_mapping } from './categories/atom_site_operator_mapping.js';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { molstar_bond_site } from './categories/molstar_bond_site.js';
 
 export interface CifExportContext {

@@ -1,0 +1,298 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * The stories' shared blocks in Mol* Prism's rules (`@molstar/prism-ui`'s): flat surfaces set apart by tone, no
+ * borders; 12px panel text, 11px for code and captions; one text column, 8px into its box. A card is a panel: its
+ * content inset 4px at the sides and bottom, its title a row whose text starts 8px further in, as do its text rows.
+ */
+.title {
+  margin: 0;
+  font-size: var(--msp-font-size-lg);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.kicker {
+  max-width: 960px;
+  color: var(--msp-color-text-muted);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+}
+/* A card's text keeps its text column: what is not a box (a title row, a canvas, a well, a row of choices: they pad their
+   own text 8px) sits 8px further in than the boxes. */
+:where(.card > *) {
+  margin-inline: var(--msp-inset);
+}
+/* A card in a card is a group of it: no tone or inset of its own, its text in the outer card's column. */
+.card .card {
+  margin-inline: 0;
+  padding: 0;
+  background: none;
+}
+.card > .heading,
+.card > .box,
+.card > .nightingale,
+.card > [data-msp-box] {
+  margin-inline: 0;
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-row-height);
+  margin: 0;
+  padding: 0 var(--msp-inset);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+/* A title inside a row (beside its actions) takes the row's inset, not its own. */
+.row > .heading {
+  padding: 0;
+}
+
+.subheading {
+  margin-block: 0;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-2) var(--msp-space-4);
+  align-items: baseline;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-3);
+}
+
+.status {
+  min-height: 1.4em;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.issues {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-1);
+  margin-block: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--msp-font-size-sm);
+}
+
+.code {
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.none {
+  color: var(--msp-color-text-subtle);
+  font-style: italic;
+}
+
+.pre {
+  margin: 0;
+  padding: var(--msp-space-3) var(--msp-inset);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+  white-space: pre;
+}
+
+/* A block of code or data inside a card: a well (a step from the panel the other way), no border. */
+.box {
+  max-height: 360px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--msp-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.table th,
+.table td {
+  padding: var(--msp-space-1) var(--msp-space-4) var(--msp-space-1) 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--msp-color-text-muted);
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--msp-font-mono);
+}
+
+/*
+ * Nightingale's elements on a white ground, as Nightingale draws them (its axes and letters are dark in either theme);
+ * our label column beside them in the theme's colors, laid out like UniProt's feature viewer: a tinted cell per row,
+ * group headers with a disclosure triangle, a group's tracks indented under it. Every row boundary is one hairline,
+ * a row's top border across both columns, whatever the row (track, group header, a group's first track); groups and
+ * their bodies draw none (a collapsed body is hidden, its borders with it). Hiding a collapsed group's body is mount's
+ * stylesheet's; the labels mount lays over features are on the white ground, their ink chosen per fill.
+ */
+.nightingale {
+  --svs-label-width: 184px;
+  --svs-label-bg: var(--msp-color-well);
+  --svs-header-bg: var(--msp-color-control);
+  /* Prism's hairline: rows read across both columns without a line that shouts. */
+  --svs-separator: var(--msp-glass-edge);
+  overflow: hidden;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  color: var(--msp-color-text);
+  line-height: 1.3;
+}
+
+.nightingale :global(.svs-section + .svs-section) {
+  border-top: 1px solid var(--msp-color-border);
+}
+
+.nightingale :global(.svs-section-label) {
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-bottom: 1px solid var(--svs-separator);
+  background: var(--svs-header-bg);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.nightingale :global(.svs-track) {
+  display: flex;
+  align-items: stretch;
+  min-height: 22px;
+  border-top: 1px solid var(--svs-separator);
+}
+
+/* A manager's first row has the frame or the section label above it; stacked managers meet at one hairline. */
+.nightingale :global(nightingale-manager) > :global(.svs-track):first-child,
+.nightingale :global(nightingale-manager) > :global(.svs-group):first-child > :global(.svs-group-header) {
+  border-top: none;
+}
+
+.nightingale :global(nightingale-manager + nightingale-manager) {
+  border-top: 1px solid var(--svs-separator);
+}
+
+.nightingale :global(.svs-label) {
+  display: flex;
+  flex: none;
+  gap: var(--msp-space-2);
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--svs-label-width);
+  padding: var(--msp-space-1) var(--msp-inset) var(--msp-space-1) calc(var(--msp-inset) + var(--svs-depth, 0) * 14px);
+  border-right: 1px solid var(--svs-separator);
+  background: var(--svs-label-bg);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.3; /* Nightingale sets 0 on its manager */
+}
+
+/* Cut-off text fades out, no ellipsis (prism/reset.css, msp-fade-overflow). */
+.nightingale :global(.svs-label-text) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.nightingale :global(.svs-group-header > .svs-label) {
+  background: var(--svs-header-bg);
+  font-weight: 600;
+}
+
+.nightingale :global(.svs-toggle) {
+  display: flex;
+  gap: var(--msp-space-2);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nightingale :global(.svs-toggle:focus-visible),
+.nightingale :global(.svs-hint:focus-visible) {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.nightingale :global(.svs-disclosure) {
+  flex: none;
+  width: 12px;
+  color: var(--msp-color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.nightingale :global(.svs-hint) {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--msp-color-text-subtle);
+  border-radius: 50%;
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-sans);
+  font-size: 9px;
+  font-style: italic;
+  line-height: 1;
+  cursor: help;
+}
+
+.nightingale :global(.svs-feature-label) {
+  font-family: var(--msp-font-sans);
+  font-weight: 500;
+}
+
+.nightingale :global(.svs-block-label) {
+  font-weight: 600;
+}
+
+.nightingale :global(.svs-layers) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  background: #fff;
+  color: #222;
+}

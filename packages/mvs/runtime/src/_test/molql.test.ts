@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { componentPropsFromSelector, prettyNameFromSelector } from '@molstar/mvs/load-helpers';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { createMVSBuilder } from '@molstar/mvs-builder/tree/mvs/mvs-builder';
@@ -14,19 +15,49 @@ import {
   isPrimitiveMolQLExpression,
 } from '@molstar/mvs-builder/tree/mvs/param-types';
 import { molQLValidationIssues } from '@molstar/mvs/runtime-validation';
-import { buildStory } from '@molstar/mvs-stories-example/stories/molql';
-import { compile } from '@molstar/model/script/runtime/query/base';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
-import { parse } from '@molstar/model/script/transpile';
+import { compile, DefaultQueryRuntimeTable, QuerySymbolRuntime } from '@molstar/model/script/runtime/query/base';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
+import { parse } from '@molstar/query-language/transpile';
+import '@molstar/query-language/transpilers/pymol';
 
 describe('MVS MolQL selectors', () => {
   const molql = MS.struct.generator.atomGroups({});
+
+  it('ignores nested extra fields during both name validation and executable compilation', () => {
+    // The first extra passes language validation but fails executable compilation; the second has an unknown name.
+    const extras = [MS.core.ctrl.fn([1]), { head: { name: 'custom.future-query' } }];
+    for (const expression of extras) {
+      const builder = createMVSBuilder();
+      const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+      const selector = { label_asym_id: 'A', extension_data: { molql: expression } };
+      structure.component({ selector });
+      structure.component({ selector: [selector] });
+      structure.primitives().label({
+        position: { expressions: [selector], extension_data: { molql: expression } } as any,
+        text: 'label',
+      });
+      expect(molQLValidationIssues(builder.getState().root)).toBeUndefined();
+    }
+  });
+
+  it('still compiles actual selectors and primitive positions', () => {
+    const builder = createMVSBuilder();
+    const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+    const unsupported = MS.core.ctrl.fn([1]);
+    structure.component({ selector: { molql: unsupported } });
+    structure.primitives().label({ position: { molql: unsupported, structure_ref: 's' }, text: 'label' });
+    const issues = molQLValidationIssues(builder.getState().root)?.join('\n');
+    expect(issues).toContain('.params.selector.molql: Invalid MolQL expression');
+    expect(issues).toContain('.params.position.molql: Invalid MolQL expression');
+  });
 
   it('validates the standalone MolQL wrapper structure', () => {
     const malformed = { head: { name: 'not-implemented' } };
     expect(MolQLExpressionT.decode({ molql })._tag).toEqual('Right');
     expect(MolQLExpressionT.decode({ molql: 'not-a-query' })._tag).toEqual('Left');
-    // The standalone builder checks JSON shape; MolScript symbol semantics belong to runtime.
+    // Fixed schema codecs check syntax; MVSData validates names using the caller's symbol vocabulary.
     expect(MolQLExpressionT.decode({ molql: malformed })._tag).toEqual('Right');
     expect(MolQLExpressionT.decode({ molql, label_seq_id: 1 })._tag).toEqual('Left');
     expect(MolQLExpressionT.decode({})._tag).toEqual('Left');
@@ -48,9 +79,32 @@ describe('MVS MolQL selectors', () => {
     const wrapped = { molql };
     expect(componentPropsFromSelector(wrapped)).toEqual({ name: 'expression', params: molql });
     expect(componentPropsFromSelector('protein')).toEqual({ name: 'static', params: 'protein' });
-    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toMatchObject({ name: 'expression' });
-    expect(componentPropsFromSelector([{ label_asym_id: 'A' }])).toMatchObject({ name: 'expression' });
+    // rows are the expression element-schema (which resolves them through the indices of the model)
+    const item = (args: object) => ({ head: { name: 'structure-query.type.schema-item' }, args });
+    const generator = (items: object[]) => ({
+      head: { name: 'structure-query.generator.element-schema' },
+      args: items,
+    });
+    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: 'A' })]),
+    });
+    const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
+    expect(componentPropsFromSelector(rows)).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: 'A' }), item({ label_asym_id: 'B', label_seq_id: 3 })]),
+    });
+    // (many rows are columns)
+    const many = Array.from({ length: 12 }, (_, i) => ({ label_asym_id: 'A', label_seq_id: i }));
+    expect(componentPropsFromSelector(many)).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: many.map(() => 'A'), label_seq_id: many.map((_, i) => i) })]),
+    });
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
+    expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('A');
+    expect(prettyNameFromSelector(rows)).toEqual('A + B3');
+    expect(prettyNameFromSelector('protein')).toEqual('Protein');
+    expect(prettyNameFromSelector(undefined)).toEqual('All');
   });
 
   it('rejects invalid selector and primitive addresses during MVS validation', () => {
@@ -100,34 +154,33 @@ describe('MVS MolQL selectors', () => {
       .modelStructure()
       .component({ selector: { molql: { head: { name: 'not-implemented' } } } as any });
     const state = builder.getState();
-    expect(MVSData.validationIssues(state)).toEqual(undefined);
+    expect(MVSData.validationIssues(state)?.join('\n')).toContain('Unknown callable symbol');
     expect(molQLValidationIssues(state.root)?.join('\n')).toContain('Invalid MolQL expression');
   });
 
-  it('builds a valid story from MolScriptBuilder and a PyMOL-transpiled expression', () => {
-    const story = buildStory();
-    expect(MVSData.validationIssues(story)).toEqual(undefined);
-    expect(story.snapshots).toHaveLength(4);
-    expect(findNodes(story, 'camera')).toHaveLength(0);
+  it('validates registered custom symbols in the runtime without changing standalone vocabulary', () => {
+    const symbol = CustomPropSymbol('custom', 'mvs-test', Type.Num);
+    const runtime = QuerySymbolRuntime.Const(symbol, () => 1);
+    const builder = createMVSBuilder();
+    builder
+      .download({ url: 'example.bcif' })
+      .parse({ format: 'bcif' })
+      .modelStructure()
+      .component({
+        selector: { molql: MS.struct.generator.atomGroups({ 'atom-test': MS.core.rel.eq([symbol(), 1]) }) },
+      });
+    const state = builder.getState();
+    DefaultQueryRuntimeTable.addSymbol(runtime);
+    try {
+      expect(molQLValidationIssues(state.root)).toBeUndefined();
+      expect(MVSData.validationIssues(state)?.join('\n')).toContain('Unknown callable symbol');
+    } finally {
+      DefaultQueryRuntimeTable.removeSymbol(runtime);
+    }
+    expect(molQLValidationIssues(state.root)?.join('\n')).toContain('Unknown callable symbol');
+  });
 
-    const componentSelectors = findNodes(story, 'component').map((node) => node.params.selector);
-    expect(componentSelectors.some((selector) => selector?.molql)).toEqual(true);
-
-    const colorSelectors = findNodes(story, 'color').map((node) => node.params.selector);
-    expect(colorSelectors.filter((selector) => selector?.molql)).toHaveLength(2);
-
-    const primitivePositions = findNodes(story, 'primitive').flatMap((node) => [
-      node.params.position,
-      node.params.start,
-      node.params.end,
-    ]);
-    expect(primitivePositions.filter((position) => position?.molql)).toHaveLength(2);
-
-    const serialized = MVSData.toMVSJ(story);
-    expect(serialized).toContain('"kind":"component"');
-    expect(serialized).toContain('"kind":"color"');
-    expect(serialized).toContain('"kind":"primitive"');
-    expect(serialized).toContain('"selector":{"molql"');
+  it('compiles MolScriptBuilder and PyMOL-transpiled expressions', () => {
     expect(() => compile(parse('pymol', 'byres polymer within 5 of resn STI'))).not.toThrow();
     expect(() =>
       compile(
@@ -140,14 +193,3 @@ describe('MVS MolQL selectors', () => {
     expect(() => compile(parse('pymol', 'chain A and resi 315 and name OG1'))).not.toThrow();
   });
 });
-
-function findNodes(tree: any, kind: string): any[] {
-  const nodes: any[] = [];
-  const visit = (node: any) => {
-    if (node.kind === kind) nodes.push(node);
-    for (const child of node.children ?? []) visit(child);
-  };
-
-  for (const snapshot of tree.snapshots ?? []) visit(snapshot.root);
-  return nodes;
-}

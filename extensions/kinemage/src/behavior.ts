@@ -11,12 +11,14 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { KinemageDataProvider, KinemageData } from '@molstar/kinemage-extension/prop';
 import { StateTransformer, StateBuilder } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
-import { PluginBehavior } from '@molstar/plugin/behavior';
-import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/drag-and-drop';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   shapePointsFromKin,
   shapeLinesFromKin,
@@ -391,6 +393,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
     private provider = KinemageDataProvider;
+    private unregisterEntry: (() => void) | undefined;
 
     register(): void {
       DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
@@ -405,10 +408,12 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
         (this.ctx as any).customControls.set('kinemage', KinemageControls as any);
       }
 
-      this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
-
-      // Register .kin file handler so opening/dropping .kin is supported via the data formats system
-      this.ctx.dataFormats.add('KIN', KINFormatProvider);
+      // Register the .kin file handler so opening/dropping .kin is supported via the data formats system
+      const entry: PluginRegistryEntry = {
+        formats: [KINFormatProvider],
+        dragAndDrop: [KinemageDragAndDropHandler],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     update(p: { autoAttach: boolean }) {
@@ -425,10 +430,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
       this.ctx.genericRepresentationControls.delete(Tag.Representation);
 
-      this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
-
-      // Unregister the .kin data format provider
-      this.ctx.dataFormats.remove('KIN');
+      // Unregister the .kin data format provider and drag-and-drop handler
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
 
       // Remove right-panel controls
       try {
@@ -445,12 +449,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     autoAttach: PD.Boolean(false),
   }),
 });
-
-/** Registerable method for handling dragged-and-dropped files */
-interface DragAndDropHandler {
-  name: string;
-  handle: PluginDragAndDropHandler;
-}
 
 /** Helper function to create all shapes for a kinemage via proper transform chain */
 async function createShapesForKinemage(
@@ -469,25 +467,25 @@ async function createShapesForKinemage(
     update
       .to(visControllerSelector.ref)
       .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
   if (kinData.vectorLists.length > 0) {
     update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
   if (kinData.ribbonLists.length > 0) {
     update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+      .apply(ShapeRepresentation3D, { doubleSided: true });
   }
   if (kinData.ballLists.length > 0) {
     update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
 }
 
@@ -496,7 +494,7 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
   const update = plugin.state.data.build();
 
   // Create String data node
-  const dataNode = update.toRoot().apply(StateTransforms.Data.RawData, { data, label: label || 'Kinemage File' });
+  const dataNode = update.toRoot().apply(RawData, { data, label: label || 'Kinemage File' });
 
   // Parse into KinemageObject
   const parsedNode = dataNode.apply(ParseKinemage, { label });
@@ -579,7 +577,7 @@ export async function loadKinemageFile(
 }
 
 /** DragAndDropHandler handler for `.kin` files */
-const KinemageDragAndDropHandler: DragAndDropHandler = {
+const KinemageDragAndDropHandler: PluginDragAndDropEntry = {
   name: 'kin',
   async handle(files: File[], plugin: PluginContext): Promise<boolean> {
     let applied = false;
@@ -593,7 +591,8 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
   },
 };
 
-const KINFormatProvider: DataFormatProvider = DataFormatProvider({
+const KINFormatProvider = DataFormatProvider({
+  name: 'KIN',
   label: 'KIN',
   description: 'Kinemage',
   category: 'Miscellaneous',

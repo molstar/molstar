@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
 import type { Structure } from '@molstar/model/model/structure';
 import { StateSelection } from '@molstar/core/state';
+import type { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StructureElement } from '@molstar/model/model/structure/structure/element';
 import { OrderedSet } from '@molstar/core/data/int';
@@ -95,6 +96,36 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean; showToo
       },
     };
 
+    /** Applies the component manager's `interactions` option to the current structures. */
+    private async applyOptions(options: StructureComponentManager.Options['interactions']) {
+      const name = this.provider.descriptor.name;
+      const dataState = this.ctx.state.data;
+      for (const s of this.ctx.managers.structure.component.currentStructures) {
+        const interactionParams = this.provider.getParams(s.cell.obj?.data!);
+
+        if (s.properties) {
+          const oldParams = s.properties.cell.transform.params?.properties[name];
+          if (PD.areEqual(interactionParams, oldParams, options)) continue;
+
+          await dataState
+            .build()
+            .to(s.properties.cell)
+            .update((old) => {
+              old.properties[name] = options;
+            })
+            .commit();
+        } else {
+          const pd = this.ctx.customStructureProperties.getParams(s.cell.obj?.data);
+          const params = PD.getDefaultValues(pd);
+          if (PD.areEqual(interactionParams, params.properties[name], options)) continue;
+          params.properties[name] = options;
+          await this.ctx.builders.structure.insertStructureProperties(s.cell, params);
+        }
+      }
+    }
+
+    private undoOptionHandler: (() => void) | undefined = void 0;
+
     update(p: { autoAttach: boolean; showTooltip: boolean }) {
       const updated = this.params.autoAttach !== p.autoAttach || this.params.showTooltip !== p.showTooltip;
       this.params.autoAttach = p.autoAttach;
@@ -108,9 +139,14 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean; showToo
       this.ctx.representation.structure.themes.colorThemeRegistry.add(InteractionTypeColorThemeProvider);
       this.ctx.managers.lociLabels.addProvider(this.labelProvider);
       this.ctx.representation.structure.registry.add(InteractionsRepresentationProvider);
+      this.undoOptionHandler = this.ctx.managers.structure.component.registerOptionHandler('interactions', (value) =>
+        this.applyOptions(value),
+      );
     }
 
     unregister() {
+      this.undoOptionHandler?.();
+      this.undoOptionHandler = void 0;
       this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
       this.ctx.representation.structure.themes.colorThemeRegistry.remove(InteractionTypeColorThemeProvider);
       this.ctx.managers.lociLabels.removeProvider(this.labelProvider);

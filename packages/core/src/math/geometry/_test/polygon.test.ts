@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec2 } from '../../linear-algebra.js';
 import { pointInPolygon, pointInPolygon2D } from '../polygon.js';
 

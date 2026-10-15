@@ -9,8 +9,8 @@
 import { Model } from '@molstar/model/model/structure/model/model';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { ModelFormat } from '../format.js';
+import { MmcifFormat } from './mmcif-format.js';
 import { type CifFrame, CIF, type CifFile } from '@molstar/io/reader/cif';
-import type { mmCIF_Database } from '@molstar/io/reader/cif/schema/mmcif';
 import { createModels } from './basic/parser.js';
 import { ModelSymmetry } from './property/symmetry.js';
 import { ModelSecondaryStructure } from './property/secondary-structure.js';
@@ -185,29 +185,6 @@ GlobalModelTransformInfo.Provider.formatRegistry.add(
 //
 
 export { MmcifFormat };
-
-type MmcifFormat = ModelFormat<MmcifFormat.Data>;
-
-namespace MmcifFormat {
-  export type Data = {
-    db: mmCIF_Database;
-    frame: CifFrame;
-    file?: CifFile;
-    /**
-     * Original source format. Some formats, including PDB, are converted
-     * to mmCIF before further processing.
-     */
-    source?: ModelFormat;
-  };
-  export function is(x?: ModelFormat): x is MmcifFormat {
-    return x?.kind === 'mmCIF';
-  }
-
-  export function fromFrame(frame: CifFrame, db?: mmCIF_Database, source?: ModelFormat, file?: CifFile): MmcifFormat {
-    if (!db) db = CIF.schema.mmCIF(frame);
-    return { kind: 'mmCIF', name: db._name, data: { db, file, frame, source } };
-  }
-}
 
 export function trajectoryFromMmCIF(frame: CifFrame, file?: CifFile): Task<Trajectory> {
   const format = MmcifFormat.fromFrame(frame, undefined, undefined, file);

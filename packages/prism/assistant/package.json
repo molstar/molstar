@@ -1,0 +1,55 @@
+{
+  "name": "@molstar/prism-assistant",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism: the assistant (opt-in; an app gets it only by depending on it)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "typecheck:storybook": "tsc -p tsconfig.storybook.json",
+    "styles": "node ../ui/scripts/css.mjs --root . --prefix assistant",
+    "styles:check": "node ../ui/scripts/css.mjs --root . --prefix assistant --check"
+  },
+  "dependencies": {
+    "@molstar/ai-agent": "workspace:*",
+    "@molstar/ai-tools": "workspace:*",
+    "@molstar/ai-trace": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/prism-ui": "workspace:*",
+    "rxjs": "catalog:",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@storybook/web-components-vite": "catalog:",
+    "@molstar/prism-viewer": "workspace:*"
+  }
+}

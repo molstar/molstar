@@ -6,7 +6,7 @@
 
 import type { StateTransformer, StateTransform } from '@molstar/core/state';
 import type { PluginContext } from '@molstar/plugin/context';
-import { Download, ReadFile, DownloadBlob, RawData } from '../transforms/data.js';
+import { Download, ReadFile, DownloadBlob, RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
 
 export class DataBuilder {

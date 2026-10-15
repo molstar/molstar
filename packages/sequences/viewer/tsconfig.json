@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // The build: all of src to lib, so with the DOM lib; the headless discipline is tsconfig.headless.json (no emit). Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined.
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }]
+}

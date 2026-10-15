@@ -1,0 +1,369 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Seq* UX drafts: the sequence panel in the workspace's stage and the strip in the reader. The
+   viewer's --seq-* tokens are mapped from the page's (Prism's --msp-*) here, as a host would. */
+.tokens {
+  --seq-surface: var(--msp-color-panel);
+  --seq-surface-alt: var(--msp-color-control);
+  --seq-ink: var(--msp-color-text);
+  --seq-ink-quiet: var(--msp-color-text-subtle);
+  --seq-ink-faint: var(--msp-color-border-strong);
+  --seq-grid: var(--msp-color-border);
+  --seq-accent: var(--msp-color-accent);
+  /* Hover and the view's window: the app's accent and ink, faint (no blue of the viewer's own). */
+  --seq-highlight: rgb(185 62 25 / 0.12);
+  --seq-selection: rgb(28 27 25 / 0.05);
+  --seq-selection-border: var(--msp-color-border-strong);
+  /* Values: a slate ramp from paper (the viewer's own blue is loud on it). */
+  --seq-ramp-low: #ece8e0;
+  --seq-ramp-mid: #9ba8c2;
+  --seq-ramp-high: #3e5482;
+  /* Categories: the viewer's hues, quieted to sit on paper. */
+  --seq-cat-0: #56709f;
+  --seq-cat-1: #b8783f;
+  --seq-cat-2: #4f876a;
+  --seq-cat-3: #82699f;
+  --seq-cat-4: #ad5a6a;
+  --seq-cat-5: #6b7780;
+  --seq-cat-6: #a08a3f;
+  --seq-cat-7: #4a879b;
+  --seq-font-mono: var(--msp-font-mono);
+  --seq-font-ui: var(--msp-font-sans);
+}
+
+:global(:root[data-theme="dark"]) .tokens {
+  --seq-ramp-low: #24231f;
+  --seq-ramp-mid: #56678a;
+  --seq-ramp-high: #a9bde6;
+  --seq-highlight: rgb(240 112 63 / 0.2);
+  --seq-selection: rgb(240 235 225 / 0.06);
+  --seq-cat-0: #7d96c4;
+  --seq-cat-1: #d29a62;
+  --seq-cat-2: #74ab8e;
+  --seq-cat-3: #a68fc2;
+  --seq-cat-4: #cf7f8e;
+  --seq-cat-5: #93a0a8;
+  --seq-cat-6: #c3ad62;
+  --seq-cat-7: #6fadc0;
+}
+
+/* The sequence panel, docked at the stage's top or bottom edge. */
+.panel {
+  composes: tokens;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--msp-color-border);
+  background: var(--msp-color-panel);
+}
+
+.panel[data-at="bottom"] {
+  border-bottom: 0;
+  border-top: 1px solid var(--msp-color-border);
+}
+
+/* Under the panel: drag to resize it. */
+.grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: row-resize;
+  z-index: 1;
+}
+
+.panel[data-at="bottom"] .grip {
+  top: -4px;
+  bottom: auto;
+}
+
+.grip:hover {
+  background: color-mix(in srgb, var(--msp-color-accent) 30%, transparent);
+}
+
+/* One line, everything on the ui size and centered on it: the title, the view tabs (their accent
+   underline on the header's hairline, as the column's tabs), the view's options, the dock. The
+   left edge is the row labels' (the viewer draws them 22px in). */
+.panelHead {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  height: 36px;
+  padding: 0 10px 0 22px;
+  border-bottom: 1px solid var(--msp-color-border);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.panelHead > * {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.panelTitle {
+  color: var(--msp-color-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* A hairline between the view tabs and the view's options. */
+.rule {
+  width: 1px;
+  margin: 10px 0;
+  background: var(--msp-color-border);
+}
+
+/* The view switch: tabs. */
+.tabs {
+  align-self: stretch;
+  display: inline-flex;
+  gap: 14px;
+}
+
+.tab {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 0 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--msp-color-text-subtle);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--msp-color-text-muted);
+}
+
+.tab[aria-pressed="true"] {
+  color: var(--msp-color-text);
+  font-weight: 500;
+  border-bottom-color: var(--msp-color-accent);
+}
+
+/* A view option: its name, then its choices as quiet words, the chosen one in ink. */
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionName {
+  color: var(--msp-color-text-subtle);
+  font-size: 11px;
+}
+
+.choice {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--msp-color-text-subtle);
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice:hover {
+  color: var(--msp-color-text);
+}
+
+.choice[aria-pressed="true"] {
+  color: var(--msp-color-text);
+  font-weight: 500;
+}
+
+/* The dock: one quiet icon, the edge it moves the panel to. */
+.dockButton {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: none;
+  color: var(--msp-color-text-subtle);
+  cursor: pointer;
+}
+
+.dockButton:hover {
+  background: var(--msp-color-hover);
+  color: var(--msp-color-text);
+}
+
+.dockButton svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+
+.viewer {
+  position: relative;
+}
+
+/* The track picker: Context entities that can be tracks. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 260px;
+  padding: var(--msp-space-3);
+  font-size: var(--msp-font-size-sm);
+}
+
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: transparent;
+  color: var(--msp-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickRow:hover {
+  background: var(--msp-color-hover);
+}
+
+.pickKind {
+  margin-left: auto;
+  color: var(--msp-color-text-subtle);
+  font-size: 11px;
+}
+
+.check {
+  width: 14px;
+  color: var(--msp-color-accent);
+}
+
+.note {
+  max-width: 760px;
+  margin: 0;
+  padding: var(--msp-space-4) var(--msp-space-5);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.5;
+}
+
+/* The reader: text on the left, the stage on the right with the strip under the molecule. */
+.reader {
+  composes: tokens;
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+  height: 100vh;
+  background: var(--msp-color-bg);
+}
+@media (max-width: 760px) {
+  .reader {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: auto;
+    min-height: 100vh;
+  }
+  .readerText {
+    padding: var(--msp-space-6) var(--msp-space-5);
+    border-right: 0;
+    border-bottom: 1px solid var(--msp-color-border);
+  }
+}
+
+.readerText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--msp-space-4);
+  padding: 30px 44px;
+  border-right: 1px solid var(--msp-color-border);
+  font-family: var(--msp-font-sans);
+}
+
+.readerTitle {
+  margin: 0;
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.12;
+}
+
+.readerBody {
+  margin: 0;
+  font-size: var(--msp-font-size-md);
+  line-height: var(--msp-line-height);
+}
+
+.readerStage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--msp-color-well);
+}
+
+/* Docked at the stage's bottom edge, full width. */
+.strip {
+  flex: none;
+  border-top: 1px solid var(--msp-color-border);
+  background: var(--msp-color-panel);
+  overflow: hidden;
+}
+
+.stripHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-4);
+  padding: 6px var(--msp-space-4) 4px 22px;
+  color: var(--msp-color-text-muted);
+  font-size: 12px;
+}
+
+/* The phone: one column, the strip under the molecule, then the text. */
+.phone {
+  composes: tokens;
+  display: flex;
+  flex-direction: column;
+  width: 375px;
+  height: 760px;
+  margin: 24px auto;
+  overflow: hidden;
+  border: 1px solid var(--msp-color-border);
+  border-radius: 28px;
+  background: var(--msp-color-bg);
+}
+
+.phoneStage {
+  position: relative;
+  height: 300px;
+  background: var(--msp-color-well);
+}
+
+.phoneText {
+  padding: var(--msp-space-5) var(--msp-space-6, 20px);
+  font-family: var(--msp-font-sans);
+}

@@ -1,65 +1,12 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { PluginStateObject } from '../objects.js';
-import type { DistanceData } from '@molstar/graphics/repr/shape/loci/distance';
-import type { LabelData } from '@molstar/graphics/repr/shape/loci/label';
-import type { OrientationData } from '@molstar/graphics/repr/shape/loci/orientation';
-import type { AngleData } from '@molstar/graphics/repr/shape/loci/angle';
-import type { DihedralData } from '@molstar/graphics/repr/shape/loci/dihedral';
-import type { PlaneData } from '@molstar/graphics/repr/shape/loci/plane';
+import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
-
-export function getDistanceDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): DistanceData {
-  const lociA = s[0].loci;
-  const lociB = s[1].loci;
-  return { pairs: [{ loci: [lociA, lociB] as const }] };
-}
-
-export function getAngleDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): AngleData {
-  const lociA = s[0].loci;
-  const lociB = s[1].loci;
-  const lociC = s[2].loci;
-  return { triples: [{ loci: [lociA, lociB, lociC] as const }] };
-}
-
-export function getDihedralDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): DihedralData {
-  const lociA = s[0].loci;
-  const lociB = s[1].loci;
-  const lociC = s[2].loci;
-  const lociD = s[3].loci;
-  return { quads: [{ loci: [lociA, lociB, lociC, lociD] as const }] };
-}
-
-export function getLabelDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): LabelData {
-  const loci = s[0].loci;
-  return { infos: [{ loci }] };
-}
-
-export function getOrientationDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): OrientationData {
-  return { locis: s.map((v) => v.loci) };
-}
-
-export function getPlaneDataFromStructureSelections(
-  s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>,
-): PlaneData {
-  return { locis: s.map((v) => v.loci) };
-}
 
 const GetTransformState = {
   center: Vec3(),

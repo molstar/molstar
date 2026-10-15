@@ -6,7 +6,7 @@
 
 import { PluginStateObject as SO } from '../../objects.js';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '@molstar/core/state';
-import type { StateTransforms } from '../../transforms.js';
+import type { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
 export function buildVolumeHierarchy(state: State, previous?: VolumeHierarchy) {
   const build = BuildState(state, previous || VolumeHierarchy());
@@ -54,11 +54,7 @@ function LazyVolumeRef(cell: StateObjectCell<SO.Volume.Lazy>): LazyVolumeRef {
 }
 
 export interface VolumeRepresentationRef
-  extends RefBase<
-    'volume-representation',
-    SO.Volume.Representation3D,
-    StateTransforms['Representation']['VolumeRepresentation3D']
-  > {
+  extends RefBase<'volume-representation', SO.Volume.Representation3D, typeof VolumeRepresentation3D> {
   volume: VolumeRef;
 }
 

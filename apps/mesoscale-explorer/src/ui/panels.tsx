@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mp4EncoderUI } from '@molstar/mp4-export-extension/ui';
+import { VideoEncoderUI } from '@molstar/video-export-extension/ui';
 import { PluginUIComponent } from '@molstar/plugin-ui/base';
 import { CollapsableControls, type CollapsableState } from '@molstar/plugin-ui/controls/collapsable';
 import { SectionHeader } from '@molstar/plugin-ui/controls/common';
@@ -109,7 +109,7 @@ export class LeftPanel extends PluginUIComponent {
         <SnapshotControls />
         <Spacer />
 
-        <Mp4EncoderUI />
+        <VideoEncoderUI />
         <ViewportSettingsUI />
       </div>
     );

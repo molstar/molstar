@@ -12,7 +12,7 @@ import { ShapeGroup } from '@molstar/model/model/shape';
 import { Volume } from '@molstar/model/model/volume';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
@@ -46,7 +46,7 @@ import {
   splitEntryId,
 } from '@molstar/volumes-and-segmentations-extension/helpers';
 import type { VolsegStateFromEntry } from '@molstar/volumes-and-segmentations-extension/transformers';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import type { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { OrderedSet } from '@molstar/core/data/int';
 
 export const MAX_VOXELS = 10 ** 7;
@@ -113,7 +113,7 @@ export namespace VolsegEntryParamValues {
 
 export class VolsegEntry extends PluginStateObject.CreateBehavior<VolsegEntryData>({ name: 'Vol & Seg Entry' }) {}
 
-type VolRepr3DT = typeof StateTransforms.Representation.VolumeRepresentation3D;
+type VolRepr3DT = typeof VolumeRepresentation3D;
 
 export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryParamValues> {
   plugin: PluginContext;

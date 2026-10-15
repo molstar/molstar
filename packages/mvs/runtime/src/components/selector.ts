@@ -12,8 +12,8 @@ import {
   createStructureComponent,
 } from '@molstar/plugin/state/helpers/structure-component';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
-import { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
+import { Expression } from '@molstar/query-language/language/expression';
 import { mapArrayToObject, pickObjectKeys } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -75,7 +75,7 @@ export const ElementSet = {
   /** Create an `ElementSet` from the substructure of `structure` defined by `selector` */
   fromSelector(structure: Structure | undefined, selector: Selector): ElementSet {
     if (!structure) return {};
-    const selection = substructureFromSelector(structure, selector); // using `getAtomRangesForRow` might (might not) be faster here
+    const selection = substructureFromSelector(structure, selector);
     return this.fromStructure(selection);
   },
   /** Decide if the element set `set` contains structure element location `location` */

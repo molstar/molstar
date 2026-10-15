@@ -6,7 +6,7 @@
   "description": "Mol* react-example",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./index": {
@@ -36,6 +36,7 @@
     "@types/react-dom": "catalog:",
     "tslib": "catalog:",
     "@molstar/plugin-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/viewer": "workspace:*",
     "@molstar/mvs": "workspace:*"

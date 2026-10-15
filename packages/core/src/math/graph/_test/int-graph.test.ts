@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { IntAdjacencyGraph } from '../int-adjacency-graph.js';
 
 describe('IntGraph', () => {

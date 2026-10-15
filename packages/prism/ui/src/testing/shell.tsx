@@ -1,0 +1,476 @@
+/** @jsxImportSource @molstar/prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { map, type Observable, of } from 'rxjs';
+import { formatChord, isMac } from '../commands/keys.js';
+import type { CommandManager } from '../commands/manager.js';
+import type { CommandDefinition } from '../commands/types.js';
+import type { IconName } from '../components/icon/icon.js';
+import { Dynamic, Show } from '../dom/control-flow.js';
+import type { Child } from '../dom/jsx-types.js';
+import { onCleanup } from '../dom/scope.js';
+import { domView } from '../dom/view.js';
+import { type CanvasInk, fixedInk } from '../model/canvas-theme.js';
+import type { ReadonlyState } from '../reactive/readonly-state.js';
+import { observableState } from '../reactive/observable-state.js';
+import { FullscreenModel } from '../shell/fullscreen.js';
+import { ShellModel, type ShellPage, type ShellTab } from '../shell/shell.js';
+import { StatusModel } from '../shell/status.js';
+import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
+import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
+import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
+import { type ModeChoice, ModeChooser } from '../views/shell/mode-chooser.js';
+import { CommandManager as Commands } from '../commands/manager.js';
+import { SettingsTab } from '../views/settings/settings-tab.js';
+import { HelpPanel, type InputBindingGroup } from '../views/shell/help-panel.js';
+import { LogView } from '../views/shell/log-view.js';
+import { ShellView } from '../views/shell/shell-view.js';
+import { mockSettings } from './settings.js';
+
+// The mock app, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
+// command menu, Log and Settings, and the add-ons such as the agent) and the one mode the app runs: the viewer
+// (@molstar/prism-viewer) or the story mode (@molstar/prism-stories). A mode is chosen before the app exists (the
+// splash, `PrismAppStory`); switching later starts a new app in the other mode (design/modes.md).
+
+/** What the frame gives its mode. */
+export interface MockFrameContext {
+  shell: ShellModel;
+  status: StatusModel;
+  loaded: boolean;
+  /** The canvas background (a CSS color). */
+  background?: string;
+  openCommandMenu(group?: string): void;
+  /** The app's modes (to offer the choice, as Home does while nothing is loaded) and the one running. */
+  modes: readonly ModeChoice[];
+  mode: string;
+  /**
+   * Starts a new app: in that mode at once (nothing loaded, nothing lost: Home's choice), or, without one, after asking
+   * (the splash over the app, saying what goes).
+   */
+  switchMode(id?: string): void;
+}
+
+/**
+ * What a mode brings to the frame: its commands and the canvas parts (all optional but the commands). The parts are
+ * render functions: the frame renders them in their slots, in the slot's scope (a mode activates from a click, outside
+ * any render).
+ */
+export interface MockModeParts {
+  commands: CommandManager<any>;
+  prefixes?: CommandMenuPrefix[];
+  canvas?: () => Child;
+  overlays?: () => Child;
+  playback?: () => Child;
+  context?: () => Child;
+  canvasLead?: () => Child;
+  canvasAside?: () => Child;
+  empty?: Observable<boolean>;
+  onDropFiles?: (files: readonly File[]) => void;
+  dropFormats?: readonly string[];
+  /** How to work its canvas (the Help card's mouse and touch section). */
+  bindings?: readonly InputBindingGroup[];
+  /** The tab shown when the mode starts. */
+  start?: string;
+  /** Called when the app goes. */
+  dispose?(): void;
+}
+
+export interface MockMode {
+  id: string;
+  title: string;
+  icon: IconName;
+  /** What it is for, in a line (the mode chooser). */
+  description?: string;
+  activate(ctx: MockFrameContext): MockModeParts;
+}
+
+/**
+ * What a module adds to the mock shell, the way an app would contribute it: tabs (one with an existing id replaces it,
+ * as History replaces Log), the command menu's assistant, the canvas's agent slot, and the person's finished commands.
+ */
+export interface MockShellAddOnParts {
+  tabs?: readonly ShellTab[];
+  /** Pages over the app (the Inspector). */
+  pages?: readonly ShellPage[];
+  /** Its commands, beside the mode's. */
+  commands?: readonly CommandDefinition<any>[];
+  assistant?: CommandMenuAssistant;
+  agent?: Child;
+  commandDone?(message: string, commandId: string): void;
+}
+
+export type MockShellAddOn = (ctx: { shell: ShellModel; status: StatusModel; loaded: boolean }) => MockShellAddOnParts;
+
+function withAddOnTabs(tabs: ShellTab[], extra: readonly ShellTab[] | undefined): ShellTab[] {
+  if (!extra?.length) return tabs;
+  const replaced = new Set(extra.map((t) => t.id));
+  return [...tabs.filter((t) => !replaced.has(t.id)), ...extra];
+}
+
+/** The frame alone, with an empty canvas: for stories about the frame or what is added to it. */
+export function mockBlankMode(): MockMode {
+  return {
+    id: 'blank',
+    title: 'Blank',
+    icon: 'square',
+    activate: ({ background }) => ({
+      commands: new Commands<object>({ context: observableState({}).asReadonly, formats: { get: () => undefined } }),
+      canvas: () => <CanvasPlaceholder empty={false} background={background} />,
+      empty: of(false),
+    }),
+  };
+}
+
+export interface ShellStoryProps {
+  loaded: boolean;
+  background?: string;
+  /** The canvas ink as a state that can change (instead of the fixed one of `background`). */
+  ink?: ReadonlyState<CanvasInk>;
+  /** Opens the Export card at a section (a mode registers the card). */
+  openExportAt?: string;
+  /** Opens a card (Animation, Export, …). */
+  openCard?: string;
+  /** Shows a tab (Help, Settings, …). */
+  openTab?: string;
+  /** Starts with no panel open: the rail and the canvas tools only (a tab opens as usual when its rail button is clicked). */
+  noPanel?: boolean;
+  /** The right panel pinned beside the canvas. */
+  pinned?: boolean;
+  /** A compact rail (`ShellOptions.compactRail`): the rail column hidden behind the canvas corner's button. */
+  compact?: boolean;
+  /** Opens with the command menu open. */
+  commandMenu?: boolean;
+  /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
+  addOn?: MockShellAddOn;
+  /** Opens a page over the app (an add-on's: the Inspector), at `openPageAt` if given. */
+  openPage?: string;
+  openPageAt?: string;
+}
+
+/** The app's side of switching (`PrismAppStory`): its modes, and starting a new app. */
+export interface MockApp {
+  modes: readonly ModeChoice[];
+  switchMode(id?: string): void;
+}
+
+/**
+ * The mock frame running one mode: Mol*'s own UI is `mockViewerMode` (@molstar/prism-viewer), the story mode
+ * `mockStoryMode` (@molstar/prism-stories). Inside `PrismAppStory`, it can start a new app in another mode.
+ */
+export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
+  const { mode, app } = props;
+  const shell = new ShellModel({
+    compactRail: !!props.compact,
+    docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
+  });
+  const status = new StatusModel();
+  const commandMenuOpen = observableState(false);
+  // The group the command menu opens in (Preset, Styles); none for ⌘K.
+  const commandMenuGroup = observableState<string | undefined>(undefined);
+  const openCommandMenu = (group?: string) => {
+    commandMenuGroup.set(group);
+    commandMenuOpen.set(true);
+  };
+  // The plugin root goes fullscreen (in the stories, the story page).
+  const fullscreen = new FullscreenModel(() => document.documentElement);
+  // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
+  const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
+  theme.applyTo(document.documentElement);
+  // What an add-on brings (the agent module's tabs, its Ask port and turn card): only when the story includes one.
+  const addOn = props.addOn?.({ shell, status, loaded: props.loaded });
+  const settings = mockSettings();
+
+  // The frame's own tabs and buttons: in every mode.
+  shell.registerTabs(
+    withAddOnTabs(
+      [
+        {
+          id: 'log',
+          title: 'Log',
+          icon: 'scroll-text',
+          order: 2.5,
+          // Not a working panel: with Settings at the rail's foot.
+          place: 'foot',
+          render: domView(() => <LogView status={status} />),
+        },
+        {
+          id: 'settings',
+          title: 'Settings',
+          icon: 'settings',
+          order: 3,
+          place: 'foot',
+          render: domView(() => <SettingsTab model={settings} />),
+        },
+      ],
+      addOn?.tabs,
+    ),
+  );
+
+  const parts = mode.activate({
+    shell,
+    status,
+    loaded: props.loaded,
+    background: props.background,
+    openCommandMenu,
+    modes: app?.modes ?? [mode],
+    mode: mode.id,
+    switchMode: (id) => app?.switchMode(id),
+  });
+  // The canvas tools act on what is shown: the mode says whether anything is.
+  const empty = parts.empty ?? of(!props.loaded);
+  const hasData = empty.pipe(map((e) => !e));
+  shell.registerToolbar([
+    // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
+    {
+      id: 'theme',
+      // The first to go under More on a short rail.
+      priority: 100,
+      icon: 'sun',
+      title: 'Theme',
+      face: theme.theme.pipe(
+        map((t) => {
+          const current = UIThemes.find((u) => u.id === t)!;
+          return { icon: current.icon, title: `Theme: ${current.title}` };
+        }),
+      ),
+      run: () => theme.next(),
+    },
+    {
+      id: 'palette',
+      // The main way in: the last to go.
+      priority: -1,
+      icon: 'command',
+      title: 'Command menu',
+      caption: formatChord({ key: 'k', mod: true }),
+      run: () => openCommandMenu(),
+    },
+    // Expand by context (FullscreenModel.mode): on a page, Expand fills it and Fullscreen is beside it; in an iframe
+    // that allows it, the button is Fullscreen (expanding would only fill the frame); in one that does not, Expand fills
+    // the frame and Fullscreen shows why it is not possible.
+    fullscreen.mode === 'fullscreen'
+      ? {
+          id: 'expand',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'fullscreen' as const,
+          title: 'Fullscreen',
+          pressed: fullscreen.active,
+          run: () => fullscreen.toggle(),
+        }
+      : {
+          id: 'expand',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'maximize-2' as const,
+          title: 'Expand',
+          run: () => status.post('Expanded'),
+          menu: [
+            {
+              id: 'fullscreen',
+              label: 'Fullscreen',
+              icon: 'fullscreen' as const,
+              hint: 'The whole screen, not just the page',
+              disabled: fullscreen.unavailableReason,
+              pressed: fullscreen.active,
+              run: () => fullscreen.toggle(),
+            },
+          ],
+        },
+  ]);
+
+  // Help: how to work the canvas (the mode's bindings) and the keys (the command registry as it is). A tab at the
+  // rail's foot, not a card: it stays open while you try what it says on the canvas (a card closes on a click outside).
+  // Also a command on ?, and the command menu's ?.
+  shell.registerTabs([
+    {
+      id: 'help',
+      title: 'Help',
+      icon: 'circle-help',
+      order: 2.8,
+      place: 'foot',
+      render: domView(() => <HelpPanel commands={parts.commands} bindings={parts.bindings ?? []} />),
+    },
+  ]);
+  parts.commands.register([
+    {
+      id: 'help.show',
+      title: 'Keyboard and mouse',
+      alias: ['help', 'shortcuts', 'keys', 'bindings', 'controls'],
+      category: 'Help',
+      icon: 'circle-help',
+      shortcut: { key: '?' },
+      run: () => {
+        shell.show('help');
+        return { message: '' };
+      },
+    },
+  ]);
+
+  // A compact rail's column: shown and hidden by the corner's button, or by this (bindable) command.
+  parts.commands.register([
+    {
+      id: 'shell.toggle-rail',
+      title: 'Show or hide the panel rail',
+      alias: ['rail', 'sidebar', 'panels', 'compact'],
+      category: 'View',
+      icon: 'prism',
+      run: () => {
+        shell.toggleRail();
+        return { message: '' };
+      },
+    },
+  ]);
+
+  // Switching modes, with more than one: a command that asks (the splash over the app, saying what goes).
+  const switching: CommandDefinition<any>[] =
+    app && app.modes.length > 1
+      ? [
+          {
+            id: 'app.switch-mode',
+            title: 'Switch mode…',
+            alias: ['mode', 'viewer', 'story', 'start over'],
+            category: 'View',
+            icon: 'prism',
+            run: () => {
+              app.switchMode();
+              return { message: '' };
+            },
+          },
+        ]
+      : [];
+  if (switching.length) parts.commands.register(switching);
+  if (addOn?.pages?.length) shell.registerPages(addOn.pages);
+  if (addOn?.commands?.length) parts.commands.register(addOn.commands);
+  // What commands did goes to the status line (and, with the agent, to History).
+  const outcomes = parts.commands.outcomes.subscribe((o) => {
+    if (o.kind === 'done' && o.result.message) status.post(o.result.message);
+    if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
+    else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
+  });
+
+  // ⌘K / ⇧⌘P open the command menu; the mode's commands' own shortcuts run them.
+  const onKey = (e: KeyboardEvent) => {
+    const mod = isMac() ? e.metaKey : e.ctrlKey;
+    if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
+      e.preventDefault();
+      openCommandMenu();
+    } else if (!commandMenuOpen.value && parts.commands.handleKey(e, isMac())) e.preventDefault();
+  };
+  window.addEventListener('keydown', onKey);
+  if (parts.start) shell.show(parts.start);
+  shell.mount();
+  status.mount();
+  if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
+  if (props.openCard) shell.openOverlay(props.openCard);
+  if (props.openTab) shell.show(props.openTab);
+  if (props.openPage) shell.openPage(props.openPage, props.openPageAt);
+  if (props.commandMenu) commandMenuOpen.set(true);
+  onCleanup(() => {
+    window.removeEventListener('keydown', onKey);
+    outcomes.unsubscribe();
+    parts.dispose?.();
+    shell.unmount();
+    status.unmount();
+  });
+
+  const background = props.background ?? '#ffffff';
+  return (
+    <ShellView
+      shell={shell}
+      status={status}
+      canvas={parts.canvas?.() ?? null}
+      overlays={parts.overlays?.() ?? null}
+      playback={parts.playback?.() ?? null}
+      ink={props.ink ?? fixedInk(background)}
+      context={parts.context}
+      commandMenu={
+        <Show when={commandMenuOpen}>
+          {() => (
+            <CommandMenu
+              manager={parts.commands}
+              prefixes={parts.prefixes}
+              group={commandMenuGroup.value}
+              assistant={addOn?.assistant}
+              onClose={() => {
+                commandMenuOpen.set(false);
+                commandMenuGroup.set(undefined);
+              }}
+            />
+          )}
+        </Show>
+      }
+      agent={addOn?.agent}
+      canvasLead={parts.canvasLead?.() ?? null}
+      canvasAside={parts.canvasAside?.() ?? null}
+      onOpenLog={() => shell.show('log')}
+      empty={empty}
+      onDropFiles={parts.onDropFiles}
+      dropFormats={parts.dropFormats}
+    />
+  );
+}
+
+/**
+ * The app as it starts (design/modes.md): the splash asks which mode before any app exists; choosing one creates the
+ * app in it. Switching later shows the splash over the app, saying what goes (what is loaded; stories are kept in the
+ * browser); choosing creates a new app, Cancel goes back. With `start`, the app starts in that mode (no splash).
+ */
+export function PrismAppStory(props: ShellStoryProps & { modes: readonly MockMode[]; start?: string }) {
+  const find = (id: string | undefined) => props.modes.find((m) => m.id === id);
+  // Each start counted: the app is created again even in the same mode (states skip equal records).
+  let starts = 0;
+  const start = (mode: MockMode) => ({ mode, n: ++starts });
+  const running = observableState<{ mode: MockMode; n: number } | undefined>(
+    find(props.start) ? start(find(props.start)!) : undefined,
+  );
+  const asking = observableState(false);
+  const app: MockApp = {
+    modes: props.modes,
+    switchMode: (id) => {
+      const next = find(id);
+      if (next) queueMicrotask(() => running.set(start(next)));
+      else asking.set(true);
+    },
+  };
+  const choose = (id: string) => {
+    asking.set(false);
+    const next = find(id);
+    if (next && next.id !== running.value?.mode.id) queueMicrotask(() => running.set(start(next)));
+  };
+  return (
+    <div style="position: relative; height: 100%">
+      <Dynamic
+        component={running.asReadonly.pipe(
+          map((r) =>
+            r
+              ? () => <ShellStory {...props} mode={r.mode} app={app} />
+              : () => (
+                  <ModeChooser variant="splash" modes={props.modes} onChoose={(id) => running.set(start(find(id)!))} />
+                ),
+          ),
+        )}
+      />
+      <Show when={asking}>
+        {() => (
+          <ModeChooser
+            variant="welcome"
+            modes={props.modes}
+            active={running.asReadonly.pipe(map((r) => r?.mode.id ?? ''))}
+            notice="Switching starts a new session: what is loaded now goes. Stories are kept in this browser."
+            onChoose={choose}
+            onCancel={() => asking.set(false)}
+          />
+        )}
+      </Show>
+    </div>
+  );
+}

@@ -8,7 +8,7 @@
  */
 
 import { VisualQualityOptions } from '@molstar/graphics/geo/geometry/base';
-import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
+import { InteractionsParams } from '@molstar/model/props/computed/interactions/params';
 import { Structure, StructureElement, StructureSelection } from '@molstar/model/model/structure';
 import {
   structureAreEqual,
@@ -27,7 +27,7 @@ import { UUID } from '@molstar/core/util';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset.js';
+import type { StructureRepresentationPresetProvider } from '../../builder/structure/representation-presets/types.js';
 import { StatefulPluginComponent } from '../../component.js';
 import type { StructureComponentParams } from '../../helpers/structure-component.js';
 import { setStructureOverpaint } from '../../helpers/structure-overpaint.js';
@@ -36,8 +36,9 @@ import {
   createStructureSizeThemeParams,
   isSurfaceRepresentationType,
 } from '../../helpers/structure-representation-params.js';
-import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query.js';
-import { StructureRepresentation3D } from '../../transforms/representation.js';
+import { current } from '@molstar/plugin/state/queries/structure/basic';
+import { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import type {
   StructureHierarchyRef,
   StructureComponentRef,
@@ -47,7 +48,8 @@ import type {
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { setStructureClipping } from '../../helpers/structure-clipping.js';
 import { setStructureTransparency } from '../../helpers/structure-transparency.js';
-import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
+import type { StructureFocusRepresentationProps } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
+import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation/id';
 import { setStructureSubstance } from '../../helpers/structure-substance.js';
 import { Material } from '@molstar/core/util/material';
 import { Clip } from '@molstar/core/util/clip';
@@ -82,7 +84,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
   }
 
   async setOptions(options: StructureComponentManager.Options) {
-    const interactionChanged = options.interactions !== this.state.options.interactions;
+    const changedOptions = (Object.keys(options) as StructureComponentManager.OptionKey[]).filter(
+      (k) => options[k] !== this.state.options[k],
+    );
     this.updateState({ options });
     this.events.optionsUpdated.next(void 0);
 
@@ -96,17 +100,55 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
     return this.plugin.dataTransaction(async () => {
       await update.commit();
-      await this.plugin.state.updateBehavior(StructureFocusRepresentation, (p) => {
-        p.ignoreHydrogens = options.hydrogens !== 'all';
-        p.ignoreHydrogensVariant = options.hydrogens === 'only-polar' ? 'non-polar' : 'all';
-        p.ignoreLight = options.ignoreLight;
-        p.material = options.materialStyle;
-        p.clip = options.clipObjects;
-        p.interior = options.interior;
-        p.animation = options.animation;
-      });
-      if (interactionChanged) await this.updateInterationProps();
+      // the focus representation behavior is optional: update it when present, never insert it
+      if (this.plugin.state.hasBehavior(StructureFocusRepresentationId)) {
+        await this.plugin.state.updateBehavior<StructureFocusRepresentationProps>(
+          StructureFocusRepresentationId,
+          (p) => {
+            p.ignoreHydrogens = options.hydrogens !== 'all';
+            p.ignoreHydrogensVariant = options.hydrogens === 'only-polar' ? 'non-polar' : 'all';
+            p.ignoreLight = options.ignoreLight;
+            p.material = options.materialStyle;
+            p.clip = options.clipObjects;
+            p.interior = options.interior;
+            p.animation = options.animation;
+          },
+        );
+      }
+      for (const key of changedOptions) {
+        // copy: a handler may unregister itself
+        for (const handler of [...(this.optionHandlers.get(key) ?? [])]) {
+          await handler(options[key], this);
+        }
+      }
     });
+  }
+
+  private optionHandlers = new Map<
+    StructureComponentManager.OptionKey,
+    StructureComponentManager.OptionHandler<any>[]
+  >();
+
+  /**
+   * Registers a handler that applies an option owned by an optional behavior, for example `interactions`. The option
+   * slot always exists and round-trips through snapshots; without a handler a changed value is preserved but ignored.
+   * The handler runs from `setOptions` after the options are updated, when the value of its option changed.
+   * Returns a function that removes the handler.
+   */
+  registerOptionHandler<K extends StructureComponentManager.OptionKey>(
+    key: K,
+    handler: StructureComponentManager.OptionHandler<K>,
+  ): () => void {
+    const handlers = this.optionHandlers.get(key) ?? [];
+    handlers.push(handler);
+    this.optionHandlers.set(key, handlers);
+    return () => {
+      const current = this.optionHandlers.get(key);
+      if (!current) return;
+      const idx = current.indexOf(handler);
+      if (idx >= 0) current.splice(idx, 1);
+      if (current.length === 0) this.optionHandlers.delete(key);
+    };
   }
 
   private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
@@ -151,38 +193,6 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
           if (pInterior) old.type.params.interior = interior;
           if (pAnimation) old.type.params.animation = animation;
         });
-      }
-    }
-  }
-
-  private async updateInterationProps() {
-    for (const s of this.currentStructures) {
-      const interactionParams = InteractionsProvider.getParams(s.cell.obj?.data!);
-
-      if (s.properties) {
-        const oldParams = s.properties.cell.transform.params?.properties[InteractionsProvider.descriptor.name];
-        if (PD.areEqual(interactionParams, oldParams, this.state.options.interactions)) continue;
-
-        await this.dataState
-          .build()
-          .to(s.properties.cell)
-          .update((old) => {
-            old.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
-          })
-          .commit();
-      } else {
-        const pd = this.plugin.customStructureProperties.getParams(s.cell.obj?.data);
-        const params = PD.getDefaultValues(pd);
-        if (
-          PD.areEqual(
-            interactionParams,
-            params.properties[InteractionsProvider.descriptor.name],
-            this.state.options.interactions,
-          )
-        )
-          continue;
-        params.properties[InteractionsProvider.descriptor.name] = this.state.options.interactions;
-        await this.plugin.builders.structure.insertStructureProperties(s.cell, params);
       }
     }
   }
@@ -525,9 +535,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
               params.selection,
               componentKey,
               {
-                label:
-                  params.options.label ||
-                  (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),
+                label: params.options.label || (params.selection === current ? 'Custom Selection' : ''),
               },
             );
           }
@@ -666,17 +674,37 @@ namespace StructureComponentManager {
     }),
     materialStyle: Material.getParam(),
     clipObjects: PD.Group(Clip.Params),
-    interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
+    interactions: PD.Group(InteractionsParams, { label: 'Non-covalent Interactions' }),
     interior: getInteriorParam(),
     animation: getAnimationParam(),
   };
   export type Options = PD.Values<typeof OptionsParams>;
+  export type OptionKey = keyof Options;
+  /** Applies a changed option value, see `registerOptionHandler`. */
+  export type OptionHandler<K extends OptionKey> = (
+    value: Options[K],
+    manager: StructureComponentManager,
+  ) => void | Promise<void>;
+
+  /** The default selection: `current` when it is registered, otherwise the first option. */
+  export function getDefaultSelectionQuery(
+    options: ReadonlyArray<[StructureSelectionQuery, string, string]>,
+  ): StructureSelectionQuery | undefined {
+    return options.find((o) => o[0] === current)?.[0] ?? options[0]?.[0];
+  }
+
+  /** A select of the registered queries; empty when no query is registered. */
+  function getSelectionQuerySelect(plugin: PluginContext, isHidden: boolean | undefined) {
+    const { options } = plugin.query.structure.registry;
+    return PD.Select<StructureSelectionQuery>(getDefaultSelectionQuery(options) as StructureSelectionQuery, options, {
+      isHidden,
+    });
+  }
 
   export function getAddParams(
     plugin: PluginContext,
     params?: { pivot?: StructureRef; allowNone: boolean; hideSelection?: boolean; checkExisting?: boolean },
   ) {
-    const { options } = plugin.query.structure.registry;
     params = {
       pivot: plugin.managers.structure.component.pivotStructure,
       allowNone: true,
@@ -685,7 +713,7 @@ namespace StructureComponentManager {
       ...params,
     };
     return {
-      selection: PD.Select(options[1][0], options, { isHidden: params?.hideSelection }),
+      selection: getSelectionQuerySelect(plugin, params?.hideSelection),
       representation: getRepresentationTypesSelect(
         plugin,
         params?.pivot,
@@ -709,9 +737,8 @@ namespace StructureComponentManager {
   };
 
   export function getThemeParams(plugin: PluginContext, pivot: StructureRef | StructureComponentRef | undefined) {
-    const { options } = plugin.query.structure.registry;
     return {
-      selection: PD.Select(options[1][0], options, { isHidden: false }),
+      selection: getSelectionQuerySelect(plugin, false),
       action: PD.MappedStatic('color', {
         color: PD.Group(
           {

@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { Ccp4Header } from '@molstar/io/reader/ccp4/schema';
 import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -15,10 +16,10 @@ function headerWithAngles(alpha: number, beta: number, gamma: number) {
 }
 
 describe('getCcp4Angles', () => {
-  let warn: jest.SpyInstance;
+  let warn: MockInstance;
 
   beforeEach(() => {
-    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

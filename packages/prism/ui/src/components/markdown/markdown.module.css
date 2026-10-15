@@ -1,0 +1,53 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.markdown {
+  display: grid;
+  gap: var(--msp-space-3);
+  line-height: 1.5;
+
+  & h3,
+  & h4,
+  & h5,
+  & h6 {
+    font-size: var(--msp-font-size-md);
+    font-weight: 600;
+  }
+
+  & ul,
+  & ol {
+    display: grid;
+    gap: var(--msp-space-1);
+    padding-left: var(--msp-space-5);
+  }
+
+  & ul {
+    list-style: disc;
+  }
+
+  & ol {
+    list-style: decimal;
+  }
+
+  & code {
+    padding: 0 var(--msp-space-1);
+    border-radius: var(--msp-radius-sm);
+    background: var(--msp-color-control);
+    font-family: var(--msp-font-mono);
+    font-size: 0.92em;
+  }
+
+  & a {
+    color: var(--msp-color-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

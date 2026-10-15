@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { OrderedSet, Interval } from '@molstar/core/data/int';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import { Mat4 } from '@molstar/core/math/linear-algebra';

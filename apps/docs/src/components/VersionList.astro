@@ -1,0 +1,22 @@
+---
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { urlOf } from '../pages';
+import { DEFAULT_VERSION, VERSIONS, relationToDefault } from '../versions';
+
+const blurbs = {
+  default: 'The current release.',
+  newer: 'In development, a preview of what is coming.',
+  older: 'The documentation of an older release.',
+};
+---
+
+<CardGrid>
+  {
+    VERSIONS.map((v) => (
+      <Card title={`${v.id}${v.id === DEFAULT_VERSION ? ' (latest)' : ''}`} icon={v.id === DEFAULT_VERSION ? 'star' : 'document'}>
+        {blurbs[relationToDefault(v.id)]}{' '}
+        <a href={urlOf(v.id)}>Open the {v.id} documentation</a>.
+      </Card>
+    ))
+  }
+</CardGrid>

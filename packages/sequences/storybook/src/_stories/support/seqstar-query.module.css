@@ -1,0 +1,47 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Seq-star Query language story: the S-expression box and the texts it shows (issues, the canonical print). */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--msp-space-4);
+  max-width: 1200px;
+}
+
+.page {
+  max-height: 70vh;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+}
+
+.box {
+  max-width: 900px;
+  padding: var(--msp-space-4);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+.box:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.text {
+  margin: 0;
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

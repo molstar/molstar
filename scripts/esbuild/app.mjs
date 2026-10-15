@@ -119,14 +119,14 @@ function staticAssetsPlugin(outdir) {
   return {
     name: 'molstar-static-assets',
     setup(build) {
-      build.onLoad({ filter: /\.(jpg|jpeg|png|gif|ico|html|htm|svg|wasm|bin|dat)$/i }, async ({ path: input }) => {
+      build.onLoad({ filter: /\.(jpg|jpeg|png|gif|ico|html|htm|svg|wasm|bin|dat|sdf)$/i }, async ({ path: input }) => {
         const ext = path.extname(input).toLowerCase();
         const name = path.basename(input);
         const isImage = /\.(jpg|jpeg|png|gif|svg)$/i.test(ext);
         const destDir = isImage ? path.join(outdir, 'images') : outdir;
         await fs.promises.mkdir(destDir, { recursive: true });
         await fs.promises.copyFile(input, path.join(destDir, name));
-        if (/\.(html|htm|ico)$/i.test(ext)) return { contents: '', loader: 'empty' };
+        if (/\.(html|htm|ico|sdf)$/i.test(ext)) return { contents: '', loader: 'empty' };
         return { contents: `${isImage ? 'images/' : ''}${name}`, loader: 'text' };
       });
     },
@@ -252,13 +252,18 @@ if (serve) {
   const protocol = sslEnabled ? 'https' : 'http';
   const handler = async (req, res) => {
     try {
-      const pathname = decodeURIComponent(new URL(req.url, `${protocol}://localhost`).pathname);
+      const url = new URL(req.url, `${protocol}://localhost`);
+      const pathname = decodeURIComponent(url.pathname);
       const resolved = path.resolve(root, `.${pathname}`);
       if (!resolved.startsWith(root + path.sep) && resolved !== root) {
         res.writeHead(403).end();
         return;
       }
       const stat = await fs.promises.stat(resolved);
+      if (stat.isDirectory() && !url.pathname.endsWith('/')) {
+        res.writeHead(302, { location: `${url.pathname}/${url.search}` }).end();
+        return;
+      }
       const file = stat.isDirectory() ? path.join(resolved, 'index.html') : resolved;
       const body = await fs.promises.readFile(file);
       res.writeHead(200, { 'content-type': mime[path.extname(file)] ?? 'application/octet-stream' }).end(body);

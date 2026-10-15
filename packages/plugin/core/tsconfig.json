@@ -18,6 +18,9 @@
       "path": "../../model"
     },
     {
+      "path": "../../query-language"
+    },
+    {
       "path": "../../io"
     }
   ]

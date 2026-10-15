@@ -1,0 +1,22 @@
+{
+  "name": "@molstar/seq-scripts",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Seq*'s own checks and measures: the export guard, the spec check and the ported-lines measure (packages/sequences/AGENTS.md).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "exports": "node exports.ts",
+    "spec": "node spec.ts check",
+    "ported-lines": "node ported-lines.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript/typescript6": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -16,7 +16,7 @@ import { type CollapsableState, CollapsableControls } from '@molstar/plugin-ui/c
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { applyViewSnapshot } from '@molstar/kinemage-extension/behavior';
 import type { Kinemage } from '@molstar/kinemage-extension/reader/schema';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import {
   KinemageShapePointsProvider,
   KinemageShapeLinesProvider,
@@ -139,25 +139,25 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       rebuildUpdate
         .to(visControllerRef)
         .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        .apply(ShapeRepresentation3D);
     }
     if (kinData.vectorLists.length > 0) {
       rebuildUpdate
         .to(visControllerRef)
         .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        .apply(ShapeRepresentation3D);
     }
     if (kinData.ribbonLists.length > 0) {
       rebuildUpdate
         .to(visControllerRef)
         .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+        .apply(ShapeRepresentation3D, { doubleSided: true });
     }
     if (kinData.ballLists.length > 0) {
       rebuildUpdate
         .to(visControllerRef)
         .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        .apply(ShapeRepresentation3D);
     }
 
     await rebuildUpdate.commit();

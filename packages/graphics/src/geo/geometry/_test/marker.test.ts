@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { getMarkersAverage } from '../marker-data.js';
 
 describe('marker-data', () => {

@@ -13,8 +13,8 @@ import { UniqueArray } from '@molstar/core/data/generic';
 import { sortArray } from '@molstar/core/data/util';
 import { CifWriter } from '@molstar/io/writer/cif';
 import type { CifExportContext } from '../mmcif.js';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
-import { type CifCategory, type CifField, getCifFieldType } from '@molstar/io/reader/cif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
+import { type CifCategory, type CifField, getCifFieldType } from '@molstar/io/reader/cif/data-model';
 
 export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(
   model: Model,

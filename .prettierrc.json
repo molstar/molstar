@@ -15,7 +15,7 @@
   "embeddedLanguageFormatting": "off",
   "overrides": [
     {
-      "files": "docs/docs/**/*.md",
+      "files": "apps/docs/src/content/docs/v5/**/*.md",
       "options": {
         "tabWidth": 4
       }

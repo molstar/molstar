@@ -24,7 +24,7 @@ import { Task } from '@molstar/core/task';
 import { structureElementStatsLabel } from '@molstar/model/model/label';
 import { arrayRemoveAtInPlace } from '@molstar/core/util/array';
 import { StatefulPluginComponent } from '../../component.js';
-import type { StructureSelectionQuery } from '../../helpers/structure-selection-query.js';
+import type { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { PluginStateObject as PSO } from '../../objects.js';
 import { UUID } from '@molstar/core/util';
 import type { StructureRef } from './hierarchy-state.js';

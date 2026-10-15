@@ -9,7 +9,7 @@ import type { CustomPropertyDescriptor } from '@molstar/model/model/custom-prope
 import { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
 import { CifWriter } from '@molstar/io/writer/cif';
 import { FormatPropertyProvider } from '../common/property.js';
-import { MmcifFormat } from '../mmcif.js';
+import { MmcifFormat } from '../mmcif-format.js';
 
 export { AtomSiteAnisotrop };
 

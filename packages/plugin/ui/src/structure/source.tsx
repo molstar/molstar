@@ -11,7 +11,10 @@ import type {
   StructureHierarchyRef,
   TrajectoryRef,
 } from '@molstar/plugin/state/manager/structure/hierarchy-state';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import {
+  ModelFromTrajectory,
+  TransformStructureConformation,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { StateSelection } from '@molstar/core/state';
 import { CollapsableControls, type CollapsableState } from '@molstar/plugin-ui/controls/collapsable';
 import { ActionMenu } from '@molstar/plugin-ui/controls/action-menu';
@@ -270,7 +273,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     const { selection } = this.plugin.managers.structure.hierarchy;
     if (selection.structures.length !== 1) return null;
     const m = selection.structures[0].model;
-    if (!m || m.cell.transform.transformer !== StateTransforms.Model.ModelFromTrajectory) return null;
+    if (!m || m.cell.transform.transformer !== ModelFromTrajectory) return null;
     if (!m.cell.obj || Model.TrajectoryInfo.get(m.cell.obj.data).size <= 1) return null;
 
     const params = m.cell.params?.definition;
@@ -319,7 +322,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
     const t = StateSelection.tryFindDecorator(
       this.plugin.state.data,
       pivot.cell.transform.ref,
-      StateTransforms.Model.TransformStructureConformation,
+      TransformStructureConformation,
     );
     if (!t) return;
 

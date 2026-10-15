@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { deflate, inflate, unzip, zip } from '../zip/zip.js';
+import { describe, expect, it } from 'vitest';
+import { deflate, inflate, unzip, zip, type UnzipLimits } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 
 describe('zip', () => {
@@ -22,5 +23,85 @@ describe('zip', () => {
     const zipped = await zip(SyncRuntimeContext, data);
     const unzipped = await unzip(SyncRuntimeContext, zipped);
     expect(unzipped).toEqual(data);
+  });
+
+  describe('untrusted archives', () => {
+    const enc = (t: string) => new TextEncoder().encode(t) as Uint8Array<ArrayBuffer>;
+    const make = async (extra: Record<string, Uint8Array<ArrayBuffer>> = {}) =>
+      new Uint8Array(await zip(SyncRuntimeContext, { 'a.txt': enc('hello hello hello'), ...extra }));
+    const read = (z: Uint8Array, limits?: UnzipLimits) =>
+      unzip(SyncRuntimeContext, z.buffer as ArrayBuffer, false, limits);
+
+    /** The offsets of an archive's structures: the end record, each central entry and each local header. */
+    function layout(z: Uint8Array) {
+      const v = new DataView(z.buffer, z.byteOffset, z.byteLength);
+      let eocd = z.length - 22;
+      while (v.getUint32(eocd, true) !== 0x06054b50) eocd--;
+      const central: number[] = [];
+      for (let k = 0, o = v.getUint32(eocd + 16, true); k < v.getUint16(eocd + 10, true); k++) {
+        central.push(o);
+        o += 46 + v.getUint16(o + 28, true) + v.getUint16(o + 30, true) + v.getUint16(o + 32, true);
+      }
+      return { v, eocd, central, local: central.map((c) => v.getUint32(c + 42, true)) };
+    }
+
+    it('reads a valid archive', async () => {
+      const r = await read(await make());
+      expect(new TextDecoder().decode(r['a.txt'] as Uint8Array)).toBe('hello hello hello');
+    });
+
+    it('refuses a truncated archive with no end record', async () => {
+      const z = await make();
+      await expect(read(z.slice(0, z.length - 22))).rejects.toThrow(/no end of central directory/);
+    });
+
+    it('refuses past the limits before inflating: entries and declared sizes', async () => {
+      const z = await make({ 'big.bin': new Uint8Array(4 << 20) }); // a few KB deflated
+      expect(z.length).toBeLessThan(64 << 10);
+      await expect(read(z, { maxEntries: 10, maxBytes: 1 << 20 })).rejects.toThrow(/over the bound of 1048576 bytes/);
+      await expect(read(z, { maxEntries: 1, maxBytes: 1 << 30 })).rejects.toThrow(/2 entries, over the bound of 1/);
+      expect(Object.keys(await read(z, { maxEntries: 2, maxBytes: 1 << 30 }))).toEqual(['a.txt', 'big.bin']);
+    });
+
+    it('refuses a local entry listed twice', async () => {
+      const z = await make({ 'b.txt': enc('b') });
+      const { v, central, local } = layout(z);
+      v.setUint32(central[1] + 42, local[0], true);
+      await expect(read(z)).rejects.toThrow(/lists a local entry another lists too/);
+    });
+
+    it('refuses an entry that is not its declared size or fails its CRC-32', async () => {
+      const stored = await make({ 'a.png': enc('0123456789') }); // .png is stored, not deflated
+      const longer = stored.slice();
+      const l = layout(longer);
+      l.v.setUint32(l.central[1] + 24, 20, true);
+      await expect(read(longer)).rejects.toThrow(/runs past|holds 10 bytes, declared 20|fails/);
+
+      const flipped = stored.slice();
+      const f = layout(flipped);
+      flipped[f.local[1] + 30 + f.v.getUint16(f.local[1] + 26, true)] ^= 1;
+      await expect(read(flipped)).rejects.toThrow(/"a\.png" fails its CRC-32/);
+
+      const deflated = await make({ 'big.bin': new Uint8Array(1 << 16) });
+      const d = layout(deflated);
+      d.v.setUint32(d.central[1] + 24, 1000, true);
+      await expect(read(deflated)).rejects.toThrow(/inflates past its declared 1000 bytes|holds/);
+    });
+
+    it('reads sizes from the central directory: a local header with zeros (a data descriptor)', async () => {
+      const z = await make();
+      const { v, local } = layout(z);
+      v.setUint16(local[0] + 6, v.getUint16(local[0] + 6, true) | 8, true);
+      for (const at of [14, 18, 22]) v.setUint32(local[0] + at, 0, true);
+      const r = await read(z);
+      expect(new TextDecoder().decode(r['a.txt'] as Uint8Array)).toBe('hello hello hello');
+    });
+
+    it('returns what it inflated when the stream is shorter than the buffer', async () => {
+      const data = enc('hello hello hello');
+      const deflated = await deflate(SyncRuntimeContext, data);
+      const inflated = await inflate(SyncRuntimeContext, deflated, new Uint8Array(100));
+      expect(inflated.length).toBe(data.length);
+    });
   });
 });

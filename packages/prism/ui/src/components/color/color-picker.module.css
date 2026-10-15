@@ -1,0 +1,124 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.picker {
+  display: grid;
+  gap: var(--msp-space-3);
+  /* Apart from its row (the form's rows are only 2px apart), and from the next one. */
+  margin-block: var(--msp-space-1) var(--msp-space-2);
+  padding: var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  /* Inline under its row like a dropdown's options (select.module.css .list): the same hairline edge. */
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+/* Every hue across, lighter up, darker down (fieldColor in color-picker.tsx computes the same colors). */
+.field,
+.greys {
+  position: relative;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.field {
+  height: 96px;
+  background:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0) 50%, rgb(0 0 0 / 0) 50%, rgb(0 0 0 / 0.9)),
+    linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.greys {
+  height: 12px;
+  background: linear-gradient(to right, #000, #fff);
+}
+
+/* The current color's place: a ring that reads on light and dark alike. */
+.marker {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  box-shadow:
+    0 0 0 1.5px #fff,
+    0 0 0 2.5px rgb(0 0 0 / 0.5);
+  pointer-events: none;
+}
+
+/* The curated swatches, across the full width like the field above them. */
+.palette {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--msp-space-2);
+}
+
+.swatch {
+  height: 16px;
+  min-width: 0;
+  border-radius: var(--msp-radius-sm);
+  /* A hairline so white and near-background swatches stay visible. */
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  /* The current one ringed in the text color: picked, not the action. */
+  &[aria-selected="true"] {
+    box-shadow:
+      0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 3px var(--msp-color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.custom {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.preview {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--msp-inset);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+
+  /* As TextInput's: what it takes, quietly. */
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}

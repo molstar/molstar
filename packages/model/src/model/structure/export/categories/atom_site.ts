@@ -8,7 +8,7 @@
 import type { Column } from '@molstar/core/data/db';
 import type { mmCIF_Database } from '@molstar/io/reader/cif/schema/mmcif';
 import { CifWriter } from '@molstar/io/writer/cif';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { SIFTSMapping } from '@molstar/model/props/sequence/sifts-mapping';
 import { type StructureElement, type Structure, StructureProperties as P } from '../../structure.js';
 import type { CifExportContext } from '../mmcif.js';

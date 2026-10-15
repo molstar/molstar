@@ -5,6 +5,9 @@ import { builtinModules } from 'node:module';
 // AST inspection only; builds and declaration checks use the native TypeScript 7 CLI.
 import ts from '@typescript/typescript6';
 import { expandExports, exportTargets } from './exports.mjs';
+import { importsFrom } from './imports.mjs';
+import { checkImportGraph } from './import-graph.mjs';
+import { checkMigrationRecords } from './migration-records.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const inventory = JSON.parse(fs.readFileSync(path.join(root, 'scripts/workspace/inventory.json'), 'utf8'));
@@ -148,7 +151,10 @@ const sourceFiles = new Map();
 function scan(dir, pkg) {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name))
+    // `_stories` holds Seq*'s Storybook stories and their support code (a private package whose content they are, like
+    // `_test` not published source); Prism's `_stories` folders are checked like the rest of its source.
+    const skipped = /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name);
+    if (ent.isDirectory() && (skipped || (ent.name === '_stories' && pkg.path.startsWith('packages/sequences/'))))
       continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) scan(abs, pkg);
@@ -173,75 +179,6 @@ function packageName(specifier) {
 }
 function ambientTypesPackage(name) {
   return name.startsWith('@') ? `@types/${name.slice(1).replace('/', '__')}` : `@types/${name}`;
-}
-function importsFrom(file, source) {
-  const result = [];
-  function isTypeOnlyImport(node) {
-    const clause = node.importClause;
-    if (clause?.isTypeOnly) return true;
-    const names = [];
-    if (clause?.name) names.push(clause.name.text);
-    if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) names.push(clause.namedBindings.name.text);
-    if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
-      names.push(...clause.namedBindings.elements.map((element) => element.name.text));
-    if (!names.length) return false;
-    const uses = new Map(names.map((name) => [name, []]));
-    const findUses = (current) => {
-      let declarationParent = current;
-      while (declarationParent && declarationParent !== source && declarationParent !== node.importClause)
-        declarationParent = declarationParent.parent;
-      if (ts.isIdentifier(current) && uses.has(current.text) && declarationParent !== node.importClause) {
-        let parent = current.parent,
-          typePosition = false;
-        while (parent && parent !== source) {
-          if (ts.isTypeNode(parent)) {
-            typePosition = true;
-            break;
-          }
-          if (ts.isExpression(parent)) break;
-          parent = parent.parent;
-        }
-        uses.get(current.text).push(typePosition);
-      }
-      ts.forEachChild(current, findUses);
-    };
-    findUses(source);
-    const found = [...uses.values()].flat();
-    return found.length > 0 && found.every(Boolean);
-  }
-  const visit = (node) => {
-    if (ts.isImportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
-      result.push({ specifier: node.moduleSpecifier.text, typeOnly: isTypeOnlyImport(node) });
-    if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
-      result.push({ specifier: node.moduleSpecifier.text, typeOnly: node.isTypeOnly });
-    if (
-      ts.isImportEqualsDeclaration(node) &&
-      ts.isExternalModuleReference(node.moduleReference) &&
-      node.moduleReference.expression &&
-      ts.isStringLiteral(node.moduleReference.expression)
-    )
-      result.push({ specifier: node.moduleReference.expression.text, typeOnly: false });
-    if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0])
-    )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false });
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === 'require' &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0])
-    )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false });
-    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal))
-      result.push({ specifier: node.argument.literal.text, typeOnly: true });
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return result;
 }
 for (const [file, pkg] of sourceFiles) {
   const text = fs.readFileSync(file, 'utf8');
@@ -270,7 +207,8 @@ for (const [file, pkg] of sourceFiles) {
         errors.push(`${pkg.name}: missing direct dependency on ${dependency.name} (${specifier} in ${rel})`);
       graph.get(pkg.name)?.add(dependency.name);
     } else if (!dependency && !specifier.startsWith('node:') && !ts.isExternalModuleNameRelative(specifier)) {
-      const name = packageName(specifier);
+      // Astro's virtual modules (`astro:content`, ...) come from the `astro` package.
+      const name = specifier.startsWith('astro:') ? 'astro' : packageName(specifier);
       if (builtinModules.includes(name) || builtinModules.includes(`node:${name}`) || name.startsWith('#')) continue;
       const manifest = manifestFor(pkg);
       if (name.startsWith('@molstar/'))
@@ -303,6 +241,8 @@ function visit(name) {
   state.set(name, 2);
 }
 for (const pkg of packages) visit(pkg.name);
+errors.push(...checkImportGraph({ root, packages }).errors);
+errors.push(...checkMigrationRecords({ root }).errors);
 if (errors.length) {
   const priority = (error) =>
     /package dependency cycle|cross-package relative import|missing direct dependency|undeclared external import|missing from inventory/.test(
@@ -318,5 +258,5 @@ if (errors.length) {
   process.exitCode = 1;
 } else
   console.log(
-    `Workspace manifests, ${sourceOnly ? 'source aliases' : 'compiled exports'}, direct imports and package graph are valid (${packages.length} packages).`,
+    `Workspace manifests, ${sourceOnly ? 'source aliases' : 'compiled exports'}, direct imports, package graph, import graph and migration records are valid (${packages.length} packages).`,
   );

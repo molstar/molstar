@@ -8,8 +8,16 @@
 
 import { utf8Read } from '@molstar/core/util/utf8';
 
-export function decodeMsgPack(buffer: Uint8Array) {
-  return parse(createMsgPackState(buffer));
+/**
+ * Decode an extension value from its type code and payload (a view into the buffer: copy what is kept).
+ * Returning undefined gives `{ type, data }`.
+ */
+export type MsgPackExtDecoder = (type: number, data: Uint8Array) => unknown;
+
+export function decodeMsgPack(buffer: Uint8Array, ext?: MsgPackExtDecoder) {
+  const state = createMsgPackState(buffer);
+  state.ext = ext;
+  return parse(state);
 }
 
 // Loosely based on
@@ -21,6 +29,7 @@ export interface MsgPackState {
   buffer: Uint8Array;
   offset: number;
   dataView: DataView;
+  ext?: MsgPackExtDecoder;
 }
 
 export function createMsgPackState(buffer: Uint8Array): MsgPackState {
@@ -77,13 +86,31 @@ export function readMsgPackArrayLength(state: MsgPackState) {
 }
 
 /**
+ * A length header is trusted only as far as the bytes left can hold it: `length` items of at least `bytes` each.
+ * A header without its payload would otherwise allocate gigabytes or loop for minutes.
+ */
+function room(state: MsgPackState, length: number, bytes: number) {
+  if (length * bytes > state.buffer.length - state.offset) {
+    throw new Error(
+      `truncated: ${length} item(s) at byte ${state.offset}, ${state.buffer.length - state.offset} byte(s) left`,
+    );
+  }
+}
+
+/**
  * decode all key-value pairs of a map into an object
  */
 function map(state: MsgPackState, length: number) {
+  room(state, length, 2);
   const value: { [k: string]: any } = {};
   for (let i = 0; i < length; i++) {
     const key = parse(state);
-    value[key] = parse(state);
+    // `__proto__` is an own key, as JSON.parse makes it, never the object's prototype
+    if (key === '__proto__') {
+      Object.defineProperty(value, key, { value: parse(state), enumerable: true, writable: true, configurable: true });
+    } else {
+      value[key] = parse(state);
+    }
   }
   return value;
 }
@@ -92,6 +119,7 @@ function map(state: MsgPackState, length: number) {
  * decode binary array
  */
 function bin(state: MsgPackState, length: number) {
+  room(state, length, 1);
   // This approach to binary parsing wastes a bit of memory to trade for speed compared to:
   //
   //   let value = buffer.subarray(offset, offset + length); //new Uint8Array(buffer.buffer, offset, length);
@@ -108,9 +136,22 @@ function bin(state: MsgPackState, length: number) {
 }
 
 /**
+ * decode an extension value, the offset at its type code
+ */
+function extension(state: MsgPackState, length: number) {
+  room(state, 1 + length, 1);
+  const type = state.dataView.getInt8(state.offset);
+  const data = state.buffer.subarray(state.offset + 1, state.offset + 1 + length);
+  state.offset += 1 + length;
+  const value = state.ext?.(type, data);
+  return value !== undefined ? value : { type, data: data.slice() };
+}
+
+/**
  * decode string
  */
 function str(state: MsgPackState, length: number) {
+  room(state, length, 1);
   const value = utf8Read(state.buffer, state.offset, length);
   state.offset += length;
   return value;
@@ -120,9 +161,12 @@ function str(state: MsgPackState, length: number) {
  * decode array
  */
 function array(state: MsgPackState, length: number) {
-  const value: any[] = new Array(length);
+  room(state, length, 1);
+  // Grown as items are read, never sized by the header: nested headers may each claim every byte left,
+  // and sizing each before reading it would multiply the claim by the depth.
+  const value: any[] = [];
   for (let i = 0; i < length; i++) {
-    value[i] = parse(state);
+    value.push(parse(state));
   }
   return value;
 }
@@ -131,6 +175,8 @@ function array(state: MsgPackState, length: number) {
  * recursively parse the MessagePack data and return decoded MessagePack data
  */
 function parse(state: MsgPackState) {
+  // Past the end the byte is undefined, which would read as a positive fixint
+  if (state.offset >= state.buffer.length) throw new Error(`truncated: no value at byte ${state.offset}`);
   const type = state.buffer[state.offset];
   let value: any, length: number;
   // Positive FixInt
@@ -265,6 +311,27 @@ function parse(state: MsgPackState) {
       length = state.dataView.getUint32(state.offset + 1);
       state.offset += 5;
       return map(state, length);
+    // fixext 1, 2, 4, 8, 16
+    case 0xd4:
+    case 0xd5:
+    case 0xd6:
+    case 0xd7:
+    case 0xd8:
+      state.offset += 1;
+      return extension(state, 1 << (type - 0xd4));
+    // ext 8, 16, 32
+    case 0xc7:
+      length = state.dataView.getUint8(state.offset + 1);
+      state.offset += 2;
+      return extension(state, length);
+    case 0xc8:
+      length = state.dataView.getUint16(state.offset + 1);
+      state.offset += 3;
+      return extension(state, length);
+    case 0xc9:
+      length = state.dataView.getUint32(state.offset + 1);
+      state.offset += 5;
+      return extension(state, length);
   }
 
   throw new Error('Unknown type 0x' + type.toString(16));
@@ -371,6 +438,23 @@ export function skipMsgPackValue(state: MsgPackState) {
       length = state.dataView.getUint32(state.offset + 1);
       state.offset += 5;
       skipValues(state, 2 * length);
+      return;
+    // fixext 1, 2, 4, 8, 16; ext 8, 16, 32
+    case 0xd4:
+    case 0xd5:
+    case 0xd6:
+    case 0xd7:
+    case 0xd8:
+      state.offset += 2 + (1 << (type - 0xd4));
+      return;
+    case 0xc7:
+      state.offset += 3 + state.dataView.getUint8(state.offset + 1);
+      return;
+    case 0xc8:
+      state.offset += 4 + state.dataView.getUint16(state.offset + 1);
+      return;
+    case 0xc9:
+      state.offset += 6 + state.dataView.getUint32(state.offset + 1);
       return;
   }
 

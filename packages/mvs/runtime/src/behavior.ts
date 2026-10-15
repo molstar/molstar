@@ -6,16 +6,13 @@
 
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { CustomStructureProperty } from '@molstar/model/props/common/custom-structure-property';
-import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
-import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/drag-and-drop';
-import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
+import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
-import { PluginSpec } from '@molstar/plugin/spec';
-import { StructureRepresentationProvider } from '@molstar/graphics/repr/structure/representation';
-import { StateAction, StateObject, StateObjectCell, StateTree } from '@molstar/core/state';
+import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
+import { StateObject, StateObjectCell, StateTree } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
-import { ColorTheme } from '@molstar/graphics/theme/color';
+import type { ColorTheme } from '@molstar/graphics/theme/color';
 import { fileToDataUri } from '@molstar/core/util/file';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { MVSAnnotationColorThemeProvider } from '@molstar/mvs/components/annotation-color-theme';
@@ -35,16 +32,34 @@ import { loadMVS } from '@molstar/mvs/load';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MVS_BEHAVIOR_NAME } from './behavior-id.js';
 
-/** Collection of things that can be register/unregistered in a plugin */
+/** Custom properties of the MVS behavior. They take the `autoAttach` param, which `update()` changes, so they cannot be part of a registry entry. */
 interface Registrables {
-  customModelProperties?: CustomModelProperty.Provider<any, any>[];
-  customStructureProperties?: CustomStructureProperty.Provider<any, any>[];
-  representations?: StructureRepresentationProvider<any>[];
-  colorThemes?: ColorTheme.Provider[];
-  lociLabels?: LociLabelProvider[];
-  dragAndDropHandlers?: DragAndDropHandler[];
-  dataFormats?: { name: string; provider: DataFormatProvider }[];
-  actions?: StateAction[];
+  customModelProperties: CustomModelProperty.Provider<any, any>[];
+  customStructureProperties: CustomStructureProperty.Provider<any, any>[];
+}
+
+/**
+ * The providers `MolViewSpec` registers, as a registry entry: its representations, color themes, loci labels, the
+ * drag-and-drop handler, the MVSJ and MVSX formats, and its action. The multilayer color theme is built from the given
+ * registry, which must be the color theme registry of the plugin the entry is registered in.
+ */
+export function createMVSRegistryEntry(colorThemeRegistry: ColorTheme.Registry): PluginRegistryEntry {
+  return {
+    structure: {
+      representations: [CustomLabelRepresentationProvider, MVSAnnotationLabelRepresentationProvider],
+      themes: {
+        color: [
+          MVSSplitUniformColorThemeProvider,
+          MVSAnnotationColorThemeProvider,
+          makeMultilayerColorThemeProvider(colorThemeRegistry),
+        ],
+      },
+    },
+    formats: [MVSJFormatProvider, MVSXFormatProvider],
+    lociLabels: [CustomTooltipsLabelProvider, MVSAnnotationTooltipsLabelProvider],
+    dragAndDrop: [MVSDragAndDropHandler],
+    actions: [LoadMvsData],
+  };
 }
 
 /** Registers everything needed for loading MolViewSpec files */
@@ -59,46 +74,19 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
     private readonly registrables: Registrables = {
       customModelProperties: [IsMVSModelProvider, MVSAnnotationsProvider],
       customStructureProperties: [CustomTooltipsProvider, MVSAnnotationTooltipsProvider],
-      representations: [CustomLabelRepresentationProvider, MVSAnnotationLabelRepresentationProvider],
-      colorThemes: [
-        MVSSplitUniformColorThemeProvider,
-        MVSAnnotationColorThemeProvider,
-        makeMultilayerColorThemeProvider(this.ctx.representation.structure.themes.colorThemeRegistry),
-      ],
-      lociLabels: [CustomTooltipsLabelProvider, MVSAnnotationTooltipsLabelProvider],
-      dragAndDropHandlers: [MVSDragAndDropHandler],
-      dataFormats: [
-        { name: 'MVSJ', provider: MVSJFormatProvider },
-        { name: 'MVSX', provider: MVSXFormatProvider },
-      ],
-      actions: [LoadMvsData],
     };
+    private undoRegister: (() => void) | undefined;
 
     register(): void {
-      for (const prop of this.registrables.customModelProperties ?? []) {
+      for (const prop of this.registrables.customModelProperties) {
         this.ctx.customModelProperties.register(prop, this.params.autoAttach);
       }
-      for (const prop of this.registrables.customStructureProperties ?? []) {
+      for (const prop of this.registrables.customStructureProperties) {
         this.ctx.customStructureProperties.register(prop, this.params.autoAttach);
       }
-      for (const repr of this.registrables.representations ?? []) {
-        this.ctx.representation.structure.registry.add(repr);
-      }
-      for (const theme of this.registrables.colorThemes ?? []) {
-        this.ctx.representation.structure.themes.colorThemeRegistry.add(theme);
-      }
-      for (const provider of this.registrables.lociLabels ?? []) {
-        this.ctx.managers.lociLabels.addProvider(provider);
-      }
-      for (const handler of this.registrables.dragAndDropHandlers ?? []) {
-        this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
-      }
-      for (const format of this.registrables.dataFormats ?? []) {
-        this.ctx.dataFormats.add(format.name, format.provider);
-      }
-      for (const action of this.registrables.actions ?? []) {
-        this.ctx.state.data.actions.add(action);
-      }
+      this.undoRegister = this.ctx.register(
+        createMVSRegistryEntry(this.ctx.representation.structure.themes.colorThemeRegistry),
+      );
 
       this.ctx.state.data.registerRefResolver('mvs', (state, ref) => {
         const tagSearch = StateTree.doPreOrder(
@@ -155,39 +143,23 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
     update(p: { autoAttach: boolean }) {
       const updated = this.params.autoAttach !== p.autoAttach;
       this.params.autoAttach = p.autoAttach;
-      for (const prop of this.registrables.customModelProperties ?? []) {
+      for (const prop of this.registrables.customModelProperties) {
         this.ctx.customModelProperties.setDefaultAutoAttach(prop.descriptor.name, this.params.autoAttach);
       }
-      for (const prop of this.registrables.customStructureProperties ?? []) {
+      for (const prop of this.registrables.customStructureProperties) {
         this.ctx.customStructureProperties.setDefaultAutoAttach(prop.descriptor.name, this.params.autoAttach);
       }
       return updated;
     }
     unregister() {
-      for (const prop of this.registrables.customModelProperties ?? []) {
+      for (const prop of this.registrables.customModelProperties) {
         this.ctx.customModelProperties.unregister(prop.descriptor.name);
       }
-      for (const prop of this.registrables.customStructureProperties ?? []) {
+      for (const prop of this.registrables.customStructureProperties) {
         this.ctx.customStructureProperties.unregister(prop.descriptor.name);
       }
-      for (const repr of this.registrables.representations ?? []) {
-        this.ctx.representation.structure.registry.remove(repr);
-      }
-      for (const theme of this.registrables.colorThemes ?? []) {
-        this.ctx.representation.structure.themes.colorThemeRegistry.remove(theme);
-      }
-      for (const labelProvider of this.registrables.lociLabels ?? []) {
-        this.ctx.managers.lociLabels.removeProvider(labelProvider);
-      }
-      for (const handler of this.registrables.dragAndDropHandlers ?? []) {
-        this.ctx.managers.dragAndDrop.removeHandler(handler.name);
-      }
-      for (const format of this.registrables.dataFormats ?? []) {
-        this.ctx.dataFormats.remove(format.name);
-      }
-      for (const action of this.registrables.actions ?? []) {
-        this.ctx.state.data.actions.remove(action);
-      }
+      this.undoRegister?.();
+      this.undoRegister = undefined;
       this.ctx.state.data.removeRefResolver('mvs');
       this.ctx.managers.markdownExtensions.removeRefResolver('mvs');
     }
@@ -199,14 +171,8 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
 
 export const MolViewSpecBehavior = PluginSpec.Behavior(MolViewSpec);
 
-/** Registrable method for handling dragged-and-dropped files */
-interface DragAndDropHandler {
-  name: string;
-  handle: PluginDragAndDropHandler;
-}
-
 /** DragAndDropHandler handler for `.mvsj` and `.mvsx` files */
-const MVSDragAndDropHandler: DragAndDropHandler = {
+const MVSDragAndDropHandler: PluginDragAndDropEntry = {
   name: 'mvs-mvsj-mvsx',
   /** Load .mvsj and .mvsx files. Delete previous plugin state before loading.
    * If multiple files are provided, merge their MVS data into one state.

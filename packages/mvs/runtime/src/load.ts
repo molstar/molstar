@@ -9,54 +9,57 @@
 
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCcp4 } from '@molstar/plugin/state/formats/volume/ccp4';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { ParseDx } from '@molstar/plugin/state/formats/volume/dx';
+import { ParseObj } from '@molstar/plugin/state/formats/shape/obj';
+import { ParsePly } from '@molstar/plugin/state/formats/shape/ply';
+import { ParsePrmtop } from '@molstar/plugin/state/formats/topology/prmtop';
+import { ParsePsf } from '@molstar/plugin/state/formats/topology/psf';
+import { ParseTop } from '@molstar/plugin/state/formats/topology/top';
+import { ParseVtp } from '@molstar/plugin/state/formats/shape/vtp';
+import { CoordinatesFromDcd } from '@molstar/plugin/state/formats/coordinates/dcd';
+import { CoordinatesFromLammpstraj } from '@molstar/plugin/state/formats/coordinates/lammps';
+import { CoordinatesFromNctraj } from '@molstar/plugin/state/formats/coordinates/nctraj';
+import { CoordinatesFromTrr } from '@molstar/plugin/state/formats/coordinates/trr';
+import { CoordinatesFromXtc } from '@molstar/plugin/state/formats/coordinates/xtc';
 import {
-  Download,
-  ParseCcp4,
-  ParseCif,
-  ParseDx,
-  ParseObj,
-  ParsePly,
-  ParsePrmtop,
-  ParsePsf,
-  ParseTop,
-  ParseVtp,
-} from '@molstar/plugin/state/transforms/data';
-import {
-  CoordinatesFromDcd,
-  CoordinatesFromLammpstraj,
-  CoordinatesFromNctraj,
-  CoordinatesFromTrr,
-  CoordinatesFromXtc,
   CustomModelProperties,
   CustomStructureProperties,
   ModelFromTrajectory,
-  StructureComponent,
   StructureFromModel,
-  TopologyFromPrmtop,
-  TopologyFromPsf,
-  TopologyFromTop,
-  TrajectoryFromGRO,
-  TrajectoryFromLammpsTrajData,
-  TrajectoryFromMmCif,
-  TrajectoryFromMOL,
-  TrajectoryFromMOL2,
-  TrajectoryFromPDB,
-  TrajectoryFromSDF,
-  TrajectoryFromXYZ,
-} from '@molstar/plugin/state/transforms/model';
-import {
-  ShapeRepresentation3D,
-  StructureRepresentation3D,
-  VolumeRepresentation3D,
-} from '@molstar/plugin/state/transforms/representation';
-import { ShapeFromObj, ShapeFromPly, ShapeFromVtp } from '@molstar/plugin/state/transforms/shape';
-import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '@molstar/plugin/state/transforms/volume';
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
+import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
+import { TopologyFromPrmtop } from '@molstar/plugin/state/formats/topology/prmtop';
+import { TopologyFromPsf } from '@molstar/plugin/state/formats/topology/psf';
+import { TopologyFromTop } from '@molstar/plugin/state/formats/topology/top';
+import { TrajectoryFromGRO } from '@molstar/plugin/state/formats/trajectory/gro';
+import { TrajectoryFromLammpsTrajData } from '@molstar/plugin/state/formats/trajectory/lammps';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { TrajectoryFromMOL } from '@molstar/plugin/state/formats/trajectory/mol';
+import { TrajectoryFromMOL2 } from '@molstar/plugin/state/formats/trajectory/mol2';
+import { TrajectoryFromPDB } from '@molstar/plugin/state/formats/trajectory/pdb';
+import { TrajectoryFromSDF } from '@molstar/plugin/state/formats/trajectory/sdf';
+import { TrajectoryFromXYZ } from '@molstar/plugin/state/formats/trajectory/xyz';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { ShapeFromObj } from '@molstar/plugin/state/formats/shape/obj';
+import { ShapeFromPly } from '@molstar/plugin/state/formats/shape/ply';
+import { ShapeFromVtp } from '@molstar/plugin/state/formats/shape/vtp';
+import { VolumeFromCcp4 } from '@molstar/plugin/state/formats/volume/ccp4';
+import { VolumeFromDensityServerCif } from '@molstar/plugin/state/formats/volume/density-server';
+import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginState } from '@molstar/plugin/state';
 import { StateObjectSelector, StateTree } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Clip } from '@molstar/core/util/clip';
+import { ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from '@molstar/model/model/structure/structure/element/schema-selection/scratch';
 import { MVS_BEHAVIOR_ID } from './behavior-id.js';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from '@molstar/mvs/camera';
 import { MVSAnnotationsProvider } from '@molstar/mvs/components/annotation-prop';
@@ -216,6 +219,8 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
       }
     }
     plugin.errorContext.clear('mvs');
+    // (the buffers which the resolution of rows reuses between calls are not needed until the next load)
+    ScratchMemory.release(SchemaSelectionScratch);
   }
 }
 
@@ -529,14 +534,15 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
       return updateParent;
     }
     const selector = node.params.selector;
-    return transformAndInstantiateStructure(
-      UpdateTarget.apply(updateParent, StructureComponent, {
-        type: componentPropsFromSelector(selector),
-        label: prettyNameFromSelector(selector),
-        nullIfEmpty: false,
-      }),
-      node,
-    );
+    const type = componentPropsFromSelector(selector);
+    const label = prettyNameFromSelector(selector);
+    // (rows are the expression `element-schema`, which resolves them through the indices of the model; a `Selector` has `annotation`, which a component does not)
+    const component = UpdateTarget.apply(updateParent, StructureComponent, {
+      type: type as StructureComponentParams['type'],
+      label,
+      nullIfEmpty: false,
+    });
+    return transformAndInstantiateStructure(component, node);
   },
   component_from_uri(
     updateParent: UpdateTarget,

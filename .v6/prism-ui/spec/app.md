@@ -1,0 +1,68 @@
+# The app, the single file, embedding
+
+How the Prism viewer reaches people: the app on GitHub Pages, a single-file viewer a page imports, the `<prism-viewer>`
+element, and the URL. Status: **accepted** (2026-10-15).
+
+## 1. `apps/prism-viewer`
+
+- **Private and thin** (README §2.4): `index.html`, `src/index.ts` (the spec: `DefaultPrismViewerSpec()`, the extension
+  list, options from the URL, the assistant's import, `persist`; viewer-spec.md §5), a favicon.
+- **The extension list** (`MolstarViewerExtensions`) is the app's: the viewer's own features come with
+  `DefaultPrismViewerSpec()`; the app adds Mol\*'s extensions, data-only ones through `pluginExtension`, heavy ones lazy
+  (video export, Zenodo, the PAE view).
+- **Build**: ESM with code splitting, one chunk per lazy feature and extension and one for the assistant, content-hashed
+  file names (esbuild: `scripts/esbuild/app.mjs` builds IIFE today and gains a splitting mode; the `molstar`
+  distribution's ESM build already has shared chunks). Prism's CSS is in its JS modules, so there is no stylesheet.
+- **Deployment**: GitHub Pages, from the release workflow, on an origin of its own (a custom domain or a project
+  site whose origin serves nothing else), since every page on an origin can use its stored keys and kept records
+  (agent.md §4). A publish adds files rather than replacing the site, so the hashed chunks of the last few versions
+  stay for tabs left open across a deploy (journal.md §7); `index.html` is not cached. Chunks load relative to the
+  entry, so the app works from any base path.
+- **Size**: the first chunk is what opening an empty viewer needs; a budget per chunk is set once the first build
+  exists and checked in CI.
+
+## 2. The single-file viewer
+
+- **One ESM file** (`prism-viewer.js`) with every lazy part inlined, CSS included: a page imports it and runs it with no
+  build step and no other request to us.
+- **An artifact of the app** (review F27): `apps/prism-viewer` builds it from its own entry, which exports
+  `createPrismViewer` and `FullPrismViewerSpec()`: `DefaultPrismViewerSpec()` with the app's extension list (Mol\*'s
+  extensions) and without the assistant (a host that wants it uses the app or composes the packages). The name differs
+  from `DefaultPrismViewerSpec()` (the built-ins only) on purpose.
+- Published with the app (GitHub Pages) and copied into the `molstar` distribution (`build/prism-viewer/`, as
+  `build/viewer` is today). A host composing its own viewer from npm imports the extensions it wants instead.
+
+```html
+<script type="module">
+  import { createPrismViewer, FullPrismViewerSpec } from 'https://…/prism-viewer.js';
+  const viewer = await createPrismViewer({ target: document.getElementById('viewer'), spec: FullPrismViewerSpec() });
+</script>
+```
+
+## 3. Embedding
+
+- **`<prism-viewer>`**: the element wraps `createPrismViewer`, with a shadow root (host CSS stops at it; the `--msp-*`
+  tokens cross it, README §2.20; the style registry adopts into it, library.md §3). Its `spec` property takes a `PrismViewerSpec`; attributes cover the common options
+  (`pdb`, `theme`, `hide-controls`). Several on a page each own their viewer.
+- **Embeddable parts** for hosts with their own layout: the viewport alone (canvas, hover label, toolbar), for
+  mvs-stories and the docking viewer; more when asked.
+- **React and Preact hosts** use the element, or `reactView` around it.
+
+## 4. The URL
+
+This is the one list (review F26). The loaders feature reads the load parameters, once the viewer is ready; the options
+read the rest at creation.
+
+| Parameter                                                                                  | Read by                         | Becomes                                                           |
+| ------------------------------------------------------------------------------------------ | ------------------------------- | ----------------------------------------------------------------- |
+| `pdb`, `pdb-ihm` (`pdb-dev`, deprecated, the same), `afdb`, `emdb`, `model-archive`        | loaders                         | `load.entry`                                                      |
+| `url` with `url-format`, `url-is-binary`; `structure-url` with `structure-url-format`, `structure-url-is-binary` | loaders  | `load.url`                                                        |
+| `mvs-url`, `mvs-data`, `mvs-format`                                                        | loaders                         | `load.mvs`                                                        |
+| `snapshot-url`, `snapshot-url-type`, `snapshot-id`                                         | loaders                         | `load.snapshot`                                                   |
+| `pixel-scale`, `pick-scale`, `transparency`, `illumination`, `power-preference`, `resolution-mode`, `prefer-webgl1`, `allow-major-performance-caveat` | options | `options.renderer`                              |
+| `pdb-provider`, `emdb-provider`, `map-provider`                                            | options                         | `options.data` (`map-provider` sets the volume streaming server, as v5 does) |
+| `hide-controls`, `collapse-left-panel`, `show-toggle-fullscreen`                          | options                         | `options.ui` (`collapsed`, `buttons.fullscreen`)                  |
+| `debug-mode`, `timing-mode`                                                                | the app                         | page-wide switches (`setDebugMode`, `setTimingMode`), not per viewer |
+| `pick-padding`                                                                             | —                               | dropped (no config item; v5 drops it too)                         |
+
+Unknown parameters are ignored and logged once.

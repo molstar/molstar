@@ -6,7 +6,7 @@
 
 import { Loci } from '@molstar/model/model/loci';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { ButtonsType, ModifiersKeys } from '@molstar/core/util/input/input-observer';
 import { Binding } from '@molstar/core/util/binding';
 import { PluginCommands } from '@molstar/plugin/commands';

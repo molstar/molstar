@@ -225,6 +225,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   async setStateSnapshot(
     snapshot: PluginStateSnapshotManager.StateSnapshot,
   ): Promise<PluginState.Snapshot | undefined> {
+    // Validate every entry before clearing so a failing state leaves the manager unchanged
+    for (const e of snapshot.entries) PluginState.validateSnapshotTransformers(e.snapshot);
+
     this.clear();
     const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
     for (const e of snapshot.entries) {

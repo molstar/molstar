@@ -9,7 +9,7 @@ import { murmurHash3_128_fromBytes } from '@molstar/core/data/util';
 import { StringLike } from '@molstar/core/util/string-like';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { Download } from '@molstar/plugin/state/transforms/data';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateObjectRef } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
@@ -94,7 +94,8 @@ export const LoadMvsData = StateAction.build({
 /** Data format provider for MVSJ format.
  * If Visuals:On, it will load the parsed MVS view;
  * otherwise it will just create a plugin state object with parsed data. */
-export const MVSJFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any> = DataFormatProvider({
+export const MVSJFormatProvider = DataFormatProvider({
+  name: 'MVSJ',
   label: 'MVSJ',
   description: 'MVSJ',
   category: 'Miscellaneous',
@@ -112,7 +113,8 @@ export const MVSJFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
 /** Data format provider for MVSX format.
  * If Visuals:On, it will load the parsed MVS view;
  * otherwise it will just create a plugin state object with parsed data. */
-export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any> = DataFormatProvider({
+export const MVSXFormatProvider = DataFormatProvider({
+  name: 'MVSX',
   label: 'MVSX',
   description: 'MVSX',
   category: 'Miscellaneous',

@@ -15,12 +15,7 @@ import { altLoc, connectedTo, typeSymbol } from '../chemistry/util.js';
 import type { FeatureType, InteractionType } from './common.js';
 import type { InterContactsBuilder, IntraContactsBuilder } from './contacts-builder.js';
 import { Features } from './features.js';
-
-export const ContactsParams = {
-  lineOfSightDistFactor: PD.Numeric(1.0, { min: 0, max: 3, step: 0.1 }),
-};
-export type ContactsParams = typeof ContactsParams;
-export type ContactsProps = PD.Values<ContactsParams>;
+import type { ContactsProps } from './params.js';
 
 const MAX_LINE_OF_SIGHT_DISTANCE = 3;
 

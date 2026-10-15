@@ -5,7 +5,7 @@
   "description": "Mol* viewer",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -17,7 +17,8 @@
       "molstar-src": "./src/app.ts",
       "types": "./lib/app.d.ts",
       "import": "./lib/app.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "tslib": "catalog:",
+    "@molstar/query-language": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/plugin-extension": "workspace:*",
     "@molstar/model": "workspace:*",
@@ -48,7 +50,7 @@
     "@molstar/geo-export-extension": "workspace:*",
     "@molstar/model-archive-extension": "workspace:*",
     "@molstar/model-export-extension": "workspace:*",
-    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/video-export-extension": "workspace:*",
     "@molstar/pdbe-extension": "workspace:*",
     "@molstar/rcsb-extension": "workspace:*",
     "@molstar/sb-ncbr-extension": "workspace:*",

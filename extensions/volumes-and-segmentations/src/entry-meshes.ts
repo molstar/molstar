@@ -5,8 +5,8 @@
  */
 
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { CreateGroup } from '@molstar/plugin/state/transforms/misc';
-import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { Color } from '@molstar/core/util/color';

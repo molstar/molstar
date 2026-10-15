@@ -1,0 +1,102 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { BUILDER } from "./snippets";
+import { Code, ExampleJson, FormatReference, ValidationExample } from "./live";
+
+<Meta title="Seq*/Docs/Format" />
+
+# The format: SeqViewSpec
+
+A SeqViewSpec document says what a sequence view shows, as data: a viewer-independent format, read
+by our viewer and checked by a second one (Nightingale). It keeps MolViewSpec's node shape,
+palettes, field remapping and description format, and differs where sequences need it: every node
+has a `ref`, positions are 0-based indices beside labels, data may be held in place, snapshots are
+patches over one tree. Each term below is explained in [Concepts](?path=/docs/seq-docs-concepts--docs).
+
+## Its shape
+
+A document is an envelope (`format: "seq_view_spec"`, `version`, an optional `revision`,
+`metadata`, `requires`, `snapshots`) around a tree of nodes, each `{ kind, ref, params?, custom?,
+children? }`; a `ref` is the node's name, unique in the document. Under `root`:
+
+- **Data** (`data`), exactly one: what views show. `sequence` and `ligand` ([molecules](?path=/docs/seq-docs-concepts--docs#molecule), with their
+  [`numbering`s](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering)), [`unit`](?path=/docs/seq-docs-concepts--docs#unit) and
+  [`complex`](?path=/docs/seq-docs-concepts--docs#complex), [`alignment`](?path=/docs/seq-docs-concepts--docs#alignment-rows-and-columns) (with at most one
+  `tree`), `mapping` (a [coordinate map](?path=/docs/seq-docs-concepts--docs#coordinate-map-and-route) between two
+  systems, by `method`: `identity`, `segments`, `pairwise`, `align`, `by_numbering`, `codon`,
+  `provider`), [**`annotation`**](?path=/docs/seq-docs-concepts--docs#annotation-and-item) (a table of items with a `geometry`:
+  `ranges`, `values`, `pairs`, `matrix` or `rows`), `computed` (an annotation a registered provider
+  computes, as `column_stats`), and `source` (where data comes from: a URI, a host file, a service,
+  a stream). Each data node holds its content in `value` or reads it from a source.
+- **[Views](?path=/docs/seq-docs-concepts--docs#view-section-and-block)** (`view`), one or more, each with **sections** (`section`): one axis each, shown one under
+  another. A section's axis is **blocks** (`block`: units side by side or stacked; a block may show a `range` of its
+  coordinate system in a `direction`, a [piece](?path=/docs/seq-docs-concepts--docs#piece)) or one alignment's columns. Its tracks (`track`, in `group`s
+  or not) each hold **layers** (`layer`), composited in order.
+- **[Layers](?path=/docs/seq-docs-concepts--docs#track-layer-and-renderer)** are typed by what they show: `letters`, `rows`, `ranges`, `points`, `emphasis`,
+  `variants`, `secondary`, `values`, `color`, `ruler`, `pairs`, `logo`, `matrix`, or an extension's
+  `<ns>:<name>`. Each type declares the data it accepts and a **fallback**; every chain ends at
+  `letters`, `ranges` or omitted, so any viewer draws something and reports the rest.
+- **[Themes](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style)** map the data under a layer to a **channel**'s values, as Mol\*'s color and size themes
+  do: `color`, `size` or `glyph`. A channel's param holds a `ThemeRef`, `{ theme, params,
+  fallback }`: `uniform`, `rules`, `field_palette`, `field_scale` and the rest, or an extension's
+  with a kernel fallback. The viewer's skin (ink, fonts, light and dark) is never in the document.
+- **Presets and `style`.** A preset is how the viewer draws a section (geometry, row
+  heights, header, navigator, behaviors). A section's `style` names the viewer's preset for it (`tracks`, `msa`,
+  `strip`, `compact`, `wrapped`, or `<ns>:<name>`; `null` lets the viewer pick by layout and
+  axis), or is an inline preset: `{ "preset": "msa", "column_heads": "own_row", "data_floor": 0 }`.
+  The keys are a curated snake_case list mapped onto the viewer's render props; the document's key
+  beats the preset's, which beats the host's ([the `style` stories](?path=/story/seq-views-and-layouts-section-style--column-heads)).
+
+## An example
+
+The Introduction's document, as the builder writes it (the JSON below is generated live):
+
+<ExampleJson />
+
+## The builder
+
+`@molstar/seq-core/builder` writes documents with types from the parameter tables. Data methods
+return handles; a param that takes a `ref<kind>` takes a handle or a ref; `getDocument()` generates
+the refs nobody gave. Sugar writes ordinary nodes, so a document built in code reads the same as
+one written by hand:
+
+<Code code={BUILDER} />
+
+Presets compose generic params at application level: `b.preset.multiRegion(section, regions)` (a
+block per region) and `b.preset.codingPair(view, protein, cdna)` (a protein alignment over its
+coding DNA's, one section following the other).
+
+## Validation
+
+`validate(doc, registries)` gives every static issue: `{ code, severity, path, message }`, a stable
+code, `error` or `warning`, a JSON Pointer, and a message that says what would be valid. Nothing is
+repaired silently. Codes are grouped by stage: static (`svs.node.*`, `svs.params.*`, `svs.ref.*`,
+`svs.layer.*`, …), then load, resolve, stream and render, each reported in the same shape; an
+extension reports its own under its namespace. The example above with a misspelled param and a ref
+that names nothing, validated live:
+
+<ValidationExample />
+
+From the command line: `svs-validate doc.svsj [--strict]` (exit 1 on errors), `svs-convert`
+between JSON and MessagePack, `svs-print-schema` for the reference below.
+
+## One file with its data: `.svsx`
+
+An `.svsx` is a zip with the document as `index.svsm` (or `index.svsj`) and the files it reads, so it opens with
+no network. Inside it a source's `uri` may be a relative path (`data/abl1.fa`) that resolves against the main file's
+directory; `..` past the archive's root is refused. `readSvsx(bytes)` gives the document, validated for the archive,
+and its files; `archiveLoaders(files, fallback, base)` answers the relative URIs and passes the rest on, and a viewer
+given those loaders opens the archive's document ([Seq* documents](?path=/story/seq-file-formats--documents)). From a document
+with absolute URIs, `@molstar/seq-core/builder/svsx` makes one: `bundleUris` fetches each file once and rewrites
+its URI, and `writeSvsx` writes the zip (MessagePack unless asked for JSON). The [.svsx story](?path=/story/seq-cases-format--svsx) opens a
+committed archive and bundles a document offline.
+
+## Versioning
+
+`version` is semver; the format is **1.0.0**. A patch is wording and fixes; a minor version adds
+only (optional params whose default keeps the old meaning, new kinds, new types and themes whose
+fallback ends at an earlier one); anything else is major. A reader of 1.0 given a newer minor reads
+leniently: each unknown is a warning (`svs.version.newer_minor`) and an unknown type or theme draws
+by its fallback; another major is rejected. `upgrade(doc)` runs one step per older version. There
+is no JSON Schema: the reference is generated from the parameter tables, per minor version.
+
+<FormatReference />

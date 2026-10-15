@@ -7,18 +7,18 @@
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateObjectRef, StateTransform } from '@molstar/core/state';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import {
   StructureRepresentationPresetProvider,
   presetStaticComponent,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+} from '@molstar/plugin/state/builder/structure/representation-presets/types';
 import { PluginContext } from '@molstar/plugin/context';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Structure } from '@molstar/model/model/structure';
 import { CCDFormat } from '@molstar/model/formats/structure/mmcif';
 import { MinimizeRmsd } from '@molstar/core/math/linear-algebra/3d/minimize-rmsd';
 import { SetUtils } from '@molstar/core/util/set';
-import { TrajectoryHierarchyPresetProvider } from '@molstar/plugin/state/builder/structure/hierarchy-preset';
+import { TrajectoryHierarchyPresetProvider } from '@molstar/plugin/state/builder/structure/hierarchy-presets/types';
 import { capitalize } from '@molstar/core/util/string';
 
 const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
@@ -158,7 +158,7 @@ function transform(plugin: PluginContext, s: StateObjectRef<PluginStateObject.Mo
   const b = plugin.state.data
     .build()
     .to(s)
-    .insert(StateTransforms.Model.TransformStructureConformation, {
+    .insert(TransformStructureConformation, {
       transform: { name: 'matrix', params: { data: matrix, transpose: false } },
     });
   return plugin.runTask(plugin.state.data.updateTree(b));

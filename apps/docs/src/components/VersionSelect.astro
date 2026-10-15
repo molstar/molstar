@@ -1,0 +1,51 @@
+---
+import { counterpartUrl, urlOf } from '../pages';
+import { VERSIONS, versionLabel, versionOf } from '../versions';
+
+const { id } = Astro.locals.starlightRoute;
+const current = versionOf(id);
+const options = await Promise.all(
+  VERSIONS.map(async (v) => ({
+    value: await counterpartUrl(id, v.id),
+    label: versionLabel(v.id),
+    selected: v.id === current,
+  })),
+);
+---
+
+{
+  current && (
+    <label class="version-select">
+      <span class="sr-only">Documentation version</span>
+      <select aria-label="Documentation version">
+        {options.map((o) => (
+          <option value={o.value} selected={o.selected}>
+            {o.label}
+          </option>
+        ))}
+        <option value={urlOf('versions')}>All versions…</option>
+      </select>
+    </label>
+  )
+}
+
+<script>
+  for (const select of document.querySelectorAll<HTMLSelectElement>('.version-select select')) {
+    select.addEventListener('change', () => {
+      window.location.assign(select.value);
+    });
+  }
+</script>
+
+<style>
+  .version-select select {
+    color: var(--sl-color-gray-1);
+    background-color: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font: inherit;
+    font-size: var(--sl-text-sm);
+    cursor: pointer;
+  }
+</style>

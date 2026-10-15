@@ -10,6 +10,20 @@ here.
 
 ## [Unreleased]
 
+- Add the `element-schema` generator to MolQL (`sel.atom.element-schema` in MolScript, with `schema-item` and
+  `empty-value`): it selects the elements of tables of fields (`label_asym_id`, `auth_seq_id`, ranges, ...) through
+  per-model indices instead of testing every atom for every row (1000 rows on 720k atoms: seconds to ~17 ms).
+  `StructureElement.Schema.toExpression`/`toLoci`/`toBundle` use it, and so does MVS for the selectors of components,
+  tooltips and color layers given as rows (annotations, labels and primitives resolve rows through the same indices).
+  Rows can use `operator_name`, `beg_auth_ins_code` and `end_auth_ins_code`, and residues without `label_seq_id` no
+  longer match `label_seq_id` criteria (MolScript read them as 0)
+- MolQL expressions can have `null` and lists of values as literal arguments (the columns of a table), which the
+  compiler passes through
+- Remove the `queryContext` argument of `StructureElement.Schema.toLoci`/`toBundle` (`Loci.fromSchema`,
+  `Bundle.fromSchema`), which no code in the repository passed; use
+  `Loci.fromExpression(structure, Schema.toExpression(schema), queryContext)`
+- `ScratchMemory.release(...contexts)` (`@molstar/core/util/int-buffer`) frees the buffers which code keeps between
+  calls; MVS calls it when a load is done
 - Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
@@ -19,6 +33,24 @@ here.
 - Fixed Kinemage handling of files with multiple same-named subgroups so it behaves like KiNG
 - Sets the viewer background to black when loading a Kinemage, to match the default color scheme
 - Handle Kinemage triangle normals separately from ribbon normals so that each renders as expected
+- Fix interpolation of camera rotation
+- Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
+  registered theme
+- Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder
+- Fix UTF-8 encoding of characters outside the Basic Multilingual Plane (`utf8Write`, `utf8ByteCount`): a surrogate pair
+  is written as one 4-byte sequence, not two 3-byte ones
+- Harden zip reading against damaged and malicious archives: the end record is searched only in the last 64 KB, sizes
+  and CRC-32 come from the central directory (also fixes archives written with a data descriptor), entries are checked
+  against their declared size and CRC-32, and a local entry listed twice is refused; `unzip` takes optional
+  `UnzipLimits`
+- MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
+  object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
+  input
+
+## [v5.13.1] - 2026-10-08
+
+- ModelServer and VolumeServer: support chained string operations in path templates and fix `substring` to use an
+  exclusive end index instead of a length (#1963)
 
 ## [v5.13.0] - 2026-10-04
 

@@ -12,54 +12,18 @@ import type {
   ColorTypeGrid,
   ColorTypeLocation,
 } from '@molstar/graphics/geo/geometry/color-data';
-import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol.js';
-import { UniformColorThemeProvider } from './color/uniform.js';
 import { deepEqual } from '@molstar/core/util';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
-import { ChainIdColorThemeProvider } from './color/chain-id.js';
-import { ElementIndexColorThemeProvider } from './color/element-index.js';
-import { ElementSymbolColorThemeProvider } from './color/element-symbol.js';
-import { MoleculeTypeColorThemeProvider } from './color/molecule-type.js';
-import { PolymerIdColorThemeProvider } from './color/polymer-id.js';
-import { PolymerIndexColorThemeProvider } from './color/polymer-index.js';
-import { ResidueNameColorThemeProvider } from './color/residue-name.js';
-import { ResidueChargeColorThemeProvider } from './color/residue-charge.js';
-import { SecondaryStructureColorThemeProvider } from './color/secondary-structure.js';
-import { SequenceIdColorThemeProvider } from './color/sequence-id.js';
-import { ShapeGroupColorThemeProvider } from './color/shape-group.js';
-import { UnitIndexColorThemeProvider } from './color/unit-index.js';
+import type { BuiltInColorThemes } from './color/catalog.js';
 import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
-import { UncertaintyColorThemeProvider } from './color/uncertainty.js';
-import { EntitySourceColorThemeProvider } from './color/entity-source.js';
-import { IllustrativeColorThemeProvider } from './color/illustrative.js';
-import { HydrophobicityColorThemeProvider } from './color/hydrophobicity.js';
-import { TrajectoryIndexColorThemeProvider } from './color/trajectory-index.js';
-import { OccupancyColorThemeProvider } from './color/occupancy.js';
-import { OperatorNameColorThemeProvider } from './color/operator-name.js';
-import { OperatorHklColorThemeProvider } from './color/operator-hkl.js';
-import { PartialChargeColorThemeProvider } from './color/partial-charge.js';
-import { AtomIdColorThemeProvider } from './color/atom-id.js';
-import { EntityIdColorThemeProvider } from './color/entity-id.js';
 import type { Texture, TextureFilter } from '@molstar/graphics/gl/webgl/texture';
-import { VolumeValueColorThemeProvider } from './color/volume-value.js';
 import type { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { ModelIndexColorThemeProvider } from './color/model-index.js';
-import { StructureIndexColorThemeProvider } from './color/structure-index.js';
-import { VolumeSegmentColorThemeProvider } from './color/volume-segment.js';
 import { ColorThemeCategory } from './color/categories.js';
-import { CartoonColorThemeProvider } from './color/cartoon.js';
-import { FormalChargeColorThemeProvider } from './color/formal-charge.js';
-import { ParticleAttributeColorThemeProvider } from './color/particle-attribute.js';
-import { ParticleCompartmentColorThemeProvider } from './color/particle-compartment.js';
-import { ParticleEntityColorThemeProvider } from './color/particle-entity.js';
-import { ParticleHierarchyColorThemeProvider } from './color/particle-hierarchy.js';
-import { ParticleIndexColorThemeProvider } from './color/particle-index.js';
 import type { ColorListEntry } from '@molstar/core/util/color/color';
 import { getPrecision } from '@molstar/core/util/number';
 import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { normalize } from '@molstar/core/math/interpolate';
-import { VolumeInstanceColorThemeProvider } from './color/volume-instance.js';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color;
 
@@ -207,49 +171,11 @@ namespace ColorTheme {
 
   export type Registry = ThemeRegistry<ColorTheme<any, any>>;
   export function createRegistry() {
-    return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any, any, any> }, EmptyProvider);
+    const registry: Registry = new ThemeRegistry(EmptyProvider, 'color');
+    return registry;
   }
 
-  export const BuiltIn = {
-    'atom-id': AtomIdColorThemeProvider,
-    'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
-    cartoon: CartoonColorThemeProvider,
-    'chain-id': ChainIdColorThemeProvider,
-    'element-index': ElementIndexColorThemeProvider,
-    'element-symbol': ElementSymbolColorThemeProvider,
-    'entity-id': EntityIdColorThemeProvider,
-    'entity-source': EntitySourceColorThemeProvider,
-    'formal-charge': FormalChargeColorThemeProvider,
-    hydrophobicity: HydrophobicityColorThemeProvider,
-    illustrative: IllustrativeColorThemeProvider,
-    'model-index': ModelIndexColorThemeProvider,
-    'molecule-type': MoleculeTypeColorThemeProvider,
-    occupancy: OccupancyColorThemeProvider,
-    'operator-hkl': OperatorHklColorThemeProvider,
-    'operator-name': OperatorNameColorThemeProvider,
-    'partial-charge': PartialChargeColorThemeProvider,
-    'particle-attribute': ParticleAttributeColorThemeProvider,
-    'particle-compartment': ParticleCompartmentColorThemeProvider,
-    'particle-entity': ParticleEntityColorThemeProvider,
-    'particle-hierarchy': ParticleHierarchyColorThemeProvider,
-    'particle-index': ParticleIndexColorThemeProvider,
-    'polymer-id': PolymerIdColorThemeProvider,
-    'polymer-index': PolymerIndexColorThemeProvider,
-    'residue-charge': ResidueChargeColorThemeProvider,
-    'residue-name': ResidueNameColorThemeProvider,
-    'secondary-structure': SecondaryStructureColorThemeProvider,
-    'sequence-id': SequenceIdColorThemeProvider,
-    'shape-group': ShapeGroupColorThemeProvider,
-    'structure-index': StructureIndexColorThemeProvider,
-    'trajectory-index': TrajectoryIndexColorThemeProvider,
-    uncertainty: UncertaintyColorThemeProvider,
-    'unit-index': UnitIndexColorThemeProvider,
-    uniform: UniformColorThemeProvider,
-    'volume-instance': VolumeInstanceColorThemeProvider,
-    'volume-segment': VolumeSegmentColorThemeProvider,
-    'volume-value': VolumeValueColorThemeProvider,
-  };
-  type _BuiltIn = typeof BuiltIn;
+  type _BuiltIn = typeof BuiltInColorThemes;
   export type BuiltIn = keyof _BuiltIn;
   export type ParamValues<C extends ColorTheme.Provider<any>> =
     C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never;

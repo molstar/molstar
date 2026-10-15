@@ -2169,7 +2169,7 @@ export class ScriptControl extends React.PureComponent<ParamProps<PD.Script>> {
 
     const selectParam: PD.Select<PD.Script['defaultValue']['language']> = {
       defaultValue: this.props.value.language,
-      options: PD.objectToOptions(Script.Info),
+      options: PD.arrayToOptions(Script.getAvailableLanguages(), (language) => Script.Info[language]),
       type: 'select',
     };
     const select = (

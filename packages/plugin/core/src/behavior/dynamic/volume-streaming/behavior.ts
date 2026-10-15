@@ -14,6 +14,7 @@ import { Box3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Color } from '@molstar/core/util/color';
 import { PluginBehavior } from '../../behavior.js';
+import { VolumeStreamingObjectType } from './id.js';
 import { LRUCache } from '@molstar/core/util/lru-cache';
 import { urlCombine } from '@molstar/core/util/url';
 import { CIF } from '@molstar/io/reader/cif';
@@ -30,9 +31,7 @@ import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { PluginCommand } from '@molstar/plugin/command';
 import { SingleAsyncQueue } from '@molstar/core/util/single-async-queue';
 
-export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({
-  name: 'Volume Streaming',
-}) {}
+export class VolumeStreaming extends PluginStateObject.Create<VolumeStreaming.Behavior>(VolumeStreamingObjectType) {}
 
 export namespace VolumeStreaming {
   export const RootTag = 'volume-streaming-info';

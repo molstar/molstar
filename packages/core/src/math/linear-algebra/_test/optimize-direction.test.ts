@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec3 } from '../3d/vec3.js';
 import { leastObstructedDirection } from '../3d/optimize-direction.js';
 

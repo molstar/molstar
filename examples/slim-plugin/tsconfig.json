@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/_test/**"],
+  "references": [
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/plugin/ui"
+    }
+  ]
+}

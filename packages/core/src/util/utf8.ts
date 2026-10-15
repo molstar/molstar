@@ -10,7 +10,9 @@ import { ChunkedBigString, MAX_STRING_LENGTH, type StringLike } from './string-l
 
 export function utf8Write(data: Uint8Array, offset: number, str: string) {
   for (let i = 0, l = str.length; i < l; i++) {
-    const codePoint = str.charCodeAt(i);
+    // A surrogate pair is one code point
+    const codePoint = str.codePointAt(i)!;
+    if (codePoint > 0xffff) i++;
 
     // One byte of UTF-8
     if (codePoint < 0x80) {
@@ -118,7 +120,9 @@ export function utf8ReadLong(data: Uint8Array, offset: number = 0, length: numbe
 export function utf8ByteCount(str: string) {
   let count = 0;
   for (let i = 0, l = str.length; i < l; i++) {
-    const codePoint = str.charCodeAt(i);
+    // A surrogate pair is one code point
+    const codePoint = str.codePointAt(i)!;
+    if (codePoint > 0xffff) i++;
     if (codePoint < 0x80) {
       count += 1;
       continue;

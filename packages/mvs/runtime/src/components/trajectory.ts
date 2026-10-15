@@ -5,7 +5,7 @@
  */
 
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { getTrajectory } from '@molstar/plugin/state/transforms/model';
+import { getTrajectory } from '@molstar/plugin/state/transforms/structure/trajectory-helpers';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 import { getMVSReferenceObject } from '@molstar/mvs/helpers/utils';

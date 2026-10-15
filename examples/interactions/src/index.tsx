@@ -22,16 +22,17 @@ import {
   StructureQuery,
 } from '@molstar/model/model/structure';
 import { atoms } from '@molstar/model/model/structure/query/queries/generators';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import {
   MultiStructureSelectionFromBundle,
   StructureSelectionFromBundle,
-} from '@molstar/plugin/state/transforms/model';
-import { ShapeRepresentation3D, StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+} from '@molstar/plugin/state/transforms/structure/selection';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { useBehavior } from '@molstar/plugin-ui/hooks/use-behavior';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
@@ -56,6 +57,7 @@ async function createViewer(root: HTMLElement) {
         },
       },
       components: {
+        ...spec.components,
         remoteState: 'none',
       },
       behaviors: [...spec.behaviors, PluginSpec.Behavior(MolViewSpec)],
@@ -245,11 +247,11 @@ async function loadCustomExample(plugin: PluginContext) {
   await plugin.clear();
 
   // Set up the receptor and ligand structures
-  const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
+  const receptorData = await plugin.builders.data.download({ url: '../../../data/examples/ace2.pdbqt' });
   const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
   const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
 
-  const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
+  const ligandData = await plugin.builders.data.download({ url: '../../../data/examples/ace2-hit.mol2' });
   const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
   const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', {
     representationPreset: 'atomic-detail',
@@ -304,11 +306,11 @@ async function loadTestAllExample(plugin: PluginContext) {
   await plugin.clear();
 
   // Set up the receptor and ligand structures
-  const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
+  const receptorData = await plugin.builders.data.download({ url: '../../../data/examples/ace2.pdbqt' });
   const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
   const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
 
-  const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
+  const ligandData = await plugin.builders.data.download({ url: '../../../data/examples/ace2-hit.mol2' });
   const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
   const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', {
     representationPreset: 'atomic-detail',
@@ -406,8 +408,8 @@ const Examples = {
     loadComputedExample(
       plugin,
       {
-        receptorUrl: ['../../../examples/ace2.pdbqt', 'pdbqt'],
-        ligandUrl: ['../../../examples/ace2-hit.mol2', 'mol2'],
+        receptorUrl: ['../../../data/examples/ace2.pdbqt', 'pdbqt'],
+        ligandUrl: ['../../../data/examples/ace2-hit.mol2', 'mol2'],
       },
       { receptor_label_asym_id: 'B' },
     ),
@@ -415,8 +417,8 @@ const Examples = {
     loadComputedExample(
       plugin,
       {
-        receptorUrl: ['../../../examples/docking/receptor_1.pdb', 'pdb'],
-        ligandUrl: ['../../../examples/docking/ligands_1.sdf', 'sdf'],
+        receptorUrl: ['../../../data/examples/docking/receptor_1.pdb', 'pdb'],
+        ligandUrl: ['../../../data/examples/docking/ligands_1.sdf', 'sdf'],
       },
       { receptor_label_asym_id: undefined, analyzeTrajectory: true },
     ),

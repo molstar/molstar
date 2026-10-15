@@ -5,8 +5,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Expression } from '@molstar/model/script/language/expression';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import {
   StructureElement,
   Structure,
@@ -18,7 +18,18 @@ import {
 } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from './structure-query.js';
 import { PluginStateObject as SO } from '../objects.js';
-import { StructureSelectionQueries } from './structure-selection-query.js';
+import { all } from '@molstar/plugin/state/queries/structure/basic';
+import {
+  ion,
+  lipid,
+  nucleic,
+  polymer,
+  protein,
+  branchedPlusConnected,
+  ligandPlusConnected,
+  coarse,
+} from '@molstar/plugin/state/queries/structure/type';
+import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/residue';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { Script } from '@molstar/model/script/script';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
@@ -59,10 +70,19 @@ export const StructureComponentParams = () => ({
 });
 export type StructureComponentParams = PD.ValuesFor<ReturnType<typeof StructureComponentParams>>;
 
+/** What `StructureComponent` keeps between its calls */
+export interface StructureComponentCache {
+  /** The structure which the component was made from */
+  source: Structure;
+  entry?: StructureQueryHelper.CacheEntry;
+  /** The component is the source structure itself (e.g. every element is selected), so its properties are not its own and it must not dispose them */
+  isSource?: boolean;
+}
+
 export function createStructureComponent(
   a: Structure,
   params: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   cache.source = a;
 
@@ -73,21 +93,21 @@ export function createStructureComponent(
       let query: StructureQuery;
       switch (params.type.params) {
         case 'all':
-          query = StructureSelectionQueries.all.query;
+          query = all.query;
           label = 'All';
           break;
 
         case 'polymer':
-          query = StructureSelectionQueries.polymer.query;
+          query = polymer.query;
           label = 'Polymer';
           break;
 
         case 'protein':
-          query = StructureSelectionQueries.protein.query;
+          query = protein.query;
           label = 'Protein';
           break;
         case 'nucleic':
-          query = StructureSelectionQueries.nucleic.query;
+          query = nucleic.query;
           label = 'Nucleic';
           break;
         case 'water':
@@ -95,30 +115,30 @@ export function createStructureComponent(
           label = 'Water';
           break;
         case 'ion':
-          query = StructureSelectionQueries.ion.query;
+          query = ion.query;
           label = 'Ion';
           break;
         case 'lipid':
-          query = StructureSelectionQueries.lipid.query;
+          query = lipid.query;
           label = 'Lipid';
           break;
 
         case 'branched':
-          query = StructureSelectionQueries.branchedPlusConnected.query;
+          query = branchedPlusConnected.query;
           label = 'Branched';
           break;
         case 'ligand':
-          query = StructureSelectionQueries.ligandPlusConnected.query;
+          query = ligandPlusConnected.query;
           label = 'Ligand';
           break;
 
         case 'non-standard':
-          query = StructureSelectionQueries.nonStandardPolymer.query;
+          query = nonStandardPolymer.query;
           label = 'Non-standard';
           break;
 
         case 'coarse':
-          query = StructureSelectionQueries.coarse.query;
+          query = coarse.query;
           label = 'Coarse';
           break;
 
@@ -149,6 +169,7 @@ export function createStructureComponent(
     label: `${params.label || label || 'Component'}`,
     description: Structure.elementDescription(component),
   };
+  cache.isSource = component === a;
   return new SO.Molecule.Structure(component, props);
 }
 
@@ -157,7 +178,7 @@ export function updateStructureComponent(
   b: SO.Molecule.Structure,
   oldParams: StructureComponentParams,
   newParams: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   if (oldParams.type.name !== newParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
@@ -176,6 +197,7 @@ export function updateStructureComponent(
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
       b.data = b.data.remapModel(a.model);
+      cache.isSource = false; // (a copy)
       return StateTransformer.UpdateResult.Updated;
     }
     case 'script':
@@ -194,6 +216,7 @@ export function updateStructureComponent(
       const selection = StructureQueryHelper.updateStructure(entry, a);
       cache.source = a;
       b.data = Sel.unionStructure(selection);
+      cache.isSource = b.data === a;
       StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
       updated = true;
       break;
@@ -214,6 +237,7 @@ export function updateStructureComponent(
         updated = true;
         b.data = StructureElement.Bundle.toStructure(newParams.type.params, a);
       }
+      cache.isSource = b.data === a;
       break;
     }
   }

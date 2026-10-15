@@ -6,13 +6,14 @@
  * based in part on NGL (https://github.com/arose/ngl)
  */
 
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Structure, Unit, StructureElement } from '@molstar/model/model/structure';
 import { type FeaturesBuilder, Features } from './features.js';
 import { typeSymbol, compId, atomId } from '../chemistry/util.js';
 import { Elements, isTransitionMetal, isHalogen } from '@molstar/model/model/structure/model/properties/atomic/types';
 import { FeatureType, FeatureGroup, InteractionType } from './common.js';
 import type { ContactProvider } from './contacts.js';
+import type { MetalCoordinationProps } from './params.js';
+import { MetalCoordinationParams } from './params.js';
 import {
   type ElementSymbol,
   AminoAcidNames,
@@ -20,12 +21,6 @@ import {
   ProteinBackboneAtoms,
   NucleicBackboneAtoms,
 } from '@molstar/model/model/structure/model/types';
-
-export const MetalCoordinationParams = {
-  distanceMax: PD.Numeric(3.0, { min: 1, max: 5, step: 0.1 }),
-};
-export type MetalCoordinationParams = typeof MetalCoordinationParams;
-export type MetalCoordinationProps = PD.Values<MetalCoordinationParams>;
 
 const IonicTypeMetals = [
   Elements.LI,

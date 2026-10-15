@@ -13,13 +13,14 @@ import { ParseJSONCifFileData } from '@molstar/json-cif-extension/transformers';
 import { MolViewSpecBehavior } from '@molstar/mvs/behavior';
 import { StructureElement, StructureProperties } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { ModelFromTrajectory, StructureFromModel, TrajectoryFromMmCif } from '@molstar/plugin/state/transforms/model';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { useBehavior } from '@molstar/plugin-ui/hooks/use-behavior';
 import { Plugin } from '@molstar/plugin-ui/plugin';
 import '@molstar/plugin-ui/skin/light.scss';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { StateObjectSelector } from '@molstar/core/state';
@@ -54,6 +55,7 @@ async function createViewer() {
       },
     },
     components: {
+      ...spec.components,
       remoteState: 'none',
     },
     behaviors: [...spec.behaviors, MolViewSpecBehavior],

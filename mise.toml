@@ -1,0 +1,79 @@
+[tools]
+# Node 24 (LTS); pnpm matches `packageManager` in package.json.
+node = "24"
+pnpm = "11.25.0"
+
+# The tasks wrap the package.json scripts; extra arguments are passed through,
+# e.g. `mise run dev:apps viewer` or `mise run test:unit packages/core`.
+
+[tasks.install]
+description = "Install workspace dependencies"
+run = "pnpm install"
+
+[tasks.build]
+description = "Build libraries, apps and the distribution"
+run = "pnpm build"
+
+[tasks."build:lib"]
+description = "Build the libraries (tsc -b and assets)"
+run = "pnpm build:lib"
+
+[tasks.dev]
+description = "All apps and examples in watch mode"
+run = "pnpm dev"
+
+[tasks."dev:apps"]
+description = "Apps in watch mode (e.g. `mise run dev:apps viewer`)"
+run = "pnpm dev:apps --"
+
+[tasks."dev:examples"]
+description = "Examples in watch mode"
+run = "pnpm dev:examples --"
+
+[tasks.storybook]
+description = "Storybook on port 6006 (the packages registered in storybook/packages.ts)"
+run = "pnpm -C storybook storybook"
+
+[tasks.docs]
+description = "Documentation site (apps/docs, Astro Starlight) at http://localhost:4321/docs/"
+run = "pnpm --filter @molstar/docs dev"
+
+[tasks.lint]
+description = "Lint with Biome"
+run = "pnpm lint"
+
+[tasks."lint:fix"]
+description = "Lint with Biome and apply fixes"
+run = "pnpm lint:fix"
+
+[tasks.format]
+description = "Format code, JSON, Markdown, YAML and SCSS"
+run = "pnpm format"
+
+[tasks."format:check"]
+description = "Check formatting"
+run = "pnpm format:check"
+
+[tasks."test:unit"]
+description = "Unit tests (Vitest)"
+run = "pnpm test:unit"
+
+[tasks.test]
+description = "Lint and the unit tests"
+run = "pnpm test"
+
+[tasks.tsc]
+description = "Type-check every project by references"
+run = "pnpm exec tsc -b"
+
+[tasks."check:workspace"]
+description = "Package boundaries, exports, imports, the inventory"
+run = "pnpm check:workspace"
+
+[tasks.clean]
+description = "Remove build outputs"
+run = "pnpm clean"
+
+[tasks.rebuild]
+description = "Clean and build"
+run = "pnpm rebuild"

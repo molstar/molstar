@@ -1,0 +1,57 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The sequence control draws on the canvas: no card, no fill, no filter (a frameless tab; styling.md §5). */
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* The dock's size (set on the dock, inherited): the scroll area's content around the tab has no height of its own,
+     so a percentage would collapse the surface to nothing. */
+  height: var(--msp-dock-size, 100%);
+  min-height: 0;
+  box-sizing: border-box;
+  /* Air above the lines (the ruler's numbers), and the band's faded bottom below them (the shell's `--msp-band-fade`). */
+  padding-top: var(--msp-space-3);
+  padding-bottom: var(--msp-band-fade, 0px);
+  color: var(--msp-color-text);
+  /* The band lets the pointer through to the canvas but for the lines. */
+  pointer-events: none;
+}
+
+/* Seq*'s surface: its canvases fill it; a change inside does not touch the rest of the shell. Where the text scrolls
+   the control sets the fades (`data-fade`, the lengths by custom properties, only when a side turns on or off). */
+.surface {
+  flex: 1 1 0;
+  min-height: 0;
+  contain: layout paint;
+  pointer-events: auto;
+
+  &[data-fade] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 var(--seq-fade-top, 0px),
+      #000 calc(100% - var(--seq-fade-bottom, 0px)),
+      transparent
+    );
+  }
+}
+
+/* The text's own scrollbar (Seq*'s vertical strip, in its `vnav` canvases): hidden until the pointer is over the band, the
+   text scrolls or its thumb is dragged (`data-bars`, set by the control only when that changes); opacity only, the strip
+   keeps its place. */
+.surface [data-pass^="vnav"] {
+  opacity: 0;
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
+}
+
+.surface[data-bars] [data-pass^="vnav"] {
+  opacity: 1;
+}

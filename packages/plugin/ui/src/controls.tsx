@@ -10,8 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import { UpdateTrajectory } from '@molstar/plugin/state/actions/structure';
 import type { LociLabel } from '@molstar/plugin/state/manager/loci-label';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/model';
+import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { StateTransformer } from '@molstar/core/state';
 import { PluginReactContext, PluginUIComponent } from '@molstar/plugin-ui/base';
@@ -33,12 +32,7 @@ import { StructureComponentControls } from '@molstar/plugin-ui/structure/compone
 import { StructureMeasurementsControls } from '@molstar/plugin-ui/structure/measurements';
 import { StructureSelectionActionsControls } from '@molstar/plugin-ui/structure/selection';
 import { StructureSourceControls } from '@molstar/plugin-ui/structure/source';
-import { VolumeStreamingControls, VolumeSourceControls } from '@molstar/plugin-ui/structure/volume';
-import { ParticleSourceControls } from '@molstar/plugin-ui/structure/particles';
 import { PluginConfig } from '@molstar/plugin/config';
-import { StructureSuperpositionControls } from '@molstar/plugin-ui/structure/superposition';
-import { StructureQuickStylesControls } from '@molstar/plugin-ui/structure/quick-styles';
-import { StructureProceduralAnimationControls } from '@molstar/plugin-ui/structure/procedural-animation';
 import { Markdown } from '@molstar/plugin-ui/controls/markdown';
 import { Slider } from '@molstar/plugin-ui/controls/slider';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
@@ -50,7 +44,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
   private update = () => {
     const state = this.plugin.state.data;
 
-    const models = state.selectQ((q) => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
+    const models = state.selectQ((q) => q.ofTransformer(ModelFromTrajectory));
 
     if (models.length === 0) {
       this.setState({ show: false });
@@ -418,7 +412,8 @@ export class CustomStructureControls extends PluginUIComponent<{ initiallyCollap
   }
 }
 
-export class DefaultStructureTools extends PluginUIComponent {
+/** Minimal structure tools used by the base layout when the spec sets no `components.structureTools`. */
+export class MinimalStructureTools extends PluginUIComponent {
   render() {
     return (
       <>
@@ -429,13 +424,7 @@ export class DefaultStructureTools extends PluginUIComponent {
 
         <StructureSourceControls />
         <StructureMeasurementsControls />
-        <StructureSuperpositionControls />
-        <StructureQuickStylesControls />
-        <StructureProceduralAnimationControls />
         <StructureComponentControls />
-        {this.plugin.config.get(PluginConfig.VolumeStreaming.Enabled) && <VolumeStreamingControls />}
-        <VolumeSourceControls />
-        <ParticleSourceControls />
 
         <CustomStructureControls />
       </>

@@ -1,0 +1,53 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The root keeps its size from the layout (set by the caller); the viewport fills it. */
+.root {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+/* Native thin bars with Prism's thumb (the text color, faint), not Prism's overlay bars. */
+.viewport {
+  height: 100%;
+  max-height: inherit;
+  overscroll-behavior: contain;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--msp-color-text), transparent 72%) transparent;
+}
+.vertical {
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* Edges that fade where there is more to scroll (prism/reset.css, msp-fade-scroll-*). */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--msp-fade-top),
+    #000 calc(100% - var(--msp-fade-bottom)),
+    transparent
+  );
+  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: scroll(self block);
+  animation-range:
+    0 24px,
+    calc(100% - 24px) 100%;
+}
+.horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.both {
+  overflow: auto;
+}
+.viewport:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: -2px;
+}

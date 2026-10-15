@@ -7,7 +7,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { EmissiveStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/emissive';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import type { StructureComponentRef } from '../manager/structure/hierarchy-state.js';
@@ -18,12 +19,9 @@ type EmissiveEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  emissive?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.EmissiveStructureRepresentation3DFromBundle>
-  >,
+  emissive?: StateObjectCell<any, StateTransform<typeof EmissiveStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const EmissiveManagerTag = 'emissive-controls';
 
@@ -56,11 +54,7 @@ export async function setStructureEmissive(
       const filtered = getFilteredBundle([layer], structure);
       update
         .to(repr.transform.ref)
-        .apply(
-          StateTransforms.Representation.EmissiveStructureRepresentation3DFromBundle,
-          Emissive.toBundle(filtered),
-          { tags: EmissiveManagerTag },
-        );
+        .apply(EmissiveStructureRepresentation3DFromBundle, Emissive.toBundle(filtered), { tags: EmissiveManagerTag });
     }
   });
 }
@@ -89,7 +83,7 @@ async function eachRepr(
     for (const r of c.representations) {
       const emissive = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.EmissiveStructureRepresentation3DFromBundle,
+          EmissiveStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(EmissiveManagerTag),
       );

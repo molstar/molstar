@@ -19,18 +19,19 @@ import {
   getMesoscaleGroupParams,
 } from '../state.js';
 import { ColorNames } from '@molstar/core/util/color/names';
-import { ShapeRepresentation3D, StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
-import { ParseCif, ParsePly, ReadFile } from '@molstar/plugin/state/transforms/data';
-import {
-  ModelFromTrajectory,
-  TrajectoryFromGRO,
-  TrajectoryFromMOL,
-  TrajectoryFromMOL2,
-  TrajectoryFromMmCif,
-  TrajectoryFromPDB,
-  TrajectoryFromSDF,
-  TrajectoryFromXYZ,
-} from '@molstar/plugin/state/transforms/model';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { ParsePly } from '@molstar/plugin/state/formats/shape/ply';
+import { ReadFile } from '@molstar/plugin/state/transforms/data/fetch';
+import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { TrajectoryFromGRO } from '@molstar/plugin/state/formats/trajectory/gro';
+import { TrajectoryFromMOL } from '@molstar/plugin/state/formats/trajectory/mol';
+import { TrajectoryFromMOL2 } from '@molstar/plugin/state/formats/trajectory/mol2';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { TrajectoryFromPDB } from '@molstar/plugin/state/formats/trajectory/pdb';
+import { TrajectoryFromSDF } from '@molstar/plugin/state/formats/trajectory/sdf';
+import { TrajectoryFromXYZ } from '@molstar/plugin/state/formats/trajectory/xyz';
 import { Euler } from '@molstar/core/math/linear-algebra/3d/euler';
 import { Asset } from '@molstar/core/util/assets';
 import { Clip } from '@molstar/core/util/clip';
@@ -39,7 +40,7 @@ import { getFileNameInfo } from '@molstar/core/util/file-info';
 import type { NumberArray } from '@molstar/core/util/type-helpers';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ShapeFromPly } from '@molstar/plugin/state/transforms/shape';
+import { ShapeFromPly } from '@molstar/plugin/state/formats/shape/ply';
 
 function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
   const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);

@@ -6,15 +6,16 @@
  */
 
 import { Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
+import { StructureElement } from '@molstar/model/model/structure';
 import { Volume } from '@molstar/model/model/volume';
-import { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import {
   StructureFromModel,
   StructureInstances,
   TransformStructureConformation,
-} from '@molstar/plugin/state/transforms/model';
-import { StructureRepresentation3D, VolumeRepresentation3D } from '@molstar/plugin/state/transforms/representation';
-import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume';
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
 import { StateTransformer } from '@molstar/core/state';
 import { arrayDistinct } from '@molstar/core/util/array';
 import { Clip } from '@molstar/core/util/clip';
@@ -41,7 +42,7 @@ import {
   type MultilayerColorThemeProps,
   NoColor,
 } from '@molstar/mvs/components/multilayer-color-theme';
-import { SelectorAll } from '@molstar/mvs/components/selector';
+import { type Selector, SelectorAll } from '@molstar/mvs/components/selector';
 import {
   type MVSSplitUniformColorThemeProps,
   MVSSplitUniformColorThemeProvider,
@@ -49,12 +50,13 @@ import {
   SplitColorProp,
 } from '@molstar/mvs/components/split-uniform-color-theme';
 import { MvsNamedColorDicts, MvsNamedColorLists } from '@molstar/mvs/helpers/colors';
-import { rowToExpression, rowsToExpression } from '@molstar/mvs/helpers/selections';
-import { type ElementOfSet, decodeColor, isDefined, stringHash } from '@molstar/mvs/helpers/utils';
+import { isDefined } from '@molstar/core/util/object';
+import { type ElementOfSet, decodeColor, stringHash } from '@molstar/mvs/helpers/utils';
 import { MolstarLoadingContext } from '@molstar/mvs/load';
 import { UpdateTarget, mvsRefTags } from '@molstar/mvs/load-generic';
 import { type Subtree, getChildren } from '@molstar/mvs-builder/tree/generic/tree-schema';
-import { dfs, formatObject } from '@molstar/mvs-builder/tree/generic/tree-utils';
+import { dfs } from '@molstar/mvs-builder/tree/generic/tree-utils';
+import { describeRows } from '@molstar/mvs/helpers/row-label';
 import type {
   MolstarKind,
   MolstarNode,
@@ -412,35 +414,35 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
   }
 }
 
-/** Create value for `type` prop for `StructureComponent` transformer based on a MVS selector. */
-export function componentPropsFromSelector(
-  selector?: MolstarNodeParams<'component'>['selector'],
-): StructureComponentParams['type'] {
+/** Create a `Selector` (value for the selector param of MVS layers, and for `type` prop of `StructureComponent` transformer) based on a MVS selector.
+ * Rows are the expression `element-schema`, which resolves them through the indices of the model. */
+export function componentPropsFromSelector(selector?: MolstarNodeParams<'component'>['selector']): Selector {
   if (selector === undefined) {
     return SelectorAll;
   } else if (typeof selector === 'string') {
     return { name: 'static', params: selector };
   } else if (Array.isArray(selector)) {
-    return { name: 'expression', params: rowsToExpression(selector) };
+    return { name: 'expression', params: StructureElement.Schema.toExpression({ items: selector }) };
   } else if (isMolQLExpression(selector)) {
     return { name: 'expression', params: selector.molql as any };
   } else {
-    return { name: 'expression', params: rowToExpression(selector) };
+    return { name: 'expression', params: StructureElement.Schema.toExpression(selector) };
   }
 }
 
-/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
+/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'A',
+ * a long list of rows -> '120 selections' (see `describeRows`) */
 export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>['selector']): string {
   if (selector === undefined) {
     return 'All';
   } else if (typeof selector === 'string') {
     return stringToWords(selector);
   } else if (Array.isArray(selector)) {
-    return `Custom Selection: [${selector.map(formatObject).join(', ')}]`;
+    return describeRows(selector);
   } else if (isMolQLExpression(selector)) {
     return 'MolQL Selection';
   } else {
-    return `Custom Selection: ${formatObject(selector)}`;
+    return describeRows([selector]);
   }
 }
 

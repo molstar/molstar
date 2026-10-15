@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { OptionalField, RequiredField, bool, float, int, str } from '../field-schema.js';
 import { SimpleParamsSchema, UnionParamsSchema, paramsValidationIssues } from '../params-schema.js';
 

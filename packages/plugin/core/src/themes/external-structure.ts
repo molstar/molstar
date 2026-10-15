@@ -27,7 +27,7 @@ import {
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
 import { StructureLookup3DResultContext } from '@molstar/model/model/structure/structure/util/lookup3d';
-import { StructureSelectionQueries } from '@molstar/plugin/state/helpers/structure-selection-query';
+import { backbone } from '@molstar/plugin/state/queries/structure/structure';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 
 const Description = `Assigns a color based on structure property at a given vertex.`;
@@ -125,7 +125,7 @@ export function ExternalStructureColorTheme(
 
     let s = structure;
     if (backboneOnly) {
-      s = StructureSelection.unionStructure(StructureSelectionQueries.backbone.query(new QueryContext(structure)));
+      s = StructureSelection.unionStructure(backbone.query(new QueryContext(structure)));
     }
 
     const position = Vec3();

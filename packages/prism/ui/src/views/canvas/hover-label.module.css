@@ -1,0 +1,41 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--msp-z-tooltip);
+  display: grid;
+  gap: 1px;
+  max-width: 280px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  font-size: var(--msp-font-size-sm);
+  pointer-events: none;
+  will-change: transform;
+
+  &[hidden] {
+    display: none;
+  }
+
+  /* An (almost) opaque panel surface with the hairline edge, and no backdrop filter: a blur under a label that follows
+     the pointer would re-blur every frame over the canvas (styling.md §5), and over the structure the glass read as too
+     transparent. The panel color's 95% keeps the theme's tone, light and dark; the secondary line is the muted text on
+     it, as in the panels. */
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+}
+
+.primary {
+  font-weight: 600;
+}
+
+.secondary {
+  color: var(--msp-color-text-muted);
+}

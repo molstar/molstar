@@ -1,0 +1,200 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The patch spike: the viewer with track actions, the snapshots beside it. */
+.page {
+  composes: tokens from "./seqstar-ux.module.css";
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--msp-color-bg);
+  font-size: var(--msp-font-size-sm);
+  color: var(--msp-color-text);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 36px;
+  padding: 6px 12px 6px 22px;
+  border-bottom: 1px solid var(--msp-color-border);
+}
+
+.title {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: 999px;
+  background: none;
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  font-size: var(--msp-font-size-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--msp-color-text);
+  background: var(--msp-color-hover);
+}
+
+.quiet {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.controls {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--msp-color-text-subtle);
+  cursor: pointer;
+}
+
+.icon:hover {
+  background: var(--msp-color-hover);
+  color: var(--msp-color-text);
+}
+
+.icon[aria-pressed="true"] {
+  color: var(--msp-color-accent);
+}
+
+.icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.danger:hover {
+  color: var(--msp-color-danger);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.snap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: none;
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.snap:hover {
+  background: var(--msp-color-hover);
+}
+
+.snap[aria-current="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  color: var(--msp-color-accent);
+}
+
+.snapTitle {
+  font-weight: 500;
+}
+
+.snapText {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.4;
+}
+
+.change {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.timings {
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  color: var(--msp-color-text-subtle);
+}
+
+.ops {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+  white-space: pre;
+}
+
+/* The scroll group: a page that scrolls, sections one under another. */
+.scrollPage {
+  composes: tokens from "./seqstar-ux.module.css";
+  height: 100vh;
+  background: var(--msp-color-bg);
+  font-size: var(--msp-font-size-sm);
+  color: var(--msp-color-text);
+}
+
+.scrollPageInner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+  padding: 20px;
+}
+
+/* Sections keep their height: the page scrolls, it does not squeeze them. */
+.scrollPageInner > * {
+  flex: none;
+}

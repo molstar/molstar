@@ -1,0 +1,58 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.log {
+  display: grid;
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  font-size: var(--msp-font-size-sm);
+}
+
+.empty {
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-kind="error"] .kind {
+    color: var(--msp-color-danger);
+  }
+
+  &[data-kind="warning"] .kind {
+    color: var(--msp-color-warning);
+  }
+
+  &[data-kind="success"] .kind {
+    color: var(--msp-color-success);
+  }
+}
+
+.kind {
+  align-self: center;
+  color: var(--msp-color-text-subtle);
+}
+
+.text {
+  overflow-wrap: anywhere;
+}
+
+.time {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}

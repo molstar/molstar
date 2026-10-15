@@ -7,7 +7,7 @@
 import { PluginBehavior } from '../../../behavior.js';
 import { ModelCrossLinkRestraint } from '@molstar/model/props/integrative/cross-link-restraint/format';
 import type { Model } from '@molstar/model/model/structure';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { CrossLinkRestraintRepresentationProvider } from '@molstar/graphics/props/integrative/cross-link-restraint/representation';
 import { CrossLinkColorThemeProvider } from '@molstar/graphics/props/integrative/cross-link-restraint/color';
 import { CrossLinkRestraint as _CrossLinkRestraint } from '@molstar/model/props/integrative/cross-link-restraint/property';

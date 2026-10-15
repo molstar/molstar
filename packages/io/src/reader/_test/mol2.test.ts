@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseMol2 } from '../mol2/parser.js';
 
 const Mol2String = `@<TRIPOS>MOLECULE

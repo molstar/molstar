@@ -9,10 +9,10 @@
   window.smokeReady = (async () => {
     // Use the distribution import map for both Viewer and direct package imports.
     // That makes the identity assertions below exercise the same ESM chunks.
-    const [{ Viewer }, { StateTransformer }, { StateTransforms }, { PluginUIContext }, { StructureElement }] = await Promise.all([
+    const [{ Viewer }, { StateTransformer }, { TrajectoryFromPDB }, { PluginUIContext }, { StructureElement }] = await Promise.all([
       import('/build/esm/viewer.js'),
       import('@molstar/core/state'),
-      import('@molstar/plugin/state/transforms'),
+      import('@molstar/plugin/state/formats/trajectory/pdb'),
       import('@molstar/plugin-ui/context'),
       import('@molstar/model/model/structure')
     ]);
@@ -33,13 +33,14 @@
     const representations = restoredViewer.plugin.canvas3d?.reprCount.value ?? 0;
     const restoredSelectedAtoms = restoredViewer.plugin.managers.structure.selection.elementCount();
     const selectionRoundTrip = selectedAtoms === structureData.elementCount && restoredSelectedAtoms === selectedAtoms;
-    const trajectoryFromPdb = StateTransforms.Model.TrajectoryFromPDB;
+    const trajectoryFromPdb = TrajectoryFromPDB;
     const registeredTransformer = StateTransformer.get(trajectoryFromPdb.id);
-    const viewerAction = viewer.plugin.spec.actions?.find(entry => entry.action.id === trajectoryFromPdb.id)?.action;
+    const pdbCell = { obj: { type: trajectoryFromPdb.definition.from[0].type }, transform: {} };
+    const viewerAction = viewer.plugin.state.data.actions.fromCell(pdbCell, viewer.plugin).find(a => a.id === trajectoryFromPdb.toAction().id);
     const identities = {
       pluginUiContext: viewer.plugin instanceof PluginUIContext,
       transformerRegistry: registeredTransformer === trajectoryFromPdb,
-      viewerUsesSameTransformer: viewerAction === trajectoryFromPdb,
+      viewerUsesSameTransformer: viewerAction === trajectoryFromPdb.toAction(),
       transformerId: trajectoryFromPdb.id
     };
     window.smokeViewer = viewer;

@@ -1,0 +1,65 @@
+{
+  "name": "@molstar/seq-nightingale",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "The Nightingale materializer: a resolved view as EBI's Nightingale web components and their data, gaps reported. `materialize` is platform-free; only `mount` (the ./mount entry) imports Nightingale.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./mount": {
+      "molstar-src": "./src/mount.ts",
+      "types": "./lib/mount.d.ts",
+      "import": "./lib/mount.js"
+    },
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test:full": "pnpm -w test:unit packages/sequences/nightingale && pnpm test:browser && pnpm test:perf && pnpm test:heap",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@molstar/seq-core": "workspace:*",
+    "@nightingale-elements/nightingale-colored-sequence": "catalog:",
+    "@nightingale-elements/nightingale-conservation-track": "catalog:",
+    "@nightingale-elements/nightingale-linegraph-track": "catalog:",
+    "@nightingale-elements/nightingale-links": "catalog:",
+    "@nightingale-elements/nightingale-manager": "catalog:",
+    "@nightingale-elements/nightingale-msa": "catalog:",
+    "@nightingale-elements/nightingale-navigation": "catalog:",
+    "@nightingale-elements/nightingale-sequence": "catalog:",
+    "@nightingale-elements/nightingale-sequence-heatmap": "catalog:",
+    "@nightingale-elements/nightingale-track": "catalog:",
+    "@nightingale-elements/nightingale-track-canvas": "catalog:",
+    "@nightingale-elements/nightingale-variation-canvas": "catalog:",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

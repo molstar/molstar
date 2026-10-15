@@ -9,10 +9,13 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
-      "path": "../../extensions/mp4-export"
+      "path": "../../extensions/video-export"
     },
     {
       "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../packages/graphics"
     },
     {
       "path": "../../packages/plugin/ui"
@@ -25,9 +28,6 @@
     },
     {
       "path": "../../extensions/backgrounds"
-    },
-    {
-      "path": "../../packages/graphics"
     },
     {
       "path": "../../packages/io"

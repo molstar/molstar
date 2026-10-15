@@ -4,6 +4,7 @@
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { BitSet } from '../bit-set.js';
 
 function setBits(b: BitSet): number[] {

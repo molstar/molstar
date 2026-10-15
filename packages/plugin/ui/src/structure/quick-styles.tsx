@@ -7,7 +7,6 @@
  */
 
 import { PostprocessingParams } from '@molstar/graphics/canvas3d/passes/postprocessing';
-import { PresetStructureRepresentations } from '@molstar/plugin/state/builder/structure/representation-preset';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
 import { Color } from '@molstar/core/util/color';
@@ -36,6 +35,23 @@ export class StructureQuickStylesControls extends CollapsableControls {
 }
 
 type PresetName = 'default' | 'cartoon' | 'spacefill' | 'surface';
+
+/** Fixed preset ids resolved through the preset registry; a button is hidden when its preset is not registered. */
+const FixedPresetIds = {
+  default: 'preset-structure-representation-auto',
+  cartoon: 'preset-structure-representation-polymer-and-ligand',
+  spacefill: 'preset-structure-representation-illustrative',
+  surface: 'preset-structure-representation-molecular-surface',
+} as const satisfies Record<PresetName, string>;
+
+function resolveRepresentationPreset(plugin: PluginContext, preset: PresetName) {
+  const builder = plugin.builders.structure.representation;
+  if (preset === 'default') {
+    const configured = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset);
+    return (configured && builder.resolveProvider(configured)) || builder.resolveProvider(FixedPresetIds.default);
+  }
+  return builder.resolveProvider(FixedPresetIds[preset]);
+}
 type StyleName = 'default' | 'illustrative';
 
 interface QuickStylesState {
@@ -59,41 +75,58 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
     this.setState({ busy: false, style });
   }
 
+  private isAvailable(preset: PresetName) {
+    return !!resolveRepresentationPreset(this.plugin, preset);
+  }
+
   render() {
+    const hasRepresentationPreset = (['default', 'cartoon', 'spacefill', 'surface'] as const).some((p) =>
+      this.isAvailable(p),
+    );
     return (
       <>
-        <NoncollapsableGroup title="Apply Representation">
-          <div className="msp-flex-row">
-            <Button
-              title="Applies default representation preset (depends on structure size)"
-              onClick={() => this.applyRepresentation('default')}
-              disabled={this.state.busy}
-            >
-              Default
-            </Button>
-            <Button
-              title="Applies cartoon polymer and ball-and-stick ligand representation preset"
-              onClick={() => this.applyRepresentation('cartoon')}
-              disabled={this.state.busy}
-            >
-              Cartoon
-            </Button>
-            <Button
-              title="Applies spacefill representation preset"
-              onClick={() => this.applyRepresentation('spacefill')}
-              disabled={this.state.busy}
-            >
-              Spacefill
-            </Button>
-            <Button
-              title="Applies molecular surface representation preset"
-              onClick={() => this.applyRepresentation('surface')}
-              disabled={this.state.busy}
-            >
-              Surface
-            </Button>
-          </div>
-        </NoncollapsableGroup>
+        {hasRepresentationPreset && (
+          <NoncollapsableGroup title="Apply Representation">
+            <div className="msp-flex-row">
+              {this.isAvailable('default') && (
+                <Button
+                  title="Applies default representation preset (depends on structure size)"
+                  onClick={() => this.applyRepresentation('default')}
+                  disabled={this.state.busy}
+                >
+                  Default
+                </Button>
+              )}
+              {this.isAvailable('cartoon') && (
+                <Button
+                  title="Applies cartoon polymer and ball-and-stick ligand representation preset"
+                  onClick={() => this.applyRepresentation('cartoon')}
+                  disabled={this.state.busy}
+                >
+                  Cartoon
+                </Button>
+              )}
+              {this.isAvailable('spacefill') && (
+                <Button
+                  title="Applies spacefill representation preset"
+                  onClick={() => this.applyRepresentation('spacefill')}
+                  disabled={this.state.busy}
+                >
+                  Spacefill
+                </Button>
+              )}
+              {this.isAvailable('surface') && (
+                <Button
+                  title="Applies molecular surface representation preset"
+                  onClick={() => this.applyRepresentation('surface')}
+                  disabled={this.state.busy}
+                >
+                  Surface
+                </Button>
+              )}
+            </div>
+          </NoncollapsableGroup>
+        )}
         <NoncollapsableGroup title="Apply Style">
           <div className="msp-flex-row">
             <Button
@@ -133,30 +166,9 @@ function NoncollapsableGroup(props: { title: string; children: any }): JSX.Eleme
 
 async function applyRepresentationPreset(plugin: PluginContext, preset: PresetName) {
   const { structures } = plugin.managers.structure.hierarchy.selection;
-
-  switch (preset) {
-    case 'default':
-      const defaultPreset =
-        plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
-      const provider = plugin.builders.structure.representation.resolveProvider(defaultPreset);
-      await plugin.managers.structure.component.applyPreset(structures, provider);
-      break;
-    case 'spacefill':
-      await plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations.illustrative);
-      break;
-    case 'cartoon':
-      await plugin.managers.structure.component.applyPreset(
-        structures,
-        PresetStructureRepresentations['polymer-and-ligand'],
-      );
-      break;
-    case 'surface':
-      await plugin.managers.structure.component.applyPreset(
-        structures,
-        PresetStructureRepresentations['molecular-surface'],
-      );
-      break;
-  }
+  const provider = resolveRepresentationPreset(plugin, preset);
+  if (!provider) throw new Error(`Representation preset for '${preset}' is not registered in this plugin`);
+  await plugin.managers.structure.component.applyPreset(structures, provider);
 }
 
 async function applyStyle(plugin: PluginContext, style: StyleName) {

@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { expect, test } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { parseDynamoTbl } from '../dynamo/tbl.js';
 

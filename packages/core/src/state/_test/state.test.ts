@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { State, StateObject, StateTransformer } from '../index.js';
 import { Task } from '@molstar/core/task';
 
@@ -54,8 +55,8 @@ function newState() {
 
 describe('State.dispose', () => {
   it('calls transformer.dispose for every live cell', async () => {
-    const leafSpy = jest.fn();
-    const chainSpy = jest.fn();
+    const leafSpy = vi.fn();
+    const chainSpy = vi.fn();
     const A = leafTransformer(leafSpy);
     const B = chainedTransformer(chainSpy);
 
@@ -77,8 +78,8 @@ describe('State.dispose', () => {
   });
 
   it('disposes all sibling subtrees', async () => {
-    const spyA = jest.fn();
-    const spyB = jest.fn();
+    const spyA = vi.fn();
+    const spyB = vi.fn();
     const A = leafTransformer(spyA);
     const B = leafTransformer(spyB);
 
@@ -95,7 +96,7 @@ describe('State.dispose', () => {
   });
 
   it('does not throw when a transformer dispose throws', async () => {
-    const goodSpy = jest.fn();
+    const goodSpy = vi.fn();
     const Throwing = StateTransformer.create<Root, Leaf, { value: number }>(NS, {
       name: `throwing-leaf-${counter++}`,
       from: [Root],
@@ -116,7 +117,7 @@ describe('State.dispose', () => {
     builder.toRoot<Root>().apply(Good as any, { value: 2 });
     await state.runTask(state.updateTree(builder));
 
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       expect(() => state.dispose()).not.toThrow();
     } finally {

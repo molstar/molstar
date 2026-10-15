@@ -1,0 +1,37 @@
+pos	kind	label
+9	phosphorylation	Phosphoserine; by HIPK4
+15	phosphorylation	Phosphoserine; by CDK5, PRPK, AMPK, NUAK1 and ATM
+18	phosphorylation	Phosphothreonine; by CK1, VRK1 and VRK2
+20	phosphorylation	Phosphoserine; by CHEK2, CK1 and PLK3
+33	phosphorylation	Phosphoserine; by CDK5 and CDK7
+37	phosphorylation	Phosphoserine; by MAPKAPK5
+46	phosphorylation	Phosphoserine; by CDK5, DYRK2, HIPK2 and PKC/PRKCG
+55	phosphorylation	Phosphothreonine; by TAF1 and GRK5
+120	acetylation	N6-acetyllysine
+120	other	N6-lactoyllysine
+139	other	N6-lactoyllysine
+183	phosphorylation	Phosphoserine; by AURKB
+269	phosphorylation	Phosphoserine; by AURKB
+284	phosphorylation	Phosphothreonine; by AURKB
+305	acetylation	N6-acetyllysine
+315	phosphorylation	Phosphoserine; by AURKA, CDK1 and CDK2
+321	acetylation	N6-acetyllysine
+333	methylation	Omega-N-methylarginine; by PRMT5
+335	methylation	Symmetric dimethylarginine; by PRMT5
+337	methylation	Symmetric dimethylarginine; by PRMT5
+370	methylation	N6,N6-dimethyllysine; alternate
+370	methylation	N6-methyllysine; by SMYD2; alternate
+372	methylation	N6-methyllysine; by SETD7
+373	methylation	N6,N6-dimethyllysine; by EHMT1 and EHMT2; alternate
+373	acetylation	N6-acetyllysine; alternate
+381	acetylation	N6-acetyllysine
+382	methylation	N6,N6-dimethyllysine; alternate
+382	acetylation	N6-acetyllysine; alternate
+382	methylation	N6-methyllysine; by KMT5A; alternate
+392	phosphorylation	Phosphoserine; by CK2, CDK2 and NUAK1
+24	ubiquitination	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in ubiquitin)
+291	ubiquitination	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in ubiquitin)
+292	ubiquitination	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in ubiquitin)
+351	ubiquitination	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in ubiquitin)
+357	ubiquitination	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in ubiquitin)
+386	sumoylation	Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in SUMO)

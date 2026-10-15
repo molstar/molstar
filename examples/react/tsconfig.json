@@ -12,6 +12,9 @@
       "path": "../../extensions/plugin"
     },
     {
+      "path": "../../packages/plugin/core"
+    },
+    {
       "path": "../../packages/plugin/ui"
     },
     {

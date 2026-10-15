@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createGl } from './gl.shim.js';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Vec3 } from '@molstar/core/math/linear-algebra';

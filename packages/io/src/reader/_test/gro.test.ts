@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseGRO } from '../gro/parser.js';
 
 const groString = `MD of 2 waters, t= 4.2

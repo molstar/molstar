@@ -80,6 +80,8 @@ const AllAtomicCifAnnotationSchema = {
   /** Instance identifier to distinguish instances of the same chain created by applying different symmetry operators,
    * like 'ASM-X0-1' for assemblies or '1_555' for crystals */
   instance_id: str,
+  /** Name of the symmetry operator, like '1_555' (the same for the instances of an assembly which share an operator name) */
+  operator_name: str,
 } satisfies Table.Schema;
 
 /** Allowed fields (i.e. CIF columns or JSON keys) for each annotation schema

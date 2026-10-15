@@ -7,5 +7,9 @@
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/_test/**"],
-  "references": []
+  "references": [
+    {
+      "path": "../../query-language"
+    }
+  ]
 }

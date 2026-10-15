@@ -5,7 +5,7 @@
   "description": "Mol* assembly-symmetry-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -40,6 +40,7 @@
     "@molstar/plugin": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/plugin-ui": "workspace:*"
   },
   "devDependencies": {

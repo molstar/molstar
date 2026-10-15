@@ -1,0 +1,47 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Centred on the canvas (between its edges and what floats on the right), clicks pass through. */
+.empty {
+  position: absolute;
+  inset: 0 var(--msp-canvas-right-inset, 0) 0 0;
+  pointer-events: none;
+  animation: fade-in 900ms var(--msp-ease) both;
+
+  /* Something loaded: away, faster than it came. */
+  &[data-phase="out"] {
+    animation: fade-out 250ms var(--msp-ease) forwards;
+  }
+}
+
+/* Quiet on the canvas: the canvas's own subtle text color. Centred to whole pixels (171 × 66 at 3×: plain centring
+   would put it on a half pixel and blur its lines). */
+.mark {
+  position: absolute;
+  left: round(down, calc(50% - 85.5px), 1px);
+  top: round(down, calc(50% - 33px), 1px);
+  color: var(--msp-color-text-subtle);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty {
+    animation: none;
+  }
+}

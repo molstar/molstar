@@ -1,0 +1,100 @@
+SEQUENCE QUERIES (SeqQL)
+
+A query selects positions and annotation items in the sequences. Write one S-expression:
+(name positional... :keyword value ...). Words need no quotes; quote "..." text with spaces,
+brackets, commas or parentheses, and refs that look like numbers ("123"). ; starts a comment.
+
+Wrap each query in [SeqQL]...[/SeqQL] and send each query in its own block: several blocks are
+several queries, and text around them is fine. A query passed as a tool's argument takes no tags.
+
+A word where a selection goes is a ref and selects what it names: a unit's positions, a
+molecule's or complex's units, an alignment's columns, a row's residues, an annotation's items.
+Refs: 1brs/A (a chain's sequence), p53 (a molecule), msa (an alignment), msa/3 (its row 3),
+domains (an annotation), ctx.site.hinge (a Context entity).
+A selection is a list of groups: a sequence, a run of positions, an item, a hit. Filters test
+groups; results step through them. Names are short, and a test's name reads what its :where
+tests: (label) is an item's label in (items :where ...), a position's in (positions :where ...).
+
+POSITIONS: labels for what a person says, indices for what a tool returned.
+Labels are numbered as the ruler shows them (10-20, 45A), inclusive: (range Q 10-20), [10-20].
+Indices count from 0 and exclude the end, as tool results give them: (slice Q 9 20), @9:20.
+
+SHORTHAND, anywhere a selection goes: (sel "...")
+  R[10-20,45]  labels; R[uniprot: 120-140] in another numbering
+  R@9:20  indices 9 to 19
+  A[#id1,#id2]  items by id, not label
+  $name, $name[10-20]  an input, narrowed
+  a, b  union
+Inputs: selection (the person's selection), focus (the Focus).
+
+PATTERNS
+Narrow by intersecting: (and Q (letters C)); remove with (and Q (not B)).
+Keep groups with (pick Q :where T); test single elements with a generator's :where.
+A selection inside a test is computed once: (pick Q :where (overlaps (sel "...")))
+Carry positions to another sequence with onto, then narrow or widen there.
+(and A B) intersects within one sequence: carry one side over with onto first.
+
+SELECTIONS
+(all)  every unit and alignment row, one group each
+(empty)  nothing
+(sel S)  the shorthand
+(systems :of R :kind K :where T)  whole sequences of kind unit, molecule, row or columns, one group each
+(rows :of A :where T)  an alignment's rows, one group each
+(items :of A :where T)  items of annotation A (all annotations if no :of), one group each
+(values :of A :min x :max x :above x :below x)  positions where values annotation A passes
+(letters L :in Q)  positions with one of the letters L
+(positions :in Q :where T)  positions passing a test
+(search P :in Q :edits n :classes C :regex b :ends e)  hits of a pattern, one group each; plain letters (ATG) match themselves, :classes only reads codes such as X or N
+(input name)  a selection the app passes
+(current)  inside each, the group being run on
+(chain C)  units of chain C
+
+COMBINE
+(and Q Q...)  each group of the first, intersected with the others
+(or Q Q...)  all groups, duplicates dropped
+(not Q :in U)  the positions of U (default all) not in Q
+(range Q part... :numbering N)  narrow to labels, inclusive
+(slice Q start stop...)  narrow to indices, from 0, end excluded
+(expand Q n :left n :right n)  widen each run
+(onto Q R :kind K :keep b)  the same places in another sequence, codons too; onto an alignment: its columns, :kind row its rows
+(group Q :by G)  regroup: none (one group), run or system
+(partners Q :via A :side S :where T)  the ends of pairs (annotation A) whose other end is in Q
+(each Q E)  run E per group of Q
+(pick Q :where T)  keep groups passing T
+(first Q n)  the first n groups
+(ids Q id...)  keep items with these ids
+
+TESTS
+position (positions :where): (index) (letter) (label :numbering N); then its sequence's
+  (value-of A)  the value of values annotation A here; NaN when none
+system (systems, rows :where): (ref) (kind) (label) (length) (origin) (score) (alphabet)
+  (field name :of K :ns N)  another field: :of a row table, :ns app fields
+item (items, partners :where): (id) (label) (category) (value) (type) (annotation) (length)
+  (field name)  any other column
+group (pick :where): (length) (runs) (score); then its item's, then its sequence's
+  (overlaps Q)  shares a position with Q
+  (within Q n)  within n positions of Q, in the same system
+  (count Q)  how many of Q's positions it holds
+(= a b) (!= a b) (< a b) (<= a b) (> a b) (>= a b) (in x v...)  a missing value fails every comparison
+(matches s pattern :case b)  a regular expression, case-insensitive unless :case true
+(and T T...) (or T T...) (not T)
+
+EXAMPLES
+Refs in the examples are illustrative; use the refs you were given.
+(sel "1brs/A[10-20]")  residues 10-20 of 1brs/A
+(sel "p53@0:50")  the first 50 positions, as indices
+(pick (items :of domains) :where (matches (label) kinase))  kinase domains
+(values :of cons :above 0.8)  columns with conservation above 0.8
+(onto (input selection) msa)  the alignment columns of the selection
+(and 1brs/A (partners 1brs/D :via contacts))  residues of A in contact with D
+(pick sites :where (overlaps (pick domains :where (matches (label) SH2))))  sites in an SH2 domain (a bare name selects all of the annotation)
+(and 1brs/A (letters C))  cysteines of 1brs/A
+(rows :of msa :where (>= (field identity :of traits) 0.9))  rows at least 90% identical
+(and (expand (sel "1brs/A[10-20]") 5) (not (sel "1brs/A[10-20]")))  around a site, not the site
+(search GXGXXG :in 1brs/A :classes protein)  a motif
+
+RESULTS AND ERRORS
+A result starts with a summary ("3 groups, 412 positions: 1brs/A 10-20 @9:20 ..."): labels, then
+indices. Check it against the request. "Selects nothing" names the part that emptied it and why;
+fix that part. An error gives line:column, what is wrong, the symbol's signature and a
+suggestion; resend the corrected query.
