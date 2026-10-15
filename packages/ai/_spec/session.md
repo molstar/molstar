@@ -39,9 +39,9 @@ fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2)
 `providerNames`. Also `notesHeading` (heads the notes; default `NOTES_HEADING`).
 
 `ensure()` (lazy, on the first call) builds: `createHarnessHost(storage, { leaseMs, launchMs: leaseMs })`, the client,
-`createToolBindings(toolkit.tools, api, { repeats, nested: NestedTools, afterWrite })` wrapped to observe calls,
-`ModelBindings` over `adapterFor`, `createDrive(...)`, and a `createInProcessSupervisor` whose `startRunner` makes a
-`createRunner` per launch and subscribes to its observations.
+`createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time) wrapped to
+observe calls, `ModelBindings` over `adapterFor`, `createDrive(...)`, and a `createInProcessSupervisor` whose
+`startRunner` makes a `createRunner` per launch and subscribes to its observations.
 
 ## Turns
 
@@ -58,8 +58,9 @@ fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2)
   `LABEL_GUIDANCE`/`LABEL_GUIDANCE_UPDATE` keyed by the text's fingerprint, `guidanceLabel(text)`, and the toolkit's
   `tools:definitions`). Compaction, `catchUp` and the trace read labels; the markers stay in the text for the model and
   are read only for entries written before labels.
-- The item is `submit`ted with `options: { configuration }`; the runner's `configure` reads it back. Tool set: every
-  registration enabled, all but `approval` ones preauthorized.
+- The item is `submit`ted with `options: { configuration }`; the runner's `configure` reads it back. Tool set: the
+  toolkit's `toolSet()` as the turn begins (every registration enabled, all but `approval` ones preauthorized, and the
+  tools lazy skills will bring; tools.md, "Dynamic").
 - **`TurnResult`**: `status` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval`), `approval?` (pending
   calls), `text` (the last reply), `turnText` (every reply of the turn: one per model call, a retry counted once, a
   widened reply replacing the cut one; since this session took the turn up), `error?`, `tools: ToolEvent[]`, `usage?`
