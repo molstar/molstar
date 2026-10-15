@@ -96,6 +96,11 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   }
 }
 
+.msp-viewer-home-tab-action[data-open] > .msp-viewer-home-tab-actionHeader {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 .msp-viewer-home-tab-actionHeader {
   align-items: center;
   gap: var(--msp-space-3);

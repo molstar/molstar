@@ -62,6 +62,12 @@
   }
 }
 
+.action[data-open] > .actionHeader {
+  /* Open, the top of its well: square at the bottom (as a section's header). */
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 .actionHeader {
   display: flex;
   align-items: center;

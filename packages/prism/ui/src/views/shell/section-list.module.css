@@ -36,6 +36,12 @@
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  /* Open, it is the top of its section's well: its hover square at the bottom, not a pill apart from the body. */
+  &[aria-expanded="true"] {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .title {

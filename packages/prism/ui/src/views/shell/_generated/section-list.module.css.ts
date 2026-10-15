@@ -49,6 +49,11 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  &[aria-expanded="true"] {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .msp-shell-section-list-title {
