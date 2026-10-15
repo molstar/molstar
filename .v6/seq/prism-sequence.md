@@ -259,9 +259,8 @@ Where the code differs from, or fills in, the sections above:
 
 - **Files**: `packages/prism/viewer/src/sequence/` (`model.ts`, `document.ts`, `skin.ts`, `legend.ts`, `link.ts`,
   `sequence-control.tsx`), `src/sources/` (`viewer-plugin.ts`: the plugin on a host element with its canvas props, 3D
-  hover label and structure as plain states; `hover-lines.ts`), the stories' `testing/real-plugin-story.tsx` and the
-  `Shell/Viewer mode › Real plugin` story. `mockViewerMode({ plugin })` takes the real plugin; without it the mock keeps
-  `SequenceStrip` (the other stories have no structure to give the model).
+  hover label and structure as plain states; `hover-lines.ts`), and the stories over the real viewer (Shell › Viewer
+  mode, Viewer › Real, App › Viewer › Predicted; the mock viewer mode and its real-plugin story are retired).
 - **The model's input** is `HostStructure { key, title, source: StructureSource, structure }`; the document names its
   file `structure:<key>`, which the loaders' `parsed` hook answers with the host's source (a new key rebuilds the view).
   `SequenceViewer.structure` is set only once the document is in; `legend` and `setFonts` were added (the fonts are

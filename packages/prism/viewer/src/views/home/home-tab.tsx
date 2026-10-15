@@ -212,13 +212,30 @@ function AnnotationOfferLine(props: { model: AnnotationOfferModel }) {
  * button. Home's own group (`caption`), or the body of the `remote-states` feature's section in `home.import`, whose
  * header says the title.
  */
+/** A server's host name ("webchem.ncbr.muni.cz"); the address itself when it is not a URL. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
 export function RemoteStatesList(props: { model: RemoteStatesModel; caption?: boolean }) {
   const { model } = props;
   const settings = observableState(false);
   return (
     <section class={classes.group} aria-label="Remote states">
       <div class={classes.captionRow}>
-        {props.caption ? <h3 class={classes.caption}>Remote states</h3> : <span />}
+        {/* Under a header that says the title (the feature's section): the server the list is from, what the buttons
+            act on. */}
+        {props.caption ? (
+          <h3 class={classes.caption}>Remote states</h3>
+        ) : (
+          <span class={classes.serverHost} data-tip-overflow="">
+            {model.serverUrl.pipe(map(hostOf))}
+          </span>
+        )}
         <span class={classes.captionActions}>
           <Button
             size="xs"

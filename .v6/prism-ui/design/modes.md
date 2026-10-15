@@ -63,14 +63,10 @@ snapshot manager). It is a module of the story mode (contexts.md §3).
 - **Clear** (Home's Current session, and the "Clear session" command) empties the session: Home asks once in place, then
   everything loaded goes (the plugin's `clear`; saved snapshots and files stay), and Home offers the modes again.
 
-## 5. State (mocks)
+## 5. State
 
-- `PrismAppStory` (`ui/src/testing/shell.tsx`) is the app: the splash, then `ShellStory` (the frame) running one mode;
-  "Switch mode…" and Home's choice create it again. `mockViewerMode` (`viewer/src/testing/viewer-mode.tsx`) is Mol\*'s
-  own UI as a mode, `ViewerShellStory` the frame with it, `mockBlankMode` the frame alone. A mode's canvas parts are
-  render functions, rendered in their slots.
-- The story mode (`stories/src/testing`, `mockStoryMode`): the Story tab (the story's title, its scenes, Add scene, the
-  current scene's caption), the scenes on the canvas's playback card, story commands (Add scene, Play story, Next and
-  Previous scene with Alt+arrows, Export story). Shell › Story mode: started in either mode, and the first open.
+- The mocks of this design (`PrismAppStory`, the splash, `mockViewerMode`, the story mode's `mockStoryMode` and its
+  stories) are retired (2026-10-15): the viewer's and the assistant's stories run the real viewer. The story mode's
+  contracts and its Story tab view stay in `@molstar/prism-stories`, a sketch.
 - Not yet: the story UX itself (scene editing, what a scene shows, assets, the narrative text, publishing), its document
   model over MolViewSpec and SeqViewSpec, and the modes as `PrismMode`s over `PrismContext` (Phase 6).

@@ -40,8 +40,7 @@ export const StoryPackages: StoryPackage[] = [
     group: 'Prism',
     plugins: (root) => [cssModulesPlugin([cssPackage(root)]), preactFolderPlugin(root)],
   },
-  // Built on prism-ui (the viewer mode: Prism › Shell › Viewer mode, Views; story mode: Prism › Shell › Story mode; the
-  // assistant: Prism › Shell › Assistant). Their CSS class names carry the package prefix.
+  // Built on prism-ui (the viewer: Prism › Shell › Viewer mode, Views; the assistant: Prism › Shell › Assistant). Their CSS class names carry the package prefix.
   {
     dir: 'packages/prism/viewer',
     group: 'Prism',
@@ -51,11 +50,6 @@ export const StoryPackages: StoryPackage[] = [
   { dir: 'apps/prism-viewer', group: 'Prism' },
   // The MolViewSpec stories example's stories in the Prism viewer (Prism › MVS stories).
   { dir: 'examples/mvs-stories', group: 'Prism' },
-  {
-    dir: 'packages/prism/stories',
-    group: 'Prism',
-    plugins: (root) => [cssModulesPlugin([cssPackage(root, 'stories')])],
-  },
   {
     dir: 'packages/prism/assistant',
     group: 'Prism',

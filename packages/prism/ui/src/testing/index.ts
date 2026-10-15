@@ -16,11 +16,7 @@ export {
   type MockFrameContext,
   type MockMode,
   type MockModeParts,
-  type MockShellAddOn,
-  type MockShellAddOnParts,
-  type MockApp,
   mockBlankMode,
-  PrismAppStory,
   ShellStory,
   type ShellStoryProps,
 } from './shell.js';

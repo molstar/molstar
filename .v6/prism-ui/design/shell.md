@@ -657,8 +657,9 @@ does not carry the plugin's UI-era surface:
 - **The engine is swappable.** As the UI sees sources only, a mode can run on another engine later (story mode could
   render MVS documents through a leaner path) without a UI change.
 
-**State (mocks):** not built: the contexts, the specs, `DefaultUIContributions()` and `createPrismUI`. The mock app
-(`PrismAppStory`, `ShellStory` with one mode) creates the models and passes them to `ShellView`; `ShellOptions.buttons`
+**State:** not built: the contexts, the specs, `DefaultUIContributions()` and `createPrismUI`. The viewer's page
+(`viewer/src/ui/shell.tsx`) creates the models and passes them to `ShellView` (prism-ui's own stories: a mock frame,
+`ShellStory`); `ShellOptions.buttons`
 is the spec's `layout.buttons`, and a host leaves out `ShellView`'s `onDropFiles` for `components.disableDragOverlay`.
 `StatusModel` lives in prism-ui's `shell/` for now and moves to `@molstar/prism` with the context.
 

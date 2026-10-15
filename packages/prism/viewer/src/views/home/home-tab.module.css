@@ -188,7 +188,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: var(--msp-space-1);
+  gap: var(--msp-space-3);
+  /* The text at the rows' inset; the buttons at the right, their icons over the dates' end. */
+  padding: 0 var(--msp-space-1) 0 var(--msp-inset);
+}
+
+.captionRow > .caption {
+  padding-left: 0;
+}
+
+/* The server the list is from (in the feature's section, under its header): quiet, one line. */
+.serverHost {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .none {

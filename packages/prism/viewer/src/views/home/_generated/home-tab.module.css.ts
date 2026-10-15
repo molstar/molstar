@@ -32,6 +32,7 @@ export const classes = {
   'offerIcon': 'msp-viewer-home-tab-offerIcon',
   'offerText': 'msp-viewer-home-tab-offerText',
   'server': 'msp-viewer-home-tab-server',
+  'serverHost': 'msp-viewer-home-tab-serverHost',
   'session': 'msp-viewer-home-tab-session',
   'sessionSummary': 'msp-viewer-home-tab-sessionSummary',
   'spin': 'msp-viewer-home-tab-spin',
@@ -214,10 +215,24 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-viewer-home-tab-captionRow {
-  padding-right: var(--msp-space-1);
   justify-content: space-between;
   align-items: center;
+  gap: var(--msp-space-3);
+  padding: 0 var(--msp-space-1) 0 var(--msp-inset);
   display: flex;
+}
+
+.msp-viewer-home-tab-captionRow > .msp-viewer-home-tab-caption {
+  padding-left: 0;
+}
+
+.msp-viewer-home-tab-serverHost {
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .msp-viewer-home-tab-none {

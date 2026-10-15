@@ -232,11 +232,10 @@ it only by depending on it, prism-ui never imports it (§3), and the UI reaches 
 `assistant` prop (`CommandMenuAssistant`), the shell view's `agent` slot after the status line's tasks, and tabs and
 commands registered like any other. An app that does not import it ships none of it ([agent.md](agent.md) §6).
 
-State (mocks): the registrations above are real `ShellModel`/`CommandManager` APIs; the mock frame (`testing/shell.tsx`,
-`ShellStory`, with the modes it is given: `mockViewerMode` from the viewer, `mockStoryMode` from story mode,
-`mockBlankMode` for the frame alone) assembles the UI from them by hand and takes a module's contributions as an add-on
-(`MockShellAddOn`: tabs, one replacing a tab of the same id; the command menu's assistant; the agent slot; finished
-commands). The agent's `mockAgentAddOn` (`@molstar/prism-assistant`, `testing/`) is the first. Not yet: the declarative
+State: the registrations above are real `ShellModel`/`CommandManager` APIs, and the viewer's page assembles the UI from
+them (`viewer/src/ui/shell.tsx`). The stories run the real viewer (`viewer/src/testing/real-viewer.ts`) and the real
+assistant over a scripted model (`createAssistantWith({ provided })`); the mock modes and add-ons are retired
+(2026-10-15), and prism-ui's own stories keep a mock frame (`testing/shell.tsx`, `ShellStory` with `mockBlankMode`). Not yet: the declarative
 `UIContribution` object listed in the spec and activated after `plugin.init()` ([shell.md](shell.md) §5),
 `DefaultUIContributions`, `agentContribution`, extension packages' `…/prism-ui` entries.
 

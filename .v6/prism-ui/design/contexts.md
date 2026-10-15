@@ -229,6 +229,5 @@ extensions' come with their contributions.
 
 ## 9. State
 
-Not built: everything above is the contract for Phase 4–6. The mocks follow it in shape: one mode per app
-(`PrismAppStory`, the splash), the frame's contributions, a mode's canvas parts and bindings, Help as a tab. They do not
-yet have modules, `execute`, origins, or the core history.
+Not built: everything above is the contract for Phase 4–6. The viewer's page (`viewer/src/ui/shell.tsx`) is what
+stands for it now; the mocks that followed it in shape (one mode per app, `PrismAppStory`, the splash) are retired.
