@@ -259,8 +259,8 @@ Where the code differs from, or fills in, the sections above:
 
 - **Files**: `packages/prism/viewer/src/sequence/` (`model.ts`, `document.ts`, `skin.ts`, `legend.ts`, `link.ts`,
   `sequence-control.tsx`), `src/sources/` (`viewer-plugin.ts`: the plugin on a host element with its canvas props, 3D
-  hover label and structure as plain states; `hover-lines.ts`), and the stories over the real viewer (Shell › Viewer
-  mode, Viewer › Real, App › Viewer › Predicted; the mock viewer mode and its real-plugin story are retired).
+  hover label and structure as plain states; `hover-lines.ts`), and the stories over the real viewer (Viewer › Shell,
+  Viewer › Data, Viewer › With extensions › Predicted; the mock viewer mode and its real-plugin story are retired).
 - **The model's input** is `HostStructure { key, title, source: StructureSource, structure }`; the document names its
   file `structure:<key>`, which the loaders' `parsed` hook answers with the host's source (a new key rebuilds the view).
   `SequenceViewer.structure` is set only once the document is in; `legend` and `setFonts` were added (the fonts are
@@ -312,7 +312,7 @@ Where the code differs from, or fills in, the sections above:
 
 ### Round 2, later (as built)
 
-- **A predicted structure** (`Shell/Viewer mode › RealPluginPredicted`): AlphaFill's model of CYP3A4
+- **A predicted structure** (`Viewer/With extensions › Predicted`): AlphaFill's model of CYP3A4
   (`https://alphafill.eu/v1/aff/P08684`, mmCIF text, AlphaFold's AF-P08684-F1 with ligands transplanted from PDB
   homologs, pLDDT per residue), loaded by `ViewerPlugin.load({ predicted: true, ligands })`: MVS with the polymer's
   color theme `plddt-confidence` (the model-archive extension's provider, registered for the state), and only the heme

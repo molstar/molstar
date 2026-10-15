@@ -15,7 +15,7 @@ import { RealViewerStory } from '../../../testing/real-viewer.js';
 // Home in the real viewer: what loads data (the loaders' actions as forms, Open files), opened at start while nothing is
 // loaded (`ui.homeWhenEmpty`).
 
-const meta: Meta = { title: 'Views/Home tab', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/Home', parameters: { layout: 'fullscreen' } };
 export default meta;
 
 /** The root's actions as forms (the first open, Open files among them), and the command menu hint. */

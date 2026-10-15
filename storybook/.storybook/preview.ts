@@ -14,21 +14,45 @@ const preview: Preview = {
     layout: 'fullscreen',
     docs: { container: ThemedDocsContainer },
     options: {
-      // One group per registered package group (packages.ts). Prism: Overview first, then the app from the whole to its
-      // parts, the runtime last.
+      // One group per registered package group (packages.ts). Prism: Overview first, then the real viewer from the
+      // whole to its parts and data, then prism-ui's components over stand-in models, the runtime last.
       storySort: {
         order: [
           'Prism',
           [
             'Overview',
             ['Introduction', 'Foundations'],
-            'Shell',
-            ['Viewer mode', 'Story mode', 'Assistant'],
-            'Views',
-            ['Home tab', 'Structure tab'],
-            'Canvas',
+            'Viewer',
+            [
+              'Shell',
+              'Home',
+              'Structure panel',
+              'Volumes',
+              'Playback',
+              'Assistant',
+              'Data',
+              'MVS stories',
+              'With extensions',
+            ],
             'Components',
+            [
+              'Button',
+              'Icon',
+              'Logo',
+              'Text input',
+              'Select',
+              'Choices',
+              'Params form',
+              'Legend',
+              'Markdown',
+              'Tooltip',
+              'Scroll area',
+              'Drag to reorder',
+              'Action footer',
+              'Playback',
+            ],
             'Internals',
+            ['Runtime', 'Runtime performance', 'State tree performance', 'React and Preact'],
           ],
           // Seq*: the docs pages first (in reading order), then the cases, then the topics.
           'Seq*',

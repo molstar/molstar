@@ -7,36 +7,20 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { DefaultPrismViewerSpec } from '../default-spec.js';
+import { story } from '@molstar/prism-ui/testing/index';
 import mvsFocus1cbs from '../../../../../data/examples/mvs/1cbs-focus.mvsj?raw';
-import { createPrismViewer } from '../page.js';
+import { RealViewerStory } from '../testing/real-viewer.js';
 import type { PrismViewer } from '../viewer.js';
 
-// The real viewer (plan 1.6): `createPrismViewer` over a real plugin, in a shadow root, as the app makes it. The mock
-// stories (Shell › Viewer mode) stay beside it until each feature's real variant replaces them. Stories may use the
-// network (RCSB); tests never do.
+// One story per kind of data (plan 2.5, decision 19): each opens the data as the person would (RCSB's files, as a
+// dropped file is) and calls the API for what shows it, then leaves the viewer usable. Most reach the network (RCSB,
+// PDBe); tests never do.
 
-const meta: Meta = { title: 'Viewer/Real', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/Data', parameters: { layout: 'fullscreen' } };
 export default meta;
 
-/** One viewer at a time: a story that renders disposes the one before (Storybook has no unmount for this renderer). */
-let current: PrismViewer | undefined;
-
-function viewerStory(setup?: (viewer: PrismViewer) => Promise<void>): HTMLElement {
-  const target = document.createElement('div');
-  target.style.cssText = 'position: relative; width: 100%; height: 100vh';
-  void (async () => {
-    await current?.dispose();
-    current = undefined;
-    // Wait for the element to be in the page (the shell measures it).
-    while (!target.isConnected) await new Promise((r) => requestAnimationFrame(r));
-    const viewer = await createPrismViewer({ target, spec: DefaultPrismViewerSpec() });
-    current = viewer;
-    (window as unknown as { viewer: PrismViewer }).viewer = viewer;
-    await setup?.(viewer);
-  })().catch((e) => console.error(e));
-  return target;
-}
+/** The real viewer in a story, the setup run once it is made. */
+const viewerStory = (setup: (viewer: PrismViewer) => Promise<void>) => story(() => RealViewerStory({ setup }));
 
 /** The API as a person calls it (the person's own actions; the agent's would ask first for the network). */
 const person = (viewer: PrismViewer) => viewer.api.as({ kind: 'person' });
@@ -62,26 +46,6 @@ async function must(result: Promise<{ ok: boolean; message?: string }>) {
   const r = await result;
   if (!r.ok) throw new Error(`Story step failed: ${r.message}`);
 }
-
-/** Nothing loaded: the canvas with the wordmark, the rail, the canvas tools hidden. */
-export const Empty: StoryObj = { render: () => viewerStory() };
-
-/** 1TQN from RCSB, opened as a dropped file is. */
-export const Loaded1TQN: StoryObj = {
-  render: () => viewerStory((v) => loadRcsb(v, '1TQN')),
-};
-
-/** 1TQN on a dark background (`canvas.background`): the chrome's ink follows the canvas. */
-export const DarkBackground: StoryObj = {
-  render: () =>
-    viewerStory(async (v) => {
-      await loadRcsb(v, '1TQN');
-      await must(person(v).canvas.background({ color: '#15171c' }));
-    }),
-};
-
-// One story per data type (plan 2.5, decision 19): each opens the data as the person would and calls the API for what
-// shows the type, then leaves the viewer usable.
 
 // --- Structures -------------------------------------------------------------------------------------------------
 
@@ -157,7 +121,7 @@ export const Assembly1A34: StoryObj = {
     }),
 };
 
-// --- Maps and streamed density ----------------------------------------------------------------------------------
+// --- Maps -------------------------------------------------------------------------------------------------------
 
 /** An EMDB map (EMD-8004) from PDBe's density server, by Home's `download-density` action: an isosurface, no model. */
 export const EmdbMap: StoryObj = {
@@ -174,17 +138,7 @@ export const EmdbMap: StoryObj = {
     ),
 };
 
-/** An X-ray structure (1TQN) with its density streamed around the focus (`volume.streaming`), the ligand focused. */
-export const XrayStreaming1TQN: StoryObj = {
-  render: () =>
-    viewerStory(async (v) => {
-      await loadRcsb(v, '1TQN');
-      await must(person(v).volume.streaming({ enabled: true }));
-      await must(person(v).focus.set({ target: 'ligand' }));
-    }),
-};
-
-/** The same entry with the cell's whole 2Fo-Fc and Fo-Fc maps from the density server (`download-density`). */
+/** An X-ray structure (1TQN) with its cell's 2Fo-Fc and Fo-Fc maps from the density server (`download-density`). */
 export const XrayDensityDownload1TQN: StoryObj = {
   render: () =>
     viewerStory(async (v) => {

@@ -18,7 +18,7 @@ import { flattenTree, VirtualList } from '@molstar/prism-ui';
 import { StateTreeTab } from '../views/state-tree/state-tree-tab.js';
 import { story } from '@molstar/prism-ui/testing/index';
 
-const meta: Meta = { title: 'Internals/Performance' };
+const meta: Meta = { title: 'Internals/State tree performance' };
 export default meta;
 
 // The renderer check (plan.md Phase 2): the state tree at 5,000 cells under bursts of updates, in the `dom` runtime.

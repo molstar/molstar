@@ -20,6 +20,8 @@
    rows sit in their views' hosts (display: contents), so they are the grid's items. */
 .deck {
   display: grid;
+  /* As wide as the card: a long title fades in its row rather than widening it. */
+  grid-template-columns: minmax(0, 1fr);
   overflow: clip;
   font-size: var(--msp-font-size-sm);
   border-radius: var(--msp-radius-lg);

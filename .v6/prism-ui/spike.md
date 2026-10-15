@@ -1,7 +1,7 @@
 # Renderer check (plan.md Phase 2)
 
 The state tree at 5,025 cells (25 structures × 4 models × 49 components) on the `dom` runtime, in
-`_stories/performance.stories.tsx` (Internals › Performance › State tree). Wall time in Chrome until the result is all
+`_stories/performance.stories.tsx` (Internals › State tree performance). Wall time in Chrome until the result is all
 there, and the longest task in that time (how long the page could not respond).
 
 ## Results
@@ -43,7 +43,7 @@ not built.
 
 ## Renderer bench
 
-`_stories/runtime-bench.stories.tsx` (Internals › Performance › Runtime): the js-framework-benchmark operations on the
+`_stories/runtime-bench.stories.tsx` (Internals › Runtime performance): the js-framework-benchmark operations on the
 `dom` runtime, rows written as the app writes them (a record per row, keyed `For`, the selected row by a keyed
 selector). Script is the operation alone; medians of 5 after a warm-up, slicing off; Chrome, outside Storybook's root.
 Total adds layout and two frames (~33 ms of it).
@@ -87,7 +87,7 @@ template could clone rows instead, a build step the runtime does not have).
 
 ## Next
 
-The bench as a regression guard: run it before changing `dom/` or `reactive/` (Internals › Performance › Runtime; a
+The bench as a regression guard: run it before changing `dom/` or `reactive/` (Internals › Runtime performance; a
 visible page for totals, a hidden one gives script times only, about twice as slow). What is left is element creation
 itself (~50 ms for 10,000 rows without bindings); a compiled template that clones rows would be the next step, a build
 step the runtime does not have.

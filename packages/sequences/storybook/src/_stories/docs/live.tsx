@@ -126,14 +126,14 @@ function previewPath() {
 }
 
 /**
- * Prism's viewer as the app composes it (the `App/Viewer › Predicted` story) in a frame of its own:
+ * Prism's viewer as the app composes it (the `Viewer/With extensions › Predicted` story) in a frame of its own:
  * a whole app on a predicted structure, with the Seq* band linked to its 3D view. A frame, not the docs blocks: the story
  * is a full-height web-components app, and the frame isolates its styles, its plugin and its WebGL context from this
  * page. It follows the page's theme (the story's `theme` global) and works in `storybook dev` and the static build.
  */
 export function ExamplePlugin() {
   const theme = useTheme();
-  const id = 'prism-app-viewer--predicted';
+  const id = 'prism-viewer-with-extensions--predicted';
   return (
     <Unstyled>
       <div className={s.stack}>

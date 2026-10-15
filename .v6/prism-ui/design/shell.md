@@ -280,9 +280,9 @@ extension UI) are placed.
 
 **State (mocks):** the shell is built (`views/shell`: `ShellView`, `FloatingDock`, `DockView`, `CanvasStack`,
 `OverlayHost`, `StatusLine`, `BusyOverlay`, `EmptyCanvas`, `FileDropOverlay`, `SectionList`, `LogView`) over
-`ShellModel`, `StatusModel`, `FullscreenModel` and `ThemeModel`. The Shell/Shell stories (`views/shell/shell.stories`)
-register the default UI by hand with mock models (`testing/`): the tabs, the cards and their sections, the rail and
-canvas stack items, the mode switch, playback, the selection bar, the command menu and, opt-in, the agent module. Not
+`ShellModel`, `StatusModel`, `FullscreenModel` and `ThemeModel`. The Viewer › Shell stories (`packages/prism/viewer/src/_stories/shell.stories.tsx`)
+show it in the real viewer (`testing/real-viewer.ts`): loaded, the command menu, the canvas background, the pinned
+panel, the compact layout, expand and fullscreen, Help, a card opened at a section. Not
 yet: Expand itself (the mock reports "Expanded"; Fullscreen works); a viewport model following
 `events.canvas3d.settingsUpdated` (the stories pass the background); a UI to move tabs between docks (`move` exists);
 default content for the left and bottom docks.

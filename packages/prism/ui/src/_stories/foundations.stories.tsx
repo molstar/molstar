@@ -12,7 +12,6 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { Button } from '../components/button/button.js';
 import { Icon } from '../components/icon/icon.js';
-import { MolstarWordmark } from '../components/icon/wordmark.js';
 import { Select } from '../components/select/select.js';
 import { Show } from '../dom/control-flow.js';
 import { observableState } from '../reactive/observable-state.js';
@@ -409,44 +408,4 @@ export const Motion: StoryObj = {
         </div>
       );
     }),
-};
-
-function LogoPanel(props: { theme: 'light' | 'dark' }) {
-  return (
-    <div
-      data-msp-theme={props.theme}
-      style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
-    >
-      <div style="display: grid; gap: var(--msp-space-3)">
-        <span style={note}>The wordmark (Home's heading; the empty canvas at 3×): hover it for the logo's colors</span>
-        <div style="display: flex; gap: var(--msp-space-6); align-items: end; flex-wrap: wrap">
-          <MolstarWordmark />
-          <MolstarWordmark scale={2} />
-          <MolstarWordmark scale={3} live />
-        </div>
-      </div>
-      <div style="display: grid; gap: var(--msp-space-3)">
-        <span style={note}>The Home icon (16, 20, 24, 48 px)</span>
-        <div style="display: flex; gap: var(--msp-space-5); align-items: center">
-          {[16, 20, 24, 48].map((size) => (
-            <Icon name="prism" size={size} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * The logo: the Mol* wordmark with Prism's mark after it, a triangle as tall as the asterisk pointing away from it (a
- * prism, a play button) with a thicker core inside (a tetrahedron from above); Home's icon is the mark as a delta.
- */
-export const Logo: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msp-space-5); padding: var(--msp-space-5)">
-        <LogoPanel theme="light" />
-        <LogoPanel theme="dark" />
-      </div>
-    )),
 };

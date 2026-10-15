@@ -10,9 +10,10 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '../../../testing/story-root.js';
+import { Icon } from '../icon.js';
 import { MolstarWordmark } from '../wordmark.js';
 
-const meta: Meta = { title: 'Components/Wordmark' };
+const meta: Meta = { title: 'Components/Logo' };
 export default meta;
 
 const surface =
@@ -29,6 +30,48 @@ function Labelled(props: { label: string; children: Node }) {
   );
 }
 
+function LogoPanel(props: { theme: 'light' | 'dark' }) {
+  return (
+    <div
+      data-msp-theme={props.theme}
+      style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
+    >
+      <div style="display: grid; gap: var(--msp-space-3)">
+        <span style={caption}>
+          The wordmark (Home's heading; the empty canvas at 3×): hover it for the logo's colors
+        </span>
+        <div style="display: flex; gap: var(--msp-space-6); align-items: end; flex-wrap: wrap">
+          <MolstarWordmark />
+          <MolstarWordmark scale={2} />
+          <MolstarWordmark scale={3} live />
+        </div>
+      </div>
+      <div style="display: grid; gap: var(--msp-space-3)">
+        <span style={caption}>The Home icon (16, 20, 24, 48 px)</span>
+        <div style="display: flex; gap: var(--msp-space-5); align-items: center">
+          {[16, 20, 24, 48].map((size) => (
+            <Icon name="prism" size={size} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The logo: the Mol* wordmark with Prism's mark after it, a triangle as tall as the asterisk pointing away from it (a
+ * prism, a play button) with a thicker core inside (a tetrahedron from above); Home's icon is the mark as a delta.
+ */
+export const Logo: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msp-space-5); padding: var(--msp-space-5)">
+        <LogoPanel theme="light" />
+        <LogoPanel theme="dark" />
+      </div>
+    )),
+};
+
 /** The flash of the logo's colors: now and then (rare, a heading), often, or wiped in once and kept (reveal). */
 export const Flash: StoryObj = {
   render: () =>
@@ -42,21 +85,6 @@ export const Flash: StoryObj = {
         </Labelled>
         <Labelled label="reveal">
           <MolstarWordmark flash="reveal" />
-        </Labelled>
-      </div>
-    )),
-};
-
-/** Whole multiples of its drawn size keep the lines on the pixel grid. */
-export const Scale: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style={surface}>
-        <Labelled label="scale 1">
-          <MolstarWordmark scale={1} />
-        </Labelled>
-        <Labelled label="scale 3">
-          <MolstarWordmark scale={3} />
         </Labelled>
       </div>
     )),

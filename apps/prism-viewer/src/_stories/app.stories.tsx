@@ -16,7 +16,7 @@ import { FullPrismViewerSpec } from '../full-spec.js';
 // The viewer as the app composes it (the viewer's defaults and Mol*'s extensions: `FullPrismViewerSpec`), for what
 // needs an extension. These reach the network.
 
-const meta: Meta = { title: 'App/Viewer', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/With extensions', parameters: { layout: 'fullscreen' } };
 export default meta;
 
 /**

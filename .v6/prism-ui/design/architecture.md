@@ -94,7 +94,7 @@ packages/prism/assistant/
     model.ts         AgentModel, AISettingsModel and the turn, run and history types
     views/           agent-turn (turn card, run rows, Undo turn), history-tab, assistant-tab, ai-setup
     testing/         MockAgentModel, MockAISettings, mockAssistant, mockAgentAddOn (the agent in the mock shell)
-    _stories/        assistant.stories.tsx: Shell › Assistant (set up, not set up)
+    _stories/        assistant.stories.tsx: Viewer › Assistant (set up, not set up)
     index.ts         the public entry
   package.json       depends on @molstar/prism-ui; `styles` runs prism-ui's css.mjs with `--prefix agent`
 ```
@@ -265,15 +265,18 @@ settle before anything talks to a plugin.
   `pnpm -C storybook storybook` / `build-storybook` (or `mise run storybook`); not in CI.
 - A toolbar global sets the theme (`data-msp-theme` on the document root: light, dark, blue, auto).
 - Story order, all under one Prism group (the registry's `group`, Storybook's `titlePrefix`): Overview (Introduction,
-  Foundations), Shell, Views, Canvas, Components, Internals (the DOM runtime, and Performance: the renderer check).
+  Foundations), Viewer (the real viewer, from the whole to its parts and data: Shell, Home, Structure panel, Volumes,
+  Playback, Assistant, Data, MVS stories, With extensions), Components (prism-ui's own, over stand-in models),
+  Internals (the DOM runtime, Runtime performance: the renderer check, State tree performance).
   Every component but the color picker has a story; `Components/Params form` shows every PD control in its states.
 - `testing/story-root` (`story()`) hosts a story's JSX in an `MspElement`, so its bindings are disposed when Storybook
   removes it.
 - `testing/` implements the `model/` contracts with in-memory data (scene, home, snapshots, selection, …), and
   `testing/shell` is the whole mock shell; stories, a few view tests (command menu, Structure tab) and the agent's
   stories import them. The agent's mocks (an agent with scripted turns) are in its package.
-- The Prism packages built on prism-ui are registered too (viewer: Shell › Viewer mode, Views; stories: Shell › Story
-  mode; assistant: Shell › Assistant). Stories over a real `PluginContext` (plan's level 3) are not built yet.
+- The Prism packages built on prism-ui are registered too, and their stories run the real viewer under Prism › Viewer
+  (the viewer: Shell, Home, Structure panel, Volumes, Playback, Data; the assistant: Assistant; the app: With
+  extensions; the MVS stories example: MVS stories). Story mode has no stories (it is not built).
 
 ## 9. Tests and checks
 

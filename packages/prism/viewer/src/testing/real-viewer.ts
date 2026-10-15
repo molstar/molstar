@@ -9,6 +9,7 @@
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { createPrismViewer } from '../page.js';
+import type { SceneNode } from '../model/scene.js';
 import type { PrismViewerSpec } from '../spec.js';
 import type { PrismViewer } from '../viewer.js';
 
@@ -28,6 +29,36 @@ export const ExampleFiles = {
   trajectoryModel: new URL('../../../../../data/examples/trajectory/protein.pdb', import.meta.url).href,
   trajectoryCoordinates: new URL('../../../../../data/examples/trajectory/protein.dcd', import.meta.url).href,
 };
+
+/** The first scene node the predicate takes, depth first (what a story picks). */
+export function findNode(nodes: readonly SceneNode[], is: (n: SceneNode) => boolean): SceneNode | undefined {
+  for (const n of nodes) {
+    if (is(n)) return n;
+    const below = findNode(n.children.value, is);
+    if (below) return below;
+  }
+  return undefined;
+}
+
+/**
+ * The Structure panel open and a node picked (when given), its ancestors expanded so the tree shows where it is.
+ */
+export function openAt(v: PrismViewer, is?: (n: SceneNode) => boolean): void {
+  v.views.shell?.show('structure');
+  if (!is) return;
+  const path = (nodes: readonly SceneNode[]): SceneNode[] | undefined => {
+    for (const n of nodes) {
+      if (is(n)) return [n];
+      const below = path(n.children.value);
+      if (below) return [n, ...below];
+    }
+    return undefined;
+  };
+  const found = path(v.views.scene.roots.value);
+  if (!found) return;
+  for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+  v.views.scene.pick(found[found.length - 1]);
+}
 
 /** The element the viewer's shell lives in (its shadow root): for a story's clicks. */
 export function shellRoot(host: Element): ShadowRoot | undefined {

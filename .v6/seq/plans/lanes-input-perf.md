@@ -63,7 +63,7 @@ on a quiet machine.
 - **One document for both styles.** `sequenceDocument` drops its `tracks` option: Text and Tracks show the same
   document, and a style switch only changes the preset (no rebuild, no blank moment). The pLDDT track keeps its
   `encoding: 'line'` (Tracks) and is a strip in Text.
-- **`Shell/Viewer mode › RealPluginPredicted`** in Text: the letters in the residue palette, the secondary structure
+- **`Viewer/With extensions › Predicted`** in Text: the letters in the residue palette, the secondary structure
   as underlines (rose, amber, teal), pLDDT as a strip in `PrismPlddtBands`. The legend is the same in both styles.
 - The track gutter stays Tracks-only (Text has no track rows to put icons beside); the right-click menus work on a
   lane as on its track (the hit names the track).

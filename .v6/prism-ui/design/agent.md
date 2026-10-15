@@ -171,7 +171,7 @@ or `working`, and adds `denied`.
   after the turn releases its checkpoint, and History says so.
 
 **State (mocks, `@molstar/prism-assistant`: `views/`, `inspector/`, `testing/mock-agent.ts`,
-`testing/mock-inspector.ts`; Shell › Assistant: Set up, Not set up, Trace, Trace running, Trace what it saw, Tools,
+`testing/mock-inspector.ts`; Viewer › Assistant: Set up, Not set up, Trace, Trace running, Trace what it saw, Tools,
 Tools at a tool, Limits, Inspect):** the Ask bar with proposed commands (`selection.color`, `data.download-structure`,
 `focus.target`) and agent turns, the turn card and its line (streaming, steps with progress and durations, a retry note,
 approval and denial, Stop, failure, summary, Undo turn, one checkpoint released by the next action), History with turns

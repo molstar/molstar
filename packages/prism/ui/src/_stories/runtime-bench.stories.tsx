@@ -16,7 +16,7 @@ import { keyedSelector } from '../reactive/keyed-selector.js';
 import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
 
-const meta: Meta = { title: 'Internals/Performance' };
+const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
 
 // The renderer bench (spike.md, Next): the js-framework-benchmark operations on the `dom` runtime, rows written the way

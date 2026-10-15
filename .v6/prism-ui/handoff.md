@@ -20,7 +20,7 @@ built yet.
   The spec review ([review.md](review.md)) is resolved up to the "integration step"; the rest of the contracts (review
   M6–M12, M22–M29 details) freeze after it.
 - Recent UI work (all in Storybook):
-  - **The Inspector** (Shell › Assistant: Trace, Trace running, Trace what it saw, Tools, Tools at a tool, Limits,
+  - **The Inspector** (Viewer › Assistant: Trace, Trace running, Trace what it saw, Tools, Tools at a tool, Limits,
     Inspect). It is a `ShellPage`: a full-size card over the canvas, beside the rail and the open panel. Its ways in are
     the Assistant tab's Inspect block, the commands Assistant trace (⌥T), Assistant tools and Assistant limits, and the
     turn card's Trace link.

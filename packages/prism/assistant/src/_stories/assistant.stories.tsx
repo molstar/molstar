@@ -25,7 +25,7 @@ import type { SettingsPrefs } from '../viewer/settings-model.js';
 // gives), a provider of the story's own (`createAssistantWith({ provided })`), so nothing reaches a model and no key is
 // asked for or read; the keys and the choice are kept in memory, never the person's.
 
-const meta: Meta = { title: 'Shell/Assistant', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/Assistant', parameters: { layout: 'fullscreen' } };
 export default meta;
 
 /** Keys kept for the story only. */

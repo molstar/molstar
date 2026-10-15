@@ -50,6 +50,7 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
   overflow: clip;
 

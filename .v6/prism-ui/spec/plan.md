@@ -159,13 +159,15 @@ plugin-level resize improvements (README §3.5, steps 1–2), the docs (`apps/do
 evals pass; the performance budgets hold; the classic `apps/viewer` stays published beside it for a major version.
 Then the mocks that are left are retired, and the `_spec` folders next to the code are written (README, top).
 
-As built (2026-10-15), the mocks' retirement in Storybook: the viewer's stories (Shell › Viewer mode, Views › Home tab,
-Views › Structure tab, Viewer › Real) run the real viewer (`testing/real-viewer.ts`: `createPrismViewer` over the
-repository's example files; a few reach the network, said on them); the app's stories (App › Viewer: Mol*'s extensions,
-the predicted structure the Seq* docs embed) and the MVS stories example's (MVS stories: each built story loaded with
-`load.mvs`, its snapshots' descriptions in the Playback card) are registered too. The assistant's stories (Shell › Assistant) run the real assistant on the real viewer over a scripted model
-(`createAssistantWith({ provided })`, its keys and choice in memory): the setup, turns done, waiting, running and failed,
-the Inspector's trace, tools and limits. Only the story mode's (a sketch, not built) still run on the mock viewer mode. The distribution stages the app for GitHub Pages in
+As built (2026-10-15), the mocks' retirement in Storybook: every viewer story runs on one harness, `testing/real-viewer.ts`'s
+`RealViewerStory` (`createPrismViewer` over the repository's example files; a few reach the network, said on them), with
+`openAt` to open the Structure panel at a node. The viewer's stories (Viewer › Shell, Home, Structure panel, Volumes,
+Playback, Data) run the real viewer; the app's (Viewer › With extensions: Mol*'s extensions, the predicted structure
+the Seq* docs embed) and the MVS stories example's (Viewer › MVS stories: each built story loaded with `load.mvs`, its
+snapshots' descriptions in the Playback card) are registered too. The assistant's stories (Viewer › Assistant) run the
+real assistant on the real viewer over a scripted model (`createAssistantWith({ provided })`, its keys and choice in
+memory): the setup, turns done, waiting, running and failed, the Inspector's trace, tools and limits. prism-ui's own
+stories (Components) use stand-in models. Story mode has no stories (it is not built). The distribution stages the app for GitHub Pages in
 `build/prism-viewer/` (its page, chunks, images and the single file); `deploy.js` copies it to `prism-viewer/`.
 
 ## 4. Lanes and review gates

@@ -15,7 +15,7 @@ import { Stories } from '../stories/index.js';
 // MolViewSpec (`load.mvs`), its snapshots in the Snapshots list and the current one's description (markdown) on the
 // canvas, stepped through with the playback card. Their data comes from the network.
 
-const meta: Meta = { title: 'MVS stories', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/MVS stories', parameters: { layout: 'fullscreen' } };
 export default meta;
 
 function mvsStory(id: (typeof Stories)[number]['id']): StoryObj {
