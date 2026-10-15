@@ -70,12 +70,6 @@
   }
 }
 
-.segmentText {
-  overflow: hidden;
-  font-size: var(--msp-font-size-xs);
-  white-space: nowrap;
-}
-
 /* The color themes: tiles painted with their colors on this structure; the current one ringed. */
 .tiles {
   display: flex;

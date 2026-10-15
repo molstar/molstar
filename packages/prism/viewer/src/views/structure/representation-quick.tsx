@@ -46,7 +46,7 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
                   model.settle();
                 }}
               >
-                {c.icon ? <Icon name={c.icon} size={18} /> : <span class={classes.segmentText}>{c.label}</span>}
+                <Icon name={c.icon ?? 'shapes'} size={18} />
               </button>
             )}
           </For>

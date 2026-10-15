@@ -152,7 +152,9 @@ export function createRepresentationQuick(
     const swatch = swatches.get(id);
     return swatch ? { swatch } : {};
   };
-  const iconOf = (id: string): Partial<QuickChoice> => (TypeIcons[id] ? { icon: TypeIcons[id] } : {});
+  // Another type (the current one, not among the common: interactions, putty, …): a generic glyph; its name is the tooltip
+  // and the setting's head.
+  const iconOf = (id: string): Partial<QuickChoice> => ({ icon: TypeIcons[id] ?? 'shapes' });
   const typeOk = (id: string) => {
     const s = structure();
     return registry.has(id) && !!s && registry.get(id).isApplicable(s);

@@ -86,6 +86,16 @@ describe('the quick settings of a structure representation', () => {
     await until(() => quick.size.value === 2);
   });
 
+  it('offers a current type that is not a common one as its own choice, with a generic icon', async () => {
+    const { v, row, quick } = await cartoon();
+    quick.change({ type: 'line' });
+    quick.settle();
+    await until(() => params(v, row.id).type.name === 'line');
+    await until(() => quick.types.value.some((t) => t.id === 'line'));
+    expect(quick.types.value.find((t) => t.id === 'line')).toMatchObject({ icon: 'shapes' });
+    expect(quick.types.value.every((t) => !!t.icon)).toBe(true);
+  });
+
   it('makes a slider drag one undo step', async () => {
     const { v, row, quick } = await cartoon();
     await idle(v);

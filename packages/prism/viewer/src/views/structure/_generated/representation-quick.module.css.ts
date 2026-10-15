@@ -16,7 +16,6 @@ export const classes = {
   'one': 'msp-viewer-representation-quick-one',
   'quick': 'msp-viewer-representation-quick-quick',
   'segment': 'msp-viewer-representation-quick-segment',
-  'segmentText': 'msp-viewer-representation-quick-segmentText',
   'segments': 'msp-viewer-representation-quick-segments',
   'setting': 'msp-viewer-representation-quick-setting',
   'tile': 'msp-viewer-representation-quick-tile',
@@ -84,12 +83,6 @@ defineStyles('viewer/views/structure/representation-quick.module.css', `@layer m
       inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
-}
-
-.msp-viewer-representation-quick-segmentText {
-  font-size: var(--msp-font-size-xs);
-  white-space: nowrap;
-  overflow: hidden;
 }
 
 .msp-viewer-representation-quick-tiles {
