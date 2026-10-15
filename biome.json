@@ -616,10 +616,6 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
-                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
-                  },
-                  {
                     "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
                   },
@@ -652,19 +648,6 @@
               "level": "error",
               "options": {
                 "patterns": [
-                  {
-                    "group": [
-                      "@molstar/**",
-                      "molstar",
-                      "molstar/**",
-                      "!@molstar/seq-*",
-                      "!@molstar/seq-*/**",
-                      "!@molstar/io/common/msgpack/*",
-                      "!@molstar/core/util/zip/zip",
-                      "!@molstar/core/task/execution/synchronous"
-                    ],
-                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
-                  },
                   {
                     "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
@@ -735,10 +718,6 @@
               "level": "error",
               "options": {
                 "patterns": [
-                  {
-                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
-                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
-                  },
                   {
                     "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."

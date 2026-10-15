@@ -2,8 +2,8 @@
 
 What a sequence view is made of at runtime, as `@molstar/seq-core/model` holds it: molecules, units and complexes,
 numberings, coordinate systems and the maps between them, alignments, annotations, locations. [format.md](format.md)
-says how a document names them. The model is platform-free and has no dependencies (a MessagePack codec is vendored in);
-its query runtime, `@molstar/seq-core/model/query`, uses `@molstar/seq-core/query` and
+says how a document names them. The model is platform-free and has no third-party dependencies (its MessagePack codec is
+`@molstar/io`'s); its query runtime, `@molstar/seq-core/model/query`, uses `@molstar/seq-core/query` and
 `@molstar/seq-core/algorithms/search`.
 
 Its data is typed arrays, struct-of-arrays where things number in the thousands; things are referred to by integer ids,
