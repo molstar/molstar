@@ -252,6 +252,8 @@ interaction; no layout shift when content loads.
   paints are budgeted: `backdrop-filter` re-blurs whenever what is under it changes, and over the 3D canvas that is
   every rendered frame, so glass over the canvas is kept to small areas and measured (a frameless dock tab draws none).
   Large blurred shadows likewise.
+- **Field edges** (David, 2026-10-16): the default themes draw none; a field's fill sets it apart (`--msp-field-edge`
+  transparent). The high-contrast theme and `prefers-contrast: more` draw a 3:1 edge (WCAG 1.4.11), for whoever needs it.
 - **Hover is instant**: no transition on a hover's colors (background, color, border, shadow). A fade there lands the
   highlight late (it reads as lag) and, on a quick sweep along a row of buttons, leaves the one just left still lit, so
   a neighbour seems to blink (David, 2026-10-15: the rail). Motion stays for what moves (transform, opacity, scale).
