@@ -299,7 +299,9 @@ next frame (`requestResize`); the cost is sizing the canvas element (`resizeCanv
    The shell's pinned panel and rail stop shrinking the canvas (shell.md §2 changes with this).
 2. **Fewer waits** (now, plugin level): Prism's plugin replaces the debounce and throttle with one resize per animation
    frame while sizes change, and a last one when they settle; measured before and after, kept only if it does not add
-   blank frames.
+   blank frames. As built (`sources/canvas-host.ts`): a ResizeObserver on the viewer's element sizes the canvas and
+   draws it in the same callback (after layout, before paint), and an unchanged size is not set again; checked in the
+   browser: at each width the canvas matched its host and its center was drawn, not cleared.
 3. **Later, with the WebGPU work**: sizing the canvas inside the render frame (so the cleared canvas is drawn in the same
    frame), cheap frames while a resize is going on (no illumination or multi-sample accumulation), and render targets
    in size steps. Designed with Alex once the backend lands.
