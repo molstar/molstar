@@ -35,6 +35,11 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
    * at the panel's edge while the content keeps its inset: for lists that fill a panel (trees, inspectors).
    */
   edge?: boolean;
+  /**
+   * At its ends, the wheel goes on to what scrolls around it (a list inline in a panel); by default it stops here (a
+   * panel, a popover).
+   */
+  chain?: boolean;
 };
 
 /**
@@ -43,7 +48,7 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
  * of the UI that scrolls uses it.
  */
 export function ScrollArea(props: ScrollAreaProps) {
-  const { class: rootClass, contentClass, axis = 'y', viewportRef, edge, children, ...contentProps } = props;
+  const { class: rootClass, contentClass, axis = 'y', viewportRef, edge, chain, children, ...contentProps } = props;
   let root!: HTMLDivElement;
   let viewport!: HTMLDivElement;
   let content!: HTMLDivElement;
@@ -147,7 +152,12 @@ export function ScrollArea(props: ScrollAreaProps) {
   };
 
   root = (
-    <div class={`${classes.root} ${rootClass ?? ''}`} data-axis={axis} data-edge={edge ? '' : undefined}>
+    <div
+      class={`${classes.root} ${rootClass ?? ''}`}
+      data-axis={axis}
+      data-edge={edge ? '' : undefined}
+      data-chain={chain ? '' : undefined}
+    >
       <div
         class={classes.viewport}
         ref={(el) => {

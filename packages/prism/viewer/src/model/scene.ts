@@ -10,6 +10,7 @@ import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { VolumeLevelsModel } from './volume-levels.js';
+import type { VolumeTransferModel } from './volume-transfer.js';
 
 export type SceneNodeKind =
   | 'structure'
@@ -94,6 +95,8 @@ export interface SceneInspection {
   actions?: readonly SceneMenuItem[];
   /** A map's levels, above the form (a volume, an isosurface, streamed density: one per map). */
   levels?: readonly VolumeLevelsModel[];
+  /** A direct volume's transfer function (opacity and color over the map's values), above the form. */
+  transfer?: readonly VolumeTransferModel[];
 }
 
 export interface SceneModel {

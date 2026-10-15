@@ -33,7 +33,7 @@ const BigStep = 1;
 const minus = (s: string) => s.replace('-', '−');
 
 /** "1.50 σ", "0.0734": a value in a unit. */
-function formatIn(unit: VolumeLevelUnit, value: number, stats: VolumeLevelsModel['stats']): string {
+export function formatIn(unit: VolumeLevelUnit, value: number, stats: VolumeLevelsModel['stats']): string {
   if (unit === 'sigma') return minus(((value - stats.mean) / (stats.sigma || 1)).toFixed(2));
   return minus(String(Number(value.toPrecision(3))));
 }
@@ -46,7 +46,7 @@ function parseIn(unit: VolumeLevelUnit, text: string, stats: VolumeLevelsModel['
 }
 
 /** The histogram as a filled step path in a 1 × 1 box (log counts: a map's tails are thin). */
-function histogramPath(h: VolumeLevelHistogram | undefined): string {
+export function histogramPath(h: VolumeLevelHistogram | undefined): string {
   if (!h || !h.counts.length) return '';
   const n = h.counts.length;
   let top = 0;

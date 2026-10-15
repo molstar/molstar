@@ -69,6 +69,7 @@ export function Select(props: SelectProps) {
                 props.onChange?.(v);
               }}
               onClose={() => open.set(false)}
+              floating={props.over}
             />
           );
           return props.over ? <Floating anchor={anchor}>{list}</Floating> : list;
@@ -112,6 +113,8 @@ export function OptionList(props: {
   value: Observable<string | undefined>;
   onPick(value: string): void;
   onClose(): void;
+  /** Floating over the page (a popover): the wheel stays in it. Inline (default), at its ends it scrolls the panel. */
+  floating?: boolean;
 }) {
   const buttons: HTMLButtonElement[] = [];
   const focus = (i: number) => buttons[Math.max(0, Math.min(buttons.length - 1, i))]?.focus();
@@ -119,6 +122,7 @@ export function OptionList(props: {
     <ScrollArea
       class={classes.list}
       contentClass={classes.listContent}
+      chain={!props.floating}
       role="listbox"
       onKeyDown={(e) => {
         const i = buttons.indexOf(activeElement(list) as HTMLButtonElement);
@@ -187,7 +191,7 @@ function toValue(value: MaybeReactive<string> | undefined): Observable<string | 
  * What floats over the layout, under its anchor and at least as wide (above it when there is no room below): in the top layer
  * (a manual popover), so no panel's clipping or fade cuts it; it follows the anchor as things scroll or resize.
  */
-function Floating(props: { anchor: HTMLElement; children: Child }) {
+export function Floating(props: { anchor: HTMLElement; children: Child }) {
   const el = (
     <div class={classes.floating} attr:popover="manual">
       {props.children}

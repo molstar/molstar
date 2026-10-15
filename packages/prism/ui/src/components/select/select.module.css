@@ -138,6 +138,7 @@
   max-width: calc(100vw - 16px);
 
   & .option {
+    min-height: 24px;
     white-space: nowrap;
   }
 

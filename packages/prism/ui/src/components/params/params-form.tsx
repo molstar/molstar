@@ -687,11 +687,12 @@ function PresetsRow(props: {
   onPick(value: unknown): void;
 }) {
   const open = observableState(false);
+  let control: HTMLElement | undefined;
   return (
     <>
       <div class={classes.row}>
         <span class={classes.label}>Presets</span>
-        <div class={classes.control}>
+        <div class={classes.control} ref={(el: HTMLElement) => (control = el)}>
           <SelectButton
             size="sm"
             open={open}
@@ -700,7 +701,13 @@ function PresetsRow(props: {
           />
         </div>
       </div>
-      <PresetsList open={open} presets={() => props.presets} current={props.current} onPick={props.onPick} />
+      <PresetsList
+        open={open}
+        presets={() => props.presets}
+        current={props.current}
+        onPick={props.onPick}
+        anchor={() => control}
+      />
     </>
   );
 }

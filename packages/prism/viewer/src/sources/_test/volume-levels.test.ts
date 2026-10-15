@@ -79,6 +79,24 @@ describe('a map levels model', () => {
     expect(m.levels.value[0]).toMatchObject({ value: 5, color: 0xff0000 });
   });
 
+  it('spaces previews out while a gesture is held, and applies the latest at once when it is let go', async () => {
+    const f = fake();
+    const m = createVolumeLevels(f.api, f.port, f.unit, { quietMs: 10_000, throttleMs: 10_000 });
+    m.change('a', { value: 2 });
+    await f.next();
+    expect(f.applied).toEqual([{ value: 2 }]);
+    // Held: the next preview waits its turn, the latest winning.
+    m.change('a', { value: 3 });
+    m.change('a', { value: 4 });
+    await f.next();
+    expect(f.applied).toEqual([{ value: 2 }]);
+    expect(m.levels.value[0].value).toBe(4);
+    // Let go: no wait.
+    m.settle();
+    await f.next();
+    expect(f.applied).toEqual([{ value: 2 }, { value: 4 }]);
+  });
+
   it('starts another step after settle, or after a moment without changes', async () => {
     const f = fake();
     const m = createVolumeLevels(f.api, f.port, f.unit, { quietMs: 5 });

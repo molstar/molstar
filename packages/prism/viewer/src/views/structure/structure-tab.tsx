@@ -23,6 +23,7 @@ import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { VolumeLevels } from '../volume/volume-levels.js';
+import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
@@ -282,6 +283,10 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
       {/* A map's levels (the iso values and colors people change most), above the whole form. */}
       {props.inspection.levels?.map((levels) => (
         <VolumeLevels model={levels} />
+      ))}
+      {/* A direct volume's transfer function (opacity and colors over the map's values). */}
+      {props.inspection.transfer?.map((transfer) => (
+        <VolumeTransfer model={transfer} />
       ))}
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />

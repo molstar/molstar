@@ -105,6 +105,25 @@ export const EmdbMap: StoryObj = {
     )),
 };
 
+/**
+ * The map as a direct volume (EMD-2984), its row picked: the transfer function in the inspector (the opacity curve over
+ * the map's histogram, the colors under it, the color stops). Network.
+ */
+export const EmdbDirectVolume: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        setup={async (v) => {
+          await v.api.load.entry?.({ source: 'emdb', id: 'EMD-2984' });
+          await v.api.volume.representation({ type: 'direct-volume' });
+          v.views.shell?.show('structure');
+          const map = v.views.scene.roots.value.find((n) => n.kind === 'volume');
+          v.views.scene.pick(map?.children.value.find((n) => n.label.value.toLowerCase().includes('direct')) ?? map);
+        }}
+      />
+    )),
+};
+
 /** The canvas background: the canvas' chrome (the toolbar, the band, the status) follows its color. */
 export const CanvasBackground: StoryObj<{ background: string }> = {
   args: { background: '#14181f' },

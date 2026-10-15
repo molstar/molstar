@@ -65,6 +65,7 @@ import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurement
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
+import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -199,7 +200,9 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   /** How map levels are shown and typed (σ or map units), one choice for every map. */
   const levelUnit = observableState<VolumeLevelUnit>('sigma');
   const refreshLevels = (id: string) => {
-    for (const l of (inspections.get(id)?.levels ?? []) as VolumeLevelsSource[]) l.refresh();
+    const inspection = inspections.get(id);
+    for (const l of (inspection?.levels ?? []) as VolumeLevelsSource[]) l.refresh();
+    for (const t of (inspection?.transfer ?? []) as VolumeTransferSource[]) t.refresh();
   };
 
   const structureNode = (s: StructureRef, name: string): Node => {
@@ -1390,11 +1393,22 @@ function inspect(
       mapLevels(plugin, () => volumeRefOf(plugin, node.id)),
       unit,
     );
+    // Its direct volumes' transfer functions (named when there are several).
+    const direct = (volumeRefOf(plugin, node.id)?.representations ?? []).filter(
+      (r) => (r.cell.transform.params as { type?: { name: string } } | undefined)?.type?.name === 'direct-volume',
+    );
+    const transfer = direct.flatMap((r, i) => {
+      const t = createVolumeTransfer(plugin, api, () => volumeRefOf(plugin, node.id), r.cell.transform.ref, unit, {
+        ...(direct.length > 1 ? { title: `Direct volume ${i + 1}` } : {}),
+      });
+      return t ? [t] : [];
+    });
     return {
       node,
       form: undefined,
       slot,
       ...(levels.levels.value.length ? { levels: [levels] } : {}),
+      ...(transfer.length ? { transfer } : {}),
       facts: [
         ...(data.sourceData.kind ? [['Source', data.sourceData.kind.toUpperCase()] as const] : []),
         ['Grid', gridText(stats)],
@@ -1443,7 +1457,19 @@ function inspect(
             unit,
           )
         : undefined;
-      return { node, form, slot, ...(levels?.levels.value.length ? { levels: [levels] } : {}) };
+      // A direct volume: its transfer function above the whole form.
+      const direct = (cell.transform.params as { type?: { name: string } } | undefined)?.type?.name === 'direct-volume';
+      const transfer =
+        volume && direct
+          ? createVolumeTransfer(plugin, api, () => volumeRefOf(plugin, volume), node.id, unit)
+          : undefined;
+      return {
+        node,
+        form,
+        slot,
+        ...(levels?.levels.value.length ? { levels: [levels] } : {}),
+        ...(transfer ? { transfer: [transfer] } : {}),
+      };
     }
   }
   return { node, form: undefined, slot };

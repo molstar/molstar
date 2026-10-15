@@ -134,6 +134,15 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: a map's levels in the inspector of a volume, an isosurface and streamed density: the map's histogram
   with a marker per iso value to drag (one undo step a drag), the value in σ or map units, each level's color and
   opacity; an isosurface's tree row shows its color.
+- Prism viewer: a direct volume's transfer function in the inspector: the opacity curve over the map's histogram (a
+  log scale, Mol*'s presets), the area under it in the colors painted there, the volume-value theme's stops on the same
+  axis (a stop on a point moves with it), Colors at peaks (pressed again, it cycles colors); previews while dragging
+  are throttled, the final value applies on release, one undo step a drag.
+- Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
+  the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
+- `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as
+  `ColorScale` does) instead of switching halfway between them, and offsets with many decimals no longer make a huge
+  palette.
 - Prism viewer: load a SeqViewSpec into the sequence (`load.svs`, `.svsj` files, `svs-url`): it shows over the loaded
   structure it names (loaded if missing) until another structure is focused or loaded, and Undo and sessions keep it.
 - Prism viewer: `load.mvs` takes v5's options: `append` (keep the Snapshots list), `keepCameraOrientation`,

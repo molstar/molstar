@@ -44,6 +44,7 @@ defineStyles('viewer/views/volume/volume-levels.module.css', `@layer msp.compone
 .msp-viewer-volume-levels-levels {
   gap: var(--msp-space-1);
   font-size: var(--msp-font-size-sm);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

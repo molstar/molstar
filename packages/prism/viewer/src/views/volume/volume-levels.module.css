@@ -8,6 +8,7 @@
 
 .levels {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-1);
   font-size: var(--msp-font-size-sm);
 }

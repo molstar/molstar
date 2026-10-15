@@ -44,6 +44,10 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
     display: none;
   }
 
+  .msp-scroll-area-root[data-chain] > & {
+    overscroll-behavior: auto;
+  }
+
   .msp-scroll-area-root[data-axis="y"] > & {
     overflow-x: hidden;
   }

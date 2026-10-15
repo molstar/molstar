@@ -15,6 +15,7 @@ import { type ObservableState, observableState } from '@molstar/prism-ui/core';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import type { ViewerApi } from '../api/area.js';
 import { type StreamingState, streamingChannels } from '../api/volume.js';
+import { gestureSteps } from './gesture-steps.js';
 import type {
   VolumeLevel,
   VolumeLevelChange,
@@ -26,7 +27,7 @@ import type {
 
 // A map's levels over the API (model/volume-levels.ts): a loaded map's isosurfaces through `volume.isovalue` and
 // `volume.update`, streamed density's channels through `volume.streaming-view`. Changes in quick succession are one
-// `api.group` (one undo step), the latest winning while one is applied.
+// undo step (`gestureSteps`).
 
 /** What a map's levels read and how a change is made. */
 export interface VolumeLevelsPort {
@@ -43,79 +44,33 @@ export interface VolumeLevelsSource extends VolumeLevelsModel {
   refresh(): void;
 }
 
-/** A step in progress: its changes not applied yet, the ones shown until it ends, and its loop's wake-up. */
-interface Step {
-  readonly pending: Map<string, VolumeLevelChange>;
-  readonly shown: Map<string, VolumeLevelChange>;
-  wake?: () => void;
-  closed: boolean;
-}
-
-/** After this long without a change (and no gesture held), the changes so far are one step. */
-const QuietMs = 600;
-
 export function createVolumeLevels(
   api: ViewerApi,
   port: VolumeLevelsPort,
   unit: ObservableState<VolumeLevelUnit>,
-  options: { quietMs?: number } = {},
+  options: { quietMs?: number; throttleMs?: number } = {},
 ): VolumeLevelsSource {
-  const quietMs = options.quietMs ?? QuietMs;
-  const steps: Step[] = [];
-  let open: Step | undefined;
-  let quiet: ReturnType<typeof setTimeout> | undefined;
   const histogram = observableState(port.histogram());
   const levels = observableState<readonly VolumeLevel[]>([]);
-
   // What is shown: the tree's levels with the changes of steps still in progress over them (a marker being dragged
   // stays under the pointer while earlier positions land).
-  const publish = () => {
-    let list = port.read();
-    for (const step of steps) {
-      if (!step.shown.size) continue;
-      list = list.map((l) => {
-        const c = step.shown.get(l.id);
+  const publish = () =>
+    levels.set(
+      port.read().map((l) => {
+        const c = steps.overlay(l.id);
         return c ? { ...l, ...c } : l;
-      });
-    }
-    levels.set(list);
-  };
-
-  const run = (step: Step) =>
-    api
-      .group(
-        port.title ? `${port.title} levels` : 'Volume levels',
-        async (g) => {
-          for (;;) {
-            const next = step.pending.entries().next();
-            if (!next.done) {
-              const [id, change] = next.value;
-              step.pending.delete(id);
-              const level = port.read().find((l) => l.id === id);
-              if (level) await port.apply(g, level, change);
-              continue;
-            }
-            if (step.closed) return;
-            await new Promise<void>((resolve) => (step.wake = resolve));
-            step.wake = undefined;
-          }
-        },
-        { onFailure: 'continue' },
-      )
-      .catch(() => undefined)
-      .finally(() => {
-        steps.splice(steps.indexOf(step), 1);
-        publish();
-      });
-
-  const close = () => {
-    clearTimeout(quiet);
-    const step = open;
-    open = undefined;
-    if (!step) return;
-    step.closed = true;
-    step.wake?.();
-  };
+      }),
+    );
+  const steps = gestureSteps<VolumeLevelChange>(api, {
+    label: port.title ? `${port.title} levels` : 'Volume levels',
+    apply: async (g, id, change) => {
+      const level = port.read().find((l) => l.id === id);
+      if (level) await port.apply(g, level, change);
+    },
+    changed: () => publish(),
+    ...(options.quietMs !== undefined ? { quietMs: options.quietMs } : {}),
+    ...(options.throttleMs !== undefined ? { throttleMs: options.throttleMs } : {}),
+  });
 
   publish();
   return {
@@ -125,21 +80,8 @@ export function createVolumeLevels(
     levels: levels.asReadonly,
     unit: unit.asReadonly,
     setUnit: (u) => unit.set(u),
-    change(id, change) {
-      let step = open;
-      if (!step) {
-        step = open = { pending: new Map(), shown: new Map(), closed: false };
-        steps.push(step);
-        void run(step);
-      }
-      step.pending.set(id, { ...step.pending.get(id), ...change });
-      step.shown.set(id, { ...step.shown.get(id), ...change });
-      step.wake?.();
-      publish();
-      clearTimeout(quiet);
-      quiet = setTimeout(close, quietMs);
-    },
-    settle: close,
+    change: (id, change) => steps.change(id, change),
+    settle: () => steps.settle(),
     refresh() {
       histogram.set(port.histogram());
       publish();

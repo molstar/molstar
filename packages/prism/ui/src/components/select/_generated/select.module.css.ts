@@ -148,6 +148,7 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 
   & .msp-select-option {
     white-space: nowrap;
+    min-height: 24px;
   }
 
   & > .msp-select-list {

@@ -35,6 +35,11 @@
     display: none;
   }
 
+  /* A list inline in a panel: at its ends the wheel scrolls the panel. */
+  .root[data-chain] > & {
+    overscroll-behavior: auto;
+  }
+
   .root[data-axis="y"] > & {
     overflow-x: hidden;
   }
