@@ -61,6 +61,8 @@ function mount() {
     },
     settle: () => {},
     colorsAtPeaks: () => {},
+    palettes: [],
+    applyPreset: () => {},
   };
   const container = document.createElement('div');
   document.body.append(container);

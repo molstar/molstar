@@ -163,39 +163,35 @@ describe('the transfer function of a direct volume', () => {
     expect(t.tf.colors.value.kind === 'value' && t.tf.colors.value.stops.map((s) => s.color)[0]).toBe(0xff0000);
   });
 
-  it('cycles the colors when Colors at peaks is pressed again, each peak its own', async () => {
+  it('colors the peaks from a palette, and a preset moves the stops onto its peaks with their colors', async () => {
     const t = await directVolume();
     const peakColors = () => {
       const list = t.rep.cell.transform.params.colorTheme.params.colorList.colors as [number, number][];
-      return transferPeaks(t.tf.points.value).map((p) => list.find((c) => Math.abs(c[1] - p.from) < 0.002)![0]);
+      return transferPeaks(t.tf.points.value).map((p) => list.find((c) => Math.abs(c[1] - p.from) < 0.002)?.[0]);
     };
-    // Two peaks.
-    t.tf.change({
-      points: [
-        { x: 0.1, alpha: 0 },
-        { x: 0.2, alpha: 0.05 },
-        { x: 0.3, alpha: 0.05 },
-        { x: 0.4, alpha: 0 },
-        { x: 0.6, alpha: 0 },
-        { x: 0.7, alpha: 0.05 },
-        { x: 0.8, alpha: 0 },
-      ],
-    });
+    const twoPeaks = [
+      { x: 0.1, alpha: 0 },
+      { x: 0.2, alpha: 0.05 },
+      { x: 0.3, alpha: 0.05 },
+      { x: 0.4, alpha: 0 },
+      { x: 0.6, alpha: 0 },
+      { x: 0.7, alpha: 0.05 },
+      { x: 0.8, alpha: 0 },
+    ];
+    t.tf.change({ points: twoPeaks });
     t.tf.settle();
     await flush();
-    t.tf.colorsAtPeaks();
+    t.tf.colorsAtPeaks('viridis');
     await flush();
-    const first = peakColors();
-    expect(first).toEqual([0xff0000, 0x0000ff]);
-    t.tf.colorsAtPeaks();
+    // A sequential palette spread over the peaks, low to high.
+    expect(peakColors()).toEqual([0x440154, 0xfde725]);
+
+    // A preset (here: the peaks moved): the stops follow, with the colors they had.
+    const moved = twoPeaks.map((p) => ({ ...p, x: p.x + 0.05 }));
+    t.tf.applyPreset(moved);
     await flush();
-    const second = peakColors();
-    t.tf.colorsAtPeaks();
-    await flush();
-    const third = peakColors();
-    expect(second).not.toEqual(first);
-    expect(third).not.toEqual(second);
-    for (const set of [second, third]) expect(new Set(set).size).toBe(set.length);
+    expect(t.rep.cell.transform.params.type.params.controlPoints[1][0]).toBeCloseTo(0.25, 3);
+    expect(peakColors()).toEqual([0x440154, 0xfde725]);
   });
 
   it('on a uniform theme, sets the one color, and Colors at peaks turns it into the volume-value theme', async () => {

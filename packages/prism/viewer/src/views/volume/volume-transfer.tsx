@@ -8,10 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, ColorPicker, colorToHex, PresetsButton, PresetsList } from '@molstar/prism-ui';
+import { Button, ColorPicker, colorToHex, Floating, PresetsButton, PresetsList } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import type { VolumeLevelUnit } from '../../model/volume-levels.js';
@@ -30,8 +31,8 @@ import { formatIn, histogramPath } from './volume-levels.js';
 // opacity as a curve through its points (a log scale: opacities per step are small) with the area under it in the
 // colors the renderer paints there, and under it the color strip with the theme's stops. Points: drag, click to add,
 // double-click to remove, arrow keys and Delete when focused. Stops: the same on the strip; a picked stop opens its
-// color; dragged near a point, a stop snaps to it, and a stop on a point moves with it. Colors at peaks puts stops at
-// the ends of each of the curve's peaks.
+// color; dragged near a point, a stop snaps to it, and a stop on a point moves with it. Colors at peaks (a popover of
+// palettes, or the theme's own colors) puts stops at the ends of each of the curve's peaks; a preset moves them with it.
 
 /** Samples of the colors for the strip and the area's gradient. */
 const Samples = 64;
@@ -83,6 +84,8 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
 
   const picked = observableState<Picked>(undefined);
   const presetsOpen = observableState(false);
+  const palettesOpen = observableState(false);
+  let paletteAnchor: HTMLElement | undefined;
   const gradientId = uniqueId('msp-tf');
   const samples = model.colors.pipe(map(samplesOf));
   const points = model.points;
@@ -348,8 +351,11 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
             class={classes.iconTool}
             disabled={hasPeaks.pipe(map((h) => !h))}
             aria-label="Colors at peaks"
+            aria-haspopup="listbox"
+            aria-expanded={palettesOpen}
             title="Colors at peaks: a color for each of the curve's peaks"
-            onClick={() => model.colorsAtPeaks()}
+            ref={(el: HTMLElement) => (paletteAnchor = el)}
+            onClick={() => palettesOpen.set(!palettesOpen.value)}
           >
             <Icon name="palette" size={13} />
           </button>
@@ -379,11 +385,18 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
             return i < 0 ? undefined : i;
           }),
         )}
-        onPick={(p) => {
-          model.change({ points: p });
-          model.settle();
-        }}
+        // The color stops move onto the new curve's peaks with their colors (one step).
+        onPick={(p) => model.applyPreset(p)}
       />
+      <Show when={palettesOpen}>
+        {() =>
+          paletteAnchor ? (
+            <Floating anchor={paletteAnchor}>
+              <PalettePicker model={model} onClose={() => palettesOpen.set(false)} />
+            </Floating>
+          ) : null
+        }
+      </Show>
       <div
         class={classes.plot}
         title="Drag a point · click to add one · double-click to remove it"
@@ -551,4 +564,55 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       </Show>
     </section>
   );
+}
+
+/**
+ * Colors at peaks: the theme's own colors, or a palette (each its swatches), in a popover under the palette button; a
+ * pick colors the peaks and closes it; Esc or a press outside closes it.
+ */
+function PalettePicker(props: { model: VolumeTransferModel; onClose(): void }) {
+  const { model } = props;
+  const pick = (palette?: string) => {
+    model.colorsAtPeaks(palette);
+    props.onClose();
+  };
+  const list = (
+    <div
+      class={classes.palettes}
+      role="listbox"
+      aria-label="Colors at peaks"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          props.onClose();
+        }
+      }}
+    >
+      <button type="button" role="option" class={classes.palette} onClick={() => pick()}>
+        <span class={classes.paletteLabel}>The theme's colors</span>
+      </button>
+      {model.palettes.map((p) => (
+        <button type="button" role="option" class={classes.palette} onClick={() => pick(p.id)}>
+          <span class={classes.paletteSwatches} aria-hidden="true">
+            {p.colors.map((c) => (
+              <span class={classes.paletteSwatch} style={{ background: colorToHex(c) }} />
+            ))}
+          </span>
+          <span class={classes.paletteLabel}>{p.label}</span>
+        </button>
+      ))}
+    </div>
+  ) as HTMLElement;
+  // A press outside (not on the palette button, which toggles) closes it.
+  const onDown = (e: PointerEvent) => {
+    const path = e.composedPath();
+    if (path.includes(list) || path.some((t) => (t as Element).getAttribute?.('aria-label') === 'Colors at peaks')) {
+      return;
+    }
+    props.onClose();
+  };
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
+  queueMicrotask(() => list.querySelector<HTMLElement>('button')?.focus());
+  return list;
 }

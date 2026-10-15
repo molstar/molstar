@@ -49,6 +49,23 @@ export interface TransferPreset {
   readonly points: readonly TransferPoint[];
 }
 
+/** Colors for the peaks: categorical (in order) or sequential (spread over the peaks, low to high). */
+export interface TransferPalette {
+  readonly id: string;
+  readonly label: string;
+  readonly colors: readonly number[];
+  readonly sequential?: boolean;
+}
+
+/** The colors a palette gives `n` peaks, low to high. */
+export function paletteColors(palette: TransferPalette, n: number): number[] {
+  const c = palette.colors;
+  if (!palette.sequential || n <= 1 || c.length < 2) {
+    return Array.from({ length: n }, (_, i) => c[(palette.sequential ? c.length - 1 : i) % c.length]);
+  }
+  return Array.from({ length: n }, (_, i) => c[Math.round((i * (c.length - 1)) / (n - 1))]);
+}
+
 export interface VolumeTransferModel {
   /** Which representation, when a volume has more than one. */
   readonly title?: string;
@@ -66,13 +83,19 @@ export interface VolumeTransferModel {
   /** Changes in quick succession are one undo step (a drag), as the levels' (`VolumeLevelsModel.change`). */
   change(change: TransferChange): void;
   settle(): void;
+  /** Palettes to color the peaks with (`colorsAtPeaks`). */
+  readonly palettes: readonly TransferPalette[];
   /**
-   * Color stops at the curve's peaks, at each one's ends (a peak is one color, the colors blend between peaks), so each
-   * part of the map the curve shows gets its own color: the
-   * theme's own colors in order (not its whites and greys), then distinct ones; on another theme, the volume-value
-   * theme with them. Pressed again on the same peaks, each peak takes the next color: presses cycle color sets.
+   * Color stops at the curve's peaks, at each one's ends (a peak is one color, the colors blend between peaks): a
+   * palette's colors (by id), or with none the theme's own colors in order (not its whites and greys), then distinct
+   * ones; on another theme, the volume-value theme with them.
    */
-  colorsAtPeaks(): void;
+  colorsAtPeaks(palette?: string): void;
+  /**
+   * A preset's curve, and the color stops moved onto its peaks with the colors they have (on the volume-value theme), so
+   * the colors stay with the parts of the map the curve shows: one step.
+   */
+  applyPreset(points: readonly TransferPoint[]): void;
 }
 
 /** A peak of the curve: a run of points above zero, from its first to its last. */

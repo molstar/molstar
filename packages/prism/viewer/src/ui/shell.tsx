@@ -185,8 +185,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
 
   const commandMenuOpen = observableState(false);
   const commandMenuGroup = observableState<string | undefined>(undefined);
-  const openCommandMenu = (group?: string) => {
+  // Opened for one command from elsewhere: Esc closes it (no list to go back to).
+  let commandMenuDirect = false;
+  const openCommandMenu = (group?: string, direct = false) => {
     commandMenuGroup.set(group);
+    commandMenuDirect = direct;
     commandMenuOpen.set(true);
   };
 
@@ -598,7 +601,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   // A command opened from elsewhere (a component's action, a shortcut of a command with a form, an extension) shows in
   // the menu: an open command with no menu around it would be invisible.
   const showActive = managers.commands.active.subscribe((invocation) => {
-    if (invocation && !commandMenuOpen.value) openCommandMenu();
+    if (invocation && !commandMenuOpen.value) openCommandMenu(undefined, true);
   });
   unregister.push(() => showActive.unsubscribe());
 
@@ -658,6 +661,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                   manager={managers.commands}
                   {...(assistant ? { assistant } : {})}
                   group={commandMenuGroup.value}
+                  direct={commandMenuDirect}
                   onClose={() => {
                     commandMenuOpen.set(false);
                     commandMenuGroup.set(undefined);

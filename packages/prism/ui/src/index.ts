@@ -61,7 +61,7 @@ export { Markdown, type MarkdownHost, type MarkdownLinkEvent } from './component
 export { ParamsForm } from './components/params/params-form.js';
 export { PresetsButton, PresetsList, presetIndex } from './components/params/presets.js';
 export { ScrollArea, type ScrollAreaProps } from './components/scroll-area/scroll-area.js';
-export { OptionList, Select, type SelectOption, type SelectProps } from './components/select/select.js';
+export { Floating, OptionList, Select, type SelectOption, type SelectProps } from './components/select/select.js';
 export { TextInput, type TextInputProps } from './components/text-input/text-input.js';
 export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
 

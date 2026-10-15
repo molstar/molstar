@@ -22,6 +22,8 @@ import {
   type TransferPoint,
   type TransferPreset,
   type TransferStop,
+  paletteColors,
+  type TransferPalette,
   type TransferPeak,
   transferPeaks,
   type VolumeTransferModel,
@@ -47,6 +49,46 @@ type ValueThemeParams = PD.Values<typeof VolumeValueColorThemeParams>;
 
 /** Colors for peaks when the theme has none to keep: distinct, readable on dark and light. */
 const PeakColors = [0x3362b2, 0xd33115, 0x16a34a, 0xf59e0b, 0x9333ea, 0x0891b2, 0xdb2777];
+
+/** The palettes Colors at peaks offers. */
+const Palettes: readonly TransferPalette[] = [
+  { id: 'distinct', label: 'Distinct', colors: PeakColors },
+  { id: 'red-blue', label: 'Red and blue', colors: [0xd33115, 0x3362b2, 0xf59e0b, 0x16a34a] },
+  { id: 'pastel', label: 'Pastel', colors: [0x8dd3c7, 0xfb8072, 0x80b1d3, 0xfdb462, 0xb3de69, 0xbebada] },
+  {
+    id: 'viridis',
+    label: 'Viridis',
+    colors: [0x440154, 0x414487, 0x2a788e, 0x22a884, 0x7ad151, 0xfde725],
+    sequential: true,
+  },
+  { id: 'magma', label: 'Magma', colors: [0x3b0f70, 0x8c2981, 0xde4968, 0xfe9f6d, 0xfcfdbf], sequential: true },
+  { id: 'ice', label: 'Ice', colors: [0xc6dbef, 0x9ecae1, 0x6baed6, 0x3182bd, 0x08519c], sequential: true },
+];
+
+/**
+ * The theme's own colors for `n` peaks: once each and in order, leaving out whites, greys and blacks (the default's
+ * background between its colors); peaks beyond them get distinct ones.
+ */
+function ownColors(now: TransferColors, n: number): number[] {
+  const own = [
+    ...new Set(now.kind === 'value' ? now.stops.map((s) => s.color) : now.kind === 'uniform' ? [now.color] : []),
+  ].filter(isChromatic);
+  const extra = PeakColors.filter((c) => !own.includes(c));
+  return Array.from({ length: n }, (_, i) => own[i] ?? extra[(i - own.length) % extra.length]);
+}
+
+/** A stop at each end of each peak (one at a single point), in the peak's color. */
+function stopsAtPeaks(peaks: readonly TransferPeak[], picks: readonly number[]): TransferStop[] {
+  return peaks.flatMap((p, i) => {
+    const color = picks[i];
+    return p.to - p.from > 0.002
+      ? [
+          { x: p.from, color },
+          { x: p.to, color },
+        ]
+      : [{ x: p.from, color }];
+  });
+}
 
 /** Not white, grey or black: its channels differ by more than a little. */
 function isChromatic(c: number): boolean {
@@ -189,8 +231,6 @@ export function createVolumeTransfer(
     ...(options.throttleMs !== undefined ? { throttleMs: options.throttleMs } : {}),
   });
 
-  /** How many times Colors at peaks was pressed in a row on the same peaks (each press the next colors). */
-  let cycle = 0;
   const provider = plugin.representation.volume.registry.get('direct-volume');
   const logMin =
     (provider?.getParams(plugin.representation.volume.themes, data) as { controlPoints?: PD.LineGraph } | undefined)
@@ -217,32 +257,22 @@ export function createVolumeTransfer(
     setUnit: (u) => unit.set(u),
     change: (change) => steps.change('tf', change),
     settle: () => steps.settle(),
-    colorsAtPeaks() {
+    palettes: Palettes,
+    colorsAtPeaks(palette) {
       const peaks = transferPeaks(points.value);
       if (!peaks.length) return;
-      const ends = (p: TransferPeak) => (p.to - p.from > 0.002 ? [p.from, p.to] : [p.from]);
+      const chosen = palette ? Palettes.find((p) => p.id === palette) : undefined;
+      const picks = chosen ? paletteColors(chosen, peaks.length) : ownColors(colors.value, peaks.length);
+      steps.change('tf', { stops: stopsAtPeaks(peaks, picks) });
+      steps.settle();
+    },
+    applyPreset(next) {
       const now = colors.value;
-      // Pressed again (the stops are on the peaks already): each peak takes the next color of the palette, so presses
-      // cycle through color sets.
-      const onPeaks =
-        now.kind === 'value' &&
-        now.stops.length === peaks.flatMap(ends).length &&
-        peaks.flatMap(ends).every((x, k) => Math.abs(now.stops[k].x - x) <= 0.0015);
-      cycle = onPeaks ? cycle + 1 : 0;
-      let picks: number[];
-      if (cycle > 0) {
-        picks = peaks.map((_, i) => PeakColors[(i + cycle - 1) % PeakColors.length]);
-      } else {
-        // The theme's own colors, once each and in order, leaving out whites, greys and blacks (the default's
-        // background between its colors); peaks beyond them get distinct ones.
-        const own = [
-          ...new Set(now.kind === 'value' ? now.stops.map((s) => s.color) : now.kind === 'uniform' ? [now.color] : []),
-        ].filter(isChromatic);
-        const extra = PeakColors.filter((c) => !own.includes(c));
-        picks = peaks.map((_, i) => own[i] ?? extra[(i - own.length) % extra.length]);
-      }
-      const stops = peaks.flatMap((p, i) => ends(p).map((x) => ({ x, color: picks[i] })));
-      steps.change('tf', { stops });
+      // The stops follow the curve's peaks on the volume-value theme; another theme's colors are not on the axis.
+      const peaks = transferPeaks(next);
+      const stops =
+        now.kind === 'value' && peaks.length ? stopsAtPeaks(peaks, ownColors(now, peaks.length)) : undefined;
+      steps.change('tf', { points: next, ...(stops ? { stops } : {}) });
       steps.settle();
     },
     refresh() {

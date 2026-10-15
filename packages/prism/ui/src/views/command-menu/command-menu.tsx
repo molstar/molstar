@@ -37,6 +37,11 @@ export interface CommandMenuProps {
   group?: string;
   /** The assistant (when the spec turns AI on): typed words get an Ask row (design/agent.md §5). */
   assistant?: CommandMenuAssistant;
+  /**
+   * Opened for one command from elsewhere (a component's action): its form is the menu, so Esc (and ⌫ past its first
+   * field) closes the menu rather than going back to the list.
+   */
+  direct?: boolean;
 }
 
 /**
@@ -171,6 +176,7 @@ export function CommandMenu(props: CommandMenuProps) {
               invocation={invocation}
               proposed={proposed.asReadonly}
               onClose={props.onClose}
+              {...(props.direct ? { direct: true } : {})}
             />
           )}
         </Show>
@@ -739,6 +745,8 @@ function FormMode(props: {
   /** Proposed by the assistant from these words. */
   proposed?: Observable<string | undefined>;
   onClose(): void;
+  /** Opened for this command alone: leaving the form closes the menu. */
+  direct?: boolean;
 }) {
   const { manager, invocation } = props;
   const state = invocation.state;
@@ -781,16 +789,21 @@ function FormMode(props: {
           invocation.move(e.key === 'ArrowDown' ? 1 : -1);
         } else if (e.key === 'Backspace' && !e.currentTarget.value) {
           e.preventDefault();
-          if (!invocation.back()) manager.close();
+          if (!invocation.back()) leave();
         } else if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
-          manager.close();
+          leave();
         }
       }}
     />
   ) as HTMLInputElement;
   queueMicrotask(() => input.focus());
+  // Leaving the form: back to the list, or, opened for this command alone, the menu closes.
+  const leave = () => {
+    manager.close();
+    if (props.direct) props.onClose();
+  };
   // To where the command lives in the UI: the form and the menu close, the place opens.
   const goToView = () => {
     const view = command.view;
@@ -888,7 +901,7 @@ function FormMode(props: {
           ['↵', 'run'],
           ...(command.view ? [['⌥↵', 'open in the UI'] as [string, string]] : []),
           ['⌫', 'back'],
-          ['esc', 'commands'],
+          props.direct ? ['esc', 'close'] : ['esc', 'commands'],
         ]}
       />
     </>

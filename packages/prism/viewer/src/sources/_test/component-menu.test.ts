@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer, until } from '../../_test/harness.js';
 
 // A component's actions (its row menu, its inspector) open their commands in the command menu for it: the component
-// and the structure filled in, a preset component's keyword as the target, the rest to choose there.
+// and the structure filled in, a preset component's keyword as the target, the rest to choose there; Modify by
+// selection acts at once.
 
 describe("a component's actions", () => {
   it('open their commands with the component filled in', async () => {
@@ -30,8 +31,8 @@ describe("a component's actions", () => {
     await until(() => active()?.command.id === 'representation.color-theme');
     expect(active()!.state.value.values).toMatchObject({ target: 'polymer' });
 
-    run('modify');
-    await until(() => active()?.command.id === 'component.modify');
-    expect(active()!.state.value.values).toMatchObject({ component: 'Polymer', target: 'selection' });
+    // Modify by selection acts at once (three choices under it), with no form.
+    const modify = polymer.menu!.find((m) => m.id === 'modify')!;
+    expect(modify.items?.map((m) => m.id)).toEqual(['union', 'subtract', 'intersect']);
   });
 });

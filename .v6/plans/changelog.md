@@ -136,7 +136,8 @@ the [API change ledger](breaking-v6-changes.md).
   opacity; an isosurface's tree row shows its color.
 - Prism viewer: a direct volume's transfer function in the inspector: the opacity curve over the map's histogram (a
   log scale, Mol*'s presets), the area under it in the colors painted there, the volume-value theme's stops on the same
-  axis (a stop on a point moves with it), Colors at peaks (pressed again, it cycles colors); previews while dragging
+  axis (a stop on a point moves with it), Colors at peaks (a popover: the theme's colors or a palette; a preset moves
+  the stops onto its peaks with their colors); previews while dragging
   are throttled, the final value applies on release, one undo step a drag.
 - Prism viewer: a structure representation's quick settings above its whole form: its type and color theme as
   choices, one color from a row of swatches, the opacity and the size as sliders (a drag is one undo step); a map
@@ -152,8 +153,9 @@ the [API change ledger](breaking-v6-changes.md).
   scene; the Structure panel's header has no Component button (the command menu adds components).
 - Prism UI: a select's options are grouped by Mol*'s categories, each group a fold (the current option's open); a
   form's select opens as a popover under its field; `CommandManager.open` takes values to open a command with.
-- Prism viewer: a component's actions (Add representation, Set coloring, Modify by selection) open their commands in
-  the command menu for it, the component (or a preset component's keyword) filled in.
+- Prism viewer: a component's Add representation and Set coloring open their commands in the command menu for it,
+  the component (or a preset component's keyword) filled in, and one Esc closes a command opened that way; Modify by
+  selection acts at once (include, subtract or intersect the selection).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.

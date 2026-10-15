@@ -794,6 +794,27 @@ function colorLabel(plugin: PluginContext, r: StructureRepresentationRef): strin
 }
 
 /** Mol*'s component menu: add representation, color, modify by the selection, select this. */
+/** A component changed by the current selection (v5's Modify by Selection): include, subtract or intersect it. */
+function modifyBySelection(api: ViewerApi, ref: string, structureRef: string): SceneMenuItem {
+  return {
+    id: 'modify',
+    label: 'Modify by selection',
+    icon: 'squares-unite',
+    items: (['union', 'subtract', 'intersect'] as const).map((mode) => ({
+      id: mode,
+      label:
+        mode === 'union'
+          ? 'Include the selection'
+          : mode === 'subtract'
+            ? 'Subtract the selection'
+            : 'Intersect with the selection',
+      icon: mode === 'union' ? 'squares-unite' : mode === 'subtract' ? 'squares-subtract' : 'squares-intersect',
+      run: () =>
+        void api.run('component.modify', { component: ref, structure: structureRef, target: 'selection', mode }),
+    })),
+  };
+}
+
 /** The preset components' labels as target keywords (targets.md §1). */
 const ComponentKeywords: Readonly<Record<string, string>> = {
   polymer: 'polymer',
@@ -849,12 +870,8 @@ function componentMenu(
             ...(keyword ? { target: keyword } : {}),
           }),
       },
-      {
-        id: 'modify',
-        label: 'Modify by selection…',
-        icon: 'squares-unite',
-        run: () => openCommand('component.modify', { ...named(), target: 'selection' }),
-      },
+      // This component changed by the current selection: three choices, at once (no form to fill).
+      modifyBySelection(api, ref, structureRef),
       {
         id: 'select',
         label: 'Select this',
@@ -894,18 +911,7 @@ function componentMenu(
         },
       })),
     },
-    {
-      id: 'modify',
-      label: 'Modify by selection',
-      icon: 'squares-unite',
-      items: (['union', 'subtract', 'intersect'] as const).map((mode) => ({
-        id: mode,
-        label: mode === 'union' ? 'Include' : mode === 'subtract' ? 'Subtract' : 'Intersect',
-        icon: mode === 'union' ? 'squares-unite' : mode === 'subtract' ? 'squares-subtract' : 'squares-intersect',
-        run: () =>
-          void api.run('component.modify', { component: ref, structure: structureRef, target: 'selection', mode }),
-      })),
-    },
+    modifyBySelection(api, ref, structureRef),
     {
       id: 'select',
       label: 'Select this',

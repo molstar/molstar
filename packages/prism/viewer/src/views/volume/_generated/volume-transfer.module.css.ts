@@ -20,6 +20,11 @@ export const classes = {
   'head': 'msp-viewer-volume-transfer-head',
   'iconTool': 'msp-viewer-volume-transfer-iconTool',
   'on': 'msp-viewer-volume-transfer-on',
+  'palette': 'msp-viewer-volume-transfer-palette',
+  'paletteLabel': 'msp-viewer-volume-transfer-paletteLabel',
+  'paletteSwatch': 'msp-viewer-volume-transfer-paletteSwatch',
+  'paletteSwatches': 'msp-viewer-volume-transfer-paletteSwatches',
+  'palettes': 'msp-viewer-volume-transfer-palettes',
   'picked': 'msp-viewer-volume-transfer-picked',
   'pickedText': 'msp-viewer-volume-transfer-pickedText',
   'plot': 'msp-viewer-volume-transfer-plot',
@@ -315,6 +320,49 @@ defineStyles('viewer/views/volume/volume-transfer.module.css', `@layer msp.compo
 
 .msp-viewer-volume-transfer-colorRow[aria-expanded="true"] .msp-viewer-volume-transfer-chevron {
   transform: rotate(180deg);
+}
+
+.msp-viewer-volume-transfer-palettes {
+  min-width: 200px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+  display: grid;
+}
+
+.msp-viewer-volume-transfer-palette {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  text-align: left;
+  display: flex;
+
+  &:hover, &:focus-visible {
+    background: var(--msp-color-hover);
+    outline: none;
+  }
+}
+
+.msp-viewer-volume-transfer-paletteSwatches {
+  border-radius: var(--msp-radius-sm);
+  width: 72px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  flex: none;
+  display: flex;
+  overflow: hidden;
+}
+
+.msp-viewer-volume-transfer-paletteSwatch {
+  flex: 1;
+  height: 14px;
+}
+
+.msp-viewer-volume-transfer-paletteLabel {
+  font-size: var(--msp-font-size-sm);
 }
 }
 `);
