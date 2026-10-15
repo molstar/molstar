@@ -13,7 +13,7 @@ import { mapFile } from '../../api/_test/volume-fixtures.js';
 import type { ViewerApi } from '../../api/area.js';
 import type { VolumeLevel, VolumeLevelChange, VolumeLevelUnit } from '../../model/volume-levels.js';
 import type { PrismViewer } from '../../viewer.js';
-import { createVolumeLevels, type VolumeLevelsPort } from '../volume-levels.js';
+import { createVolumeLevels, histogramOf, type VolumeLevelsPort } from '../volume-levels.js';
 
 // A map's levels (model/volume-levels.ts): changes in quick succession are one group (one undo step), applied one at a
 // time with the latest winning, shown at once; over a headless viewer, a loaded map's isosurface through the API.
@@ -116,7 +116,16 @@ describe('the levels of a loaded map', () => {
     const [levels] = v.views.scene.inspect(volume).levels!;
     const [level] = levels.levels.value;
     expect(level.label).toBe('Isosurface');
-    expect(levels.histogram.value?.counts.length).toBeGreaterThan(0);
+    // Mol*'s histogram cached on the grid (1024 bins), folded eight to one: every voxel counted once.
+    const grid = v.plugin.managers.volume.hierarchy.current.volumes[0].cell.obj!.data.grid;
+    const counts = Array.from(levels.histogram.value!.counts);
+    expect(counts).toHaveLength(128);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(grid.cells.data.length);
+    // The same object each time it is read (folded once).
+    expect(histogramOf(v.plugin.managers.volume.hierarchy.current.volumes[0].cell.obj!.data)).toBe(
+      levels.histogram.value,
+    );
+    expect(Object.keys((grid as any)._histograms)).toEqual(['1024']);
     const { mean, sigma } = levels.stats;
     expect((level.value - mean) / sigma).toBeCloseTo(isoOf(v).relativeValue, 5);
 

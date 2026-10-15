@@ -15,6 +15,7 @@ export const classes = {
   'bars': 'msp-viewer-volume-levels-bars',
   'dim': 'msp-viewer-volume-levels-dim',
   'editor': 'msp-viewer-volume-levels-editor',
+  'editorHead': 'msp-viewer-volume-levels-editorHead',
   'head': 'msp-viewer-volume-levels-head',
   'inside': 'msp-viewer-volume-levels-inside',
   'level': 'msp-viewer-volume-levels-level',
@@ -259,7 +260,6 @@ defineStyles('viewer/views/volume/volume-levels.module.css', `@layer msp.compone
 }
 
 .msp-viewer-volume-levels-other {
-  min-width: 7ch;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-variant-numeric: tabular-nums;
@@ -271,6 +271,16 @@ defineStyles('viewer/views/volume/volume-levels.module.css', `@layer msp.compone
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) 0 var(--msp-space-2);
   display: grid;
+}
+
+.msp-viewer-volume-levels-editorHead {
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin-bottom: calc(-1 * var(--msp-space-1));
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  display: flex;
 }
 
 .msp-viewer-volume-levels-opacity {

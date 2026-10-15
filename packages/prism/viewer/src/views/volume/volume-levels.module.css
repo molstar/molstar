@@ -43,7 +43,7 @@
     background: var(--msp-color-hover);
   }
 
-  &[aria-checked='true'] {
+  &[aria-checked="true"] {
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
   }
@@ -79,7 +79,7 @@
   pointer-events: none;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     bottom: 0;
@@ -117,7 +117,7 @@
 
   /* The line. */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     bottom: 0;
@@ -128,7 +128,7 @@
 
   /* The handle at its top. */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 2px; /* off-scale */
     left: 1px; /* off-scale */
@@ -236,10 +236,9 @@
   color: var(--msp-color-text-subtle);
 }
 
-/* The value in the other unit. */
+/* The value in the other unit, before the field (the name gives way as it grows). */
 .other {
   flex: none;
-  min-width: 7ch;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-variant-numeric: tabular-nums;
@@ -250,6 +249,17 @@
   display: grid;
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) 0 var(--msp-space-2);
+}
+
+/* The editor's title and its close. */
+.editorHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+  margin-bottom: calc(-1 * var(--msp-space-1));
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 .opacity {

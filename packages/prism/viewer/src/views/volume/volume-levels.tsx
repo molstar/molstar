@@ -8,7 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ColorPicker, colorToHex } from '@molstar/prism-ui';
+import { Button, ColorPicker, colorToHex } from '@molstar/prism-ui';
+import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
@@ -23,7 +24,7 @@ import { classes } from './_generated/volume-levels.module.css.js';
 // A map's levels (model/volume-levels.ts; v5's density controls, improved): the map's values as a histogram with a
 // marker per level, dragged (or stepped with the arrow keys) to set the iso value, the part of the map the surface
 // encloses tinted in its color; under it a row per level: its color (a click opens the picker and the opacity), its
-// value typed in σ or map units, the other unit beside it. A drag is one undo step.
+// value typed in σ or map units, the other unit before it. A drag is one undo step.
 
 /** σ steps for the arrow keys (Shift: the big one). */
 const Step = 0.1;
@@ -249,6 +250,14 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
         <span class={classes.name} classList={{ [classes.dim]: level.pipe(map((l) => l.hidden)) }}>
           {level.pipe(map((l) => l.label))}
         </span>
+        {/* The other unit before the field: its width changes as the value does, and the field stays put. */}
+        <span class={classes.other}>
+          {both.pipe(
+            map(([l, u]) =>
+              u === 'sigma' ? formatIn('absolute', l.value, stats) : `${formatIn('sigma', l.value, stats)} σ`,
+            ),
+          )}
+        </span>
         <input
           class={classes.value}
           inputMode="decimal"
@@ -266,17 +275,21 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
           }}
         />
         <span class={classes.suffix}>{model.unit.pipe(map((u) => (u === 'sigma' ? 'σ' : '')))}</span>
-        <span class={classes.other}>
-          {both.pipe(
-            map(([l, u]) =>
-              u === 'sigma' ? formatIn('absolute', l.value, stats) : `${formatIn('sigma', l.value, stats)} σ`,
-            ),
-          )}
-        </span>
       </div>
       <Show when={open} reveal>
         {() => (
           <div class={classes.editor}>
+            {/* Its close at the top right (the swatch closes it too). */}
+            <div class={classes.editorHead}>
+              <span>{level.pipe(map((l) => `${l.label} color`))}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name="x" />}
+                title="Close"
+                onClick={() => open.set(false)}
+              />
+            </div>
             <ColorPicker
               value={level.pipe(map((l) => l.color ?? 0x808080))}
               onChange={(c) => model.change(id, { color: c })}

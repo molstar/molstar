@@ -12,7 +12,7 @@ import type { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-st
 import type { PluginContext } from '@molstar/plugin/context';
 import type { VolumeRef } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import { type ObservableState, observableState } from '@molstar/prism-ui/core';
-import { Volume } from '@molstar/model/model/volume';
+import { Grid, Volume } from '@molstar/model/model/volume';
 import type { ViewerApi } from '../api/area.js';
 import { type StreamingState, streamingChannels } from '../api/volume.js';
 import type {
@@ -147,18 +147,38 @@ export function createVolumeLevels(
   };
 }
 
-/** Bins of a map's histogram: enough to see its shape in a narrow panel. */
-const Bins = 96;
-const histograms = new WeakMap<object, VolumeLevelHistogram>();
+/** Bins of a map's histogram: enough to see its shape in a narrow panel; Mol*'s cached 1024 bins, eight to one. */
+const Bins = 128;
+const folded = new WeakMap<object, VolumeLevelHistogram>();
+const streamed = new WeakMap<object, VolumeLevelHistogram>();
 
-/** A grid's values over [min, max], once per grid (a map's data does not change). */
-export function histogramOf(volume: Volume, min: number, max: number): VolumeLevelHistogram {
+/**
+ * A loaded map's values over its range: Mol*'s histogram cached on the grid (`Grid.getHistogram`, the one its robust
+ * statistics and the direct-volume transfer function use), folded once.
+ */
+export function histogramOf(volume: Volume): VolumeLevelHistogram {
+  const fine = Grid.getHistogram(volume.grid, Grid.RobustStatsBinCount);
+  let h = folded.get(fine);
+  if (!h) {
+    const step = Math.max(1, Math.round(fine.counts.length / Bins));
+    const counts = new Int32Array(Math.ceil(fine.counts.length / step));
+    for (let i = 0; i < fine.counts.length; i++) counts[Math.floor(i / step)] += fine.counts[i];
+    h = { min: fine.min, max: fine.max, counts };
+    folded.set(fine, h);
+  }
+  return h;
+}
+
+/**
+ * Streamed density's values over the whole map's range (the server's, not the box's), once per box that arrives.
+ */
+function streamedHistogramOf(volume: Volume, min: number, max: number): VolumeLevelHistogram {
   const grid = volume.grid;
-  let h = histograms.get(grid);
-  if (!h || h.min !== min || h.max !== max) {
+  let h = streamed.get(grid);
+  if (!h) {
     const { counts } = calculateHistogram(grid.cells.data, Bins, { min, max });
     h = { min, max, counts };
-    histograms.set(grid, h);
+    streamed.set(grid, h);
   }
   return h;
 }
@@ -177,7 +197,7 @@ export function mapLevels(plugin: PluginContext, volume: () => VolumeRef | undef
     stats,
     histogram: () => {
       const d = volume()?.cell.obj?.data;
-      return d ? histogramOf(d, d.grid.stats.min, d.grid.stats.max) : undefined;
+      return d ? histogramOf(d) : undefined;
     },
     read: () =>
       (volume()?.representations ?? []).flatMap((r) => {
@@ -276,7 +296,7 @@ export function streamingLevels(
         const behavior =
           s && (plugin.state.data.cells.get(s.behavior)?.obj?.data as VolumeStreaming.Behavior | undefined);
         const data = behavior?.channels[channels[0]]?.data;
-        return data && data.grid.cells.data.length ? histogramOf(data, stats.min, stats.max) : undefined;
+        return data && data.grid.cells.data.length ? streamedHistogramOf(data, stats.min, stats.max) : undefined;
       },
       read: () => {
         const p = params();
