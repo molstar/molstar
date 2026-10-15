@@ -360,6 +360,19 @@ export class ShellModel extends ReactiveModel {
     if (this.#viewState.layout.value.compactRail) this.setRailOpen(!this.#navigation.state.value.railOpen);
   }
 
+  /**
+   * The canvas fills the viewer (`navigation.expanded`, `view.expand`): the view leaves out the rail, the docks and the
+   * sequence band; the canvas stack stays, with the way back (and Escape).
+   */
+  get expanded(): ReadonlyState<boolean> {
+    return this.#navigation.expanded;
+  }
+
+  setExpanded(expanded: boolean): void {
+    if (expanded) this.closeOverlay();
+    this.#navigation.setExpanded(expanded);
+  }
+
   dock(id: DockId): DockModel {
     return this.#docks[id];
   }

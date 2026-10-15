@@ -11,7 +11,16 @@ import { shellIdOf } from '../extensions/overrides.js';
 import { ApiArea, ApiResult } from './area.js';
 
 // `view` (operations.md §2): the UI's state, through the navigation manager; no history step. Headless it changes the
-// navigation state only (nothing shows it).
+// navigation state only (nothing shows it). `open`, `close`, `expand` (the canvas fills the viewer) and `fullscreen`
+// (the page's shell follows `navigation.fullscreen` with the browser's; parity.md's "expand, fullscreen" row).
+
+/** On, off, or the other of what it is. */
+const ToggleParam = () =>
+  PD.Select<'toggle' | 'on' | 'off'>('toggle', PD.arrayToOptions(['toggle', 'on', 'off'] as const), {
+    description: 'on, off, or toggle',
+  });
+
+const want = (on: 'toggle' | 'on' | 'off', current: boolean) => (on === 'toggle' ? !current : on === 'on');
 
 export class ViewApi extends ApiArea {
   readonly id = 'view';
@@ -58,6 +67,48 @@ export class ViewApi extends ApiArea {
       ctx.managers.navigation.setCard(undefined);
       ctx.managers.navigation.setDock('right', { collapsed: true });
       return ApiResult.ok('Closed.', { view: true });
+    },
+  });
+
+  readonly expand = this.operation({
+    id: 'view.expand',
+    title: 'Expand the viewport',
+    params: { on: ToggleParam() },
+    history: false,
+    async run({ on }, ctx) {
+      const nav = ctx.managers.navigation;
+      const next = want(on, nav.expanded.value);
+      if (next === nav.expanded.value) {
+        return ApiResult.already(next ? 'The viewport is already expanded.' : 'The viewport is not expanded.');
+      }
+      // The open card goes with the chrome (ShellModel.setExpanded does the same).
+      if (next) nav.setCard(undefined);
+      nav.setExpanded(next);
+      return ApiResult.ok(next ? 'Expanded the viewport: Escape brings the panels back.' : 'The panels are back.', {
+        view: true,
+      });
+    },
+  });
+
+  readonly fullscreen = this.operation({
+    id: 'view.fullscreen',
+    title: 'Fullscreen',
+    params: { on: ToggleParam() },
+    history: false,
+    modules: ['page'],
+    // The page Mol* is embedded in may forbid it (`<iframe allow="fullscreen">`, molstar#1663).
+    when: () =>
+      typeof document !== 'undefined' && !document.fullscreenEnabled
+        ? 'Not allowed by the page Mol* is embedded in.'
+        : true,
+    async run({ on }, ctx) {
+      const nav = ctx.managers.navigation;
+      const next = want(on, nav.fullscreen.value);
+      if (next === nav.fullscreen.value) {
+        return ApiResult.already(next ? 'Already fullscreen.' : 'Not fullscreen.');
+      }
+      nav.setFullscreen(next);
+      return ApiResult.ok(next ? 'Fullscreen: Escape leaves it.' : 'Left fullscreen.', { view: true });
     },
   });
 }

@@ -17,7 +17,9 @@ import { loadMVSData } from '@molstar/mvs/components/formats';
 import { PluginConfig } from '@molstar/plugin/config';
 import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/actions/structure';
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
+import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
+import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
@@ -308,9 +310,76 @@ export const UrlParams = {
     description: "The data format by name (mmcif, pdb, gro, ccp4, …), or 'auto' to read it from the address",
   }),
   binary: PD.Boolean(false, { description: 'The file is binary (bcif, ccp4, dcd, …)' }),
+  ...StructureOptionParams(),
 };
 
-async function loadUrl(ctx: ApiContext, url: string, format: string, isBinary: boolean) {
+/**
+ * How a structure file is built (v5's `loadAllModelsOrAssemblyFromUrl`): every model, and an assembly. Structure
+ * formats only; the defaults are the format's own load (the first model, its default assembly).
+ */
+function StructureOptionParams() {
+  return {
+    models: PD.Select<'first' | 'all'>(
+      'first',
+      [
+        ['first', 'The first model'],
+        ['all', 'Every model (one model: as first)'],
+      ],
+      {
+        description: "Structures: 'all' loads every model of an ensemble or a trajectory file, each its own structure",
+      },
+    ),
+    assembly: PD.Text('', { description: "Structures: the assembly id to build ('1', …); empty: the default" }),
+  };
+}
+
+interface StructureOptions {
+  readonly models: 'first' | 'all';
+  readonly assembly: string;
+}
+
+const hasStructureOptions = (o: StructureOptions) => o.models === 'all' || !!o.assembly.trim();
+
+/**
+ * Parses the data and shows it: the format's own visuals, or, with structure options, the trajectory built by the
+ * hierarchy presets as v5's loaders do (`all-models` falls back to the default for a single model).
+ */
+async function parseAndShow(
+  ctx: ApiContext,
+  data: StateObjectSelector<PluginStateObject.Data.String | PluginStateObject.Data.Binary>,
+  provider: DataFormatProvider,
+  options: StructureOptions,
+) {
+  const plugin = ctx.plugin;
+  if (!hasStructureOptions(options)) {
+    const parsed = await provider.parse(plugin, data);
+    await provider.visuals?.(plugin, parsed);
+    return;
+  }
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, provider as never);
+  const assembly = options.assembly.trim();
+  const structure = assembly ? { name: 'assembly' as const, params: { id: assembly } } : undefined;
+  if (options.models === 'all') {
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'all-models', {
+      useDefaultIfSingleModel: true,
+      ...(structure ? { structure } : {}),
+    } as never);
+  } else {
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', { structure });
+  }
+}
+
+/** Why the structure options do not apply to a format, or undefined. */
+function structureOptionsProblem(provider: DataFormatProvider | undefined, options: StructureOptions) {
+  if (!provider || !hasStructureOptions(options) || provider.category === TrajectoryFormatCategory) return undefined;
+  return ApiResult.fail(
+    'invalid',
+    `Models and assemblies are for structures; ${provider.label} is not one.`,
+    "Leave out 'models' and 'assembly'.",
+  );
+}
+
+async function loadUrl(ctx: ApiContext, url: string, format: string, isBinary: boolean, options: StructureOptions) {
   const plugin = ctx.plugin;
   await plugin.initialized;
   await plugin.dataTransaction(
@@ -324,10 +393,23 @@ async function loadUrl(ctx: ApiContext, url: string, format: string, isBinary: b
       const provider =
         format === 'auto' ? plugin.dataFormats.auto(info, data.cell!.obj!) : plugin.dataFormats.get(format);
       if (!provider) throw new Error(`Could not tell the format of ${url}`);
-      const parsed = await provider.parse(plugin, data);
-      await provider.visuals?.(plugin, parsed);
+      const problem = structureOptionsProblem(provider, options);
+      if (problem) throw new Error(problem.message);
+      await parseAndShow(ctx, data, provider, options);
     },
     { rethrowErrors: true },
+  );
+}
+
+/** A format by name, its lazy extension loaded first; a failure names the formats. */
+async function formatProblem(ctx: ApiContext, format: string) {
+  if (format === 'auto') return undefined;
+  await ctx.extensions.ensureFor({ formats: [format] });
+  if (ctx.plugin.dataFormats.has(format)) return undefined;
+  return ApiResult.fail(
+    'invalid',
+    `Unknown data format '${format}'.`,
+    `Formats: auto, ${ctx.plugin.dataFormats.types.map(([n]) => n).join(', ')}.`,
   );
 }
 
@@ -341,24 +423,18 @@ const url: OperationDefinition<typeof UrlParams, Loaded> = {
     const u = url.trim();
     return u && liveDownloads(ctx).some((d) => d.url === u) ? `${u} is already loaded.` : undefined;
   },
-  async run({ url, format, binary }, ctx) {
+  async run({ url, format, binary, models, assembly }, ctx) {
     const address = url.trim();
     if (!address) return ApiResult.fail('invalid', 'Which address?', 'Give the URL of a data file.');
     format = format.trim() || 'mmcif';
-    if (format !== 'auto') {
-      // A lazy extension that reads this format loads first.
-      await ctx.extensions.ensureFor({ formats: [format] });
-      if (!ctx.plugin.dataFormats.has(format)) {
-        return ApiResult.fail(
-          'invalid',
-          `Unknown data format '${format}'.`,
-          `Formats: auto, ${ctx.plugin.dataFormats.types.map(([n]) => n).join(', ')}.`,
-        );
-      }
-    }
+    const unknown = await formatProblem(ctx, format);
+    if (unknown) return unknown;
+    const options = { models, assembly };
+    const known = structureOptionsProblem(format === 'auto' ? undefined : ctx.plugin.dataFormats.get(format), options);
+    if (known) return known;
     const before = refsOf(ctx);
     try {
-      await guarded(ctx, () => loadUrl(ctx, address, format, binary));
+      await guarded(ctx, () => loadUrl(ctx, address, format, binary, options));
     } catch (e) {
       return pluginFailure(address, e);
     }
@@ -367,6 +443,107 @@ const url: OperationDefinition<typeof UrlParams, Loaded> = {
       loadedLine(names, address),
       { nodes: refsOf(ctx).filter((r) => !before.includes(r)) },
       { value: { loaded: names.length ? names : [address] } },
+    );
+  },
+};
+
+// --- load.data ----------------------------------------------------------------------------------------------------
+
+export const DataParams = {
+  data: PD.Text('', {
+    multiline: true,
+    description: "The file's contents: text (a PDB or mmCIF file, SDF, …), or 'base64,…' for a binary format",
+  }),
+  format: PD.Text('mmcif', {
+    description:
+      "The data format by name (mmcif, pdb, sdf, bcif, ccp4, …), or 'auto' to read it from the label's extension",
+  }),
+  label: PD.Text('', { description: "A name for the data (a file name: '1abc.pdb'); empty: the format's" }),
+  /** Scripts: the bytes of a binary file, instead of `data` (not for the command's form or the agent). */
+  bytes: PD.Value<Uint8Array | ArrayBuffer | number[] | undefined>(undefined, { isHidden: true }),
+  ...StructureOptionParams(),
+};
+
+const Base64 = /^base64,/i;
+
+/** The data as the plugin's raw data takes it: text, or bytes (given, or decoded from `base64,…`). */
+function rawOf(data: string, bytes: Uint8Array | ArrayBuffer | number[] | undefined): string | Uint8Array | undefined {
+  if (bytes !== undefined) {
+    if (bytes instanceof Uint8Array) return bytes;
+    return new Uint8Array(bytes as ArrayBuffer);
+  }
+  if (!data) return undefined;
+  if (!Base64.test(data)) return data;
+  const text = atob(data.replace(Base64, '').replace(/\s+/g, ''));
+  const out = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) out[i] = text.charCodeAt(i);
+  return out;
+}
+
+const rawData: OperationDefinition<typeof DataParams, Loaded> = {
+  id: 'load.data',
+  title: 'Load data',
+  params: DataParams,
+  // Local: nothing is fetched. Each call loads (there is no identity to say "already loaded" by).
+  async run({ data, format, label, bytes, models, assembly }, ctx) {
+    if (data.trim() && bytes !== undefined) {
+      return ApiResult.fail('invalid', 'Give data or bytes, not both.', 'Neither is loaded: say which one is meant.');
+    }
+    let raw: string | Uint8Array | undefined;
+    try {
+      raw = rawOf(data.trim() ? data : '', bytes);
+    } catch {
+      return ApiResult.fail('invalid', 'The base64 data does not decode.', "Give 'base64,' and the file's bytes.");
+    }
+    if (raw === undefined || (typeof raw !== 'string' && raw.length === 0)) {
+      return ApiResult.fail('invalid', 'Which data?', "Give the file's contents as data.");
+    }
+    format = format.trim() || 'mmcif';
+    if (format === 'auto' && !getFileNameInfo(label.trim()).ext) {
+      return ApiResult.fail('invalid', 'Which format?', "Give the format, or a label with the file's extension.");
+    }
+    const unknown = await formatProblem(ctx, format);
+    if (unknown) return unknown;
+    const options = { models, assembly };
+    const known = structureOptionsProblem(format === 'auto' ? undefined : ctx.plugin.dataFormats.get(format), options);
+    if (known) return known;
+    const plugin = ctx.plugin;
+    const name = label.trim();
+    const before = refsOf(ctx);
+    const cellsBefore = plugin.state.data.cells.size;
+    try {
+      await plugin.initialized;
+      await guarded(ctx, () =>
+        plugin.dataTransaction(
+          async () => {
+            const cell = await plugin.builders.data.rawData(
+              { data: raw as string | Uint8Array<ArrayBuffer>, ...(name ? { label: name } : {}) },
+              { state: { isGhost: true } },
+            );
+            const provider =
+              format === 'auto'
+                ? plugin.dataFormats.auto(getFileNameInfo(name), cell.cell!.obj!)
+                : plugin.dataFormats.get(format);
+            if (!provider) throw new Error(`could not tell the format of ${name}`);
+            const problem = structureOptionsProblem(provider, options);
+            if (problem) throw new Error(problem.message);
+            await parseAndShow(ctx, cell, provider, options);
+          },
+          { rethrowErrors: true },
+        ),
+      );
+    } catch (e) {
+      return ApiResult.fail('failed', `Could not load the data: ${messageOf(e)}`, 'Check the data and its format.');
+    }
+    if (plugin.state.data.cells.size === cellsBefore) {
+      return ApiResult.fail('failed', 'Loading the data made nothing.', 'Check the format; the log says more.');
+    }
+    const names = addedNames(ctx, before);
+    const what = name || 'the data';
+    return ApiResult.ok(
+      loadedLine(names, what),
+      { nodes: refsOf(ctx).filter((r) => !before.includes(r)) },
+      { value: { loaded: names.length ? names : [what] } },
     );
   },
 };
@@ -716,7 +893,7 @@ const volume: OperationDefinition<typeof VolumeParams, Loaded> = {
 
 /** The operations the feature adds to the core's `load` area, under their members' names (`load.entry` is `entry`). */
 export const loadersOperations = (): { area: string; name: string; operation: OperationDefinition<any, any> }[] =>
-  [entry, url, mvs, snapshot, trajectory, volume].map((operation) => ({
+  [entry, url, rawData, mvs, snapshot, trajectory, volume].map((operation) => ({
     area: 'load',
     name: memberName(operation.id),
     operation: operation as OperationDefinition<any, any>,

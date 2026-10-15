@@ -6,7 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
+import type { StateObjectCell } from '@molstar/core/state';
+import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
+import type { Model } from '@molstar/model/model/structure';
 import { Volume } from '@molstar/model/model/volume';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import {
@@ -19,7 +24,9 @@ import {
 import { Script } from '@molstar/model/script/script';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
+import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import type {
+  ModelUnitcellRef,
   StructureComponentRef,
   StructureRef,
   StructureRepresentationRef,
@@ -34,6 +41,7 @@ import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
 import { namesOf } from '../api/scope.js';
+import { currentTransform } from '../api/structure.js';
 import { gridText, shortNumber, voxelText, volumeStats } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
@@ -154,6 +162,8 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
   const inspections = new Map<string, SceneInspection>();
+  /** The structure a unit cell row is under (its operations name the structure). */
+  const unitCellOwners = new Map<string, string>();
 
   const structureNode = (s: StructureRef, name: string): Node => {
     const ref = s.cell.transform.ref;
@@ -167,10 +177,39 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         remove: () => void api.run('structure.remove', { structure: ref }),
       });
       n.removable = true;
+      // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).
+      n.menu = [
+        {
+          id: 'reset-transform',
+          label: 'Reset transform',
+          icon: 'rotate-ccw',
+          run: () => void api.run('structure.transform-reset', { structure: ref }),
+        },
+      ];
       nodes.set(ref, n);
     }
     const data = s.cell.obj?.data;
     n.set(name, data ? describeStructure(data) : undefined, !!s.cell.state.isHidden);
+    // An open inspector follows the transform (Undo, superposition), without reporting it as an edit.
+    if (data) inspections.get(ref)?.form?.load({ transform: transformValues(currentTransform(s, data), data) });
+    return n;
+  };
+
+  /** The unit cell of a structure's model (v5's model-level Unit Cell row; parity.md §2). */
+  const unitCellNode = (u: ModelUnitcellRef, structureRef: string): Node => {
+    const ref = u.cell.transform.ref;
+    unitCellOwners.set(ref, structureRef);
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'unit-cell', 'box', 'Unit cell', false, {
+        visibility: (hide) =>
+          void api.run('structure.unit-cell', { structure: unitCellOwners.get(ref), visible: !hide }),
+      });
+      n.removable = false;
+      nodes.set(ref, n);
+    }
+    n.set('Unit cell', u.cell.obj?.description, !!u.cell.state.isHidden);
+    inspections.get(ref)?.form?.load(unitCellValues(u.cell));
     return n;
   };
 
@@ -387,6 +426,13 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         cn.setChildren(reprs);
         kids.push(cn);
       }
+      // The model's unit cell, under the first of its structures (another structure of the same model shares it).
+      const cell = s.model?.unitcell;
+      if (cell?.cell.obj?.data?.repr && !seen.has(cell.cell.transform.ref)) {
+        const un = unitCellNode(cell, ref);
+        seen.add(un.id);
+        kids.push(un);
+      }
       sn.setChildren(kids);
       top.push(sn);
     }
@@ -441,6 +487,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       if (!seen.has(id) && !seen.has(owner)) {
         nodes.delete(id);
         inspections.delete(id);
+        unitCellOwners.delete(id);
         if (picked.value === n) picked.set(undefined);
       }
     }
@@ -465,7 +512,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     inspect: (n) => {
       let inspection = inspections.get(n.id);
       if (!inspection) {
-        inspection = inspect(plugin, api, n);
+        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id));
         inspections.set(n.id, inspection);
       }
       return inspection;
@@ -635,17 +682,113 @@ function contentsMenu(api: ViewerApi, loci: () => StructureElement.Loci, label: 
   ];
 }
 
+/** A form's edits, applied a moment after the last (sliders change values at pointer rate). */
+function debounced<T>(apply: (values: T) => void, ms = 150): (values: T) => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return (values) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => apply(values), ms);
+  };
+}
+
+// parity.md §2, the Conformation Transform: v5's form (translation, then a rotation about the structure's center) under
+// the structure's facts, folded; a superposition's matrix shows as the same parts.
+const TransformForm = {
+  transform: PD.Group(
+    {
+      translation: PD.Vec3(Vec3.create(0, 0, 0), {}, { label: 'Translation', description: 'In Å' }),
+      axis: PD.Vec3(Vec3.create(0, 0, 1), {}, { label: 'Rotation axis' }),
+      angle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { label: 'Angle', description: 'In degrees' }),
+    },
+    { label: 'Transform', isExpanded: false, description: 'Move and rotate the structure (about its center)' },
+  ),
+};
+
+/** A rigid transform as the form's parts: a rotation about `data`'s center, then a translation. */
+function transformValues(m: Mat4, data: Structure): PD.Values<typeof TransformForm>['transform'] {
+  const q = Mat4.getRotation(Quat(), m);
+  const axis = Vec3();
+  let angle = (Quat.getAxisAngle(axis, q) * 180) / Math.PI;
+  if (angle > 180) angle -= 360;
+  if (Math.abs(angle) < 1e-4) {
+    angle = 0;
+    Vec3.set(axis, 0, 0, 1);
+  }
+  // M = T(t)·T(c)·R·T(−c), so t = M's translation + R·c − c.
+  const c = data.boundary.sphere.center;
+  const t = Vec3.add(Vec3(), Mat4.getTranslation(Vec3(), m), Vec3.sub(Vec3(), Vec3.transformQuat(Vec3(), c, q), c));
+  const round = (x: number) => Math.round(x * 1000) / 1000 || 0;
+  return {
+    translation: Vec3.create(round(t[0]), round(t[1]), round(t[2])),
+    axis: Vec3.create(round(axis[0]), round(axis[1]), round(axis[2])),
+    angle: round(angle),
+  };
+}
+
+// parity.md §2, the unit cell: its color and opacity (the operation's; the line size stays the representation's).
+const UnitCellForm = {
+  color: PD.Color(Color(0xffa500), { label: 'Color', isEssential: true }),
+  opacity: PD.Numeric(1, { min: 0.05, max: 1, step: 0.05 }, { label: 'Opacity', isEssential: true }),
+};
+
+function unitCellValues(cell: StateObjectCell): PD.Values<typeof UnitCellForm> {
+  const p = cell.transform.params as { cellColor?: Color; alpha?: number } | undefined;
+  return { color: p?.cellColor ?? Color(0xffa500), opacity: p?.alpha ?? 1 };
+}
+
 /** What the inspector shows for a node: facts, and the parameters of a representation as a form. */
-function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode): SceneInspection {
+function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?: string): SceneInspection {
   const cell = plugin.state.data.cells.get(node.id);
   const slot = `inspector:${node.kind}`;
+  if (node.kind === 'unit-cell' && cell) {
+    const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj as PluginStateObject.Molecule.Model;
+    const symmetry = parent?.data && ModelSymmetry.Provider.get(parent.data as Model);
+    const facts: [string, string][] = [];
+    if (symmetry) {
+      const { size, anglesInRadians } = symmetry.spacegroup.cell;
+      const deg = (r: number) => `${Math.round(((r * 180) / Math.PI) * 100) / 100}°`;
+      facts.push(['Space group', symmetry.spacegroup.name]);
+      facts.push(['Cell', `${[...size].map((x) => Math.round(x * 100) / 100).join(' × ')} Å`]);
+      facts.push(['Angles', [...anglesInRadians].map(deg).join(', ')]);
+    }
+    const form = new ParamsFormModel(UnitCellForm, unitCellValues(cell), {
+      onChange: debounced((values) => {
+        const now = plugin.state.data.cells.get(node.id);
+        void api.run('structure.unit-cell', {
+          structure: owner,
+          visible: !now?.state.isHidden,
+          color: Color.toHexStyle(values.color),
+          opacity: values.opacity,
+        });
+      }),
+    });
+    return { node, form, slot, facts };
+  }
   if (node.kind === 'structure' && cell?.obj?.data) {
     const s = cell.obj.data as Structure;
     const model = s.model;
     const chains = new Set(s.units.map((u) => u.chainGroupId)).size;
+    const ref = plugin.managers.structure.hierarchy.current.refs.get(node.id);
+    const now = ref?.kind === 'structure' ? currentTransform(ref, s) : Mat4.identity();
+    const form = new ParamsFormModel(
+      TransformForm,
+      { transform: transformValues(now, s) },
+      {
+        onChange: debounced(
+          ({ transform }) =>
+            void api.run('structure.transform', {
+              structure: node.id,
+              translation: transform.translation,
+              axis: transform.axis,
+              angle: transform.angle,
+              center: 'centroid',
+            }),
+        ),
+      },
+    );
     return {
       node,
-      form: undefined,
+      form,
       slot,
       facts: [
         ['Entry', model.entryId],

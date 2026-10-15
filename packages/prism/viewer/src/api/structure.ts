@@ -8,10 +8,16 @@
 
 import { StateTree } from '@molstar/core/state';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Color } from '@molstar/core/util/color';
+import { decodeColor } from '@molstar/core/util/color/utils';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
+import type { Structure } from '@molstar/model/model/structure';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
+import { getTransformFromParams, type TransformParam } from '@molstar/plugin/state/transforms/helpers';
+import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
@@ -22,7 +28,9 @@ import { entryRoot, isFailure, labelOf, oneStructure, someStructures } from './s
 // `structure` (operations.md §2, plan 2.2): the scene outline (`get`), representation presets by id, the model of a
 // trajectory, the assembly, a structure's visibility and removal. The first scene area: the others follow its shape
 // (a `structure` field naming one by ref or label, else the one the person works with; registries as arguments, their
-// ids in the hint when one is wrong; "already so" when nothing would change).
+// ids in the hint when one is wrong; "already so" when nothing would change). Parity (parity.md §2, phase 6): the unit
+// cell (`unit-cell`, v5's model-level Unit Cell representation) and the Conformation Transform (`transform`,
+// `transform-reset`: v5's `TransformStructureConformation` decorator, the one superposition sets too).
 
 export class StructureApi extends ApiArea {
   readonly id = 'structure';
@@ -204,6 +212,185 @@ export class StructureApi extends ApiArea {
     },
   });
 
+  // parity.md §2: v5's "Unit Cell" row (`ModelUnitcell3D` on the structure's model; the default preset makes it hidden).
+  readonly unitCell = this.operation({
+    id: 'structure.unit-cell',
+    title: 'Show the unit cell',
+    params: {
+      visible: PD.Boolean(true, { description: "Show or hide the crystal's unit cell" }),
+      color: PD.Text('', { description: "The cell's color, a CSS color (orange, #ff8800); empty: keep" }),
+      opacity: PD.Numeric(0, { min: 0, max: 1, step: 0.05 }, { description: 'Opacity from 0.05 to 1; 0: keep' }),
+      structure: StructureParam(),
+    },
+    async run({ visible, color, opacity, structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const name = labelOf(ctx, s);
+      const model = s.model;
+      if (!model?.cell.obj) return ApiResult.fail('blocked', `${name} is not built from a model.`);
+      const symmetry = ModelSymmetry.Provider.get(model.cell.obj.data);
+      if (!symmetry || SpacegroupCell.isZero(symmetry.spacegroup.cell)) {
+        return ApiResult.fail('blocked', `${name} has no crystal cell.`, 'Only crystal structures have a unit cell.');
+      }
+      let cellColor: Color | undefined;
+      if (color.trim()) {
+        cellColor = decodeColor(color.trim());
+        if (cellColor === undefined) {
+          return ApiResult.fail('invalid', `'${color}' is not a color.`, 'Use a CSS color: orange, #ff8800.');
+        }
+      }
+      const existing = model.unitcell?.cell;
+      const current = existing?.transform.params as { cellColor: Color; alpha: number } | undefined;
+      const style = {
+        ...(cellColor !== undefined && cellColor !== current?.cellColor ? { cellColor } : {}),
+        ...(opacity > 0 && opacity !== current?.alpha ? { alpha: opacity } : {}),
+      };
+      const restyle = Object.keys(style).length > 0;
+      const shown = !!existing && !existing.state.isHidden;
+      if (!restyle && shown === visible) {
+        return ApiResult.already(`The unit cell of ${name} is already ${visible ? 'shown' : 'hidden'}.`);
+      }
+      const plugin = ctx.plugin;
+      const state = plugin.state.data;
+      if (!existing) {
+        await plugin.runTask(
+          state.updateTree(
+            state
+              .build()
+              .to(model.cell)
+              .apply(ModelUnitcell3D, style, { state: { isHidden: !visible } }),
+          ),
+        );
+      } else {
+        if (restyle) {
+          await plugin.runTask(
+            state.updateTree(
+              state
+                .build()
+                .to(existing)
+                .update({ ...current, ...style } as never),
+            ),
+          );
+        }
+        if (shown !== visible) {
+          plugin.managers.structure.hierarchy.toggleVisibility([model.unitcell!], visible ? 'show' : 'hide');
+        }
+      }
+      const ref = plugin.managers.structure.hierarchy.current.refs.get(model.cell.transform.ref);
+      const cellRef = ref?.kind === 'model' ? ref.unitcell?.cell.transform.ref : existing?.transform.ref;
+      const did = !visible
+        ? `Hid the unit cell of ${name}.`
+        : `${name} shows its unit cell (${symmetry.spacegroup.name})${restyle ? `, ${styleText(style)}` : ''}.`;
+      return ApiResult.ok(did, { nodes: cellRef ? [cellRef] : [] });
+    },
+  });
+
+  // parity.md §2: v5's Conformation Transform (a structure moved and rotated by hand). Its values are the transform from
+  // where the structure was loaded, as v5's form has them; `compose` applies them on top of the current one instead.
+  readonly transform = this.operation({
+    id: 'structure.transform',
+    title: 'Move or rotate a structure',
+    params: {
+      translation: PD.Vec3(Vec3.create(0, 0, 0), {}, { description: 'Translation in Å: [x, y, z]' }),
+      axis: PD.Vec3(Vec3.create(0, 0, 1), {}, { description: 'Rotation axis: [x, y, z]' }),
+      angle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Rotation angle in degrees' }),
+      center: PD.Select<'centroid' | 'origin'>(
+        'centroid',
+        [
+          ['centroid', 'The structure’s center'],
+          ['origin', 'The origin'],
+        ],
+        { description: 'What the rotation turns about: the structure’s center or the origin' },
+      ),
+      matrix: PD.Mat4(Mat4.identity(), {
+        description: 'A 4×4 matrix (column-major, 16 numbers) instead of the axis, angle and translation',
+      }),
+      compose: PD.Boolean(false, { description: 'Apply on top of the current transform instead of replacing it' }),
+      structure: StructureParam(),
+    },
+    async run({ translation, axis, angle, center, matrix, compose, structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const name = labelOf(ctx, s);
+      const data = s.cell.obj?.data;
+      if (!data) return ApiResult.fail('blocked', `${name} is not built yet.`);
+      const byMatrix = !Mat4.isIdentity(matrix, 1e-6);
+      const byParts = angle !== 0 || !Vec3.exactEquals(translation, Vec3.zero());
+      if (byMatrix && byParts) {
+        return ApiResult.fail(
+          'invalid',
+          'Give a matrix, or an axis, angle and translation, not both.',
+          'Leave the matrix out to move by parts.',
+        );
+      }
+      if (!byMatrix && angle !== 0 && Vec3.magnitude(axis) < 1e-6) {
+        return ApiResult.fail('invalid', 'The rotation axis is zero.', 'Give an axis such as [0, 0, 1].');
+      }
+      const wanted: TransformParam = byMatrix
+        ? { name: 'matrix', params: { data: Mat4.clone(matrix), transpose: false } }
+        : {
+            name: 'components',
+            params: {
+              translation: Vec3.clone(translation),
+              axis: Vec3.normalize(Vec3(), Vec3.magnitude(axis) < 1e-6 ? Vec3.create(0, 0, 1) : axis),
+              angle,
+              rotationCenter:
+                center === 'centroid'
+                  ? { name: 'centroid', params: {} }
+                  : { name: 'point', params: { point: Vec3.zero() } },
+            },
+          };
+      const existing = s.transform?.cell;
+      const now = currentTransform(s, data);
+      const next = compose
+        ? {
+            name: 'matrix' as const,
+            params: { data: Mat4.mul(Mat4(), matrixOf(wanted, data), now), transpose: false },
+          }
+        : wanted;
+      if (Mat4.areEqual(matrixOf(next, data), now, 1e-3)) {
+        return ApiResult.already(
+          existing ? `${name} is already placed so.` : `${name} is already where it was loaded.`,
+        );
+      }
+      const state = ctx.plugin.state.data;
+      const build = state.build();
+      if (existing) build.to(existing).update({ transform: next });
+      else build.to(s.cell).insert(TransformStructureConformation, { transform: next });
+      await ctx.plugin.runTask(state.updateTree(build));
+      return ApiResult.ok(`Moved ${name}.`, { nodes: [s.cell.transform.ref] });
+    },
+  });
+
+  readonly transformReset = this.operation({
+    id: 'structure.transform-reset',
+    title: 'Reset a structure’s transform',
+    params: { structure: StructureParam() },
+    async run({ structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const name = labelOf(ctx, s);
+      const data = s.cell.obj?.data;
+      const existing = s.transform?.cell;
+      if (!existing || !data || Mat4.isIdentity(currentTransform(s, data), 1e-6)) {
+        return ApiResult.already(`${name} is already where it was loaded.`);
+      }
+      // Removing the decorator would take its subtree (the components) with it: it is set to identity instead.
+      const identity: TransformParam = {
+        name: 'components',
+        params: {
+          translation: Vec3.zero(),
+          axis: Vec3.create(0, 0, 1),
+          angle: 0,
+          rotationCenter: { name: 'centroid', params: {} },
+        },
+      };
+      const state = ctx.plugin.state.data;
+      await ctx.plugin.runTask(state.updateTree(state.build().to(existing).update({ transform: identity })));
+      return ApiResult.ok(`${name} is back where it was loaded.`, { nodes: [s.cell.transform.ref] });
+    },
+  });
+
   readonly visibility = this.operation({
     id: 'structure.visibility',
     title: 'Show or hide a structure',
@@ -243,6 +430,24 @@ export class StructureApi extends ApiArea {
 function freshStructures(ctx: ApiContext, list: readonly StructureRef[]): StructureRef[] {
   const refs = new Set(list.map((s) => s.cell.transform.ref));
   return ctx.plugin.managers.structure.hierarchy.current.structures.filter((s) => refs.has(s.cell.transform.ref));
+}
+
+/** The matrix of a transform param, rotating about the structure's own center where it says so (as the decorator). */
+function matrixOf(t: TransformParam, s: Structure): Mat4 {
+  return getTransformFromParams(t, s.boundary.sphere.center);
+}
+
+/** A structure's conformation transform now (identity without one); `data` is the structure before it. */
+export function currentTransform(s: StructureRef, data: Structure): Mat4 {
+  const t = s.transform?.cell.transform.params?.transform;
+  return t ? matrixOf(t as TransformParam, data) : Mat4.identity();
+}
+
+function styleText(style: { cellColor?: Color; alpha?: number }): string {
+  const parts: string[] = [];
+  if (style.cellColor !== undefined) parts.push(Color.toHexStyle(style.cellColor));
+  if (style.alpha !== undefined) parts.push(`opacity ${style.alpha}`);
+  return parts.join(', ');
 }
 
 function presetIds(ctx: ApiContext): string[] {

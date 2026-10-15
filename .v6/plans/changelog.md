@@ -105,6 +105,17 @@ the [API change ledger](breaking-v6-changes.md).
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),
   video export and Zenodo (lazy), assembly symmetry, membrane orientation (ANVIL), Kinemage, and the data-only ones
   (validation reports and partial charges through `annotations.apply`); the single-file `prism-viewer.js`
+- Prism viewer: the unit cell of a crystal structure as a row under it (show, hide, color, opacity; `structure.unit-cell`)
+- Prism viewer: move and rotate a structure by hand (v5's Conformation Transform): the structure inspector's Transform and `structure.transform`, `structure.transform-reset`
+- Prism viewer: `load.data` loads a file's contents (text, base64 or bytes) with a format; `load.url` and `load.data` load every model or an assembly, and the URL takes `all-models=1` and `assembly=<id>`
+- Prism viewer: with remote states on (`ui.showRemoteStates`), Home lists the state server's states; a click opens one
+- Prism viewer: after a load, Home offers what the structure carries beyond B-factors and secondary structure ("AF-… has pLDDT": Show applies it, one Undo)
+- Prism viewer: the PAE plot of a ModelCIF model (model-archive extension): a heat map card, a click selects the two residues; `model-archive.pae` and "Show the PAE plot"
+- Prism viewer: Help's basics (load, select, focus, the command menu, undo, the assistant) above the bindings
+- Prism viewer: an Illumination toggle and, where WebXR is, an XR button on the canvas toolbar (`canvas.xr`).
+- Prism viewer: an expanded viewport (`view.expand`: the canvas fills the viewer, Escape brings the panels back) and `view.fullscreen`.
+- Prism viewer: the Export card's Viewport section: the camera in numbers, Copy MVS camera, Save and Load a viewport state (`export.viewport`, `load.viewport`); `camera.set` and a richer `camera.get`.
+- Prism viewer: the plugin's toasts show in the status column.
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

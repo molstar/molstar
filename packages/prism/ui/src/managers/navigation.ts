@@ -31,12 +31,30 @@ export interface NavigationState {
   readonly focus: { readonly tab: string; readonly section: string } | undefined;
   /** In a compact rail: whether its column is shown. */
   readonly railOpen: boolean;
+  /**
+   * The canvas fills the viewer: the rail, the docks and the sequence band are hidden (operations.md §2, `view.expand`;
+   * v5's Expand). Opening a dock leaves it. Not kept (a view of the moment).
+   */
+  readonly expanded: boolean;
+  /**
+   * Fullscreen asked for (`view.fullscreen`): the page's shell follows it with the browser's fullscreen and writes back
+   * what the browser did (Escape, a refusal). Not kept.
+   */
+  readonly fullscreen: boolean;
 }
 
 export function defaultNavigation(): NavigationState {
   const docks = {} as Record<DockId, DockNavigation>;
   for (const id of DockIds) docks[id] = { active: undefined, collapsed: false };
-  return { docks, card: undefined, page: undefined, focus: undefined, railOpen: false };
+  return {
+    docks,
+    card: undefined,
+    page: undefined,
+    focus: undefined,
+    railOpen: false,
+    expanded: false,
+    fullscreen: false,
+  };
 }
 
 export interface StoredNavigation {
@@ -53,6 +71,8 @@ export class NavigationManager {
   readonly #card: ReadonlyState<string | undefined>;
   readonly #section: ReadonlyState<string | undefined>;
   readonly #page: ReadonlyState<string | undefined>;
+  readonly #expanded: ReadonlyState<boolean>;
+  readonly #fullscreen: ReadonlyState<boolean>;
 
   constructor(initial?: { docks?: Partial<Record<DockId, Partial<DockNavigation>>>; railOpen?: boolean }) {
     if (initial) {
@@ -65,6 +85,8 @@ export class NavigationManager {
     this.#card = derived(this.#state.asReadonly, (s) => s.card?.id);
     this.#section = derived(this.#state.asReadonly, (s) => s.card?.section ?? s.focus?.section);
     this.#page = derived(this.#state.asReadonly, (s) => s.page?.id);
+    this.#expanded = derived(this.#state.asReadonly, (s) => s.expanded);
+    this.#fullscreen = derived(this.#state.asReadonly, (s) => s.fullscreen);
   }
 
   get state(): ReadonlyState<NavigationState> {
@@ -91,6 +113,16 @@ export class NavigationManager {
     return this.#page;
   }
 
+  /** The canvas fills the viewer (`view.expand`). */
+  get expanded(): ReadonlyState<boolean> {
+    return this.#expanded;
+  }
+
+  /** Fullscreen asked for (`view.fullscreen`), or as the browser left it. */
+  get fullscreen(): ReadonlyState<boolean> {
+    return this.#fullscreen;
+  }
+
   /** The open tab of a dock; undefined while it is collapsed. */
   openTab(dock: DockId): string | undefined {
     return openTab(this.#state.value, dock);
@@ -102,8 +134,18 @@ export class NavigationManager {
     const same =
       (!('active' in partial) || partial.active === dock.active) &&
       (partial.collapsed === undefined || partial.collapsed === dock.collapsed);
-    if (same) return;
-    this.#state.set({ ...current, docks: { ...current.docks, [id]: { ...dock, ...partial } } });
+    // A dock opened while the canvas fills the viewer: the chrome comes back to show it.
+    const expanded = current.expanded && partial.collapsed !== false;
+    if (same && expanded === current.expanded) return;
+    this.#state.set({ ...current, expanded, docks: { ...current.docks, [id]: { ...dock, ...partial } } });
+  }
+
+  setExpanded(expanded: boolean): void {
+    if (this.#state.value.expanded !== expanded) this.#state.set({ ...this.#state.value, expanded });
+  }
+
+  setFullscreen(fullscreen: boolean): void {
+    if (this.#state.value.fullscreen !== fullscreen) this.#state.set({ ...this.#state.value, fullscreen });
   }
 
   setCard(card: NavigationState['card']): void {

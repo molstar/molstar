@@ -8,9 +8,16 @@
 
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import type { Camera } from '@molstar/graphics/canvas3d/camera';
+import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { CameraHelperParams } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import type { ViewportScreenshotHelper } from '@molstar/plugin/util/viewport-screenshot';
-import { type ApiContext, ApiArea, ApiResult } from '../../api/area.js';
+import type { Observable } from 'rxjs';
+import { type ApiContext, ApiArea, ApiResult, type OperationDefinition } from '../../api/area.js';
+import type { CameraValue } from '../../api/camera.js';
+import { FileParam, filesOf } from '../../api/files.js';
+import { cameraUpdates } from './source.js';
 
 // The `export` area, image part (operations.md §2, the `export` row): an image of the canvas by Mol*'s
 // `ViewportScreenshotHelper`. Exporting changes nothing in the scene, so none of these is a history step
@@ -19,6 +26,10 @@ import { type ApiContext, ApiArea, ApiResult } from '../../api/area.js';
 // runs them one at a time through its own queue. They give the image as bytes (a Blob and a file name); saving it is
 // the page's (`ui/download.ts`), as for `session.save`. The helper exists only where there is a canvas in a page;
 // elsewhere they fail `unavailable`.
+//
+// The viewport state (v5's screenshot panel, parity.md): `export.viewport` gives the camera and the canvas settings as
+// a JSON file; `load.viewport` (contributed to the core's `load` area) applies one, or the camera of a v5 state
+// (`.molj`'s `camera.current`, `canvas3d.props`) or of MolViewSpec (`position`, `target`, `up`).
 
 /** The crop as fractions of the image (0-1), like Mol*'s `Viewport.relativeCrop`. */
 export interface CropBox {
@@ -79,6 +90,30 @@ export const ImageParams = {
   name: PD.Text('', { description: 'The file name, with or without its extension (empty: from the loaded entries)' }),
 };
 export const CopyParams = ShotParams;
+export const ViewportParams = {
+  name: PD.Text('', { description: 'The file name (empty: from the loaded entries)' }),
+};
+export const ViewportLoadParams = {
+  file: FileParam({ accept: '.json,.molj', description: 'A viewport state (.json)' }),
+  json: PD.Text('', { description: 'The viewport state as JSON text, instead of a file' }),
+};
+
+/** The file `export.viewport` writes and `load.viewport` reads. */
+export interface ViewportState {
+  readonly kind: 'molstar-viewport';
+  readonly version: 1;
+  /** Mol*'s camera snapshot (`fov` in radians, as Mol* keeps it). */
+  readonly camera: Camera.Snapshot;
+  /** The canvas's props (background, lighting, illumination, clipping, …). */
+  readonly canvas: Canvas3DProps;
+}
+
+/** What `export.viewport` gives: the file, and its JSON. */
+export interface ViewportResult {
+  blob: Blob;
+  filename: string;
+  json: string;
+}
 export const PreviewParams = {
   ...ShotParams,
   max: PD.Numeric(320, { min: 64, max: 1024, step: 1 }, { description: 'The preview its longest side in pixels' }),
@@ -221,6 +256,48 @@ class Queue {
   }
 }
 
+const isVec = (v: unknown): v is [number, number, number] =>
+  Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === 'number' && Number.isFinite(x));
+
+/** The camera and canvas of a viewport file, a v5 state, or an MVS camera; a message when it is none of them. */
+export function readViewport(
+  json: unknown,
+): { camera?: Partial<Camera.Snapshot>; canvas?: Partial<Canvas3DProps> } | string {
+  if (!json || typeof json !== 'object') return 'It is not a viewport state.';
+  const o = json as Record<string, any>;
+  let camera: Record<string, any> | undefined;
+  let canvas: Record<string, any> | undefined;
+  if (o.kind === 'molstar-viewport') {
+    if (o.version !== 1) return `A viewport state of version ${o.version} is not read here.`;
+    camera = o.camera;
+    canvas = o.canvas;
+  } else if (o.camera?.current || o.canvas3d?.props) {
+    // A v5 state (`PluginState.Snapshot`), or one entry of a .molj.
+    camera = o.camera?.current;
+    canvas = o.canvas3d?.props;
+  } else if (isVec(o.position) && isVec(o.target)) {
+    // MolViewSpec's camera (its position is not normalized by the field of view here).
+    camera = { position: o.position, target: o.target, ...(isVec(o.up) ? { up: o.up } : {}) };
+  } else return 'It has no camera and no canvas settings.';
+  const out: { camera?: Partial<Camera.Snapshot>; canvas?: Partial<Canvas3DProps> } = {};
+  if (camera) {
+    if (!isVec(camera.position) || !isVec(camera.target)) return 'Its camera has no position and target.';
+    const position = Vec3.ofArray(camera.position);
+    const target = Vec3.ofArray(camera.target);
+    if (Vec3.distance(position, target) < 1e-6) return 'Its camera is at its target.';
+    const snapshot: Partial<Camera.Snapshot> = { position, target };
+    if (isVec(camera.up)) snapshot.up = Vec3.ofArray(camera.up);
+    if (camera.mode === 'perspective' || camera.mode === 'orthographic') snapshot.mode = camera.mode;
+    for (const k of ['fov', 'radius', 'radiusMax', 'fog', 'minNear', 'minFar'] as const) {
+      if (typeof camera[k] === 'number' && Number.isFinite(camera[k])) snapshot[k] = camera[k];
+    }
+    if (typeof camera.clipFar === 'boolean') snapshot.clipFar = camera.clipFar;
+    out.camera = snapshot;
+  }
+  if (canvas && typeof canvas === 'object') out.canvas = canvas as Partial<Canvas3DProps>;
+  return out;
+}
+
 const stopped = () => ApiResult.fail('aborted', 'Stopped before it started.', 'Nothing was rendered.');
 
 export class ExportApi extends ApiArea {
@@ -297,6 +374,42 @@ export class ExportApi extends ApiArea {
       }),
   });
 
+  readonly viewport = this.operation({
+    id: 'export.viewport',
+    title: 'Export the viewport state',
+    params: ViewportParams,
+    modules: ['canvas'],
+    history: false,
+    undoable: false,
+    async run({ name }, ctx): Promise<ApiResult<ViewportResult>> {
+      const canvas = ctx.plugin.canvas3d;
+      if (!canvas) return ApiResult.fail('unavailable', 'There is no canvas.', 'Export it in a viewer with a canvas.');
+      const state: ViewportState = {
+        kind: 'molstar-viewport',
+        version: 1,
+        camera: canvas.camera.getSnapshot(),
+        canvas: canvas.props,
+      };
+      const json = JSON.stringify(state, null, 2);
+      const entered = name.trim().replace(/[\\/:*?"<>|]+/g, '-');
+      const base = entered || helperOf(ctx)?.getFilename('') || 'molstar';
+      const filename = /\.json$/i.test(base) ? base : `${base}-viewport.json`;
+      return ApiResult.ok(
+        `Exported the viewport state as ${filename}.`,
+        {},
+        { value: { blob: new Blob([json], { type: 'application/json' }), filename, json } },
+      );
+    },
+  });
+
+  /**
+   * The camera in values, kept up as it moves (redraws, a few times a second) while something watches it: the Viewport
+   * section. Not an operation: a read of the plugin that stays in this feature's source.
+   */
+  get camera(): Observable<CameraValue | undefined> {
+    return cameraUpdates(this.ctx.plugin);
+  }
+
   readonly preview = this.operation({
     id: 'export.preview',
     title: 'Preview an image',
@@ -332,3 +445,36 @@ export class ExportApi extends ApiArea {
       }),
   });
 }
+
+/** `load.viewport`: contributed to the core's `load` area (only built-in features may). */
+export const LoadViewport: OperationDefinition<typeof ViewportLoadParams, unknown> = {
+  id: 'load.viewport',
+  title: 'Load a viewport state',
+  params: ViewportLoadParams,
+  modules: ['canvas'],
+  async run({ file, json }, ctx) {
+    const canvas = ctx.plugin.canvas3d;
+    if (!canvas) return ApiResult.fail('unavailable', 'There is no canvas.');
+    const f = filesOf(file)[0];
+    const text = f ? await f.text() : json.trim();
+    if (!text) return ApiResult.fail('invalid', 'Which viewport state?', 'Pick a .json file, or give its JSON.');
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return ApiResult.fail('invalid', `${f ? f.name : 'The text'} is not JSON.`);
+    }
+    // A .molj holds entries of snapshots: the current one's, else the first.
+    const entries = (parsed as { entries?: { snapshot?: unknown }[] } | undefined)?.entries;
+    if (Array.isArray(entries) && entries.length) parsed = entries[0]?.snapshot ?? parsed;
+    const read = readViewport(parsed);
+    if (typeof read === 'string') return ApiResult.fail('invalid', `${f ? `${f.name}: ` : ''}${read}`);
+    if (read.canvas) ctx.plugin.setCanvas3DProps(read.canvas);
+    // The camera after the props (a mode or field of view in them would otherwise be set back).
+    if (read.camera) ctx.plugin.managers.camera.setSnapshot(read.camera, 0);
+    const what = [read.camera ? 'the camera' : '', read.canvas ? 'the canvas settings' : '']
+      .filter(Boolean)
+      .join(' and ');
+    return ApiResult.ok(`Loaded ${what}${f ? ` from ${f.name}` : ''}.`, { view: true });
+  },
+};

@@ -93,6 +93,10 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   const top = shell.dock('top');
+  // Expanded (`view.expand`): the canvas fills the viewer; the rail, the docks and the band are left out (not rendered),
+  // and the insets they take go to the frame's margin.
+  const expanded = shell.expanded;
+  const shown = expanded.pipe(map((e) => !e));
   // The right dock floats over the canvas unless it is docked, or the shell is compact (then it is a bottom sheet).
   const floating = combineLatest([right.state, shell.mode]).pipe(
     map(([s, mode]) => s.floating && mode !== 'compact'),
@@ -106,23 +110,23 @@ export function ShellView(props: ShellViewProps) {
   // behind its lines, fading out below them (BandFadePx); the canvas' chrome goes below the lines.
   // What floats at the top (the sequence card, or the text of a band) takes this much: the snapshots and the canvas stack
   // go below it (a band's faded bottom is not in the way).
-  const topInset = combineLatest([top.state, top.active, floatingTop]).pipe(
-    map(([s, tab, f]) =>
-      f && tab ? (tab.frame === 'none' ? s.size - BandFadePx + Edge : Edge + s.size + Edge) : Edge,
+  const topInset = combineLatest([top.state, top.active, floatingTop, expanded]).pipe(
+    map(([s, tab, f, e]) =>
+      f && tab && !e ? (tab.frame === 'none' ? s.size - BandFadePx + Edge : Edge + s.size + Edge) : Edge,
     ),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
   // A compact rail's column hidden: the canvas takes its width.
-  const railHidden = combineLatest([floating, shell.railShown]).pipe(
-    map(([f, shown]) => f && !shown),
+  const railHidden = combineLatest([floating, shell.railShown, expanded]).pipe(
+    map(([f, shown, e]) => (f && !shown) || e),
     distinctUntilChanged(),
   );
   const railPx = railHidden.pipe(map((h) => (h ? 0 : RailWidth)));
   // A compact rail lies over the canvas' edge (it does not take the canvas' width, so opening it moves nothing): the
   // canvas runs to the edge, and the corner keeps clear of the rail's column (where its toggle sits) whether it shows.
-  const compactRail = combineLatest([floating, shell.compactRail]).pipe(
-    map(([f, c]) => f && c),
+  const compactRail = combineLatest([floating, shell.compactRail, expanded]).pipe(
+    map(([f, c, e]) => f && c && !e),
     distinctUntilChanged(),
   );
   const railTake = combineLatest([railPx, compactRail]).pipe(
@@ -130,13 +134,13 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   // The button that shows and hides it, in the canvas's corner: only where the rail floats, and the rail is compact.
-  const railToggle = combineLatest([floating, shell.compactRail]).pipe(
-    map(([f, c]) => f && c),
+  const railToggle = combineLatest([floating, shell.compactRail, expanded]).pipe(
+    map(([f, c, e]) => f && c && !e),
     distinctUntilChanged(),
   );
   // Pinned: the canvas ends where the rail, or the open panel, begins (they sit beside it, not over it).
-  const pinned = combineLatest([right.state, floating]).pipe(
-    map(([s, f]) => f && s.pinned),
+  const pinned = combineLatest([right.state, floating, expanded]).pipe(
+    map(([s, f, e]) => f && s.pinned && !e),
     distinctUntilChanged(),
   );
   // An overlay card open in the panel's place counts as the panel.
@@ -151,28 +155,30 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
-  const rightInset = combineLatest([right.state, right.active, floating, pinned, railPx]).pipe(
+  const rightInset = combineLatest([right.state, right.active, floating, pinned, railPx, expanded]).pipe(
     // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
     // margin. Pinned, both are outside the canvas: only the margin is left.
-    map(([s, active, f, p, rail]) => (p ? Edge : rail + Edge + (f && active ? s.size + Edge : 0))),
+    map(([s, active, f, p, rail, e]) => (p || e ? Edge : rail + Edge + (f && active ? s.size + Edge : 0))),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
-  const cornerInset = combineLatest([pinned, compact, railTake, compactRail]).pipe(
-    map(([p, c, rail, overlay]) => (p || c ? Edge : (overlay ? RailWidth : rail) + Edge)),
+  const cornerInset = combineLatest([pinned, compact, railTake, compactRail, expanded]).pipe(
+    map(([p, c, rail, overlay, e]) => (p || c || e ? Edge : (overlay ? RailWidth : rail) + Edge)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
   // An open floating right panel: overlays then open in its place instead of stacking glass on glass.
-  const rightPanelOpen = combineLatest([right.active, floating]).pipe(
-    map(([active, f]) => (f && active ? 'open' : undefined)),
+  const rightPanelOpen = combineLatest([right.active, floating, expanded]).pipe(
+    map(([active, f, e]) => (f && active && !e ? 'open' : undefined)),
     distinctUntilChanged(),
   );
   const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
   const root = (
-    <div class={classes.shell} data-mode={shell.mode}>
-      <Show when={floatingTop.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={top} />}</Show>
-      <DockView shell={shell} dock={shell.dock('left')} />
+    <div class={classes.shell} data-mode={shell.mode} data-expanded={expanded.pipe(map((e) => (e ? '' : undefined)))}>
+      <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => !f && !e))}>
+        {() => <DockView shell={shell} dock={top} />}
+      </Show>
+      <Show when={shown}>{() => <DockView shell={shell} dock={shell.dock('left')} />}</Show>
       <main
         class={classes.viewport}
         style={{
@@ -209,7 +215,9 @@ export function ShellView(props: ShellViewProps) {
             '--msp-color-bg': props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
           }}
         >
-          <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
+          <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => f && !e))}>
+            {() => <FloatingDock shell={shell} dock={top} />}
+          </Show>
           {props.empty ? <EmptyCanvas empty={props.empty} /> : null}
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
@@ -242,34 +250,38 @@ export function ShellView(props: ShellViewProps) {
           <OverlayHost shell={shell} />
           {/* Over the canvas, beside the rail and the open panel (they stay, and the page makes room for them). */}
           <PageHost shell={shell} />
-          <Show
-            when={floating}
-            fallback={() => (
-              // Docked beside the canvas (not compact: there the rail's actions are under More).
-              <Show when={compact.pipe(map((c) => !c))}>
-                {() => (
-                  <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
-                    <CanvasToolbar shell={shell} />
-                  </div>
+          <Show when={shown}>
+            {() => (
+              <Show
+                when={floating}
+                fallback={() => (
+                  // Docked beside the canvas (not compact: there the rail's actions are under More).
+                  <Show when={compact.pipe(map((c) => !c))}>
+                    {() => (
+                      <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
+                        <CanvasToolbar shell={shell} />
+                      </div>
+                    )}
+                  </Show>
                 )}
+              >
+                {() => {
+                  // A compact rail's hidden column is inert and paused (`activity`); what hides it is bound out here, since
+                  // what the activity renders pauses with it.
+                  const dock = activity(shell.railShown, () => (
+                    <FloatingDock
+                      shell={shell}
+                      dock={right}
+                      railItems={(rail) => <CanvasToolbar shell={shell} part="rest" hidden={rail.hidden} />}
+                      railFoot={(rail) => <CanvasToolbar shell={shell} part="lead" hidden={rail.hidden} />}
+                    />
+                  )) as HTMLElement;
+                  bind(shell.railShown, (shown) => dock.toggleAttribute('data-rail-hidden', !shown));
+                  bind(shell.compactRail, (c) => dock.toggleAttribute('data-rail-overlay', c));
+                  return dock;
+                }}
               </Show>
             )}
-          >
-            {() => {
-              // A compact rail's hidden column is inert and paused (`activity`); what hides it is bound out here, since
-              // what the activity renders pauses with it.
-              const dock = activity(shell.railShown, () => (
-                <FloatingDock
-                  shell={shell}
-                  dock={right}
-                  railItems={(rail) => <CanvasToolbar shell={shell} part="rest" hidden={rail.hidden} />}
-                  railFoot={(rail) => <CanvasToolbar shell={shell} part="lead" hidden={rail.hidden} />}
-                />
-              )) as HTMLElement;
-              bind(shell.railShown, (shown) => dock.toggleAttribute('data-rail-hidden', !shown));
-              bind(shell.compactRail, (c) => dock.toggleAttribute('data-rail-overlay', c));
-              return dock;
-            }}
           </Show>
         </div>
       </main>
@@ -282,7 +294,7 @@ export function ShellView(props: ShellViewProps) {
           </div>
         )}
       </Show>
-      <Show when={floating.pipe(map((f) => !f))}>
+      <Show when={combineLatest([floating, expanded]).pipe(map(([f, e]) => !f && !e))}>
         {() => (
           <DockView
             shell={shell}
@@ -291,7 +303,7 @@ export function ShellView(props: ShellViewProps) {
           />
         )}
       </Show>
-      <DockView shell={shell} dock={shell.dock('bottom')} />
+      <Show when={shown}>{() => <DockView shell={shell} dock={shell.dock('bottom')} />}</Show>
       {props.commandMenu}
       <BusyOverlay status={status} />
     </div>
@@ -306,6 +318,12 @@ export function ShellView(props: ShellViewProps) {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(eventTarget(e))) return;
     if (!ownsKey(root, e)) return;
+    // Expanded: Escape brings the chrome back (`view.expand` toggled off).
+    if (expanded.value) {
+      shell.setExpanded(false);
+      e.preventDefault();
+      return;
+    }
     // A pinned panel is part of the workspace, not something passing over the canvas: Escape leaves it.
     if (right.state.value.pinned) return;
     if (!right.state.value.collapsed && right.active.value !== undefined) {

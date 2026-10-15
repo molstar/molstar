@@ -39,7 +39,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
 import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
-import type { HomeModel } from '../model/home.js';
+import { createAnnotationOffer, type HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
@@ -50,10 +50,13 @@ import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/comma
 import { SequenceControl } from '../sequence/sequence-control.js';
 import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import { StructureTab } from '../views/structure/structure-tab.js';
+import { HelpProse } from '../views/help/help-prose.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
+import { watchToasts } from '../sources/toasts.js';
+import { createXrSource } from '../sources/xr.js';
 
 // The viewer on a page (viewer-spec.md §6, plan 1.4): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
@@ -101,6 +104,16 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const stopTheme = theme.applyTo(root);
   const keepTheme = theme.theme.subscribe((t) => preferences?.set('theme', t));
   const fullscreen = new FullscreenModel(() => target);
+  // `view.fullscreen` asks through `navigation.fullscreen`; the browser's fullscreen follows it, and what the browser
+  // did (Escape, a refusal) is written back.
+  const askedFullscreen = managers.navigation.fullscreen.subscribe((want) => {
+    if (want === fullscreen.active.value) return;
+    void fullscreen.toggle().then(() => managers.navigation.setFullscreen(fullscreen.active.value));
+  });
+  const browserFullscreen = fullscreen.active.subscribe((on) => managers.navigation.setFullscreen(on));
+  // The plugin's toasts in the status column (parity.md's "toasts" row).
+  const stopToasts = watchToasts(core.plugin, managers.notifications);
+  const xr = createXrSource(core.plugin);
 
   // The canvas: the plugin is mounted here once the shell is in the page and has a size.
   // Its text alternative (README §3.7): what is loaded and what is selected, in words, for a screen reader; kept in
@@ -151,6 +164,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
 
   const home: HomeModel = {
     actions: core.views.homeActions,
+    // After a load, what a structure carries beyond the built-ins, offered in one click (parity.md §6a).
+    annotationOffer: createAnnotationOffer(person, sources.structures),
     formats: sources.formats,
     openFiles,
     session: {
@@ -227,7 +242,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           icon: 'circle-help',
           order: 2.8,
           place: 'foot',
-          render: domView(() => <HelpPanel commands={managers.commands} bindings={CanvasBindings} />),
+          render: domView(() => (
+            <HelpPanel commands={managers.commands} bindings={CanvasBindings} intro={() => <HelpProse />} />
+          )),
         },
       ]),
     ),
@@ -376,15 +393,72 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             },
           ],
         },
+        // Expand (the canvas fills the viewer, `view.expand`), or fullscreen where expanding would only fill an iframe
+        // (FullscreenModel.mode); the other beside it in the menu.
         {
           id: 'expand',
           place: 'canvas',
           group: 'canvas',
           visible: hasData,
-          icon: 'fullscreen',
-          title: 'Fullscreen',
-          pressed: fullscreen.active,
-          run: () => fullscreen.toggle(),
+          icon: fullscreen.mode === 'fullscreen' ? 'fullscreen' : 'maximize-2',
+          title: fullscreen.mode === 'fullscreen' ? 'Fullscreen' : 'Expand',
+          pressed: combineLatest([managers.navigation.expanded, fullscreen.active]).pipe(map(([e, f]) => e || f)),
+          run: () =>
+            void (fullscreen.mode === 'fullscreen'
+              ? person.view.fullscreen({ on: 'toggle' })
+              : person.view.expand({ on: 'toggle' })),
+          menu: [
+            {
+              id: 'expand-viewport',
+              label: 'Expand',
+              icon: 'maximize-2',
+              hint: 'Hide the panels; Escape brings them back',
+              pressed: managers.navigation.expanded,
+              run: () => void person.view.expand({ on: 'toggle' }),
+            },
+            {
+              id: 'fullscreen',
+              label: 'Fullscreen',
+              icon: 'fullscreen',
+              hint: 'The viewer fills the screen',
+              pressed: fullscreen.active,
+              ...(fullscreen.unavailableReason ? { disabled: fullscreen.unavailableReason } : {}),
+              run: () => void person.view.fullscreen({ on: 'toggle' }),
+            },
+          ],
+        },
+        // Rendering (parity.md §4's toolbar Rendering row): illumination, pressed while on; XR only where WebXR is.
+        {
+          id: 'illumination',
+          place: 'canvas',
+          group: 'rendering',
+          visible: combineLatest([hasData, sources.canvas]).pipe(
+            map(([data, c]) => data && c !== undefined && person.canvas.illumination !== undefined),
+            distinctUntilChanged(),
+          ),
+          icon: 'lightbulb',
+          title: 'Illumination',
+          pressed: sources.canvas.pipe(
+            map((c) => !!c?.illumination),
+            distinctUntilChanged(),
+          ),
+          run: () => void person.canvas.illumination?.({ on: !sources.canvas.value?.illumination }),
+        },
+        {
+          id: 'xr',
+          place: 'canvas',
+          group: 'rendering',
+          visible: combineLatest([hasData, xr.state]).pipe(
+            map(([data, x]) => data && x.supported && person.canvas.xr !== undefined),
+            distinctUntilChanged(),
+          ),
+          icon: 'glasses',
+          title: 'XR',
+          pressed: xr.state.pipe(
+            map((x) => x.presenting),
+            distinctUntilChanged(),
+          ),
+          run: () => void person.canvas.xr?.({ on: 'toggle' }),
         },
       ]),
     ),
@@ -578,7 +652,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       ink.dispose();
       stopTheme();
       keepTheme.unsubscribe();
+      askedFullscreen.unsubscribe();
+      browserFullscreen.unsubscribe();
       fullscreen.dispose();
+      stopToasts();
+      xr.dispose();
       root.remove();
       releaseStyles(shadow);
     },

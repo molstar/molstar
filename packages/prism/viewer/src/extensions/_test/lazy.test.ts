@@ -34,7 +34,7 @@ async function viewer(o: Partial<PrismViewerSpec> = {}): Promise<ViewerCore> {
 }
 
 const xrOperation: OperationDefinition = {
-  id: 'canvas.xr',
+  id: 'canvas.stereo',
   title: 'Enter XR',
   params: { on: PD.Boolean(true) },
   async run({ on }) {
@@ -42,20 +42,20 @@ const xrOperation: OperationDefinition = {
   },
 };
 
-/** A built-in feature, lazy, that adds `canvas.xr` to the core's `canvas` area. */
+/** A built-in feature, lazy, that adds `canvas.stereo` to the core's `canvas` area. */
 function lazyXr(o: { ext?: Partial<ViewerExtension>; lazy?: Partial<LazyViewerExtension> } = {}) {
   const counter = { loads: 0 };
   const ext: ViewerExtension = {
     id: 'xr',
     title: 'XR',
     builtIn: true,
-    contributes: () => [{ area: 'canvas', name: 'xr', operation: xrOperation }],
+    contributes: () => [{ area: 'canvas', name: 'stereo', operation: xrOperation }],
     commands: (api) => [
       {
         id: 'xr.enter',
         title: 'Enter XR',
         category: 'Canvas',
-        run: async () => ({ message: (await api.run('canvas.xr', {})).ok ? 'ok' : 'no' }),
+        run: async () => ({ message: (await api.run('canvas.stereo', {})).ok ? 'ok' : 'no' }),
       },
     ],
     ...o.ext,
@@ -66,7 +66,7 @@ function lazyXr(o: { ext?: Partial<ViewerExtension>; lazy?: Partial<LazyViewerEx
     builtIn: true,
     stub: {
       parts: [],
-      operations: [{ id: 'canvas.xr', title: 'Enter XR' }],
+      operations: [{ id: 'canvas.stereo', title: 'Enter XR' }],
       commands: [{ id: 'xr.enter', title: 'Enter XR' }],
     },
     load: async () => {
@@ -86,14 +86,14 @@ describe('lazy extensions', () => {
   it("stub a built-in feature's operations in a core area, and replay the first call", async () => {
     const { lazy, counter } = lazyXr();
     const v = await viewer({ extensions: [lazy] });
-    expect(v.api.describe('canvas.xr')).toBeDefined();
-    const r = await v.api.run('canvas.xr', { on: false });
+    expect(v.api.describe('canvas.stereo')).toBeDefined();
+    const r = await v.api.run('canvas.stereo', { on: false });
     expectOk(r);
     expect(r.did).toBe('XR off.');
     expect(counter.loads).toBe(1);
     expect(v.extensions.status('xr')?.value).toBe('loaded');
     // The real one now, its params described.
-    expect(Object.keys(v.api.describe('canvas.xr')?.params ?? {})).toEqual(['on']);
+    expect(Object.keys(v.api.describe('canvas.stereo')?.params ?? {})).toEqual(['on']);
   });
 
   it('refuse a stub in a core area from an extension that is not built in', async () => {
@@ -118,12 +118,12 @@ describe('lazy extensions', () => {
     const v = await viewer({ extensions: [clashing] });
     const failed: string[] = [];
     v.extensions.events.failed.subscribe((f) => failed.push(f.message));
-    const r = await v.api.run('canvas.xr', {});
+    const r = await v.api.run('canvas.stereo', {});
     expect(r).toMatchObject({ ok: false, code: 'unavailable' });
     expect(v.extensions.status('xr')?.value).toBe('failed');
     expect(failed[0]).toMatch(/exists already/);
     // The stub is back: its operations and command; nothing of the real one stayed.
-    expect(v.api.describe('canvas.xr')?.params).toEqual({});
+    expect(v.api.describe('canvas.stereo')?.params).toEqual({});
     expect(v.api.describe('camera.xr')).toBeDefined();
     expect(v.managers.commands.get('xr.enter')).toBeDefined();
     expect(v.managers.history.steps.value).toHaveLength(0);
@@ -153,11 +153,11 @@ describe('lazy extensions', () => {
       extensions: [
         {
           ...lazy,
-          stub: { ...lazy.stub, operations: [{ id: 'canvas.xr', title: 'Enter XR', approval: 'destructive' }] },
+          stub: { ...lazy.stub, operations: [{ id: 'canvas.stereo', title: 'Enter XR', approval: 'destructive' }] },
         },
       ],
     });
-    expect(v.api.describe('canvas.xr')?.definition.approval).toBe('destructive');
+    expect(v.api.describe('canvas.stereo')?.definition.approval).toBe('destructive');
     expect(await v.extensions.load('xr')).toBe(false);
   });
 
@@ -172,11 +172,11 @@ describe('lazy extensions', () => {
       },
     };
     const v = await viewer({ extensions: [flaky] });
-    const r = await v.api.run('canvas.xr', {});
+    const r = await v.api.run('canvas.stereo', {});
     expect(r).toMatchObject({ ok: false, code: 'unavailable' });
     expect(v.managers.history.steps.value).toHaveLength(0);
     fail = false;
-    expectOk(await v.api.run('canvas.xr', {}));
+    expectOk(await v.api.run('canvas.stereo', {}));
     expect(v.extensions.status('xr')?.value).toBe('loaded');
   });
 
@@ -185,7 +185,7 @@ describe('lazy extensions', () => {
       lazy: {
         stub: {
           parts: [],
-          operations: [{ id: 'canvas.xr', title: 'XR' }],
+          operations: [{ id: 'canvas.stereo', title: 'XR' }],
           commands: [{ id: 'xr.enter', title: 'Enter XR' }],
           owns: { fileExtensions: ['.CIF'] },
         },
@@ -287,10 +287,10 @@ describe('overrides', () => {
 describe('contributed operations', () => {
   it('are undefined when removed', async () => {
     const v = await viewer();
-    const remove = v.host.api.area('canvas')!.contribute('xr', xrOperation);
-    expect(v.api.describe('canvas.xr')).toBeDefined();
+    const remove = v.host.api.area('canvas')!.contribute('stereo', xrOperation);
+    expect(v.api.describe('canvas.stereo')).toBeDefined();
     remove();
-    expect(v.api.describe('canvas.xr')).toBeUndefined();
-    expect(await v.api.run('canvas.xr' as never, {})).toMatchObject({ ok: false });
+    expect(v.api.describe('canvas.stereo')).toBeUndefined();
+    expect(await v.api.run('canvas.stereo' as never, {})).toMatchObject({ ok: false });
   });
 });

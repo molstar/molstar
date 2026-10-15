@@ -16,6 +16,7 @@ import {
   type IlluminationParams,
   type LightingParams,
   type SettingsParams,
+  type XrParams,
 } from './operations.js';
 
 declare module '../../api/canvas.js' {
@@ -26,11 +27,12 @@ declare module '../../api/canvas.js' {
     readonly illumination?: OperationFn<typeof IlluminationParams>;
     readonly camera?: OperationFn<typeof CameraParams>;
     readonly clipping?: OperationFn<typeof ClippingParams>;
+    readonly xr?: OperationFn<typeof XrParams>;
   }
 }
 
 // The `canvas-settings` feature (viewer-spec.md §3.1, plan 3.2's first): the Canvas card and the canvas's lighting,
-// illumination, camera and clipping operations, added to the core's `canvas` area. Its views are a chunk of their own.
+// illumination, camera, clipping and XR operations, added to the core's `canvas` area. Its views are a chunk of their own.
 
 export const CanvasSettingsFeature: ViewerExtension = {
   id: 'canvas-settings',
@@ -57,6 +59,17 @@ export const CanvasSettingsFeature: ViewerExtension = {
         alias: ['perspective', 'orthographic', 'field of view'],
       }),
       operationCommand(api, canvas.clipping, { category: 'Canvas', icon: 'scan', alias: ['clip', 'slab'] }),
+      // Offered only where WebXR is (the operation's `when`).
+      ...(canvas.xr
+        ? [
+            operationCommand(api, canvas.xr, {
+              category: 'Canvas',
+              icon: 'glasses',
+              alias: ['xr', 'vr', 'ar', 'webxr', 'headset'],
+              values: { on: 'toggle' },
+            }),
+          ]
+        : []),
     ];
   },
   ui: async (ctx) => (await import('./ui.js')).canvasSettingsUI(ctx),

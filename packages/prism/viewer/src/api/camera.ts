@@ -6,20 +6,31 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { radToDeg } from '@molstar/core/math/misc';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { Camera } from '@molstar/graphics/canvas3d/camera';
+import type { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
 import { ApiArea, ApiResult } from './area.js';
 import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
 // `camera` (operations.md §2, plan 2.3): view state, never a history step (sequence.md §7.3). `reset`, `frame` (a
-// target), `zoom`, `orient` and `get`. What moves the camera needs the canvas (`modules: ['canvas']`); a headless
+// target), `zoom`, `orient`, `set` (position, target, up, fov, mode: v5's camera info, parity.md) and `get`. What moves the camera needs the canvas (`modules: ['canvas']`); a headless
 // viewer says so instead of running.
 
 /** What `camera.get` gives back; undefined without a canvas. */
 export interface CameraValue {
   readonly mode: 'perspective' | 'orthographic';
+  /** Field of view in degrees. */
   readonly fov: number;
+  /** Where the camera is, what it looks at, and its up direction (Å, rounded to 0.01). */
+  readonly position: readonly [number, number, number];
+  readonly target: readonly [number, number, number];
+  readonly up: readonly [number, number, number];
+  /** From the camera to its target. */
+  readonly distance: number;
   /** The radius of what the camera shows. */
   readonly radius: number;
   /** The radius of the scene. */
@@ -128,6 +139,87 @@ export class CameraApi extends ApiArea {
     },
   });
 
+  // v5's camera info, settable: what `camera.get` gives, back (MolViewSpec's camera is position, target and up).
+  readonly set = this.operation({
+    id: 'camera.set',
+    title: 'Set the camera',
+    params: {
+      position: PD.Text('', { description: 'Where the camera is: "x, y, z" in Å (empty: keep)' }),
+      target: PD.Text('', { description: 'What it looks at: "x, y, z" in Å (empty: keep)' }),
+      up: PD.Text('', { description: 'Its up direction: "x, y, z" (empty: keep)' }),
+      fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees (0: keep)' }),
+      mode: PD.Select<'keep' | 'perspective' | 'orthographic'>(
+        'keep',
+        PD.arrayToOptions(['keep', 'perspective', 'orthographic'] as const),
+      ),
+      animate: PD.Boolean(true, { description: 'A short transition instead of a cut' }),
+    },
+    history: false,
+    modules: ['canvas'],
+    async run(v, ctx) {
+      const canvas = ctx.plugin.canvas3d;
+      if (!canvas) return ApiResult.fail('unavailable', 'There is no canvas.');
+      const parsed = {
+        position: parseVec(v.position),
+        target: parseVec(v.target),
+        up: parseVec(v.up),
+      };
+      for (const [name, p] of Object.entries(parsed)) {
+        if (p === null) return ApiResult.fail('invalid', `'${v[name as keyof typeof parsed]}' is not "x, y, z".`);
+      }
+      if (parsed.up && Vec3.magnitude(parsed.up) < 1e-6) return ApiResult.fail('invalid', 'The up direction is 0.');
+      const current = canvas.camera.state;
+      const position = parsed.position ?? current.position;
+      const target = parsed.target ?? current.target;
+      if (Vec3.distance(position, target) < 1e-6) {
+        return ApiResult.fail(
+          'invalid',
+          'The camera cannot be at its target.',
+          'Give a position away from the target.',
+        );
+      }
+      const snapshot: Partial<Camera.Snapshot> = {};
+      const said: string[] = [];
+      if (parsed.position && !Vec3.exactEquals(parsed.position, current.position)) {
+        snapshot.position = parsed.position;
+        said.push(`at ${sayVec(parsed.position)}`);
+      }
+      if (parsed.target && !Vec3.exactEquals(parsed.target, current.target)) {
+        snapshot.target = parsed.target;
+        said.push(`looking at ${sayVec(parsed.target)}`);
+      }
+      if (parsed.up) {
+        const up = Vec3.normalize(Vec3(), parsed.up);
+        if (!Vec3.equals(up, current.up)) {
+          snapshot.up = up;
+          said.push(`up ${sayVec(up)}`);
+        }
+      }
+      // Mode and field of view are the canvas's props (the Canvas card follows them), as `canvas.camera` sets them.
+      const lens: { mode?: Camera.Mode; fov?: number } = {};
+      if (v.mode !== 'keep' && v.mode !== current.mode) {
+        lens.mode = v.mode;
+        said.push(v.mode);
+      }
+      if (v.fov > 0) {
+        const fov = Math.max(10, v.fov);
+        if (fov !== Math.round(radToDeg(current.fov))) {
+          lens.fov = fov;
+          said.push(`${fov}°`);
+        }
+      }
+      if (!said.length) return ApiResult.already('The camera is already so.');
+      // Moving the camera: the radius it shows follows the distance to the target (as `Camera.getFocus` keeps them).
+      if (snapshot.position || snapshot.target) {
+        const ratio = current.radius / Math.max(Vec3.distance(current.position, current.target), 1e-6);
+        snapshot.radius = Vec3.distance(position, target) * ratio;
+      }
+      if (lens.mode || lens.fov) ctx.plugin.setCanvas3DProps({ camera: lens });
+      if (Object.keys(snapshot).length) ctx.plugin.managers.camera.setSnapshot(snapshot, v.animate ? duration(ctx) : 0);
+      return ApiResult.ok(`Camera: ${said.join(', ')}.`, { view: true });
+    },
+  });
+
   readonly get = this.operation({
     id: 'camera.get',
     title: 'Describe the camera',
@@ -136,12 +228,9 @@ export class CameraApi extends ApiArea {
     async run(_, ctx) {
       const canvas = ctx.plugin.canvas3d;
       if (!canvas) return ApiResult.ok('No canvas (a headless viewer).', {}, { value: undefined });
-      const { mode, fov, radius } = canvas.camera.state;
-      const sceneRadius = canvas.boundingSphere.radius;
-      const showsAll = sceneRadius <= 0 || radius >= sceneRadius * 0.95;
-      const value: CameraValue = { mode, fov, radius: round(radius), sceneRadius: round(sceneRadius), showsAll };
+      const value = cameraValueOf(canvas);
       return ApiResult.ok(
-        `${mode === 'perspective' ? 'Perspective' : 'Orthographic'} camera${showsAll ? ', showing the whole scene' : ', zoomed in on part of the scene'}.`,
+        `${value.mode === 'perspective' ? 'Perspective' : 'Orthographic'} camera (${value.fov}°)${value.showsAll ? ', showing the whole scene' : ', zoomed in on part of the scene'}: at ${said(value.position)}, looking at ${said(value.target)}, up ${said(value.up)}.`,
         {},
         { value },
       );
@@ -150,6 +239,39 @@ export class CameraApi extends ApiArea {
 }
 
 const round = (v: number) => Math.round(v * 10) / 10;
+const round2 = (v: number) => Math.round(v * 100) / 100;
+const vec = (v: Vec3): [number, number, number] => [round2(v[0]), round2(v[1]), round2(v[2])];
+const said = (v: readonly number[]) => `(${v.join(', ')})`;
+const sayVec = (v: Vec3) => said(vec(v));
+
+/** The camera in values (`camera.get`, the Export card's Viewport section). */
+export function cameraValueOf(canvas: Pick<Canvas3D, 'camera' | 'boundingSphere'>): CameraValue {
+  const { mode, fov, radius, position, target, up } = canvas.camera.state;
+  const sceneRadius = canvas.boundingSphere.radius;
+  return {
+    mode,
+    fov: Math.round(radToDeg(fov)),
+    position: vec(position),
+    target: vec(target),
+    up: vec(up),
+    distance: round2(Vec3.distance(position, target)),
+    radius: round(radius),
+    sceneRadius: round(sceneRadius),
+    showsAll: sceneRadius <= 0 || radius >= sceneRadius * 0.95,
+  };
+}
+
+/** "x, y, z" (or "[x, y, z]", an array the agent gave as text) as a vector; undefined when empty, null when not one. */
+export function parseVec(text: string): Vec3 | undefined | null {
+  const t = text.trim().replace(/^\[|\]$/g, '');
+  if (!t) return undefined;
+  const parts = t
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .map(Number);
+  if (parts.length !== 3 || !parts.every(Number.isFinite)) return null;
+  return Vec3.create(parts[0], parts[1], parts[2]);
+}
 
 /** Milliseconds of the transition: none when the person asks for less motion. */
 /** The camera's animation, or a cut where the person prefers reduced motion (README §3.7). */

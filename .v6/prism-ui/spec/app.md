@@ -60,6 +60,7 @@ read the rest at creation.
 | ------------------------------------------------------------------------------------------ | ------------------------------- | ----------------------------------------------------------------- |
 | `pdb`, `pdb-ihm` (`pdb-dev`, deprecated, the same), `afdb`, `emdb`, `model-archive`        | loaders                         | `load.entry`                                                      |
 | `url` with `url-format`, `url-is-binary`; `structure-url` with `structure-url-format`, `structure-url-is-binary` | loaders  | `load.url`                                                        |
+| `all-models=1`, `assembly=<id>` (Prism's own; v5 has them as `loadAllModelsOrAssemblyFromUrl`) | loaders | `models: 'all'` and `assembly` of the `structure-url` and `url` loads; `assembly` of the `pdb`, `pdb-ihm`, `model-archive` entries; alone they load nothing |
 | `mvs-url`, `mvs-data`, `mvs-format`                                                        | loaders                         | `load.mvs`                                                        |
 | `snapshot-url`, `snapshot-url-type`, `snapshot-id`                                         | loaders                         | `load.snapshot`                                                   |
 | `pixel-scale`, `pick-scale`, `transparency`, `illumination`, `power-preference`, `resolution-mode`, `prefer-webgl1`, `allow-major-performance-caveat` | options | `options.renderer`                              |

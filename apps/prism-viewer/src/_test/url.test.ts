@@ -23,4 +23,8 @@ describe('unknownUrlParameters', () => {
     expect(unknownUrlParameters('?pick-padding=1&map-provider=rcsb&mvs-url=x&debug-mode=1', load)).toEqual([]);
     expect(unknownUrlParameters('', load)).toEqual([]);
   });
+
+  it('knows the structure load options', () => {
+    expect(unknownUrlParameters('?pdb=1cbs&assembly=1&all-models=1', load)).toEqual([]);
+  });
 });

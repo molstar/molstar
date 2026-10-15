@@ -105,11 +105,13 @@ export const Skills: readonly SkillDeclaration[] = [
   {
     id: 'styles',
     title: 'Styles',
-    summary: 'representations, components, transparency, hiding parts',
+    summary: 'representations, components, transparency, hiding parts, the unit cell, moving structures',
     guidance: [
       'Skill styles: a component is a part of a structure (ligand, polymer, a selection) with representations.',
       "add_component makes one from a target; set_representation sets a component's representation type;",
       'set_transparency and color act on targets; hide_contents hides entities or chains everywhere.',
+      "show_unit_cell shows a crystal's unit cell; transform_structure moves or rotates a structure (about its",
+      'center; compose: true adds to the current placement), reset_transform puts it back where it was loaded.',
     ].join('\n'),
     tools: [
       {
@@ -137,6 +139,22 @@ export const Skills: readonly SkillDeclaration[] = [
           'Shows what a structure carries as color: plddt, qmean, b-factor, a validation report, partial charges (list_annotations names them).',
       },
       {
+        id: 'show_unit_cell',
+        operation: 'structure.unit-cell',
+        description: "Shows or hides a crystal structure's unit cell, with its color and opacity.",
+      },
+      {
+        id: 'transform_structure',
+        operation: 'structure.transform',
+        description:
+          'Moves or rotates a structure: a translation in Å and a rotation (axis, angle in degrees), or a 4×4 matrix.',
+      },
+      {
+        id: 'reset_transform',
+        operation: 'structure.transform-reset',
+        description: 'Puts a moved structure back where it was loaded.',
+      },
+      {
         id: 'set_palette',
         operation: 'canvas.palette',
         description:
@@ -155,6 +173,19 @@ export const Skills: readonly SkillDeclaration[] = [
       { id: 'set_illumination', operation: 'canvas.illumination' },
       { id: 'set_camera_mode', operation: 'canvas.camera' },
       { id: 'set_clipping', operation: 'canvas.clipping' },
+    ],
+  },
+  {
+    id: 'camera',
+    title: 'Camera',
+    summary: 'where the camera is and what it looks at, in numbers',
+    guidance: [
+      'Skill camera: get_camera gives the position, target and up vectors (Å), the distance, field of view and mode.',
+      'set_camera takes any of them ("x, y, z"; empty keeps); prefer focus or reset_camera to show a part.',
+    ].join('\n'),
+    tools: [
+      { id: 'get_camera', operation: 'camera.get' },
+      { id: 'set_camera', operation: 'camera.set' },
     ],
   },
   {

@@ -89,6 +89,9 @@ export const KnownUrlParameters: readonly string[] = [
   'debug-mode',
   'timing-mode',
   'pick-padding',
+  // How the structure loads build what they load (the loaders feature's `LoadUrlOptions`): read with the loads.
+  'all-models',
+  'assembly',
 ];
 
 /** The parameters of a query string that are in neither list (names as typed, once each; matched case-insensitively). */

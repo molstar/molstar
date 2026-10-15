@@ -126,6 +126,11 @@ export const CameraParams = {
   ),
   fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees; 0: keep' }),
 };
+export const XrParams = {
+  on: PD.Select<'toggle' | 'on' | 'off'>('toggle', PD.arrayToOptions(['toggle', 'on', 'off'] as const), {
+    description: 'Enter (on) or leave (off) the headset view',
+  }),
+};
 export const ClippingParams = {
   // As Canvas3D's `cameraClipping.radius`: how much is clipped away, around the camera's target.
   clip: PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
@@ -241,6 +246,53 @@ export const canvasSettingsOperations = (): {
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
         if (p.illumination.enabled === on) return ApiResult.already(`Illumination is already ${on ? 'on' : 'off'}.`);
         return set(ctx, { illumination: { enabled: on } }, `Illumination ${on ? 'on' : 'off'}.`);
+      },
+    }),
+  },
+  // WebXR (Canvas3D's `xr`): the headset takes the view until it is left; the browser asks the person first.
+  {
+    area: 'canvas',
+    name: 'xr',
+    operation: typed({
+      id: 'canvas.xr',
+      title: 'Enter or leave XR',
+      params: XrParams,
+      modules: canvasModule,
+      history: false,
+      // Without a canvas the `canvas` module says so; with one, whether WebXR is there.
+      when: (ctx) => {
+        const xr = ctx.plugin.canvas3d?.xr;
+        return !xr || xr.isSupported.value ? true : 'XR is not supported by this browser or device.';
+      },
+      async run({ on }, ctx) {
+        const xr = ctx.plugin.canvas3d?.xr;
+        if (!xr) return ApiResult.fail('unavailable', 'There is no canvas.');
+        if (!xr.isSupported.value)
+          return ApiResult.fail('unavailable', 'XR is not supported by this browser or device.');
+        const presenting = xr.isPresenting.value;
+        const next = on === 'toggle' ? !presenting : on === 'on';
+        if (next === presenting) return ApiResult.already(next ? 'Already in XR.' : 'Not in XR.');
+        if (!next) {
+          await xr.end();
+          return ApiResult.ok('Left XR.', { view: true });
+        }
+        // `request` reports a failure on `requestFailed` rather than throwing.
+        let failed: unknown;
+        const sub = xr.requestFailed.subscribe((e) => {
+          failed = e;
+        });
+        try {
+          await xr.request();
+        } finally {
+          sub.unsubscribe();
+        }
+        if (failed !== undefined) {
+          return ApiResult.fail(
+            'failed',
+            `Could not enter XR: ${failed instanceof Error ? failed.message : String(failed)}`,
+          );
+        }
+        return ApiResult.ok('Entered XR.', { view: true });
       },
     }),
   },

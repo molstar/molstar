@@ -18,6 +18,14 @@ export interface UrlLoad {
   readonly values: Record<string, unknown>;
 }
 
+/**
+ * How the structure loads build what they load (Prism's own; v5 has them as `loadAllModelsOrAssemblyFromUrl`, not in
+ * its URL): `all-models=1` loads every model of `structure-url` and `url`; `assembly=<id>` builds that assembly for
+ * those and for the `pdb`, `pdb-ihm` and `model-archive` entries. They change loads, so they are not loads themselves:
+ * the app knows them (`KnownUrlParameters`), and they alone do not stop the light restore.
+ */
+export const LoadUrlOptions: readonly string[] = ['all-models', 'assembly'];
+
 /** The load parameters (the ones this module reads), for the app's "unknown parameter" log. */
 export const LoadUrlParameters: readonly string[] = [
   'snapshot-id',
@@ -66,6 +74,11 @@ export function loadsFromUrl(search: string): UrlLoad[] {
   const get = (name: string) => q.get(name)?.trim() || undefined;
   const flag = (name: string) => ['1', 'true'].includes(get(name)?.toLowerCase() ?? '');
   const loads: UrlLoad[] = [];
+  const assembly = get('assembly');
+  const structureOptions = {
+    ...(flag('all-models') ? { models: 'all' } : {}),
+    ...(assembly ? { assembly } : {}),
+  };
 
   const snapshotId = get('snapshot-id');
   if (snapshotId) loads.push({ operation: 'load.snapshot', values: { id: snapshotId } });
@@ -85,6 +98,7 @@ export function loadsFromUrl(search: string): UrlLoad[] {
         url: structureUrl,
         format: get('structure-url-format')?.toLowerCase() ?? 'mmcif',
         binary: flag('structure-url-is-binary'),
+        ...structureOptions,
       },
     });
   }
@@ -112,7 +126,10 @@ export function loadsFromUrl(search: string): UrlLoad[] {
     ['model-archive', 'model-archive'],
   ] as const) {
     const id = get(name);
-    if (id) loads.push({ operation: 'load.entry', values: { source, id } });
+    const structure = source === 'pdb' || source === 'pdb-ihm' || source === 'model-archive';
+    if (id) {
+      loads.push({ operation: 'load.entry', values: { source, id, ...(structure && assembly ? { assembly } : {}) } });
+    }
   }
 
   const url = get('url');
@@ -120,7 +137,7 @@ export function loadsFromUrl(search: string): UrlLoad[] {
     // v5 needs `url-format`; without it the format is read from the address.
     loads.push({
       operation: 'load.url',
-      values: { url, format: get('url-format') ?? 'auto', binary: flag('url-is-binary') },
+      values: { url, format: get('url-format') ?? 'auto', binary: flag('url-is-binary'), ...structureOptions },
     });
   }
   return loads;

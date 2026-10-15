@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ApiResult } from '../../api/area.js';
+import { ApiResult, memberName, type OperationFn } from '../../api/area.js';
 import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
-import { ExportApi } from './operations.js';
+import { ExportApi, LoadViewport, type ViewportLoadParams } from './operations.js';
 
 declare module '../../api.js' {
   // The `export` area (operations.md §2): image here; other exports (models, geometry, animation) are extensions'.
@@ -19,14 +19,23 @@ declare module '../../api.js' {
   }
 }
 
+declare module '../../api/load.js' {
+  // The viewport state's import, in the core's `load` area (present while the feature is in the spec, as by default).
+  interface LoadApi {
+    readonly viewport?: OperationFn<typeof ViewportLoadParams>;
+  }
+}
+
 // The `export-image` feature (viewer-spec.md §3.1): the `export` area with `export.image` and the Image section of the
-// Export card. The views are a chunk of their own.
+// Export card; the viewport state (`export.viewport`, `load.viewport`) and the camera in the Viewport section (v5's
+// screenshot panel, parity.md). The views are a chunk of their own.
 
 export const ExportImageFeature: ViewerExtension = {
   id: 'export-image',
   title: 'Export image',
   builtIn: true,
   api: { export: (ctx) => new ExportApi(ctx) },
+  contributes: () => [{ area: 'load', name: memberName(LoadViewport.id), operation: LoadViewport }],
   commands: (api) => {
     const x = api.export;
     if (!x) return [];
@@ -57,6 +66,32 @@ export const ExportImageFeature: ViewerExtension = {
         alias: ['copy image', 'clipboard'],
         action: 'Copy',
       }),
+      {
+        ...operationCommand(api, x.viewport, {
+          category: 'Export',
+          icon: 'camera',
+          title: 'Export the viewport state',
+          alias: ['viewport state', 'camera state', 'save camera', 'save view'],
+          action: 'Export',
+        }),
+        async run(args) {
+          const r = await api.export!.viewport(args as never);
+          if (!r.ok) throw new Error(r.hint ? `${r.message} ${r.hint}` : r.message);
+          if (r.value) downloadBlob(r.value.blob, r.value.filename);
+          return { message: `Saved ${r.value?.filename}.`, ops: `export.viewport(${JSON.stringify(args)})` };
+        },
+      },
+      ...(api.load.viewport
+        ? [
+            operationCommand(api, api.load.viewport, {
+              category: 'Data',
+              icon: 'folder-open',
+              title: 'Load a viewport state…',
+              alias: ['viewport state', 'load camera', 'restore view', 'open viewport'],
+              action: 'Load',
+            }),
+          ]
+        : []),
       {
         id: 'export.open',
         title: 'Show the Image export',
