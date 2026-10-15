@@ -103,12 +103,12 @@ function CaseViewer({ name, options }: { name: string; options?: ViewerOptions }
 const CASE_NOTES: Readonly<Record<string, string>> = {
   case1:
     'Select in the text as in an editor: click a residue (again, it clears), drag across lines (out of the canvas ' +
-    'too), Shift-click or Shift-drag to extend, click an underline for its region; Enter and Escape from the ' +
+    'too), Shift-click or Shift-drag to add or remove, click an underline for its region; Enter and Escape from the ' +
     "keyboard. The Text choice switches the text's presets: Wrapped spaces it to read (a group gap of about a " +
     'cell, lines apart, the underlines a little under the letters); Compact packs it (half the group gap, lines and ' +
     'lanes touching), still in groups of 10. Both are render props (`wrappedGroupGap`, `wrappedGap`, ' +
     "`wrappedTrackGap`, `wrappedLaneHeight`) a host sets. The Shift-click choice sets the select behavior's " +
-    "`shiftPositions`, as a host's viewer spec would.",
+    "`shiftPositions` (`toggle`, the default, or `extend` from the anchor), as a host's viewer spec would.",
   case8:
     "Open the Aligned error (PAE) group: AlphaFold DB's PAE as a dot plot, the scored residues across and the " +
     'residues aligned on down, over the same window as the tracks (zoom or pan them, the plot follows), with the ' +

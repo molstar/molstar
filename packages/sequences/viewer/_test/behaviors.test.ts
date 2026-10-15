@@ -88,6 +88,7 @@ describe('drag to pan, with axis locks', () => {
 describe('selection toggle', () => {
   it('a click on a column entry selects it, again clears it (a double click keeps it); Shift extends, Ctrl adds; a drag sets the range once', async () => {
     const t = await family();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const sel = t.ctx.selection;
     const origins: string[] = [];
     sel.current.subscribe((s) => origins.push(s.origin));
@@ -697,7 +698,7 @@ describe('the vertical overview', () => {
     const wx = () => [f()[8], 0] as const;
     const ww = () => f()[9] - f()[8];
     const owners: string[] = [];
-    t.ctx.interaction.pointer.subscribe((e) => owners.push(e.owner), { priority: -1 });
+    t.ctx.input.events.pointer.subscribe((e) => owners.push(e.owner), { priority: -1 });
     const [x0, y0] = [s.scrollX, s.scrollY];
     const cx = wx()[0] + ww() / 2;
     const cy = (f()[10] + f()[11]) / 2;
@@ -757,6 +758,7 @@ describe('Shift-drag on data selects columns', () => {
   };
   it('whole columns without panning; a second Shift-drag extends from the anchor (`shiftPositions: extend`)', async () => {
     const t = await family();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     t.vp(S).zoomTo(0, 5, 20);
     const sx = t.vp(S).live.current.scrollX;
     t.drag(S, t.xOf(S, 0, 6), t.row(0), t.xOf(S, 0, 8), t.row(2), { shift: true });
@@ -800,7 +802,7 @@ describe('policy by params and behaviors', () => {
       return seed % n;
     };
     const owners = new Set<string>();
-    t.ctx.interaction.drag.subscribe((e) => owners.add(e.owner), { priority: -100 });
+    t.ctx.input.events.drag.subscribe((e) => owners.add(e.owner), { priority: -100 });
     for (let k = 0; k < 300; k++) {
       t.vp(S).zoomTo(0, 5, 20);
       const [x, y] = [100 + rnd(860), 15 + rnd(130)];
@@ -824,7 +826,7 @@ describe('policy by params and behaviors', () => {
   it('without select a click selects nothing but still emits; Focus moves to the FLVR arginine column', async () => {
     const t = await family();
     const clicks: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => clicks.push(e.hit.block));
+    t.ctx.input.events.click.subscribe((e) => clicks.push(e.hit.block));
     t.ctx.behaviors.get('select')?.remove();
     t.click(S, t.xOf(S, 0, 4), t.columnY);
     expect([t.ctx.selection.current.value.columns, clicks]).toEqual([null, [0]]);
@@ -848,7 +850,7 @@ describe('policy by params and behaviors', () => {
         let sub: { unsubscribe(): void } | null = null;
         return {
           register: () => {
-            sub = ctx.interaction.click.subscribe(() => {
+            sub = ctx.input.events.click.subscribe(() => {
               throw new Error('boom');
             });
           },

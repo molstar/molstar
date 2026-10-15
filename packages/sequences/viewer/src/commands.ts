@@ -165,6 +165,16 @@ export const SeqCommands = {
     }),
     'Brings a target into view in one section or in every section that shows it.',
   ),
+  Reveal: SeqCommand<{ target: SeqTarget; section?: string | null; animate?: boolean; origin?: Origin }>(
+    'seqv:reveal',
+    SimpleParamsSchema({
+      target: RequiredField(target, ''),
+      section: OptionalField(nullable(str), null, 'null: every section that shows it'),
+      animate,
+      origin,
+    }),
+    'Brings a target into view without selecting, focusing or zooming: text scrolls its lines in, tracks pan at their cell; nothing where it is shown already.',
+  ),
   SetSnapshot: SeqCommand<{ ref: string | null; animate?: boolean }>(
     'seqv:setSnapshot',
     SimpleParamsSchema({
@@ -426,6 +436,14 @@ export const CommandsBehavior = defineBehavior(
           shown = ctx.focus.fromExtents(ext, opts);
         }
         if (!shown) internal(ctx).log('info', 'a focus target is shown nowhere');
+      }),
+    );
+    add(
+      ctx.commands.subscribe(C.Reveal, (p) => {
+        const t = targetOf(ctx, p.target);
+        if (!t) return;
+        const opts = { section: p.section, animate: p.animate !== false, origin: p.origin };
+        if (!ctx.reveal(isList(t) ? t : [t], opts)) internal(ctx).log('info', 'a reveal target is shown nowhere');
       }),
     );
     add(

@@ -14,12 +14,16 @@
 import type { Closure } from '@molstar/seq-core/format';
 import type { TeardownLogic } from 'rxjs';
 import { type BehaviorHandle, type SeqBehaviorProvider, SeqBehaviors } from './behaviors.js';
+import type { BindingDescriptions } from './bindings.js';
 import type { SeqViewerContext } from './context.js';
 import { DefaultHeaderHoverParams, type HeaderHoverParams } from './header-hover.js';
+import type { HighlightEntry } from './highlight.js';
 import { type Hit, HitRegion, HoverKind } from './hit.js';
-import { Binding, DragPhase, type InputDispatcher, PointerType } from './input.js';
+import { DragPhase, type InputDispatcher, PointerType } from './input.js';
+import type { SeqLociAny } from './lineage.js';
+import type { Coordinates } from './projection.js';
 import { RING_WINDOW, ringWindowAt } from './ring-window.js';
-import type { Origin, SeqEvent, Unsubscribable } from './state.js';
+import type { SeqEvent, Unsubscribable } from './state.js';
 import type { RowHoverParams } from './ui.js';
 import type { Viewport } from './viewport.js';
 import { WINDOW_FRAME, WindowKind, WindowPart, windowFrame, windowIdle, windowKind, windowPart } from './windows.js';
@@ -33,7 +37,10 @@ export interface BehaviorKit<P> {
   add(t: TeardownLogic): void;
 }
 
-/** A behavior from a setup run at `register`; everything it adds is released on dispose. */
+/**
+ * A behavior from a setup run at `register`; everything it adds is released on dispose. `bindings`: its binding params
+ * described (seqspec:viewer#behaviors).
+ */
 export function defineBehavior<P extends object>(
   name: string,
   category: SeqBehaviorProvider['category'],
@@ -41,6 +48,7 @@ export function defineBehavior<P extends object>(
   params: P,
   description: string,
   setup: (k: BehaviorKit<P>) => void,
+  bindings?: BindingDescriptions,
 ): SeqBehaviorProvider<P> {
   const display = {
     name: name[0].toUpperCase() + name.slice(1).replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`),
@@ -52,6 +60,7 @@ export function defineBehavior<P extends object>(
     category,
     priority,
     params,
+    bindings,
     create(ctx, h) {
       const subs = SeqBehaviors.handler();
       const kit: BehaviorKit<P> = {
@@ -75,8 +84,6 @@ export const internal = (ctx: SeqViewerContext) =>
   ctx as unknown as {
     log(level: 'info' | 'warning' | 'error', message: string, data?: unknown): void;
     report(code: string, message: string): void;
-    activate(section: string, track: string, origin: Origin): void;
-    openMenu(section: string, track: string, origin: Origin, x?: number, y?: number): void;
     readonly input: InputDispatcher;
   };
 
@@ -100,11 +107,11 @@ export const HoverBehavior = defineBehavior(
       if (p?.regions.includes(RegionName[hit.region])) ctx.hover.setFromHit(hit, 'pointer', p.closure);
       else ctx.hover.clear('pointer');
     };
-    on(ctx.interaction.hover, (e) => {
+    on(ctx.input.events.hover, (e) => {
       if (!dragging) set(e.hit);
     });
-    on(ctx.interaction.leave, () => ctx.hover.clear('pointer'));
-    on(ctx.interaction.drag, (e) => {
+    on(ctx.input.events.leave, () => ctx.hover.clear('pointer'));
+    on(ctx.input.events.drag, (e) => {
       if (e.phase === DragPhase.start && e.owner !== '' && h.forSection(e.start.section)?.whileDragging === 'clear') {
         dragging = true;
         ctx.hover.clear('pointer');
@@ -299,7 +306,7 @@ export const CursorBehavior = defineBehavior(
       ctx.ui.setCursor(ref, c);
     };
     // Followed during a drag too (apply keeps the drag's cursor), so its end shows what is under the pointer.
-    on(ctx.interaction.hover, (e) => {
+    on(ctx.input.events.hover, (e) => {
       section = e.hit.section;
       region = e.hit.region;
       part = partAt(section, region, e.hit);
@@ -311,7 +318,7 @@ export const CursorBehavior = defineBehavior(
       apply();
     });
     // A window's body and edges are not hover elements: its part is followed per move (setCursor emits on change).
-    on(ctx.interaction.pointer, (e) => {
+    on(ctx.input.events.pointer, (e) => {
       if (e.input.type === PointerType.down) {
         const ref = ctx.layout.sectionRef(e.hit.section);
         pressed = ref === null ? 'default' : ctx.ui.cursor(ref).value;
@@ -330,7 +337,7 @@ export const CursorBehavior = defineBehavior(
       part = next;
       apply();
     });
-    on(ctx.interaction.leave, (e) => {
+    on(ctx.input.events.leave, (e) => {
       region = HitRegion.none;
       kind = -1;
       part = WindowPart.none;
@@ -387,37 +394,125 @@ export const FocusViewportBehavior = defineBehavior(
   },
 );
 
+/** Whether `channel` is one `pattern` names: the name, or a prefix ending in `*`. Allocation-free. */
+function channelMatches(pattern: string, channel: string): boolean {
+  const n = pattern.length;
+  if (n === 0 || pattern.charCodeAt(n - 1) !== 42) return pattern === channel;
+  if (channel.length < n - 1) return false;
+  for (let i = 0; i < n - 1; i++) if (pattern.charCodeAt(i) !== channel.charCodeAt(i)) return false;
+  return true;
+}
+const UP = PointerType.up;
+const CANCEL = PointerType.cancel;
+const DOWN = PointerType.down;
+
 /**
- * Not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`): the default UIs' track menu opens at its header, and a
- * host that opens its own menu at the pointer adds this (seqspec:interaction#the-track-menu).
+ * Not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`): a host whose other views light the sequence (a 3D
+ * view's hover through a link) adds it, so what they light comes into view (seqspec:interaction#highlight).
  */
-export const ContextMenuBehavior = defineBehavior(
-  'contextMenu',
-  'interaction',
-  85,
+export const RevealHighlightBehavior = defineBehavior(
+  'revealHighlight',
+  'view',
+  0,
   {
-    /** The presses that ask: the secondary button; on macOS a host adds Ctrl+primary (and takes it from `select`). */
-    on: [{ button: 'secondary' }] as Binding,
-    regions: ['data', 'header', 'gutter'] as readonly RegionName[],
+    /** The highlight channels it follows: a name, or a prefix ending in `*` (a linked view's: `links:*`). */
+    channels: ['links:*'] as readonly string[],
+    /** The external hover owners it follows (`hover.setLoci`'s owner: a linked 3D view's `3d`). */
+    hovers: [] as readonly string[],
+    /** How long a highlight rests before it is revealed, ms. */
+    dwellMs: 200,
+    /** Px clear of the edge it is brought to. */
+    pad: 12,
+    animate: true,
   },
-  "A press of `on` (the secondary button) on a track (its data, its header or its gutter: `regions`) asks for the track's menu (`events.menu`, origin `pointer`, with the pointer's place), as the keyboard's menu key does; where no track is under the pointer nothing is asked. It asks on the press. The menu is the host's; not in `DefaultSeqViewerSpec`.",
-  ({ ctx, h, on }) => {
-    on(ctx.interaction.pointer, (e) => {
-      const i = e.input;
-      if (i.type !== PointerType.down) return;
-      const hit = e.hit;
-      const p = h.forSection(hit.section);
-      if (!p || hit.track < 0 || !Binding.match(p.on, i.button, i.modifiers)) return;
-      const rv = ctx.graph.assembled.value?.view?.resolved;
-      const set = ctx.graph.assembled.value?.set;
-      if (!rv || !set || !p.regions.includes(RegionName[hit.region])) return;
-      internal(ctx).openMenu(
-        ctx.layout.sectionRef(hit.section) ?? '',
-        set.strings.get(rv.tracks.ref[hit.track]),
-        'pointer',
-        i.x,
-        i.y,
-      );
+  'Brings a highlight on one of `channels`, or an external hover of one of `hovers` (a linked view lighting the ' +
+    'sequence), into view once it has rested `dwellMs` (`ctx.reveal`: text scrolls its lines in, tracks pan at their ' +
+    'cell), in each section that shows it and does not show it already; never in the section the pointer is in, never ' +
+    "during a press or a drag, never while this viewer's own hover is held (a link lighting it back). It selects, " +
+    'focuses and zooms nothing. Not in `DefaultSeqViewerSpec`.',
+  ({ ctx, h, on, add }) => {
+    let timer = -1;
+    let pressed = false;
+    /** What waits out its dwell: a channel's entry, or an external hover's target. */
+    let waiting: HighlightEntry | null = null;
+    let waitingHover: SeqLociAny | Coordinates | null = null;
+    let lastHover: SeqLociAny | Coordinates | null = null;
+    let prev = ctx.highlight.channels.value;
+    let changed: HighlightEntry | null = null;
+    // Made once: a change's scan and the timer's callback allocate nothing.
+    const scan = (e: HighlightEntry, channel: string) => {
+      if (prev.get(channel) === e) return;
+      const list = h.params.value.channels;
+      for (let i = 0; i < list.length; i++) if (channelMatches(list[i], channel)) changed = e;
+    };
+    let current = false;
+    let checking: HighlightEntry | null = null;
+    const stillOn = (e: HighlightEntry) => {
+      if (e === checking) current = true;
+    };
+    const arm = () => {
+      if (timer >= 0) ctx.scheduler.clearTimer(timer);
+      timer = ctx.scheduler.setTimer(fire, h.params.value.dwellMs);
+    };
+    const fire = () => {
+      timer = -1;
+      const e = waiting;
+      const hover = waitingHover;
+      waiting = null;
+      waitingHover = null;
+      if (!e && !hover) return;
+      if (pressed || ctx.ui.drag.value) return;
+      const hv = ctx.hover.live.current;
+      // Still lit (not cleared or replaced meanwhile).
+      if (e) {
+        current = false;
+        checking = e;
+        ctx.highlight.channels.value.forEach(stillOn);
+        checking = null;
+        if (!current) return;
+        if (hv.owner !== '' && hv.external === null) return;
+      } else if (hv.external !== hover) return;
+      const target = e ? e.target : (hover as SeqLociAny | Coordinates);
+      const only = e ? e.section : null;
+      const pointer = ctx.pointer.current;
+      const refs = ctx.viewports.sections.value;
+      for (let i = 0; i < refs.length; i++) {
+        const s = ctx.layout.sectionIndex(refs[i]);
+        const p = h.forSection(s);
+        if (!p || (pointer.inside && pointer.section === s) || (only !== null && only !== refs[i])) continue;
+        ctx.reveal(target, { section: refs[i], pad: p.pad, animate: p.animate });
+      }
+    };
+    add(
+      ctx.highlight.channels.subscribe((map) => {
+        changed = null;
+        map.forEach(scan);
+        prev = map;
+        if (!changed) return;
+        waiting = changed;
+        waitingHover = null;
+        arm();
+      }),
+    );
+    add(
+      ctx.hover.live.version.subscribe(() => {
+        const hv = ctx.hover.live.current;
+        const ext = hv.external;
+        if (ext === lastHover) return;
+        lastHover = ext;
+        if (ext === null || !h.params.value.hovers.includes(hv.owner)) return;
+        waitingHover = ext;
+        waiting = null;
+        arm();
+      }),
+    );
+    on(ctx.input.events.pointer, (e) => {
+      const t = e.input.type;
+      if (t === DOWN) pressed = true;
+      else if (t === UP || t === CANCEL) pressed = false;
+    });
+    add(() => {
+      if (timer >= 0) ctx.scheduler.clearTimer(timer);
     });
   },
 );
@@ -472,9 +567,9 @@ export const SnapshotControlsBehavior = defineBehavior(
     const stop = (section: number) => {
       if (ctx.snapshots.playing.value && h.forSection(section)?.stopOnInput) ctx.snapshots.stop();
     };
-    on(ctx.interaction.pointer, (e) => {
+    on(ctx.input.events.pointer, (e) => {
       if (e.input.type === PointerType.down) stop(e.input.section);
     });
-    on(ctx.interaction.key, (e) => stop(e.input.section));
+    on(ctx.input.events.key, (e) => stop(e.input.section));
   },
 );
