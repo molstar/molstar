@@ -366,37 +366,30 @@
 
 /* The assistant under the list: always there, in the accent's soft wash; the default (↵) when no command matches. */
 .ask {
+  /* Quiet, as a row of the list (the commands are the menu's point): its icon and gap as theirs, no fill. */
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--msp-space-2);
-  min-height: 40px;
+  gap: var(--msp-space-3);
+  min-height: 32px;
   margin: 0 var(--msp-space-2) var(--msp-space-2);
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;
 
+  /* The Enter target (nothing else matches): as a highlighted row. */
   &:hover,
   &[data-default] {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
+    background: var(--msp-color-hover);
   }
 
-  &[data-default] {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
-  }
-
-  /* Not set up: quiet, a way to the setup. */
+  /* Not set up: a way to the setup, quieter still. */
   &[data-setup] {
-    min-height: 32px;
-    background: none;
+    grid-template-columns: 16px minmax(0, 1fr);
     color: var(--msp-color-text-muted);
-
-    &:hover {
-      background: var(--msp-color-hover);
-    }
 
     & .askIcon {
       color: var(--msp-color-text-subtle);
@@ -405,14 +398,13 @@
 }
 
 .askIcon {
-  flex: none;
+  justify-self: center;
   color: var(--msp-color-accent);
 }
 
 .askLabel {
-  flex: none;
-  color: var(--msp-color-accent-strong);
-  font-weight: 600;
+  color: var(--msp-color-text);
+  font-weight: 500;
 }
 
 .askText {

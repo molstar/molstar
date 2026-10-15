@@ -396,34 +396,25 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-ask {
   align-items: center;
-  gap: var(--msp-space-2);
-  min-height: 40px;
+  gap: var(--msp-space-3);
+  min-height: 32px;
   margin: 0 var(--msp-space-2) var(--msp-space-2);
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;
   flex: none;
-  display: flex;
+  grid-template-columns: 16px auto minmax(0, 1fr) auto;
+  display: grid;
 
   &:hover, &[data-default] {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
-  }
-
-  &[data-default] {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+    background: var(--msp-color-hover);
   }
 
   &[data-setup] {
-    min-height: 32px;
     color: var(--msp-color-text-muted);
-    background: none;
-
-    &:hover {
-      background: var(--msp-color-hover);
-    }
+    grid-template-columns: 16px minmax(0, 1fr);
 
     & .msp-command-menu-askIcon {
       color: var(--msp-color-text-subtle);
@@ -433,13 +424,12 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-askIcon {
   color: var(--msp-color-accent);
-  flex: none;
+  justify-self: center;
 }
 
 .msp-command-menu-askLabel {
-  color: var(--msp-color-accent-strong);
-  flex: none;
-  font-weight: 600;
+  color: var(--msp-color-text);
+  font-weight: 500;
 }
 
 .msp-command-menu-askText {
