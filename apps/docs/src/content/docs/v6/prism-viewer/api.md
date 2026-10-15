@@ -70,9 +70,12 @@ Failure codes:
 
 The operation `component.add` is `api.component.add(...)`, and it is the same operation the command menu, the run log
 and the assistant call. A hyphen in an operation id is camel case on the area: `history.undo-turn` is
-`api.history.undoTurn`, `superpose.tm-align` is `api.superpose.tmAlign`. These are the areas the viewer has today. A
-feature's area is present while the feature is in the spec, so check for it (`api.measure?.distance(...)`) when you do
-not control the spec.
+`api.history.undoTurn`, `superpose.tm-align` is `api.superpose.tmAlign`. These are the areas the viewer has today. The
+core's (`load`, `session`, `select`, `focus`, `highlight`, `camera`, `canvas`, `settings`, `history`, `view`) are always
+there. The scene's (`structure`, `contents`, `component`, `representation`, `styles`, `annotations`, `trajectory`,
+`volume`, `particles`) come with built-in features in the default spec and are typed as present: reading one in a viewer
+whose spec left its feature out throws, naming the feature. Other features' areas are optional in the type, so check for
+them (`api.measure?.distance(...)`) when you do not control the spec; `api.area(id)` asks for any.
 
 | Area                  | Operations                                                                                                             |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -274,5 +277,5 @@ States are `ReadonlyState`: an rxjs `Observable` that replays its current value 
 
 ## What is stable
 
-The core areas are the public contract: their ids, values and results follow semver once the package is released. Areas
-that extensions add, and `viewer.plugin`, carry no such promise.
+The core areas and the built-in features' are the public contract: their ids, values and results follow semver once the
+package is released. Areas that extensions add, and `viewer.plugin`, carry no such promise.

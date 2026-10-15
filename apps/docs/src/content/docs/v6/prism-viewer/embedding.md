@@ -93,6 +93,14 @@ and not part of the `molstar` distribution.
 
 | Feature           | Brings                                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
+| `structure`       | The scene's API: the `structure`, `contents`, `component`, `representation` and `styles` areas.     |
+| `volume`          | The `volume` and `particles` areas.                                                                 |
+| `trajectory`      | The `trajectory` area and the trajectory bar.                                                       |
+| `annotations`     | The `annotations` area and Home's offer of a structure's annotations. Needs `structure`.            |
+| `home`            | Home.                                                                                               |
+| `structure-panel` | The Structure tab: the scene tree and its inspectors, Preset and Styles. Needs `structure`.         |
+| `selection-panel` | The Selection tab. Needs `structure`.                                                               |
+| `help`            | Help.                                                                                               |
 | `loaders`         | `load.entry`, `load.url`, `load.mvs`, `load.snapshot`, `load.trajectory`, `load.volume`.            |
 | `canvas-settings` | The canvas settings card and `canvas.lighting`, `.illumination`, `.camera`, `.clipping`.            |
 | `measurements`    | The `measure` area and the Measure section.                                                         |
@@ -103,6 +111,11 @@ and not part of the `molstar` distribution.
 | `animation`       | The `animation` area and the animation card.                                                        |
 | `export-image`    | The `export` area: images.                                                                          |
 | `export-session`  | `session.save`.                                                                                     |
+
+Leave a feature out and its code is not in your bundle: `examples/minimal-prism-viewer` lists only `structure` and is
+under half the size of the full viewer. The panels keep their tab ids (`home`, `structure`, `selection`, `help`) when
+they are there. Reading a built-in area or view model a spec left out (`viewer.api.volume`, `viewer.views.scene`) throws
+an error naming the feature to add; `viewer.api.area('volume')` and `'scene' in viewer.views` ask without throwing.
 
 `FullPrismViewerSpec()` is the default spec with Mol\*'s extensions added after the built-in ones. It lives in the app
 (and in `prism-viewer.js`), because the extensions depend on the viewer: model quality
@@ -117,6 +130,7 @@ A spec has these fields, all but `plugin` optional:
 | `plugin`     | The engine's base: registry entries, behaviors, config items and canvas props. Named parts in `@molstar/prism-viewer/sources/base`.                                                                                                                                                                                           |
 | `options`    | Values for the options below, by group.                                                                                                                                                                                                                                                                                       |
 | `extensions` | A list of extensions, in order. Leave one out to drop it. See [Extensions](/docs/v6/prism-viewer/extensions/).                                                                                                                                                                                                                |
+| `languages`  | The query languages target text may be written in, PyMOL first if listed: `AllQueryLanguages` from `@molstar/prism-viewer/targets/languages/all`, or one each from `targets/languages/pymol`, `vmd`, `jmol`, `molscript`. None: keywords and address lists only, and no transpiler bundled. The default spec lists all four.  |
 | `overrides`  | Replace or remove any part (a tab, a toolbar button, a command, a sequence behavior) by id.                                                                                                                                                                                                                                   |
 | `sequence`   | `{ behaviors, style? }` for the one sequence viewer, `style` being `'tracks'` or `'text'`; `false` for none.                                                                                                                                                                                                                  |
 | `agent`      | `{ core?, skills?, assistant? }`, or `false` for no tools at all.                                                                                                                                                                                                                                                             |
