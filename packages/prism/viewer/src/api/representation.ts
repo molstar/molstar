@@ -28,8 +28,17 @@ import { EmissiveStructureRepresentation3DFromBundle } from '@molstar/plugin/sta
 import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { TransparencyStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/transparency';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { checkValues } from './run.js';
-import { isFailure, labelOf, loadedStructures, oneStructure, someStructures } from './scope.js';
+import { ComponentParam, EveryStructureParam, mergeParams, StructureParam } from './params.js';
+import {
+  componentName,
+  findComponent,
+  isFailure,
+  labelOf,
+  loadedStructures,
+  oneStructure,
+  someStructures,
+} from './scope.js';
+import { setRepresentation } from './set-representation.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
 // `representation` (operations.md §2, plan 2.2): what a component shows and how it looks. `set` and `remove` act on a
@@ -54,11 +63,6 @@ const Layers = {
 } as const;
 
 type LayerKind = keyof typeof Layers;
-
-const StructureParam = () =>
-  PD.Text('', { description: 'A structure by label or state ref; empty: the one in view (or all, where it says)' });
-
-const ComponentParam = (description = 'A component by label or state ref') => PD.Text('', { description });
 
 /** The Mol* clipping groups, by name. */
 const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Names[];
@@ -131,57 +135,25 @@ export class RepresentationApi extends ApiArea {
     async run({ component, type, params, structure }, ctx) {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
-      const c = findComponent(ctx, s, component);
-      if (isFailure(c)) return c;
-
-      const registry = ctx.plugin.representation.structure.registry;
-      if (!registry.has(type)) {
-        return ApiResult.fail('invalid', `There is no representation type '${type}'.`, `Types: ${typeIds(ctx)}.`);
-      }
-      const provider = registry.get(type);
-      const data = c.cell.obj?.data;
-      if (!data) return ApiResult.fail('blocked', `${componentName(c)} has no structure to show.`);
-      if (!provider.isApplicable(data)) {
-        return ApiResult.fail('blocked', `${provider.label} does not apply to ${componentName(c)}.`);
-      }
-      const typeParams = provider.getParams(ctx.plugin.representation.structure.themes, data);
-      const patch = params ?? {};
-      // Unknown names and wrong values: the same check as a call's own values (it names what the type takes).
-      const checked = checkValues(typeParams, patch);
-      if (isFailure(checked)) {
-        return ApiResult.fail(checked.code, `${provider.label}: ${checked.message}`, checked.hint);
-      }
-
-      const existing = c.representations.filter((r) => typeOf(r) === type);
-      if (existing.length) {
-        const changing = existing.filter((r) => {
-          const old = (r.cell.transform.params as RepresentationParams).type.params;
-          return !PD.areEqual(typeParams, mergeParams(old, patch), old);
-        });
-        if (!changing.length) {
-          return ApiResult.already(`${componentName(c)} already shows ${provider.label} that way.`);
-        }
-        await ctx.plugin.dataTransaction(async () => {
-          for (const r of changing) {
-            const old = r.cell.transform.params as RepresentationParams;
-            await ctx.plugin.state.updateTransform(ctx.plugin.state.data, r.cell.transform.ref, {
-              ...old,
-              type: { name: old.type.name, params: mergeParams(old.type.params, patch) },
-            });
-          }
-        });
-        return ApiResult.ok(`Updated ${provider.label} on ${componentName(c)}.`, {
-          nodes: changing.map((r) => r.cell.transform.ref),
-        });
-      }
-
-      // Added the way the component manager adds one (its options: hydrogens, quality, material, …), then the params.
-      const selector = await ctx.plugin.builders.structure.representation.addRepresentation(c.cell, {
-        type: provider,
-        typeParams: mergeParams(managerTypeParams(ctx, type), patch),
-      });
-      return ApiResult.ok(`Showed ${componentName(c)} as ${provider.label}.`, {
-        nodes: selector ? [selector.ref] : [c.cell.transform.ref],
+      const found = findComponent(ctx, [s], component);
+      if (isFailure(found)) return found;
+      const c = found.component;
+      return setRepresentation(ctx, {
+        name: componentName(c),
+        type,
+        patch: params,
+        registry: ctx.plugin.representation.structure.registry,
+        themes: ctx.plugin.representation.structure.themes,
+        data: c.cell.obj?.data,
+        existing: c.representations,
+        // Added the way the component manager adds one (its options: hydrogens, quality, material, …), then the params.
+        async create(provider) {
+          const selector = await ctx.plugin.builders.structure.representation.addRepresentation(c.cell, {
+            type: provider as never,
+            typeParams: mergeParams(managerTypeParams(ctx, type), params ?? {}) as never,
+          });
+          return [selector ? selector.ref : c.cell.transform.ref];
+        },
       });
     },
   });
@@ -195,11 +167,13 @@ export class RepresentationApi extends ApiArea {
       type: PD.Text('', { description: 'A representation type; empty: all of the component' }),
       structure: StructureParam(),
     },
+    approval: 'destructive',
     async run({ component, type, structure }, ctx) {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
-      const c = findComponent(ctx, s, component);
-      if (isFailure(c)) return c;
+      const found = findComponent(ctx, [s], component);
+      if (isFailure(found)) return found;
+      const c = found.component;
       if (type && !ctx.plugin.representation.structure.registry.has(type)) {
         return ApiResult.fail('invalid', `There is no representation type '${type}'.`, `Types: ${typeIds(ctx)}.`);
       }
@@ -378,7 +352,7 @@ export class RepresentationApi extends ApiArea {
           { min: 0, max: 10, step: 0.05 },
           { description: 'A multiple of the default size (1: the default, 2: twice as big); 0 leaves the size alone' },
         ),
-        structure: StructureParam(),
+        structure: EveryStructureParam(),
         language: LanguageParam(),
       };
     },
@@ -434,7 +408,7 @@ export class RepresentationApi extends ApiArea {
     params: {
       material: Material.getParam({ isFlat: true }),
       component: ComponentParam('A component by label or state ref; empty: all of the structure'),
-      structure: StructureParam(),
+      structure: EveryStructureParam(),
     },
     async run({ material, component, structure }, ctx) {
       const targets = someStructures(ctx, structure || undefined);
@@ -442,9 +416,9 @@ export class RepresentationApi extends ApiArea {
       const reprs: StructureRepresentationRef[] = [];
       for (const s of targets) {
         if (component) {
-          const c = findComponent(ctx, s, component);
+          const c = findComponent(ctx, [s], component);
           if (isFailure(c)) return c;
-          reprs.push(...c.representations);
+          reprs.push(...c.component.representations);
         } else {
           for (const c of s.components) reprs.push(...c.representations);
         }
@@ -490,7 +464,7 @@ export class RepresentationApi extends ApiArea {
         ['emissive', 'Emissive'],
         ['clipping', 'Clipping'],
       ]),
-      structure: StructureParam(),
+      structure: EveryStructureParam(),
     },
     async run({ layer, structure }, ctx) {
       if (!(layer in Layers)) {
@@ -522,7 +496,6 @@ interface RepresentationParams {
 
 const typeOf = (r: StructureRepresentationRef) => (r.cell.transform.params as RepresentationParams).type.name;
 const refOf = (r: StructureRepresentationRef) => r.cell.transform.ref;
-const componentName = (c: StructureComponentRef) => c.cell.obj?.label || c.key || c.cell.transform.ref;
 
 /** A representation of the scene by state ref. */
 function representationRef(ctx: ApiContext, ref: string): StructureRepresentationRef | undefined {
@@ -534,35 +507,6 @@ function representationRef(ctx: ApiContext, ref: string): StructureRepresentatio
 
 function typeIds(ctx: ApiContext): string {
   return ctx.plugin.representation.structure.registry.types.map((t) => t[0]).join(', ');
-}
-
-/** One component of a structure, by state ref, key or label (case-insensitive). */
-function findComponent(ctx: ApiContext, s: StructureRef, name: string): StructureComponentRef | ApiFailure {
-  const list = s.components;
-  const names = list.map(componentName).join(', ');
-  if (!name) {
-    return ApiResult.fail(
-      'invalid',
-      'Which component?',
-      list.length ? `${labelOf(ctx, s)} has: ${names}.` : `${labelOf(ctx, s)} has no components.`,
-    );
-  }
-  const exact = list.filter((c) => c.cell.transform.ref === name || c.key === name);
-  const lower = name.toLowerCase();
-  const found = exact.length ? exact : list.filter((c) => componentName(c).toLowerCase() === lower);
-  if (found.length === 1) return found[0];
-  if (found.length > 1) {
-    return ApiResult.fail(
-      'ambiguous',
-      `${found.length} components of ${labelOf(ctx, s)} are called '${name}'.`,
-      `Use a state ref: ${found.map((c) => c.cell.transform.ref).join(', ')}.`,
-    );
-  }
-  return ApiResult.fail(
-    'not-found',
-    `${labelOf(ctx, s)} has no component '${name}'.`,
-    list.length ? `Components: ${names}.` : 'It has no components.',
-  );
 }
 
 /** A structure's representations of one target: the structure, its components that the target covers. */
@@ -793,18 +737,6 @@ async function changeSizeFactor(ctx: ApiContext, where: Covered, factor: number,
 const round = (x: number) => Math.round(x * 1e6) / 1e6;
 
 // --- params -----------------------------------------------------------------------------------------------------
-
-/** `patch` over `base`: a plain object over a plain object merges one level (a group's partial values), else replaces. */
-function mergeParams(base: Record<string, any>, patch: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = { ...base };
-  for (const [k, v] of Object.entries(patch)) {
-    out[k] = isPlain(v) && isPlain(out[k]) ? { ...out[k], ...v } : v;
-  }
-  return out;
-}
-
-const isPlain = (x: unknown): x is Record<string, any> =>
-  !!x && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 
 /** The type params the component manager adds a representation with (its options: hydrogens, quality, …). */
 function managerTypeParams(ctx: ApiContext, type: string): Record<string, any> {

@@ -11,6 +11,7 @@
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
@@ -150,6 +151,14 @@ function menuOf(node: SceneNode): SceneMenuItem[] {
  * sub-entries open them in place, indented.
  */
 function RowMenu(props: { items: readonly SceneMenuItem[]; depth: number; onDone(): void }) {
+  // Escape closes the menu first, before the panel it is in (the document's handlers run in capture order).
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    e.preventDefault();
+    props.onDone();
+  };
+  document.addEventListener('keydown', onKey, true);
+  onCleanup(() => document.removeEventListener('keydown', onKey, true));
   return (
     <div class={classes.menu} role="menu" style={{ '--msp-tree-depth': props.depth }}>
       <MenuItems items={props.items} onDone={props.onDone} />

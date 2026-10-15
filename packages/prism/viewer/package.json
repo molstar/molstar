@@ -19,6 +19,11 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
+    "./features/*": {
+      "molstar-src": "./src/features/*/index.ts",
+      "types": "./lib/features/*/index.d.ts",
+      "import": "./lib/features/*/index.js"
+    },
     "./_stories/*": null,
     "./_test/*": null
   },

@@ -472,7 +472,8 @@ function createSequence(
         viewer.setStyle(v.style);
         viewer.setTheme({ letters: v.colors });
         if (v.rail) viewer.setRail(v.rail);
-        source.setFollowed(v.structure);
+        // Undo's checkpoints leave out what the sequence follows (view state); a session has it.
+        if ('structure' in v) source.setFollowed(v.structure);
       },
     }),
   );

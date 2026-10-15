@@ -8,6 +8,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ApiArea, ApiResult } from './area.js';
+import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
@@ -53,7 +54,7 @@ export class CameraApi extends ApiArea {
     title: 'Frame',
     params: {
       target: TargetParam('What to bring into view: ligand, A:120-130, resn HEM, …'),
-      structure: PD.Text('', { description: 'A structure by label or state ref; empty: the one in view' }),
+      structure: StructureParam(),
       language: LanguageParam(),
     },
     history: false,
@@ -95,7 +96,7 @@ export class CameraApi extends ApiArea {
   readonly orient = this.operation({
     id: 'camera.orient',
     title: 'Orient along the principal axes',
-    params: { structure: PD.Text('', { description: 'A structure by label or state ref; empty: all loaded' }) },
+    params: { structure: EveryStructureParam() },
     history: false,
     modules: ['canvas'],
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),

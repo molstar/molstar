@@ -197,5 +197,17 @@ context, extensions bring several areas and built-in features may add to core ar
 `api/` and `sources/` (checked), the headless graph is DOM-free (`@molstar/prism-ui/core`, checked), the canvas input,
 keys and popups work inside a shadow root.
 
+G3 and G4 ran together after phase 2 and 3.1's first feature (2026-10-15): four reviewers (spec correctness; contracts
+and boundaries; tests; UX in the browser), about 70 findings. Fixed before the features fan out: lazy extensions
+activate all or nothing and are held to their stubs (no endless replay), a built-in feature's stub may declare
+operations in core areas, overrides are one rule for every part with unknown ids refused, files and sessions load what
+owns them, hidden contents keep a component's later rename and change, component identity is structure and target,
+undo leaves view state (selection mode, picking level, the sequence's follow), one slow checkpoint no longer turns undo
+off; one name-resolution rule and one set of param and representation helpers across the areas; commands run with only
+their target; menus take Escape first; entity and chain rows have menus; Home shows the ID field and Open files.
+Deferred to their phases: camera framing around the floating panel (phase 6, README §3.5), phone layout of the picking
+levels and the inspector split, history labels per change, dark theme for the canvas, completions ranking (phase 4's
+command and target work).
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

@@ -15,9 +15,9 @@ import type {
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { checkValues } from './run.js';
-import { isFailure } from './scope.js';
-import { entryRoot, mergeParams, namesOf, pickOne } from './volume.js';
+import { mergeParams } from './params.js';
+import { entryRoot, isFailure, namesOf, pickOne } from './scope.js';
+import { commitRepresentation, setRepresentation } from './set-representation.js';
 
 // `particles` (operations.md §2, plan 2.5): the particle lists in the scene (`get`), their representations (desired
 // state, like `representation.set`), visibility and removal. It follows `volume`: a `particles` names a list by label
@@ -40,8 +40,6 @@ export interface ParticleListInfo {
   readonly count: number;
   readonly representations: readonly ParticleRepresentationInfo[];
 }
-
-type RepresentationValues = { type: { name: string; params: Record<string, any> } } & Record<string, any>;
 
 export class ParticlesApi extends ApiArea {
   readonly id = 'particles';
@@ -92,70 +90,26 @@ export class ParticlesApi extends ApiArea {
     async run({ type, params, particles }, ctx) {
       const l = oneList(ctx, particles || undefined);
       if (isFailure(l)) return l;
-      const data = l.cell.obj?.data;
-      if (!data) return ApiResult.fail('blocked', `${listName(ctx, l)} has no data to show.`);
-      const registry = ctx.plugin.representation.particles.registry;
-      if (!registry.has(type)) {
-        return ApiResult.fail(
-          'invalid',
-          `There is no representation type '${type}'.`,
-          `Types: ${registry.types.map((t) => t[0]).join(', ')}.`,
-        );
-      }
-      const provider = registry.get(type);
-      if (!provider.isApplicable(data)) {
-        return ApiResult.fail(
-          'blocked',
-          `${provider.label} does not apply to ${listName(ctx, l)}.`,
-          `Applicable: ${registry
-            .getApplicableTypes(data)
-            .map((t) => t[0])
-            .join(', ')}.`,
-        );
-      }
-      const typeParams = provider.getParams(ctx.plugin.representation.particles.themes, data);
-      const patch = params ?? {};
-      const checked = checkValues(typeParams, patch);
-      if (isFailure(checked)) {
-        return ApiResult.fail(checked.code, `${provider.label}: ${checked.message}`, checked.hint);
-      }
-
       const name = listName(ctx, l);
-      const existing = l.representations.filter((r) => typeOf(r) === type);
-      if (existing.length) {
-        const changing = existing.filter((r) => {
-          const old = (r.cell.transform.params as RepresentationValues).type.params;
-          return JSON.stringify(mergeParams(old, patch)) !== JSON.stringify(old);
-        });
-        if (!changing.length) return ApiResult.already(`${name} already shows ${provider.label} that way.`);
-        await ctx.plugin.dataTransaction(async () => {
-          for (const r of changing) {
-            const old = r.cell.transform.params as RepresentationValues;
-            await ctx.plugin.state.updateTransform(ctx.plugin.state.data, r.cell.transform.ref, {
-              ...old,
-              type: { name: old.type.name, params: mergeParams(old.type.params, patch) },
-            });
-          }
-        });
-        return ApiResult.ok(`Updated ${provider.label} on ${name}.`, {
-          nodes: changing.map((r) => r.cell.transform.ref),
-        });
-      }
-
-      const update = ctx.plugin.state.data
-        .build()
-        .to(l.cell)
-        .apply(ParticlesRepresentation3D, representationParams(ctx.plugin, data, type, patch));
-      await update.commit();
-      const made = ctx.plugin.state.data.cells.get(update.selector.ref);
-      if (!made || made.status === 'error') {
-        // The state keeps the failed cell; the run's checkpoint restores the scene.
-        return ApiResult.fail(
-          'failed',
-          `Could not show ${name} as ${provider.label}: ${made?.errorText ?? 'it failed'}.`,
-        );
-      }
-      return ApiResult.ok(`Showed ${name} as ${provider.label}.`, { nodes: [update.selector.ref] });
+      const data = l.cell.obj?.data;
+      return setRepresentation(ctx, {
+        name,
+        type,
+        patch: params,
+        registry: ctx.plugin.representation.particles.registry,
+        themes: ctx.plugin.representation.particles.themes,
+        data,
+        existing: l.representations,
+        create: (provider) =>
+          commitRepresentation(
+            ctx,
+            ctx.plugin.state.data
+              .build()
+              .to(l.cell)
+              .apply(ParticlesRepresentation3D, representationParams(ctx.plugin, data!, type, params ?? {})),
+            `Could not show ${name} as ${provider.label}`,
+          ),
+      });
     },
   });
 

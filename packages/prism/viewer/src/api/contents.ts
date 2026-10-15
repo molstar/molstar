@@ -27,6 +27,7 @@ import {
   water,
 } from '@molstar/plugin/state/queries/structure/type';
 import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area.js';
+import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
 
 // `contents` (operations.md §2; README decision 18): hiding part of a structure at the entity and chain level, so what
@@ -97,7 +98,7 @@ export class ContentsApi extends ApiArea {
       entity: PD.Text('', { description: "An entity by id ('1', '2', …)" }),
       chain: PD.Text('', { description: "A chain by author id ('A', 'B', …)" }),
       visible: PD.Boolean(true),
-      structure: PD.Text('', { description: 'A structure by label or state ref; empty: the one in view' }),
+      structure: StructureParam(),
     },
     async run({ entity, chain, visible, structure }, ctx) {
       if (!entity === !chain)
@@ -148,7 +149,7 @@ export class ContentsApi extends ApiArea {
   readonly get = this.operation({
     id: 'contents.get',
     title: 'List the contents',
-    params: { structure: PD.Text('', { description: 'A structure by label or state ref; empty: every one' }) },
+    params: { structure: EveryStructureParam() },
     read: true,
     async run({ structure }, ctx) {
       const list = structure ? [oneStructure(ctx, structure)] : loadedStructures(ctx);

@@ -9,7 +9,15 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Volume } from '@molstar/model/model/volume';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
-import { type Structure, StructureElement, StructureProperties, type Unit } from '@molstar/model/model/structure';
+import {
+  type Structure,
+  StructureElement,
+  StructureProperties,
+  StructureSelection,
+  type Unit,
+} from '@molstar/model/model/structure';
+import { Script } from '@molstar/model/script/script';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
 import type {
   StructureComponentRef,
@@ -25,7 +33,8 @@ import { type IconName, type ObservableState, observableState, type ReadonlyStat
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
-import { gridText, namesOf, shortNumber, voxelText, volumeStats } from '../api/volume.js';
+import { namesOf } from '../api/scope.js';
+import { gridText, shortNumber, voxelText, volumeStats } from '../api/volume.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
@@ -488,13 +497,7 @@ function componentMenu(
         if (l) void api.run('select.set', { target: { loci: l }, mode: 'set' });
       },
     },
-    {
-      id: 'remove',
-      label: 'Remove',
-      icon: 'trash-2',
-      danger: true,
-      run: () => void api.run('component.remove', { component: ref, structure: structureRef }),
-    },
+    // Remove comes from the tree (the row is removable), set apart in the danger color.
   ];
 }
 
@@ -529,6 +532,7 @@ function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, 
       nodes.set(key, n);
     }
     n.set(label, `${entities.data.type.value(i)} · ${chains.size} chain${chains.size === 1 ? '' : 's'}`, false);
+    n.menu = contentsMenu(api, () => contentsLoci(s, id), label);
     const chainNodes: SceneNode[] = [];
     for (const [chain, atoms] of chains) {
       const ck = `${structureRef}#chain:${id}:${chain}`;
@@ -541,12 +545,40 @@ function entities(s: Structure, structureRef: string, nodes: Map<string, Node>, 
         nodes.set(ck, c);
       }
       c.set(`Chain ${chain}`, `${atoms.toLocaleString('en')} atoms`, false);
+      c.menu = contentsMenu(api, () => contentsLoci(s, id, chain), `${label} · chain ${chain}`);
       chainNodes.push(c);
     }
     n.setChildren(chainNodes);
     out.push(n);
   }
   return out;
+}
+
+/** The atoms of an entity, or of one of its chains, in a structure. */
+function contentsLoci(s: Structure, entity: string, chain?: string): StructureElement.Loci {
+  const isEntity = MS.core.rel.eq([MS.ammp('label_entity_id'), entity]);
+  const test = chain ? MS.core.logic.and([isEntity, MS.core.rel.eq([MS.ammp('auth_asym_id'), chain])]) : isEntity;
+  const query = MS.struct.generator.atomGroups({ 'chain-test': test });
+  return StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(query, s));
+}
+
+/** An entity's or a chain's row menu (parity.md §2: select, focus, a component of it). */
+function contentsMenu(api: ViewerApi, loci: () => StructureElement.Loci, label: string): SceneMenuItem[] {
+  return [
+    {
+      id: 'select',
+      label: 'Select',
+      icon: 'mouse-pointer-2',
+      run: () => void api.run('select.set', { target: { loci: loci() }, mode: 'set' }),
+    },
+    { id: 'focus', label: 'Focus', icon: 'focus', run: () => void api.run('focus.set', { target: { loci: loci() } }) },
+    {
+      id: 'component',
+      label: 'Make a component',
+      icon: 'plus',
+      run: () => void api.run('component.add', { target: { loci: loci() }, label }),
+    },
+  ];
 }
 
 /** What the inspector shows for a node: facts, and the parameters of a representation as a form. */

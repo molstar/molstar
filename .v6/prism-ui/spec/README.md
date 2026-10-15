@@ -141,8 +141,8 @@ The spec object these sections add up to, `PrismViewerSpec`, is laid out in [vie
   Selection sections, canvas settings, animation, Settings groups, inspector sections), plus structure rows, canvas
   toolbar items, and tabs for large standalone views (each a tab on the rail). Cards and rail buttons of its own it
   cannot add.
-- **Every part has an id** (`geo-export.export-section`). The composition overrides by id:
-  `overrides: { 'geo-export.export-section': MyGeoExport, 'kinemage.views': null }`. A duplicate id throws unless it is
+- **Every part has an id** (`<owner>.<kind>.<name>`: `geo-export.section.export`). The composition overrides by id:
+  `overrides: { 'geo-export.section.export': { title: 'Geometry' }, 'kinemage.tab.views': null }`. A duplicate id throws unless it is
   an override.
 - **Lazy**: `lazyExtension({ id, stub, load: () => import('…/prism-viewer') })`. The stub is what shows before the load
   (command titles, a section's title, a toolbar item); first use loads the chunk as a task in the status column, swaps

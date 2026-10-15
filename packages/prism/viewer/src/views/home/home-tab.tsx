@@ -57,6 +57,7 @@ export function HomeTab(props: HomeTabProps) {
           </Show>
         ) : null}
         <section class={classes.group} aria-label="Actions">
+          <OpenFiles home={home} />
           <For each={home.actions} key={(a) => a.id}>
             {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
           </For>
@@ -67,6 +68,31 @@ export function HomeTab(props: HomeTabProps) {
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
       </button>
+    </div>
+  );
+}
+
+/** Open files: the file picker (parity.md §1); the files open as dropped ones do. */
+function OpenFiles(props: { home: HomeModel }) {
+  const input = (
+    <input
+      type="file"
+      multiple
+      hidden
+      onChange={(e) => {
+        const el = e.currentTarget as HTMLInputElement;
+        const files = [...(el.files ?? [])];
+        el.value = '';
+        if (files.length) props.home.openFiles(files);
+      }}
+    />
+  ) as HTMLInputElement;
+  return (
+    <div>
+      <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => input.click()}>
+        Open files…
+      </Button>
+      {input}
     </div>
   );
 }

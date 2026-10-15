@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StructureElement } from '@molstar/model/model/structure';
 import type { Selected } from '../targets/types.js';
 import { summarize } from '../targets/index.js';
 import { ApiArea, ApiResult } from './area.js';
+import { StructureParam } from './params.js';
 import { isFailure } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
@@ -33,7 +33,7 @@ export class FocusApi extends ApiArea {
     title: 'Focus',
     params: {
       target: TargetParam('What to focus on: ligand, A:120-130, resn HEM, …'),
-      structure: PD.Text('', { description: 'A structure by label or state ref; empty: the one in view' }),
+      structure: StructureParam(),
       language: LanguageParam(),
     },
     history: false,

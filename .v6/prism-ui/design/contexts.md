@@ -205,7 +205,8 @@ extensions' come with their contributions.
 ## 7. The plugin boundary
 
 - **By folder role, in any Prism package**: only `sources/` and `actions/` folders import `@molstar/plugin` (and
-  `@molstar/model`/`@molstar/graphics` for the plugin's data). That holds in core, in a mode, and in an extension's
+  `@molstar/model`/`@molstar/graphics` for the plugin's data); in the viewer, `api/` and a feature's
+  `features/<name>/operations.ts` are its actions (operations.md §1). That holds in core, in a mode, and in an extension's
   prism entry; one reusable check runs on every package that has Prism modules.
 - **Commands call actions** (never a `PluginCommand`); an extension's controllers that take a `PluginContext` (geometry
   export, MP4, volume streaming) are wrapped in actions.

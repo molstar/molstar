@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Structure } from '@molstar/model/model/structure';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiContext, ApiArea, type ApiResult, ApiResult as Result } from './area.js';
+import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 
 // `annotations` (operations.md §2; README decision 27): what a structure carries and the viewer can show of it: quality
@@ -69,7 +70,7 @@ export class AnnotationsApi extends ApiArea {
   readonly list = this.operation({
     id: 'annotations.list',
     title: 'List what the structures carry',
-    params: { structure: PD.Text('', { description: 'A structure by label or ref; empty: every one' }) },
+    params: { structure: EveryStructureParam() },
     read: true,
     run: async ({ structure }, ctx) => {
       const list = structure ? someStructures(ctx, structure) : loadedStructures(ctx);
@@ -94,7 +95,7 @@ export class AnnotationsApi extends ApiArea {
     title: 'Show what a structure carries',
     params: {
       annotation: PD.Text('', { description: 'An annotation by id: b-factor, secondary-structure, …' }),
-      structure: PD.Text('', { description: 'A structure by label or ref; empty: every one that carries it' }),
+      structure: StructureParam('A structure by label or state ref; empty: every one that carries it'),
     },
     run: async ({ annotation, structure }, ctx) => {
       const provider = this.#providers.value.find((p) => p.id === annotation);

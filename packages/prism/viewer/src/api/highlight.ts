@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StructureElement } from '@molstar/model/model/structure';
 import { ApiArea, ApiResult } from './area.js';
+import { StructureParam } from './params.js';
 import { isFailure } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam } from './target-param.js';
 
@@ -24,7 +24,7 @@ export class HighlightApi extends ApiArea {
     title: 'Highlight',
     params: {
       target: TargetParam('What to highlight: ligand, A:120-130, resn HEM, …'),
-      structure: PD.Text('', { description: 'A structure by label or state ref; empty: the one in view' }),
+      structure: StructureParam(),
       language: LanguageParam(),
     },
     history: false,

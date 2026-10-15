@@ -80,6 +80,19 @@ describe('structure', () => {
     expect(named.ok).toBe(true);
   });
 
+  it('asks which one when a label names several structures, and takes a state ref', async () => {
+    const v = await setup(['1cbs_updated.cif', '1cbs.cif'], ['1cbs_updated.cif', '1cbs-copy.cif']);
+    const refs = v.api.structure.list.value.map((x) => x.ref);
+    expect(refs).toHaveLength(2);
+    const r = await v.api.structure.visibility({ visible: false, structure: '1cbs' });
+    expect(r).toMatchObject({ ok: false, code: 'ambiguous' });
+    // The candidates by name and state ref.
+    if (!r.ok) for (const ref of refs) expect(r.hint).toContain(ref);
+    expect(await v.api.structure.visibility({ visible: false, structure: refs[1] })).toMatchObject({ ok: true });
+    const none = await v.api.structure.visibility({ visible: false, structure: 'nope' });
+    expect(none).toMatchObject({ ok: false, code: 'not-found' });
+  });
+
   it('hides, shows and removes, each a step', async () => {
     const v = await setup(['1crn.cif', '1crn.cif'], ['1cbs_updated.cif', '1cbs.cif']);
     const hidden = await v.api.structure.visibility({ visible: false, structure: '1crn' });

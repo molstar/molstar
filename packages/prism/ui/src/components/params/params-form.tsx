@@ -490,6 +490,21 @@ function GroupControl(props: {
         <Fields params={param.params} binding={binding} filter={filter} />
       </>
     );
+  // A pivot (Mol*'s: a provider's id) is the group's main field: a row of its own, the rest folded under the group.
+  const pivot = typeof param.pivot === 'string' && param.params[param.pivot] ? param.pivot : undefined;
+  if (pivot && (!presets || !current)) {
+    const { [pivot]: main, ...rest } = param.params;
+    return (
+      <>
+        <Fields params={{ [pivot]: main }} binding={binding} filter={filter} />
+        {Object.keys(rest).length ? (
+          <Collapsible title={props.label} open={!!param.isExpanded} force={props.force}>
+            {() => <Fields params={rest} binding={binding} filter={filter} />}
+          </Collapsible>
+        ) : null}
+      </>
+    );
+  }
   if (!presets || !current)
     return (
       <Collapsible title={props.label} open={!!param.isExpanded} force={props.force}>

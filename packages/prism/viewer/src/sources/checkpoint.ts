@@ -20,7 +20,6 @@ import { merge } from 'rxjs';
 
 export interface ViewerCheckpoint {
   readonly plugin: PluginState.Snapshot;
-  readonly selectionMode: boolean;
 }
 
 /** The snapshot's parts a checkpoint holds; `camera: false` keeps it from reading the canvas (headless). */
@@ -29,7 +28,8 @@ const CheckpointParams: PluginState.SnapshotParams = {
   behavior: true,
   componentManager: true,
   canvas3d: true,
-  interactivity: true,
+  // The picking level is view state, as the selection mode is (not steps: sequence.md §7.3).
+  interactivity: false,
   structureSelection: false,
   camera: false,
   canvas3dContext: false,
@@ -39,14 +39,24 @@ const CheckpointParams: PluginState.SnapshotParams = {
 
 export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerCheckpoint> {
   return {
-    checkpoint: () => ({ plugin: plugin.state.getSnapshot(CheckpointParams), selectionMode: plugin.selectionMode }),
+    checkpoint: () => ({ plugin: withoutViewState(plugin.state.getSnapshot(CheckpointParams)) }),
     restore: async (c) => {
       // The focus is view state: a restore leaves it (and the camera, which the checkpoint does not hold).
       await plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefined });
-      if (plugin.selectionMode !== c.selectionMode) plugin.selectionMode = c.selectionMode;
     },
     size: (c) => checkpointSize(c),
   };
+}
+
+/**
+ * A snapshot without what is view state for undo (sequence.md §7.2–§7.3): which structure the sequence follows (a saved
+ * session keeps it; Undo leaves it).
+ */
+function withoutViewState(snapshot: PluginState.Snapshot): PluginState.Snapshot {
+  const sequence = snapshot.custom?.['prism-viewer.sequence'] as Record<string, unknown> | undefined;
+  if (!sequence || !('structure' in sequence)) return snapshot;
+  const { structure: _, ...rest } = sequence;
+  return { ...snapshot, custom: { ...snapshot.custom, 'prism-viewer.sequence': rest } };
 }
 
 /** The checkpoint's JSON size without data payloads (a file's text in a raw-data cell): what the budget measures. */

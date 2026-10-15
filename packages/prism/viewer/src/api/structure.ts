@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransform, StateTree } from '@molstar/core/state';
+import { StateTree } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -14,15 +14,13 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 import { reapplyContents } from './contents.js';
-import { isFailure, labelOf, oneStructure, someStructures } from './scope.js';
+import { EveryStructureParam, StructureParam } from './params.js';
+import { entryRoot, isFailure, labelOf, oneStructure, someStructures } from './scope.js';
 
 // `structure` (operations.md §2, plan 2.2): the scene outline (`get`), representation presets by id, the model of a
 // trajectory, the assembly, a structure's visibility and removal. The first scene area: the others follow its shape
 // (a `structure` field naming one by ref or label, else the one the person works with; registries as arguments, their
 // ids in the hint when one is wrong; "already so" when nothing would change).
-
-const StructureParam = () =>
-  PD.Text('', { description: 'A structure by label or state ref; empty: the one in view (or all, where it says)' });
 
 export class StructureApi extends ApiArea {
   readonly id = 'structure';
@@ -53,7 +51,7 @@ export class StructureApi extends ApiArea {
     title: 'Apply a representation preset',
     params: {
       preset: PD.Text('auto', { description: 'A representation preset by id: auto, polymer-cartoon, illustrative, …' }),
-      structure: StructureParam(),
+      structure: EveryStructureParam(),
     },
     async run({ preset, structure }, ctx) {
       const provider = ctx.plugin.builders.structure.representation.resolveProvider(preset);
@@ -150,7 +148,7 @@ export class StructureApi extends ApiArea {
   readonly visibility = this.operation({
     id: 'structure.visibility',
     title: 'Show or hide a structure',
-    params: { visible: PD.Boolean(true), structure: StructureParam() },
+    params: { visible: PD.Boolean(true), structure: EveryStructureParam() },
     async run({ visible, structure }, ctx) {
       const targets = someStructures(ctx, structure || undefined);
       if (isFailure(targets)) return targets;
@@ -180,17 +178,6 @@ export class StructureApi extends ApiArea {
       return ApiResult.ok(`Removed ${labelOf(ctx, s)}.`, { nodes: [s.cell.transform.ref] });
     },
   });
-}
-
-/** The highest ancestor that holds only this structure (its model, trajectory, data), below the root. */
-function entryRoot(ctx: ApiContext, ref: string): string {
-  const tree = ctx.plugin.state.data.tree;
-  let current = ref;
-  for (;;) {
-    const parent = tree.transforms.get(current)?.parent;
-    if (!parent || parent === StateTransform.RootRef || tree.children.get(parent).size !== 1) return current;
-    current = parent;
-  }
 }
 
 /** The current hierarchy's refs of these structures (their components rebuilt). */

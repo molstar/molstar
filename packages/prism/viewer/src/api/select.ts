@@ -13,6 +13,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { Selected } from '../targets/types.js';
 import { summarize } from '../targets/index.js';
 import { type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
+import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 import type { ResolveOptions } from './targets.js';
@@ -23,9 +24,6 @@ import type { ResolveOptions } from './targets.js';
 // the markers, the sequence and the labels follow as for a click. Targets are exact: Mol*'s picking granularity does
 // not widen them (it is for the pointer, `select.granularity`). The selection mode and granularity are the plugin's
 // own state (state.md §3).
-
-const StructureParam = () =>
-  PD.Text('', { description: 'A structure by label or state ref; empty: the one in view (or all, where it says)' });
 
 const Modes = [
   ['set', 'Replace the selection'],
@@ -112,7 +110,7 @@ export class SelectApi extends ApiArea {
   readonly all = this.operation({
     id: 'select.all',
     title: 'Select everything',
-    params: { structure: StructureParam() },
+    params: { structure: EveryStructureParam() },
     history: false,
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
     async run({ structure }, ctx) {
@@ -139,7 +137,7 @@ export class SelectApi extends ApiArea {
   readonly invert = this.operation({
     id: 'select.invert',
     title: 'Invert the selection',
-    params: { structure: StructureParam() },
+    params: { structure: EveryStructureParam() },
     history: false,
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
     async run({ structure }, ctx) {
@@ -160,7 +158,7 @@ export class SelectApi extends ApiArea {
     params: {
       radius: PD.Numeric(5, { min: 0, max: 100, step: 0.5 }, { description: 'Distance from the selection, in Å' }),
       asWholeResidues: PD.Boolean(true, { description: 'Include the residues that reach into the radius whole' }),
-      structure: StructureParam(),
+      structure: EveryStructureParam(),
     },
     history: false,
     when: nothingSelected,
@@ -184,7 +182,7 @@ export class SelectApi extends ApiArea {
       to: PD.Select<ExpandTarget>('residues', ExpandTo as unknown as [ExpandTarget, string][], {
         description: 'Extend the selection to whole residues, chains or entities',
       }),
-      structure: StructureParam(),
+      structure: EveryStructureParam(),
     },
     history: false,
     when: nothingSelected,
@@ -233,7 +231,7 @@ export class SelectApi extends ApiArea {
   readonly get = this.operation({
     id: 'select.get',
     title: 'Describe the selection',
-    params: { structure: StructureParam() },
+    params: { structure: EveryStructureParam() },
     read: true,
     async run({ structure }, ctx) {
       const targets = someStructures(ctx, structure || undefined);

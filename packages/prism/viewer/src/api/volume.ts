@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateSelection, StateTransform } from '@molstar/core/state';
+import { StateSelection } from '@molstar/core/state';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Grid, Volume } from '@molstar/model/model/volume';
@@ -16,8 +16,9 @@ import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/
 import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { checkValues } from './run.js';
-import { isFailure, labelOf, oneStructure } from './scope.js';
+import { mergeParams, StructureParam } from './params.js';
+import { entryRoot, isFailure, labelOf, namesOf, oneStructure, pickOne } from './scope.js';
+import { commitRepresentation, setRepresentation } from './set-representation.js';
 
 // `volume` (operations.md §2, plan 2.5): the maps in the scene (`get`), a representation's iso value, the
 // representations of a volume (desired state, like `representation.set`), visibility, removal, and volume streaming on
@@ -153,72 +154,28 @@ export class VolumeApi extends ApiArea {
       const v = oneVolume(ctx, volume || undefined);
       if (isFailure(v)) return v;
       const data = v.cell.obj?.data;
-      if (!data) return ApiResult.fail('blocked', `${volumeLabel(ctx, v)} has no data to show.`);
-      const registry = ctx.plugin.representation.volume.registry;
-      if (!registry.has(type)) {
-        return ApiResult.fail(
-          'invalid',
-          `There is no representation type '${type}'.`,
-          `Types: ${registry.types.map((t) => t[0]).join(', ')}.`,
-        );
-      }
-      const provider = registry.get(type);
-      if (!provider.isApplicable(data)) {
-        return ApiResult.fail(
-          'blocked',
-          `${provider.label} does not apply to ${volumeLabel(ctx, v)}.`,
-          `Applicable: ${registry
-            .getApplicableTypes(data)
-            .map((t) => t[0])
-            .join(', ')}.`,
-        );
-      }
-      const typeParams = provider.getParams(ctx.plugin.representation.volume.themes, data);
-      const patch = params ?? {};
-      const checked = checkValues(typeParams, patch);
-      if (isFailure(checked)) {
-        return ApiResult.fail(checked.code, `${provider.label}: ${checked.message}`, checked.hint);
-      }
-
       const name = volumeLabel(ctx, v);
-      const existing = v.representations.filter((r) => typeOf(r) === type);
-      if (existing.length) {
-        const changing = existing.filter((r) => {
-          const old = (r.cell.transform.params as RepresentationValues).type.params;
-          return JSON.stringify(mergeParams(old, patch)) !== JSON.stringify(old);
-        });
-        if (!changing.length) return ApiResult.already(`${name} already shows ${provider.label} that way.`);
-        await ctx.plugin.dataTransaction(async () => {
-          for (const r of changing) {
-            const old = r.cell.transform.params as RepresentationValues;
-            await ctx.plugin.state.updateTransform(ctx.plugin.state.data, r.cell.transform.ref, {
-              ...old,
-              type: { name: old.type.name, params: mergeParams(old.type.params, patch) },
-            });
-          }
-        });
-        return ApiResult.ok(`Updated ${provider.label} on ${name}.`, {
-          nodes: changing.map((r) => r.cell.transform.ref),
-        });
-      }
-
-      const update = ctx.plugin.state.data
-        .build()
-        .to(v.cell)
-        .apply(
-          VolumeRepresentation3D,
-          createVolumeRepresentationParams(ctx.plugin, data, { type, typeParams: patch as never }),
-        );
-      await update.commit();
-      const made = ctx.plugin.state.data.cells.get(update.selector.ref);
-      if (!made || made.status === 'error') {
-        // The state keeps the failed cell; the run's checkpoint restores the scene.
-        return ApiResult.fail(
-          'failed',
-          `Could not show ${name} as ${provider.label}: ${made?.errorText ?? 'it failed'}.`,
-        );
-      }
-      return ApiResult.ok(`Showed ${name} as ${provider.label}.`, { nodes: [update.selector.ref] });
+      return setRepresentation(ctx, {
+        name,
+        type,
+        patch: params,
+        registry: ctx.plugin.representation.volume.registry,
+        themes: ctx.plugin.representation.volume.themes,
+        data,
+        existing: v.representations,
+        create: (provider) =>
+          commitRepresentation(
+            ctx,
+            ctx.plugin.state.data
+              .build()
+              .to(v.cell)
+              .apply(
+                VolumeRepresentation3D,
+                createVolumeRepresentationParams(ctx.plugin, data!, { type, typeParams: (params ?? {}) as never }),
+              ),
+            `Could not show ${name} as ${provider.label}`,
+          ),
+      });
     },
   });
 
@@ -306,7 +263,7 @@ export class VolumeApi extends ApiArea {
     title: 'Stream density for a structure',
     params: {
       enabled: PD.Boolean(true, { description: 'Turn volume streaming on or off for the structure' }),
-      structure: PD.Text('', { description: 'A structure by label or state ref; empty: the one in view' }),
+      structure: StructureParam(),
     },
     modules: ['network'],
     approval: 'network',
@@ -377,48 +334,8 @@ export function volumeNames(list: readonly VolumeRef[]): ReadonlyMap<string, str
   return namesOf(list);
 }
 
-/** Names for what is in a hierarchy list (volumes, particle lists): the label, told apart by the ref when it repeats. */
-export function namesOf(list: readonly { cell: { obj?: { label?: string }; transform: { ref: string } } }[]) {
-  const counts = new Map<string, number>();
-  for (const x of list) counts.set(x.cell.obj?.label ?? '', (counts.get(x.cell.obj?.label ?? '') ?? 0) + 1);
-  const names = new Map<string, string>();
-  for (const x of list) {
-    const label = x.cell.obj?.label || x.cell.transform.ref;
-    names.set(
-      x.cell.transform.ref,
-      (counts.get(x.cell.obj?.label ?? '') ?? 0) > 1 ? `${label} · ${x.cell.transform.ref}` : label,
-    );
-  }
-  return names;
-}
-
 function volumeLabel(ctx: ApiContext, v: VolumeRef): string {
   return volumeNames(volumes(ctx)).get(v.cell.transform.ref) ?? v.cell.transform.ref;
-}
-
-/**
- * One of a hierarchy list by a state ref or a label (case-insensitive), else the only one; none or several is a failure
- * that names what there is. `what` is "volume" or "particle list".
- */
-export function pickOne<T extends { cell: { obj?: { label?: string }; transform: { ref: string } } }>(
-  list: readonly T[],
-  name: string | undefined,
-  what: string,
-  empty: string,
-): T | ApiFailure {
-  const names = namesOf(list);
-  const all = list.map((x) => names.get(x.cell.transform.ref)).join(', ');
-  if (!list.length) return ApiResult.fail('not-found', `No ${what}s are loaded.`, empty);
-  if (name) {
-    const lower = name.trim().toLowerCase();
-    const found =
-      list.find((x) => x.cell.transform.ref === name) ??
-      list.find((x) => names.get(x.cell.transform.ref)?.toLowerCase() === lower) ??
-      list.find((x) => (x.cell.obj?.label ?? '').toLowerCase() === lower);
-    return found ?? ApiResult.fail('not-found', `There is no ${what} '${name}'.`, `Loaded: ${all}.`);
-  }
-  if (list.length === 1) return list[0];
-  return ApiResult.fail('ambiguous', `Which ${what}? ${list.length} are loaded.`, `Name one: ${all}.`);
 }
 
 function oneVolume(ctx: ApiContext, name: string | undefined): VolumeRef | ApiFailure {
@@ -586,32 +503,4 @@ function checkRange(s: VolumeStats, kind: 'relative' | 'absolute', value: number
     `${num(value)} σ is outside the map's values.`,
     `They range from ${num(lo)} to ${num(hi)} σ.`,
   );
-}
-
-// ---- State ----
-
-/**
- * Params patched: nested groups merge one level, values with a `kind` (an iso value) replace as a whole, so a relative
- * one does not keep an absolute one's field.
- */
-export function mergeParams(base: Record<string, any>, patch: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = { ...base };
-  for (const [k, v] of Object.entries(patch)) {
-    out[k] = isPlain(v) && isPlain(out[k]) && !('kind' in v) ? { ...out[k], ...v } : v;
-  }
-  return out;
-}
-
-const isPlain = (x: unknown): x is Record<string, any> =>
-  !!x && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
-
-/** The highest ancestor that holds only this node (the format and data it was read from), below the root. */
-export function entryRoot(ctx: ApiContext, ref: string): string {
-  const tree = ctx.plugin.state.data.tree;
-  let current = ref;
-  for (;;) {
-    const parent = tree.transforms.get(current)?.parent;
-    if (!parent || parent === StateTransform.RootRef || tree.children.get(parent).size !== 1) return current;
-    current = parent;
-  }
 }

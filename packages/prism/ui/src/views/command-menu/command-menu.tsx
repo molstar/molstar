@@ -136,7 +136,18 @@ export function CommandMenu(props: CommandMenuProps) {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div class={classes.menu} role="dialog" aria-label="Commands">
+      <div
+        class={classes.menu}
+        role="dialog"
+        aria-label="Commands"
+        onKeyDown={(e) => {
+          // Escape anywhere in the menu (a run button, a picker) closes it, and nothing behind it.
+          if (e.key !== 'Escape' || e.defaultPrevented) return;
+          e.preventDefault();
+          e.stopPropagation();
+          props.onClose();
+        }}
+      >
         <Show when={manager.active} fallback={() => <ListMode {...props} onPropose={(t) => proposed.set(t)} />}>
           {(invocation) => (
             <FormMode

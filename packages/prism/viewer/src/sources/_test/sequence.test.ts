@@ -8,18 +8,10 @@
 
 import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
-import { cbs, crambin, expectOk, headlessViewer } from '../../_test/harness.js';
+import { cbs, crambin, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import type { RunRecord } from '../../api/run.js';
 
 // The sequence on the API (sequence.md §2–§7, plan 2.4), headless.
-
-const until = async (check: () => boolean, ms = 3000) => {
-  const t0 = Date.now();
-  while (!check()) {
-    if (Date.now() - t0 > ms) throw new Error('timed out');
-    await new Promise((r) => setTimeout(r, 20));
-  }
-};
 
 describe('the sequence', () => {
   it('follows the loaded structure, and shows its document', async () => {
@@ -47,8 +39,11 @@ describe('the sequence', () => {
     expect(viewer.style.value).toBe('tracks');
     expectOk(await v.api.sequence!.style({ style: 'text' }));
     expect(viewer.style.value).toBe('compact');
-    expect((await v.api.sequence!.style({ style: 'text' })).ok).toBe(true);
+    const steps = v.managers.history.steps.value.length;
     expect(v.managers.history.steps.value[0].label).toMatch(/text/);
+    // Already so: nothing changes, no step.
+    expect(await v.api.sequence!.style({ style: 'text' })).toMatchObject({ ok: true, unchanged: true });
+    expect(v.managers.history.steps.value).toHaveLength(steps);
     await v.api.history.undo();
     expect(viewer.style.value).toBe('tracks');
   });
@@ -62,12 +57,12 @@ describe('the sequence', () => {
     const view = seq.source.view3d(structure);
     const loci = StructureElement.Loci.firstResidue(StructureElement.Loci.all(structure));
     view.select(loci);
-    await new Promise((r) => setTimeout(r, 20));
+    await until(() => records.some((r) => r.operation === 'select.set'));
     view.highlight(loci);
     // Sent back to back: they apply in order (a selection then its clearing never ends selected).
     view.select(loci);
     view.select(null);
-    await new Promise((r) => setTimeout(r, 40));
+    await until(() => records.at(-1)?.operation === 'select.clear');
     const ops = records.map((r) => `${r.origin.kind}:${r.operation}`);
     expect(ops[0]).toBe('link:select.set');
     expect(ops).toContain('link:highlight.set');
@@ -86,11 +81,8 @@ describe('the sequence', () => {
   });
 
   it('is absent when the spec has none', async () => {
-    const { DefaultPrismViewerSpec } = await import('../../default-spec.js');
-    const { createPrismViewerHeadless } = await import('../../headless.js');
-    const v = await createPrismViewerHeadless({ spec: { ...DefaultPrismViewerSpec(), sequence: false } });
+    const v = await headlessViewer({ spec: { sequence: false } });
     expect(v.views.sequence).toBeUndefined();
     expect(v.api.sequence).toBeUndefined();
-    await v.dispose();
   });
 });

@@ -135,6 +135,16 @@ describe('component.rename, visibility and remove', () => {
     expect(named(v, 'RA')).toHaveLength(0);
   });
 
+  it('asks which component when none is named and the structure has several', async () => {
+    const { v } = await withLigand();
+    expect(components(v).length).toBeGreaterThan(1);
+    const r = await v.api.component.rename({ component: '', label: 'X' });
+    expect(r).toMatchObject({ ok: false, code: 'ambiguous' });
+    if (!r.ok) expect(r.hint).toMatch(/Retinoic acid \(/);
+    // The same rule in the representation area, where an empty component used to be `invalid`.
+    expect(await v.api.representation.remove({ component: '' })).toMatchObject({ ok: false, code: 'ambiguous' });
+  });
+
   it('finds a component by state ref or case-insensitive name, and lists the components when it does not', async () => {
     const { v, r } = await withLigand();
     expectOk(await v.api.component.rename({ component: r.changed.nodes![0], label: 'RA' }));

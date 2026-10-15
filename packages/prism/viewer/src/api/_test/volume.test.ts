@@ -202,7 +202,7 @@ describe('volume', () => {
 
     const ambiguous = await v.api.volume.isovalue({ value: 1 });
     expect(ambiguous).toMatchObject({ ok: false, code: 'ambiguous' });
-    expect((ambiguous as any).hint).toMatch(/a\.ccp4, b\.ccp4/);
+    expect((ambiguous as any).hint).toMatch(/a\.ccp4 \(\S+\), b\.ccp4 \(\S+\)/);
 
     expectOk(await v.api.volume.isovalue({ value: 1, volume: 'B.CCP4' }));
     const [a, b] = await infos(v);

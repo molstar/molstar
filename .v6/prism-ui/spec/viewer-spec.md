@@ -145,21 +145,27 @@ interface ViewerExtension {
   readonly title: string;
   readonly plugin?: Partial<PrismViewerPluginParts>;         // registry, behaviors, config
   readonly api?: Readonly<Record<string, (ctx: ApiAreaContext) => ApiArea>>;  // its areas by id, each made once (api.md §6)
-  readonly contributes?: (ctx) => readonly { area; name; operation }[];      // into core areas: built-in features only
+  readonly contributes?: (ctx) => readonly { area; name; operation }[];      // into core areas: built-in features only;
+                                                               // `name` is `memberName(operation.id)` (`remote.list` → `remoteList`)
   readonly builtIn?: true;                                     // one of the viewer's own features (§3.1)
-  readonly commands?: (api: ViewerApi) => readonly CommandDefinition[];
-  readonly tools?: readonly ToolRegistration<ViewerApi>[];     // registered into the dynamic toolkit (agent.md §3)
-  readonly skills?: readonly ToolGroup<ViewerApi>[];           // never core tools
-  readonly sequence?: readonly SequenceBehavior[];
-  readonly settings?: PD.Params;                               // its Settings group
-  readonly ui?: () => Promise<ViewerExtensionUI> | ViewerExtensionUI;   // views in the viewer's slots; its own chunk
+  readonly commands?: (api: ViewerApi) => readonly CommandDefinition[];      // made once its operations exist
+  readonly annotations?: readonly AnnotationProvider[];        // what it can show of a structure (`annotations.apply`)
+  readonly tools?: readonly ToolRegistration<ViewerApi>[];     // reserved: read from phase 4 (agent.md §3)
+  readonly skills?: readonly ToolGroup<ViewerApi>[];           // reserved: phase 4; never core tools
+  readonly sequence?: readonly SequenceBehavior[];             // reserved: phase 5
+  readonly settings?: PD.Params;                               // reserved: its Settings group (plan 3.3)
+  readonly ui?: (ctx: ViewerUIContext) => Promise<ViewerExtensionUI> | ViewerExtensionUI;  // its views; its own chunk
 }
 
-interface ViewerExtensionUI {
-  readonly sections?: readonly { id: PartId; slot: ViewerSlot; title: string; render: ViewRenderer }[];
-  readonly tabs?: readonly { id: PartId; title: string; icon: IconKey; dock?: DockId; render: ViewRenderer }[];
-  readonly rows?: readonly { id: PartId; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // structure rows
-  readonly toolbar?: readonly { id: PartId; command: string; icon: IconKey }[];  // canvas stack only
+interface ViewerUIContext { readonly api: ViewerApi; readonly sources: ViewerSources; readonly managers: ViewerManagers }
+
+interface ViewerExtensionUI {                                  // every id `<owner>.<kind>.<name>`, checked (§4)
+  readonly sections?: readonly { id; slot: ViewerSlot; title; icon?; order?; keywords?; render: ViewRenderer }[];
+  readonly tabs?: readonly { id; title; icon; dock?: DockId; order?; render: ViewRenderer }[];
+  readonly overlays?: readonly { id; title; render: ViewRenderer }[];         // cards over the canvas
+  readonly rows?: readonly { id; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // not shown yet
+  readonly toolbar?: readonly { id; icon; title; command?: string; overlay?: PartId; group?; order?;
+                                place?: 'rail' | 'canvas' }[];   // runs a command, or opens one of its overlays
 }
 
 type ViewerSlot =                                              // closed and documented: the viewer decides where things go
@@ -168,10 +174,11 @@ type ViewerSlot =                                              // closed and doc
 interface LazyViewerExtension {
   readonly id: string;
   readonly title: string;
+  readonly builtIn?: true;                                     // its stub may declare operations in core areas
   readonly stub: {                                             // every part it will bring, and what it answers for
-    readonly parts: readonly { id: PartId; kind: PartKind; slot?: ViewerSlot; title?: string }[];  // checked by overrides
-    readonly operations?: readonly string[];                   // api.run of one loads the chunk and replays the call
-    readonly commands?: readonly { id: string; title: string }[];
+    readonly parts: readonly { id: PartId; kind: PartKind; slot?: ViewerSlot; title?: string }[];  // placeholders; overrides
+    readonly operations?: readonly { id: string; title: string }[];  // api.run of one loads the chunk and replays the call
+    readonly commands?: readonly { id: string; title: string; category?: string; icon?: IconName }[];
     readonly skills?: readonly { id: string; title: string; summary: string }[];   // in the catalog; disclosing loads it
     readonly owns?: { transformers?: string[]; formats?: string[]; fileExtensions?: string[];
                       representations?: string[]; themes?: string[] };   // a session or file that needs it loads it
@@ -179,20 +186,24 @@ interface LazyViewerExtension {
   readonly load: () => Promise<ViewerExtension>;
   readonly preload?: boolean;                                  // loaded during creation, before `ready` (§3.1)
 }
-
-function pluginExtension(id: string, plugin: Partial<PrismViewerPluginParts>): ViewerExtension;  // data-only ones
-function lazyExtension(e: LazyViewerExtension): LazyViewerExtension;
 ```
 
 - **Headless-safe by shape**: `plugin`, `api`, `commands`, `skills`, `sequence` and `settings` import no DOM; `ui` is a
   function, so its views are a chunk loaded when the UI first needs them (README §3.4).
 - **Commands first** (README decision 27): an extension's first job is operations with commands and tools; `ui` only
   where a view is needed.
-- **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer/extension` (the
-  types and helpers above) and prism-ui; a lazy extension's stub lives in the same package, in a module that does not
-  import the rest (`/prism-viewer/stub`). Data-only extensions need no entry: the app writes
-  `pluginExtension('rcsb-validation', { behaviors: [PluginSpec.Behavior(RCSBValidationReport)] })`.
-- **A loaded extension is checked against its stub**: a part it brings that the stub did not declare fails the load.
+- **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` (the types above,
+  from `spec.ts` and `api.ts`) and prism-ui; a lazy extension's stub lives in the same package, in a module that does not
+  import the rest (`/prism-viewer/stub`). Data-only extensions are `{ id, title, plugin }` (the `pluginExtension` and
+  `lazyExtension` helpers come with phase 5's ports, if they earn their keep).
+- **A loaded extension is checked against its stub**: an area or command the stub did not declare fails the load, and
+  so does a declared operation it does not bring (a stub never replays itself); its views are checked as they register
+  (an undeclared one, or one not named `<id>.<kind>.<name>`, is not shown, and said). **Activation is all or nothing**:
+  a failure undoes what it did and puts the stub back; a later call tries again.
+- **A built-in feature's lazy stub** declares its operations in core areas too (`session.remote.list`): stubs are
+  contributed to the area, and replaced by the feature's `contributes` when it loads.
+- **Owned files and sessions**: `load.files` loads the lazy extension owning a file's extension first; `session.open`
+  of a `.molj` the ones owning its transformers (a `.molx`, zipped, not yet).
 
 ### 3.1 The viewer's own features: a fixed core and built-in extensions
 
@@ -229,9 +240,14 @@ itself, which keeps it honest.
   `core.sequence.follow`, `snapshots.tab.snapshots`, `geo-export.section.export`). Feature and extension ids are plain
   (`snapshots`, `geo-export`). Operation and command ids are their own (`<area>.<verb>`, operations.md §1), and an
   extension's areas start with its id (`geo-export.export`). The ids are listed in the viewer's `_spec`.
-- **`overrides`** replaces a part with another of its kind, or removes it with `null`, built-in or contributed alike:
-  `{ 'core.toolbar.xr': null, 'geo-export.section.export': MyGeoExportSection }`. An override of an id nobody
-  registers throws, naming it. A whole extension is dropped by leaving it out of `extensions`.
+- **`overrides`** (`extensions/overrides.ts`, one rule for every part, the core's and the shell's included): `null`
+  removes a part, a value replaces its fields (its id kept): `{ 'core.toolbar.reset': null, 'camera.reset': null,
+  'geo-export.section.export': { title: 'Export geometry' } }`. Commands by command id; views by part id. An override
+  of an id nobody registers throws, naming it: core parts and lazy stubs' parts are checked when the spec is,
+  commands after creation; an eager extension's views are known only when they register. A lazy extension's
+  placeholders follow overrides too. A whole extension is dropped by leaving it out of `extensions`.
+- **The core's views keep short ids in the shell** (`home`, `reset`, `sequence-legend`), which are
+  `core.<kind>.<id>` as parts; `ui.layout` and `view.open` take either form.
 - **Dependents follow**: removing an API module leaves its commands and tools listed with the reason they cannot run
   (as Stories' modules); removing a command removes its keybinding and toolbar item.
 - **Duplicates throw** at creation, naming both owners; there is no silent last-wins.

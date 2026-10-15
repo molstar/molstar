@@ -40,7 +40,6 @@ class ShoutApi extends ApiArea {
   });
 }
 
-let loads = 0;
 const shout: ViewerExtension = {
   id: 'shout',
   title: 'Shout',
@@ -59,32 +58,37 @@ const shout: ViewerExtension = {
   ],
 };
 
-const lazyShout = (o: Partial<LazyViewerExtension> = {}): LazyViewerExtension => ({
-  id: 'shout',
-  title: 'Shout',
-  stub: {
-    parts: [],
-    operations: [{ id: 'shout.say', title: 'Say something' }],
-    commands: [{ id: 'shout.say', title: 'Say something' }],
-    owns: { fileExtensions: ['shout'] },
-  },
-  load: async () => {
-    loads++;
-    return shout;
-  },
-  ...o,
-});
+/** A lazy `shout` with its own load counter (`count()`), so tests do not share state. */
+const lazyShout = (o: Partial<LazyViewerExtension> = {}) => {
+  let loads = 0;
+  const extension: LazyViewerExtension = {
+    id: 'shout',
+    title: 'Shout',
+    stub: {
+      parts: [],
+      operations: [{ id: 'shout.say', title: 'Say something' }],
+      commands: [{ id: 'shout.say', title: 'Say something' }],
+      owns: { fileExtensions: ['shout'] },
+    },
+    load: async () => {
+      loads++;
+      return shout;
+    },
+    ...o,
+  };
+  return { extension, count: () => loads };
+};
 
 describe('extensions', () => {
   it('loads a lazy extension at its first call, and replays the call as one step', async () => {
-    loads = 0;
-    const v = await headlessViewer({ extensions: [lazyShout()] });
+    const lazy = lazyShout();
+    const v = await headlessViewer({ extensions: [lazy.extension] });
     expect(v.extensions.status('shout')?.value).toBe('stub');
     expect(v.api.describe('shout.say')).toBeDefined();
     const r = await v.api.run('shout.say', { text: 'hi' });
     expectOk(r);
     expect(r.did).toBe('Said hi.');
-    expect(loads).toBe(1);
+    expect(lazy.count()).toBe(1);
     expect(v.extensions.status('shout')?.value).toBe('loaded');
     expect(v.extensions.loaded.value).toContain('shout');
     // Its plugin part is on the running plugin.
@@ -93,33 +97,82 @@ describe('extensions', () => {
     expect(v.managers.history.steps.value).toHaveLength(1);
     // A second call runs the real area directly.
     expectOk(await v.api.run('shout.say', { text: 'again' }));
-    expect(loads).toBe(1);
+    expect(lazy.count()).toBe(1);
+  });
+
+  it("makes the replayed call's step with the real label and the caller's origin, and Undo removes what it loaded", async () => {
+    const lazy = lazyShout();
+    const v = await headlessViewer({ extensions: [lazy.extension] });
+    expectOk(await v.api.as({ kind: 'person' }).run('shout.say', { text: 'hi' }));
+    const steps = v.managers.history.steps.value;
+    expect(steps).toHaveLength(1);
+    expect(steps[0].label).toBe('Said hi');
+    expect(steps[0].origin).toEqual({ kind: 'person' });
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(1);
+
+    expectOk(await v.api.history.undo());
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(0);
+    expect(v.managers.history.steps.value).toHaveLength(0);
+  });
+
+  it('loads once for two first calls at once, and makes two steps', async () => {
+    const lazy = lazyShout();
+    const v = await headlessViewer({ extensions: [lazy.extension] });
+    const [a, b] = await Promise.all([v.api.run('shout.say', { text: 'a' }), v.api.run('shout.say', { text: 'b' })]);
+    expectOk(a);
+    expectOk(b);
+    expect(lazy.count()).toBe(1);
+    expect(v.extensions.status('shout')?.value).toBe('loaded');
+    expect(v.managers.history.steps.value).toHaveLength(2);
+    expect(v.managers.history.steps.value.map((s) => s.label).sort()).toEqual(['Said a', 'Said b']);
+  });
+
+  it('leaves no step and no structure when the replayed call fails', async () => {
+    // The real operation fails after it loaded a file: the step restores the checkpoint.
+    class FailingApi extends ApiArea {
+      readonly id = 'shout';
+      readonly say = this.operation({
+        id: 'shout.say',
+        title: 'Say something',
+        params: { text: PD.Text('hello') },
+        async run(_, ctx) {
+          expectOk(await ctx.api.load.files({ files: [cbs()] }));
+          return ApiResult.fail('failed', 'It broke.');
+        },
+      });
+    }
+    const failing: ViewerExtension = { ...shout, api: { shout: (ctx: ApiAreaContext) => new FailingApi(ctx) } };
+    const lazy = lazyShout({ load: async () => failing });
+    const v = await headlessViewer({ extensions: [lazy.extension] });
+    const r = await v.api.run('shout.say', { text: 'hi' });
+    expect(r).toMatchObject({ ok: false, code: 'failed' });
+    expect(v.managers.history.steps.value).toHaveLength(0);
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(0);
   });
 
   it("lists a lazy extension's commands before it loads; running one loads it", async () => {
-    loads = 0;
-    const v = await headlessViewer({ extensions: [lazyShout()] });
+    const lazy = lazyShout();
+    const v = await headlessViewer({ extensions: [lazy.extension] });
     expect(v.managers.commands.get('shout.say')?.title).toBe('Say something');
     const opened = v.managers.commands.open('shout.say');
     if (opened.kind === 'ran') await opened.result;
-    expect(loads).toBe(1);
+    expect(lazy.count()).toBe(1);
     expect(v.extensions.status('shout')?.value).toBe('loaded');
   });
 
   it('loads what a file needs first, and preloads when asked', async () => {
-    loads = 0;
-    const v = await headlessViewer({ extensions: [lazyShout()] });
+    const v = await headlessViewer({ extensions: [lazyShout().extension] });
     await v.extensions.ensureFor({ fileExtensions: ['SHOUT'] });
     expect(v.extensions.status('shout')?.value).toBe('loaded');
-    loads = 0;
-    const p = await headlessViewer({ extensions: [lazyShout({ preload: true })] });
+    const preloaded = lazyShout({ preload: true });
+    const p = await headlessViewer({ extensions: [preloaded.extension] });
     expect(p.extensions.status('shout')?.value).toBe('loaded');
-    expect(loads).toBe(1);
+    expect(preloaded.count()).toBe(1);
   });
 
   it('fails a load that brings what its stub did not declare, and says why', async () => {
     const v = await headlessViewer({
-      extensions: [lazyShout({ stub: { parts: [], operations: [{ id: 'other.op', title: 'X' }] } })],
+      extensions: [lazyShout({ stub: { parts: [], operations: [{ id: 'other.op', title: 'X' }] } }).extension],
     });
     const r = await v.api.run('other.op', {});
     expect(r).toMatchObject({ ok: false, code: 'unavailable' });
@@ -127,12 +180,7 @@ describe('extensions', () => {
   });
 
   it('removes or replaces a command by id', async () => {
-    const { DefaultPrismViewerSpec } = await import('../../default-spec.js');
-    const { createPrismViewerHeadless } = await import('../../headless.js');
-    const v = await createPrismViewerHeadless({
-      spec: { ...DefaultPrismViewerSpec(), extensions: [shout], overrides: { 'shout.say': null } },
-    });
+    const v = await headlessViewer({ extensions: [shout], spec: { overrides: { 'shout.say': null } } });
     expect(v.managers.commands.get('shout.say')).toBeUndefined();
-    await v.dispose();
   });
 });

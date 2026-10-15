@@ -7,7 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { CommandDefinition, IconName, KeyChord } from '@molstar/prism-ui/core';
+import type { CommandDefinition, CommandValues, IconName, KeyChord } from '@molstar/prism-ui/core';
 import type { OperationFn, ViewerApi } from '../api/area.js';
 import { filePickers, filesOf } from '../api/files.js';
 import type { ViewerCommandContext } from '../api/managers.js';
@@ -75,7 +75,7 @@ export function operationCommand(
     ...(o.shortcut ? { shortcut: o.shortcut } : {}),
     ...(o.action ? { action: o.action } : {}),
     ...(o.group ? { group: o.group } : {}),
-    ...(form() ? { params: () => form() ?? {} } : {}),
+    ...(form() ? { params: () => form() ?? {}, defaults: () => formDefaults(form()) } : {}),
     ...(Object.keys(fields).length ? { fields } : {}),
     when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,
     async run(args) {
@@ -92,13 +92,27 @@ export function operationCommand(
   };
 }
 
-/** A form for an operation's params: file pickers for files, text fields for targets. */
+/**
+ * A form for an operation's params: file pickers for files, text fields for targets (asked for). A text field whose
+ * default is empty means "the default" (the only structure, …) when left empty, so it is optional.
+ */
 function formParams(params: PD.Params): PD.Params {
   const out = filePickers(params);
   for (const [k, p] of Object.entries(out)) {
     if (p.type === 'value' && typeof p.defaultValue === 'string') {
       out[k] = PD.Text(p.defaultValue, { label: p.label, description: p.description });
+    } else if (p.type === 'text' && p.defaultValue === '' && !p.isOptional) {
+      out[k] = { ...p, isOptional: true };
     }
+  }
+  return out;
+}
+
+/** The values a form starts with: its choices' defaults (selects, switches, numbers); texts and files start empty. */
+function formDefaults(params: PD.Params | undefined): CommandValues {
+  const out: Record<string, string | number | boolean> = {};
+  for (const [k, p] of Object.entries(params ?? {})) {
+    if (p.type === 'select' || p.type === 'boolean' || p.type === 'number') out[k] = p.defaultValue;
   }
   return out;
 }

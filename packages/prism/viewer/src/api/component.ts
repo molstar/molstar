@@ -22,9 +22,10 @@ import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { compileTarget, fromMolqlJson, PERSON_KEYWORDS, readKeyword, type Target } from '../targets/index.js';
-import { type ApiAreaContext, type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
+import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area.js';
 import { type ComponentParams, expressionOf, ownParams, reapplyContents, setOwnParams } from './contents.js';
-import { isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
+import { ComponentParam, EveryStructureParam, StructureParam } from './params.js';
+import { componentName, findComponent, isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
 // `component` (operations.md §2, plan 2.2): the components of a structure, which are the unit the representations hang
@@ -34,11 +35,7 @@ import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './ta
 // ids validated with the valid ones in the hint, "already so" when nothing would change. `add` follows decision 30:
 // a component of exactly that target on the structure already exists, unless `copy` asks for another.
 
-const StructureParam = () =>
-  PD.Text('', { description: 'A structure by label or state ref; empty: the one in view (or all, where it says)' });
-
-const ComponentParam = () =>
-  PD.Text('', { description: 'A component by label or state ref (within the structure, when it is named)' });
+const InStructure = 'A structure by label or state ref; empty: every one (the component is found among them)';
 
 /** A representation of a component, as `list` gives it. */
 export interface RepresentationInfo {
@@ -115,7 +112,7 @@ export class ComponentApi extends ApiArea {
       const key = JSON.stringify(compiled.molql);
       const found = list.map((s) => findExisting(ctx, s, key));
       if (found.some((c) => !c)) return undefined;
-      return `${labelOf(ctx, list[0])} already has ${list.length === 1 ? `the component '${nameOf(found[0]!)}'` : 'those components'}.`;
+      return `${labelOf(ctx, list[0])} already has ${list.length === 1 ? `the component '${componentName(found[0]!)}'` : 'those components'}.`;
     },
     async run({ target, label, representation, structure, language }, ctx) {
       const registry = ctx.plugin.representation.structure.registry;
@@ -188,7 +185,7 @@ export class ComponentApi extends ApiArea {
         if (!ctx.copy) {
           const found = findExisting(ctx, s, JSON.stringify(expression));
           if (found) {
-            existing.push(`${part.structure.label} already has '${nameOf(found)}'`);
+            existing.push(`${part.structure.label} already has '${componentName(found)}'`);
             continue;
           }
         }
@@ -241,11 +238,12 @@ export class ComponentApi extends ApiArea {
   readonly remove = this.operation({
     id: 'component.remove',
     title: 'Remove a component',
-    params: { component: ComponentParam(), structure: StructureParam() },
+    params: { component: ComponentParam(), structure: StructureParam(InStructure) },
+    approval: 'destructive',
     async run({ component, structure }, ctx) {
-      const found = findComponent(ctx, component, structure);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
-      const name = nameOf(found.component);
+      const name = componentName(found.component);
       // The component and the representations under it.
       await ctx.plugin.managers.structure.hierarchy.remove([found.component], false);
       return ApiResult.ok(`Removed '${name}' from ${labelOf(ctx, found.structure)}.`, {
@@ -260,15 +258,15 @@ export class ComponentApi extends ApiArea {
     params: {
       component: ComponentParam(),
       label: PD.Text('', { description: 'The new name' }),
-      structure: StructureParam(),
+      structure: StructureParam(InStructure),
     },
     async run({ component, label, structure }, ctx) {
       const name = label.trim();
       if (!name) return ApiResult.fail('invalid', 'The new name is empty.', 'Give the component a name.');
-      const found = findComponent(ctx, component, structure);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
       const c = found.component;
-      const old = nameOf(c);
+      const old = componentName(c);
       if (old === name) return ApiResult.already(`The component is already named '${name}'.`);
       // The manager's `updateLabel`, awaited (it does not wait for its commit, and the step must see the result); its
       // own params when its structure hides contents.
@@ -286,12 +284,12 @@ export class ComponentApi extends ApiArea {
   readonly visibility = this.operation({
     id: 'component.visibility',
     title: 'Show or hide a component',
-    params: { component: ComponentParam(), visible: PD.Boolean(true), structure: StructureParam() },
+    params: { component: ComponentParam(), visible: PD.Boolean(true), structure: StructureParam(InStructure) },
     async run({ component, visible, structure }, ctx) {
-      const found = findComponent(ctx, component, structure);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
       const c = found.component;
-      const name = nameOf(c);
+      const name = componentName(c);
       if (!!c.cell.state.isHidden === !visible) {
         return ApiResult.already(`'${name}' is already ${visible ? 'shown' : 'hidden'}.`);
       }
@@ -308,14 +306,14 @@ export class ComponentApi extends ApiArea {
       component: ComponentParam(),
       target: TargetParam('What to add, take out or keep: ligand, A:120-130, …'),
       mode: ModeParam(),
-      structure: StructureParam(),
+      structure: StructureParam(InStructure),
       language: LanguageParam(),
     },
     async run({ component, target, mode, structure, language }, ctx) {
-      const found = findComponent(ctx, component, structure);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
       const { component: c, structure: s } = found;
-      const name = nameOf(c);
+      const name = componentName(c);
       const current = c.cell.obj?.data;
       const parent = s.cell.obj?.data;
       if (!current || !parent) return ApiResult.fail('blocked', `'${name}' is not built yet.`);
@@ -424,7 +422,7 @@ export class ComponentApi extends ApiArea {
   readonly list = this.operation({
     id: 'component.list',
     title: 'List the components',
-    params: { structure: StructureParam() },
+    params: { structure: EveryStructureParam() },
     read: true,
     async run({ structure }, ctx) {
       const list = someStructures(ctx, structure || undefined);
@@ -462,16 +460,10 @@ function optionParams(current: StructureComponentManager.Options) {
   };
 }
 
-/** The component's name for people. */
-function nameOf(c: StructureComponentRef): string {
-  const params = c.cell.params?.values as StructureComponentParams | undefined;
-  return params?.label || c.cell.obj?.label || c.key || c.cell.transform.ref;
-}
-
 function componentInfo(c: StructureComponentRef): ComponentInfo {
   return {
     ref: c.cell.transform.ref,
-    label: nameOf(c),
+    label: componentName(c),
     atoms: c.cell.obj?.data.elementCount ?? 0,
     visible: !c.cell.state.isHidden,
     representations: c.representations.map((r) => ({
@@ -499,7 +491,6 @@ function atomsText(n: number): string {
   return `${n.toLocaleString('en')} atom${n === 1 ? '' : 's'}`;
 }
 
-/** A component of exactly that MolQL (as JSON), or with that name when one is given. */
 /** A component of the same target (decision 30: identity is the structure and the target, not the name). */
 function findExisting(ctx: ApiAreaContext, s: StructureRef, key: string): StructureComponentRef | undefined {
   return s.components.find((c) => {
@@ -510,36 +501,10 @@ function findExisting(ctx: ApiAreaContext, s: StructureRef, key: string): Struct
   });
 }
 
-/** One component by state ref or name (the case may differ), in the named structure or in all of them. */
-function findComponent(
-  ctx: ApiContext,
-  name: string,
-  structure: string,
-): { structure: StructureRef; component: StructureComponentRef } | ApiFailure {
+/** One component by the one rule (scope.ts), in the named structure or in all of them. */
+function inStructures(ctx: ApiContext, name: string, structure: string) {
   const structures = someStructures(ctx, structure || undefined);
-  if (isFailure(structures)) return structures;
-  const all = structures.flatMap((s) => s.components.map((component) => ({ structure: s, component })));
-  const describe = (x: (typeof all)[number]) =>
-    `${nameOf(x.component)} (${x.component.cell.transform.ref}${structures.length > 1 ? `, in ${labelOf(ctx, x.structure)}` : ''})`;
-  const list = all.length ? `Components: ${all.map(describe).join(', ')}.` : 'There are no components.';
-  if (!name) {
-    if (all.length === 1) return all[0];
-    return ApiResult.fail('ambiguous', 'Which component?', list);
-  }
-  const byRef = all.filter((x) => x.component.cell.transform.ref === name);
-  const matches = byRef.length
-    ? byRef
-    : (() => {
-        const exact = all.filter((x) => nameOf(x.component) === name);
-        return exact.length ? exact : all.filter((x) => nameOf(x.component).toLowerCase() === name.toLowerCase());
-      })();
-  if (matches.length === 1) return matches[0];
-  if (!matches.length) return ApiResult.fail('not-found', `There is no component '${name}'.`, list);
-  return ApiResult.fail(
-    'ambiguous',
-    `Which '${name}'? ${matches.length} components have that name.`,
-    `Give its state ref${structure ? '' : ' or name the structure'}: ${matches.map(describe).join(', ')}.`,
-  );
+  return isFailure(structures) ? structures : findComponent(ctx, structures, name);
 }
 
 /**

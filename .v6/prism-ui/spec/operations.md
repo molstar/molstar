@@ -53,8 +53,10 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   through `ctx.api` is part of its step. Commands, tools, the JS API, URL actions and the
   sequence's actions all call it; a view model calls the operation's typed function, which calls it.
 - **Origins**: `person`, `agent` (with its turn), `script`, `url`, `link` (the sequence, sequence.md §4).
-- **Where**: `packages/prism/viewer/src/api/<area>.ts`; with `sources/`, the only code with value imports of the plugin
-  (`import type` is allowed anywhere; an extension's `plugin` part imports its own behaviors and entries).
+- **Where**: `packages/prism/viewer/src/api/<area>.ts`, and a feature's `features/<name>/operations.ts` (API code by
+  role: what it adds to core areas or its own); with `sources/`, the only code with value imports of the plugin
+  (`import type` is allowed anywhere; an extension's `plugin` part imports its own behaviors and entries;
+  `_test/boundary.test.ts` checks it).
 - **The types around it** (`ApiContext`, `ApiModuleKey`, `Projection`, `ViewerApi`) are defined in [api.md](api.md),
   which turns these areas into the viewer's API objects.
 
@@ -70,8 +72,8 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `representation` | `set` (on a component: type and params), `update` (a representation's params, the inspector), `visibility` (a row's eye), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays), `emissive`, `material`, `clipping` (target: excluded from the clip objects, Mol*'s clipping layer), `reset` (a layer) | — | core |
 | `annotations`  | `apply` (what the structure carries: quality scores, validation, charges; extensions register what they can apply) | `list` | core; extensions |
 | `styles`       | `apply` (quick style by id: `default`, `cartoon`, `spacefill`, `surface` (representation presets); `plain`, `illustrative` (looks)) | —                     | core                |
-| `volume`       | `isovalue`, `representation`, `streaming`                                                                                   | `get`                         | core                |
-| `particles`    | `representation`                                                                                                            | `get`                         | core                |
+| `volume`       | `isovalue`, `representation`, `update` (ui-only), `visibility`, `remove`, `streaming`                                       | `get`                         | core                |
+| `particles`    | `representation`, `update` (ui-only), `visibility`, `remove`                                                                | `get`                         | core                |
 | `select`       | `set` (target, mode `set`/`add`/`remove`/`intersect`), `all`, `clear`, `invert`, `around` (radius), `expand` (to residues, chains, …); `mode`, `granularity` | `get` (what is selected) | core           |
 | `focus`        | `set` (target), `clear`                                                                                                     | `get`                         | core                |
 | `highlight`    | `set` (target), `clear` (for embedding hosts and the link; no history step)                                                 | —                             | core                |
@@ -81,7 +83,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `animation`    | `play` (by name and params), `stop`, `wiggle`                                                                               | —                             | animation           |
 | `trajectory`   | `frame`, `play`, `stop`                                                                                                     | `get`                         | core                |
 | `camera`       | `reset`, `zoom`, `orient`, `frame` (target)                                                                                 | `get`                         | core                |
-| `canvas`       | `background`, `illumination`, `lighting`, `clipping`, `xr`                                                                  | `get`                         | core; canvas settings |
+| `canvas`       | `background`; canvas settings: `settings` (ui-only), `lighting`, `illumination`, `camera`, `clipping`; `xr`                 | `get`                         | core; canvas settings |
 | `export`       | `image` (size, crop, transparent), `session`; extensions add `models`, `geometry`, `animation`                              | —                             | export features     |
 | `sequence`     | `style` (text, tracks), `colors`, `follow` (structure), `legend`                                                            | `get`                         | core                |
 | `state`        | `remove`, `visibility`, `update` (a cell's params), `action` (an applicable state action by id)                             | `get` (the tree)              | state tree          |
@@ -102,7 +104,8 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   takes a theme name, one `select.set` takes a selection query's name as its target; the registry lists them (as
   completions, as an enum in the tool's schema, refreshed by the registry-state behavior, state.md §3). Commands may
   still show one entry per preset (§3).
-- **Extensions add areas** under their id (`geo-export.export`, `assembly-symmetry.enable`), never into core's.
+- **Extensions add areas** under their id (`geo-export.export`, `assembly-symmetry.enable`); only the viewer's built-in
+  features add operations to core areas (`contributes`: `canvas.lighting`, `load.entry`; viewer-spec.md §3).
 
 ## 3. Commands over the operations
 

@@ -10,9 +10,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { afterEach, expect } from 'vitest';
 import type { ApiResult } from '../api/area.js';
+import type { RunRecord } from '../api/run.js';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { createPrismViewerHeadless } from '../headless.js';
-import type { ViewerExtension } from '../spec.js';
+import type { PrismViewerSpec, ViewerExtension } from '../spec.js';
 import type { PrismViewer } from '../viewer.js';
 
 // A headless viewer for tests (plan 1.6): made per test, disposed after it, with the repository's example files.
@@ -30,20 +31,40 @@ export const cbs = () => exampleFile('1cbs_updated.cif', '1cbs.cif');
 /** 1CRN (crambin, protein only). */
 export const crambin = () => exampleFile('1crn.cif');
 
-let current: PrismViewer | undefined;
+// Every viewer a test made, disposed after it (a test may make several).
+const created: PrismViewer[] = [];
 afterEach(async () => {
-  await current?.dispose();
-  current = undefined;
+  const viewers = created.splice(0);
+  for (const v of viewers.reverse()) await v.dispose();
 });
 
-/** A headless viewer with the default spec (and `extensions`), disposed after the test; `files` loaded first. */
-export async function headlessViewer(o: { extensions?: ViewerExtension[]; files?: File[] } = {}): Promise<PrismViewer> {
+/** Waits until `check` holds (polled), failing after `ms`: for the end of a fire-and-forget run, not a fixed sleep. */
+export async function until(check: () => boolean, ms = 3000): Promise<void> {
+  const t0 = Date.now();
+  while (!check()) {
+    if (Date.now() - t0 > ms) throw new Error(`timed out after ${ms} ms waiting for a condition`);
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+/** The runs that finish from now on (live list): wait for one with `until(() => runs.some(…))`. */
+export function recordRuns(v: PrismViewer): RunRecord[] {
+  const runs: RunRecord[] = [];
+  v.api.events.finished.subscribe((r) => runs.push(r));
+  return runs;
+}
+
+/** A headless viewer with the default spec (and `spec` over it, `extensions` added), disposed after the test; `files` loaded first. */
+export async function headlessViewer(
+  o: { extensions?: ViewerExtension[]; files?: File[]; spec?: Partial<PrismViewerSpec> } = {},
+): Promise<PrismViewer> {
   const base = DefaultPrismViewerSpec();
-  current = await createPrismViewerHeadless({
-    spec: { ...base, extensions: [...(base.extensions ?? []), ...(o.extensions ?? [])] },
+  const viewer = await createPrismViewerHeadless({
+    spec: { ...base, ...o.spec, extensions: [...(base.extensions ?? []), ...(o.extensions ?? [])] },
   });
-  for (const f of o.files ?? []) expectOk(await current.api.load.files({ files: [f] }));
-  return current;
+  created.push(viewer);
+  for (const f of o.files ?? []) expectOk(await viewer.api.load.files({ files: [f] }));
+  return viewer;
 }
 
 /** Asserts a result is ok and narrows it. */

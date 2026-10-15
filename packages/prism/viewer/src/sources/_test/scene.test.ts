@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cbs, crambin, headlessViewer } from '../../_test/harness.js';
+import { cbs, crambin, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../_test/harness.js';
 import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
 import type { SceneNode } from '../../model/scene.js';
 
@@ -51,8 +51,9 @@ describe('the scene', () => {
   it('acts through the API: a row eye is a history step', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const s = v.views.scene.roots.value[0];
+    const runs = recordRuns(v);
     s.toggleVisibility();
-    await new Promise((r) => setTimeout(r, 10));
+    await until(() => runs.some((r) => r.operation === 'structure.visibility'));
     expect(v.managers.history.steps.value[0].label).toMatch(/Hid 1CBS/);
     expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
   });
@@ -72,6 +73,111 @@ describe('the scene', () => {
     await v.api.session.clear();
     expect(v.views.scene.roots.value).toHaveLength(0);
     expect(v.views.scene.picked.value).toBeUndefined();
+  });
+});
+
+describe('the scene: component and representation rows', () => {
+  const firstComponent = (v: Awaited<ReturnType<typeof headlessViewer>>) =>
+    v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'component')!;
+
+  it('hides and shows a component from its eye, as the person, one step each', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const component = firstComponent(v);
+    const runs = recordRuns(v);
+    const steps = v.managers.history.steps.value.length;
+
+    component.toggleVisibility();
+    await until(() => runs.length >= 1 && component.isHidden.value);
+    expect(runs[0]).toMatchObject({ operation: 'component.visibility', origin: { kind: 'person' } });
+    expect(runs[0].values).toMatchObject({ visible: false });
+    expect(v.managers.history.steps.value).toHaveLength(steps + 1);
+    expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
+
+    component.toggleVisibility();
+    await until(() => runs.length >= 2 && !component.isHidden.value);
+    expect(runs[1].values).toMatchObject({ visible: true });
+    expect(v.managers.history.steps.value).toHaveLength(steps + 2);
+  });
+
+  it('removes a component from its row, and Undo brings it back', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const structure = v.views.scene.roots.value[0];
+    const component = firstComponent(v);
+    const id = component.id;
+    const count = structure.children.value.filter((c) => c.kind === 'component').length;
+    const runs = recordRuns(v);
+
+    v.views.scene.pick(component);
+    component.remove();
+    await until(() => runs.some((r) => r.operation === 'component.remove'));
+    const run = runs.find((r) => r.operation === 'component.remove')!;
+    expect(run.origin.kind).toBe('person');
+    expect(run.result?.ok).toBe(true);
+    await until(() => structure.children.value.filter((c) => c.kind === 'component').length === count - 1);
+    expect(structure.children.value.some((c) => c.id === id)).toBe(false);
+    expect(v.views.scene.picked.value).toBeUndefined();
+    expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
+
+    expectOk(await v.api.history.undo());
+    await until(() => structure.children.value.filter((c) => c.kind === 'component').length === count);
+  });
+
+  it('focuses and highlights a component as the person, without a history step', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const component = firstComponent(v);
+    const runs = recordRuns(v);
+    const steps = v.managers.history.steps.value.length;
+
+    component.highlight(true);
+    await until(() => runs.some((r) => r.operation === 'highlight.set'));
+    component.highlight(false);
+    await until(() => runs.some((r) => r.operation === 'highlight.clear'));
+    component.focus();
+    await until(() => runs.some((r) => r.operation === 'focus.set'));
+
+    expect(runs.map((r) => r.operation)).toEqual(['highlight.set', 'highlight.clear', 'focus.set']);
+    for (const r of runs) {
+      expect(r.origin.kind).toBe('person');
+      expect(r.result?.ok).toBe(true);
+    }
+    expect(v.managers.history.steps.value).toHaveLength(steps);
+  });
+
+  it('hides and shows a representation from its eye, as the person', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const rep = firstComponent(v).children.value[0];
+    expect(rep.kind).toBe('representation');
+    const runs = recordRuns(v);
+
+    rep.toggleVisibility();
+    await until(() => runs.length >= 1 && rep.isHidden.value);
+    expect(runs[0]).toMatchObject({ operation: 'representation.visibility', origin: { kind: 'person' } });
+    expect(runs[0].values).toMatchObject({ visible: false });
+    expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
+
+    rep.toggleVisibility();
+    await until(() => runs.length >= 2 && !rep.isHidden.value);
+    expect(runs[1].values).toMatchObject({ visible: true });
+  });
+
+  it('removes a representation from its row, and Undo brings it back', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const component = firstComponent(v);
+    const rep = component.children.value[0];
+    const before = representationTypes(v);
+    const runs = recordRuns(v);
+
+    rep.remove();
+    await until(() => runs.some((r) => r.operation === 'representation.remove'));
+    const run = runs.find((r) => r.operation === 'representation.remove')!;
+    expect(run.origin.kind).toBe('person');
+    expect(run.result?.ok).toBe(true);
+    await until(() => representationTypes(v).length === before.length - 1);
+    expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
+
+    expectOk(await v.api.history.undo());
+    await until(() => representationTypes(v).length === before.length);
+    expect(representationTypes(v)).toEqual(before);
   });
 });
 
@@ -123,8 +229,10 @@ describe('the scene: volumes and particles', () => {
     const rep = v.views.scene.roots.value[0].children.value[0];
     const form = v.views.scene.inspect(rep).form!;
     const current = form.values.value as any;
+    const runs = recordRuns(v);
     form.set('type', { ...current.type, params: { ...current.type.params, alpha: 0.25 } } as never);
-    await new Promise((r) => setTimeout(r, 400));
+    // The form applies after a short debounce: wait for the run it makes.
+    await until(() => runs.some((r) => r.operation === 'volume.update'));
     const cell = v.plugin.managers.volume.hierarchy.current.volumes[0].representations[0].cell;
     expect((cell.transform.params as any).type.params.alpha).toBe(0.25);
     const step = v.managers.history.steps.value[0]!;
@@ -135,20 +243,22 @@ describe('the scene: volumes and particles', () => {
     const v = await headlessViewer({ files: [mapFile()] });
     const volume = v.views.scene.roots.value[0];
     const rep = volume.children.value[0];
+    const runs = recordRuns(v);
+    const finished = (n: number) => until(() => runs.length >= n);
 
     rep.toggleVisibility();
-    await new Promise((r) => setTimeout(r, 20));
+    await finished(1);
     expect(rep.isHidden.value).toBe(true);
     expect(volume.isHidden.value).toBe(false);
     expect(v.managers.history.steps.value[0]?.origin.kind).toBe('person');
 
     volume.toggleVisibility();
-    await new Promise((r) => setTimeout(r, 20));
+    await finished(2);
     expect(volume.isHidden.value).toBe(true);
 
     v.views.scene.pick(rep);
     volume.remove();
-    await new Promise((r) => setTimeout(r, 50));
+    await finished(3);
     expect(v.views.scene.roots.value).toHaveLength(0);
     expect(v.views.scene.picked.value).toBeUndefined();
 
@@ -159,8 +269,9 @@ describe('the scene: volumes and particles', () => {
   it('removes one volume representation from its row', async () => {
     const v = await headlessViewer({ files: [mapFile()] });
     const volume = v.views.scene.roots.value[0];
+    const runs = recordRuns(v);
     volume.children.value[0].remove();
-    await new Promise((r) => setTimeout(r, 50));
+    await until(() => runs.length >= 1);
     expect(volume.children.value).toHaveLength(0);
     expect(v.views.scene.roots.value).toHaveLength(1);
   });
@@ -175,12 +286,13 @@ describe('the scene: volumes and particles', () => {
     expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Particles')).toBe('5');
     expect(v.views.scene.inspect(rep).form).toBeDefined();
 
+    const runs = recordRuns(v);
     rep.toggleVisibility();
-    await new Promise((r) => setTimeout(r, 20));
+    await until(() => runs.length >= 1);
     expect(rep.isHidden.value).toBe(true);
 
     list.remove();
-    await new Promise((r) => setTimeout(r, 50));
+    await until(() => runs.length >= 2);
     expect(v.views.scene.roots.value).toHaveLength(0);
   });
 });

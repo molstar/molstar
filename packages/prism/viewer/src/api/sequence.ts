@@ -11,6 +11,7 @@ import type { SequenceViewer } from '../sequence/model.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
 import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
+import { StructureParam } from './params.js';
 import { isFailure, labelOf, oneStructure } from './scope.js';
 
 // `sequence` (operations.md §2, sequence.md §6): the one sequence viewer's style (Tracks or Text), the letters' colors,
@@ -67,7 +68,7 @@ export class SequenceApi extends ApiArea {
     id: 'sequence.follow',
     title: 'Show the sequence of a structure',
     params: {
-      structure: PD.Text('', { description: 'A structure by label or ref; empty: the one the person works with' }),
+      structure: StructureParam('A structure by label or state ref; empty: the one the person works with'),
     },
     history: false,
     run: async ({ structure }, ctx) => {

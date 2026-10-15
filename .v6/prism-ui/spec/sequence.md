@@ -149,8 +149,8 @@ a sequence action, a command and a tool name the same residues the same way.
 ### 7.1 The sequence's state in snapshots
 
 - **What is saved**: the plugin's state (`PluginState.Snapshot`) and the sequence's own state,
-  `{ version: 1, style, colors, structure, rail, edits }` (`edits`: the overlay of §3). The document itself is rebuilt
-  by the behaviors from the plugin's state.
+  `{ version: 1, style, colors, structure, rail, edits }` (`edits`: the overlay of §3; not built yet: the saved state
+  has no `edits` so far). The document itself is rebuilt by the behaviors from the plugin's state.
 - **A registry, not a field** (review F10): `PluginState.registerCustomState(key, { get(), set(value | undefined) })`,
   an additive core change. `getSnapshot` writes every registered key into `snapshot.custom`; `setSnapshot` calls each
   `set` after the tree is applied, with `undefined` (reset to defaults) when the snapshot has no value for it; unknown
@@ -170,17 +170,17 @@ interface HistoryPort {                                   // given to prism-ui's
 }
 // the viewer's:
 checkpoint = () => ({
-  plugin: plugin.state.getSnapshot({ data: true, behavior: true, componentManager: true, canvas3d: true,
-    interactivity: true, structureSelection: false, camera: false, canvas3dContext: false, animation: false }),
-  selectionMode: plugin.selectionMode, sequence: sequenceState(),
+  plugin: withoutViewState(plugin.state.getSnapshot({ data: true, behavior: true, componentManager: true,
+    canvas3d: true, interactivity: false, structureSelection: false, camera: false, canvas3dContext: false,
+    animation: false })),                                 // the sequence's state rides in `custom`, minus what it follows
 });
-restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefined }) … then the selection mode and
-  the sequence's state
+restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefined })
 ```
 
 - **What undo restores**: the data tree (structures, components, representations, measurements), behavior settings,
-  canvas props, interactivity, the selection mode, the sequence's state. **What it never touches**: the camera, the
-  selection and the focus (view state, not steps), hover, the Snapshots list, open panels.
+  canvas props, the sequence's style and colors, the hidden contents. **What it never touches** (view state, not
+  steps, §7.3): the camera, the selection, the selection mode and the picking level, the focus, which structure the
+  sequence follows, hover, the Snapshots list, open panels.
 - **Without a canvas** (headless): `camera: false` keeps `getSnapshot` from reading `canvas3d`; a headless test runs an
   undoable operation, then Undo, with no canvas.
 - **Across a lazy extension's load**: restoring a checkpoint taken before the load keeps the extension loaded (its

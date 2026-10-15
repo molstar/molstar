@@ -156,7 +156,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               presets={core.views.presets}
               options={core.views.componentOptions}
               quickStyles={core.views.quickStyles}
-              openCommands={(group) => openCommandMenu(group)}
+              onAction={(action) => {
+                if (action === 'add') managers.commands.open('component.add');
+              }}
             />
           )),
         },

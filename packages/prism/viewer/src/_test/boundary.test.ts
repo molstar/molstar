@@ -10,7 +10,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Only `api/` and `sources/` read or change the plugin (operations.md §1, contexts.md §7): elsewhere in the viewer, a
+// Only `api/`, `sources/` and features' `operations.ts` read or change the plugin (operations.md §1, contexts.md §7):
+// elsewhere in the viewer, a
 // plugin package is imported for its types only. The mocks (`testing/`), the sequence's first slice (`sequence/`, on
 // molstar-poc until plan 2.4) and stories are outside the rule.
 
@@ -50,6 +51,11 @@ describe('the viewer', () => {
       const rel = path.relative(src, file);
       const top = rel.split(path.sep)[0];
       if (Allowed.includes(top) || rel.includes('.stories.')) continue;
+      // A feature's operations are API code (operations.md §1); the rest of a feature reaches the plugin through them.
+      if (/^features\/[^/]+\/operations\.ts$/.test(rel.split(path.sep).join('/'))) continue;
+      if (top === 'features' && /\bctx\.plugin\b/.test(fs.readFileSync(file, 'utf8'))) {
+        offending.push(`${rel} uses ctx.plugin outside its operations`);
+      }
       for (const spec of valueImports(fs.readFileSync(file, 'utf8'))) {
         if (Plugin.test(spec)) offending.push(`${rel} imports ${spec}`);
       }
