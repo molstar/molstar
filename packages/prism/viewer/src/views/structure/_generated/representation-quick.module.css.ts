@@ -28,6 +28,7 @@ export const classes = {
 defineStyles('viewer/views/structure/representation-quick.module.css', `@layer msp.components {
 .msp-viewer-representation-quick-quick {
   gap: var(--msp-space-3);
+  margin-bottom: var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   grid-template-columns: minmax(0, 1fr);
   display: grid;

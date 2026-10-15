@@ -6,11 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* The quick settings above a representation's whole form: a column of settings. */
+/* The quick settings above a representation's whole form: a column of settings, set apart from the form below by
+   more than the settings are from each other (the inspector's gap and this margin). */
 .quick {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-3);
+  margin-bottom: var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
 }
 
