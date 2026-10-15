@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CanvasMenuItem } from '@molstar/prism-ui/shell/shell';
+import type { CanvasMenuItem, ShellModel } from '@molstar/prism-ui/shell/shell';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ModelSource } from '@molstar/ai-session';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
@@ -263,6 +263,8 @@ export interface ViewerExtensionUI {
     readonly id: PartId;
     readonly slot: ViewerSlot;
     readonly title: string;
+    /** Its header's words when they follow what it offers (Export's "Image & animation" once an extension adds one). */
+    readonly heading?: (shell: ShellModel) => Observable<string>;
     readonly icon?: IconName;
     readonly order?: number;
     readonly keywords?: readonly string[];

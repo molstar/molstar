@@ -98,34 +98,37 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
           )}
         </Show>
       </div>
-      <Show when={model.opacity.pipe(map((o) => o !== undefined))}>
-        {() => (
-          <QuickRange
-            label="Opacity"
-            min={0}
-            max={1}
-            step={0.01}
-            value={model.opacity.pipe(map((o) => o ?? 1))}
-            format={(v) => `${Math.round(v * 100)}%`}
-            onInput={(v) => model.change({ opacity: v })}
-            onCommit={() => model.settle()}
-          />
-        )}
-      </Show>
-      <Show when={model.size.pipe(map((s) => s !== undefined))}>
-        {() => (
-          <QuickRange
-            label="Size"
-            min={0.25}
-            max={3}
-            step={0.05}
-            value={model.size.pipe(map((s) => s ?? 1))}
-            format={(v) => `${v.toFixed(2)}×`}
-            onInput={(v) => model.change({ size: v })}
-            onCommit={() => model.settle()}
-          />
-        )}
-      </Show>
+      {/* The sliders together, closer than the settings above (they read as one group). */}
+      <div class={classes.ranges}>
+        <Show when={model.opacity.pipe(map((o) => o !== undefined))}>
+          {() => (
+            <QuickRange
+              label="Opacity"
+              min={0}
+              max={1}
+              step={0.01}
+              value={model.opacity.pipe(map((o) => o ?? 1))}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onInput={(v) => model.change({ opacity: v })}
+              onCommit={() => model.settle()}
+            />
+          )}
+        </Show>
+        <Show when={model.size.pipe(map((s) => s !== undefined))}>
+          {() => (
+            <QuickRange
+              label="Size"
+              min={0.25}
+              max={3}
+              step={0.05}
+              value={model.size.pipe(map((s) => s ?? 1))}
+              format={(v) => `${v.toFixed(2)}×`}
+              onInput={(v) => model.change({ size: v })}
+              onCommit={() => model.settle()}
+            />
+          )}
+        </Show>
+      </div>
     </section>
   );
 }

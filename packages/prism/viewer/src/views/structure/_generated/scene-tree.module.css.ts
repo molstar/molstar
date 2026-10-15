@@ -18,6 +18,8 @@ export const classes = {
   'empty': 'msp-viewer-scene-tree-empty',
   'expander': 'msp-viewer-scene-tree-expander',
   'hidden': 'msp-viewer-scene-tree-hidden',
+  'inlineIcons': 'msp-viewer-scene-tree-inlineIcons',
+  'inlineItem': 'msp-viewer-scene-tree-inlineItem',
   'item': 'msp-viewer-scene-tree-item',
   'keep': 'msp-viewer-scene-tree-keep',
   'kind': 'msp-viewer-scene-tree-kind',
@@ -283,6 +285,20 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 26px;
+}
+
+.msp-viewer-scene-tree-inlineItem {
+  cursor: default;
+  grid-template-columns: 14px 1fr auto;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.msp-viewer-scene-tree-inlineIcons {
+  gap: 2px;
+  display: flex;
 }
 
 .msp-viewer-scene-tree-menuItem[data-danger] {

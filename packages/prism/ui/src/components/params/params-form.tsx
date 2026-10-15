@@ -495,15 +495,18 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
   const text = binding.value.pipe(map((v: number) => format(v, param.step)));
   if (param.min === undefined || param.max === undefined) {
     return (
+      // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
+      // number reads "0.5"; a comma typed is read as the decimal point.
       <input
         class={classes.input}
-        type="number"
+        type="text"
+        inputMode="decimal"
         aria-labelledby={labelId}
-        step={String(param.step ?? 'any')}
         value={text}
         onChange={(e) => {
-          const v = Number(e.currentTarget.value);
+          const v = parseNumber(e.currentTarget.value);
           if (Number.isFinite(v)) binding.set(v);
+          else e.currentTarget.value = format(binding.get() as number, param.step);
         }}
       />
     );
@@ -531,7 +534,7 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
         aria-labelledby={labelId}
         value={text}
         onChange={(e) => {
-          const v = Number(e.currentTarget.value);
+          const v = parseNumber(e.currentTarget.value);
           if (Number.isFinite(v)) binding.set(Math.min(param.max!, Math.max(param.min!, v)));
         }}
       />
@@ -541,8 +544,16 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
 
 function format(v: number, step?: number) {
   if (!Number.isFinite(v)) return '';
-  const digits = step && step < 1 ? Math.min(4, Math.ceil(-Math.log10(step))) : 0;
+  // No step: the value as it is (at most 4 decimals), not rounded to a whole number.
+  if (step === undefined) return String(Number(v.toFixed(4)));
+  const digits = step < 1 ? Math.min(4, Math.ceil(-Math.log10(step))) : 0;
   return v.toFixed(digits);
+}
+
+/** A typed number: "0.5", "0,5" (a comma as the decimal point), " -1 "; NaN when it is not one. */
+export function parseNumber(text: string): number {
+  const t = text.trim().replace(',', '.');
+  return t === '' ? Number.NaN : Number(t);
 }
 
 /**

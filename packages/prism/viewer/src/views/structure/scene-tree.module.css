@@ -277,6 +277,21 @@
 }
 
 /* Destructive (Remove): in the danger color, set apart by a hairline from what comes before it (alone, no line). */
+/* An entry with its choices as icons at its end (Modify by selection): not a button itself, no hover of its own. */
+.inlineItem {
+  grid-template-columns: 14px 1fr auto;
+  cursor: default;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.inlineIcons {
+  display: flex;
+  gap: 2px; /* off-scale: icon buttons side by side */
+}
+
 .menuItem[data-danger] {
   color: var(--msp-color-danger);
 

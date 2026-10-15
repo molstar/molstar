@@ -9,7 +9,7 @@
  */
 
 import { combineLatest, distinctUntilChanged, map, type Observable, of, shareReplay, startWith } from 'rxjs';
-import { colorToHex } from '@molstar/prism-ui';
+import { Button, colorToHex } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
@@ -355,7 +355,9 @@ function MenuItems(props: { items: readonly SceneMenuItem[]; onDone(): void }) {
   return (
     <>
       {props.items.map((item) =>
-        item.items?.length ? (
+        item.items?.length && item.inline ? (
+          <InlineItems item={item} onDone={props.onDone} />
+        ) : item.items?.length ? (
           <SubMenu item={item} onDone={props.onDone} />
         ) : (
           <MenuItem item={item} onDone={props.onDone} />
@@ -382,6 +384,32 @@ function MenuItem(props: { item: SceneMenuItem; onDone(): void }) {
       <span />
       <span>{item.label}</span>
     </button>
+  );
+}
+
+/** An entry whose choices are icons on its row (Modify by selection), always shown; each its label as the tooltip. */
+function InlineItems(props: { item: SceneMenuItem; onDone(): void }) {
+  const { item } = props;
+  return (
+    <div class={`${classes.menuItem} ${classes.inlineItem}`} role="group" aria-label={item.label}>
+      <span />
+      <span>{item.label}</span>
+      <span class={classes.inlineIcons}>
+        {item.items!.map((sub) => (
+          <Button
+            variant="ghost"
+            size="xs"
+            icon={<Icon name={sub.icon ?? 'ellipsis'} />}
+            title={sub.label}
+            {...(sub.disabled ? { disabled: sub.disabled } : {})}
+            onClick={() => {
+              sub.run?.();
+              props.onDone();
+            }}
+          />
+        ))}
+      </span>
+    </div>
   );
 }
 

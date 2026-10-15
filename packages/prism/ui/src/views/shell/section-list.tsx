@@ -105,7 +105,7 @@ function SectionBlock(props: {
   const block = (
     <section class={classes.section} data-section={section.id}>
       <button type="button" class={classes.header} aria-expanded={expanded} onClick={toggle}>
-        <span class={classes.title}>{section.title}</span>
+        <span class={classes.title}>{section.heading ?? section.title}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
       <div

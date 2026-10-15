@@ -154,6 +154,8 @@ export interface ShellSection {
   /** The slot it goes to (`export`). */
   slot: string;
   title: string;
+  /** Its header's words when they follow what it offers (Export's "Image & animation"); `title` otherwise. */
+  heading?: Observable<string>;
   icon?: IconName;
   /** Words it is also found by (the command menu, the section filter). */
   keywords?: readonly string[];

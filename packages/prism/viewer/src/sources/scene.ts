@@ -71,7 +71,8 @@ import {
 } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
-import type { SourceScope } from './state.js';
+import { fromChanged, type SourceScope } from './state.js';
+import type { Observable } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
 import { createRepresentationQuick, type RepresentationQuickSource } from './representation-quick.js';
@@ -206,6 +207,9 @@ export function createSceneSource(
   openCommand?: OpenCommand,
 ): SceneSource {
   const nodes = new Map<string, Node>();
+  // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
+  const selection = plugin.managers.structure.selection;
+  const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, selection.events.changed);
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
   const inspections = new Map<string, SceneInspection>();
@@ -333,7 +337,7 @@ export function createSceneSource(
         remove: () => void api.run('component.remove', { component: ref, structure: structureRef }),
       });
       n.removable = true;
-      n.menu = componentMenu(plugin, api, ref, structureRef, loci, openCommand, c.cell.obj?.label ?? '');
+      n.menu = componentMenu(plugin, api, ref, structureRef, loci, openCommand, c.cell.obj?.label ?? '', noSelection);
       nodes.set(ref, n);
     }
     const reprs = c.representations.map((r) => reprLabel(plugin, r)).join(', ');
@@ -795,12 +799,20 @@ function colorLabel(plugin: PluginContext, r: StructureRepresentationRef): strin
 
 /** Mol*'s component menu: add representation, color, modify by the selection, select this. */
 /** A component changed by the current selection (v5's Modify by Selection): include, subtract or intersect it. */
-function modifyBySelection(api: ViewerApi, ref: string, structureRef: string): SceneMenuItem {
+function modifyBySelection(
+  api: ViewerApi,
+  ref: string,
+  structureRef: string,
+  noSelection: Observable<boolean>,
+): SceneMenuItem {
   return {
     id: 'modify',
     label: 'Modify by selection',
     icon: 'squares-unite',
+    // Three icons on its row, there at all times, unavailable with nothing selected (David, 2026-10-15).
+    inline: true,
     items: (['union', 'subtract', 'intersect'] as const).map((mode) => ({
+      disabled: noSelection,
       id: mode,
       label:
         mode === 'union'
@@ -835,6 +847,7 @@ function componentMenu(
   loci: () => StructureElement.Loci | undefined,
   openCommand: OpenCommand | undefined,
   label: string,
+  noSelection: Observable<boolean>,
 ): SceneMenuItem[] {
   // With the command menu: each opens its command for this component (its fields filled in, the rest to choose there),
   // so the long lists (types, themes) are the command menu's to search, not a fold in a panel.
@@ -871,7 +884,7 @@ function componentMenu(
           }),
       },
       // This component changed by the current selection: three choices, at once (no form to fill).
-      modifyBySelection(api, ref, structureRef),
+      modifyBySelection(api, ref, structureRef, noSelection),
       {
         id: 'select',
         label: 'Select this',
@@ -911,7 +924,7 @@ function componentMenu(
         },
       })),
     },
-    modifyBySelection(api, ref, structureRef),
+    modifyBySelection(api, ref, structureRef, noSelection),
     {
       id: 'select',
       label: 'Select this',

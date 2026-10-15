@@ -8,6 +8,7 @@
 
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import type { Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { RepresentationQuickModel } from './representation-quick.js';
 import type { VolumeLevelsModel } from './volume-levels.js';
@@ -81,6 +82,10 @@ export interface SceneMenuItem {
   danger?: boolean;
   run?(): void;
   items?: readonly SceneMenuItem[];
+  /** Its items are icons on its own row, always shown (Modify by selection: include, subtract, intersect), not a fold. */
+  inline?: true;
+  /** Unavailable while true (an action on the selection with nothing selected). */
+  disabled?: Observable<boolean>;
 }
 
 /** What the inspector shows for a node: its parameters as a form (changes apply to the state tree). */

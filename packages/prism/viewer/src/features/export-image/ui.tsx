@@ -109,6 +109,12 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
         id: 'export-image.section.image',
         slot: 'export',
         title: 'Image',
+        // With an animation to export (an extension's `export.picture`), the switch offers both: so does the header.
+        heading: (shell) =>
+          shell.sections('export.picture').pipe(
+            map((list) => (list.length ? 'Image & animation' : 'Image')),
+            distinctUntilChanged(),
+          ),
         icon: 'camera',
         order: 0,
         keywords: ['screenshot', 'png', 'picture', 'copy', 'animation', 'video', 'movie'],

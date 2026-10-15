@@ -20,6 +20,17 @@
   gap: var(--msp-space-2);
 }
 
+/* Opacity and size: one group, close together. */
+.ranges {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-1);
+
+  &:empty {
+    display: none;
+  }
+}
+
 /* A setting's name, and its current value beside it. */
 .head {
   display: flex;

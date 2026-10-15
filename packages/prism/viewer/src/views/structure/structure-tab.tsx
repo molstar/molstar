@@ -235,11 +235,11 @@ function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="xs"
       class={classes.inspectorEye}
       icon={
-        <Show when={props.hidden} fallback={() => <Icon name="eye" />}>
-          {() => <Icon name="eye-off" />}
+        <Show when={props.hidden} fallback={() => <Icon name="eye" size={14} />}>
+          {() => <Icon name="eye-off" size={14} />}
         </Show>
       }
       title={props.hidden.pipe(map((h) => (h ? off : on)))}

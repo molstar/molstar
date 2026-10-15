@@ -90,6 +90,7 @@ export function extensionUIPort(
               id: s.id,
               slot: s.slot,
               title: s.title,
+              ...(s.heading ? { heading: s.heading(shell) } : {}),
               ...(s.icon ? { icon: s.icon } : {}),
               ...(s.order !== undefined ? { order: s.order } : {}),
               ...(s.keywords ? { keywords: s.keywords } : {}),

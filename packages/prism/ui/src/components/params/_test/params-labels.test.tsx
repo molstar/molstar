@@ -58,7 +58,10 @@ describe('ParamsForm labels (README §3.7, WCAG 4.1.2)', () => {
     const byName = (name: string) => controls.filter((c) => nameOf(c) === name);
     // The label's text, not its ? (help) button: "PDB Id(s)", not "PDB Id(s) About PDB Id(s)".
     expect(byName('PDB Id(s)').map((c) => c.tagName)).toEqual(['INPUT']);
-    expect(byName('Count').map((c) => (c as HTMLInputElement).type)).toEqual(['number']);
+    // An unbounded number is text (a native number field shows the locale's decimal comma), with a decimal keyboard.
+    expect(byName('Count').map((c) => [(c as HTMLInputElement).type, c.getAttribute('inputmode')])).toEqual([
+      ['text', 'decimal'],
+    ]);
     // A slider: both its range and its number field.
     expect(byName('Opacity').map((c) => (c as HTMLInputElement).type)).toEqual(['range', 'text']);
     expect(byName('Shadows').map((c) => c.getAttribute('role'))).toEqual(['switch']);

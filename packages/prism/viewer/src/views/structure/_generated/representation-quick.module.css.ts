@@ -15,6 +15,7 @@ export const classes = {
   'name': 'msp-viewer-representation-quick-name',
   'one': 'msp-viewer-representation-quick-one',
   'quick': 'msp-viewer-representation-quick-quick',
+  'ranges': 'msp-viewer-representation-quick-ranges',
   'segment': 'msp-viewer-representation-quick-segment',
   'segments': 'msp-viewer-representation-quick-segments',
   'setting': 'msp-viewer-representation-quick-setting',
@@ -36,6 +37,16 @@ defineStyles('viewer/views/structure/representation-quick.module.css', `@layer m
   gap: var(--msp-space-2);
   grid-template-columns: minmax(0, 1fr);
   display: grid;
+}
+
+.msp-viewer-representation-quick-ranges {
+  gap: var(--msp-space-1);
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+
+  &:empty {
+    display: none;
+  }
 }
 
 .msp-viewer-representation-quick-head {
