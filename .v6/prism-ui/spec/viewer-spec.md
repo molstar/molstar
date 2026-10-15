@@ -192,6 +192,7 @@ interface ViewerExtensionUI {                                  // every id `<own
   readonly rows?: readonly { id; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // scene tree rows under
                                                                // the nodes `when` holds for (the node is the view's
                                                                // `subject`); `SceneRow` draws one as the tree's own
+                                                               // (picked, its controls in the inspector, Turn on while off)
   readonly toolbar?: readonly { id; icon; title; command?: string; overlay?: PartId; group?; order?;
                                 place?: 'rail' | 'canvas' }[];   // runs a command, or opens one of its overlays
 }

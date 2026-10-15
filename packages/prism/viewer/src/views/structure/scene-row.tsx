@@ -16,6 +16,19 @@ import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 
+/** The event a row sends when clicked: the tree's host (the Structure tab) shows it in its inspector. */
+export const SceneRowPickEvent = 'msp-scene-row-pick';
+
+/** A picked row, as the inspector shows it: its label, line, eye and controls; `mark` shows it picked in the tree. */
+export interface SceneRowPick {
+  readonly label: string;
+  readonly description?: Observable<string | undefined>;
+  readonly shown?: Observable<boolean>;
+  onToggle?(): void;
+  readonly body?: () => Child;
+  mark(on: boolean): void;
+}
+
 export interface SceneRowProps {
   readonly label: string;
   /** The short second line ("C2 axes", "30 Å thick"). */
@@ -30,7 +43,7 @@ export interface SceneRowProps {
 
 /**
  * An extension's row in the scene tree (viewer-spec.md §3, `rows`), drawn as the tree draws its own: a label and a
- * description, an eye, and the controls under it when opened. Its depth comes from the tree (`--msp-tree-depth` on the
+ * description, an eye; picked, its controls in the inspector (`SceneRowPickEvent`; under it with no host to take them). Its depth comes from the tree (`--msp-tree-depth` on the
  * row's host); it acts only through what it is given, so the extension's view calls its operations.
  */
 export function SceneRow(props: SceneRowProps) {
@@ -38,6 +51,21 @@ export function SceneRow(props: SceneRowProps) {
   const shown = props.shown ?? of(true);
   const hidden = shown.pipe(map((s) => !s));
   const labelId = uniqueId('msp-tree-label');
+  let rowEl: HTMLElement | undefined;
+  // A click picks it, as the tree's other rows: its controls go to the inspector (the tree's host takes the event);
+  // with no host to take it (a row on its own), they open under it.
+  const pick = () => {
+    const detail: SceneRowPick = {
+      label: props.label,
+      ...(props.description ? { description: props.description } : {}),
+      ...(props.shown ? { shown: props.shown } : {}),
+      ...(props.onToggle ? { onToggle: () => props.onToggle?.() } : {}),
+      ...(props.body ? { body: props.body } : {}),
+      mark: (on) => rowEl?.classList.toggle(classes.picked, on),
+    };
+    const event = new CustomEvent(SceneRowPickEvent, { bubbles: true, composed: true, cancelable: true, detail });
+    if (rowEl?.dispatchEvent(event) !== false) toggleOpen();
+  };
   const toggleOpen = () => props.body && open.set(!open.value);
   return (
     <div
@@ -52,12 +80,16 @@ export function SceneRow(props: SceneRowProps) {
         data-tree-row=""
         class={classes.row}
         classList={{ [classes.hidden]: hidden }}
-        onClick={toggleOpen}
+        ref={(el) => {
+          rowEl = el;
+        }}
+        onClick={pick}
       >
         <button
           type="button"
           class={classes.expander}
-          classList={{ [classes.leaf]: !props.body }}
+          // Its controls are in the inspector: nothing opens under it.
+          classList={{ [classes.leaf]: true }}
           data-tree-toggle=""
           tabIndex={-1}
           aria-label="Expand"

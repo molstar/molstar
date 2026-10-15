@@ -18,11 +18,13 @@ import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
+import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 
 export interface StructureTabProps {
   shell: ShellModel;
@@ -57,6 +59,17 @@ export function StructureTab(props: StructureTabProps) {
   const open = observableState<'preset' | 'styles' | 'options' | undefined>(undefined);
   const toggle = (block: 'preset' | 'styles' | 'options') => open.set(open.value === block ? undefined : block);
   // The tree's search: a field over the tree while open; closed, no filter.
+  // An extension's row picked (its controls in the inspector); a node picked takes its place.
+  const pickedRow = observableState<SceneRowPick | undefined>(undefined);
+  const picks = scene.picked.subscribe((n) => {
+    if (!n || !pickedRow.value) return;
+    pickedRow.value.mark(false);
+    pickedRow.set(undefined);
+  });
+  onCleanup(() => {
+    picks.unsubscribe();
+    pickedRow.value?.mark(false);
+  });
   const searchOpen = observableState(false);
   const search = observableState('');
   const closeSearch = () => {
@@ -152,7 +165,23 @@ export function StructureTab(props: StructureTabProps) {
           </div>
         )}
       </Show>
-      <ScrollArea edge class={classes.tree}>
+      <ScrollArea
+        edge
+        class={classes.tree}
+        ref={(el: HTMLElement) => {
+          // An extension's row picked (Membrane, Assembly symmetry): its controls in the inspector, as a node's.
+          const onPick = (e: Event) => {
+            e.preventDefault();
+            const pick = (e as CustomEvent<SceneRowPick>).detail;
+            pickedRow.value?.mark(false);
+            scene.pick(undefined);
+            pick.mark(true);
+            pickedRow.set(pick);
+          };
+          el.addEventListener(SceneRowPickEvent, onPick);
+          onCleanup(() => el.removeEventListener(SceneRowPickEvent, onPick));
+        }}
+      >
         <SceneTree scene={scene} shell={shell} filter={search.asReadonly.pipe(debounceTime(120))} />
       </ScrollArea>
       <ScrollArea
@@ -162,12 +191,45 @@ export function StructureTab(props: StructureTabProps) {
         aria-label="Inspector"
       >
         <Show
-          when={scene.picked}
-          fallback={() => <p class={classes.inspectorEmpty}>Select an item in the tree to edit its properties.</p>}
+          when={pickedRow.asReadonly}
+          fallback={() => (
+            <Show
+              when={scene.picked}
+              fallback={() => <p class={classes.inspectorEmpty}>Select an item in the tree to edit its properties.</p>}
+            >
+              {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} />}
+            </Show>
+          )}
         >
-          {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} />}
+          {(row) => <RowInspector row={row} />}
         </Show>
       </ScrollArea>
+    </div>
+  );
+}
+
+/** An extension's row in the inspector: its label, its line, Turn on while off, and its controls. */
+function RowInspector(props: { row: SceneRowPick }) {
+  const { row } = props;
+  const off = row.shown ? row.shown.pipe(map((s) => !s)) : undefined;
+  return (
+    <div class={classes.inspection}>
+      <header class={classes.inspectorHeader}>
+        <span class={classes.inspectorTitle}>{row.label}</span>
+        <span class={classes.inspectorKind}>{row.description ?? ''}</span>
+      </header>
+      {off && row.onToggle ? (
+        <Show when={off}>
+          {() => (
+            <div class={classes.inspectorActions}>
+              <button type="button" class={classes.inspectorAction} onClick={() => row.onToggle?.()}>
+                <span>Turn on</span>
+              </button>
+            </div>
+          )}
+        </Show>
+      ) : null}
+      {row.body ? row.body() : <p class={classes.nothing}>Nothing to set here.</p>}
     </div>
   );
 }

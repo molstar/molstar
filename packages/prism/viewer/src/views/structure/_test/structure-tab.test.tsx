@@ -14,6 +14,10 @@ import { mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { StructureTab } from '../structure-tab.js';
+import { domView } from '@molstar/prism-ui/dom/view';
+import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { SceneRow } from '../scene-row.js';
+import { SceneRowSlot } from '../scene-tree.js';
 
 function mount() {
   const scene = mockScene();
@@ -48,6 +52,45 @@ describe('StructureTab', () => {
     show.click();
     expect(row('Water').querySelector('button[title=Hide]')).not.toBeNull();
     expect([...inspector().querySelectorAll('button')].some((b) => b.textContent === 'Show')).toBe(false);
+  });
+
+  it("shows an extension's row in the inspector when picked (its controls, Turn on while off), not under it", () => {
+    const scene = mockScene();
+    const shell = new ShellModel();
+    const shown = observableState(false);
+    shell.registerSections([
+      {
+        id: 'x.row.membrane',
+        slot: SceneRowSlot,
+        title: 'Membrane',
+        when: (ctx) => (ctx.subject as { kind: string }).kind === 'structure',
+        render: domView(() => (
+          <SceneRow
+            label="Membrane"
+            description={observableState('Off').asReadonly}
+            shown={shown.asReadonly}
+            onToggle={() => shown.set(!shown.value)}
+            body={() => <button type="button">Fit…</button>}
+          />
+        )),
+      },
+    ]);
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <StructureTab shell={shell} scene={scene} />, container);
+    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
+      r.textContent?.startsWith('Membrane'),
+    )!;
+    row.click();
+    const inspector = container.querySelector('[aria-label="Inspector"]')!;
+    expect(inspector.textContent).toContain('Membrane');
+    expect(row.parentElement!.textContent).not.toContain('Fit…');
+    expect(inspector.textContent).toContain('Fit…');
+    ([...inspector.querySelectorAll('button')].find((b) => b.textContent === 'Turn on') as HTMLButtonElement).click();
+    expect(shown.value).toBe(true);
+    // A node picked takes its place.
+    scene.pick(scene.roots.value[0]);
+    expect(container.querySelector('[aria-label="Inspector"]')!.textContent).not.toContain('Fit…');
   });
 
   it('picks a node into the inspector, and form edits change the tree', () => {
