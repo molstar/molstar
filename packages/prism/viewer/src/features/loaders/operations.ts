@@ -240,6 +240,8 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
   id: 'load.entry',
   title: 'Load an entry',
   params: EntryParams,
+  // The known data services only (the database's own address).
+  addresses: () => [],
   ...network,
   exists({ source, id }, ctx) {
     const ids = idsOf(id, source);
@@ -333,6 +335,7 @@ const url: OperationDefinition<typeof UrlParams, Loaded> = {
   id: 'load.url',
   title: 'Load from a URL',
   params: UrlParams,
+  addresses: ({ url }) => [url],
   ...network,
   exists({ url }, ctx) {
     const u = url.trim();
@@ -454,6 +457,8 @@ const snapshot: OperationDefinition<typeof SnapshotParams, Loaded> = {
   id: 'load.snapshot',
   title: 'Load a session',
   params: SnapshotParams,
+  // An id is the configured state server's.
+  addresses: ({ url }) => (url ? [url] : []),
   ...network,
   // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
   approval: 'destructive',
@@ -552,6 +557,7 @@ const trajectory: OperationDefinition<typeof TrajectoryParams, Loaded> = {
   id: 'load.trajectory',
   title: 'Load a trajectory',
   params: TrajectoryParams,
+  addresses: ({ model, coordinates }) => [model, coordinates],
   ...network,
   async run(values, ctx) {
     const { model, coordinates } = values;
@@ -677,6 +683,7 @@ const volume: OperationDefinition<typeof VolumeParams, Loaded> = {
   id: 'load.volume',
   title: 'Load a volume',
   params: VolumeParams,
+  addresses: ({ url }) => [url],
   ...network,
   exists({ url }, ctx) {
     const u = url.trim();

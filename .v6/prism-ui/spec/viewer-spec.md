@@ -85,9 +85,8 @@ interface PrismViewerSequenceSpec {
 
 ```ts
 interface PrismViewerAgentSpec {
-  readonly core?: readonly string[];                           // tool ids offered from the first turn (the viewer's default core)
-  readonly tools?: readonly ToolRegistration<ViewerApi>[];     // the viewer's tools (agent.md §3); extensions add theirs (§3)
-  readonly skills?: readonly ToolGroup<ViewerApi>[];           // the viewer's skills; extensions add theirs
+  readonly core?: readonly ViewerToolSpec[];                  // the tools from the first turn (default the viewer's CoreTools)
+  readonly skills?: readonly ViewerSkill[];                    // the viewer's skills (default its Skills); extensions add theirs
   readonly assistant?: () => Promise<{ createAssistant: AssistantFactory }>; // import('@molstar/prism-assistant/viewer')
 }
 // The assistant creates the agent itself: its models come from the person's keys, which the assistant keeps (agent.md §4).
@@ -102,6 +101,8 @@ interface AssistantUI {
   dispose(): void;
 }
 type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | AssistantUI;
+type ViewerToolSpec = { id; operation; description?; fields?; fixed?; formats? };     // a tool over an operation (agent.md §2)
+type ViewerSkill = { id; title; summary; guidance; tools: ViewerToolSpec[]; feature? };  // `feature`: whose operations
 ```
 
 - The tools, skills and the session factory (`createViewerAgent`) are DOM-free (the viewer's `agent/` folder), so
@@ -110,7 +111,8 @@ type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | Assistan
 - The assistant is lazy and opt-in: the viewer's package does not depend on `@molstar/prism-assistant`; the app passes
   the import, which is its own chunk. The shell loads it with the agent's code (another chunk) after the first render.
   Without it there is no Assistant tab, no Ask row, no turn card.
-- `false`: no tools at all (a viewer for an embedding host that wants none).
+- `false`: no tools at all (a viewer for an embedding host that wants none): `createViewerAgent` gets an empty toolkit
+  but for its own tools (`get_scene`, `ask`, `undo_turn`).
 
 ### 2.5 `ui`: the shell
 
@@ -160,8 +162,7 @@ interface ViewerExtension {
   readonly builtIn?: true;                                     // one of the viewer's own features (§3.1)
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition[];      // made once its operations exist
   readonly annotations?: readonly AnnotationProvider[];        // what it can show of a structure (`annotations.apply`)
-  readonly tools?: readonly ToolRegistration<ViewerApi>[];     // reserved: read from phase 4 (agent.md §3)
-  readonly skills?: readonly ToolGroup<ViewerApi>[];           // reserved: phase 4; never core tools
+  readonly skills?: readonly ViewerSkill[];                    // its tools, in skills over its operations; never core tools
   readonly sequence?: readonly SequenceBehavior[];             // its sequence behaviors (sequence.md §3)
   readonly settings?: PD.Params;                               // reserved: its Settings group (plan 3.3)
   readonly ui?: (ctx: ViewerUIContext) => Promise<ViewerExtensionUI> | ViewerExtensionUI;  // its views; its own chunk
@@ -189,7 +190,7 @@ interface LazyViewerExtension {
     readonly parts: readonly { id: PartId; kind: PartKind; slot?: ViewerSlot; title?: string }[];  // placeholders; overrides
     readonly operations?: readonly { id: string; title: string }[];  // api.run of one loads the chunk and replays the call
     readonly commands?: readonly { id: string; title: string; category?: string; icon?: IconName }[];
-    readonly skills?: readonly { id: string; title: string; summary: string }[];   // in the catalog; disclosing loads it
+    readonly skills?: readonly ViewerSkill[];                // in the catalog; disclosing loads it (tools over its operations)
     readonly owns?: { transformers?: string[]; formats?: string[]; fileExtensions?: string[];
                       representations?: string[]; themes?: string[] };   // a session or file that needs it loads it
   };

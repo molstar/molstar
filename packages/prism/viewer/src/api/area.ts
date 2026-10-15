@@ -193,6 +193,11 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
    * `upload` sends something out.
    */
   readonly approval?: 'network' | 'upload' | 'destructive';
+  /**
+   * The addresses a `network` call reaches, from its values: what the agent's policy checks (agent.md §4). `[]`: only
+   * the known data services and the servers the viewer is configured with. Absent: the agent always asks.
+   */
+  addresses?(values: PD.Values<P>): readonly string[];
   /** What it needs of the host; where one is missing it says why instead of running. */
   readonly modules?: readonly ApiModuleKey[];
   /** Whether it can run now; the string is the reason. Commands and tools read it too, so no origin. */
@@ -323,6 +328,8 @@ export interface OperationDescription {
   readonly params: PD.Params;
   /** True, or why not. */
   readonly available: true | string;
+  /** Whether this viewer can run it at all (its modules), or why not: what does not change with the scene. */
+  readonly supported: true | string;
 }
 
 export interface GroupOptions {

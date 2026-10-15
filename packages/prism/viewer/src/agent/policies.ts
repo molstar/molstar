@@ -6,16 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json } from '@molstar/ai-agent';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { OperationDefinition } from '../api/area.js';
 
 // What the agent may do without asking (agent.md §4; decision 26: as little in the way as is reasonable).
 // - Preauthorized: operations that change only the viewer's state while the turn can be undone. When it cannot (undo
 //   is off for a large scene, sequence.md §7.4), the first changing call asks, once for the turn.
-// - Network, per address: the known data services and domains the person allowed go; any other address asks.
-// - Ask every time: removing or replacing (`destructive`) and sending out (`upload`).
-// Decided when a call is made (the session's permission decision runs the tool's `approvedBy`).
+// - Network, per address: an operation says which addresses a call reaches (`addresses`); the known data services,
+//   the hosts the person wrote in the request and the domains they allowed go; any other address asks, and so does an
+//   operation that does not say. Only https goes without asking.
+// - Ask every time: removing or replacing (`destructive`), sending out (`upload`), and a change no undo restores
+//   (`undoable: false`).
+// Decided when a call is made, on the values the operation will run with (the tool's `approvedBy`).
 
 /** Network addresses the agent may reach without asking: the known data services (https only). */
 export const KnownServices: readonly string[] = [
@@ -71,47 +73,68 @@ export function createDomainRules(
   };
 }
 
-/** Whether an address goes without asking: https to a known service, or a domain the person allowed. */
-export function allowedAddress(url: string, rules?: DomainRules): boolean {
+/**
+ * Whether an address goes without asking: https (written whole, nothing trimmed or guessed) to a known service, a host
+ * the person wrote in this turn's request, or a domain they allowed.
+ */
+export function allowedAddress(url: string, rules?: DomainRules, turnHosts?: ReadonlySet<string>): boolean {
   const host = hostOf(url);
   if (!host) return false;
-  return KnownServices.some((d) => underDomain(host, d)) || !!rules?.allows(url);
+  return KnownServices.some((d) => underDomain(host, d)) || !!turnHosts?.has(host) || !!rules?.allows(url);
 }
 
-/** The addresses a call's arguments name (a field whose value is one). */
-export function addressesIn(args: Json): string[] {
-  if (!args || typeof args !== 'object' || Array.isArray(args)) return [];
-  return Object.values(args).filter((v): v is string => typeof v === 'string' && /^[a-z]+:\/\//i.test(v));
+/** The https hosts a request names (the person wrote them: the turn may reach them without asking). */
+export function addressesInRequest(text: string): string[] {
+  const hosts = new Set<string>();
+  for (const m of text.matchAll(/https:\/\/[^\s"'<>()]+/gi)) {
+    const host = hostOf(m[0]);
+    if (host) hosts.add(host);
+  }
+  return [...hosts];
+}
+
+/** Whether a call of the operation asks at all (a read that reaches no address never does). */
+export function mayAsk(def: OperationDefinition<any, any>): boolean {
+  return !!def.approval || (!def.read && def.history !== false);
 }
 
 export interface AgentPolicy {
-  /** Whether a call of this operation with these arguments goes without asking now. */
-  approves(def: OperationDefinition<any, any>, args: Json): boolean;
+  /** Whether a call of this operation with these values (as it will run) goes without asking now. */
+  approves(def: OperationDefinition<any, any>, values: Readonly<Record<string, unknown>>): boolean;
   /** The person allowed a call this turn: changing calls go for the rest of it, undo off or not. */
   allowedForTurn(): void;
-  /** A turn begins: what was allowed for the last one is not for this one. */
-  beginTurn(): void;
+  /** A turn begins: what was allowed for the last one is not for this one; the hosts its request names are. */
+  beginTurn(requestHosts?: readonly string[]): void;
   readonly rules: DomainRules;
 }
 
 export function createAgentPolicy(o: { checkpointing: ReadonlyState<boolean>; rules?: DomainRules }): AgentPolicy {
   const rules = o.rules ?? createDomainRules();
   let turnAllowed = false;
+  let turnHosts = new Set<string>();
   return {
     rules,
-    approves(def, args) {
+    approves(def, values) {
       if (def.approval === 'destructive' || def.approval === 'upload') return false;
-      if (def.approval === 'network' && !addressesIn(args).every((a) => allowedAddress(a, rules))) return false;
-      const changes = !def.read && def.history !== false && def.undoable !== false;
+      if (def.approval === 'network') {
+        // An operation that does not say what it reaches always asks.
+        if (!def.addresses) return false;
+        const addresses = def.addresses(values as never);
+        if (!addresses.every((a) => typeof a === 'string' && allowedAddress(a, rules, turnHosts))) return false;
+      }
+      if (def.read || def.history === false) return true;
+      // A change no undo restores is the person's to allow (agent.md §4: preauthorized only while undoable).
+      if (def.undoable === false) return false;
       // The turn cannot be undone (undo off for a large scene): the first change asks, once for the turn.
-      if (changes && !o.checkpointing.value && !turnAllowed) return false;
+      if (!o.checkpointing.value && !turnAllowed) return false;
       return true;
     },
     allowedForTurn: () => {
       turnAllowed = true;
     },
-    beginTurn: () => {
+    beginTurn: (requestHosts = []) => {
       turnAllowed = false;
+      turnHosts = new Set(requestHosts);
     },
   };
 }

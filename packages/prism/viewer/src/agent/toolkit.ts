@@ -7,8 +7,16 @@
  */
 
 import { createToolkit, type ToolGroup, type Toolkit, type ToolRegistration } from '@molstar/ai-tools';
-import type { AgentPolicy } from './policies.js';
-import { type AgentViewer, type OperationToolSpec, operationTool, tool, type ViewerAgentApi } from './tools.js';
+import { type AgentPolicy, mayAsk } from './policies.js';
+import { failed } from '@molstar/ai-tools';
+import {
+  type AgentViewer,
+  type OperationToolSpec,
+  operationTool,
+  tool,
+  toolResult,
+  type ViewerAgentApi,
+} from './tools.js';
 
 // The core and the skills (agent.md §3): a small core from the first turn (Stories' is about 24 tools); the rest in
 // skills, disclosed on request. A skill over a lazy feature is a lazy skill (plan track A6): in the catalog by its
@@ -192,9 +200,22 @@ export const Skills: readonly SkillDeclaration[] = [
   },
 ];
 
-/** The agent's own tools that are not operations: the scene's outline, and asking the person. */
+/** The agent's own tools that are not operations: the scene's outline, asking the person, undoing its last turn. */
 function ownTools(): ToolRegistration<ViewerAgentApi>[] {
   return [
+    tool({
+      id: 'undo_turn',
+      description:
+        'Undoes your previous turn at once (what it changed comes back as it was). Fails when the person changed something after it: then ask them.',
+      input: { kind: 'object', fields: {} },
+      modules: ['viewer'],
+      run: async ({ api }) => {
+        const turn = api.viewer.lastTurn;
+        if (!turn) return failed('not-found', 'There is no earlier turn of yours to undo.');
+        // Never the person's later steps (`discardLater`): that is theirs to choose.
+        return toolResult(await api.viewer.api.run('history.undo-turn', { turn, discardLater: false }));
+      },
+    }),
     tool({
       id: 'get_scene',
       description: "The scene's outline: structures with their components and representations, volumes, measurements.",
@@ -239,13 +260,18 @@ export interface ViewerToolkitOptions {
   readonly isStub: (id: string) => boolean;
   /** What goes without asking (agent.md §4). */
   readonly policy?: AgentPolicy;
+  /** The core's operation tools (default `CoreTools`; the spec's `agent.core`). */
+  readonly core?: readonly OperationToolSpec[];
+  /** The skills: the spec's (default `Skills`) and the extensions' (viewer-spec.md §3). */
+  readonly skills?: readonly SkillDeclaration[];
 }
 
 /** The viewer's toolkit: the core, and the skills (lazy ones over lazy features). */
 export function createViewerToolkit(viewer: AgentViewer, options: ViewerToolkitOptions): Toolkit<ViewerAgentApi> {
-  const core = [...toolsOf(viewer, CoreTools, options.policy), ...ownTools()];
-  const eager = Skills.filter((s) => !s.feature || !options.isStub(s.feature));
-  const lazy = Skills.filter((s) => s.feature && options.isStub(s.feature));
+  const skills = options.skills ?? Skills;
+  const core = [...toolsOf(viewer, options.core ?? CoreTools, options.policy), ...ownTools()];
+  const eager = skills.filter((s) => !s.feature || !options.isStub(s.feature));
+  const lazy = skills.filter((s) => s.feature && options.isStub(s.feature));
   const groups: ToolGroup<ViewerAgentApi>[] = [];
   const tools = [...core];
   for (const s of eager) {
@@ -257,21 +283,28 @@ export function createViewerToolkit(viewer: AgentViewer, options: ViewerToolkitO
   const toolkit = createToolkit<ViewerAgentApi>({ tools, core: core.map((t) => t.definition.tool.id), groups });
   for (const s of lazy) {
     let removeStub = () => {};
+    let loading: Promise<void> | undefined;
     removeStub = toolkit.add({
       groups: [
         {
           ...groupOf(s),
           tools: [],
-          // The stubs declare their operations' approvals (viewer-spec.md §3): a turn knows from its start which ask.
+          // The stubs declare their operations' flags (viewer-spec.md §3): a turn knows from its start which may ask,
+          // by the rule the real tools use (`mayAsk`).
           pending: s.tools
             .filter((t) => viewer.describe(t.operation))
-            .map((t) => ({ id: t.id, approval: !viewer.describe(t.operation)!.definition.read })),
-          load: async () => {
-            if (!(await options.loadExtension(s.feature!))) throw new Error(`${s.title} could not be loaded.`);
-            const own = toolsOf(viewer, s.tools, options.policy);
-            removeStub();
-            toolkit.add({ tools: own, groups: [{ ...groupOf(s), tools: own.map((t) => t.definition.tool.id) }] });
-          },
+            .map((t) => ({ id: t.id, approval: mayAsk(viewer.describe(t.operation)!.definition) })),
+          // Once (two disclosures share it); a failed load leaves the stub, and a later disclosure tries again.
+          load: () =>
+            (loading ??= (async () => {
+              if (!(await options.loadExtension(s.feature!))) throw new Error(`${s.title} could not be loaded.`);
+              const own = toolsOf(viewer, s.tools, options.policy);
+              removeStub();
+              toolkit.add({ tools: own, groups: [{ ...groupOf(s), tools: own.map((t) => t.definition.tool.id) }] });
+            })().catch((e) => {
+              loading = undefined;
+              throw e;
+            })),
         },
       ],
     });

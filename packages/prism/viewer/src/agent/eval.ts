@@ -10,7 +10,7 @@ import type { ModelChoice, ModelSource, TurnResult } from '@molstar/ai-session';
 import type { RunRecord } from '../api/run.js';
 import type { PrismViewer } from '../viewer.js';
 import { createAccount } from './account.js';
-import { createViewerAgent } from './session.js';
+import { createViewerAgent, type ViewerAgent } from './session.js';
 
 // Evals (README §3.3, plan 4.5): a task runs the agent over a headless viewer and is checked on the scene (the state the
 // tools changed), not on the model's words. The result carries the run log (the API's runs with their arguments and
@@ -80,64 +80,90 @@ export async function runEval<M extends ModelChoice>(
   const started = Date.now();
   const runs: RunRecord[] = [];
   const sub = viewer.api.events.finished.subscribe((r) => runs.push(r));
-  const agent = createViewerAgent({ viewer, models: o.models });
   const turns: EvalTurn[] = [];
   const turnIds: string[] = [];
+  const checks: EvalCheck[] = [];
+  let agent: ViewerAgent<M> | undefined;
   try {
     for (const name of task.files ?? []) {
       if (!o.file) throw new Error(`The task '${task.id}' needs files, and no file reader was given.`);
       const r = await viewer.api.load.files({ files: [await o.file(name)] });
       if (!r.ok) throw new Error(`Could not load ${name}: ${r.message}`);
     }
-    const outlineBefore = outlineOf(viewer);
+    // After the files: the agent starts on the scene the task gives it.
+    agent = createViewerAgent({ viewer, models: o.models });
+    const before = sceneOf(viewer);
     for (const prompt of task.prompts) {
       const tools: { name: string; status: string }[] = [];
       const hooks = { onTool: (e: { name: string; status: string }) => void tools.push(e) };
       let r: TurnResult | undefined = await agent.turn(prompt, hooks, o.model);
       let approvals = 0;
-      while (r?.status === 'awaiting-approval' && approvals < (o.maxApprovals ?? 5)) {
-        approvals += r.approval?.length ?? 0;
+      let rounds = 0;
+      while (r?.status === 'awaiting-approval' && r.approval?.length && rounds < (o.maxApprovals ?? 5)) {
+        rounds++;
+        approvals += r.approval.length;
         const decision = task.approve ?? 'allow';
-        r = await agent.resume(Object.fromEntries((r.approval ?? []).map((p) => [p.callId, decision])), hooks);
+        r = await agent.resume(Object.fromEntries(r.approval.map((p) => [p.callId, decision])), hooks);
       }
+      // Still waiting (too many rounds, or nothing to answer): the turn is stopped, and fails.
+      const gaveUp = r?.status === 'awaiting-approval';
+      if (gaveUp) await agent.stop();
+      const status = gaveUp ? 'stopped' : (r?.status ?? 'failed');
       turns.push({
         prompt,
-        status: r?.status ?? 'failed',
+        status,
         // Each call's end (a call also reports its start and progress).
         tools: tools.filter((t) => t.status !== 'started' && t.status !== 'progress'),
         approvals,
         ...(r?.usage ? { usage: { input: r.usage.input, output: r.usage.output } } : {}),
-        ...(r?.error ? { error: r.error } : {}),
+        ...(gaveUp
+          ? { error: `still waiting for an approval after ${rounds} rounds` }
+          : r?.error
+            ? { error: r.error }
+            : {}),
       });
       if (agent.lastTurn && !turnIds.includes(agent.lastTurn)) turnIds.push(agent.lastTurn);
     }
-    const checks = [...(await task.check(viewer))];
     for (const t of turns) {
-      checks.unshift({
+      checks.push({
         name: `turn "${t.prompt}" completed`,
         pass: t.status === 'completed',
         ...(t.status === 'completed' ? {} : { detail: t.error ?? t.status }),
       });
     }
+    try {
+      checks.push(...(await task.check(viewer)));
+    } catch (e) {
+      checks.push({ name: 'the checks ran', pass: false, detail: e instanceof Error ? e.message : String(e) });
+    }
     if (task.undoes) {
-      for (const id of turnIds.slice().reverse()) await viewer.api.history.undoTurn({ turn: id });
-      const after = outlineOf(viewer);
+      for (const id of turnIds.slice().reverse()) {
+        const r = await viewer.api.history.undoTurn({ turn: id });
+        if (!r.ok) checks.push({ name: `Undo turn ${id}`, pass: false, detail: r.message });
+      }
+      const after = sceneOf(viewer);
       checks.push({
         name: 'Undo turn restores the scene',
-        pass: after === outlineBefore,
-        ...(after === outlineBefore ? {} : { detail: `before:\n${outlineBefore}\nafter:\n${after}` }),
+        pass: after === before,
+        ...(after === before ? {} : { detail: `before:\n${before}\nafter:\n${after}` }),
       });
     }
     return { task: task.id, pass: checks.every((c) => c.pass), checks, turns, runs, ms: Date.now() - started };
   } finally {
     sub.unsubscribe();
-    agent.dispose();
+    agent?.dispose();
   }
 }
 
-/** The scene in words (the agent's own outline, agent.md §5): what a turn undone must restore. */
-function outlineOf(viewer: PrismViewer): string {
-  return createAccount(viewer).outline(1000);
+/**
+ * The scene as Undo turn must restore it: the agent's outline (agent.md §5), and the data tree's transforms with their
+ * params (a color layer, which the outline does not show).
+ */
+function sceneOf(viewer: PrismViewer): string {
+  const transforms = [...viewer.plugin.state.data.cells.values()]
+    .map(({ transform: t }) => `${t.ref} ${t.transformer.id} ${JSON.stringify(t.params ?? {})}`)
+    .sort();
+  return `${createAccount(viewer).outline(1000)}\n${transforms.join('\n')}`;
 }
 
 /** A report in a few lines: the task, its checks, its turns' tools and tokens. */

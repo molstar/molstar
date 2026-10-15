@@ -267,6 +267,8 @@ export class VolumeApi extends ApiArea {
     },
     modules: ['network'],
     approval: 'network',
+    // The configured volume server's.
+    addresses: () => [],
     async run({ enabled, structure }, ctx) {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;

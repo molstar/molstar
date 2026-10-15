@@ -19,7 +19,12 @@ import { openStateFrom } from '../../api/state-open.js';
 // a parameter (empty: the viewer's `state-server` option, which is what the plugin's `CurrentServer` holds), so the
 // views can point at another without a setting of the plugin's. Failures name the server in the hint.
 
-const network = { modules: ['network'] as const, approval: 'network' as const };
+// The configured state server goes without asking; one the call names is checked (agent.md §4).
+const network = {
+  modules: ['network'] as const,
+  approval: 'network' as const,
+  addresses: ({ server }: { server: string }) => (server.trim() ? [server] : []),
+};
 
 /** An entry of the server's list, with the addresses that get and remove it. */
 export interface RemoteStateEntry {

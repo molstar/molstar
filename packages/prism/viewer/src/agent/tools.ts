@@ -16,9 +16,9 @@ import {
   toolFor,
 } from '@molstar/ai-tools';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { ApiResult, Changed, OperationDefinition, ViewerApi } from '../api/area.js';
+import type { ApiResult, Changed, OperationDefinition, OperationDescription, ViewerApi } from '../api/area.js';
 import { paramsShape } from './params.js';
-import type { AgentPolicy } from './policies.js';
+import { type AgentPolicy, mayAsk } from './policies.js';
 
 // The agent's tools (agent.md §2): thin adapters over operations. A tool takes flat fields in the model's words, maps
 // them to an operation's values and runs it with the agent's origin (one run path: the history, the checkpoint and the
@@ -29,10 +29,10 @@ import type { AgentPolicy } from './policies.js';
 export interface AgentViewer {
   /** The API as the current turn's agent calls it. */
   readonly api: ViewerApi;
-  /** The operation's description: its params as they are now (registries change). */
-  describe(
-    id: string,
-  ): { definition: OperationDefinition<any, any>; params: PD.Params; available: true | string } | undefined;
+  /** The agent's previous finished turn (`undo_turn`'s). */
+  readonly lastTurn: string | undefined;
+  /** The operation's description: its params as they are now (registries change), and what this viewer supports. */
+  describe(id: string): OperationDescription | undefined;
 }
 
 /** The host's modules for the tools (`ai-tools`: each tool gets only what it declares). */
@@ -69,8 +69,7 @@ export interface OperationToolSpec {
 
 /**
  * A tool over an operation. Its input is the operation's params as field shapes (`paramsShape`), described now: a
- * registry's choices are what they are when the agent starts (a tool's definition is refreshed between turns when the
- * registry changes, agent.md §2).
+ * registry's choices are what they are when the agent starts (not yet refreshed when a registry changes, agent.md §2).
  */
 export function operationTool(
   viewer: AgentViewer,
@@ -94,14 +93,15 @@ export function operationTool(
     ),
   );
   const shape = paramsShape(asText, { formats: spec.formats ?? targetFormats(offered) });
-  // Every change goes through the policy, decided at call time (agent.md §4: destructive and upload ask; network by
-  // address; a change while the turn cannot be undone asks once). Reads never ask.
-  const changes = !definition.read && definition.history !== false && definition.undoable !== false;
-  const asks = !definition.read && (changes || !!definition.approval);
-  definition.approval === 'destructive' || definition.approval === 'upload' || definition.approval === 'network';
+  // Every call that may ask goes through the policy, decided at call time on the values the operation will run with
+  // (agent.md §4: destructive, upload and what no undo restores ask; network by address; a change while the turn
+  // cannot be undone asks once). A read or a view change that reaches no address never asks.
+  const asks = mayAsk(definition);
+  const valuesOf = (args: Json) => ({ ...shape.toValues((args ?? {}) as Record<string, unknown>), ...spec.fixed });
   return tool({
     id: spec.id,
-    description: describe(spec, definition, described.available),
+    // What this viewer cannot do at all is said; what cannot be done now (nothing loaded) is the call's answer.
+    description: describe(spec, definition, described.supported),
     input: shape.shape,
     modules: ['viewer'],
     read: !!definition.read,
@@ -109,10 +109,19 @@ export function operationTool(
     idempotent: !!definition.read,
     approval: asks,
     ...(asks
-      ? { approvedBy: (args: Json) => (policy ? policy.approves(definition, args) : !definition.approval) }
+      ? {
+          approvedBy: (args: Json) => {
+            // Values the model's arguments do not make (a bad field) are the person's to see: asked.
+            try {
+              return policy ? policy.approves(definition, valuesOf(args)) : false;
+            } catch {
+              return false;
+            }
+          },
+        }
       : {}),
     run: async ({ args, api, signal }) => {
-      const values = { ...shape.toValues(args as Record<string, unknown>), ...spec.fixed };
+      const values = valuesOf(args);
       const result = await api.viewer.api.run(spec.operation, values, { signal });
       return toolResult(result);
     },
@@ -120,10 +129,10 @@ export function operationTool(
 }
 
 /** The operation's words for the model: the tool's description, and why it cannot run now when it cannot. */
-function describe(spec: OperationToolSpec, def: OperationDefinition<any, any>, available: true | string): string {
+function describe(spec: OperationToolSpec, def: OperationDefinition<any, any>, supported: true | string): string {
   const text = spec.description ?? `${def.title}.`;
   const view = def.history === false && !def.read ? ' It changes the view only: the structures stay as they are.' : '';
-  return available === true ? `${text}${view}` : `${text}${view} (Not now: ${available})`;
+  return supported === true ? `${text}${view}` : `${text}${view} (Not in this viewer: ${supported})`;
 }
 
 /** Text fields that take targets (`TargetParam`: a PD.Value with a string default) say so. */

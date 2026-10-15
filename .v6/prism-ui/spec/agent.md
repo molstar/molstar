@@ -8,15 +8,19 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 ## 1. Where it lives
 
 - **Tools, skills and the session factory**: the viewer's `agent/` folder (`packages/prism/viewer/src/agent/`),
-  DOM-free, on `@molstar/ai-tools` and `@molstar/ai-session`. Extensions bring theirs in `ViewerExtension.tools` and
-  `ViewerExtension.skills` (viewer-spec.md §3). PD params become tool fields through `paramsShape`, which moves from
+  DOM-free, on `@molstar/ai-tools` and `@molstar/ai-session`. Extensions bring theirs as skills,
+  `ViewerExtension.skills` (a lazy one's in its stub; never core tools); the spec's `agent.core` and `agent.skills`
+  replace the viewer's defaults (viewer-spec.md §2.4, §3). PD params become tool fields through `paramsShape`, which moves from
   `@molstar/prism-assistant` into `agent/params.ts` (the viewer does not depend on the assistant; review F12).
-- **The session**: `createViewerAgent({ viewer, adapters, storage })` in `agent/session.ts` makes the `AgentSession`
+- **The session**: `createViewerAgent({ viewer, models, storage?, rules? })` in `agent/session.ts` makes the `AgentSession`
   (the viewer's toolkit, drive policies, account and focus, the record's hooks; [journal.md](journal.md)). The
   assistant calls it, and so do headless evals and an MCP server, with no DOM (review F11).
 - **The assistant** (the Assistant tab, the Ask bar, the turn card, the Inspector, the Storage view) is
-  `@molstar/prism-assistant`, loaded lazily when the app passes it: `AssistantFactory = (viewer, agent) =>
-  AssistantUI` (viewer-spec.md §2.4).
+  `@molstar/prism-assistant`, loaded lazily when the app passes it: `AssistantFactory = (host: AssistantHost) =>
+  AssistantUI`, the host giving the viewer and `createAgent(models)`, since the models come from the person's keys,
+  which the assistant keeps (viewer-spec.md §2.4).
+- **A turn at a time**: `turn()` refuses while one runs or waits for an approval (`parked`); `stop()` ends either, and a
+  parked turn is then settled as stopped (its record entry, its history group).
 - **One run path**: a tool calls `api.run(id, values, { origin: { kind: 'agent', turn } })`, so the history, the
   checkpoint and the run log are the same as a person's.
 
@@ -29,20 +33,23 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 - **Words are the viewer's, not the screen's**: structures, chains, residues, the selection, the view; not tabs or
   panes. View tools (open a panel, focus, select, frame) say they leave the structures as they are.
 - **Registry values are open strings** (a preset id, a theme name), checked when the tool runs, with the current
-  choices in the description, refreshed as the registry changes (review F2).
+  choices in the description, refreshed as the registry changes (review F2). As built: a select becomes the field's
+  choices when the agent is made, and is not refreshed yet (a theme an extension registers later is refused).
+- **What a tool says it cannot do** is what this viewer cannot do at all (a module it lacks, headless); what cannot be
+  done now (nothing loaded) is the call's answer, so descriptions do not change with the scene.
 - **Targets are strings** ([targets.md](targets.md)); the selections skill's guidance teaches the forms.
 
 ## 3. The core and the skills
 
 | Core (from the first turn)                                                                         | Skills (disclosed on request)                                                       |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `list_skills`, `disclose_skills`, `disclose_tools` (always)                                         | `selections`: MolQL and SeqQL, PyMOL text, addresses; `select_around`, `expand`      |
+| `disclose_skills`, `disclose_tools` (always; the catalog is `disclose_skills`' description)         | `selections`: MolQL and SeqQL, PyMOL text, addresses; `select_around`, `expand`      |
 | `get_scene` (the outline), `get_selection`                                                          | `styles`: presets, quick styles, colors and themes, transparency overlays            |
 | `load_entry` (PDB, AFDB, EMDB, …), `load_url`                                                       | `measure`, `superpose`                                                              |
 | `select`, `focus`, `clear_selection`                                                                | `snapshots`, `animation`, `trajectory`                                              |
 | `apply_preset`, `apply_style`, `color`                                                             | `canvas`: lighting, illumination, clipping                                          |
 | `set_background`, `reset_camera`                                                                   | `sequence`: style, colors, tracks                                                   |
-| `undo_turn` (reads the history; the person's Undo is theirs)                                       | `export`; extensions' skills (`geo-export`, `assembly-symmetry`, `model-archive`, …) |
+| `undo_turn` (its previous turn, never the person's later steps)                                    | `export`; extensions' skills (`geo-export`, `assembly-symmetry`, `model-archive`, …) |
 | `ask` (a question to the person: options, a fill-in, or both; the turn waits for the answer)       | `viewer-code`: TypeScript against the API in a sandbox (api.md §7)                  |
 
 - **The first scope** (README §3.3): background and canvas, presets and styles, MolQL and SeqQL selections, fetching
@@ -50,7 +57,9 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
   tool goes into a skill unless nearly every turn needs it.
 - **Disclosure** is the toolkit's: `disclose_skills` loads guidance and tools, several in one call; extras and single
   tools load by name or when called; where the model allows, a load is appended so the cached prompt stays
-  (packages/ai/\_spec/tools.md, "The toolkit"). `list_skills` is the viewer's tool over the toolkit's catalog.
+  (packages/ai/\_spec/tools.md, "The toolkit").
+- **As built** (plan 4.1, G6): the first scope's tools are there but for SeqQL selections (the sequence's own skill is
+  not built) and opening panels (the agent speaks of no panes; a view tool may come with the assistant's UI).
 - **A dynamic toolkit** (decision 25; today `createToolkit` is fixed at creation, review F2): tools and skills are added
   and removed between and during turns. An extension loaded adds its tools and skills; a lazy extension's skill is in
   the catalog by its stub's summary, and disclosing it loads the chunk, registers its tools and appends their
@@ -68,18 +77,25 @@ As little in the way as is reasonable (decision 26):
 
 - **Preauthorized**: operations that change only the viewer's state while the turn can be undone. When it cannot (undo
   off for a large scene, sequence.md §7.4, or steps made unsafe by a change outside the API), the turn card says so
-  before the turn and the first changing call asks once for the turn (review F14).
+  before the turn and the first changing call asks once for the turn (review F14). A step no undo restores
+  (`undoable: false`: a snapshot added, a file written) asks every time. As built: undo off is read from checkpointing;
+  unsafe steps are not considered yet.
 - **Network, per address** (review F13): known data services (PDB, PDBe, RCSB, AlphaFold DB, EMDB, ModelArchive,
   UniProt) and URLs the person wrote in the request are allowed. Any other address asks when a call reaches it, whatever
   the operation (the approval is decided at call time from the URL, through the harness's `permission` decision):
   **Allow once**, **Allow this domain** (for the session, or in this browser), **Deny**. Domain rules are listed in the
-  Storage view and in Settings, each removable. https only.
+  Storage view and in Settings, each removable. https only. As built (G6): an operation says what a call reaches,
+  `addresses(values)` on the values it will run with (`[]`: the known services and the servers the viewer is configured
+  with); one that does not say always asks, and so does an address that is not https written whole. The request's
+  https hosts go for that turn. Not yet: Allow this domain and its listing (the turn card offers Allow and Deny).
 - **Ask every time**: sending anything out (`upload`: remote states) and closing or clearing a session (`destructive`).
   A denied call is told to the model ("The person did not allow this call.").
 - **Untrusted text**: the model never sees structure files, only compact state, tool results and extracted metadata.
   Text that comes from data (a structure's title and labels, an entity's name, an MVS snapshot's description, a file
   name) is quoted as data wherever it reaches the model, in tool results and in the per-turn state block alike: in a
-  fence, escaped, capped in length (review F15).
+  fence, escaped, capped in length (review F15). As built: quoted (`"…"`, controls, separators, bidi and zero-width
+  marks removed, 80 characters) in the state block (labels and descriptions), the focus, and the person's notes; tool
+  results still name data unquoted ("Loaded 1CBS."), which is next.
 - **Keys** are the person's, kept by the assistant for as long as they chose (the mocks' `KeyScope`): until a reload
   (memory only), for this tab (sessionStorage) or in this browser (localStorage). **Stored keys are always scrambled**
   (David, 2026-10-15), building on Stories' `secrets.ts` (ported into `@molstar/prism-assistant`), so the storage
@@ -104,16 +120,19 @@ As little in the way as is reasonable (decision 26):
 
 - **State**: the scene's outline (structures with their components, representations and colors; volumes; snapshots;
   the canvas), capped (Stories' state block: at most 40 entries, the rest through `get_scene`); labels from data are
-  quoted (§4).
-- **Focus**: what the person points at now and never stored: Mol\*'s selection (as addresses per chain and as MolQL),
-  the focus, the open panel, the hovered residue.
-- A repeated read of unchanged state is collapsed (`RepeatedReads`).
+  quoted (§4). As built: the scene tree's outline (structures, components, representations, volumes, measurements;
+  no colors, snapshots or canvas yet).
+- **Focus**: what the person points at now: Mol\*'s selection (as addresses per chain and as MolQL), the focus, the open
+  panel, the hovered residue. As built: the selection's and the focus's summaries; the record keeps it with the turn
+  (journal.md §2).
+- **The person's notes**: what they did since the agent's last turn, in the viewer's words, quoted.
+- A repeated read of unchanged state is collapsed (`RepeatedReads`). Not yet: no state version is passed.
 
 ## 6. Without a page
 
 - **Headless** (`@molstar/prism-viewer/headless`): the same toolkit and `createViewerAgent` over the same API on a
   page-less viewer; tools that need the canvas or files declare those modules and say why they cannot run.
-- **Evals** come later (README §2.19): a task, an agent on the headless viewer, a check on the state account; the run
-  log replays in the app.
+- **Evals** (README §2.19; plan 4.5, `agent/eval.ts`): a task, an agent on the headless viewer, checks on the scene,
+  and Undo turn restoring it (the outline and the data tree's transforms); the run log replays in the app (not yet).
 - **MCP**: an outside agent calls the same tools through an MCP server over the headless viewer, with the same policies;
   later.

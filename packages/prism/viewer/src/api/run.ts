@@ -136,9 +136,10 @@ export class ApiRunner implements OperationPort {
     if (!definition || !ctx) return undefined;
     try {
       const params = typeof definition.params === 'function' ? definition.params(ctx) : definition.params;
-      return { definition, params, available: availability(definition, ctx) };
+      return { definition, params, available: availability(definition, ctx), supported: support(definition, ctx) };
     } catch (e) {
-      return { definition, params: {}, available: `${definition.title} cannot run: ${messageOf(e)}` };
+      const why = `${definition.title} cannot run: ${messageOf(e)}`;
+      return { definition, params: {}, available: why, supported: why };
     }
   }
 
@@ -364,11 +365,16 @@ export class ApiRunner implements OperationPort {
   }
 }
 
-function availability(def: OperationDefinition<any, any>, ctx: ApiAreaContext): true | string {
+function support(def: OperationDefinition<any, any>, ctx: ApiAreaContext): true | string {
   for (const m of def.modules ?? []) {
     if (!ctx.modules.has(m)) return `${def.title} needs ${ModuleNames[m]}, which this viewer does not have.`;
   }
-  return def.when?.(ctx) ?? true;
+  return true;
+}
+
+function availability(def: OperationDefinition<any, any>, ctx: ApiAreaContext): true | string {
+  const supported = support(def, ctx);
+  return supported === true ? (def.when?.(ctx) ?? true) : supported;
 }
 
 const ModuleNames: Record<string, string> = {

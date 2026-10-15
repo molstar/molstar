@@ -31,6 +31,8 @@ import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, Viewer
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNodeKind } from './model/scene.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
+import type { SkillDeclaration } from './agent/toolkit.js';
+import type { OperationToolSpec } from './agent/tools.js';
 
 // What a Prism viewer is made from (viewer-spec.md): plain data, explicit ordered lists, nothing resolved by name, a
 // fresh default from a function. Types only: no DOM, no value import of the plugin.
@@ -86,11 +88,9 @@ export type {
 
 /** §2.4 */
 export interface PrismViewerAgentSpec {
-  /** Tool ids offered from the first turn (the viewer's default core). */
-  readonly core?: readonly string[];
-  /** The viewer's tools (agent.md §3); extensions add theirs. */
-  readonly tools?: readonly ViewerTool[];
-  /** The viewer's skills; extensions add theirs. */
+  /** The tools offered from the first turn, over operations (default the viewer's `CoreTools`, agent.md §3). */
+  readonly core?: readonly ViewerToolSpec[];
+  /** The viewer's skills (default its `Skills`); extensions add theirs. */
   readonly skills?: readonly ViewerSkill[];
   /** The UI: `() => import('@molstar/prism-assistant/viewer')` (its `createAssistant`). */
   readonly assistant?: () => Promise<{ readonly createAssistant: AssistantFactory }>;
@@ -115,17 +115,14 @@ export interface AssistantUI {
 
 export type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | AssistantUI;
 
-/** A tool over the viewer's API (agent.md §3); typed with `@molstar/ai-tools`' registrations in plan phase 4. */
-export interface ViewerTool {
-  readonly id: string;
-}
+/** A tool over an operation, in the model's words (agent.md §2). */
+export type ViewerToolSpec = OperationToolSpec;
 
-/** A skill: guidance and tools, disclosed by name (agent.md §3). */
-export interface ViewerSkill {
-  readonly id: string;
-  readonly title: string;
-  readonly summary: string;
-}
+/**
+ * A skill: guidance and tools over operations, disclosed by name (agent.md §3). An extension's skills are over its own
+ * operations (its `feature` is the extension); a lazy one's are in the catalog and load it when disclosed.
+ */
+export type ViewerSkill = SkillDeclaration;
 
 /** §2.5 */
 export interface PrismViewerUISpec {
@@ -207,8 +204,7 @@ export interface ViewerExtension {
   /** One of the viewer's own features (viewer-spec.md §3.1). */
   readonly builtIn?: true;
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition<any>[];
-  readonly tools?: readonly ViewerTool[];
-  /** Never core tools: skills are disclosed. */
+  /** Its tools, in skills: never core tools, they are disclosed (agent.md §3). */
   readonly skills?: readonly ViewerSkill[];
   readonly sequence?: readonly SequenceBehavior[];
   /** What it can show of a structure (`annotations.apply`; README decision 27). */
@@ -305,7 +301,7 @@ export interface LazyViewerExtensionStub {
     readonly category?: string;
     readonly icon?: IconName;
   }[];
-  /** In the catalog; disclosing one loads the chunk. */
+  /** In the catalog; disclosing one loads the chunk (its tools are over the stub's declared operations). */
   readonly skills?: readonly ViewerSkill[];
   /** A session or file that needs one of these loads it first. */
   readonly owns?: {

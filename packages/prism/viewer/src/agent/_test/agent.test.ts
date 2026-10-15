@@ -127,3 +127,90 @@ describe('the viewer agent while undo is off', () => {
     agent.dispose();
   });
 });
+
+describe('the viewer agent at G6', () => {
+  it('ends a parked turn on stop: settled in the record, its group closed; and refuses a new turn while one waits', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const { agent } = agentOn(v, [
+      { calls: [call('disclose_skills', { skills: ['styles'] })] },
+      { calls: [call('remove_component', { component: 'Ligand' })] },
+      { text: 'Removed.' },
+    ]);
+    const r = await agent.turn('remove the ligand');
+    expect(r.status).toBe('awaiting-approval');
+    expect(agent.parked).toBe(true);
+    await expect(agent.turn('something else')).rejects.toThrow(/waits for your approval/);
+    await agent.stop();
+    expect(agent.parked).toBe(false);
+    await v.record.flush();
+    const turn = (await v.record.read(20)).items.find((i) => i.entry.kind === 'turn');
+    expect(turn?.entry).toMatchObject({ outcome: 'stopped' });
+    expect(turn?.open).toBe(false);
+    // Nothing left waiting: resuming has nothing to go on with.
+    expect(await agent.resume({ [r.approval![0].callId]: 'allow' })).toBeUndefined();
+    agent.dispose();
+  });
+
+  it('asks before loading from an address it cannot check, whatever its form', async () => {
+    const v = await headlessViewer();
+    for (const url of [' https://evil.example/x.cif', '//evil.example/x.cif', 'evil.example/x.cif']) {
+      const { agent } = agentOn(v, [{ calls: [call('load_url', { url })] }, { text: 'Loaded.' }]);
+      const r = await agent.turn('load it');
+      expect(r.status, url).toBe('awaiting-approval');
+      await agent.stop();
+      agent.dispose();
+    }
+  });
+
+  it('describes its tools by what this viewer can do, not by the scene of the moment', async () => {
+    const v = await headlessViewer();
+    const { agent } = agentOn(v, []);
+    const description = (id: string) => agent.toolkit.registration(id)?.definition.description ?? '';
+    // Nothing is loaded yet: the tools are offered as they are (the call says when it cannot run).
+    for (const id of ['reset_camera', 'select', 'focus']) {
+      expect(description(id), id).toMatch(/\w/);
+      expect(description(id), id).not.toMatch(/Not now|Nothing is loaded/);
+    }
+    agent.dispose();
+  });
+
+  it("takes an extension's skills, over its own operations", async () => {
+    const v = await headlessViewer({
+      extensions: [
+        {
+          id: 'probe',
+          title: 'Probe',
+          skills: [
+            {
+              id: 'probe',
+              title: 'Probe',
+              summary: 'a probe',
+              guidance: 'Skill probe.',
+              tools: [{ id: 'probe_selection', operation: 'select.get' }],
+            },
+          ],
+        },
+      ],
+    });
+    const { agent } = agentOn(v, []);
+    expect(agent.toolkit.groups.map((g) => g.id)).toContain('probe');
+    agent.dispose();
+  });
+
+  it("undoes its previous turn with undo_turn, never the person's later steps", async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const before = representationTypes(v);
+    const { agent } = agentOn(v, [
+      { calls: [call('apply_style', { style: 'surface' })] },
+      { text: 'A surface.' },
+      { calls: [call('undo_turn')] },
+      { text: 'Undone.' },
+    ]);
+    await agent.turn('surface');
+    expect(representationTypes(v)).not.toEqual(before);
+    const r = await agent.turn('undo that');
+    expect(r.tools.map((t) => [t.name, t.status])).toEqual([['undo_turn', 'succeeded']]);
+    expect(representationTypes(v)).toEqual(before);
+    agent.dispose();
+  });
+});
