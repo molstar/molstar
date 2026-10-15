@@ -6,31 +6,48 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { StructureElement } from '@molstar/model/model/structure';
+import type { QueryLanguage, Selected } from '../targets/types.js';
 import type { ApiFailure } from './area.js';
 
-// The target resolver operations get (targets.md): a target, in any of its forms, to loci on a structure and "what it
-// selected". Built over the plugin in plan phase 2.1, on the `targets/` port (track A8).
+// The target resolver operations get (targets.md): a target, in any of its forms, to loci on the structures it applies
+// to, with "what it selected". Built over the plugin in `sources/targets.ts`, on the `targets/` port.
 
-export interface TargetResolver {
-  /** Resolves a target on a structure (a state ref or a label; absent: the structure the person works with). */
-  resolve(target: unknown, structure?: string): Promise<ResolvedTarget | ApiFailure>;
+export interface ResolveOptions {
+  /** A structure by state ref or label; absent: the one the person works with (targets.md §1). */
+  readonly structure?: string;
+  /** How a query text reads; PyMOL by default. */
+  readonly language?: QueryLanguage;
+}
+
+/** The target on one structure. */
+export interface ResolvedPart {
+  readonly structure: { readonly ref: string; readonly label: string };
+  readonly loci: StructureElement.Loci;
+  readonly selected: Selected;
 }
 
 export interface ResolvedTarget {
   readonly ok: true;
-  /** The structure it was resolved on: its state ref and label. */
-  readonly structure: { readonly ref: string; readonly label: string };
-  /** The loci (a `StructureElement.Loci`), for the plugin's managers. */
-  readonly loci: unknown;
-  /** What it selected, in words ("42 residues in chains A and B"). */
+  /** One per structure it was resolved on. */
+  readonly parts: readonly ResolvedPart[];
+  /** Which rule chose the structures: named, the focused one, the selected, the only one, or every loaded one. */
+  readonly scope: 'named' | 'focused' | 'selected' | 'only' | 'all';
+  /** What it selected, in words ("42 residues (350 atoms) in chains A and B"). */
   readonly summary: string;
-  /** The target as stored: MolQL JSON. */
+  /** It selects nothing anywhere. */
+  readonly empty: boolean;
+  /** The target as stored: MolQL JSON (`{ molql }`). */
   readonly stored: unknown;
 }
 
-/** Until the resolver is built: says so. */
+export interface TargetResolver {
+  resolve(target: unknown, options?: ResolveOptions): Promise<ResolvedTarget | ApiFailure>;
+}
+
+/** Without a plugin's structures (tests of the frame): says so. */
 export const NoTargets: TargetResolver = {
   async resolve() {
-    return { ok: false, code: 'unavailable', message: 'Targets are not available in this viewer yet.' };
+    return { ok: false, code: 'unavailable', message: 'Targets are not available in this viewer.' };
   },
 };

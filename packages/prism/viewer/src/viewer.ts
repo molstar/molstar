@@ -22,11 +22,12 @@ import { type Observable, Subject } from 'rxjs';
 import type { ApiModuleKey, ViewerApi } from './api/area.js';
 import { createViewerApi, type ViewerApiHost } from './api/index.js';
 import type { ViewerCommandContext, ViewerManagers } from './api/managers.js';
-import { NoTargets, type TargetResolver } from './api/targets.js';
+import type { TargetResolver } from './api/targets.js';
 import { coreCommands } from './commands/core.js';
 import { type PrismViewerOptionValues, resolveOptions } from './options.js';
 import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from './sources/checkpoint.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
+import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
 import { checkSpec } from './spec-check.js';
@@ -139,7 +140,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
   });
   disposers.push(watchOutsideChanges(plugin, history));
 
-  const targets: TargetResolver = NoTargets;
+  const targets: TargetResolver = createTargetResolver(plugin);
   const modules = new Set(o.modules);
   const host = createViewerApi({ plugin, sources, targets, modules: { has: (k) => modules.has(k) }, managers });
   disposers.push(() => host.dispose());

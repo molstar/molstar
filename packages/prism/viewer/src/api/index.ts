@@ -166,4 +166,4 @@ export * from './area.js';
 export type { RunRecord } from './run.js';
 export { ApiRunner, checkValues } from './run.js';
 export type { ViewerCommandContext, ViewerManagers } from './managers.js';
-export type { ResolvedTarget, TargetResolver } from './targets.js';
+export type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from './targets.js';

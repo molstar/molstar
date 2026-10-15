@@ -12,6 +12,7 @@ import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui';
 import { merge } from 'rxjs';
+import { structureNames } from './naming.js';
 import { fromBehavior, fromChanged, SourceScope, sameItems, scanList } from './state.js';
 
 // The viewer's sources (state.md §4): read-only states over the plugin, the only code besides `api/` that reads it.
@@ -128,12 +129,14 @@ function isEmpty(plugin: PluginContext): boolean {
 }
 
 function structureInfos(plugin: PluginContext): StructureInfo[] {
-  return plugin.managers.structure.hierarchy.current.structures.map((s) => {
+  const list = plugin.managers.structure.hierarchy.current.structures;
+  const names = structureNames(list);
+  return list.map((s) => {
     const data = s.cell.obj?.data;
     const model = s.model?.cell.obj?.data;
     return {
       ref: s.cell.transform.ref,
-      label: s.cell.obj?.label ?? s.cell.transform.ref,
+      label: names.get(s.cell.transform.ref) ?? s.cell.transform.ref,
       model: model?.entryId ?? model?.label ?? '',
       atoms: data?.elementCount ?? 0,
       residues: data?.polymerResidueCount ?? 0,
