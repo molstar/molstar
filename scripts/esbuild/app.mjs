@@ -220,6 +220,25 @@ async function buildPackage(rawPkg) {
     await ctx.watch();
     contexts.push(ctx);
   } else await esbuild.build(options);
+  // `single` (the single-file Prism viewer, app.md §2): one more entry built as one ES module, its lazy parts inlined
+  // (no splitting: esbuild bundles dynamic imports into the file), so a page imports it with no other request.
+  if (cfg.single) {
+    const singleOptions = {
+      ...options,
+      entryPoints: [path.resolve(dir, cfg.single.entry)],
+      format: 'esm',
+      splitting: false,
+      outdir: undefined,
+      entryNames: undefined,
+      chunkNames: undefined,
+      outfile: path.join(outdir, cfg.single.filename),
+    };
+    if (dev) {
+      const ctx = await esbuild.context(singleOptions);
+      await ctx.watch();
+      contexts.push(ctx);
+    } else await esbuild.build(singleOptions);
+  }
   for (const theme of cfg.themes ?? []) {
     const themeRoot = path.join(dir, 'src/theme');
     let themeEntry = path.join(themeRoot, `${theme}.ts`);

@@ -36,6 +36,10 @@
   "molstar": {
     "entry": "src/index.ts",
     "format": "esm",
-    "filename": "index.js"
+    "filename": "index.js",
+    "single": {
+      "entry": "src/single.ts",
+      "filename": "prism-viewer.js"
+    }
   }
 }
