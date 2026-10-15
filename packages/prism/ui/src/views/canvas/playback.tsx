@@ -76,10 +76,15 @@ export function TrajectoryRow(props: { model: TrajectoryControlsModel }) {
 }
 
 /**
- * The snapshots' row (v5's viewport snapshot controls): the current one's title, its position (a list of all of them),
- * previous, play, next. From two snapshots on; the story card has the description.
+ * The snapshots' row (v5's viewport snapshot controls): the position (the current one's title on hover; a list of all
+ * of them), previous, play, next, and `actions` (the transition's toggle, mute). From two snapshots on; the Story card
+ * has the title and the description.
  */
-export function SnapshotRow(props: { model: SnapshotStepperModel }) {
+export function SnapshotRow(props: {
+  model: SnapshotStepperModel;
+  /** At the row's end, after next (a story's audio: mute). */
+  actions?: () => Child;
+}) {
   const { model } = props;
   return (
     <Show when={model.count.pipe(map((c) => c > 1))}>
@@ -91,12 +96,14 @@ export function SnapshotRow(props: { model: SnapshotStepperModel }) {
               <span class={classes.lead}>
                 <Icon name="snapshots" size={16} />
               </span>
-              <span class={classes.rowTitle}>{model.title.pipe(map((t) => t ?? 'No snapshot applied'))}</span>
+              {/* No title: quiet over the canvas (the Story card has it); the position says it on hover, and opens
+                  the list of all of them. */}
               <button
                 type="button"
                 class={classes.position}
                 aria-expanded={listOpen}
-                aria-label="Snapshots"
+                aria-label={model.title.pipe(map((t) => (t ? `Snapshots: ${t}` : 'Snapshots')))}
+                data-tip={model.title.pipe(map((t) => t ?? 'No snapshot applied'))}
                 onClick={() => listOpen.set(!listOpen.value)}
               >
                 {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i < 0 ? '–' : i + 1} / ${c}`))}
@@ -116,12 +123,46 @@ export function SnapshotRow(props: { model: SnapshotStepperModel }) {
                 title="Next snapshot"
                 onClick={() => model.next()}
               />
+              {props.actions?.()}
             </div>
             <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
           </div>
         );
       }}
     </Show>
+  );
+}
+
+/** A mute button: the speaker, struck through while muted (pressed). */
+export function MuteButton(props: { muted: ReadonlyState<boolean>; onClick(): void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      icon={
+        <Show when={props.muted} fallback={() => <Icon name="volume-2" />}>
+          {() => <Icon name="volume-x" />}
+        </Show>
+      }
+      title={props.muted.pipe(map((m) => (m ? 'Unmute' : 'Mute')))}
+      pressed={props.muted}
+      onClick={() => props.onClick()}
+    />
+  );
+}
+
+/**
+ * A story's audio in the playback card when it has no snapshots row to sit in (one snapshot): its name and mute.
+ */
+export function AudioRow(props: { muted: ReadonlyState<boolean>; onToggleMute(): void }) {
+  return (
+    <div class={classes.bar} role="group" aria-label="Audio" data-row>
+      <span class={classes.lead}>
+        <Icon name="volume-2" size={16} />
+      </span>
+      <span class={classes.rowTitle}>Audio</span>
+      <MuteButton muted={props.muted} onClick={props.onToggleMute} />
+    </div>
   );
 }
 

@@ -481,3 +481,21 @@ describe("a snapshot's transition", () => {
     expect(await snap(v).seek({ time: 10 })).toMatchObject({ ok: false });
   });
 });
+
+describe('stepping through a story quietly', () => {
+  it('posts no status message for a person stepping or applying, and says it to screen readers', async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add({ name: 'One' }));
+    expectOk(await snap(v).add({ name: 'Two' }));
+    const person = v.api.as({ kind: 'person' });
+    const posted: string[] = [];
+    const sub = v.managers.notifications.posted.subscribe((m) => posted.push(m.text));
+    expectOk(await person.snapshot!.previous());
+    expectOk(await person.snapshot!.next());
+    const entries = (await list(v)).entries;
+    expectOk(await person.snapshot!.apply({ entry: entries[0].id }));
+    sub.unsubscribe();
+    expect(posted).toEqual([]);
+    expect(v.managers.notifications.spoken.value).toMatch(/Applied snapshot 'One'/);
+  });
+});

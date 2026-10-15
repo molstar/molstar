@@ -201,6 +201,11 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
   /** Changes nothing the history could restore (an upload): no checkpoint, no step; default true. */
   readonly undoable?: false;
   /**
+   * Its result is not posted on the status line, where the view shows the change itself (stepping through a story);
+   * it is still said to screen readers. Failures are posted as always.
+   */
+  readonly quiet?: true;
+  /**
    * Asks before it runs, from the agent (agent.md §4). One value: `destructive` (it removes something, or replaces the
    * scene) wins over `network` (it reaches an address; which addresses ask is the agent's policy at call time);
    * `upload` sends something out.

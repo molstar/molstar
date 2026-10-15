@@ -67,6 +67,8 @@ export { flattenTree, VirtualList } from './components/virtual-list/virtual-list
 
 export { HoverLabel } from './views/canvas/hover-label.js';
 export {
+  AudioRow,
+  MuteButton,
   PlaybackDeck,
   SnapshotCard,
   SnapshotRow,

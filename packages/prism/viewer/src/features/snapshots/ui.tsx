@@ -12,14 +12,17 @@ import {
   Button,
   domView,
   Icon,
+  observableState,
   onActive,
   onCleanup,
   Show,
   SnapshotCard,
   SnapshotRow,
   TransitionRow,
+  AudioRow,
+  MuteButton,
 } from '@molstar/prism-ui';
-import { distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { SnapshotsPanel } from '../../views/state/snapshots-panel.js';
@@ -91,12 +94,52 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         id: 'snapshots.section.playback',
         slot: 'playback',
         title: 'Snapshots',
-        render: domView(() => (
-          <>
-            <SnapshotRow model={createSnapshotStepper(ctx.api, area)} />
-            <TransitionRow model={createSnapshotTransition(ctx.api, area)} />
-          </>
-        )),
+        render: domView(() => {
+          const stepper = createSnapshotStepper(ctx.api, area);
+          const transition = createSnapshotTransition(ctx.api, area);
+          // As quiet as can be by default (David, 2026-10-15): the transition's scrubber behind a toggle in the
+          // snapshots row (shown while the snapshot has one), and a story's audio muted from there, the Story card shut
+          // or not (or in a row of its own when there is no snapshots row: one snapshot).
+          const scrubbing = observableState(false);
+          const hasTransition = transition.duration.pipe(
+            map((d) => d > 0),
+            distinctUntilChanged(),
+          );
+          const actions = () => (
+            <>
+              <Show when={hasTransition}>
+                {() => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon name="film" />}
+                    title={scrubbing.asReadonly.pipe(
+                      map((on) => (on ? "Hide the snapshot's transition" : "The snapshot's transition")),
+                    )}
+                    pressed={scrubbing.asReadonly}
+                    onClick={() => scrubbing.set(!scrubbing.value)}
+                  />
+                )}
+              </Show>
+              <Show when={audio.present}>
+                {() => <MuteButton muted={audio.muted} onClick={() => audio.toggleMute()} />}
+              </Show>
+            </>
+          );
+          const alone = combineLatest([audio.present, stepper.count]).pipe(map(([a, c]) => a && c <= 1));
+          // A snapshot with a transition and no snapshots row to toggle it from (one snapshot): the scrubber shows.
+          const showTransition = combineLatest([scrubbing.asReadonly, stepper.count]).pipe(
+            map(([on, c]) => on || c <= 1),
+            distinctUntilChanged(),
+          );
+          return (
+            <>
+              <SnapshotRow model={stepper} actions={actions} />
+              <Show when={alone}>{() => <AudioRow muted={audio.muted} onToggleMute={() => audio.toggleMute()} />}</Show>
+              <Show when={showTransition}>{() => <TransitionRow model={transition} />}</Show>
+            </>
+          );
+        }),
       },
     ],
     overlays: [

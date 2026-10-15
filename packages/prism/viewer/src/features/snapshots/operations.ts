@@ -299,6 +299,8 @@ export class SnapshotApi extends ApiArea {
 
   readonly apply = this.operation({
     id: 'snapshot.apply',
+    // Stepping through a story: the card and the playback row show it, no message (David, 2026-10-15).
+    quiet: true,
     title: 'Apply a snapshot',
     params: { entry: EntryParam(ByIdNameOrKey) },
     async run({ entry }, ctx) {
@@ -440,6 +442,8 @@ export class SnapshotApi extends ApiArea {
 
   readonly next = this.operation({
     id: 'snapshot.next',
+    // Stepping through a story: the card and the playback row show it, no message (David, 2026-10-15).
+    quiet: true,
     title: 'Next snapshot',
     params: {},
     // Two or more to step through (the arrows' commands are quiet where they cannot run).
@@ -449,6 +453,8 @@ export class SnapshotApi extends ApiArea {
 
   readonly previous = this.operation({
     id: 'snapshot.previous',
+    // Stepping through a story: the card and the playback row show it, no message (David, 2026-10-15).
+    quiet: true,
     title: 'Previous snapshot',
     params: {},
     // Two or more to step through (the arrows' commands are quiet where they cannot run).

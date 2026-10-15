@@ -392,7 +392,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           // View operations (hover's highlight, focus) say nothing; a lazy stub's run is the real one's result.
           (def.history !== false || isStubDefinition(def))
         ) {
-          notifications.post(result.did, 'info');
+          // A quiet one (a story's step: the card shows it) is said to screen readers only.
+          if (def.quiet) notifications.announce(result.did);
+          else notifications.post(result.did, 'info');
         } else if (r.origin.kind === 'person' && def && !def.read && /^(select|focus|measure)\./.test(r.operation)) {
           // A selection, a focus or a measurement by target is how a person without sight picks (README §3.7): its
           // result is said (the live region), with no message on show.

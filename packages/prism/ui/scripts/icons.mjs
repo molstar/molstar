@@ -59,6 +59,8 @@ const ICONS = [
   'plus',
   'minus',
   'play',
+  'volume-2',
+  'volume-x',
   'clapperboard',
   'square',
   'pause',

@@ -55,8 +55,8 @@
     font-weight: 500;
   }
 
-  /* A short title: the position and the buttons stay at the row's end, under the other rows' buttons. */
-  & .rowTitle {
+  /* A short title, or none (the snapshots' position): the buttons stay at the row's end, under the other rows'. */
+  & :is(.rowTitle, .position) {
     margin-right: auto;
   }
 
@@ -307,7 +307,9 @@
 
 /* Many snapshots: the position as a quiet button that opens the list. */
 .position {
+  flex: none;
   height: 24px;
+  white-space: nowrap;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);

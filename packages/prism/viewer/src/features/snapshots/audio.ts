@@ -22,6 +22,9 @@ export interface AudioModel {
   readonly time: ReadonlyState<number>;
   /** Seconds in all; 0 while unknown. */
   readonly duration: ReadonlyState<number>;
+  /** Silenced by the person (it plays on, unheard); kept for a player a later command makes. */
+  readonly muted: ReadonlyState<boolean>;
+  toggleMute(): void;
   /** Plays or pauses. */
   toggle(): void;
   /** Back to the start, paused. */
@@ -38,6 +41,7 @@ export function createAudioModel(source: Pick<MarkdownSource, 'audio' | 'stopAud
   const playing = observableState(false);
   const time = observableState(0);
   const duration = observableState(0);
+  const muted = observableState(false);
   let element: HTMLAudioElement | null = null;
   let detach = () => {};
   const set = <T>(state: ObservableState<T>, value: T) => {
@@ -54,12 +58,25 @@ export function createAudioModel(source: Pick<MarkdownSource, 'audio' | 'stopAud
       set(duration, 0);
       return;
     }
+    // The person's mute holds for a player made after it.
+    if (muted.value) audio.muted = true;
     const read = () => {
+      set(muted, audio.muted);
       set(playing, !audio.paused && !audio.ended);
       set(time, audio.currentTime || 0);
       set(duration, Number.isFinite(audio.duration) ? audio.duration : 0);
     };
-    const events = ['play', 'pause', 'ended', 'timeupdate', 'durationchange', 'loadedmetadata', 'seeked', 'emptied'];
+    const events = [
+      'play',
+      'pause',
+      'ended',
+      'timeupdate',
+      'durationchange',
+      'loadedmetadata',
+      'seeked',
+      'emptied',
+      'volumechange',
+    ];
     for (const e of events) audio.addEventListener(e, read);
     detach = () => {
       for (const e of events) audio.removeEventListener(e, read);
@@ -73,6 +90,12 @@ export function createAudioModel(source: Pick<MarkdownSource, 'audio' | 'stopAud
     playing: playing.asReadonly,
     time: time.asReadonly,
     duration: duration.asReadonly,
+    muted: muted.asReadonly,
+    toggleMute() {
+      const next = !muted.value;
+      muted.set(next);
+      if (element) element.muted = next;
+    },
     toggle() {
       if (!element) return;
       if (element.paused || element.ended) void element.play().catch(() => {});

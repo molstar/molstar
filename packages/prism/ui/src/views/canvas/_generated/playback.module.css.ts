@@ -79,7 +79,7 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
     font-weight: 500;
   }
 
-  & .msp-canvas-playback-rowTitle {
+  & :is(.msp-canvas-playback-rowTitle, .msp-canvas-playback-position) {
     margin-right: auto;
   }
 
@@ -312,12 +312,14 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-position {
+  white-space: nowrap;
   height: 24px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
+  flex: none;
 
   &:hover, &[aria-expanded="true"] {
     background: var(--msp-color-hover);

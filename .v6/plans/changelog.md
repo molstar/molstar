@@ -159,6 +159,12 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- `PluginAnimationManager.stop` waits for a frame under way: applying a snapshot during another's transition no longer
+  lands that transition's frame over the new snapshot (stepping through an MVS story showed the wrong scene).
+- Prism viewer: the playback card is quieter: the snapshots row has no title (the position says it on hover and lists
+  them all), the snapshot's transition scrubber is behind a toggle in it, and a story's audio has a mute there, the
+  Story card shut or not; stepping through a story posts no status message (said to screen readers; an operation's
+  `quiet`).
 - Prism viewer: SeqViewSpec archives (`.svsx`) load by URL, as a file or dropped: the document, the structure the
   archive holds (opened as a file), and its relative URIs resolved inside it.
 - Prism viewer: saving a session can include its record (the form's Record, off by default: prompts and
