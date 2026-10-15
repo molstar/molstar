@@ -23,6 +23,7 @@ import {
   MolstarWordmark,
   observableState,
   render,
+  SectionList,
   ShellModel,
   ShellView,
   Show,
@@ -37,6 +38,7 @@ import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
+import { exportCard, selectionSections, selectionTab } from './panels.js';
 import { LegendCard } from '../sequence/legend-card.js';
 import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
 import { SequenceControl } from '../sequence/sequence-control.js';
@@ -141,7 +143,14 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           icon: 'prism',
           order: 0,
           place: 'head',
-          render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
+          render: domView(({ ctx }) => (
+            <HomeTab
+              home={home}
+              onOpenCommandMenu={() => openCommandMenu()}
+              // Features' import sections (the loaders' database and URL forms) after the registry's actions.
+              more={() => <SectionList shell={ctx.shell} slot="home.import" />}
+            />
+          )),
         },
         {
           id: 'structure',
@@ -256,8 +265,14 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       ),
     );
   }
+  // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
+  unregister.push(shell.registerTabs(own('tab', [selectionTab()])));
+  unregister.push(shell.registerSections(own('section', selectionSections(person))));
+  const exporting = exportCard(shell);
+  unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
+  unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));
   const modeProps = modeSwitchProps(sources.interaction, person);
-  const selection = selectionModel(sources.interaction, person);
+  const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
   unregister.push(
     shell.registerToolbar(
       own('toolbar', [

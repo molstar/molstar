@@ -42,7 +42,12 @@ export function modeSwitchProps(interaction: InteractionSources, api: ViewerApi)
   };
 }
 
-export function selectionModel(interaction: InteractionSources, api: ViewerApi): SelectionModel {
+/** The selection bar: quick actions, and the Selection tab for the rest (`openPanel`). */
+export function selectionModel(
+  interaction: InteractionSources,
+  api: ViewerApi,
+  openPanel?: () => void,
+): SelectionModel {
   return {
     summary: interaction.selection,
     actions: [
@@ -53,6 +58,7 @@ export function selectionModel(interaction: InteractionSources, api: ViewerApi):
         icon: 'layers',
         run: () => void api.component.add({ target: 'selection', label: 'Selection' }, { copy: true }),
       },
+      ...(openPanel ? [{ id: 'more', label: 'More…', icon: 'mouse-pointer-click' as const, run: openPanel }] : []),
     ],
     clear: () => void api.select.clear(),
   };

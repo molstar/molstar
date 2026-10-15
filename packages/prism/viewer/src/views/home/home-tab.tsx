@@ -17,12 +17,15 @@ import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
 
 export interface HomeTabProps {
   home: HomeModel;
+  /** More sections after the actions (the `home.import` slot). */
+  more?: () => Child;
   /** Opens the command menu (the hint at the bottom). */
   onOpenCommandMenu?: () => void;
   /** The app's modes, when it has more than one: offered while nothing is loaded (design/modes.md). */
@@ -62,6 +65,7 @@ export function HomeTab(props: HomeTabProps) {
             {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
           </For>
         </section>
+        {props.more?.()}
         {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
       </ScrollArea>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
