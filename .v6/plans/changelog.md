@@ -155,3 +155,10 @@ the [API change ledger](breaking-v6-changes.md).
 
 - [Breaking] The `select` behavior's `shiftPositions` defaults to `toggle`: Shift with a click or a drag on positions
   adds or removes them (it extended a range from the anchor); `extend` stays a param
+
+## Asset manager byte cache
+
+- `AssetManager.resolve` reads URL assets through a URL-keyed, ref-counted byte cache: a URL (and its headers) is
+  downloaded once whoever asks first, concurrent requests share the download, the bytes are held while any resolved
+  asset is held and dropped with the last `dispose`, and a failed download is not cached. Requests with a body and
+  `store: false` bypass it
