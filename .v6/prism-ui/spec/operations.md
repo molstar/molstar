@@ -77,7 +77,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `select`       | `set` (target, mode `set`/`add`/`remove`/`intersect`), `all`, `clear`, `invert`, `around` (radius), `expand` (to residues, chains, …); `mode`, `granularity` | `get` (what is selected) | core           |
 | `focus`        | `set` (target), `clear`                                                                                                     | `get`                         | core                |
 | `highlight`    | `set` (target), `clear` (for embedding hosts and the link; no history step)                                                 | —                             | core                |
-| `measure`      | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane` (targets), `remove`, `options`                             | `get`                         | measurements        |
+| `measure`      | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane` (targets), `remove`, `visibility`, `options`                             | `get`                         | measurements        |
 | `superpose`    | `chains`, `tm-align`, `ligands`, `atoms`, `db` (targets)                                                                    | —                             | superposition       |
 | `snapshot`     | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`                                   | `list`                        | snapshots           |
 | `animation`    | `play` (by name and params), `stop`, `wiggle`                                                                               | —                             | animation           |
