@@ -31,7 +31,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
       {
         id: 'snapshots.tab.snapshots',
         title: 'Snapshots',
-        icon: 'images',
+        icon: 'snapshots',
         order: 1.5,
         render: domView(() => {
           const model = createSnapshotsModel(ctx.api, area, downloadBlob);

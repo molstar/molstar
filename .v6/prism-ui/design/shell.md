@@ -125,15 +125,18 @@ extension UI) are placed.
   line, and the Structure tab's Preset and Styles, which open it inside their group (`CommandMenu`'s `group`, teaching
   the command menu as they are used). It is modal, over the whole shell (`ShellView`'s `commandMenu`); whether it is
   open is the host's state, not the shell model's. With the agent module, a bar under its list takes requests for the
-  assistant ([agent.md](agent.md) §5). The rest is in [commands.md](commands.md).
+  assistant ([agent.md](agent.md) §5). A command whose work has a place in the UI (`CommandDefinition.view`: Export ›
+  Models, Selection › Measure, Snapshots) offers it in its form, beside Run (⌥↵): the menu closes and the place opens,
+  for what the form leaves out. The rest is in [commands.md](commands.md).
 - **Tabs and sections.** A tab (`ShellTab`: `title` for its tooltip, an optional `heading`, `icon`, `dock`, `order`,
   `place`, `compactBar`, `render`) goes into its dock by `order` among the tabs already there. A tab strip click
   activates a tab, or collapses the dock when it is the active one (`select`); `show(tab)` activates and expands. Panels
   and cards that hold several things are lists of **sections** (`ShellSection`: `slot`, `title`, `keywords`, `order`,
   `when`, `render`), shown by `SectionList` (`views/shell/section-list`) as blocks that fold: the Export, Canvas
   settings and Animation cards, the Selection tab, an inspector's `inspector:<kind>` slot. Extensions add sections, not
-  buttons: MP4, geometry and model export are sections of the Export card (`export` slot), next to the built-in Image
-  and Session & state. Each section can be opened by a command at it: `show('selection', 'measure')` for a tab,
+  buttons: geometry and model export are sections of the Export card (`export` slot), next to the built-in Image (with
+  Animation as its choice, `export.picture`), Camera and Session & state; the card's sections start folded but Image
+  (`SectionList`'s `collapsed`, `ShellSection.open`). Each section can be opened by a command at it: `show('selection', 'measure')` for a tab,
   `openOverlay('export', anchor, 'animation')` for a card; that section opens and scrolls into view and the others fold,
   so the command menu finds "mp4" (an alias of `export.animation`) and lands on it. The request is the tab's `tabFocus`
   until the tab is shown plainly or picked from the strip, which forget it; the section it opened is remembered as open.

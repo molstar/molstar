@@ -30,6 +30,24 @@ export interface OperationCommandOptions {
   readonly title?: string;
   /** Values fixed for this command; the form shows the rest. */
   readonly values?: Readonly<Record<string, unknown>>;
+  /**
+   * Where it is in the UI ("Export › Models"): a card or a tab by part id, at a section; the command's form offers to go
+   * there (`CommandDefinition.view`).
+   */
+  readonly view?: { readonly title: string; readonly card?: string; readonly tab?: string; readonly section?: string };
+}
+
+/** Going to where a command lives: `view.open` as the person (a view, not a step). */
+function viewOf(api: ViewerApi, v: NonNullable<OperationCommandOptions['view']>) {
+  return {
+    title: v.title,
+    open: () =>
+      void api.view?.open({
+        ...(v.card ? { card: v.card } : {}),
+        ...(v.tab ? { tab: v.tab } : {}),
+        ...(v.section ? { section: v.section } : {}),
+      }),
+  };
 }
 
 /** Runs an operation by id as the person; throws the failure's message and hint (the command menu shows it). */
@@ -75,6 +93,7 @@ export function operationCommand(
     ...(o.shortcut ? { shortcut: o.shortcut } : {}),
     ...(o.action ? { action: o.action } : {}),
     ...(o.group ? { group: o.group } : {}),
+    ...(o.view ? { view: viewOf(api, o.view) } : {}),
     ...(form() ? { params: () => form() ?? {}, defaults: () => formDefaults(form()) } : {}),
     ...(Object.keys(fields).length ? { fields } : {}),
     when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,

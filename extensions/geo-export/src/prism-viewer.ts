@@ -176,6 +176,7 @@ export const GeoExportExtension: ViewerExtension = {
           title: 'Export geometry…',
           alias: ['glb', 'gltf', 'stl', 'obj', 'usdz', '3d print', 'mesh', 'export geometry'],
           action: 'Export',
+          view: { title: 'Export › Geometry', card: 'core.overlay.export', section: SectionId },
         }),
         // The operation gives the file's bytes; the command saves it through the page.
         async run(args) {

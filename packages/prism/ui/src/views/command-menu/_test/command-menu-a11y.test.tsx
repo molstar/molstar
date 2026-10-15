@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { describe, expect, it } from 'vitest';
 import { CommandManager } from '../../../commands/manager.js';
 import type { CommandDefinition } from '../../../commands/types.js';
@@ -153,6 +154,30 @@ describe('CommandMenu accessibility (README §3.7)', () => {
     expect(t.ran).toEqual(['view.reset']);
     expect(t.isOpen()).toBe(false);
     expect(document.activeElement).toBe(t.opener);
+    t.cleanup();
+  });
+
+  it("offers a command's place in the UI: ⌥↵ (or its button) closes the menu and opens it", async () => {
+    const t = setup();
+    const opened: string[] = [];
+    t.manager.register([
+      {
+        id: 'export.models',
+        title: 'Export models…',
+        category: 'Export',
+        params: () => ({ name: PD.Text('') }),
+        view: { title: 'Export › Models', open: () => opened.push('export') },
+        run: () => ({ message: 'Exported.' }),
+      },
+    ]);
+    t.manager.open('export.models');
+    await tick();
+    const form = t.container.querySelector<HTMLInputElement>('input[role=combobox]')!;
+    expect(t.container.textContent).toContain('Export › Models');
+    t.key(form, 'Enter', { altKey: true });
+    await tick();
+    expect(opened).toEqual(['export']);
+    expect(t.isOpen()).toBe(false);
     t.cleanup();
   });
 });

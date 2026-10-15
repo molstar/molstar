@@ -232,6 +232,7 @@ export const ModelExportExtension: ViewerExtension = {
           title: 'Export models…',
           alias: ['export models', 'mmcif', 'bcif', 'pdb', 'save coordinates', 'export structure'],
           action: 'Export',
+          view: { title: 'Export › Models', card: 'core.overlay.export', section: SectionId },
         }),
         // The operation gives the file's bytes; the command saves it through the page.
         async run(args) {

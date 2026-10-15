@@ -285,7 +285,7 @@ export function mockCommands(
       title: 'Snapshots',
       alias: ['states', 'scenes', 'save state', 'bookmarks'],
       category: 'Snapshots',
-      icon: 'images',
+      icon: 'snapshots',
       shortcut: { key: 's', mod: true },
       run: show('snapshots'),
     },

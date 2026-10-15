@@ -50,6 +50,7 @@ export const classes = {
   'tail': 'msp-command-menu-tail',
   'token': 'msp-command-menu-token',
   'value': 'msp-command-menu-value',
+  'view': 'msp-command-menu-view',
 } as const;
 
 defineStyles('views/command-menu/command-menu.module.css', `@layer msp.components {
@@ -293,6 +294,23 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-spacer {
   flex: 1;
+}
+
+.msp-command-menu-view {
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-command-menu-run {

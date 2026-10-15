@@ -35,8 +35,13 @@ export const SnapshotsFeature: ViewerExtension = {
         icon: 'plus',
         alias: ['snapshot', 'save view', 'save state', 'bookmark'],
         action: 'Add',
+        view: { title: 'Snapshots', tab: 'snapshots.tab.snapshots' },
       }),
-      operationCommand(api, s.apply, { category: 'Snapshots', icon: 'images', alias: ['restore', 'go to snapshot'] }),
+      operationCommand(api, s.apply, {
+        category: 'Snapshots',
+        icon: 'snapshots',
+        alias: ['restore', 'go to snapshot'],
+      }),
       operationCommand(api, s.next, {
         category: 'Snapshots',
         icon: 'chevron-right',
@@ -53,7 +58,7 @@ export const SnapshotsFeature: ViewerExtension = {
         id: 'snapshots.open',
         title: 'Show the snapshots',
         category: 'Snapshots',
-        icon: 'images',
+        icon: 'snapshots',
         alias: ['snapshots', 'states'],
         // Opens the tab: a view, not a change.
         async run() {

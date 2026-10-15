@@ -767,7 +767,10 @@ function FormMode(props: {
       value={state.pipe(map((s) => s.text))}
       onInput={(e) => invocation.type(e.currentTarget.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && e.altKey && command.view) {
+          e.preventDefault();
+          goToView();
+        } else if (e.key === 'Enter') {
           e.preventDefault();
           void invocation.enter();
         } else if (e.key === 'Tab') {
@@ -788,6 +791,14 @@ function FormMode(props: {
     />
   ) as HTMLInputElement;
   queueMicrotask(() => input.focus());
+  // To where the command lives in the UI: the form and the menu close, the place opens.
+  const goToView = () => {
+    const view = command.view;
+    if (!view) return;
+    manager.close();
+    props.onClose();
+    view.open(manager.context.value);
+  };
   return (
     <>
       <Show when={props.proposed}>
@@ -819,6 +830,12 @@ function FormMode(props: {
           )}
         </For>
         <span class={classes.spacer} />
+        {command.view ? (
+          <button type="button" class={classes.view} title={`Open ${command.view.title} (⌥↵)`} onClick={goToView}>
+            {command.view.title}
+            <Icon name="chevron-right" size={13} />
+          </button>
+        ) : null}
         <button type="button" class={classes.run} onClick={() => void invocation.enter()}>
           {state.pipe(map((s) => s.action))}
           <kbd>↵</kbd>
@@ -869,6 +886,7 @@ function FormMode(props: {
         hints={[
           ['tab', 'next field'],
           ['↵', 'run'],
+          ...(command.view ? [['⌥↵', 'open in the UI'] as [string, string]] : []),
           ['⌫', 'back'],
           ['esc', 'commands'],
         ]}

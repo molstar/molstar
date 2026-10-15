@@ -31,6 +31,7 @@ export const MeasurementsFeature: ViewerExtension = {
     return [
       operationCommand(api, measure.distance, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'measure-distance',
         title: 'Measure a distance…',
         alias: ['distance', 'measure distance'],
@@ -38,6 +39,7 @@ export const MeasurementsFeature: ViewerExtension = {
       }),
       operationCommand(api, measure.angle, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'measure-angle',
         title: 'Measure an angle…',
         alias: ['angle', 'measure angle'],
@@ -45,6 +47,7 @@ export const MeasurementsFeature: ViewerExtension = {
       }),
       operationCommand(api, measure.dihedral, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'measure-angle',
         title: 'Measure a dihedral…',
         alias: ['dihedral', 'torsion'],
@@ -52,6 +55,7 @@ export const MeasurementsFeature: ViewerExtension = {
       }),
       operationCommand(api, measure.label, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'tag',
         title: 'Label an atom or residue…',
         alias: ['label', 'annotate'],
@@ -59,6 +63,7 @@ export const MeasurementsFeature: ViewerExtension = {
       }),
       operationCommand(api, measure.orientation, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'move-3d',
         title: 'Show the principal axes…',
         alias: ['orientation', 'principal axes', 'box'],
@@ -66,6 +71,7 @@ export const MeasurementsFeature: ViewerExtension = {
       }),
       operationCommand(api, measure.plane, {
         category: 'Measure',
+        view: { title: 'Selection › Measure', tab: 'selection', section: 'measurements.section.measure' },
         icon: 'square',
         title: 'Show the best-fit plane…',
         alias: ['plane', 'best fit plane'],

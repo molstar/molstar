@@ -451,7 +451,7 @@ export function mockViewerMode(
         {
           id: 'snapshots',
           title: 'Snapshots',
-          icon: 'images',
+          icon: 'snapshots',
           order: 1.5,
           render: domView(() => <SnapshotsPanel model={snapshotsModel} />),
         },

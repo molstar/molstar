@@ -47,6 +47,7 @@ export const ExportImageFeature: ViewerExtension = {
           title: 'Export an image…',
           alias: ['export image', 'screenshot', 'png', 'save image'],
           action: 'Export',
+          view: { title: 'Export › Image', card: 'core.overlay.export', section: 'export-image.section.image' },
         }),
         // The operation gives the image's bytes; the command saves the file through the page.
         async run(args) {
@@ -65,6 +66,7 @@ export const ExportImageFeature: ViewerExtension = {
         title: 'Copy an image',
         alias: ['copy image', 'clipboard'],
         action: 'Copy',
+        view: { title: 'Export › Image', card: 'core.overlay.export', section: 'export-image.section.image' },
       }),
       {
         ...operationCommand(api, x.viewport, {

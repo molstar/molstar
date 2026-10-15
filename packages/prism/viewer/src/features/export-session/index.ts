@@ -39,6 +39,11 @@ export const ExportSessionFeature: ViewerExtension = {
           title: 'Save the session…',
           alias: ['save session', 'save state', 'molx', 'molj', 'export session'],
           action: 'Save',
+          view: {
+            title: 'Export › Session & state',
+            card: 'core.overlay.export',
+            section: 'export-session.section.session',
+          },
         }),
         async run(args) {
           const r = await api.session.save!(args as never);

@@ -260,6 +260,24 @@
   flex: 1;
 }
 
+/* Where the command lives in the UI: quiet, before Run. */
+.view {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
 .run {
   display: flex;
   align-items: center;
