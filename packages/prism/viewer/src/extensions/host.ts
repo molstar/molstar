@@ -24,6 +24,7 @@ import type {
   LazyOperationStub,
   LazyViewerExtension,
   PrismViewerPluginParts,
+  SequenceBehavior,
   ViewerExtension,
   ViewerExtensionUI,
   ViewerUIContext,
@@ -59,6 +60,8 @@ export interface ExtensionHostDeps {
   /** Opens a command as the command menu does (its form, or runs it). */
   readonly openCommand: (id: string) => void;
   readonly annotations: AnnotationsApi;
+  /** Attaches a sequence behavior to the sequence viewer; absent: the viewer has no sequence (sequence.md §3). */
+  readonly addSequenceBehavior?: (behavior: SequenceBehavior) => () => void;
   /** The running plugin's side of a lazy load (`sources/extension-plugin.ts`). */
   readonly applyPlugin: (parts: Partial<PrismViewerPluginParts>) => Promise<() => Promise<void>>;
   readonly overrides: Overrides;
@@ -218,6 +221,15 @@ export class ExtensionHost {
       if (lazy) checkCommands(lazy, commands);
       if (commands.length) done.push(registerCommands(commands));
       for (const a of e.annotations ?? []) done.push(annotations.register(a));
+      // Its sequence behaviors, overrides applied (sequence.md §3), each `<id>.sequence.<name>`.
+      for (const b of this.#deps.overrides.parts(e.sequence)) {
+        if (!b.id.startsWith(`${e.id}.sequence.`)) {
+          throw new Error(
+            `Extension '${e.id}' brings a sequence behavior named '${b.id}': not '${e.id}.sequence.<name>'`,
+          );
+        }
+        if (this.#deps.addSequenceBehavior) done.push(this.#deps.addSequenceBehavior(b));
+      }
       return done;
     } catch (error) {
       await runAll(done);

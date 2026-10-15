@@ -6,6 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export type {
+  SequenceBehavior,
+  SequenceBehaviorContext,
+  SequenceOffer,
+  SequenceShown,
+  SequenceTrackMenuItem,
+} from './behaviors.js';
 export { LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
 export { LegendCard } from './legend-card.js';
 export { ComplexRef, DefaultSequenceTheme, SectionRef, sequenceDocument } from './document.js';

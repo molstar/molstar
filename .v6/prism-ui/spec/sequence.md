@@ -79,6 +79,11 @@ interface SequenceBehaviorContext {
   PAE dot plot for predicted models (README decision 27), a validation report as a track (rcsb, pdbe), membrane
   orientation, symmetry, interactions around the focus. The composition overrides them by id, as
   any part.
+- **As built** (`sequence/behaviors.ts`, plan 5.1): `attach(ctx)` with `ctx.shown` (what the document shows, a new value
+  per document: the structure, the complex's ref, the `data` node's, the section and the viewer's last track), `ctx.patch`
+  (onto that document only: a patch for a replaced one is dropped) and `ctx.offer` (its tracks' menus, by track ref and
+  color theme, and its legend blocks). The viewer's own content (ruler, letters, secondary structure) is still the
+  document the model builds; the follow behavior and the person's overlay are not split out yet.
 - **They write the base layer by patch** (Seq\*'s `applyPatch`), so untouched nodes keep their identity and only the
   changed ones rerun. SeqViewSpec patches are all or nothing and nothing cascades (`packages/sequences/_spec/format.md`,
   review F23), so:

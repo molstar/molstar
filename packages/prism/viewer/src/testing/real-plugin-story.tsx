@@ -40,7 +40,6 @@ export const StructureAlphaFill = {
   url: 'https://alphafill.eu/v1/aff/P08684',
   format: 'mmcif',
   title: 'CYP3A4 (AlphaFill)',
-  predicted: true,
   ligands: ['HEM', 'ERY'],
 } as const;
 

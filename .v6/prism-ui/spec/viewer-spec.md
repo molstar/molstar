@@ -162,7 +162,7 @@ interface ViewerExtension {
   readonly annotations?: readonly AnnotationProvider[];        // what it can show of a structure (`annotations.apply`)
   readonly tools?: readonly ToolRegistration<ViewerApi>[];     // reserved: read from phase 4 (agent.md §3)
   readonly skills?: readonly ToolGroup<ViewerApi>[];           // reserved: phase 4; never core tools
-  readonly sequence?: readonly SequenceBehavior[];             // reserved: phase 5
+  readonly sequence?: readonly SequenceBehavior[];             // its sequence behaviors (sequence.md §3)
   readonly settings?: PD.Params;                               // reserved: its Settings group (plan 3.3)
   readonly ui?: (ctx: ViewerUIContext) => Promise<ViewerExtensionUI> | ViewerExtensionUI;  // its views; its own chunk
 }

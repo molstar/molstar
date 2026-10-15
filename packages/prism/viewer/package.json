@@ -52,7 +52,6 @@
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
-    "@molstar/model-archive-extension": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/plugin-headless": "workspace:*",

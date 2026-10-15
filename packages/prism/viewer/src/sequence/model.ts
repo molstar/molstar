@@ -23,8 +23,8 @@ import {
 } from '@molstar/seq-viewer';
 import {
   ComplexRef,
+  DataRef,
   LettersRef,
-  PlddtTrack,
   SecondaryTrack,
   DefaultSequenceTheme,
   hostFileOf,
@@ -32,6 +32,7 @@ import {
   type SequenceTheme,
   sequenceDocument,
 } from './document.js';
+import type { SequenceBehavior, SequenceOffer, SequenceShown, SequenceTrackMenuItem } from './behaviors.js';
 import { legendOf, type SequenceLegend, withTracks } from './legend.js';
 import { PrismRegistry } from './palette.js';
 import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
@@ -55,8 +56,6 @@ export interface HostStructure {
   readonly source: StructureSource;
   /** The structure the 3D view draws: what the link maps. */
   readonly structure: Structure;
-  /** A predicted model (AlphaFold, AlphaFill): its per-residue pLDDT is a track, with its four bands in the legend. */
-  readonly predicted?: boolean;
   /** The ligands the 3D view draws, by chemical component id; absent: every ligand. The sequence lists the same ones. */
   readonly ligands?: readonly string[];
 }
@@ -69,13 +68,16 @@ export interface SequenceStructure {
   readonly complex: string;
 }
 
-/** How the 3D view colors the polymer: its default, by pLDDT (a predicted model), by secondary structure. */
-export type StructureColoring = 'default' | 'plddt' | 'secondary';
+/**
+ * How the 3D view colors the polymer: a color theme's name (`secondary-structure`, an extension's `plddt-confidence`),
+ * `default` for the viewer's default coloring.
+ */
+export type StructureColoring = string;
 
 /** What the sequence view may ask of the 3D view (the host implements it over its plugin, `sources/`). */
 export interface HostActions {
   colorStructure(coloring: StructureColoring): void | Promise<void>;
-  /** How the 3D view's polymer is colored now (read from the plugin's state, so a change made elsewhere shows); undefined: none of the three. */
+  /** How the 3D view's polymer is colored now (read from the plugin's state, so a change made elsewhere shows); undefined: no one theme. */
   coloring?(): StructureColoring | undefined;
 }
 
@@ -95,17 +97,15 @@ export interface TrackColoring extends TrackAction {
 }
 
 /**
- * What each track offers, by its ref: the model's decision, as it set the tracks and their colors (design §6). More tracks
- * and actions slot in here. The 3D coloring each track stands for: its own track colors the structure the same way.
+ * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (design §6);
+ * behaviors offer their tracks' (`SequenceOffer.menus`). The 3D coloring each track stands for: its own track colors the
+ * structure the same way.
  */
-const TrackMenus: Readonly<
-  Record<string, readonly { id: string; label: string; icon: IconName; coloring: StructureColoring }[]>
-> = {
-  [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', coloring: 'default' }],
+const TrackMenus: Readonly<Record<string, readonly SequenceTrackMenuItem[]>> = {
+  [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', theme: 'default' }],
   [SecondaryTrack]: [
-    { id: 'color-secondary', label: 'Color by secondary structure', icon: 'paintbrush', coloring: 'secondary' },
+    { id: 'color-secondary', label: 'Color by secondary structure', icon: 'paintbrush', theme: 'secondary-structure' },
   ],
-  [PlddtTrack]: [{ id: 'color-plddt', label: 'Color by pLDDT', icon: 'paintbrush', coloring: 'plddt' }],
 };
 
 export interface SequenceViewer {
@@ -132,6 +132,10 @@ export interface SequenceViewer {
   trackColoring(track: string): TrackColoring | undefined;
   /** The host's fonts (the control reads its `--msp-font-*` once): part of the skin, not of the ink. */
   setFonts(fonts: SequenceFonts): void;
+  /** What the document shows, for behaviors: a new value per document. */
+  readonly shown: ReadonlyState<SequenceShown | undefined>;
+  /** Attaches a behavior (an extension's, sequence.md §3); returns its removal. An id taken throws. */
+  addBehavior(behavior: SequenceBehavior): () => void;
 }
 
 export interface SequenceViewers {
@@ -155,6 +159,8 @@ export interface SequenceViewersDeps {
   actions?: HostActions;
   /** Canvas widths; default Seq*'s monospace estimate (a surface mounted on the context measures with its canvas). */
   text?: TextMeasurer;
+  /** Behaviors attached to each viewer from the start (sequence.md §3); more come with `addBehavior`. */
+  behaviors?: readonly SequenceBehavior[];
 }
 
 /** The letters' size until the host's tokens are read (`setFonts`): Prism's panel text size, `--msp-font-size-sm`. */
@@ -183,6 +189,10 @@ class Viewer implements SequenceViewer {
   readonly legend = this.legendState.asReadonly;
   private readonly railState = observableState<TracksRail>(DefaultTracksRail);
   readonly rail = this.railState.asReadonly;
+  private readonly shownState = observableState<SequenceShown | undefined>(undefined);
+  readonly shown = this.shownState.asReadonly;
+  /** The behaviors attached, by id: their dispose and their offer. */
+  private readonly behaviors = new Map<string, { dispose: () => void; offer?: SequenceOffer }>();
   private dropPreset: (() => void) | undefined;
   private fonts: SequenceFonts | undefined;
   private builds = 0;
@@ -237,14 +247,61 @@ class Viewer implements SequenceViewer {
       }),
       deps.structure.subscribe(() => void this.build()),
     );
+    for (const b of deps.behaviors ?? []) this.addBehavior(b);
   }
 
-  /** What the colors mean: the letters' scheme, and a predicted model's pLDDT bands. */
+  addBehavior(behavior: SequenceBehavior): () => void {
+    if (this.behaviors.has(behavior.id)) throw new Error(`A sequence behavior '${behavior.id}' is attached already`);
+    const entry: { dispose: () => void; offer?: SequenceOffer } = { dispose: () => {} };
+    this.behaviors.set(behavior.id, entry);
+    let attached = true;
+    entry.dispose = behavior.attach({
+      shown: this.shown,
+      patch: async (shown, ops) => {
+        // Only onto the document it was made for: a later one has none of the nodes it refers to.
+        if (!attached || this.disposed || shown !== this.shownState.value) return false;
+        const r = await this.seq.applyPatch(
+          { format: 'seq_view_spec_patch', ops: [...ops] },
+          { layer: 'base', origin: `host:${behavior.id}` as never },
+        );
+        return r.ok;
+      },
+      offer: (offer) => {
+        if (!attached) return;
+        entry.offer = offer;
+        this.refreshLegend();
+      },
+    });
+    return () => {
+      if (!attached) return;
+      attached = false;
+      this.behaviors.delete(behavior.id);
+      entry.dispose();
+      this.refreshLegend();
+    };
+  }
+
+  /** A track's menu: the viewer's own, or a behavior's offer. */
+  private menuOf(track: string): readonly SequenceTrackMenuItem[] {
+    const own = TrackMenus[track];
+    if (own) return own;
+    for (const { offer } of this.behaviors.values()) {
+      const menu = offer?.menus?.[track];
+      if (menu) return menu;
+    }
+    return [];
+  }
+
+  /** What the colors mean: the letters' scheme, the secondary structure, and the behaviors' blocks (a pLDDT track's bands). */
   private refreshLegend() {
     const dark = this.deps.ink.value.theme === 'dark';
     const letters = legendOf(this.themeState.value.letters, dark);
-    const host = this.deps.structure.value;
-    this.legendState.set(host ? withTracks(letters, !!host.predicted) : letters);
+    if (!this.deps.structure.value) {
+      this.legendState.set(letters);
+      return;
+    }
+    const offered = [...this.behaviors.values()].flatMap(({ offer }) => offer?.legend ?? []);
+    this.legendState.set(withTracks(letters, offered));
   }
 
   private applySkin(ink: CanvasInk) {
@@ -255,29 +312,29 @@ class Viewer implements SequenceViewer {
     const host = this.deps.actions;
     if (!host) return [];
     const now = o?.unapplied ? host.coloring?.() : undefined;
-    return (TrackMenus[track] ?? [])
-      .filter((a) => a.coloring !== now)
+    return this.menuOf(track)
+      .filter((a) => a.theme !== now)
       .map((a) => ({
         id: a.id,
         label: a.label,
         icon: a.icon,
-        run: () => void host.colorStructure(a.coloring),
+        run: () => void host.colorStructure(a.theme),
       }));
   }
 
   trackColoring(track: string): TrackColoring | undefined {
     const host = this.deps.actions;
-    const a = TrackMenus[track]?.[0];
+    const a = this.menuOf(track)[0];
     if (!host || !a) return undefined;
-    const active = () => host.coloring?.() === a.coloring;
+    const active = () => host.coloring?.() === a.theme;
     // Applying the coloring the 3D view has is nothing to do: the icon marks it, a click leaves it.
     return {
       id: a.id,
       label: a.label,
       icon: a.icon,
-      coloring: a.coloring,
+      coloring: a.theme,
       active,
-      run: () => active() || void host.colorStructure(a.coloring),
+      run: () => active() || void host.colorStructure(a.theme),
     };
   }
 
@@ -318,6 +375,7 @@ class Viewer implements SequenceViewer {
     this.refreshLegend();
     if (!host) {
       this.structureState.set(undefined);
+      this.shownState.set(undefined);
       return;
     }
     const doc = sequenceDocument({
@@ -325,7 +383,6 @@ class Viewer implements SequenceViewer {
       key: host.key,
       format: host.source.format,
       theme: this.themeState.value,
-      predicted: host.predicted,
       ligands: host.ligands,
     });
     // A new structure is not shown as the old one while its document is made.
@@ -335,12 +392,24 @@ class Viewer implements SequenceViewer {
     if (this.disposed || build !== this.builds) return;
     this.seq.ui.setStyle(SectionRef, presetOf(this.styleState.value));
     this.structureState.set({ title: host.title, structure: host.structure, complex: ComplexRef });
+    // The behaviors add theirs to this document (sequence.md §3).
+    this.shownState.set({
+      key: host.key,
+      title: host.title,
+      structure: host.structure,
+      complex: ComplexRef,
+      data: DataRef,
+      section: SectionRef,
+      after: SecondaryTrack,
+    });
   }
 
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
     this.builds++;
+    for (const { dispose } of [...this.behaviors.values()]) dispose();
+    this.behaviors.clear();
     this.dropPreset?.();
     for (const s of this.subs) s.unsubscribe();
     this.subs.length = 0;

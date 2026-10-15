@@ -8,36 +8,36 @@
 
 import { EntryKind } from '@molstar/seq-viewer';
 import { describe, expect, it, vi } from 'vitest';
-import { LettersRef, PlddtTrack, SecondaryTrack } from '../document.js';
+import { LettersRef, SecondaryTrack } from '../document.js';
 import type { HostActions, StructureColoring } from '../model.js';
 import { gutterRows } from '../track-gutter.js';
-import { headlessViewers } from './fixtures.js';
+import { headlessViewers, ValuesTrack, valuesBehavior } from './fixtures.js';
 
 const viewerWith = (now: () => StructureColoring | undefined, colorStructure = vi.fn()) => {
   const actions: HostActions = { colorStructure, coloring: now };
-  return { viewer: headlessViewers({ actions }).viewer, colorStructure };
+  return { viewer: headlessViewers({ actions, behaviors: [valuesBehavior()] }).viewer, colorStructure };
 };
 
 describe('the track icons', () => {
   it("every track's icon is the one paintbrush, of its first menu action, and tracks without a coloring have none", () => {
     const { viewer } = viewerWith(() => undefined);
-    expect(viewer.trackColoring(PlddtTrack)).toMatchObject({ icon: 'paintbrush', coloring: 'plddt' });
-    expect(viewer.trackColoring(SecondaryTrack)).toMatchObject({ icon: 'paintbrush', coloring: 'secondary' });
+    expect(viewer.trackColoring(ValuesTrack)).toMatchObject({ icon: 'paintbrush', coloring: 'plddt-confidence' });
+    expect(viewer.trackColoring(SecondaryTrack)).toMatchObject({ icon: 'paintbrush', coloring: 'secondary-structure' });
     expect(viewer.trackColoring(LettersRef)).toMatchObject({ icon: 'paintbrush', coloring: 'default' });
     expect(viewer.trackColoring('ruler')).toBeUndefined();
-    expect(headlessViewers().viewer.trackColoring(PlddtTrack)).toBeUndefined();
+    expect(headlessViewers().viewer.trackColoring(ValuesTrack)).toBeUndefined();
   });
 
   it('is active where the 3D view has that coloring now (read each time), and a click applies it unless it is', () => {
     let now: StructureColoring | undefined = 'default';
     const { viewer, colorStructure } = viewerWith(() => now);
-    const plddt = viewer.trackColoring(PlddtTrack);
-    expect([viewer.trackColoring(LettersRef)?.active(), plddt?.active()]).toEqual([true, false]);
-    plddt?.run();
-    expect(colorStructure).toHaveBeenCalledExactlyOnceWith('plddt');
-    now = 'plddt';
-    expect([viewer.trackColoring(LettersRef)?.active(), plddt?.active()]).toEqual([false, true]);
-    plddt?.run();
+    const values = viewer.trackColoring(ValuesTrack);
+    expect([viewer.trackColoring(LettersRef)?.active(), values?.active()]).toEqual([true, false]);
+    values?.run();
+    expect(colorStructure).toHaveBeenCalledExactlyOnceWith('plddt-confidence');
+    now = 'plddt-confidence';
+    expect([viewer.trackColoring(LettersRef)?.active(), values?.active()]).toEqual([false, true]);
+    values?.run();
     expect(colorStructure).toHaveBeenCalledTimes(1);
     now = undefined;
     expect(viewer.trackColoring(SecondaryTrack)?.active()).toBe(false);

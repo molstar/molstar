@@ -139,18 +139,12 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
           }
         }
       }
-      return name === 'plddt-confidence'
-        ? 'plddt'
-        : name === 'secondary-structure'
-          ? 'secondary'
-          : name === 'default' || name === 'chain-id' || name === 'uniform'
-            ? 'default'
-            : undefined;
+      // The default coloring under any of its names; any other theme by its own.
+      return name === 'default' || name === 'chain-id' || name === 'uniform' ? 'default' : name;
     },
     async colorStructure(coloring: StructureColoring) {
       // sequence.md §5: a track's "Color by this track" is `representation.color` on the polymer, as the link.
-      const theme =
-        coloring === 'plddt' ? 'plddt-confidence' : coloring === 'secondary' ? 'secondary-structure' : 'chain-id';
+      const theme = coloring === 'default' ? 'chain-id' : coloring;
       await link.representation.color({
         target: 'polymer',
         theme,

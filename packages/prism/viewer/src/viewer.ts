@@ -257,7 +257,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
     const quickStyles = createQuickStylesModel(person);
     const homeActions = createHomeActions(viewScope, plugin, person);
-    const sequence = spec.sequence === false ? undefined : createSequence(viewScope, plugin, host, o.modules, spec);
+    const sequence =
+      spec.sequence === false ? undefined : createSequence(viewScope, plugin, host, o.modules, spec, overrides);
     if (sequence) disposers.push(() => sequence.viewers.dispose());
     disposers.push(registerCommands(coreCommands(person)));
     const extensions = new ExtensionHost({
@@ -266,6 +267,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       registerCommands,
       openCommand: (id) => void managers.commands.open(id),
       annotations: host.api.annotations,
+      ...(sequence ? { addSequenceBehavior: (b) => sequence.viewers.get().addBehavior(b) } : {}),
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
       overrides,
       task: (label) => {
@@ -451,6 +453,7 @@ function createSequence(
   host: ViewerApiHost,
   modules: readonly ApiModuleKey[],
   spec: PrismViewerSpec,
+  overrides: Overrides,
 ): ViewerSequence {
   const link = host.api.as({ kind: 'link' });
   const source = createSequenceSource(scope, plugin, link);
@@ -460,6 +463,8 @@ function createSequence(
     structure: source.structure,
     actions: source.actions,
     scheduler: sequenceFrames(modules.includes('page')),
+    // The viewer's own behaviors, overrides applied; the extensions' attach as they activate (sequence.md §3).
+    behaviors: overrides.parts(spec.sequence ? spec.sequence.behaviors : []),
   });
   const viewer = viewers.get();
   const initial = spec.sequence ? spec.sequence.style : undefined;

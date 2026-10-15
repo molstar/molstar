@@ -93,6 +93,8 @@ the [API change ledger](breaking-v6-changes.md).
   animation), lazy where heavy; the viewer's agent on `@molstar/ai-session` (`agent/`), with live runs opt in
   (`pnpm test:live`); the session's record shown in History, kept in the browser on request; the assistant on the real
   agent (`apps/prism-viewer` passes it: the person's own keys, kept scrambled)
+- Model Archive's quality in the Prism viewer (`@molstar/model-archive-extension/prism-viewer`): color by pLDDT or
+  QMEAN (commands, `annotations.apply`), the pLDDT track in the sequence; sequence behaviors for extensions
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

@@ -75,8 +75,8 @@ describe('the sequence', () => {
   it("colors the 3D view from a track's menu as a step", async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const seq = v.views.sequence!;
-    await seq.source.actions.colorStructure('secondary');
-    expect(seq.source.actions.coloring?.()).toBe('secondary');
+    await seq.source.actions.colorStructure('secondary-structure');
+    expect(seq.source.actions.coloring?.()).toBe('secondary-structure');
     expect(v.managers.history.steps.value[0].origin.kind).toBe('link');
   });
 

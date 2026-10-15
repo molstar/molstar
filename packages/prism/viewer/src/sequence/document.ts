@@ -7,7 +7,7 @@
  */
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
-import { PrismPlddtBands, PrismSecondaryColors } from './palette.js';
+import { PrismSecondaryColors } from './palette.js';
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import type { StructureFormat } from '@molstar/seq-molstar-poc';
 
@@ -19,11 +19,11 @@ import type { StructureFormat } from '@molstar/seq-molstar-poc';
 export const ComplexRef = 'structure';
 /** The section's ref. */
 export const SectionRef = 'main';
-/** The letters track's ref, and the pLDDT track's (a predicted model). */
+/** The data node's ref: behaviors add their data under it (sequence.md §3). */
+export const DataRef = 'data';
+/** The letters track's ref. */
 export const LettersRef = 'letters';
-export const PlddtRef = 'plddt';
 /** The tracks' refs by what they show (the track menus are by these: `trackActions`). */
-export const PlddtTrack = `${PlddtRef}-track`;
 export const SecondaryRef = 'ss';
 export const SecondaryTrack = `${SecondaryRef}-track`;
 
@@ -41,8 +41,6 @@ export function sequenceDocument(o: {
   key: string;
   format: StructureFormat;
   theme: SequenceTheme;
-  /** A predicted model: its pLDDT as a track under the letters, in the AlphaFold bands (`PrismPlddtBands`). */
-  predicted?: boolean;
   /** Only the ligands of these chemical components become units (the ones the 3D view draws); absent: all. */
   ligands?: readonly string[];
 }): SeqViewSpecDoc {
@@ -55,8 +53,8 @@ export function sequenceDocument(o: {
   });
   const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' });
   const letters = o.theme.letters === null ? {} : { color: { theme: 'scheme', params: { name: o.theme.letters } } };
-  // One document for both styles: Text draws the ruler nowhere, secondary structure as underlines and the pLDDT as a
-  // strip in the bands (Seq*'s lanes); Tracks draws each as a track.
+  // One document for both styles: Text draws the ruler nowhere, secondary structure as underlines and a behavior's values
+  // (a pLDDT track) as strips (Seq*'s lanes); Tracks draws each as a track.
   section.track({ ref: 'ruler', label: '' }).ruler();
   section.track({ ref: LettersRef, label: '' }).letters(letters);
   // Secondary structure: the model's own helices, strands and turns (blocks and arrows over a coil line).
@@ -66,17 +64,9 @@ export function sequenceDocument(o: {
     options: { of: ComplexRef },
   });
   section.track({ ref: SecondaryTrack, label: '' }).secondary({ data: ss, color: PrismSecondaryColors });
-  if (o.predicted) {
-    const plddt = b.data.computed({
-      ref: PlddtRef,
-      provider: 'molstar:plddt',
-      options: { of: ComplexRef },
-    });
-    // The model's confidence as Seq*'s case 8 draws it: the scores as a line in the bands. Its thin band strip under the
-    // line is left out: it sat apart from the line, a gap between.
-    section
-      .track({ ref: PlddtTrack, label: '', height: 2 })
-      .values({ data: plddt, encoding: 'line', domain: [0, 100], color: PrismPlddtBands });
-  }
-  return b.getDocument();
+  // Behaviors add under the data node by its ref (the builder gives it none).
+  const doc = b.getDocument();
+  const data = doc.root.children?.find((n) => n.kind === 'data');
+  if (data) data.ref = DataRef;
+  return doc;
 }

@@ -17,7 +17,8 @@
       "molstar-src": "./src/quality-assessment/pairwise/ui.tsx",
       "types": "./lib/quality-assessment/pairwise/ui.d.ts",
       "import": "./lib/quality-assessment/pairwise/ui.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -39,7 +40,8 @@
     "@molstar/query-language": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
-    "@molstar/io": "workspace:*"
+    "@molstar/io": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

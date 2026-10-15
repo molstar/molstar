@@ -131,6 +131,9 @@ kept record survives a reload.
 
 1. **Commands first** (README decision 27): model-archive quality (pLDDT, QMEAN; the pLDDT track and the PAE dot plot
    as sequence behaviors; the viewer's dependency removed), `annotations.apply` for what a structure carries.
+   As built: `ModelArchiveExtension` (`@molstar/model-archive-extension/prism-viewer`, in the app's list): the pLDDT and
+   QMEAN color themes, their annotations and commands, the pLDDT track as the first sequence behavior
+   (`sequence/behaviors.ts`); the viewer's dependency is gone. Not yet: the PAE view, Home's "color by them?" line.
 2. **Ports**: assembly-symmetry, geo-export, model-export, video-export (lazy), zenodo (lazy), kinemage, ANVIL; the
    data-only ones through `pluginExtension`.
 3. **The app's list and `FullPrismViewerSpec()`**; the single-file build (app.md §2).

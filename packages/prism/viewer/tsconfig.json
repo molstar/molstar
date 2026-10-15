@@ -20,9 +20,6 @@
       "path": "../../model"
     },
     {
-      "path": "../../../extensions/model-archive"
-    },
-    {
       "path": "../../plugin/core"
     },
     {

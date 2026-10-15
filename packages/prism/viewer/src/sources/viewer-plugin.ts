@@ -9,7 +9,6 @@
 import { type CanvasBackgroundProps, observableState, parseColor, type ReadonlyState } from '@molstar/prism-ui';
 import type { Structure, StructureElement, Trajectory } from '@molstar/model/model/structure';
 import { SecondaryStructureColorThemeProvider } from '@molstar/graphics/theme/color/secondary-structure';
-import { PLDDTConfidenceColorThemeProvider } from '@molstar/model-archive-extension/quality-assessment/color/plddt';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StructureSource, structureMvs } from '@molstar/seq-molstar-poc';
 import {
@@ -62,8 +61,6 @@ export interface ViewerPlugin {
     url: string;
     format: 'bcif' | 'mmcif' | 'pdb';
     title: string;
-    /** A predicted model: its cartoon colored by pLDDT, and the sequence view gets a pLDDT track. */
-    predicted?: boolean;
     /** Which ligands to show, by chemical component id; absent: all. */
     ligands?: readonly string[];
   }): Promise<void>;
@@ -136,10 +133,8 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
 
   const ready = mountPlugin(host, {
     background: parseColor(background) ?? 0xffffff,
-    // The themes the sequence's track menus name: the confidence (a predicted model) and the secondary structure.
-    registry: [
-      { structure: { themes: { color: [PLDDTConfidenceColorThemeProvider, SecondaryStructureColorThemeProvider] } } },
-    ],
+    // The theme the sequence's track menus name: the secondary structure.
+    registry: [{ structure: { themes: { color: [SecondaryStructureColorThemeProvider] } } }],
   }).then((p) => {
     if (disposed) {
       p.dispose();
@@ -200,19 +195,12 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
             }
           }
         }
-        return name === 'plddt-confidence'
-          ? 'plddt'
-          : name === 'secondary-structure'
-            ? 'secondary'
-            : name === 'default' || name === DefaultColorTheme
-              ? 'default'
-              : undefined;
+        return name === 'default' || name === DefaultColorTheme ? 'default' : name;
       },
       async colorStructure(coloring: StructureColoring) {
         const p = plugin;
         if (!p) return;
-        const color =
-          coloring === 'plddt' ? 'plddt-confidence' : coloring === 'secondary' ? 'secondary-structure' : 'default';
+        const color = coloring;
         const components = p.managers.structure.hierarchy.current.structures.flatMap((s) => s.components);
         // One undoable update of Mol*'s state, as a theme change of the structure tools is: the polymer's representations,
         // not the ligands' ball and stick.
@@ -251,7 +239,7 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
       plugin.canvas3d?.setProps({ transparentBackground: on });
       plugin.events.canvas3d.settingsUpdated.next(undefined);
     },
-    async load({ url, format, title, predicted, ligands }) {
+    async load({ url, format, title, ligands }) {
       await ready;
       if (!plugin || disposed) return;
       const load = ++loads;
@@ -263,7 +251,6 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
             url,
             format,
             background,
-            ...(predicted ? { colorTheme: 'plddt-confidence' } : {}),
             ...(ligands ? { ligandComps: ligands } : {}),
           }),
         );
@@ -278,7 +265,6 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
           title,
           source: StructureSource.of(trajectory, format),
           structure: shown,
-          ...(predicted ? { predicted: true } : {}),
           ...(ligands ? { ligands } : {}),
         });
       } catch (e) {

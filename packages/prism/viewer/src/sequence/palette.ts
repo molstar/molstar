@@ -68,36 +68,6 @@ export const PrismRegistry: SvsRegistryEntry = { colorSchemes: [PrismResidues] }
 /** The schemes the letters' menu offers, the default first (a name per `colorScheme`; null: not colored). */
 export const LetterSchemes: readonly (string | null)[] = ['prism:residues', 'zappo', 'taylor', 'hydrophobicity', null];
 
-// The pLDDT track's bands: AlphaFold DB's four (very low < 50 ≤ low < 70 ≤ confident < 90 ≤ very high), the official
-// hues softened to the residue palette's key, still recognizably AlphaFold's blue and orange. Cells, so one set for a
-// light and a dark ink. The model knows them (it set the theme), so its legend lists them (prism-sequence.md §6).
-
-const BANDS = [
-  { label: 'Very high (pLDDT > 90)', from: 90, color: '#3f6fc4' },
-  { label: 'Confident (70–90)', from: 70, color: '#7ec1e3' },
-  { label: 'Low (50–70)', from: 50, color: '#e8cc5a' },
-  { label: 'Very low (< 50)', from: 0, color: '#e89468' },
-] as const;
-
-/** The track's color theme: a discrete palette over the value, the bands' lower bounds absolute. */
-export const PrismPlddtBands: ThemeRef = {
-  theme: 'field_palette',
-  params: {
-    field: 'value',
-    palette: {
-      kind: 'discrete',
-      mode: 'absolute',
-      colors: [...BANDS].reverse().map((b) => [b.color, b.from]),
-    },
-  },
-};
-
-/** The bands as the legend lists them, high to low. */
-export const PlddtLegendItems: readonly { label: string; color: string }[] = BANDS.map((b) => ({
-  label: b.label,
-  color: b.color,
-}));
-
 // The secondary structure track's classes, softened to the residue palette's key: helices rose, strands amber, turns
 // teal, the coil the line between them. One set for a light and a dark ink (they are blocks and arrows).
 const SECONDARY = [

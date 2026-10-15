@@ -619,6 +619,9 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/model-archive-extension':
+        specifier: workspace:*
+        version: link:../../extensions/model-archive
       '@molstar/prism-assistant':
         specifier: workspace:*
         version: link:../../packages/prism/assistant
@@ -1967,6 +1970,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       '@molstar/query-language':
         specifier: workspace:*
         version: link:../../packages/query-language
@@ -3033,9 +3039,6 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../model
-      '@molstar/model-archive-extension':
-        specifier: workspace:*
-        version: link:../../../extensions/model-archive
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../mvs/runtime

@@ -30,6 +30,7 @@ import type { AnnotationProvider } from './api/annotations.js';
 import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, ViewerApi } from './api/area.js';
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNodeKind } from './model/scene.js';
+import type { SequenceBehavior } from './sequence/behaviors.js';
 
 // What a Prism viewer is made from (viewer-spec.md): plain data, explicit ordered lists, nothing resolved by name, a
 // fresh default from a function. Types only: no DOM, no value import of the plugin.
@@ -74,14 +75,14 @@ export interface PrismViewerSequenceSpec {
   readonly style?: 'tracks' | 'text';
 }
 
-/**
- * A sequence behavior: what keeps part of the sequence's document in step with the plugin's state (sequence.md §3).
- * Its shape is settled with the sequence on the API (plan phase 2.4).
- */
-export interface SequenceBehavior {
-  readonly id: PartId;
-  readonly title: string;
-}
+/** A sequence behavior: what keeps part of the sequence's document in step with what it shows (sequence.md §3). */
+export type {
+  SequenceBehavior,
+  SequenceBehaviorContext,
+  SequenceOffer,
+  SequenceShown,
+  SequenceTrackMenuItem,
+} from './sequence/behaviors.js';
 
 /** §2.4 */
 export interface PrismViewerAgentSpec {
