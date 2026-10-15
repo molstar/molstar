@@ -7,6 +7,8 @@
  */
 
 import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
+import { ExportImageFeature } from './features/export-image/index.js';
+import { ExportSessionFeature } from './features/export-session/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
 import type { PrismViewerSpec } from './spec.js';
 
@@ -18,7 +20,7 @@ import type { PrismViewerSpec } from './spec.js';
 export function DefaultPrismViewerSpec(): PrismViewerSpec {
   return {
     plugin: prismViewerPluginParts(),
-    extensions: [CanvasSettingsFeature],
+    extensions: [CanvasSettingsFeature, ExportImageFeature, ExportSessionFeature],
     sequence: { behaviors: [] },
     agent: {},
   };

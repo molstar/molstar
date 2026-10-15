@@ -18,7 +18,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | `Viewer.load*` (structure, PDB, PDB-IHM, EMDB, AFDB, ModelArchive, volume, trajectory, MVS, files, URL, snapshot) | `@molstar/plugin-extension/loaders`, imported as needed; `viewer.run` for a history step; the loaders feature for the API | `load.*` (loaders feature) | missing |
 | URL parameters (`pdb`, `afdb`, `emdb`, `url`, `mvs-url`, `snapshot-url`, …) | run at start by the loaders feature                             | `load.*`, options            | missing |
 | remote states (list, upload, fetch, remove)                           | Home's list and the Remote states card, behind a setting; the listing and removal now live in the classic UI's view (`state/snapshots.tsx`, `RemoteStateSnapshots`) and move into the feature's API | `session.remote.*`           | mocked |
-| sessions `.molx` / `.molj` (open, save)                               | Snapshots tab; drop; Export › Session                                 | `session.*`                  | mocked |
+| sessions `.molx` / `.molj` (open, save)                               | Snapshots tab; drop; Export › Session                                 | `session.*`                  | open and save built (`export-session`: `session.save`); Snapshots tab mocked |
 
 ## 2. The scene
 
@@ -50,7 +50,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | v5                                                                    | Prism                                                                 | API area                     | State  |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------- | ------ |
 | camera reset, zoom, orient and reset axes                             | canvas toolbar Reset menu                                             | `camera.*`                   | mocked |
-| screenshot (preview, crop, copy, download; state import/export; camera info) | Export › Image                                                 | `export.image`               | mocked |
+| screenshot (preview, crop, copy, download; state import/export; camera info) | Export › Image                                                 | `export.image`               | built (`export-image`; WebGL paths checked in the browser) |
 | canvas settings (background, lighting, camera, clipping)              | Canvas settings card                                                  | `canvas.*`                   | built (`canvas-settings`: `canvas.settings`, `.lighting`, `.camera`, `.clipping`) |
 | illumination, XR                                                      | toolbar Rendering menu                                                | `canvas.illumination`, `canvas.xr` | illumination built (`canvas-settings`); XR mocked |
 | expand, fullscreen                                                    | toolbar Expand / Fullscreen                                           | `view.expand`, `view.fullscreen` | mocked |

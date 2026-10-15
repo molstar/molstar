@@ -84,7 +84,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `trajectory`   | `frame`, `play`, `stop`                                                                                                     | `get`                         | core                |
 | `camera`       | `reset`, `zoom`, `orient`, `frame` (target)                                                                                 | `get`                         | core                |
 | `canvas`       | `background`; canvas settings: `settings` (ui-only), `lighting`, `illumination`, `camera`, `clipping`; `xr`                 | `get`                         | core; canvas settings |
-| `export`       | `image` (size, crop, transparent), `session`; extensions add `models`, `geometry`, `animation`                              | —                             | export features     |
+| `export`       | `image` (size, crop, transparent, format), `image-copy`, `preview` (ui-only); extensions add `models`, `geometry`, `animation` (a session is `session.save`) | —           | export-image; extensions |
 | `sequence`     | `style` (text, tracks), `colors`, `follow` (structure), `legend`                                                            | `get`                         | core                |
 | `state`        | `remove`, `visibility`, `update` (a cell's params), `action` (an applicable state action by id)                             | `get` (the tree)              | state tree          |
 | `settings`     | `set` (a group's values)                                                                                                    | `get`                         | core                |

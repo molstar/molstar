@@ -1,0 +1,98 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cbs, expectOk, headlessViewer } from '../../../_test/harness.js';
+import { ExportSessionFeature } from '../index.js';
+
+// The `export-session` feature: `session.save` in the core's `session` area, headless (the download is the page's).
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('export session', () => {
+  it('adds session.save and its command, a read of the scene with no history', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature] });
+    expect(v.api.session.save).toBeDefined();
+    expect(v.api.describe('session.save')?.definition).toMatchObject({ history: false, undoable: false });
+    expect(v.managers.commands.get('session.save')).toBeDefined();
+    // Nothing loaded, nothing to save.
+    expect(v.api.describe('session.save')?.available).toBe('Nothing is loaded.');
+    expect(await v.api.session.save!()).toMatchObject({ ok: false, code: 'blocked' });
+  });
+
+  it('is only for built-in features', async () => {
+    const { builtIn: _, ...outside } = ExportSessionFeature;
+    await expect(headlessViewer({ extensions: [{ ...outside, id: 'outside' }] })).rejects.toThrow(/only the viewer/);
+  });
+
+  it('saves a session (.molx) and a state (.molj) as non-empty files, with no history step', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    const steps = v.managers.history.steps.value.length;
+    const session = await v.api.session.save!({ kind: 'session' });
+    expectOk(session);
+    expect(session.value!.filename).toBe('1CBS.molx');
+    expect(session.value!.blob.size).toBeGreaterThan(0);
+    // A .molx is a zip.
+    const head = new Uint8Array(await session.value!.blob.slice(0, 2).arrayBuffer());
+    expect([...head]).toEqual([0x50, 0x4b]);
+
+    const state = await v.api.session.save!({ kind: 'state', name: 'my scene.molj' });
+    expectOk(state);
+    expect(state.value!.filename).toBe('my scene.molj');
+    expect(state.value!.blob.size).toBeGreaterThan(0);
+    expect(JSON.parse(await state.value!.blob.text()).entries.length).toBeGreaterThan(0);
+    expect(v.managers.history.steps.value.length).toBe(steps);
+  });
+
+  it('opens a saved session: the structures come back, with their data', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    const count = () => v.plugin.managers.structure.hierarchy.current.structures.length;
+    expect(count()).toBe(1);
+    const saved = await v.api.session.save!({ kind: 'session' });
+    expectOk(saved);
+    expectOk(await v.api.session.clear());
+    expect(count()).toBe(0);
+    expectOk(await v.api.session.open({ file: new File([saved.value!.blob], saved.value!.filename) }));
+    expect(count()).toBe(1);
+  });
+
+  it('opens a saved state when its data can be fetched again (it says where, not what)', async () => {
+    const text = fs.readFileSync(
+      path.resolve(import.meta.dirname, '../../../../../../../data/examples/1cbs_updated.cif'),
+    );
+    vi.stubGlobal('fetch', async () => new Response(text));
+    const v = await headlessViewer({ extensions: [ExportSessionFeature] });
+    const { builders } = v.plugin;
+    const data = await builders.data.download({ url: 'https://data.test/1cbs.cif', isBinary: false });
+    const trajectory = await builders.structure.parseTrajectory(data, 'mmcif');
+    await builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    const count = () => v.plugin.managers.structure.hierarchy.current.structures.length;
+    expect(count()).toBe(1);
+    const saved = await v.api.session.save!({ kind: 'state' });
+    expectOk(saved);
+    expectOk(await v.api.session.clear());
+    expect(count()).toBe(0);
+    expectOk(await v.api.session.open({ file: new File([saved.value!.blob], saved.value!.filename) }));
+    expect(count()).toBe(1);
+  });
+
+  it('saves a state of locally opened files, which cannot be opened without them', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    const saved = await v.api.session.save!({ kind: 'state' });
+    expectOk(saved);
+    expectOk(await v.api.session.clear());
+    expect(await v.api.session.open({ file: new File([saved.value!.blob], saved.value!.filename) })).toMatchObject({
+      ok: false,
+      code: 'failed',
+    });
+  });
+});

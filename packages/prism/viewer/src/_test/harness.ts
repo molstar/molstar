@@ -54,13 +54,19 @@ export function recordRuns(v: PrismViewer): RunRecord[] {
   return runs;
 }
 
+/** The default list with these added; one with a default's id takes its place (a feature's tests pass the feature). */
+export function withExtensions<E extends { readonly id: string }>(base: readonly E[], added: readonly E[]): E[] {
+  const ids = new Set(added.map((e) => e.id));
+  return [...base.filter((e) => !ids.has(e.id)), ...added];
+}
+
 /** A headless viewer with the default spec (and `spec` over it, `extensions` added), disposed after the test; `files` loaded first. */
 export async function headlessViewer(
   o: { extensions?: ViewerExtension[]; files?: File[]; spec?: Partial<PrismViewerSpec> } = {},
 ): Promise<PrismViewer> {
   const base = DefaultPrismViewerSpec();
   const viewer = await createPrismViewerHeadless({
-    spec: { ...base, ...o.spec, extensions: [...(base.extensions ?? []), ...(o.extensions ?? [])] },
+    spec: { ...base, ...o.spec, extensions: withExtensions(base.extensions ?? [], o.extensions ?? []) },
   });
   created.push(viewer);
   for (const f of o.files ?? []) expectOk(await viewer.api.load.files({ files: [f] }));
