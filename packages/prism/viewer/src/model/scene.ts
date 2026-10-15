@@ -9,6 +9,7 @@
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import type { VolumeLevelsModel } from './volume-levels.js';
 
 export type SceneNodeKind =
   | 'structure'
@@ -42,6 +43,8 @@ export interface SceneNode {
   label: ReadonlyState<string>;
   /** A short second line ("3,624 atoms", "Cartoon · Chain ID"). */
   description: ReadonlyState<string | undefined>;
+  /** A color shown before the description (a volume's isosurface: which one is which); undefined: a theme's colors. */
+  swatch?: ReadonlyState<number | undefined>;
   isHidden: ReadonlyState<boolean>;
   isExpanded: ReadonlyState<boolean>;
   children: ReadonlyState<readonly SceneNode[]>;
@@ -89,6 +92,8 @@ export interface SceneInspection {
   facts?: readonly (readonly [label: string, value: string])[];
   /** Things to do from here, as plain buttons under the facts (Measurements: measure the selection, in its tab). */
   actions?: readonly SceneMenuItem[];
+  /** A map's levels, above the form (a volume, an isosurface, streamed density: one per map). */
+  levels?: readonly VolumeLevelsModel[];
 }
 
 export interface SceneModel {

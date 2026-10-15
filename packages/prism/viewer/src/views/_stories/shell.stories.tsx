@@ -86,7 +86,10 @@ export const Playback: StoryObj = {
     )),
 };
 
-/** An EMDB entry and its fitted model (EMD-2984 and 5A1A): the map is a volume next to the structure. Network. */
+/**
+ * An EMDB entry and its fitted model (EMD-2984 and 5A1A): the map is a volume next to the structure, picked: its levels
+ * (the histogram with the iso value to drag, the color, the opacity) in the inspector. Network.
+ */
 export const EmdbMap: StoryObj = {
   render: () =>
     story(() => (
@@ -95,6 +98,8 @@ export const EmdbMap: StoryObj = {
           await v.api.load.entry?.({ source: 'pdb', id: '5A1A' });
           await v.api.load.entry?.({ source: 'emdb', id: 'EMD-2984' });
           v.views.shell?.show('structure');
+          // The map picked: its levels (the histogram, the iso value, the color) in the inspector.
+          v.views.scene.pick(v.views.scene.roots.value.find((n) => n.kind === 'volume'));
         }}
       />
     )),

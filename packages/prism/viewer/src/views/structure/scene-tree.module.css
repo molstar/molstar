@@ -120,6 +120,20 @@
   white-space: nowrap;
 }
 
+/* A row's color (a volume's isosurface), before its description; a theme's colors: a split swatch. */
+.swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--msp-accent-red) 0 25%,
+    var(--msp-accent-orange) 0 50%,
+    var(--msp-accent-green) 0 75%,
+    var(--msp-accent-blue) 0
+  );
+}
+
 .actions {
   flex: none;
   display: flex;

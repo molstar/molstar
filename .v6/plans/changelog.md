@@ -131,6 +131,9 @@ the [API change ledger](breaking-v6-changes.md).
   lists recent foci.
 - Prism viewer: volume streaming's view, detail and channels (`volume.streaming-view`), with a "Volume streaming" row
   and inspector under the streamed structure.
+- Prism viewer: a map's levels in the inspector of a volume, an isosurface and streamed density: the map's histogram
+  with a marker per iso value to drag (one undo step a drag), the value in σ or map units, each level's color and
+  opacity; an isosurface's tree row shows its color.
 - Prism viewer: load a SeqViewSpec into the sequence (`load.svs`, `.svsj` files, `svs-url`): it shows over the loaded
   structure it names (loaded if missing) until another structure is focused or loaded, and Undo and sessions keep it.
 - Prism viewer: `load.mvs` takes v5's options: `append` (keep the Snapshots list), `keepCameraOrientation`,

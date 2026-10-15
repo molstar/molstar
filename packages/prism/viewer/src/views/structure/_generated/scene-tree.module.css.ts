@@ -34,6 +34,7 @@ export const classes = {
   'subChevron': 'msp-viewer-scene-tree-subChevron',
   'subItems': 'msp-viewer-scene-tree-subItems',
   'subMenu': 'msp-viewer-scene-tree-subMenu',
+  'swatch': 'msp-viewer-scene-tree-swatch',
   'tree': 'msp-viewer-scene-tree-tree',
 } as const;
 
@@ -141,6 +142,17 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   animation-fill-mode: both;
   animation-timeline: scroll(self inline);
   overflow: hidden;
+}
+
+.msp-viewer-scene-tree-swatch {
+  background: conic-gradient(var(--msp-accent-red) 0 25%,
+    var(--msp-accent-orange) 0 50%,
+    var(--msp-accent-green) 0 75%,
+    var(--msp-accent-blue) 0);
+  border-radius: 50%;
+  flex: none;
+  width: 8px;
+  height: 8px;
 }
 
 .msp-viewer-scene-tree-actions {

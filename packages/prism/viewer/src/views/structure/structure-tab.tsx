@@ -22,6 +22,7 @@ import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
+import { VolumeLevels } from '../volume/volume-levels.js';
 import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
@@ -278,6 +279,10 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
           ))}
         </div>
       ) : null}
+      {/* A map's levels (the iso values and colors people change most), above the whole form. */}
+      {props.inspection.levels?.map((levels) => (
+        <VolumeLevels model={levels} />
+      ))}
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
       {/* Nothing to set (no form or actions of its own): what can be done with it is shown here, its row menu's

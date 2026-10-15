@@ -184,6 +184,9 @@ describe('volume.streaming-view', () => {
   });
 });
 
+const channel = (v: PrismViewer, c: string) =>
+  (behaviorParams(v).entry.params.channels as any)[c] as { isoValue: { relativeValue: number }; color: number };
+
 describe('the streaming row', () => {
   it('shows under its structure with the view in its inspector, whose edits are volume.streaming-view calls', async () => {
     const v = await streamed();
@@ -197,15 +200,26 @@ describe('the streaming row', () => {
 
     const inspection = v.views.scene.inspect(row);
     const form = inspection.form!;
-    expect(form.values.value).toMatchObject({ view: 'selection-box', radius: 5, detail: 4, 'iso:2fo-fc': 1.5 });
+    expect(form.values.value).toMatchObject({ view: 'selection-box', radius: 5, detail: 4 });
 
     const runs = recordRuns(v);
     form.set('view', 'cell');
-    form.set('iso:2fo-fc', 1.1);
+    form.set('detail', 2);
     await until(() => runs.some((r) => r.operation === 'volume.streaming-view' && !!r.result));
     expect(runs.filter((r) => r.operation === 'volume.streaming-view' && !!r.result)).toHaveLength(1);
     expect(behaviorParams(v).entry.params.view.name).toBe('cell');
     await until(() => row.description.value?.startsWith('Whole Structure') ?? false);
+
+    // The channels are its levels: 2Fo-Fc, and Fo-Fc with its two signs, in σ of the whole map.
+    const [twoFoFc, foFc] = inspection.levels!;
+    expect(twoFoFc.title).toBe('2Fo-Fc');
+    expect(foFc.levels.value.map((l) => l.id)).toEqual(['fo-fc(+ve)', 'fo-fc(-ve)']);
+    const { mean, sigma } = twoFoFc.stats;
+    expect((twoFoFc.levels.value[0].value - mean) / sigma).toBeCloseTo(1.5, 5);
+    twoFoFc.change('2fo-fc', { value: mean + 1.1 * sigma, color: 0xff0000 });
+    twoFoFc.settle();
+    await until(() => Math.abs(channel(v, '2fo-fc').isoValue.relativeValue - 1.1) < 1e-6);
+    expect(channel(v, '2fo-fc').color).toBe(0xff0000);
 
     // The eye turns the view off; remove turns streaming off (no network: off needs none).
     row.toggleVisibility();

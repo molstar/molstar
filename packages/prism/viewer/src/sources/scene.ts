@@ -44,6 +44,7 @@ import { type IconName, type ObservableState, observableState, type ReadonlyStat
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
+import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
 import { currentTransform } from '../api/structure.js';
 import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
@@ -53,10 +54,8 @@ import {
 } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import {
   gridText,
-  type StreamingChannelsChange,
   type StreamingState,
   shortNumber,
-  streamingChannels,
   streamingOf,
   streamingSummary,
   voxelText,
@@ -65,6 +64,7 @@ import {
 import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
+import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -99,6 +99,7 @@ class Node implements SceneNode {
   readonly #hidden = observableState(false);
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
+  #swatch?: ObservableState<number | undefined>;
   icon: IconName;
   menu?: readonly SceneMenuItem[];
   removable?: boolean;
@@ -137,6 +138,15 @@ class Node implements SceneNode {
   }
   get children(): ReadonlyState<readonly SceneNode[]> {
     return this.#children.asReadonly;
+  }
+  get swatch(): ReadonlyState<number | undefined> | undefined {
+    return this.#swatch?.asReadonly;
+  }
+
+  /** The row's color (a volume's isosurface); only rows that have one get it. */
+  setSwatch(color: number | undefined): void {
+    if (!this.#swatch) this.#swatch = observableState(color);
+    else this.#swatch.set(color);
   }
 
   set(label: string, description: string | undefined, hidden: boolean): void {
@@ -186,6 +196,11 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   /** The structure a volume streaming row is under, and the streaming's behavior cell (its params change). */
   const streamingOwners = new Map<string, string>();
   const streamingBehaviors = new Map<string, string>();
+  /** How map levels are shown and typed (σ or map units), one choice for every map. */
+  const levelUnit = observableState<VolumeLevelUnit>('sigma');
+  const refreshLevels = (id: string) => {
+    for (const l of (inspections.get(id)?.levels ?? []) as VolumeLevelsSource[]) l.refresh();
+  };
 
   const structureNode = (s: StructureRef, name: string): Node => {
     const ref = s.cell.transform.ref;
@@ -251,6 +266,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     }
     n.set('Volume streaming', streamingSummary(on), on.params.entry.params.view.name === 'off');
     inspections.get(ref)?.form?.load(streamingValues(on));
+    refreshLevels(ref);
     return n;
   };
 
@@ -466,6 +482,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     const data = v.cell.obj?.data;
     const stats = data && volumeStats(data);
     n.set(name, stats ? `${gridText(stats)} · ${voxelText(stats)}` : undefined, !!v.cell.state.isHidden);
+    refreshLevels(ref);
     return n;
   };
 
@@ -481,14 +498,22 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       n.removable = true;
       nodes.set(ref, n);
     }
-    const iso = (r.cell.transform.params as { type?: { params?: { isoValue?: Volume.IsoValue } } } | undefined)?.type
-      ?.params?.isoValue;
+    const p = r.cell.transform.params as
+      | {
+          type?: { params?: { isoValue?: Volume.IsoValue } };
+          colorTheme?: { name: string; params?: { value?: number } };
+        }
+      | undefined;
+    const iso = p?.type?.params?.isoValue;
     n.set(
       r.cell.obj?.label ?? 'Representation',
       iso ? Volume.IsoValue.toString(iso) : undefined,
       !!r.cell.state.isHidden,
     );
+    n.setSwatch(p?.colorTheme?.name === 'uniform' ? p.colorTheme.params?.value : undefined);
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    refreshLevels(ref);
+    refreshLevels(volumeRef);
     return n;
   };
 
@@ -672,6 +697,10 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   );
   scope.add(
     plugin.state.data.events.object.updated.subscribe((e) => {
+      // A channel's visual under the behavior: new density arrived (the levels' histogram).
+      const parent = plugin.state.data.tree.transforms.get(e.ref)?.parent;
+      const above = parent !== undefined ? streamingBehaviors.get(parent) : undefined;
+      if (above) refreshLevels(above);
       const root = streamingBehaviors.get(e.ref);
       const owner = root ? streamingOwners.get(root) : undefined;
       const s = owner ? plugin.managers.structure.hierarchy.current.refs.get(owner) : undefined;
@@ -693,13 +722,18 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     inspect: (n) => {
       let inspection = inspections.get(n.id);
       if (!inspection) {
-        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id));
+        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit);
         inspections.set(n.id, inspection);
       }
       return inspection;
     },
     sync,
   };
+}
+
+/** A volume of the hierarchy by its ref. */
+function volumeRefOf(plugin: PluginContext, ref: string): VolumeRef | undefined {
+  return plugin.managers.volume.hierarchy.current.volumes.find((v) => v.cell.transform.ref === ref);
 }
 
 function Structure_toLoci(s: Structure): StructureElement.Loci {
@@ -939,21 +973,6 @@ function debounced<T>(apply: (values: T) => void, ms = 150): (values: T) => void
 
 // ---- Volume streaming's inspector (parity.md §2; v5's Volume Streaming controls) ----
 
-/** v5's iso ranges per channel (σ), as its panel's sliders have them. */
-const ChannelBounds: Readonly<Record<VolumeStreaming.ChannelType, readonly [number, number]>> = {
-  em: [-5, 5],
-  '2fo-fc': [0, 3],
-  'fo-fc(+ve)': [1, 5],
-  'fo-fc(-ve)': [-5, -1],
-};
-
-const ChannelLabels: Readonly<Record<VolumeStreaming.ChannelType, string>> = {
-  em: 'EM',
-  '2fo-fc': '2Fo-Fc',
-  'fo-fc(+ve)': 'Fo-Fc(+ve)',
-  'fo-fc(-ve)': 'Fo-Fc(-ve)',
-};
-
 const AroundFocus = (v: Record<string, unknown>) => v.view !== 'selection-box' && v.view !== 'auto';
 
 function streamingForm(on: StreamingState): PD.Params {
@@ -970,11 +989,6 @@ function streamingForm(on: StreamingState): PD.Params {
     ),
     detail: PD.Select<number>(1, levels, { label: 'Detail', hideIf: (v) => v.view === 'off' }),
   };
-  for (const c of streamingChannels(on.entry)) {
-    const [min, max] = ChannelBounds[c];
-    params[`iso:${c}`] = PD.Numeric(min, { min, max, step: 0.05 }, { label: `${ChannelLabels[c]} (σ)` });
-    params[`color:${c}`] = PD.Color(Color(0), { label: `${ChannelLabels[c]} color` });
-  }
   return params;
 }
 
@@ -988,42 +1002,26 @@ function streamingValues(on: StreamingState): PD.Values<PD.Params> {
     cameraRadius: camera && view.radius !== undefined ? view.radius : 0.5,
     detail: (camera ? (view.dynamicDetailLevel ?? 0) : p.detailLevel) + 1,
   };
-  const sampling = on.entry.header.sampling[0];
-  for (const c of streamingChannels(on.entry)) {
-    const ch = (p.channels as Partial<Record<string, VolumeStreaming.ChannelParams>>)[c];
-    if (!ch) continue;
-    const stats = sampling?.valuesInfo[c.startsWith('fo-fc') ? 1 : 0];
-    const iso =
-      ch.isoValue.kind === 'relative' || !stats
-        ? (ch.isoValue as Volume.IsoValue.Relative).relativeValue
-        : Volume.IsoValue.toRelative(ch.isoValue, stats).relativeValue;
-    values[`iso:${c}`] = Math.round(iso * 100) / 100;
-    values[`color:${c}`] = ch.color;
-  }
   return values;
 }
 
-/** The form's edits as `volume.streaming-view` calls: the fields changed in a moment, as one call (sliders). */
+/**
+ * The form's edits as `volume.streaming-view` calls: the fields changed in a moment, as one call (sliders). The
+ * channels' levels are the inspector's level controls (`streamingLevels`).
+ */
 function streamingChanges(api: ViewerApi, structure: string): (values: PD.Values<PD.Params>, name: string) => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let pending: { view?: string; radius?: number; detail?: number; channels: StreamingChannelsChange } = {
-    channels: {},
-  };
+  let pending: { view?: string; radius?: number; detail?: number } = {};
   return (values, name) => {
     const v = values as Record<string, any>;
     if (name === 'view') pending.view = v.view;
     else if (name === 'radius') pending.radius = v.radius;
     else if (name === 'cameraRadius') pending.radius = v.cameraRadius;
     else if (name === 'detail') pending.detail = v.detail;
-    else {
-      const [what, channel] = name.split(':');
-      const key = what === 'iso' ? 'isoValue' : 'color';
-      pending.channels = { ...pending.channels, [channel]: { ...pending.channels[channel], [key]: v[name] } };
-    }
     clearTimeout(timer);
     timer = setTimeout(() => {
       const change = pending;
-      pending = { channels: {} };
+      pending = {};
       void api.run('volume.streaming-view', { structure, ...change });
     }, 150);
   };
@@ -1285,7 +1283,13 @@ function unitCellValues(cell: StateObjectCell): PD.Values<typeof UnitCellForm> {
 }
 
 /** What the inspector shows for a node: facts, and the parameters of a representation as a form. */
-function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?: string): SceneInspection {
+function inspect(
+  plugin: PluginContext,
+  api: ViewerApi,
+  node: SceneNode,
+  owner: string | undefined,
+  unit: ObservableState<VolumeLevelUnit>,
+): SceneInspection {
   const cell = plugin.state.data.cells.get(node.id);
   const slot = `inspector:${node.kind}`;
   if (node.kind === 'unit-cell' && cell) {
@@ -1316,9 +1320,14 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?:
     const s = plugin.managers.structure.hierarchy.current.refs.get(owner);
     const on = s?.kind === 'structure' ? streamingOf(plugin, s) : undefined;
     if (on) {
+      const state = () => {
+        const now = plugin.managers.structure.hierarchy.current.refs.get(owner);
+        return now?.kind === 'structure' ? streamingOf(plugin, now) : undefined;
+      };
       return {
         node,
         form: new ParamsFormModel(streamingForm(on), streamingValues(on), { onChange: streamingChanges(api, owner) }),
+        levels: streamingLevels(plugin, owner, state).map((port) => createVolumeLevels(api, port, unit)),
         slot,
         facts: [
           ['Entry', `${on.entry.dataId} (${on.entry.kind === 'em' ? 'EM' : 'X-ray'})`],
@@ -1376,10 +1385,16 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?:
     const data = cell.obj.data as Volume;
     const stats = volumeStats(data);
     const signed = (x: number) => shortNumber(x).replace('-', '−');
+    const levels = createVolumeLevels(
+      api,
+      mapLevels(plugin, () => volumeRefOf(plugin, node.id)),
+      unit,
+    );
     return {
       node,
       form: undefined,
       slot,
+      ...(levels.levels.value.length ? { levels: [levels] } : {}),
       facts: [
         ...(data.sourceData.kind ? [['Source', data.sourceData.kind.toUpperCase()] as const] : []),
         ['Grid', gridText(stats)],
@@ -1414,7 +1429,21 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?:
           timer = setTimeout(() => void api.run(updateOperation, { representation: node.id, params: values }), 150);
         },
       });
-      return { node, form, slot };
+      // An isosurface: its level above the whole form (the iso value, the color, the opacity at hand).
+      const volume =
+        node.kind === 'volume-representation'
+          ? plugin.managers.volume.hierarchy.current.volumes.find((v) =>
+              v.representations.some((r) => r.cell.transform.ref === node.id),
+            )?.cell.transform.ref
+          : undefined;
+      const levels = volume
+        ? createVolumeLevels(
+            api,
+            mapLevels(plugin, () => volumeRefOf(plugin, volume), node.id),
+            unit,
+          )
+        : undefined;
+      return { node, form, slot, ...(levels?.levels.value.length ? { levels: [levels] } : {}) };
     }
   }
   return { node, form: undefined, slot };

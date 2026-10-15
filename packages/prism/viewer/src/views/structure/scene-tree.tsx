@@ -9,6 +9,7 @@
  */
 
 import { combineLatest, distinctUntilChanged, map, type Observable, of, shareReplay, startWith } from 'rxjs';
+import { colorToHex } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
@@ -167,6 +168,13 @@ function TreeItem(props: {
         <span class={classes.label} id={labelId} data-tip-part="">
           {node.label}
         </span>
+        {node.swatch ? (
+          <span
+            class={classes.swatch}
+            style={{ background: node.swatch.pipe(map((c) => (c === undefined ? '' : colorToHex(c)))) }}
+            aria-hidden="true"
+          />
+        ) : null}
         <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
           {node.description}
         </span>
