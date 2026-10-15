@@ -18,7 +18,10 @@
 //     the registered one (seqspec:format#validation: a code has one severity, the registry's);
 //   - every heap guard file (`*.heap.ts`) runs the guard template's positive control (`controlCaught`, called in its
 //     code, AGENTS.md, Tests), but those `guards-pending.txt` lists, not converted yet; a listed file that calls it is
-//     a miss too.
+//     a miss too;
+//   - every Node heap guard file (not under `canvas/`, `dom/` or `react/`: the browser's stay deep-only) has its quick
+//     twin beside it (`x.heap.ts`, `x.quick.ts`), and every `*.quick.ts` calls `quickCase` (core/_test/model/quick.ts)
+//     in its code, each `control: false` with its `why` (AGENTS.md, Tests).
 // Exit 1 on a miss, printing each with where it is.
 //
 // Usage: node packages/sequences/scripts/spec.ts check
@@ -293,8 +296,27 @@ function guards(misses: string[]): number {
   }
   for (const f of pending)
     if (!files.includes(f)) misses.push(`scripts/guards-pending.txt: "${f}" is no heap guard file`);
-  return files.length;
+  for (const f of files) {
+    const twin = f.replace(/\.heap\.ts$/, '.quick.ts');
+    if (!BROWSER_GUARD.test(f) && !existsSync(join(SEQSTAR, twin)))
+      misses.push(
+        `${f}: a Node heap guard without its quick twin ${twin} (quickCase; packages/sequences/AGENTS.md, Tests)`,
+      );
+  }
+  const quick = walk(SEQSTAR, (f) => f.endsWith('.quick.ts')).map((f) => relative(SEQSTAR, f));
+  for (const f of quick) {
+    const code = codeOnly(readFileSync(join(SEQSTAR, f), 'utf8'));
+    if (!/\bquickCase\(/.test(code))
+      misses.push(`${f}: a quick file that never calls quickCase (core/_test/model/quick.ts; AGENTS.md, Tests)`);
+    const off = code.match(/\bcontrol:\s*false\b/g)?.length ?? 0;
+    const why = code.match(/\bwhy:/g)?.length ?? 0;
+    if (off > why) misses.push(`${f}: a quick case without its control says why (\`control: false, why: "…"\`)`);
+  }
+  return files.length + quick.length;
 }
+
+/** The browser's heap guards (`test:browser-heap`), deep-only: no `v8.GCProfiler` in Chrome. */
+const BROWSER_GUARD = /(^|\/)_test\/(.*\/)?(canvas|dom|react)\//;
 
 const HEADER = `/**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.

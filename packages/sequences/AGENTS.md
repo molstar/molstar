@@ -4,10 +4,10 @@ The entry point for work in the Seq\* packages. Seq\* is SeqViewSpec, a format f
 coordinate model (positions from a single residue to a whole genome, and the maps between them: a protein onto its
 gene's codons across introns, an alignment's rows onto its columns, a design onto its wild type, a chain onto its
 structure; data placed on any of these shows on the others), with its data model, SeqQL, its query language, and the
-builder. The Seq\* viewer renders it, and so does Nightingale. It imports nothing of Mol\*'s apps or UI; of Mol\*'s
-packages, seq-core takes only the MessagePack codec (`@molstar/io`), zip and the synchronous runtime context of
-`@molstar/core/task`, and molstar-poc, the adapter, the structure packages. This file, the repository's
-[AGENTS.md](../../AGENTS.md) and the spec are all it needs.
+builder. The Seq\* viewer renders it, and so does Nightingale. It imports nothing of Mol\*'s apps or UI; Mol\*'s
+packages it may use as any package here does (the restriction to a few was the separate repository's, with its vendored
+Mol\*, lifted 2026-10-14), except in the core's leaves, `query/` and `links/`; molstar-poc, the adapter, reads the
+structure packages. This file, the repository's [AGENTS.md](../../AGENTS.md) and the spec are all it needs.
 
 - **The spec** is `_spec/` (start with [_spec/README.md](_spec/README.md): what Seq\* is, the packages, the principles,
   the glossary). It says what, never how: contracts and meaning. Tables (nodes, types, layer types, themes, issue codes,
@@ -44,19 +44,20 @@ The fast tier runs in the repository's one Vitest run (`vitest.config.ts`, the `
 core, 10 s for the viewer (M4, 2026-10-14). The other tiers are each package's own scripts (`vitest.shared.ts` and the
 package's `vitest.*.config.ts`):
 
-| Command                                                                | What                                                                                                                                                                                                                                                                                      | Run it                                                                                                                               |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm test:unit packages/sequences/<pkg>`                              | the fast tier: node unit tests, fast and deterministic, no wall-clock timing, no Chrome, no heap guards                                                                                                                                                                                   | on every edit loop, in the packages you touched; a folder or file narrows it (`pnpm test:unit packages/sequences/core/_test/format`) |
-| `pnpm -C packages/sequences/<pkg> test:slow` (core, viewer, storybook) | node tests tagged `slow`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process (built first: `tsc -b`), the four largest smoke stories | when you change what such a test covers, and at checkpoints                                                                          |
-| `test:browser`                                                         | Chromium: pixels, UI, surface (the viewer's `_test/**/{canvas,dom,react}`; Nightingale's `mount`, `_test/dom`)                                                                                                                                                                            | when you change drawing, the DOM or the UIs; pass the affected files                                                                 |
-| `test:heap`, `test:browser-heap`                                       | heap guards                                                                                                                                                                                                                                                                               | when you change a hot path (draws, input, streams, query kernels); pass the touched guard files (viewer heap: about 4 min)           |
-| `test:heap-deep` (viewer)                                              | the heap guards as before the 2026-10-12 trim: full steps (catch about 22 bytes a step, the trimmed run about 43) and the dropped cases; about 10 min                                                                                                                                     | when chasing a small leak, or before a release; never in an edit loop                                                                |
-| `test:full`                                                            | all of the above                                                                                                                                                                                                                                                                          | at reviews and checkpoints only, one package at a time                                                                               |
+| Command                                                                               | What                                                                                                                                                                                                                                                                                                                                     | Run it                                                                                                                                         |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test:unit packages/sequences/<pkg>`                                             | the fast tier: node unit tests, fast and deterministic, no wall-clock timing, no Chrome, no heap guards                                                                                                                                                                                                                                  | on every edit loop, in the packages you touched; a folder or file narrows it (`pnpm test:unit packages/sequences/core/_test/format`)           |
+| `pnpm -C packages/sequences/<pkg> test:perf` (core, viewer, nightingale, molstar-poc) | the quick allocation tier: every hot path's bytes a step, read exactly (`v8.GCProfiler`), against the package's `_test/perf-baseline.json` (fails over it by 4 bytes a step; `--update` records an intended move); warm-up by count under lowered tier-up thresholds, so seconds (the viewer's about 1 min), any load, files in parallel | first in the edit loop when you touch a hot path (draws, input, streams, query kernels), beside the fast tier; pass the touched `*.quick.ts`   |
+| `pnpm -C packages/sequences/<pkg> test:slow` (core, viewer, storybook)                | node tests tagged `slow`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process (built first: `tsc -b`), the four largest smoke stories                                                | when you change what such a test covers, and at checkpoints                                                                                    |
+| `test:browser`                                                                        | Chromium: pixels, UI, surface (the viewer's `_test/**/{canvas,dom,react}`; Nightingale's `mount`, `_test/dom`)                                                                                                                                                                                                                           | when you change drawing, the DOM or the UIs; pass the affected files                                                                           |
+| `test:heap`, `test:browser-heap`                                                      | the deep guards: heap growth over n and 4n steps under V8's default tuning, warmed by count until optimized (`settleFrame`), each with its positive control                                                                                                                                                                              | at checkpoints and before a release, and to confirm a quick-tier finding; pass the touched guard files (the viewer's whole tier: about 25 min) |
+| `test:heap-deep` (viewer)                                                             | the deep guards as before the 2026-10-12 trim: full steps (catch about 22 bytes a step, the trimmed run about 43) and the dropped cases                                                                                                                                                                                                  | before a release, or when chasing a small leak the quick tier cannot place; never in an edit loop                                              |
+| `test:full`                                                                           | all of the above                                                                                                                                                                                                                                                                                                                         | at reviews and checkpoints only, one package at a time                                                                                         |
 
-**CI policy** (David, 2026-10-14): CI and `pnpm test` run the fast tier only. `test:slow`, `test:browser`, `test:heap`,
-`test:browser-heap` and `test:heap-deep` are opt-in, by hand during heavy work on Seq\*, never in CI (the heap tiers
-take about half an hour). The root config never matches the browser folders, `*.heap.ts` or the benches, and skips the
-`slow` tag. Two fast-tier tests run a CLI and skip without a build (`lib`).
+**CI policy** (David, 2026-10-14): CI and `pnpm test` run the fast tier only. `test:perf`, `test:slow`, `test:browser`,
+`test:heap`, `test:browser-heap` and `test:heap-deep` are opt-in, by hand during heavy work on Seq\*, never in CI (the
+heap tiers take about half an hour). The root config never matches the browser folders, `*.heap.ts`, `*.quick.ts` or the
+benches, and skips the `slow` tag. Two fast-tier tests run a CLI and skip without a build (`lib`).
 
 - **The `slow` tag** (vitest's test tags, `vitest.shared.ts`): a test slow by nature carries `{ tags: ["slow"] }` (a
   `describe` can carry it for all its tests) and keeps a quick representative untagged (the fuzz at 100 mutations, the
@@ -68,26 +69,48 @@ take about half an hour). The root config never matches the browser folders, `*.
   `vi.resetModules`) is found by reading it and runs isolated, in the `isolated` project; module state a file changes (a
   limit, a config default) it restores in `afterEach`, or the next file in the worker sees it.
 
-- Heap guards are load-sensitive: run them only when no other suites are running. If one fails, re-run it alone before
-  you diagnose it.
+- **Every hot path has a quick case; the deep guards run at checkpoints** (David, 2026-10-14). A new hot path gets its
+  quick case first (`quickCase`, `core/_test/model/quick.ts`: the step, then its positive control `leaking(step)` on the
+  same state, built in; `control: false` only with a `why`). Both tiers warm up by count, so neither depends on the
+  load: run them beside other work. If a deep guard fails, re-run it alone once before you diagnose it.
+- **The quick tier's flags** (`PERF_FLAGS`, `vitest.shared.ts`): a 1 MB young generation (the measurement accounts every
+  collection: Σ(heap before a collection − the previous after) + the final delta, the code and trusted spaces apart),
+  `--single-threaded` (V8 compiles on the main thread: tier-up falls on the same step under any load) and lower tier-up
+  thresholds (`--invocation-count-for-turbofan=300 --minimum-invocations-after-ic-update=50`). Why the thresholds: under
+  V8's defaults a step stays in its middle tier (Maglev) for 15,000 to 60,000 steps, allocating there (the wrapped
+  lanes' draw 130 bytes a frame, a hover 9 to 26); with the flags most steps are optimized in a few thousand and the
+  steady state is the defaults'. The warm-up ends only on two quiet windows in which V8 compiled nothing (a steady read
+  in a lower tier, or a lull between tiers, never ends it), so a case needs no tuned warm-up; a case that allocates by
+  design never reads quiet and sets a short `maxWarmSteps`. A case over its baseline by 4 bytes a step fails (a tenth of
+  a baseline above 40: a run of kilobytes reads a few percent apart). Exact to the byte: `leak` reads 88.0, a 32-byte
+  object every 64 steps 0.5. Call `hitTestAt` (the point in the record), not `hitTest(section, x, y)`, from a case's
+  step: a fractional coordinate passed from test code to a call V8 does not inline is boxed, 16 bytes, the test's (three
+  findings of the roll-out were this). The quick flags can change what V8 optimizes: the dot plot's drag allocated 18
+  bytes a move under the defaults and none under them (2026-10-15), so a hot path's deep guard still runs at
+  checkpoints.
 - In a per-frame path, read enum-like object members (`SkinToken.x`, `PathVerb.x`) once into module constants: under the
   test runner's module wrapper each read allocated (about 41 bytes a frame), a false "allocates only under vitest"
   result.
-- A new draw guard gets a file of its own, or a fresh module per case (`vi.resetModules`): cases in one file share V8's
-  feedback, so one can allocate only after another has run. Keep the shared warm-up (`FRAME_WARM`, `FRAME_WARM_MS`);
-  shortening it made guards flaky. A guard that measures many frames apiece (the conformance kit's, a layer per zoom)
-  warms each with `warmFrame` (`viewer/_test/heap.ts`: until the frame stops allocating, at most `FRAME_WARM_MS`): a
-  draw called once a frame climbs to TurboFan over thousands to tens of thousands of frames, allocating in its middle
-  tier until then, and a count alone measured that climb. A guard with a timed warm-up settles after it (`settleFrame`,
-  `FRAME_SETTLE_MS`). A positive control allocates through `leak` (garbage, the same bytes every step), never onto a
-  kept list: a list's reallocation inside the shorter measured run cancels the longer's growth, and the control goes
-  blind.
+- A guard's cases each load the viewer afresh (`vi.resetModules`), for independence. Cases do not "share V8's feedback"
+  so that one allocates only after another (the old reading, 2026-10-14): under V8's default tuning a step climbs to
+  TurboFan over 15,000 to 60,000 steps, allocating in its middle tier until then, longer after another case's draws (the
+  wrapped lanes' hover after their draw: 16 bytes a step for 13,000 steps, then nothing, in either order), and the timed
+  warm-up (`FRAME_WARM_MS`, 3 s) ended inside that climb whenever the machine was loaded. The deep guards now warm by
+  count until optimized: `FRAME_WARM` steps, then `settleFrame` (exact windows of `FRAME_N` reading under 2 bytes a step
+  and compiling nothing over 6,000 steps, at most `FRAME_WARM_CAP`), or `frameScaling(step, n)` for both and the
+  measurement, `cheapScaling` for a step of tens of microseconds (60,000 steps first: its climb has quiet spans of
+  thousands of steps); `viewer/_test/heap.ts`. A step that allocates once optimized never settles, runs the cap and is
+  caught. A positive control allocates through `leak` (garbage, the same bytes every step), never onto a kept list: a
+  list's reallocation inside the shorter measured run cancels the longer's growth, and the control goes blind.
 - **The guard template:** every `*.heap.ts` runs its positive control as its guards run their step:
   `expect(controlCaught(() => <the file's own warm-up, settle and measurement> of leaking(step))).toBe(true)`
   (`core/_test/model/heap.ts`, re-exported by `viewer/_test/heap.ts`; `canvas/heap-browser.ts` in the browser).
   `controlCaught` counts a run the measurement refuses because a collection ran during it as caught (in the browser that
   is how a leak often shows). The spec check fails on a guard file without it unless `scripts/guards-pending.txt` lists
-  it; converting a file removes its line.
+  it; converting a file removes its line. Every Node `x.heap.ts` has its quick twin `x.quick.ts` beside it, the two
+  sharing their cases (a `x-cases.ts` module or the guard's fixture: no copies), and every `*.quick.ts` calls
+  `quickCase` (a `control: false` with its `why`): the spec check fails otherwise. The browser's guards (`canvas/`,
+  `dom/`, `react/`) stay deep-only: Chrome has no `v8.GCProfiler`.
 - Pixel hashes are exact and the machine's: `canvas/case9-pixels.test.ts` keeps a record per user agent
   (`case9-pixels.json`) and fails on one with none, naming it; record a setup's hashes with `VITE_SEQ_PIXELS=record`
   (and `VITE_SEQ_PIXELS_MACHINE`) only after checking its render, and again after an intended look change.
@@ -140,7 +163,9 @@ take about half an hour). The root config never matches the browser folders, `*.
 - **Domain-independent core:** biology meaning lives in tables, presets and app-level code, never in core types.
   Complement is a named letter map, and an exon is a range.
 - **Performance is a contract:** no allocation on hot paths (per frame, per pointer event, per run), and no boxed
-  doubles across helper calls. Every hot path has a heap guard with a positive control.
+  doubles across helper calls. Every hot path has a quick case (its positive control built in); the deep guards run at
+  checkpoints. The public input streams (`ctx.interaction`) may allocate a payload per event, and build nothing while a
+  stream has no subscriber.
 - **snake_case is the format's** (David, 2026-10-13): every name a SeqViewSpec document holds — fields, enumerated
   values, registry entry names it refers to (themes, color schemes, letter maps, aligners and their modes) and the
   format ids — is snake_case, as in MolViewSpec. The viewer's own names stay camelCase, as code: the viewer spec,

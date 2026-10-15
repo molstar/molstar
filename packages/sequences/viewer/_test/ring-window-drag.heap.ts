@@ -8,7 +8,9 @@
 
 // CG3's ring window drag allocates nothing per pointer event after warm-up (seqspec:interaction#linked-sections): a press
 // on the window's body, then moves along it, each setting the linked linear section through the link and drawing the
-// ring's overlay. Its own file: after ringWindow.heap.ts's frame cases it allocated (their shared feedback). The
+// ring's overlay. Its own file since a timed warm-up ended inside the drag's climb to TurboFan once
+// ring-window.heap.ts's frame cases had run (the "shared feedback" it was blamed on); warmed and settled by count now
+// (`frameScaling`). The case is ring-window-heap-run.ts', shared with the quick twin (ring-window-drag.quick.ts). The
 // positive control: the same moves allocating an object each (`leaking`), through the same warm-up, settle and
 // measurement, are caught.
 
@@ -24,11 +26,11 @@ describe("CG3's ring window drag allocates nothing after warm-up", () => {
     const { r, owner } = await run('drag', 600, STEPS);
     expect(owner).toBe('ringWindow');
     expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
-  }, 120_000);
+  }, 300_000);
 
   it('the same moves allocating an object each are caught (positive control)', async () => {
     const s = await setup('drag', 600);
     expect(controlCaught(() => measure(leaking(s.step), STEPS))).toBe(true);
     expect(s.owner()).toBe('ringWindow');
-  }, 120_000);
+  }, 300_000);
 });

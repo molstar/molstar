@@ -8,80 +8,30 @@
 
 // ST1b-b's heap guards (seqspec:sources#the-viewers-side; the memory rule): a pan's pass and composer frame over a
 // template's 1,000 instance tracks allocate nothing once laid out (the instances are tracks like any other); a frame
-// that allocates an object a step fails the same guard (the positive control); and an instance that leaves (its node
-// evicted) is not retained: its resolved layer and prepared state are freed once a later update has run.
+// that allocates an object a step fails the same guard (the positive control), warmed and settled by count
+// (`frameScaling`); and an instance that leaves (its node evicted) is not retained: its resolved layer and prepared
+// state are freed once a later update has run (a WeakRef check, so it has no quick twin). The pan is
+// templates-cases.ts's, shared with the quick twin (templates.quick.ts).
 
 import { describe, expect, it, vi } from 'vitest';
-import type { Streams } from '../src/streams.js';
-import {
-  controlCaught,
-  describeScaling,
-  FRAME_SETTLE_MS,
-  FRAME_WARM,
-  FRAME_WARM_MS,
-  heapScaling,
-  isFlat,
-  leaking,
-  settleFrame,
-} from './heap.js';
+import { controlCaught, describeScaling, frameScaling, isFlat, leaking } from './heap.js';
+import { INSTANCES, templated } from './templates-cases.js';
 
 const N = 1_000;
-const WARM = FRAME_WARM;
-const WARM_MS = FRAME_WARM_MS;
-/** The file's warm-up, settle and measurement, as its guards and its control run them. */
-const measure = (frame: () => void) => {
-  const t0 = performance.now();
-  for (let i = 0; i < WARM || performance.now() - t0 < WARM_MS; i++) frame();
-  // Settled after the timed warm-up (GS-02): a climb to TurboFan can outlast it.
-  settleFrame(frame, FRAME_SETTLE_MS);
-  return heapScaling(N, frame);
-};
-const guard = (frame: () => void) => {
-  const r = measure(frame);
-  return isFlat(r) ? '' : describeScaling(r, N);
-};
 const gc = (globalThis as { gc?: () => void }).gc as () => void;
-
-/** The template document with 1,000 instances (ranges on the protein), composed at 1,000 × 400, DPR 2. */
-async function templated() {
-  const { composed, recording } = await import('./composer-fixtures.js');
-  const { Dirty } = await import('../src/draw/composer.js');
-  const { range, templateDoc, templateLoaders, P } = await import('./template-fixtures.js');
-  const genes = Array.from({ length: N }, (_, k) => range(`g${k}`, 1 + (k % (P.length - 8))));
-  const { loaders } = templateLoaders({ genes, notes: [] });
-  const t = await composed(templateDoc(), { width: 1000, height: 400, dpr: 2, loaders });
-  const vp = t.vp;
-  if (!vp) throw new Error('no viewport');
-  vp.zoomTo(0, 20, 120);
-  const be = recording();
-  for (let k = 0; k < 8; k++) {
-    vp.panBy(k & 1 ? -9 : 9, 0, 'pointer');
-    t.frame(be, Dirty.all);
-  }
-  let i = 0;
-  return {
-    t,
-    frame: () => {
-      vp.panBy((i++ & 1) === 0 ? 9 : -9, 0, 'pointer');
-      (t.ctx.streams as Streams).pass();
-      t.frame(be, Dirty.all);
-    },
-  };
-}
 
 describe("a template's 1,000 instance tracks", () => {
   it("a pan's pass and frame allocate nothing", async () => {
-    vi.resetModules();
     const g = await templated();
-    expect(g.t.ctx.graph.assembled.value?.view?.resolved.tracks.count).toBeGreaterThan(N);
-    expect(guard(g.frame)).toBe('');
-  }, 120_000);
+    expect(g.t.ctx.graph.assembled.value?.view?.resolved.tracks.count).toBeGreaterThan(INSTANCES);
+    const r = frameScaling(g.frame, N);
+    expect(isFlat(r), describeScaling(r, N)).toBe(true);
+  }, 300_000);
 
   it('the same frame allocating an object a step is caught (positive control)', async () => {
-    vi.resetModules();
     const g = await templated();
-    expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
-  }, 120_000);
+    expect(controlCaught(() => frameScaling(leaking(g.frame), N))).toBe(true);
+  }, 300_000);
 });
 
 describe('an instance that leaves', () => {

@@ -39,6 +39,17 @@ Brings a target into view in one section or in every section that shows it.
 | `animate` | `bool` | `true` | false: at once |
 | `origin` | `str` | `"api"` | the caller's: `run` sets it |
 
+### `seqv:reveal`
+
+Brings a target into view without selecting, focusing or zooming: text scrolls its lines in, tracks pan at their cell; nothing where it is shown already.
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `target` | `{refs: list<ref<unit \| sequence \| ligand \| complex \| alignment \| row \| annotation \| track \| layer \| block>>, args?: {start?: int \| null, stop?: int \| null, beg?: str \| null, end?: str \| null, numbering?: str \| null, items?: list<str> \| null} \| null} \| {coordinates: {systems: list<str>, runs: list<int>}}` | required |  |
+| `section` | `str \| null` | `null` | null: every section that shows it |
+| `animate` | `bool` | `true` | false: at once |
+| `origin` | `str` | `"api"` | the caller's: `run` sets it |
+
 ### `seqv:setSnapshot`
 
 Shows a snapshot of the document, the next or the previous one, or the base.
@@ -115,14 +126,14 @@ In `DefaultSeqViewerSpec` order; params are defaults, set per behavior or per pr
 | `navigator` | interaction | 100 | A press jumps; dragging the window pans; dragging an edge zooms; a double click toggles the full view and a zoom there. | `{"doubleClick":"toggle","zoomPositions":60,"zoomCell":0}` |
 | `ringWindow` | interaction | 100 | On rings, the window of the linear section linked by `follow`: dragging it pans that section, dragging a grip zooms it with the other end held (a plain press of the primary button; a click still selects). | `{}` |
 | `verticalOverview` | interaction | 100 | The window on both axes: top and bottom handles zoom rows, left and right columns; a press jumps. | `{}` |
-| `headers` | interaction | 80 | A group's header, a split track's chevron or a clade toggles on a single click; activating a track header emits `events.activate`. | `{"activate":"doubleClick"}` |
-| `select` | interaction | 50 | A click selects (again: clears a whole selection), held for the double-click time where a double click means something else (a behavior claims `doubleClick`: a zoom), which then never selects; Shift (a click or a drag) extends a range of positions or columns, and adds or removes an item or a row; Ctrl/⌘ adds or removes; a drag it claims selects a range, its end following the point (clamped to the surface) and the view scrolling past an edge. In text, a drag follows the pointer line by line. | `{"click":[{"button":"primary"}],"extend":[{"button":"primary","shift":true}],"toggle":[{"button":"primary","ctrl":true},{"button":"primary","meta":true}],"shiftPositions":"extend","shiftItems":"toggle","doubleClickWait":true,"repeatClicks":"ignore","clearOnEmpty":true,"toggleWhole":true,"closure":"containing","granularity":"position","dragRegions":["column"],"dragOn":[{"button":"primary","alt":true}],"dragColumns":[{"button":"primary","shift":true}],"autoscroll":true,"autoscrollMin":120,"autoscrollRate":15,"autoscrollMax":1440}` |
+| `headers` | interaction | 80 | A group's header, a split track's chevron or a clade toggles on a single click; activating a track header emits `interaction.activate`. | `{"activate":"doubleClick"}` |
+| `select` | interaction | 50 | A click selects (again: clears a whole selection), held for the double-click time where a double click means something else (a behavior claims `doubleClick`: a zoom), which then never selects; Shift (a click or a drag) extends a range of positions or columns, and adds or removes an item or a row; Ctrl/⌘ adds or removes; a drag it claims selects a range, its end following the point (clamped to the surface) and the view scrolling past an edge. In text, a drag follows the pointer line by line. | `{"click":[{"button":"primary"}],"extend":[{"button":"primary","shift":true}],"toggle":[{"button":"primary","ctrl":true},{"button":"primary","meta":true}],"shiftPositions":"toggle","shiftItems":"toggle","doubleClickWait":true,"repeatClicks":"ignore","clearOnEmpty":true,"toggleWhole":true,"closure":"containing","granularity":"position","dragRegions":["column"],"dragOn":[{"button":"primary","alt":true}],"dragColumns":[{"button":"primary","shift":true}],"autoscroll":true,"autoscrollMin":120,"autoscrollRate":15,"autoscrollMax":1440}` |
 | `dotPlotSelect` | interaction | 60 | On a dot plot a drag selects a rectangle: the positions it spans across and down, as two ranges (Shift adds them). | `{"dragOn":[{"button":"primary"}],"add":[{"button":"primary","shift":true}],"closure":"containing"}` |
 | `dragPan` | interaction | 10 | Dragging pans both axes, each with a lock; with `dominantAxis` held (none by default), the dominant axis only. | `{"dragRegions":["data","header","gutter"],"dragOn":[],"x":true,"y":true,"dominantAxis":null}` |
 | `wheel` | interaction | 10 | Zoom at the cursor with Ctrl/⌘ and pinch; a horizontal wheel pans, and so does a vertical one with Shift; a vertical wheel scrolls a box section's rows. | `{"zoom":[{"ctrl":true},{"meta":true}],"zoomSpeed":1,"panSpeed":1}` |
 | `doubleClickZoom` | interaction | 40 | A double click on an element shows its whole extent, then the focus window there, then the full view; on the data elsewhere, the focus window there, or zoomed in to it or closer, the full view. | `{"doubleClick":"toggle","zoomPositions":60,"zoomCell":0}` |
 | `rowZoom` | interaction | 20 | Zooms rows vertically, every row at once. | `{"zoom":[{"alt":true}],"speed":1}` |
-| `keyboard` | interaction | 0 | A cursor over positions, rows and headers (the hover, owner `keyboard`): arrows, Home and End; +/- zoom, Alt+=/Alt+- row zoom; Enter and Space select or activate; Shift+F10 or ContextMenu asks for the track's menu (`events.menu`); Escape clears the selection and puts the cursor away; a press puts it away too. Tab leaves the surface. | `{"bindings":{"left":[{"key":"ArrowLeft"}],"right":[{"key":"ArrowRight"}],"up":[{"key":"ArrowUp"}],"down":[{"key":"ArrowDown"}],"home":[{"key":"Home"}],"end":[{"key":"End"}],"zoomIn":[{"key":"+"},{"key":"="}],"zoomOut":[{"key":"-"},{"key":"_"}],"rowZoomIn":[{"code":"Equal","alt":true}],"rowZoomOut":[{"code":"Minus","alt":true}],"select":[{"key":"Enter"}],"extend":[{"key":"Enter","shift":true}],"toggle":[{"key":" "}],"menu":[{"key":"F10","shift":true},{"key":"ContextMenu"}],"clear":[{"key":"Escape"}]},"closure":"containing"}` |
+| `keyboard` | interaction | 0 | A cursor over positions, rows and headers (the hover, owner `keyboard`): arrows, Home and End; +/- zoom, Alt+=/Alt+- row zoom; Enter and Space select or activate; Shift+F10 or ContextMenu asks for the track's menu (`interaction.menu`, at the cursor); Escape clears the selection and puts the cursor away; a press puts it away too. Tab leaves the surface. | `{"bindings":{"left":[{"key":"ArrowLeft"}],"right":[{"key":"ArrowRight"}],"up":[{"key":"ArrowUp"}],"down":[{"key":"ArrowDown"}],"home":[{"key":"Home"}],"end":[{"key":"End"}],"zoomIn":[{"key":"+"},{"key":"="}],"zoomOut":[{"key":"-"},{"key":"_"}],"rowZoomIn":[{"code":"Equal","alt":true}],"rowZoomOut":[{"code":"Minus","alt":true}],"select":[{"key":"Enter"}],"extend":[{"key":"Enter","shift":true}],"toggle":[{"key":" "}],"menu":[{"key":"F10","shift":true},{"key":"ContextMenu"}],"clear":[{"key":"Escape"}]},"closure":"containing"}` |
 | `hover` | interaction | 0 | The element under the pointer is the hover; cleared on leave and during a drag another behavior owns. | `{"regions":["data","column","header","gutter","dataColumn","dataColumnHeader","navigator","vnav"],"whileDragging":"clear","closure":"containing"}` |
 | `headerHover` | interaction | 0 | A header's hover lights what it labels: a feature track's shown items (a split row's, a group's tracks'), a continuous track's row band; the row band alone past maxItems; forward gives linked views the set. | `{"features":"items","continuous":"rowBand","types":{},"maxItems":5000,"forward":true}` |
 | `hoverRow` | interaction | 0 | A hover on a track's data (linear) lights its row band: the track's box, a split row's, a rows track's row, or its renderer's own (a matrix's hovered band); none on the ruler, a dot plot and navigators. A drawing only: the hover, its loci and what linked views get stay the element's. | `{"band":"entry","data":0.25,"header":0.5}` |
@@ -138,7 +149,7 @@ Built in, not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`): a host a
 
 | Name | Category | Priority | What it does | Params |
 |---|---|---|---|---|
-| `contextMenu` | interaction | 85 | A press of `on` (the secondary button) on a track (its data, its header or its gutter: `regions`) asks for the track's menu (`events.menu`, origin `pointer`, with the pointer's place), as the keyboard's menu key does; where no track is under the pointer nothing is asked. It asks on the press. The menu is the host's; not in `DefaultSeqViewerSpec`. | `{"on":[{"button":"secondary"}],"regions":["data","header","gutter"]}` |
+| `revealHighlight` | view | 0 | Brings a highlight on one of `channels`, or an external hover of one of `hovers` (a linked view lighting the sequence), into view once it has rested `dwellMs` (`ctx.reveal`: text scrolls its lines in, tracks pan at their cell), in each section that shows it and does not show it already; never in the section the pointer is in, never during a press or a drag, never while this viewer's own hover is held (a link lighting it back). It selects, focuses and zooms nothing. Not in `DefaultSeqViewerSpec`. | `{"channels":["links:*"],"hovers":[],"dwellMs":200,"pad":12,"animate":true}` |
 
 ## Config
 
@@ -221,7 +232,7 @@ One per layer type; a geometry it lacks draws the layer's extents as bars and is
 | `emphasis` | linear, wrapped, circular |
 | `variants` | linear, circular |
 | `secondary` | linear, wrapped, circular |
-| `values` | linear, circular |
+| `values` | linear, wrapped, circular |
 | `color` | linear, wrapped, circular |
 | `ruler` | linear, circular |
 | `pairs` | linear, circular |
@@ -246,7 +257,7 @@ An unknown column type is drawn as `text`.
 
 | Name | Label | Category | Channels |
 |---|---|---|---|
-| `uniform` | uniform | kernel | color, glyph, size |
+| `uniform` | uniform | kernel | color, glyph, size, line_style |
 | `field_scale` | field_scale | kernel | size |
 | `field_palette` | field_palette | kernel | color |
 | `field_color` | field_color | kernel | color |
@@ -255,6 +266,7 @@ An unknown column type is drawn as `text`.
 | `by_copy_group` | by_copy_group | kernel | color |
 | `field_map` | field_map | kernel | glyph |
 | `field_glyph` | field_glyph | kernel | glyph |
+| `field_line_style` | field_line_style | kernel | line_style |
 | `rules` | rules | kernel | color, glyph, size |
 | `scheme` | scheme | kernel | color |
 
@@ -277,6 +289,7 @@ An unknown column type is drawn as `text`.
 | `strip` | linear | `strip` | `select` |
 | `wrapped` | wrapped | `none` | `select`, `dragPan`, `cursor`, `wheel` |
 | `compact` | wrapped | `none` | `select`, `dragPan`, `cursor`, `wheel` |
+| `figure` | wrapped | `none` | `select`, `dragPan`, `cursor`, `wheel` |
 | `circular` | circular | `none` | `wheel`, `dragPan` |
 
 ### Label providers

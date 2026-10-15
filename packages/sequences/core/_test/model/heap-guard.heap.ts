@@ -8,9 +8,11 @@
 
 // The self-test of heapGrowth: it reports a small allocation, and refuses a run that collects. And of heapScaling
 // (RB0b): it catches a small allocation per step that one run under LIMIT does not, and passes a step that allocates
-// nothing or allocates once per run.
+// nothing or allocates once per run. Untimed: the measurements warm by count. The steps are heap-guard-cases.ts's,
+// shared with the quick twin (heap-guard.quick.ts), which exercises \`quickCase\` on them.
 
 import { describe, expect, it } from 'vitest';
+import { clean, flatStep, garbage, onceStep, viewsStep } from './heap-guard-cases.js';
 import {
   controlCaught,
   describeScaling,
@@ -21,17 +23,6 @@ import {
   leaking,
   SCALED_LIMIT,
 } from './heap.js';
-
-const sink: { v: unknown } = { v: null };
-const clean = () => {
-  let s = 0;
-  for (let i = 0; i < 1_000_000; i++) s += i & 7;
-  sink.v = s;
-};
-/** `count` short-lived objects, none kept: 40 bytes each in Node (three header words and two fields, uncompressed). */
-const garbage = (count: number) => () => {
-  for (let i = 0; i < count; i++) sink.v = { a: i, b: i };
-};
 
 describe('heapGrowth', () => {
   it('reports no growth for a run that allocates nothing', () => {
@@ -51,32 +42,22 @@ describe('heapGrowth', () => {
 
 describe('heapScaling', () => {
   const n = 1000;
-  const f32 = new Float32Array(256);
 
   it('passes a step that allocates nothing', () => {
-    let s = 0;
-    const r = heapScaling(n, (i) => {
-      s = (s + (i & 7)) | 0;
-      sink.v = s;
-    });
+    const r = heapScaling(n, flatStep());
     expect(isFlat(r), describeScaling(r, n)).toBe(true);
   });
 
   it("fails BK1's case, 208 bytes a step, that one run under LIMIT passes", () => {
     // Two `subarray` views a step, 104 bytes each (BK1's `PathBatch.append`, fixed there): 812 KB over 4,000 steps.
-    const r = heapScaling(n, (i) => {
-      sink.v = f32.subarray(i & 7);
-      sink.v = f32.subarray(0, 8 + (i & 7));
-    });
+    const r = heapScaling(n, viewsStep);
     expect(r.long, describeScaling(r, n)).toBeLessThan(LIMIT);
     expect(r.scaled).toBeGreaterThan(3 * n * 200);
     expect(isFlat(r)).toBe(false);
   });
 
   it('passes a step that allocates 512 KB once per run, not per step', () => {
-    const r = heapScaling(n, (i) => {
-      if (i === 0) sink.v = new Array(1 << 16).fill(i); // On the heap, as a typed array's store is not.
-    });
+    const r = heapScaling(n, onceStep);
     expect(r.short, describeScaling(r, n)).toBeGreaterThan(SCALED_LIMIT);
     expect(isFlat(r), describeScaling(r, n)).toBe(true);
   });
@@ -89,11 +70,7 @@ describe('heapScaling', () => {
 
 describe("the guard template's control", () => {
   const n = 500;
-  let s = 0;
-  const step = (i: number) => {
-    s = (s + (i & 7)) | 0;
-    sink.v = s;
-  };
+  const step = flatStep();
 
   it("catches the leaking step through a guard's own measurement, and passes the step alone", () => {
     expect(controlCaught(() => heapScaling(n, step))).toBe(false);

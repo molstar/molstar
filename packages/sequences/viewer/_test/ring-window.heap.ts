@@ -9,9 +9,10 @@
 // CG3's ring window and labels allocate nothing per frame or pointer event after warm-up
 // (seqspec:interaction#linked-sections): whole ring frames with the window on the linked linear section, that section
 // panning and zooming each step, the pointer moving round the rings and over the labels (polar hits, the labels' hits,
-// the cursor's window part). The window's drag is ring-window-drag.heap.ts (in one file, the drag allocated after these
-// cases had run: their shared feedback). The positive control: the same steps allocating an object each (`leaking`),
-// through the same warm-up, settle and measurement, are caught.
+// the cursor's window part). The window's drag is ring-window-drag.heap.ts (its own file since a timed warm-up ended
+// inside the drag's climb to TurboFan once these cases had run; warmed and settled by count now, `frameScaling`). The
+// cases are ring-window-heap-run.ts', shared with the quick twin (ring-window.quick.ts). The positive control: the same
+// steps allocating an object each (`leaking`), through the same warm-up, settle and measurement, are caught.
 
 import { describe, expect, it } from 'vitest';
 import { controlCaught, describeScaling, isFlat, leaking } from './heap.js';
@@ -29,11 +30,11 @@ describe("CG3's ring window and labels allocate nothing after warm-up", () => {
       expect(labelHits).toBeGreaterThan(0);
       expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
     },
-    120_000,
+    300_000,
   );
 
   it('the same steps allocating an object each are caught (positive control)', async () => {
     const { step } = await setup('frames', 600);
     expect(controlCaught(() => measure(leaking(step), STEPS))).toBe(true);
-  }, 120_000);
+  }, 300_000);
 });

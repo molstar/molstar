@@ -15,96 +15,28 @@
 // positive control: the same steps allocating an object each (`leaking`), through the same warm-up, settle and
 // measurement, are caught.
 //
-// Each case loads the viewer afresh (`vi.resetModules`), as composer.heap.ts does.
+// Each case loads the viewer afresh (`vi.resetModules`; the case in ring-cases.ts, shared with the quick twin,
+// ring.quick.ts) and is warmed and settled by count (`cheapScaling`, heap.ts: a frame of tens of microseconds, whose climb under V8's defaults has quiet spans of thousands of steps): over 120,000 positions the climb to
+// TurboFan runs thousands of frames at 20 to 210 bytes a frame, which the settle waits out.
 
-import { describe, expect, it, vi } from 'vitest';
-import {
-  controlCaught,
-  describeScaling,
-  FRAME_N,
-  FRAME_SETTLE_MS,
-  FRAME_WARM,
-  FRAME_WARM_MS,
-  heapScaling,
-  isFlat,
-  leaking,
-  settleFrame,
-} from './heap.js';
-
-/** The guards' measurement: the shared warm-up, settled (`settleFrame`), then `FRAME_N` steps and 4× measured. */
-function measure(step: (i: number) => void) {
-  // The shared warm-up (2,000 frames and 3 s, restored after the trim): at 1 s, 240 positions failed most runs (about 45
-  // to 150 bytes a step; flat with HEAP_DEEP), the pointer still meeting new items, positions and rings.
-  const t0 = performance.now();
-  let i = 0;
-  for (; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) step(i);
-  // Then until a frame stops allocating: over 120,000 positions 3 s were about 4,700 frames, and the climb to TurboFan
-  // ran about 6,000 more at 20 to 210 bytes a frame (V8 13.6, the pinned Node, 2026-10-13: 48.8 bytes a step measured).
-  settleFrame(() => step(i++), FRAME_SETTLE_MS);
-  return heapScaling(FRAME_N, () => step(i++));
-}
-
-/** The ring composed over `n` positions with its marks and cursor, and a step: a pointer move and a whole frame. */
-async function setup(n: number) {
-  vi.resetModules();
-  const { composed, recording } = await import('./composer-fixtures.js');
-  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
-  const { DefaultPresets } = await import('../src/presets.js');
-  const { Inputs, PointerType } = await import('../src/index.js');
-  const b = createSeqViewSpec();
-  const s = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(n / 10), alphabet: 'dna', cyclic: true });
-  const value = { start: [Math.floor(0.8 * n), Math.floor(n / 6)], stop: [Math.floor(n / 8), Math.floor(n / 2)] };
-  const f = b.data.annotation({ ref: 'f', geometry: 'ranges', target: s, value });
-  const vals = b.data.annotation({ ref: 'vals', geometry: 'values', target: s, value: { value: [0.5, 1, 0.2] } });
-  const v = b.view({ ref: 'v', label: 'V', style: 'circular' }).block({ sequence: s });
-  v.track({ label: '' }).ruler();
-  v.track({ label: 'S' }).letters();
-  v.track({ label: 'F' }).ranges({ data: f, labels: true });
-  v.track({ label: 'V' }).values({ data: vals });
-  const registry = [{ presets: DefaultPresets.filter((p) => p.name === 'circular') }];
-  const t = await composed(b.getDocument(), { width: 600, height: 600, dpr: 2, registry });
-  const l = t.ctx.layout.get(t.section)?.current;
-  if (!l) throw new Error('no layout');
-  const be = recording();
-  // The frames alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get('hoverLabel')?.remove();
-  // Marks across the origin, and the keyboard cursor on the letters (set once: a cursor move publishes an object).
-  t.ctx.selection.set({ systems: ['seqstar:s/unit'], runs: Int32Array.of(0, n - n / 12, n, 0, 0, n / 24) }, 'api');
-  t.ctx.highlight.set('host', { systems: ['seqstar:s/unit'], runs: Int32Array.of(0, n / 3, n / 2) });
-  const m = t.ctx.graph.assembled.value?.view;
-  const track = m ? m.set.strings.get(m.resolved.tracks.ref[l.entryTrack[1]]) : '';
-  const row = l.entryRow[1];
-  t.ctx.ui.setKeyCursor({ section: t.section, track, header: false, block: 0, index: 7, row: -1, displayRow: row });
-  const p = Inputs.pointer();
-  p.section = t.ctx.layout.sectionIndex(t.section);
-  p.type = PointerType.move;
-  const step = (i: number) => {
-    // Round the rings, in and out across the entries: a polar hit and the hover each move.
-    const a = (i * 0.37) % (2 * Math.PI);
-    const r = l.ringR * (0.5 + 0.5 * ((i * 0.13) % 1));
-    p.x = l.ringCx + r * Math.cos(a);
-    p.y = l.ringCy + r * Math.sin(a);
-    t.ctx.input.pointer(p);
-    t.composer.redraw();
-    t.frame(be, 7);
-  };
-  return { step, be };
-}
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, FRAME_N, cheapScaling, isFlat, leaking } from './heap.js';
+import { ring } from './ring-cases.js';
 
 describe('ring frames allocate nothing after warm-up', () => {
   it.each([240, 120_000])(
     'whole frames with polar hovers round the rings, %i positions',
     async (n) => {
-      const { step, be } = await setup(n);
-      const r = measure(step);
+      const { step, be } = await ring(n);
+      const r = cheapScaling(step);
       expect(be.sectorItems.n).toBeGreaterThan(0);
       expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);
     },
-    120_000,
+    300_000,
   );
 
   it('the same steps allocating an object each are caught (positive control)', async () => {
-    const { step } = await setup(240);
-    expect(controlCaught(() => measure(leaking(step)))).toBe(true);
-  }, 120_000);
+    const { step } = await ring(240);
+    expect(controlCaught(() => cheapScaling(leaking(step)))).toBe(true);
+  }, 300_000);
 });

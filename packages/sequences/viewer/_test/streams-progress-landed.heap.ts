@@ -6,55 +6,33 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// ST3b's fade guard (seqspec:sources#levels-and-the-zoom-gate; the memory rule), its own file (streams-progress.heap.ts
-// says why): every region of the streamed genome landed after a second of pending frames, the clock held so the fade
-// never ends; an overlay frame allocates nothing. A frame allocating an object a step fails the same guard (the positive
-// control).
+// ST3b's fade guard (seqspec:sources#levels-and-the-zoom-gate; the memory rule), its own file: every region of the
+// streamed genome landed after a second of pending frames, the clock held so the fade never ends; an overlay frame
+// allocates nothing. A frame allocating an object a step fails the same guard (the positive control). The case is
+// streams-progress-cases.ts's, shared with the quick twin (streams-progress-landed.quick.ts); it loads the viewer afresh
+// (`vi.resetModules`) and is warmed and settled by count (`frameScaling`).
 
-import { describe, expect, it, vi } from 'vitest';
-import {
-  controlCaught,
-  describeScaling,
-  FRAME_SETTLE_MS,
-  FRAME_WARM,
-  FRAME_WARM_MS,
-  heapScaling,
-  isFlat,
-  leaking,
-  settleFrame,
-} from './heap.js';
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, frameScaling, isFlat, leaking } from './heap.js';
+import { progressCase } from './streams-progress-cases.js';
 
 const N = 1_000;
-/** The file's warm-up, settle and measurement, as its guards and its control run them. */
-const measure = (frame: () => void) => {
-  const t0 = performance.now();
-  for (let i = 0; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame();
-  // Settled after the timed warm-up (GS-02): a climb to TurboFan can outlast it.
-  settleFrame(frame, FRAME_SETTLE_MS);
-  return heapScaling(N, frame);
-};
-const guard = (frame: () => void) => {
-  const r = measure(frame);
-  return isFlat(r) ? '' : describeScaling(r, N);
-};
 
 describe("the overlay's fade-in allocates nothing per frame", () => {
   it('every region landed, fading', async () => {
-    vi.resetModules();
-    const { overlayFrame, rectsOf, SkinToken } = await import('./stream-progress-fixtures.js');
-    const { g, frame, next } = await overlayFrame('landed');
+    const { g, frame, next, rectsOf, SkinToken } = await progressCase('landed');
     frame();
     // Not vacuous: the shade over every region just drawn; a frame asked while they fade.
     expect(rectsOf(g.backend, SkinToken.pending).n).toBeGreaterThan(2);
     expect(next[0]).toBeGreaterThan(0);
-    expect(guard(frame)).toBe('');
+    const r = frameScaling(frame, N);
+    expect(isFlat(r), describeScaling(r, N)).toBe(true);
     g.ctx.dispose();
-  }, 120_000);
+  }, 300_000);
 
   it('the same frame allocating an object a step is caught (positive control)', async () => {
-    vi.resetModules();
-    const { overlayFrame } = await import('./stream-progress-fixtures.js');
-    const { frame } = await overlayFrame('landed');
-    expect(controlCaught(() => measure(leaking(frame) as () => void))).toBe(true);
-  }, 120_000);
+    const { g, frame } = await progressCase('landed');
+    expect(controlCaught(() => frameScaling(leaking(frame), N))).toBe(true);
+    g.ctx.dispose();
+  }, 300_000);
 });

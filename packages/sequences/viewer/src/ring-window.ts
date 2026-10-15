@@ -32,9 +32,10 @@ import { WINDOW_EDGE, WindowPart } from './windows.js';
  * that view's data width, its section, the link from the ring to it, the least and most window (its zoom limits), and
  * the image of its content's ends on the ring (cl, ch, cl < ch, unwrapped past the block's end; ±Infinity: the content
  * covers a whole cyclic block). Then the set's input (x0, length), the pointer's unrolled x (`ringWindowAt`) and a
- * drag's state (the pointer's last unrolled x, its travel since the press).
+ * drag's state (the pointer's last unrolled x, its travel since the press), then scratch and the drag's ring
+ * circumference.
  */
-export const RING_WINDOW = 21;
+export const RING_WINDOW = 22;
 /** A frame's numbers the drawing reads: the window's ends, the block's extent, the block cyclic (1). */
 export const RW_X0 = 0;
 export const RW_X1 = 1;
@@ -58,6 +59,8 @@ const LAST = 18;
 const TRAVEL = 19;
 /** Scratch for the content's ends (`contentImage`). */
 const CX = 20;
+/** The rings' circumference, `dragTo`'s: a double passed to it as an argument was boxed, 16 bytes a move (2026-10-15). */
+const CIRC = 21;
 
 // Enum-like members read once (a read per event allocated under the test runner's module wrapper).
 const NONE = WindowPart.none;
@@ -325,7 +328,7 @@ export const RingWindowBehavior = defineBehavior(
      */
     const g0 = new Float64Array(RING_WINDOW);
     const pt = { x: 0.5, y: 0.5 };
-    on(ctx.interaction.pointer, (e) => {
+    on(ctx.input.events.pointer, (e) => {
       const p = e.input;
       if (p.type !== DOWN || p.button !== 0 || p.modifiers !== 0 || e.owner !== '') return;
       if (!h.forSection(e.hit.section)) return;
@@ -336,7 +339,7 @@ export const RingWindowBehavior = defineBehavior(
       g0[LAST] = g0[AT_X];
       g0[TRAVEL] = 0;
     });
-    on(ctx.interaction.drag, (e) => {
+    on(ctx.input.events.drag, (e) => {
       if (e.owner !== 'ringWindow') return;
       const sec = e.start.section;
       const vp = ctx.viewports.get(ctx.layout.sectionRef(g0[TARGET]) ?? '');
@@ -348,19 +351,21 @@ export const RingWindowBehavior = defineBehavior(
       pt.x = e.start.x + e.totalX;
       pt.y = e.start.y + e.totalY;
       ring.from(l, av, 1).toUnrolledAt(pt, polar);
-      dragTo(g0, polar, ring.w, mode);
+      g0[CIRC] = ring.w;
+      dragTo(g0, polar, mode);
       ringWindowSet(ctx, sec, g0);
     });
   },
 );
 
 /**
- * A window drag's step: the pointer's unrolled x (`at[0]`) taken the shorter way round from the last (`w` the
+ * A window drag's step: the pointer's unrolled x (`at[0]`) taken the shorter way round from the last (`g[CIRC]` the
  * circumference) into the travel, and the window it asks for into `g[SET_X]`, `g[SET_LEN]`: moved (`PAN`) or one end
  * moved with the other held, within its zoom limits, the block and the linear section's content (`cl`, `ch`; a cyclic
  * block's window first taken to the content's copy).
  */
-function dragTo(g: Float64Array, at: Float64Array, w: number, mode: number): void {
+function dragTo(g: Float64Array, at: Float64Array, mode: number): void {
+  const w = g[CIRC];
   let d = at[0] - g[LAST];
   if (d > w / 2) d -= w;
   else if (d < -w / 2) d += w;

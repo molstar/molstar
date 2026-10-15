@@ -32,8 +32,9 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test:full": "pnpm -w test:unit packages/sequences/nightingale && pnpm test:browser && pnpm test:heap",
+    "test:full": "pnpm -w test:unit packages/sequences/nightingale && pnpm test:browser && pnpm test:perf && pnpm test:heap",
     "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json"
