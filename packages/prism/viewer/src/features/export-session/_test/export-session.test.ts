@@ -66,6 +66,22 @@ describe('export session', () => {
     expect(v.managers.history.steps.value.length).toBe(steps);
   });
 
+  it('saves what the Save options say: no canvas settings or interactivity when they are off', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    const read = async (options?: Record<string, boolean>) => {
+      const r = await v.api.session.save!({ kind: 'state', ...(options ? { options: options as never } : {}) });
+      expectOk(r);
+      return JSON.parse(await r.value!.blob.text()).entries[0].snapshot;
+    };
+    const all = await read();
+    expect(all.data).toBeDefined();
+    expect(all.interactivity).toBeDefined();
+    const some = await read({ data: true, interactivity: false, canvas3d: false });
+    expect(some.data).toBeDefined();
+    expect(some.interactivity).toBeUndefined();
+    expect(some.canvas3d).toBeUndefined();
+  });
+
   it('opens a saved session: the structures come back, with their data', async () => {
     const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
     const count = () => v.plugin.managers.structure.hierarchy.current.structures.length;

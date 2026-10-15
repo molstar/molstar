@@ -20,59 +20,42 @@ import { createImageExportModel } from './model.js';
 // The Image section of the Export card (parity.md §4's export row): the existing view over a model built on
 // `export.preview`, `export.image` and `export.image-copy`; the model is made when the section is shown and released
 // with it. It previews only while the section is active (folded: no subscription, no render).
-// The Viewport section (v5's screenshot panel's camera info and state, parity.md): the camera in numbers while it is
-// shown (`export.camera`, bound: folded, it follows nothing), copying it as MolViewSpec's camera, and saving or loading
-// the viewport state (`export.viewport`, `load.viewport`).
+// The Camera section (v5's screenshot panel's Camera, parity.md): the camera in numbers while it is shown
+// (`export.camera`, bound: folded, it follows nothing) and copying it as MolViewSpec's camera. v5's State group of that
+// panel is Export › Session & state.
+
+const round2 = (v: number) => Math.round(v * 100) / 100;
+const list = (v: ArrayLike<number>) => Array.from(v, round2).join(', ');
 
 const Rows: readonly [string, (c: CameraValue) => string][] = [
-  ['Position', (c) => c.position.join(', ')],
-  ['Target', (c) => c.target.join(', ')],
-  ['Up', (c) => c.up.join(', ')],
+  ['Position', (c) => list(c.position)],
+  ['FoV norm. position', (c) => list(fovNormalized(c))],
+  ['Target', (c) => list(c.target)],
+  ['Direction', (c) => list(direction(c))],
+  ['Up', (c) => list(c.up)],
   ['Distance', (c) => `${c.distance} Å`],
+  ['Radius', (c) => `${round2(c.radius)} Å`],
   ['Field of view', (c) => `${c.fov}° (${c.mode})`],
 ];
 
-const round2 = (v: number) => Math.round(v * 100) / 100;
+/** The position normalized by the field of view (MolViewSpec's, v5's "FoV Norm. Pos."). */
+function fovNormalized(c: CameraValue): Vec3 {
+  return fovNormalizedCameraPosition(Vec3.ofArray(c.target), Vec3.ofArray(c.position), c.mode, (c.fov * Math.PI) / 180);
+}
+
+/** Where the camera looks: a unit vector from its position to its target. */
+function direction(c: CameraValue): Vec3 {
+  return Vec3.normalize(Vec3(), Vec3.sub(Vec3(), Vec3.ofArray(c.target), Vec3.ofArray(c.position)));
+}
 
 /** MolViewSpec's camera: the position normalized by the field of view (as v5's "Copy MVS JSON"). */
 function mvsCamera(c: CameraValue): string {
-  const target = Vec3.ofArray(c.target);
-  const position = fovNormalizedCameraPosition(target, Vec3.ofArray(c.position), c.mode, (c.fov * Math.PI) / 180);
-  const list = (v: ArrayLike<number>) => `[${Array.from(v, round2).join(', ')}]`;
-  return `{\n  "position": ${list(position)},\n  "target": ${list(c.target)},\n  "up": ${list(c.up)}\n}`;
+  const json = (v: ArrayLike<number>) => `[${list(v)}]`;
+  return `{\n  "position": ${json(fovNormalized(c))},\n  "target": ${json(c.target)},\n  "up": ${json(c.up)}\n}`;
 }
 
-function viewportSection(ctx: ViewerUIContext) {
+function cameraSection(ctx: ViewerUIContext) {
   const camera = observableState<CameraValue | undefined>(undefined);
-  const busy = observableState(false);
-  const say = (r: { ok: boolean; did?: string; message?: string; hint?: string }) =>
-    ctx.managers.notifications.post(
-      r.ok ? (r.did ?? '') : `${r.message}${r.hint ? ` ${r.hint}` : ''}`,
-      r.ok ? 'success' : 'error',
-    );
-  const save = async () => {
-    if (busy.value || !ctx.api.export) return;
-    busy.set(true);
-    try {
-      const r = await ctx.api.export.viewport({});
-      if (r.ok && r.value) downloadBlob(r.value.blob, r.value.filename);
-      say(r);
-    } finally {
-      busy.set(false);
-    }
-  };
-  const file = (
-    <input
-      type="file"
-      accept=".json,.molj"
-      hidden
-      onChange={(e) => {
-        const picked = e.currentTarget.files?.[0];
-        e.currentTarget.value = '';
-        if (picked && ctx.api.load.viewport) void ctx.api.load.viewport({ file: picked }).then(say);
-      }}
-    />
-  ) as HTMLInputElement;
   const copy = () => {
     const c = camera.value;
     if (!c || typeof navigator === 'undefined' || !navigator.clipboard) return;
@@ -102,25 +85,6 @@ function viewportSection(ctx: ViewerUIContext) {
         <Button size="sm" icon={<Icon name="copy" />} title="Copy the camera as MolViewSpec JSON" onClick={copy}>
           Copy MVS camera
         </Button>
-        <Button
-          size="sm"
-          icon={<Icon name="download" />}
-          title="Save the camera and the canvas settings as JSON"
-          disabled={busy.asReadonly}
-          onClick={() => void save()}
-        >
-          Save
-        </Button>
-        <Button
-          size="sm"
-          icon={<Icon name="folder-open" />}
-          title="Load a saved viewport state"
-          disabled={!ctx.api.load.viewport}
-          onClick={() => file.click()}
-        >
-          Load
-        </Button>
-        {file}
       </div>
     </div>
   );
@@ -149,13 +113,13 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
         }),
       },
       {
-        id: 'export-image.section.viewport',
+        id: 'export-image.section.camera',
         slot: 'export',
-        title: 'Viewport',
+        title: 'Camera',
         icon: 'move-3d',
         order: 0.5,
-        keywords: ['camera', 'viewport state', 'position', 'target', 'mvs', 'molviewspec'],
-        render: domView(() => viewportSection(ctx)),
+        keywords: ['camera', 'position', 'target', 'direction', 'mvs', 'molviewspec'],
+        render: domView(() => cameraSection(ctx)),
       },
     ],
   };

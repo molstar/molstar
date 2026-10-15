@@ -29,6 +29,20 @@ export const SaveParams = {
     },
   ),
   name: PD.Text('', { description: 'The file name, without its extension (empty: from the loaded entries)' }),
+  // v5's State panel's Save Options (`PluginState.SnapshotParams`): what of the scene goes into the file.
+  options: PD.Group(
+    {
+      data: PD.Boolean(true, { label: 'Data' }),
+      camera: PD.Boolean(true, { label: 'Camera' }),
+      canvas3d: PD.Boolean(true, { label: 'Canvas settings' }),
+      componentManager: PD.Boolean(true, { label: 'Component options' }),
+      structureSelection: PD.Boolean(false, { label: 'Selection' }),
+      animation: PD.Boolean(true, { label: 'Animation' }),
+      behavior: PD.Boolean(false, { label: 'Behaviors' }),
+      interactivity: PD.Boolean(true, { label: 'Interactivity' }),
+    },
+    { label: 'Save options', description: 'What of the scene goes into the file', isExpanded: false },
+  ),
 };
 
 /** What `session.save` gives. */
@@ -64,7 +78,7 @@ export const exportSessionOperations = (): {
       history: false,
       undoable: false,
       when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
-      async run({ kind, name }, ctx): Promise<ApiResult<SavedSession>> {
+      async run({ kind, name, options }, ctx): Promise<ApiResult<SavedSession>> {
         const plugin = ctx.plugin;
         try {
           // Without a canvas there is no camera to save (headless).
@@ -72,7 +86,7 @@ export const exportSessionOperations = (): {
           const blob = await plugin.managers.snapshot.serialize({
             keepList: true,
             type: kind === 'session' ? 'molx' : 'molj',
-            params: { camera: !!plugin.canvas3d },
+            params: { ...options, camera: options.camera && !!plugin.canvas3d },
           });
           const filename = fileName(name, kind, ctx);
           const size =
