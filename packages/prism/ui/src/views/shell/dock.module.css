@@ -55,6 +55,9 @@
 
 .content {
   position: relative;
+  /* What changes inside lays out the panel, not the shell (styling.md §5). Not `paint`: the splitter hangs over the
+     edge, and a frameless tab's content shows past it. */
+  contain: layout style;
   display: flex;
   flex-direction: column;
   width: var(--msp-dock-size);
@@ -88,6 +91,8 @@
 }
 
 .body {
+  /* Clipped already (a scroll area): a change inside lays out and paints the body only (styling.md §5). */
+  contain: layout paint;
   flex: 1;
   min-height: 0;
 }

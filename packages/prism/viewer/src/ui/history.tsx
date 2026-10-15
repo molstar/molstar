@@ -173,23 +173,30 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
           {() => <span class={classes.caption}>Kept in this browser</span>}
         </Show>
       </div>
-      <For each={model.rows} key={(r) => r.key} fallback={() => <p class={classes.empty}>Nothing has happened yet.</p>}>
-        {(row) => (
-          <Row
-            row={row}
-            opened={opened}
-            latestTurn={latestTurn}
-            confirm={confirm.asReadonly}
-            onUndoTurn={(t, discardLater) => {
-              confirm.set(undefined);
-              void api.history.undoTurn({ turn: t, discardLater }).then((r) => {
-                if (!r.ok && r.code === 'confirm') confirm.set({ turn: t, text: r.message });
-                else say(r);
-              });
-            }}
-          />
-        )}
-      </For>
+      {/* The rows in a contained box of their own: the bar's changes do not lay them out, nor theirs the panel. */}
+      <div class={classes.list}>
+        <For
+          each={model.rows}
+          key={(r) => r.key}
+          fallback={() => <p class={classes.empty}>Nothing has happened yet.</p>}
+        >
+          {(row) => (
+            <Row
+              row={row}
+              opened={opened}
+              latestTurn={latestTurn}
+              confirm={confirm.asReadonly}
+              onUndoTurn={(t, discardLater) => {
+                confirm.set(undefined);
+                void api.history.undoTurn({ turn: t, discardLater }).then((r) => {
+                  if (!r.ok && r.code === 'confirm') confirm.set({ turn: t, text: r.message });
+                  else say(r);
+                });
+              }}
+            />
+          )}
+        </For>
+      </div>
       <Show when={model.more}>
         {() => (
           <div class={classes.more}>

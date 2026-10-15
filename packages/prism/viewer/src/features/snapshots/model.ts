@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { mapState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import type { MarkdownHost } from '@molstar/prism-ui';
 import type { SnapshotStepperModel } from '@molstar/prism-ui/model/playback';
 import type { Subscription } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
@@ -234,8 +235,15 @@ export function createSnapshotsModel(
   };
 }
 
-/** The playback card's model: the current snapshot, its place in the list, and stepping and playing. */
-export function createSnapshotStepper(api: ViewerApi, area: SnapshotApi): SnapshotStepperModel {
+/**
+ * The playback card's model: the current snapshot, its place in the list, and stepping and playing. `markdown` is the
+ * descriptions' host (Mol*'s markdown commands, `markdown.ts`), made by the views.
+ */
+export function createSnapshotStepper(
+  api: ViewerApi,
+  area: SnapshotApi,
+  markdown?: MarkdownHost,
+): SnapshotStepperModel {
   const state: ReadonlyState<SnapshotsState> = area.state;
   const indexOf = (s: SnapshotsState) => s.entries.findIndex((e) => e.id === s.current);
   const sameTitles = (a: readonly string[], b: readonly string[]) =>
@@ -253,6 +261,8 @@ export function createSnapshotStepper(api: ViewerApi, area: SnapshotApi): Snapsh
     ),
     titles: mapState(state, (s) => s.entries.map(titleOf), sameTitles),
     description: mapState(state, (s) => s.entries[indexOf(s)]?.description, Object.is),
+    plainText: mapState(state, (s) => !!s.entries[indexOf(s)]?.plainText, Object.is),
+    ...(markdown ? { markdown } : {}),
     isPlaying: mapState(state, (s) => s.playing, Object.is),
     previous: () => void api.snapshot?.previous(),
     next: () => void api.snapshot?.next(),
@@ -270,5 +280,49 @@ export function createSnapshotStepper(api: ViewerApi, area: SnapshotApi): Snapsh
         globalThis.open?.(href, '_blank', 'noopener,noreferrer');
       }
     },
+  };
+}
+
+/** The playback card's part id. */
+export const PlaybackCard = 'snapshots.overlay.playback';
+
+/** Whether the card has something to show: a story to step through, or one snapshot's description. */
+export const presentable = (s: SnapshotsState): boolean =>
+  s.entries.length >= 2 || !!s.entries.find((e) => e.id === s.current)?.description?.trim();
+
+/** The operations that load data or a session: a story comes with them (MVS, a session, a state file). */
+const loads = (id: string) => id.startsWith('load.') || id === 'session.open' || id === 'session.remote.open';
+const listOf = (s: SnapshotsState) => s.entries.map((e) => e.id).join(' ');
+
+/**
+ * M3 (parity.md §4, the playback row): a load that brings a story (two or more snapshots, or one with a description)
+ * opens the playback card, once per load, as v5 shows the description and the stepper at once. A load that leaves the
+ * list as it was (another structure) opens nothing. Returns its disposer.
+ */
+export function openPlaybackOnLoad(
+  api: Pick<ViewerApi, 'events' | 'view'>,
+  area: Pick<SnapshotApi, 'state'>,
+): () => void {
+  const before = new Map<number, string>();
+  // The views can mount while a URL load runs: its list before is the one when they mounted.
+  const mounted = listOf(area.state.value);
+  // A load inside another (files that hold an MVS) opens the card once.
+  let opened = '';
+  const started = api.events.started.subscribe((r) => {
+    if (loads(r.operation)) before.set(r.id, listOf(area.state.value));
+  });
+  const finished = api.events.finished.subscribe((r) => {
+    if (!loads(r.operation)) return;
+    const was = before.get(r.id) ?? mounted;
+    before.delete(r.id);
+    const s = area.state.value;
+    const now = listOf(s);
+    if (!r.result?.ok || now === was || now === opened || !presentable(s)) return;
+    opened = now;
+    void api.view.open({ card: PlaybackCard });
+  });
+  return () => {
+    started.unsubscribe();
+    finished.unsubscribe();
   };
 }

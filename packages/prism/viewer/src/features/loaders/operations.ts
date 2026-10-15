@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObjectSelector } from '@molstar/core/state';
+import { type StateObjectCell, StateObjectSelector } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
@@ -25,10 +25,12 @@ import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { fromJSON, readDocument } from '@molstar/seq-core/format';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
 import { messageOf } from '../../api/run.js';
 import { labelOf, loadedStructures } from '../../api/scope.js';
 import { currentStateServer, openStateFrom, stateAddress, transformersOf } from '../../api/state-open.js';
+import { svsStructureSource } from '../../sequence/document.js';
 
 // The `loaders` feature's operations (operations.md §2, the `load` row; README §3.2): Mol*'s own loaders
 // (`@molstar/plugin-extension/loaders`: the plugin's state actions and builders) as operations of the core's `load`
@@ -557,6 +559,15 @@ export const MvsParams = {
   }),
   format: PD.Select<'mvsj' | 'mvsx'>('mvsj', PD.arrayToOptions(['mvsj', 'mvsx'] as const)),
   keepCamera: PD.Boolean(false, { description: "Keep the camera as it is, ignoring the MolViewSpec's" }),
+  // v5's `loadMvs*` options (`MVSLoadOptions`, parity review M6).
+  append: PD.Boolean(false, {
+    description: "Add the MolViewSpec's snapshots to the Snapshots list instead of replacing the list",
+  }),
+  keepCameraOrientation: PD.Boolean(false, {
+    description: "Keep the camera's direction, moving only to the MolViewSpec's target (keepCamera wins)",
+  }),
+  snapshot: PD.Numeric(0, { min: 0, step: 1 }, { description: 'The snapshot to show first, by index (0: the first)' }),
+  extensions: PD.Boolean(true, { description: "Apply Mol*'s MVS extensions (not part of the MolViewSpec standard)" }),
 };
 
 const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
@@ -566,7 +577,7 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
   // No `modules: ['network']`: the module is checked per call, as only a url needs it (data is local).
   // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
   approval: 'destructive',
-  async run({ url, data, format, keepCamera }, ctx) {
+  async run({ url, data, format, keepCamera, append, keepCameraOrientation, snapshot, extensions }, ctx) {
     const address = url.trim();
     if (address && data.trim()) {
       return ApiResult.fail('invalid', 'Give a url or data, not both.', 'Neither is loaded: say which one is meant.');
@@ -583,7 +594,14 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
     const before = refsOf(ctx);
     try {
       await plugin.initialized;
-      const options = { sanityChecks: true, keepCamera };
+      const options = {
+        sanityChecks: true,
+        keepCamera,
+        keepCameraOrientation,
+        appendSnapshots: append,
+        defaultSnapshotIndex: Math.max(0, Math.floor(snapshot)),
+        ...(extensions ? {} : { extensions: [] }),
+      };
       await guarded(ctx, async () => {
         if (!address) {
           await loadMVSData(plugin, data.trim(), format, options);
@@ -602,6 +620,174 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
     return ApiResult.ok(
       loadedLine(names, 'the MolViewSpec'),
       { nodes: refsOf(ctx).filter((r) => !before.includes(r)), view: true, sequence: true },
+      { value: { loaded: names } },
+    );
+  },
+};
+
+// --- load.svs -----------------------------------------------------------------------------------------------------
+
+export const SvsParams = {
+  url: PD.Text('', {
+    description: 'The address of a SeqViewSpec document (.svsj, .svs; JSON or MessagePack); empty: use data',
+  }),
+  data: PD.Text('', {
+    multiline: true,
+    description: 'The SeqViewSpec document itself (JSON); used when there is no url',
+  }),
+};
+
+/** SeqViewSpec structure formats as the plugin's loaders name them (BinaryCIF is mmCIF read as binary). */
+const SvsFormats: Readonly<Record<string, { format: string; binary: boolean }>> = {
+  mmcif: { format: 'mmcif', binary: false },
+  bcif: { format: 'mmcif', binary: true },
+  pdb: { format: 'pdb', binary: false },
+  sdf: { format: 'sdf', binary: false },
+  mol2: { format: 'mol2', binary: false },
+};
+
+/** The entry-id services a document may name its structure by, as `load.entry`'s sources. */
+const SvsServices: Readonly<Record<string, EntrySource>> = { pdbe: 'pdb', afdb: 'afdb' };
+
+/** The state refs of the data cells above a cell (the cell itself first). */
+function dataAncestors(ctx: ApiContext, ref: string): StateObjectCell[] {
+  const { cells } = ctx.plugin.state.data;
+  const out: StateObjectCell[] = [];
+  for (let cell = cells.get(ref); cell; ) {
+    out.push(cell);
+    const parent = cell.transform.parent;
+    if (parent === cell.transform.ref) break;
+    cell = cells.get(parent);
+  }
+  return out;
+}
+
+/** The loaded structure a document's source names (sequence.md §6): by its address, entry id, or file name. */
+function matchStructure(ctx: ApiContext, source: Readonly<Record<string, unknown>>, uri: string | undefined) {
+  const entryId = typeof source.id === 'string' ? source.id.toLowerCase() : undefined;
+  const hostFile = typeof source.host_file === 'string' ? source.host_file : undefined;
+  const fileId = hostFile?.split('/').pop()?.split('.')[0]?.toLowerCase();
+  return loadedStructures(ctx).find((s) => {
+    const entry = s.cell.obj?.data.model.entryId?.toLowerCase();
+    if (entryId && entry === entryId) return true;
+    if (hostFile && fileId && entry === fileId) return true;
+    return dataAncestors(ctx, s.cell.transform.ref).some((cell) => {
+      const params = cell.transform.params as { url?: string | Asset.Url; file?: Asset.File } | undefined;
+      if (uri && cell.transform.transformer === Download && params?.url && Asset.getUrl(params.url) === uri)
+        return true;
+      return !!hostFile && (params?.file?.name === hostFile || cell.obj?.label === hostFile);
+    });
+  });
+}
+
+/** An address resolved against the document's (a relative URI in a document from an address). */
+function resolveUri(uri: string, base: string): string {
+  try {
+    return base ? new URL(uri, base).href : uri;
+  } catch {
+    return uri;
+  }
+}
+
+const svs: OperationDefinition<typeof SvsParams, Loaded> = {
+  id: 'load.svs',
+  title: 'Load a SeqViewSpec',
+  params: SvsParams,
+  // No `addresses`: the document names a structure that is fetched in the same run, which a check of the document's
+  // address alone cannot see, so the agent always asks (agent.md §4).
+  // No `modules: ['network']`: data is local, and a structure that is loaded already needs nothing.
+  approval: 'network',
+  async run({ url, data }, ctx) {
+    const address = url.trim();
+    if (address && data.trim()) {
+      return ApiResult.fail('invalid', 'Give a url or data, not both.', 'Neither is loaded: say which one is meant.');
+    }
+    if (!address && !data.trim()) return ApiResult.fail('invalid', 'Which SeqViewSpec?', 'Give a url or its data.');
+    const sequence = ctx.api.sequence;
+    if (!sequence) {
+      return ApiResult.fail('unavailable', 'This viewer has no sequence view to show a SeqViewSpec in.');
+    }
+    if (address && !ctx.modules.has('network')) {
+      return ApiResult.fail(
+        'unavailable',
+        'Load a SeqViewSpec needs the network, which this viewer does not have.',
+        'Give its data instead of a url.',
+      );
+    }
+    if (/\.svsx$/i.test(address.split(/[?#]/)[0])) {
+      return ApiResult.fail('invalid', 'SeqViewSpec archives (.svsx) are not read yet.', 'Give its .svsj document.');
+    }
+    // The document: JSON or MessagePack from an address, JSON as data; its envelope checked (Seq* checks the rest).
+    let read: ReturnType<typeof readDocument>;
+    try {
+      read = address
+        ? readDocument(await ctx.plugin.runTask(ctx.plugin.fetch({ url: address, type: 'binary' })))
+        : fromJSON(data.trim());
+    } catch (e) {
+      return pluginFailure(address, e);
+    }
+    const doc = read.doc;
+    if (!doc) {
+      return ApiResult.fail(
+        'invalid',
+        `Not a SeqViewSpec: ${read.issues[0]?.message ?? 'the document cannot be read'}.`,
+        'Give a SeqViewSpec document (format "seq_view_spec").',
+      );
+    }
+    const target = svsStructureSource(doc);
+    if (!target) {
+      return ApiResult.fail(
+        'invalid',
+        'The SeqViewSpec names no structure (a molstar:structure complex with a source).',
+        'The viewer shows a SeqViewSpec over a structure it loads.',
+      );
+    }
+    // Its first molstar:structure complex: the loaded structure it names, else loaded now (one step with the SVS).
+    const src = target.source;
+    const service = typeof src.service === 'string' ? SvsServices[src.service] : undefined;
+    const uri = typeof src.uri === 'string' ? resolveUri(src.uri, address) : undefined;
+    const before = refsOf(ctx);
+    let structure = matchStructure(ctx, src, uri);
+    if (!structure) {
+      const format = SvsFormats[String(src.format ?? '')] ?? { format: 'auto', binary: false };
+      let loaded: ApiResult<Loaded>;
+      if (service && typeof src.id === 'string') {
+        loaded = (await ctx.api.run('load.entry', { source: service, id: src.id })) as ApiResult<Loaded>;
+      } else if (uri) {
+        loaded = (await ctx.api.run('load.url', { url: uri, ...format })) as ApiResult<Loaded>;
+      } else if (typeof src.value === 'string') {
+        const text = format.format === 'auto' ? 'mmcif' : format.format;
+        loaded = (await ctx.api.run('load.data', { data: src.value, format: text })) as ApiResult<Loaded>;
+      } else {
+        const name = typeof src.host_file === 'string' ? src.host_file : 'its structure';
+        return ApiResult.fail(
+          'not-found',
+          `The SeqViewSpec's structure (${name}) is not loaded.`,
+          'Open the file first, or with the document.',
+        );
+      }
+      if (!loaded.ok) return loaded;
+      structure = loadedStructures(ctx).find((s) => !before.includes(s.cell.transform.ref));
+      if (!structure) return ApiResult.fail('failed', "Loading the SeqViewSpec's structure made none.");
+    }
+    const shown = await sequence.showDocument({
+      document: doc,
+      structure: structure.cell.transform.ref,
+      ...(address ? { url: address } : {}),
+    });
+    if (!shown.ok) {
+      const issue = shown.issues.find((i) => i.severity === 'error') ?? shown.issues[0];
+      return ApiResult.fail(
+        'invalid',
+        `The sequence cannot show the SeqViewSpec: ${issue?.message ?? 'it is not valid'}.`,
+        'Check the document.',
+      );
+    }
+    const names = addedNames(ctx, before);
+    const title = doc.metadata?.title ?? address ?? 'the SeqViewSpec';
+    return ApiResult.ok(
+      `${names.length ? `Loaded ${names.join(', ')}; the` : 'The'} sequence shows ${title} over ${labelOf(ctx, structure)}.`,
+      { nodes: refsOf(ctx).filter((r) => !before.includes(r)), sequence: true },
       { value: { loaded: names } },
     );
   },
@@ -893,7 +1079,7 @@ const volume: OperationDefinition<typeof VolumeParams, Loaded> = {
 
 /** The operations the feature adds to the core's `load` area, under their members' names (`load.entry` is `entry`). */
 export const loadersOperations = (): { area: string; name: string; operation: OperationDefinition<any, any> }[] =>
-  [entry, url, rawData, mvs, snapshot, trajectory, volume].map((operation) => ({
+  [entry, url, rawData, mvs, svs, snapshot, trajectory, volume].map((operation) => ({
     area: 'load',
     name: memberName(operation.id),
     operation: operation as OperationDefinition<any, any>,

@@ -152,6 +152,7 @@ describe('the History model', () => {
     const frames: (() => void)[] = [];
     const m = createHistoryModel(record, { schedule: (fn) => frames.push(fn) });
     const read = vi.spyOn(record, 'read');
+    const readAfter = vi.spyOn(record, 'readAfter');
     const person = v.api.as({ kind: 'person' });
 
     // Inactive: writes read nothing, and nothing is subscribed.
@@ -165,7 +166,7 @@ describe('the History model', () => {
     expect(read).toHaveBeenCalledTimes(1);
     expect(m.rows.value).toHaveLength(1);
 
-    // Three writes before the frame: one read.
+    // Three writes before the frame: one read, of what is new only.
     read.mockClear();
     expectOk(await person.styles.apply({ style: 'cartoon' }));
     expectOk(await person.styles.apply({ style: 'surface' }));
@@ -175,16 +176,20 @@ describe('the History model', () => {
     expect(read).not.toHaveBeenCalled();
     frames.shift()!();
     await m.idle();
-    expect(read).toHaveBeenCalledTimes(1);
+    expect(read).not.toHaveBeenCalled();
+    expect(readAfter).toHaveBeenCalledTimes(1);
+    expect((await readAfter.mock.results[0].value).items).toHaveLength(3);
     expect(m.rows.value).toHaveLength(4);
 
     // Inactive again: no more reads.
     m.setActive(false);
     read.mockClear();
+    readAfter.mockClear();
     expectOk(await person.styles.apply({ style: 'surface' }));
     await record.flush();
     expect(frames).toHaveLength(0);
     expect(read).not.toHaveBeenCalled();
+    expect(readAfter).not.toHaveBeenCalled();
     m.dispose();
     record.dispose();
   });

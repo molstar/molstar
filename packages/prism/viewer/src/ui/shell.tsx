@@ -72,6 +72,9 @@ defineStyles(
 /** Files that open as a session rather than as data. */
 const SessionFile = /\.(molx|molj)$/i;
 
+/** The assistant's tab (`@molstar/prism-assistant`'s), stood in for by a placeholder until it loads. */
+const AssistantTabId = 'assistant.tab.assistant';
+
 export interface MountedShell {
   readonly shell: ShellModel;
   readonly root: HTMLElement;
@@ -504,8 +507,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers });
   unregister.push(core.attachExtensionUI(port));
 
-  // The assistant, when the spec has one (viewer-spec.md §2.4): loaded with the agent's code, both chunks of their own,
-  // then its tab, the command menu's Ask row, and its turn card under the status line.
+  // The assistant, when the spec has one (viewer-spec.md §2.4): loaded on first use, with the agent's code (both chunks
+  // of their own, with the AI SDK: G8 perf #5), then its tab, the command menu's Ask row, and its turn card under the
+  // status line. Until then its tab is a placeholder whose opening loads it, and the Ask row loads it and then asks.
   const assistantMenu = observableState<CommandMenuAssistant | undefined>(undefined);
   const agentView = observableState<(() => Child) | undefined>(undefined);
   let closed = false;
@@ -515,42 +519,77 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const agentSpec = core.spec.agent;
   if (agentSpec && agentSpec.assistant) {
     const load = agentSpec.assistant;
-    void (async () => {
-      let chunks: [Awaited<ReturnType<typeof load>>, typeof import('../agent/session.js')];
-      try {
-        chunks = await Promise.all([load(), import('../agent/session.js')]);
-      } catch (e) {
-        // A chunk that does not load (a deploy since the page loaded, journal.md §7).
-        console.error('[prism-viewer] the assistant did not load:', e);
-        managers.notifications.post(
-          'The assistant could not load. A newer version of the viewer is available: reload.',
-          'error',
-        );
-        return;
-      }
-      const [{ createAssistant }, { createViewerAgent }] = chunks;
-      if (closed) return;
-      // The agents it made, disposed here if it fails to start (their subscriptions to the viewer would outlive it).
-      const agents: { dispose(): void }[] = [];
-      try {
-        const assistant = await createAssistant({
-          viewer: core,
-          createAgent: (models) => {
-            const agent = createViewerAgent({ viewer: core, models });
-            agents.push(agent);
-            return agent;
-          },
-        });
-        if (closed) return assistant.dispose();
-        unregister.push(port.register('assistant', assistant.ui));
-        unregister.push(() => assistant.dispose());
-        assistantMenu.set(assistant.commandMenu);
-        agentView.set(assistant.agentView);
-      } catch (e) {
-        for (const a of agents.splice(0)) a.dispose();
-        managers.notifications.post(`The assistant could not start: ${e instanceof Error ? e.message : e}`, 'error');
-      }
-    })();
+    let stub: (() => void) | undefined;
+    const removeStub = () => {
+      stub?.();
+      stub = undefined;
+    };
+    let loading: Promise<CommandMenuAssistant | undefined> | undefined;
+    const loadAssistant = () =>
+      (loading ??= (async (): Promise<CommandMenuAssistant | undefined> => {
+        let chunks: [Awaited<ReturnType<typeof load>>, typeof import('../agent/session.js')];
+        try {
+          chunks = await Promise.all([load(), import('../agent/session.js')]);
+        } catch (e) {
+          // A chunk that does not load (a deploy since the page loaded, journal.md §7): the next use tries again.
+          loading = undefined;
+          console.error('[prism-viewer] the assistant did not load:', e);
+          managers.notifications.post(
+            'The assistant could not load. A newer version of the viewer is available: reload.',
+            'error',
+          );
+          return undefined;
+        }
+        const [{ createAssistant }, { createViewerAgent }] = chunks;
+        if (closed) return undefined;
+        // The agents it made, disposed here if it fails to start (their subscriptions to the viewer would outlive it).
+        const agents: { dispose(): void }[] = [];
+        try {
+          const assistant = await createAssistant({
+            viewer: core,
+            createAgent: (models) => {
+              const agent = createViewerAgent({ viewer: core, models });
+              agents.push(agent);
+              return agent;
+            },
+          });
+          if (closed) {
+            assistant.dispose();
+            return undefined;
+          }
+          // Its real tab takes the placeholder's place (same id).
+          removeStub();
+          unregister.push(port.register('assistant', assistant.ui));
+          unregister.push(() => assistant.dispose());
+          assistantMenu.set(assistant.commandMenu);
+          agentView.set(assistant.agentView);
+          return assistant.commandMenu;
+        } catch (e) {
+          for (const a of agents.splice(0)) a.dispose();
+          managers.notifications.post(`The assistant could not start: ${e instanceof Error ? e.message : e}`, 'error');
+          return undefined;
+        }
+      })());
+    // The placeholder tab, where the assistant's will be: opening it loads the assistant, whose tab then shows.
+    stub = port.registerStub(
+      'assistant',
+      { parts: [{ id: AssistantTabId, kind: 'tab', title: 'Assistant', icon: 'bot', order: 2.6 }] },
+      () => loadAssistant().then((a) => !!a),
+    );
+    unregister.push(removeStub);
+    // The Ask row before it loads: whether a model is set up is not known yet, so it offers to ask; asking loads it,
+    // then asks (or opens the setup when no model is).
+    assistantMenu.set({
+      ready: () => true,
+      propose: () => undefined,
+      ask: (text) =>
+        void loadAssistant().then((a) => {
+          if (!a) return;
+          if (a.ready()) a.ask(text);
+          else a.setup();
+        }),
+      setup: () => void loadAssistant().then((a) => a?.setup()),
+    });
   }
 
   // A file the agent made for the person (an export, a saved session: a result's `{ blob, filename }`) is saved here, the
@@ -588,7 +627,14 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         canvas={canvasHost}
         overlays={
           <Show when={hasData}>
-            {() => <HoverLabel model={{ lines: hoverLines.asReadonly }} area={() => canvasHost.parentElement} />}
+            {() => (
+              // The viewport, not the canvas: the sequence band floats over it and feeds the same label
+              // (prism-sequence.md §6).
+              <HoverLabel
+                model={{ lines: hoverLines.asReadonly }}
+                area={() => canvasHost.closest<HTMLElement>('[data-msp-viewport]') ?? canvasHost.parentElement}
+              />
+            )}
           </Show>
         }
         playback={<Show when={shown('trajectory')}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}

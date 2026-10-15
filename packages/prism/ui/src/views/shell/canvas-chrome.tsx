@@ -472,7 +472,7 @@ export function BusyOverlay(props: { status: StatusModel }) {
                 <span
                   class={classes.busyBar}
                   data-indeterminate={percent.pipe(map((p) => (p === undefined ? '' : undefined)))}
-                  style={{ width: percent.pipe(map((p) => `${p ?? 30}%`)) }}
+                  style={{ scale: percent.pipe(map((p) => `${(p ?? 30) / 100} 1`)) }}
                 />
               </div>
               {first.abort ? (

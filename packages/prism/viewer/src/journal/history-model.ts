@@ -11,8 +11,9 @@ import type { RunOriginKind } from '../api/area.js';
 import type { RecordEntry, RecordItem, RunEntry, SessionRecord, TurnEntry } from './record.js';
 
 // What History shows of the session's record (journal.md §3), DOM-free. The record is read in windows, newest first (the
-// newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). It is read again after a
-// change, once per frame, and only while the tab is active: a hidden tab holds no subscription and reads nothing.
+// newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). After a change it reads only
+// the entries since the last read (and a turn still under way), once per frame, and only while the tab is active: a
+// hidden tab holds no subscription and reads nothing.
 // The rows: a person's (script's, link's) run is one row; an agent's turn is one row holding its runs; an `undo` entry is
 // no row, it marks the step it undid; a `session` entry is a small separator. What is loaded is a run of positions from
 // the newest down to `floor`; the record reads in windows of at most the fiber's limit (256), however many are asked.
@@ -99,6 +100,8 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
   let floor = 0;
   let top = 0;
   let hasMore = false;
+  /** The newest window was read: later reads take only what is after `top`. */
+  let primed = false;
   let active = false;
   let disposed = false;
   let unlisten: (() => void) | undefined;
@@ -129,31 +132,34 @@ export function createHistoryModel(record: SessionRecord, o: HistoryModelOptions
     kept.set(record.kept);
   };
 
-  /** Reads the newest window and merges it into what is loaded. */
-  const refresh = async () => {
+  /** Reads the newest window, the first time; and again when more came since than a window holds. */
+  const readNewest = async () => {
     const fresh = await record.read(size);
     if (disposed || !active) return;
-    if (!fresh.more || top === 0 || fresh.start > top) {
-      // The window holds the whole record, or nothing is loaded yet, or more new entries came than a window: start over
-      // from the newest; earlier ones come by "Show earlier".
-      loaded = fresh.items;
-      floor = fresh.start;
-      hasMore = fresh.more;
-    } else if (loaded.some((i) => i.open && i.position < fresh.start)) {
-      // A turn under way, older than this window, may have settled since: read again all that is loaded (in windows).
-      const all = await record.read(fresh.end - floor);
-      if (disposed || !active) return;
-      loaded = all.items;
-      floor = all.start;
-      hasMore = all.more;
-    } else {
-      loaded = [...fresh.items, ...loaded.filter((i) => i.position < fresh.start)];
-      if (fresh.start <= floor) {
-        floor = fresh.start;
-        hasMore = fresh.more;
-      }
-    }
+    loaded = fresh.items;
+    floor = fresh.start;
+    hasMore = fresh.more;
     top = fresh.end;
+    primed = true;
+    publish();
+  };
+
+  /**
+   * Reads only what is new since the last read (from `top`), or from the oldest entry still under way (a turn may have
+   * settled since), and merges it into what is loaded: a step costs the entries it added, not a window (G8 perf #2).
+   */
+  const refresh = async () => {
+    if (!primed) return readNewest();
+    let from = top;
+    for (const i of loaded) if (i.open && i.position < from) from = i.position;
+    // What is loaded from `from` on, read again, and at most a window of new entries.
+    const fresh = await record.readAfter(from, top - from + size);
+    if (disposed || !active) return;
+    // More new entries came than a window: start over from the newest; earlier ones come by "Show earlier".
+    if (fresh.more) return readNewest();
+    if (!fresh.items.length && from === top && kept.value === record.kept) return;
+    loaded = from < top ? [...fresh.items, ...loaded.filter((i) => i.position < from)] : [...fresh.items, ...loaded];
+    top = Math.max(top, fresh.end);
     publish();
   };
 

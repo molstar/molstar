@@ -10,7 +10,13 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginState } from '@molstar/plugin/state';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import { type ApiContext, ApiArea, ApiResult, type ApiFailure } from '../../api/area.js';
-import { createSnapshotsSource, type SnapshotsSource, type SnapshotsState } from './source.js';
+import {
+  createMarkdownSource,
+  createSnapshotsSource,
+  type MarkdownSource,
+  type SnapshotsSource,
+  type SnapshotsState,
+} from './source.js';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 
 // The `snapshot` area (operations.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
@@ -97,6 +103,17 @@ const PlayParams = {
   ),
 };
 
+const LinkParams = {
+  href: PD.Text('', {
+    description: "The link: a Mol* markdown command, '!name=value&…' (focus-refs, highlight-refs, …)",
+  }),
+  event: PD.Select<'click' | 'enter' | 'leave'>('click', [
+    ['click', 'Click'],
+    ['enter', 'Pointer enters'],
+    ['leave', 'Pointer leaves'],
+  ]),
+};
+
 export type AddSnapshotParams = typeof AddParams;
 export type UpdateSnapshotParams = typeof UpdateParams;
 export type ReplaceSnapshotParams = typeof ReplaceParams;
@@ -173,6 +190,7 @@ export class SnapshotApi extends ApiArea {
   readonly id = 'snapshot';
 
   #source: SnapshotsSource | undefined;
+  #markdown: MarkdownSource | undefined;
 
   /**
    * The snapshots as a state the views read (their list, the current one, whether it plays); made on first use and
@@ -182,9 +200,19 @@ export class SnapshotApi extends ApiArea {
     return (this.#source ??= createSnapshotsSource(this.ctx.plugin)).state;
   }
 
+  /**
+   * The plugin's markdown extensions as the descriptions read them (which links are commands, images, the audio
+   * player); made on first use. Running a command is `snapshot.link`.
+   */
+  get markdown(): MarkdownSource {
+    return (this.#markdown ??= createMarkdownSource(this.ctx.plugin));
+  }
+
   dispose(): void {
     this.#source?.dispose();
     this.#source = undefined;
+    this.#markdown?.dispose();
+    this.#markdown = undefined;
     // A running slideshow holds a timer of its own.
     try {
       const manager = this.ctx.plugin.managers.snapshot;
@@ -421,6 +449,34 @@ export class SnapshotApi extends ApiArea {
       // The manager applies each snapshot on its own timer: a presentation, not steps; the history leaves it alone
       // (sources/checkpoint.ts) and Undo after it restores as usual.
       return ApiResult.ok(`Playing ${count} snapshots.`, { view: true });
+    },
+  });
+
+  /**
+   * A command link in a description (v5's markdown commands: camera, focus and highlight refs, query, snapshots, audio),
+   * run by the plugin's markdown extensions as v5 runs them. A story's links present it, as playback does: view
+   * state, no history step.
+   */
+  readonly link = this.operation({
+    id: 'snapshot.link',
+    title: 'Follow a link in a description',
+    surface: { kind: 'ui-only', reason: "A description's command links: the person clicks or points at them." },
+    params: LinkParams,
+    history: false,
+    async run({ href, event }, ctx) {
+      const extensions = ctx.plugin.managers.markdownExtensions;
+      const args = extensions.parseArgs(href);
+      if (!args) {
+        return ApiResult.fail('invalid', `'${href}' is not a command link.`, "A command link starts with '!'.");
+      }
+      extensions.tryExecute(event === 'click' ? 'click' : event === 'enter' ? 'mouse-enter' : 'mouse-leave', args);
+      const names = Object.keys(args).join(', ');
+      return ApiResult.ok(
+        event === 'click' ? `Ran ${names}.` : `Ran ${names} (the pointer ${event === 'enter' ? 'entered' : 'left'}).`,
+        {
+          view: true,
+        },
+      );
     },
   });
 

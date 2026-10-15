@@ -26,5 +26,7 @@ export { SequenceStrip } from './views/sequence/sequence-strip.js';
 export { RemoteStatesPanel } from './views/state/remote-states-panel.js';
 export { SnapshotsPanel } from './views/state/snapshots-panel.js';
 export { StateTreeTab } from './views/state-tree/state-tree-tab.js';
+export { SceneRow, type SceneRowProps } from './views/structure/scene-row.js';
+export { SceneRowSlot } from './views/structure/scene-tree.js';
 export { StructureTab } from './views/structure/structure-tab.js';
 export * from './sequence/index.js';

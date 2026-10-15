@@ -46,6 +46,7 @@ export const LoadUrlParameters: readonly string[] = [
   'url',
   'url-format',
   'url-is-binary',
+  'svs-url',
 ];
 
 /** The parameters of a query string: names lowercased, the first of a name wins; values decoded as v5 does (`+` stays). */
@@ -140,6 +141,10 @@ export function loadsFromUrl(search: string): UrlLoad[] {
       values: { url, format: get('url-format') ?? 'auto', binary: flag('url-is-binary'), ...structureOptions },
     });
   }
+
+  // Prism's own: a SeqViewSpec in the sequence, last, so the structure it names may be one loaded above.
+  const svsUrl = get('svs-url');
+  if (svsUrl) loads.push({ operation: 'load.svs', values: { url: svsUrl } });
   return loads;
 }
 

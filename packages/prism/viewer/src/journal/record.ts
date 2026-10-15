@@ -120,6 +120,11 @@ export interface SessionRecord {
   readonly keepIn?: FiberRows;
   /** Entries newest first: `limit` of them before `before` (a position), read in windows of at most `RecordWindowMax`. */
   read(limit: number, before?: number): Promise<RecordPage>;
+  /**
+   * Entries at `from` (a position) and after, newest first: the oldest `limit` of them, read in windows of at most
+   * `RecordWindowMax`. `more`: later entries were left out. What History reads after a change, instead of a window.
+   */
+  readAfter(from: number, limit: number): Promise<RecordPage>;
   /** Called after each write; a listener that throws is logged and does not stop the others. */
   onChange(listener: () => void): () => void;
   /** An agent's turn, begun at its prompt; settled at its end. Alive (a heartbeat) until then. */
@@ -382,6 +387,36 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         if (!page.hasMore || !page.entries.length) break;
       }
       return { items, more, start: start ?? 0, end: end ?? start ?? 0 };
+    },
+    async readAfter(from, limit) {
+      await chain;
+      const entries: FiberEntry[] = [];
+      let start = from;
+      let more = false;
+      // Forward windows of at most the fiber's limit, until `limit` entries are read or the record ends.
+      for (let left = Math.max(1, limit); left > 0; ) {
+        const page = await host.window({
+          fiberId: fid,
+          start,
+          limit: Math.min(left, RecordWindowMax),
+          direction: 'forward',
+        });
+        if ('status' in page) {
+          console.error('[prism-viewer] record: could not read', page);
+          break;
+        }
+        for (const e of page.entries) entries.push(e);
+        more = page.hasMore;
+        if (page.entries.length) start = page.endExclusive;
+        left -= page.entries.length;
+        if (!page.hasMore || !page.entries.length) break;
+      }
+      const items: RecordItem[] = [];
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const item = itemOf(entries[i]);
+        if (item) items.push(item);
+      }
+      return { items, more, start: from, end: start };
     },
     onChange(listener) {
       listeners.add(listener);

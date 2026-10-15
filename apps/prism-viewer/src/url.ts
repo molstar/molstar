@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { PrismViewerOptionValues } from '@molstar/prism-viewer/options';
 import type { PartialOptions } from '@molstar/prism-viewer/spec';
 
 // The URL's options (app.md §4, README §3.2): v5's names kept. The load parameters (`pdb`, `url`, …) are read by the
@@ -28,6 +29,9 @@ export function optionsFromUrl(search: string): PartialOptions {
     const v = q.get(name);
     return v !== null && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
   };
+  // v5's `map-provider` names the volume streaming server; `volume-streaming-server` wins when both are given.
+  const mapProvider = pick('map-provider', ['pdbe', 'rcsb'] as const);
+  const fullscreen = flag('show-toggle-fullscreen');
   return {
     renderer: {
       pixelScale: num('pixel-scale'),
@@ -49,14 +53,36 @@ export function optionsFromUrl(search: string): PartialOptions {
     data: {
       pdbProvider: pick('pdb-provider', ['pdbe', 'rcsb', 'pdbj'] as const),
       emdbProvider: pick('emdb-provider', ['pdbe', 'rcsb'] as const),
-      volumeStreamingServer: q.get('volume-streaming-server') ?? undefined,
+      volumeStreamingServer:
+        q.get('volume-streaming-server') ?? (mapProvider ? MapProviderServers[mapProvider] : undefined),
       volumeStreamingDisabled: flag('volume-streaming-disabled'),
       stateServer: q.get('state-server') ?? undefined,
     },
     ui: {
       collapsed: flag('collapse-left-panel') ?? flag('hide-controls'),
+      // v5 hides the button unless asked; Prism shows it: the parameter only says so when given. A partial group
+      // keeps the other buttons' defaults (`resolveOptions`).
+      ...(fullscreen === undefined ? {} : { buttons: { fullscreen } as Partial<Buttons> as Buttons }),
     },
   };
+}
+
+type Buttons = PrismViewerOptionValues['ui']['buttons'];
+
+/** v5's `map-provider` values: the volume streaming server each names. */
+const MapProviderServers = {
+  pdbe: 'https://www.ebi.ac.uk/pdbe/densities',
+  rcsb: 'https://maps.rcsb.org',
+} as const;
+
+/**
+ * The page-wide switches (`debug-mode=1`, `timing-mode=1`): Mol*'s `setDebugMode` / `setTimingMode`, which the app
+ * calls before it creates the viewer (app.md §4; v5's index.html does the same). Not per viewer.
+ */
+export function modesFromUrl(search: string): { debug: boolean; timing: boolean } {
+  const q = new URLSearchParams(search);
+  const on = (name: string) => q.get(name)?.trim() === '1';
+  return { debug: on('debug-mode'), timing: on('timing-mode') };
 }
 
 /**
@@ -77,6 +103,8 @@ export const KnownUrlParameters: readonly string[] = [
   'viewport-background-color',
   'viewport-focus-behavior',
   'palette',
+  // Opens the assistant at start (loads it then).
+  'assistant',
   'pdb-provider',
   'emdb-provider',
   'map-provider',

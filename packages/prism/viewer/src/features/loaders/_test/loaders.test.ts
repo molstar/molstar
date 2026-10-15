@@ -84,16 +84,16 @@ const cells = (v: PrismViewer) => v.plugin.state.data.cells.size;
 describe('loaders: the feature', () => {
   it('adds the operations to the load area, and the commands', async () => {
     const v = await viewer();
-    for (const name of ['entry', 'url', 'mvs', 'snapshot', 'trajectory', 'volume'] as const) {
+    for (const name of ['entry', 'url', 'mvs', 'svs', 'snapshot', 'trajectory', 'volume'] as const) {
       expect(v.api.load[name], name).toBeTypeOf('function');
       // Replacing the scene is destructive, which wins over network (api/area.ts).
       const replaces = name === 'mvs' || name === 'snapshot';
       expect(v.api.load[name]?.definition.approval, name).toBe(replaces ? 'destructive' : 'network');
-      // `load.mvs` takes data as well as an address: it checks the network per call (below), not as a module.
-      expect(v.api.load[name]?.definition.modules, name).toEqual(name === 'mvs' ? undefined : ['network']);
+      // `load.mvs` and `load.svs` take data as well as an address: they check the network per call, not as a module.
+      const perCall = name === 'mvs' || name === 'svs';
+      expect(v.api.load[name]?.definition.modules, name).toEqual(perCall ? undefined : ['network']);
     }
-    expect((v.api.load as unknown as Record<string, unknown>).svs).toBeUndefined();
-    for (const id of ['load.entry', 'load.url', 'load.mvs', 'load.snapshot'])
+    for (const id of ['load.entry', 'load.url', 'load.mvs', 'load.svs', 'load.snapshot'])
       expect(v.managers.commands.get(id)).toBeDefined();
   });
 

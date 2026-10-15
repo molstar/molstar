@@ -121,17 +121,18 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
 
 .msp-scroll-area-thumb {
   background: color-mix(in oklab, var(--msp-color-text), transparent 72%);
-  transition: width var(--msp-motion-fast) var(--msp-ease),
-    height var(--msp-motion-fast) var(--msp-ease),
+  transition: scale var(--msp-motion-fast) var(--msp-ease),
     background-color var(--msp-motion-fast) var(--msp-ease);
   border-radius: 3px;
   flex: none;
 
   [data-orientation="vertical"] > & {
+    transform-origin: 100%;
     width: 4px;
   }
 
   [data-orientation="horizontal"] > & {
+    transform-origin: bottom;
     height: 4px;
   }
 
@@ -140,11 +141,11 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
   }
 
   [data-orientation="vertical"]:hover > &, [data-orientation="vertical"][data-dragging] > & {
-    width: 6px;
+    scale: 1.5 1;
   }
 
   [data-orientation="horizontal"]:hover > &, [data-orientation="horizontal"][data-dragging] > & {
-    height: 6px;
+    scale: 1 1.5;
   }
 }
 }

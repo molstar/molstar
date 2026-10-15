@@ -9,19 +9,23 @@
  */
 
 import { Button, domView, Icon, onActive, onCleanup, Show, SnapshotCard } from '@molstar/prism-ui';
-import { map } from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { SnapshotsPanel } from '../../views/state/snapshots-panel.js';
-import { createSnapshotStepper, createSnapshotsModel } from './model.js';
+import { createMarkdownHost } from './markdown.js';
+import { createSnapshotStepper, createSnapshotsModel, openPlaybackOnLoad, PlaybackCard, presentable } from './model.js';
 
 // The Snapshots tab (parity.md §4: the classic State snapshots) and the playback card. The shell has no place for a
 // card at the canvas's top left that an extension can fill, so the playback card is an overlay opened from a toolbar
-// button; the views read the snapshot area's state and act through the person's API.
+// button, and by itself when a story is loaded (`openPlaybackOnLoad`); the views read the snapshot area's state and act through
+// the person's API.
 
 export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api.snapshot;
   if (!area) return {};
+  // As long as the viewer: the run events complete with it (the views have no dispose of their own).
+  openPlaybackOnLoad(ctx.api, area);
   return {
     tabs: [
       {
@@ -63,14 +67,14 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
     ],
     overlays: [
       {
-        id: 'snapshots.overlay.playback',
+        id: PlaybackCard,
         title: 'Playback',
         render: domView(() => {
-          const model = createSnapshotStepper(ctx.api, area);
+          const model = createSnapshotStepper(ctx.api, area, createMarkdownHost(ctx.api, area.markdown));
           return (
             <Show
-              when={model.count.pipe(map((c) => c >= 2))}
-              fallback={() => <p style="margin: 0">Add two or more snapshots to play them.</p>}
+              when={model.count.pipe(map((c) => c >= 1))}
+              fallback={() => <p style="margin: 0">There are no snapshots: add some in the Snapshots tab.</p>}
             >
               {() => <SnapshotCard model={model} />}
             </Show>
@@ -84,8 +88,8 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         icon: 'play',
         title: 'Play snapshots',
         group: 'scene',
-        overlay: 'snapshots.overlay.playback',
-        visible: area.state.pipe(map((s) => s.entries.length >= 2)),
+        overlay: PlaybackCard,
+        visible: area.state.pipe(map(presentable), distinctUntilChanged()),
       },
     ],
   };

@@ -25,7 +25,8 @@ const MaxDots = 7;
 
 /**
  * Snapshot playback (the session's story) at the top left of the canvas: the current snapshot's title, its position,
- * previous, next, the slideshow's play, then its description. Only when the session has snapshots.
+ * previous, next, the slideshow's play (from two snapshots on), then its description. Only when the session has
+ * snapshots.
  */
 export function SnapshotCard(props: { model: SnapshotStepperModel }) {
   return (
@@ -66,40 +67,54 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
     <div>
       <div class={classes.bar}>
         <span class={classes.title}>{model.title}</span>
-        <Show when={many} fallback={() => <Dots model={model} />}>
+        {/* One snapshot (a single-state story) has its title and description only: nothing to step through. */}
+        <Show when={model.count.pipe(map((c) => c > 1))}>
           {() => (
-            <button
-              type="button"
-              class={classes.position}
-              aria-expanded={listOpen}
-              aria-label="Snapshots"
-              onClick={() => listOpen.set(!listOpen.value)}
-            >
-              {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
-            </button>
+            <>
+              <Show when={many} fallback={() => <Dots model={model} />}>
+                {() => (
+                  <button
+                    type="button"
+                    class={classes.position}
+                    aria-expanded={listOpen}
+                    aria-label="Snapshots"
+                    onClick={() => listOpen.set(!listOpen.value)}
+                  >
+                    {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
+                  </button>
+                )}
+              </Show>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name="chevron-left" />}
+                title="Previous snapshot"
+                onClick={() => model.previous()}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name="chevron-right" />}
+                title="Next snapshot"
+                onClick={() => model.next()}
+              />
+              <PlayButton playing={model.isPlaying} title="Play snapshots" onClick={() => model.togglePlay()} />
+            </>
           )}
         </Show>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<Icon name="chevron-left" />}
-          title="Previous snapshot"
-          onClick={() => model.previous()}
-        />
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<Icon name="chevron-right" />}
-          title="Next snapshot"
-          onClick={() => model.next()}
-        />
-        <PlayButton playing={model.isPlaying} title="Play snapshots" onClick={() => model.togglePlay()} />
       </div>
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
       <Show when={model.description}>
         {(source) => (
           <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
-            <Markdown source={source} onLink={(href) => model.openLink(href)} />
+            <Show
+              when={model.plainText ?? false}
+              fallback={() => (
+                <Markdown source={source} onLink={(href) => model.openLink(href)} host={model.markdown} />
+              )}
+            >
+              {() => <p class={classes.plain}>{source}</p>}
+            </Show>
           </ScrollArea>
         )}
       </Show>

@@ -36,6 +36,7 @@ export const classes = {
   'message': 'msp-command-menu-message',
   'more': 'msp-command-menu-more',
   'proposed': 'msp-command-menu-proposed',
+  'rest': 'msp-command-menu-rest',
   'row': 'msp-command-menu-row',
   'rowChevron': 'msp-command-menu-rowChevron',
   'rowIcon': 'msp-command-menu-rowIcon',
@@ -170,6 +171,10 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   font-size: var(--msp-font-size-sm);
   text-align: center;
   margin: 0;
+}
+
+.msp-command-menu-rest {
+  pointer-events: none;
 }
 
 .msp-command-menu-caption {

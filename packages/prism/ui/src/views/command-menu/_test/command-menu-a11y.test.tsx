@@ -18,7 +18,7 @@ import { CommandMenu } from '../command-menu.js';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-function setup() {
+function setup(extra = 0) {
   const ran: string[] = [];
   const command = (id: string, title: string, category: string): CommandDefinition<object> => ({
     id,
@@ -37,6 +37,7 @@ function setup() {
     command('view.reset', 'Reset the camera', 'View'),
     command('view.focus', 'Focus on selection', 'View'),
     command('look.cartoon', 'Show as cartoon', 'Look'),
+    ...Array.from({ length: extra }, (_, i) => command(`more.c${i}`, `Command ${i}`, 'More')),
   ]);
   // What opened the menu (a button), then the menu, as the shell mounts it.
   const opener = document.createElement('button');
@@ -87,6 +88,27 @@ describe('CommandMenu accessibility (README §3.7)', () => {
     expect(input.getAttribute('aria-activedescendant')).toBe(options[1].id);
     expect(options[1].getAttribute('aria-selected')).toBe('true');
     expect(options[0].getAttribute('aria-selected')).toBe('false');
+    t.cleanup();
+  });
+
+  it('renders a screenful of a long list, and the highlighted option wherever it goes', async () => {
+    const t = setup(100);
+    await tick();
+    const { input, container } = t;
+    const options = () => [...container.querySelectorAll('[role=option]')];
+    // 103 commands: a screenful is rendered, the rest is a spacer of their height.
+    expect(options().length).toBeLessThan(40);
+    // Up from the first wraps to the last: it is rendered, and the input names it.
+    t.key(input, 'ArrowUp');
+    const last = options().at(-1)!;
+    expect(options().length).toBe(103);
+    expect(last.textContent).toContain('Command 99');
+    expect(input.getAttribute('aria-activedescendant')).toBe(last.id);
+    expect(last.getAttribute('aria-selected')).toBe('true');
+    // A search starts over from a screenful.
+    t.type('command');
+    expect(options().length).toBeLessThan(40);
+    expect(input.getAttribute('aria-activedescendant')).toBe(options()[0].id);
     t.cleanup();
   });
 

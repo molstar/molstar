@@ -109,8 +109,10 @@ type ViewerSkill = { id; title; summary; guidance; tools: ViewerToolSpec[]; feat
   headless hosts (evals, MCP) use them without the assistant. The disclosure tools are always in the core, and the
   toolkit is dynamic (README decision 25).
 - The assistant is lazy and opt-in: the viewer's package does not depend on `@molstar/prism-assistant`; the app passes
-  the import, which is its own chunk. The shell loads it with the agent's code (another chunk) after the first render.
-  Without it there is no Assistant tab, no Ask row, no turn card.
+  the import, which is its own chunk. The shell loads it with the agent's code (another chunk, with the AI SDK) on first
+  use: until then its tab is a placeholder whose opening loads it, and the command menu's Ask row loads it and then asks
+  (or opens the setup when no model is set up); the app's `?assistant` opens the tab at start (G8 perf). Without it
+  there is no Assistant tab, no Ask row, no turn card.
 - `false`: no tools at all (a viewer for an embedding host that wants none): `createViewerAgent` gets an empty toolkit
   but for its own tools (`get_scene`, `ask`, `undo_turn`).
 
@@ -174,7 +176,9 @@ interface ViewerExtensionUI {                                  // every id `<own
   readonly sections?: readonly { id; slot: ViewerSlot; title; icon?; order?; keywords?; render: ViewRenderer }[];
   readonly tabs?: readonly { id; title; icon; dock?: DockId; order?; render: ViewRenderer }[];
   readonly overlays?: readonly { id; title; render: ViewRenderer }[];         // cards over the canvas
-  readonly rows?: readonly { id; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // not shown yet
+  readonly rows?: readonly { id; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // scene tree rows under
+                                                               // the nodes `when` holds for (the node is the view's
+                                                               // `subject`); `SceneRow` draws one as the tree's own
   readonly toolbar?: readonly { id; icon; title; command?: string; overlay?: PartId; group?; order?;
                                 place?: 'rail' | 'canvas' }[];   // runs a command, or opens one of its overlays
 }

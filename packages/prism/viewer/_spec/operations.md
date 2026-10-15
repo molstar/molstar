@@ -58,8 +58,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `load.data` | Load data |  | data, format, label, bytes, models, assembly |
 | `load.entry` | Load an entry | network (addresses); needs network | source, id, assembly, representation |
 | `load.files` | Open files | needs files | files, visuals |
-| `load.mvs` | Load a MolViewSpec | destructive | url, data, format, keepCamera |
+| `load.mvs` | Load a MolViewSpec | destructive | url, data, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
 | `load.snapshot` | Load a session | destructive; needs network | url, type, id |
+| `load.svs` | Load a SeqViewSpec | network (asks) | url, data |
 | `load.trajectory` | Load a trajectory | network (addresses); needs network | model, modelFormat, modelBinary, coordinates, coordinatesFormat, coordinatesBinary, preset |
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
@@ -115,6 +116,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |
 | `snapshot.apply` | Apply a snapshot |  | entry |
 | `snapshot.clear` | Remove all snapshots | no undo; destructive; agent-only |  |
+| `snapshot.link` | Follow a link in a description | view; ui-only | href, event |
 | `snapshot.list` | List the snapshots | read |  |
 | `snapshot.move` | Move a snapshot | no undo; agent-only | entry, position |
 | `snapshot.next` | Next snapshot |  |  |

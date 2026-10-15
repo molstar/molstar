@@ -24,6 +24,7 @@ export const classes = {
   'listRow': 'msp-canvas-playback-listRow',
   'listRows': 'msp-canvas-playback-listRows',
   'listRowsContent': 'msp-canvas-playback-listRowsContent',
+  'plain': 'msp-canvas-playback-plain',
   'position': 'msp-canvas-playback-position',
   'scrubber': 'msp-canvas-playback-scrubber',
   'title': 'msp-canvas-playback-title',
@@ -101,6 +102,12 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-descriptionContent {
   padding: 0 var(--msp-space-4) var(--msp-space-4);
   font-size: var(--msp-font-size-sm);
+}
+
+.msp-canvas-playback-plain {
+  white-space: pre-wrap;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .msp-canvas-playback-scrubber {

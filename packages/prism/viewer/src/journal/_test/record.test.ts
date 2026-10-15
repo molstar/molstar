@@ -226,6 +226,23 @@ describe('the session record at G6', () => {
     await record.dispose();
   });
 
+  it('reads what came after a position, newest first, in windows', async () => {
+    const { api, run } = fakeApi();
+    const record = await createSessionRecord({ api });
+    for (let i = 0; i < 600; i++) run();
+    const after = await record.readAfter(590, 50);
+    expect(after.items.map((i) => i.position)).toEqual([599, 598, 597, 596, 595, 594, 593, 592, 591, 590]);
+    expect(after).toMatchObject({ more: false, start: 590, end: 600 });
+    // Past one window: the oldest `limit`, and later ones left out.
+    const long = await record.readAfter(100, 300);
+    expect(long.items).toHaveLength(300);
+    expect(long).toMatchObject({ more: true, start: 100, end: 400 });
+    expect(long.items[0].position).toBe(399);
+    // Nothing new.
+    expect(await record.readAfter(600, 10)).toMatchObject({ items: [], more: false, start: 600, end: 600 });
+    await record.dispose();
+  });
+
   it('keeps in the order of writes: what comes while it copies goes to the kept record; one keep at a time', async () => {
     const { api, run } = fakeApi();
     const c = controlled();

@@ -181,6 +181,8 @@ export function ShellView(props: ShellViewProps) {
       <Show when={shown}>{() => <DockView shell={shell} dock={shell.dock('left')} />}</Show>
       <main
         class={classes.viewport}
+        // The canvas and what floats over it (the sequence band, cards): the hover label follows the pointer here.
+        data-msp-viewport=""
         style={{
           '--msp-canvas-edge': `${Edge}px`,
           '--msp-canvas-right-inset': rightInset,

@@ -46,7 +46,12 @@ element, and the URL. Status: **accepted** (2026-10-15).
 
 - **`<prism-viewer>`**: the element wraps `createPrismViewer`, with a shadow root (host CSS stops at it; the `--msp-*`
   tokens cross it, README §2.20; the style registry adopts into it, library.md §3). Its `spec` property takes a `PrismViewerSpec`; attributes cover the common options
-  (`pdb`, `theme`, `hide-controls`). Several on a page each own their viewer.
+  (`pdb`, `theme`, `hide-controls`). Several on a page each own their viewer. Built: `@molstar/prism-viewer/element`
+  (`definePrismViewerElement`, `createPrismViewerElementClass`): the element is `createPrismViewer`'s target (its
+  shadow root holds the shell); `theme` and `hide-controls` are read when the viewer is made, `pdb` loads its entry
+  (`load.entry`; a new value adds that entry); setting `spec` makes the viewer again; leaving the page disposes it,
+  a move within the page keeps it; `ready` (a promise and an event) gives the viewer. The single file defines it once,
+  with `FullPrismViewerSpec()` while `spec` is not set.
 - **Embeddable parts** for hosts with their own layout: the viewport alone (canvas, hover label, toolbar), for
   mvs-stories and the docking viewer; more when asked.
 - **React and Preact hosts** use the element, or `reactView` around it.
@@ -64,9 +69,9 @@ read the rest at creation.
 | `mvs-url`, `mvs-data`, `mvs-format`                                                        | loaders                         | `load.mvs`                                                        |
 | `snapshot-url`, `snapshot-url-type`, `snapshot-id`                                         | loaders                         | `load.snapshot`                                                   |
 | `pixel-scale`, `pick-scale`, `transparency`, `illumination`, `power-preference`, `resolution-mode`, `prefer-webgl1`, `allow-major-performance-caveat` | options | `options.renderer`                              |
-| `pdb-provider`, `emdb-provider`, `map-provider`                                            | options                         | `options.data` (`map-provider` sets the volume streaming server, as v5 does) |
-| `hide-controls`, `collapse-left-panel`, `show-toggle-fullscreen`                          | options                         | `options.ui` (`collapsed`, `buttons.fullscreen`)                  |
-| `debug-mode`, `timing-mode`                                                                | the app                         | page-wide switches (`setDebugMode`, `setTimingMode`), not per viewer |
+| `pdb-provider`, `emdb-provider`, `map-provider`                                            | options                         | `options.data` (`map-provider` sets the volume streaming server, as v5 does: `rcsb` is `https://maps.rcsb.org`, `pdbe` PDBe's; `volume-streaming-server` wins) |
+| `hide-controls`, `collapse-left-panel`, `show-toggle-fullscreen`                          | options                         | `options.ui` (`collapsed`; `buttons.fullscreen` only when the parameter is given: Prism shows the button, v5 hid it unless `=1`) |
+| `debug-mode`, `timing-mode`                                                                | the app                         | page-wide switches (`=1`: `setDebugMode`, `setTimingMode` before the viewer is created; `modesFromUrl`), not per viewer |
 | `pick-padding`                                                                             | —                               | dropped (no config item; v5 drops it too)                         |
 
 Unknown parameters are ignored and logged once.

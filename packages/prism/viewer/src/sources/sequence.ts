@@ -29,6 +29,13 @@ export interface SequenceSource {
   /** Follows this structure (by ref) whatever the rule says; undefined: the rule. */
   setFollowed(ref: string | undefined): void;
   readonly followed: ReadonlyState<string | undefined>;
+  /**
+   * Shows this structure (by ref) until the person focuses or loads another, follows another (`setFollowed`), or it goes:
+   * a loaded SeqViewSpec's structure (sequence.md §6). Undefined: the rule again.
+   */
+  show(ref: string | undefined): void;
+  /** The structure `show` shows; undefined once that ended. */
+  readonly shows: ReadonlyState<string | undefined>;
   /** What the track menus may do to the 3D view: through the API. */
   readonly actions: HostActions;
   /** The link's 3D side over a structure. */
@@ -61,6 +68,9 @@ function channel(): (write: () => Promise<unknown>) => void {
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
   const structure = observableState<HostStructure | undefined>(undefined, { compare: (a, b) => a?.key === b?.key });
   const followed = observableState<string | undefined>(undefined);
+  const shows = observableState<string | undefined>(undefined);
+  /** What was there when `show` was called: a structure added since, or another focus, ends it. */
+  let showsSince: { refs: ReadonlySet<string>; focus: unknown } | undefined;
   let latestSelected: string | undefined;
   const keys = new WeakMap<Structure, number>();
   let serial = 0;
@@ -76,6 +86,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     const byRef = (ref: string | undefined) => (ref ? list.find((s) => s.cell.transform.ref === ref) : undefined);
     const focus = plugin.managers.structure.focus.current?.loci.structure.root;
     return (
+      byRef(shows.value) ??
       byRef(followed.value) ??
       (focus ? list.find((s) => s.cell.obj!.data.root === focus) : undefined) ??
       byRef(latestSelected) ??
@@ -83,7 +94,24 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     );
   };
 
+  /** Ends `show` when the person moved on: another structure loaded or focused, or its own gone (sequence.md §6). */
+  const endShow = () => {
+    const ref = shows.value;
+    if (!ref || !showsSince) return;
+    const list = plugin.managers.structure.hierarchy.current.structures;
+    const own = list.find((s) => s.cell.transform.ref === ref);
+    const added = list.some((s) => !showsSince!.refs.has(s.cell.transform.ref));
+    const focus = plugin.managers.structure.focus.current;
+    const focusedElsewhere =
+      !!focus && focus !== showsSince.focus && focus.loci.structure.root !== own?.cell.obj?.data.root;
+    if (!own || added || focusedElsewhere) {
+      showsSince = undefined;
+      shows.set(undefined);
+    }
+  };
+
   const update = () => {
+    endShow();
     const s = pick();
     const data = s?.cell.obj?.data;
     const trajectory = s?.model?.trajectory?.cell.obj?.data;
@@ -97,6 +125,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     if (structure.value?.key === key) return;
     structure.set({
       key,
+      ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
       source: StructureSource.of(trajectory, format),
       structure: data,
@@ -123,6 +152,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     ).subscribe(() => update()),
   );
   scope.add(followed.asReadonly.subscribe(() => update()));
+  scope.add(shows.asReadonly.subscribe(() => update()));
 
   const actions: HostActions = {
     coloring() {
@@ -156,7 +186,22 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   return {
     structure: structure.asReadonly,
     followed: followed.asReadonly,
-    setFollowed: (ref) => followed.set(ref),
+    setFollowed: (ref) => {
+      // Following a structure ends what `show` showed.
+      showsSince = undefined;
+      shows.set(undefined);
+      followed.set(ref);
+    },
+    shows: shows.asReadonly,
+    show: (ref) => {
+      showsSince = ref
+        ? {
+            refs: new Set(plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref)),
+            focus: plugin.managers.structure.focus.current,
+          }
+        : undefined;
+      shows.set(ref);
+    },
     actions,
     view3d(target: Structure, resetCamera?: () => void): SequenceView3D {
       const onto = (l: unknown): StructureElement.Loci | null =>

@@ -53,6 +53,9 @@ structure the 3D view shows and refuses every `load`. The viewer's loaders, in i
   - **Parses, in the viewer**: an index (`dataByUrl`, a source) of the plugin's data cells by URL and host file with
     their parse cells, kept from the state tree's cell events. A miss parses through the plugin (a data cell and its
     parse in the state tree), so the 3D view and a saved session find it.
+- **As built (`load.svs`, 2026-10-15)**: `parsed` answers the followed structure's host file, which a loaded SVS's
+  first `molstar:structure` complex is rewritten to read (§6); `load` still refuses (an SVS's other URIs are reported as
+  issues), and the caches are not built.
 - **Seq\* side**: no change needed for files and parses; services (`uniprot`, `pdbe`, `afdb`) fetch through `load`
   too, so they share the same cache. Streamed sources (`stream`) are the host's provider and do not touch the plugin.
 
@@ -143,6 +146,18 @@ a sequence action, a command and a tool name the same residues the same way.
   by URI, which the loaders (§2) resolve against the plugin first, so a structure the 3D view has is not fetched again.
   Whether an SVS also loads its structures into 3D is the follow behavior's choice (yes, by default, with the default
   representation); it does so through `load.svs`, an operation, so those cells are recorded steps (§7).
+- **As built (`load.svs`, the loaders feature; David's decisions, 2026-10-15)**: a URL (`.svsj`/`.svs`, JSON or
+  MessagePack) or data; `.svs`/`.svsj` files go through `load.files` after the files dropped with them; `svs-url` in the
+  app's URL. Its **first `molstar:structure` complex** is matched to a loaded structure by its source: the address
+  (resolved against the document's) of a Download cell, the entry id (`service` `pdbe`/`afdb` and `id`), or the file
+  name (`host_file`, a data cell's or the model's entry id); none matches: it is loaded (`load.url`, `load.entry`,
+  `load.data`) in the same step. The document then **replaces the followed structure's document** (the model's
+  override, `SequenceOverride`: `build()` uses a copy whose complex reads the host's parse, with refs given to the data
+  node, sections and last track so behaviors such as the pLDDT track attach by `shown`), and the source shows its
+  structure (`SequenceSource.show`) **until the person focuses another structure, a structure is loaded, the sequence
+  follows another (`sequence.follow`), or the structure goes**; then the built document is back. The person's style
+  (Text/Tracks, on every section) and letter colors apply over its presets. `sequence.get` names it. `.svsx` is not read
+  yet; a document without a `molstar:structure` complex is refused.
 - **Not both at once in the viewer** (David, 2026-10-15): the viewer loads an MVS or an SVS. A document holding both is
   Stories' (its schema-based document), or a new format later (a "Mol states" zip, `.msx`), not part of the viewer's
   first scope.
@@ -154,8 +169,11 @@ a sequence action, a command and a tool name the same residues the same way.
 ### 7.1 The sequence's state in snapshots
 
 - **What is saved**: the plugin's state (`PluginState.Snapshot`) and the sequence's own state,
-  `{ version: 1, style, colors, structure, rail, edits }` (`edits`: the overlay of §3; not built yet: the saved state
-  has no `edits` so far). The document itself is rebuilt by the behaviors from the plugin's state.
+  `{ version: 2, style, colors, structure, rail, override?, edits }` (`edits`: the overlay of §3; not built yet: the
+  saved state has no `edits` so far). `override` (version 2, `load.svs`, §6) is the loaded SeqViewSpec: the document
+  itself (data has no address to fetch again), its URL when it had one, and the structure's state ref; Undo's
+  checkpoints keep it (it is content, not view state) and a session restores it. Version 1 is read as version 2 without
+  `override`. The document itself is rebuilt by the behaviors from the plugin's state.
 - **A registry, not a field** (review F10): `PluginState.registerCustomState(key, { get(), set(value | undefined) })`,
   an additive core change. `getSnapshot` writes every registered key into `snapshot.custom`; `setSnapshot` calls each
   `set` after the tree is applied, with `undefined` (reset to defaults) when the snapshot has no value for it; unknown

@@ -29,7 +29,7 @@ describe('FullPrismViewerSpec', () => {
       const silent = [...v.api.definitions.value.values()]
         .filter((d) => d.approval === 'network' && !d.addresses)
         .map((d) => d.id);
-      expect(silent.sort()).toEqual(['load.action', 'state.action']);
+      expect(silent.sort()).toEqual(['load.action', 'load.svs', 'state.action']);
     } finally {
       await v.dispose();
     }

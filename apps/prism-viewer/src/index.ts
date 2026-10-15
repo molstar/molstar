@@ -8,10 +8,11 @@
 
 import './favicon.ico';
 import './index.html';
+import { setDebugMode, setTimingMode } from '@molstar/core/util/debug';
 import { LoadUrlParameters, runUrlLoads } from '@molstar/prism-viewer/features/loaders';
 import { createPrismViewer } from '@molstar/prism-viewer/page';
 import { createAppSpec } from './spec.js';
-import { unknownUrlParameters } from './url.js';
+import { modesFromUrl, unknownUrlParameters } from './url.js';
 
 // The Prism viewer app (app.md §1): the page, the spec the app ships (the viewer's defaults, Mol*'s extensions, the
 // URL's options) and the viewer, exposed on `window.molstar` for the console and for scripts on the page. The URL's
@@ -20,6 +21,10 @@ import { unknownUrlParameters } from './url.js';
 async function main() {
   const target = document.getElementById('app');
   if (!target) throw new Error('The page has no #app element.');
+  // Page-wide, before the plugin starts (app.md §4): v5 sets them only when asked, and so does the app.
+  const modes = modesFromUrl(location.search);
+  if (modes.debug) setDebugMode(true);
+  if (modes.timing) setTimingMode(true);
   const viewer = await createPrismViewer({ target, spec: createAppSpec(location.search) });
   (window as unknown as { molstar: unknown }).molstar = { viewer, api: viewer.api };
 

@@ -7,7 +7,7 @@
  */
 
 import { type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import { Observable, type Subscription } from 'rxjs';
+import { merge, Observable, type Subscription } from 'rxjs';
 
 // A source that follows the plugin only while someone watches it (prism AGENTS.md: hidden UI holds no subscriptions;
 // the pattern of the state tree's `watched()`, once): the events are listened to from the first subscriber to the last,
@@ -40,11 +40,12 @@ const nextFrame: Frame = (cb) => {
 
 /**
  * `read()`, re-read when `events()` emit, while subscribed. `events` is called when the first subscriber comes and its
- * subscription released with the last. `value` flushes a read that waits for its frame, so it is never stale.
+ * subscription released with the last; it may give several streams (any of them re-reads). `value` flushes a read that
+ * waits for its frame, so it is never stale.
  */
 export function watchedState<T>(
   read: () => T,
-  events: () => Observable<unknown>,
+  events: () => Observable<unknown> | readonly Observable<unknown>[],
   options: WatchedOptions<T> = {},
 ): ReadonlyState<T> {
   const coalesce = options.coalesce ?? 'frame';
@@ -76,7 +77,8 @@ export function watchedState<T>(
     if (watchers++ === 0) {
       // Whatever happened while nobody looked: read again, then follow.
       refresh();
-      listening = events().subscribe(mark);
+      const e = events();
+      listening = (Array.isArray(e) ? merge(...e) : (e as Observable<unknown>)).subscribe(mark);
     }
     const sub = state!.asReadonly.subscribe(subscriber);
     return () => {

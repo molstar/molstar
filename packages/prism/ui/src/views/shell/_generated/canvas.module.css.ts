@@ -125,6 +125,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   z-index: var(--msp-z-overlay);
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
+  contain: content;
   animation: msp-shell-canvas-card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -720,8 +721,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-busyBar {
   background: var(--msp-color-accent);
+  transform-origin: 0;
+  width: 100%;
   height: 100%;
-  transition: width var(--msp-motion-fast) linear;
+  transition: scale var(--msp-motion-fast) linear;
   border-radius: 2px;
   display: block;
 

@@ -251,7 +251,8 @@ interaction; no layout shift when content loads.
   every rendered frame, so glass over the canvas is kept to small areas and measured (a frameless dock tab draws none).
   Large blurred shadows likewise.
 - **Containment**: panels and cards set `contain: layout paint` (or `content` where their size is known), so a change
-  inside does not relayout the shell; closed or off-screen panels are not rendered or use `content-visibility: auto`.
+  inside does not relayout the shell (as built: the canvas cards `content`; a dock panel `layout style`, its splitter
+  hanging over the edge, and its scrolling body `layout paint`; History's list `content`); closed or off-screen panels are not rendered or use `content-visibility: auto`.
 - **Hidden UI is inert and does no UI updates** (David, 2026-10-14). A subscription may be expensive (a tree, a table,
   a derived stream), and a hidden panel has no one to show it to. What is hidden but kept mounted (a folded section, a
   panel stepping aside for an overlay card, a closing animation) is **inert** (the `inert` attribute: no pointer, no

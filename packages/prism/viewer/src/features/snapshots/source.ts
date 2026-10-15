@@ -9,7 +9,7 @@
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { fromChanged, SourceScope } from '../../sources/state.js';
+import { fromBehavior, fromChanged, SourceScope } from '../../sources/state.js';
 
 // The snapshots as the views read them (state.md §4, row 2: a mutable field with a void `changed`). Sources by role
 // (contexts.md §7): this one is allowed to read the plugin, as `sources/` is, so the feature's views never do. The
@@ -22,6 +22,8 @@ export interface SnapshotInfo {
   readonly name: string;
   readonly key?: string;
   readonly description?: string;
+  /** The description is plain text, not markdown (the entry's `descriptionFormat`). */
+  readonly plainText?: true;
   /** When it was taken (ms since the epoch). */
   readonly timestamp: number;
   /** How long playback shows it (ms), when it says so. */
@@ -47,6 +49,7 @@ const sameInfo = (a: SnapshotInfo, b: SnapshotInfo) =>
   a.name === b.name &&
   a.key === b.key &&
   a.description === b.description &&
+  a.plainText === b.plainText &&
   a.timestamp === b.timestamp &&
   a.showFor === b.showFor &&
   a.image === b.image;
@@ -84,6 +87,7 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
         name: e.name ?? '',
         ...(e.key ? { key: e.key } : {}),
         ...(e.description ? { description: e.description } : {}),
+        ...(e.descriptionFormat === 'plaintext' ? { plainText: true as const } : {}),
         timestamp: e.timestamp,
         ...(e.snapshot.durationInMs !== undefined ? { showFor: e.snapshot.durationInMs } : {}),
         ...(image ? { image } : {}),
@@ -105,4 +109,30 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
     urls.clear();
   });
   return { state, dispose: () => scope.dispose() };
+}
+
+/**
+ * The plugin's markdown extensions as the descriptions read them (B1; v5's `controls/markdown.tsx`): which links and
+ * image sources are commands (`!name=value&…`, by the plugin's parsers), images resolved by the plugin's resolvers (an
+ * MVSX archive's files), and the audio player a command made. Running a command is an operation (`snapshot.link`).
+ */
+export interface MarkdownSource {
+  /** A link's or an image's commands, or undefined when it is not a command. */
+  command(href: string): Readonly<Record<string, string>> | undefined;
+  /** An image's URL from the resolvers (a data URI of an archive's file), or undefined to load it as it is. */
+  resolve(src: string): string | Promise<string> | undefined;
+  /** The plugin's audio player, once a command made one. */
+  readonly audio: ReadonlyState<HTMLAudioElement | null>;
+  dispose(): void;
+}
+
+export function createMarkdownSource(plugin: PluginContext): MarkdownSource {
+  const manager = plugin.managers.markdownExtensions;
+  const scope = new SourceScope();
+  return {
+    command: (href) => manager.parseArgs(href),
+    resolve: (src) => manager.tryResolveUri(src),
+    audio: fromBehavior(scope, manager.state.audioPlayer),
+    dispose: () => scope.dispose(),
+  };
 }

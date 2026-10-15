@@ -19,6 +19,8 @@ import { ApiArea, ApiResult } from './area.js';
 
 /** File names a session opens from (`.molx`, `.molj`): opened by `session.open`, not loaded as data. */
 const SessionExtensions = ['.molx', '.molj'];
+/** SeqViewSpec documents: shown in the sequence by `load.svs` (the loaders feature), after the other files. */
+const SvsExtensions = ['svs', 'svsj'];
 
 export class LoadApi extends ApiArea {
   readonly id = 'load';
@@ -82,28 +84,48 @@ export class LoadApi extends ApiArea {
           'Open it with session.open: it replaces what is loaded.',
         );
       }
-      // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
-      await ctx.extensions.ensureFor({ fileExtensions: list.map((f) => extensionOf(f.name)) });
-      const before = structureRefs(ctx);
-      const cellsBefore = ctx.plugin.state.data.cells.size;
-      await ctx.plugin.runTask(
-        ctx.plugin.state.data.applyAction(OpenFiles, {
-          files: list.map((f) => Asset.File(f)),
-          format: { name: 'auto', params: {} },
-          visuals,
-        }),
-      );
-      const added = structureRefs(ctx).filter((r) => !before.includes(r));
-      const names = list.map((f) => f.name).join(', ');
-      if (ctx.plugin.state.data.cells.size === cellsBefore) {
+      // SeqViewSpec documents go to `load.svs` once the rest is open, so one may name a file dropped with it.
+      const documents = list.filter((f) => SvsExtensions.includes(extensionOf(f.name)));
+      const data = list.filter((f) => !documents.includes(f));
+      if (documents.length && !ctx.api.describe('load.svs')) {
         return ApiResult.fail(
-          'failed',
-          `Could not open ${names}.`,
-          'Check the format: the viewer reads it from the file name.',
+          'unavailable',
+          `${documents[0].name} is a SeqViewSpec, which this viewer does not load.`,
+          'Its loaders feature (load.svs) is not in the viewer.',
         );
       }
+      const before = structureRefs(ctx);
+      const names = data.map((f) => f.name).join(', ');
+      if (data.length) {
+        // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
+        await ctx.extensions.ensureFor({ fileExtensions: data.map((f) => extensionOf(f.name)) });
+        const cellsBefore = ctx.plugin.state.data.cells.size;
+        await ctx.plugin.runTask(
+          ctx.plugin.state.data.applyAction(OpenFiles, {
+            files: data.map((f) => Asset.File(f)),
+            format: { name: 'auto', params: {} },
+            visuals,
+          }),
+        );
+        if (ctx.plugin.state.data.cells.size === cellsBefore) {
+          return ApiResult.fail(
+            'failed',
+            `Could not open ${names}.`,
+            'Check the format: the viewer reads it from the file name.',
+          );
+        }
+      }
+      for (const doc of documents) {
+        const r = await ctx.api.run('load.svs', { data: await doc.text() });
+        if (!r.ok) return r;
+      }
+      const added = structureRefs(ctx).filter((r) => !before.includes(r));
       const structures = added.length ? ` (${added.length} structure${added.length === 1 ? '' : 's'})` : '';
-      return ApiResult.ok(`Opened ${names}${structures}.`, { nodes: added });
+      const shown = documents.map((f) => f.name).join(', ');
+      const did = !names
+        ? `The sequence shows ${shown}.`
+        : `Opened ${names}${structures}${shown ? `; the sequence shows ${shown}` : ''}.`;
+      return ApiResult.ok(did, { nodes: added, ...(documents.length ? { sequence: true } : {}) });
     },
   });
 }

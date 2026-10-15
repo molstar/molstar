@@ -127,6 +127,25 @@ the [API change ledger](breaking-v6-changes.md).
   lists recent foci.
 - Prism viewer: volume streaming's view, detail and channels (`volume.streaming-view`), with a "Volume streaming" row
   and inspector under the streamed structure.
+- Prism viewer: load a SeqViewSpec into the sequence (`load.svs`, `.svsj` files, `svs-url`): it shows over the loaded
+  structure it names (loaded if missing) until another structure is focused or loaded, and Undo and sessions keep it.
+- Prism viewer: `load.mvs` takes v5's options: `append` (keep the Snapshots list), `keepCameraOrientation`,
+  `snapshot`, `extensions`.
+- Prism viewer: snapshot descriptions run Mol*'s markdown commands (focus, highlight, camera, snapshots, audio) and
+  show MVSX images, color swatches and tables (`snapshot.link`; prism-ui's `Markdown` takes a host).
+- Prism viewer: the playback card opens by itself when a loaded story has snapshots, and shows a single snapshot's
+  description.
+- Prism viewer: the image export's crop box can be dragged and resized (and moved with the arrow keys).
+- Prism viewer: Help lists the canvas keys (view, moving, snapshots).
+- Prism viewer app: the `map-provider`, `show-toggle-fullscreen`, `debug-mode` and `timing-mode` URL parameters are read.
+- Prism viewer: the structure inspector sets the model of a trajectory and the structure type (the model, an assembly,
+  symmetry mates or unit cells); the structure row's menu has Preset, Assembly, Crystal symmetry and Stream density.
+- Prism viewer: extensions' rows in the scene tree (`ViewerExtensionUI.rows`, drawn with `SceneRow`); assembly symmetry
+  and ANVIL's membrane each have a row under the structures they apply to.
+- Prism viewer: the `<prism-viewer>` element (`@molstar/prism-viewer/element`; `spec`, `pdb`, `theme`,
+  `hide-controls`), defined by the single file.
+- The Prism viewer loads its assistant on first use (the Assistant tab, the Ask row, or `?assistant`), not at start; the
+  command menu renders its options as they scroll in; History reads only what is new
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

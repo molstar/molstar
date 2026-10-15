@@ -7,10 +7,18 @@
  */
 
 .history {
+  contain: content;
   display: grid;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
+}
+
+/* The rows: a new one, or the bar's count changing, lays out this box only (styling.md §5 containment). */
+.list {
+  contain: content;
+  display: grid;
+  gap: var(--msp-space-2);
 }
 
 .bar {
@@ -28,6 +36,17 @@
 .empty {
   padding: var(--msp-space-4);
   color: var(--msp-color-text-muted);
+}
+
+/*
+ * The rows: one off screen is neither laid out nor painted (styling.md §5), so a long History costs what it shows; its
+ * last size is remembered (`auto`), so the scroll height holds.
+ */
+.step,
+.turn,
+.separator {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.25rem;
 }
 
 .step {

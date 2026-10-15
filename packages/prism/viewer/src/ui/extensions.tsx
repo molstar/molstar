@@ -12,10 +12,12 @@ import { domView, type ShellModel } from '@molstar/prism-ui';
 import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
+import type { SceneNode } from '../model/scene.js';
+import { SceneRowSlot } from '../views/structure/scene-tree.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
 
 // Extensions' views in the page's shell (viewer-spec.md §3, README §3.1): sections in the viewer's named slots, tabs,
-// cards, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
+// cards, rows in the scene tree, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
 // extension, whose real views take their places (same ids).
 
 export function extensionUIPort(
@@ -53,6 +55,20 @@ export function extensionUIPort(
               ...(s.order !== undefined ? { order: s.order } : {}),
               ...(s.keywords ? { keywords: s.keywords } : {}),
               render: s.render,
+            })),
+          ),
+        );
+      }
+      // Rows in the scene tree: sections of the tree's slot, shown under the nodes they are for (`SceneTree`).
+      if (ui.rows?.length) {
+        undo.push(
+          shell.registerSections(
+            ui.rows.map((r) => ({
+              id: r.id,
+              slot: SceneRowSlot,
+              title: r.id,
+              when: (c) => !!c.subject && r.when(c.subject as SceneNode),
+              render: r.render,
             })),
           ),
         );

@@ -83,6 +83,13 @@
   font-size: var(--msp-font-size-sm);
 }
 
+/* A plain-text description (`descriptionFormat: 'plaintext'`): its line breaks kept. */
+.plain {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
 .scrubber {
   flex: 1;
   min-width: 40px;

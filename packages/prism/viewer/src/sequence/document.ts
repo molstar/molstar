@@ -8,7 +8,7 @@
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { PrismSecondaryColors } from './palette.js';
-import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import type { StructureFormat } from '@molstar/seq-molstar-poc';
 
 // The document the sequence model builds (prism-sequence.md §3): one view with one section over a `molstar:structure`
@@ -69,4 +69,99 @@ export function sequenceDocument(o: {
   const data = doc.root.children?.find((n) => n.kind === 'data');
   if (data) data.ref = DataRef;
   return doc;
+}
+
+/** A document's first `molstar:structure` complex: its ref and its source's params (by `source_ref`, or a source child). */
+export interface SvsStructureSource {
+  readonly complex: string;
+  readonly source: Readonly<Record<string, unknown>>;
+}
+
+function walk(node: DocNode, visit: (n: DocNode, parent: DocNode | undefined) => void, parent?: DocNode) {
+  visit(node, parent);
+  for (const c of node.children ?? []) walk(c, visit, node);
+}
+
+function sourceNodeOf(doc: SeqViewSpecDoc, complex: DocNode): DocNode | undefined {
+  const ref = complex.params?.source_ref;
+  let found: DocNode | undefined;
+  if (typeof ref === 'string') walk(doc.root, (n) => (found ??= n.kind === 'source' && n.ref === ref ? n : undefined));
+  return found ?? complex.children?.find((c) => c.kind === 'source');
+}
+
+function firstStructureComplex(doc: SeqViewSpecDoc): { complex: DocNode; parent: DocNode | undefined } | undefined {
+  let found: { complex: DocNode; parent: DocNode | undefined } | undefined;
+  walk(doc.root, (n, parent) => {
+    if (!found && n.kind === 'complex' && n.params?.provider === 'molstar:structure') found = { complex: n, parent };
+  });
+  return found;
+}
+
+/** What a loaded SeqViewSpec maps onto a structure (sequence.md §6): its first `molstar:structure` complex; none: undefined. */
+export function svsStructureSource(doc: SeqViewSpecDoc): SvsStructureSource | undefined {
+  const found = firstStructureComplex(doc);
+  const source = found && sourceNodeOf(doc, found.complex);
+  if (!found?.complex.ref || !source?.params) return undefined;
+  return { complex: found.complex.ref, source: source.params };
+}
+
+/** A loaded SeqViewSpec as the sequence shows it over the followed structure: the document and its refs. */
+export interface SvsShown {
+  readonly doc: SeqViewSpecDoc;
+  readonly complex: string;
+  /** The complex's data node (behaviors add theirs under it). */
+  readonly data: string;
+  /** Every section (the person's style applies to each); the first with tracks is where behaviors add theirs. */
+  readonly sections: readonly string[];
+  readonly section: string;
+  readonly after: string;
+}
+
+/**
+ * A loaded SeqViewSpec over the structure the host parsed (sequence.md §6, David 2026-10-15): a copy whose first
+ * `molstar:structure` complex reads the host's parse (its source becomes the host file the loaders' `parsed` answers),
+ * with the person's letter colors over its own; nodes the viewer needs by ref (the data node, sections, the last track)
+ * get one. Undefined: the document has no such complex.
+ */
+export function svsDocument(
+  svs: SeqViewSpecDoc,
+  o: { key: string; format: StructureFormat; theme: SequenceTheme },
+): SvsShown | undefined {
+  const doc = structuredClone(svs);
+  const found = firstStructureComplex(doc);
+  const source = found && sourceNodeOf(doc, found.complex);
+  if (!found?.complex.ref || !source) return undefined;
+  source.params = { host_file: hostFileOf(o.key), format: o.format };
+  const taken = new Set<string>();
+  walk(doc.root, (n) => n.ref && taken.add(n.ref));
+  const refFor = (n: DocNode, base: string) => {
+    if (n.ref) return n.ref;
+    let ref = base;
+    for (let i = 2; taken.has(ref); i++) ref = `${base}-${i}`;
+    taken.add(ref);
+    n.ref = ref;
+    return ref;
+  };
+  const data = found.parent && found.parent.kind === 'data' ? refFor(found.parent, DataRef) : undefined;
+  const sections: string[] = [];
+  let section: string | undefined;
+  let after: string | undefined;
+  walk(doc.root, (n) => {
+    if (n.kind === 'section') {
+      sections.push(refFor(n, 'section'));
+      const tracks = n.children?.filter((c) => c.kind === 'track') ?? [];
+      if (!section && tracks.length) {
+        section = n.ref;
+        after = refFor(tracks[tracks.length - 1], 'track');
+      }
+    }
+    // The person's colors over the document's (sequence.md §6).
+    if (n.kind === 'layer' && n.params?.type === 'letters') {
+      const { color: _, ...rest } = n.params;
+      n.params =
+        o.theme.letters === null ? rest : { ...rest, color: { theme: 'scheme', params: { name: o.theme.letters } } };
+    }
+  });
+  if (!data || !section || !after) return undefined;
+  return { doc, complex: found.complex.ref, data, sections, section, after };
 }

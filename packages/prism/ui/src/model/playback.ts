@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { MarkdownHost } from '../components/markdown/markdown.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
 /** The snapshot stepper's view of the plugin's snapshots (implemented over the snapshot manager). */
@@ -18,6 +19,10 @@ export interface SnapshotStepperModel {
   titles: ReadonlyState<readonly string[]>;
   /** Markdown, with the snapshot links (`#key`) and markdown extensions of the plugin. */
   description: ReadonlyState<string | undefined>;
+  /** Whether the description is plain text (a snapshot's `descriptionFormat`), shown as it is. */
+  plainText?: ReadonlyState<boolean>;
+  /** The page's part of the description: command links, images, the audio player (Mol*'s markdown extensions). */
+  markdown?: MarkdownHost;
   isPlaying: ReadonlyState<boolean>;
   previous(): void;
   next(): void;

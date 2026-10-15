@@ -12,32 +12,49 @@ import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
+import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
 
 /**
+ * Where extensions' rows go (viewer-spec.md §3, `rows`): the extension host registers each as a shell section in this
+ * slot, its `when(node)` as the section's `when` on the node; the tree shows them under the nodes they are for.
+ */
+export const SceneRowSlot = 'scene.row';
+
+/**
  * The scene as one tree: structures → components → representations, volumes, measurements. Rows are keyed by node, so
  * a hierarchy update touches only the rows that changed; hover highlights in 3D, a click picks the node for the
- * inspector, visibility toggles inline.
+ * inspector, visibility toggles inline. Given the shell, extensions' rows (`SceneRowSlot`) follow a node's children.
  */
-export function SceneTree(props: { scene: SceneModel }) {
-  const { scene } = props;
+export function SceneTree(props: { scene: SceneModel; shell?: ShellModel }) {
+  const { scene, shell } = props;
   return (
     <div class={classes.tree} role="tree" aria-label="Scene" tabIndex={0} onKeyDown={treeKeys} onFocusIn={treeFocus}>
       <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
-        {(node) => <TreeNode scene={scene} node={node} depth={0} />}
+        {(node) => <TreeNode scene={scene} shell={shell} node={node} depth={0} />}
       </For>
     </div>
   );
 }
 
-function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) {
-  const { scene, node, depth } = props;
-  const hasChildren = node.children.pipe(
-    map((c) => c.length > 0 || !!node.lazy),
+function TreeNode(props: { scene: SceneModel; shell?: ShellModel; node: SceneNode; depth: number }) {
+  const { scene, shell, node, depth } = props;
+  // The extensions' rows for this node: a node with one can be opened before it has children.
+  const rows = shell
+    ? shell.sections(SceneRowSlot).pipe(
+        map((all) => all.filter((r) => !r.when || r.when({ shell, subject: node }))),
+        distinctUntilChanged((a, b) => a.length === b.length && a.every((r, i) => r === b[i])),
+      )
+    : undefined;
+  const count = rows
+    ? combineLatest([node.children, rows]).pipe(map(([c, r]) => c.length + r.length))
+    : node.children.pipe(map((c) => c.length));
+  const hasChildren = count.pipe(
+    map((n) => n > 0 || !!node.lazy),
     distinctUntilChanged(),
   );
   const open = combineLatest([node.isExpanded, hasChildren]).pipe(map(([e, h]) => e && h));
@@ -137,20 +154,45 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
               <For
                 each={node.children}
                 key={(n) => n.id}
-                fallback={() => (
-                  <div class={classes.loading} style={{ '--msp-tree-depth': depth + 1 }}>
-                    Loading…
-                  </div>
-                )}
+                fallback={() =>
+                  // Only rows of extensions (no children of its own): nothing is loading.
+                  node.lazy || !rows ? (
+                    <div class={classes.loading} style={{ '--msp-tree-depth': depth + 1 }}>
+                      Loading…
+                    </div>
+                  ) : null
+                }
               >
-                {(child) => <TreeNode scene={scene} node={child} depth={depth + 1} />}
+                {(child) => <TreeNode scene={scene} shell={shell} node={child} depth={depth + 1} />}
               </For>
+              {rows ? (
+                <For each={rows} key={(r) => r.id}>
+                  {(row) => <ExtensionRow section={row} shell={shell!} node={node} depth={depth + 1} />}
+                </For>
+              ) : null}
             </div>
           );
         }}
       </Show>
     </div>
   );
+}
+
+/**
+ * An extension's row under a node: its view, mounted with the node as its subject, at the depth of the node's children
+ * (`SceneRow` draws it as a tree row).
+ */
+function ExtensionRow(props: { section: ShellSection; shell: ShellModel; node: SceneNode; depth: number }) {
+  const host = (
+    <div data-scene-row={props.section.id} style={{ display: 'contents', '--msp-tree-depth': props.depth }} />
+  ) as HTMLElement;
+  const dispose = props.section.render.mount(
+    host,
+    { shell: props.shell, subject: props.node },
+    requireScope('A scene row'),
+  );
+  onCleanup(dispose);
+  return host;
 }
 
 /** A row's menu: its own entries, then Remove (set apart, in the danger color) when it can be removed. */

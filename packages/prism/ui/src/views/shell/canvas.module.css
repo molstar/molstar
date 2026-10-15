@@ -81,6 +81,8 @@
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
   overflow: hidden;
+  /* Its size is its place's, and it clips: what changes inside stays inside (styling.md §5). */
+  contain: content;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -752,10 +754,13 @@
 
 .busyBar {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 2px;
   background: var(--msp-color-accent);
-  transition: width var(--msp-motion-fast) linear;
+  /* The progress scales the bar from its start (`scale`, set inline), composited: no layout per frame (styling.md §5). */
+  transform-origin: left;
+  transition: scale var(--msp-motion-fast) linear;
 
   &[data-indeterminate] {
     animation: busy-slide 1.2s var(--msp-ease) infinite;

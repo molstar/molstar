@@ -16,6 +16,7 @@ import {
   loadersOperations,
   type MvsParams,
   type SnapshotParams,
+  type SvsParams,
   type TrajectoryParams,
   type UrlParams,
   type VolumeParams,
@@ -28,6 +29,7 @@ declare module '../../api/load.js' {
     readonly url?: OperationFn<typeof UrlParams, Loaded>;
     readonly data?: OperationFn<typeof DataParams, Loaded>;
     readonly mvs?: OperationFn<typeof MvsParams, Loaded>;
+    readonly svs?: OperationFn<typeof SvsParams, Loaded>;
     readonly snapshot?: OperationFn<typeof SnapshotParams, Loaded>;
     readonly trajectory?: OperationFn<typeof TrajectoryParams, Loaded>;
     readonly volume?: OperationFn<typeof VolumeParams, Loaded>;
@@ -35,12 +37,11 @@ declare module '../../api/load.js' {
 }
 
 // The `loaders` feature (viewer-spec.md §3.1, plan 3.2): the database and URL loaders as operations of the core's
-// `load` area (`entry`, `url`, `data`, `mvs`, `snapshot`, `trajectory`, `volume`), their commands, and the URL's load
+// `load` area (`entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`), their commands, and the URL's load
 // parameters (`runUrlLoads`, which the app calls once the viewer is ready; app.md §4). It has no views: Home's own
 // "Download Structure" (every source with its options) is the form for an id, and a second one beside it did the same;
-// `load.entry` stays for the command menu, tools and scripts.
-// There is no `load.svs`: the viewer's sequence has no document to load (sequence.md §6 comes with the sequence
-// behaviors).
+// `load.entry` stays for the command menu, tools and scripts. `load.svs` shows a SeqViewSpec in the viewer's sequence
+// (sequence.md §6).
 
 export const LoadersFeature: ViewerExtension = {
   id: 'loaders',
@@ -49,7 +50,16 @@ export const LoadersFeature: ViewerExtension = {
   contributes: () => loadersOperations(),
   commands: (api) => {
     const load = api.load;
-    if (!load.entry || !load.url || !load.data || !load.mvs || !load.snapshot || !load.trajectory || !load.volume) {
+    if (
+      !load.entry ||
+      !load.url ||
+      !load.data ||
+      !load.mvs ||
+      !load.svs ||
+      !load.snapshot ||
+      !load.trajectory ||
+      !load.volume
+    ) {
       return [];
     }
     return [
@@ -76,6 +86,12 @@ export const LoadersFeature: ViewerExtension = {
         icon: 'folder-open',
         action: 'Load',
         alias: ['molviewspec', 'story', 'mvsj', 'mvsx'],
+      }),
+      operationCommand(api, load.svs, {
+        category: 'Load',
+        icon: 'folder-open',
+        action: 'Load',
+        alias: ['seqviewspec', 'svs', 'svsj', 'sequence document', 'sequence view'],
       }),
       operationCommand(api, load.snapshot, {
         category: 'Load',

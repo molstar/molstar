@@ -13,7 +13,8 @@
       "types": "./lib/*.d.ts",
       "import": "./lib/*.js"
     },
-    "./_test/*": null
+    "./_test/*": null,
+    "./prism-viewer-ui": null
   },
   "files": [
     "lib",

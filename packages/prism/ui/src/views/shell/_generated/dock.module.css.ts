@@ -87,6 +87,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-content {
+  contain: layout style;
   width: var(--msp-dock-size);
   flex-direction: column;
   min-width: 0;
@@ -118,6 +119,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-body {
+  contain: layout paint;
   flex: 1;
   min-height: 0;
 }

@@ -237,3 +237,12 @@
     color: var(--msp-color-danger);
   }
 }
+
+/* An extension's row's controls (scene-row.tsx): under the row, aligned with its label. */
+.rowBody {
+  display: grid;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+}

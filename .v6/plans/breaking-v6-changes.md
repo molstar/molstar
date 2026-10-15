@@ -666,6 +666,11 @@ each with a migration note.
   `genericRepresentationControls` (React component classes and UI callbacks in a non-UI package) move to the classic
   UI's context, or go with it; Prism's contributions replace them. Extensions that fill them register with the UI they
   target instead.
+- **No `molstar.Viewer` in the Prism viewer.** The Prism single file (`prism-viewer.js`) is an ES module exporting
+  `createPrismViewer`, `FullPrismViewerSpec()` and the `<prism-viewer>` element; it has no classic-script global, no
+  `Viewer.create(id, options)` and no `PluginExtensions` (a `Viewer` shim is not trivial: v5's options and `load*`
+  signatures do not map one to one). Scripts move to `viewer.api` (the operations) or keep the classic viewer, which
+  ships beside it for a major version (parity.md §9 maps each member).
 
 Compatible core follow-ups made alongside Prism (a registry-changed event, richer `cell.stateUpdated`, settings events,
 a running-task behavior, string ids for `PluginCommands`) are additive and are not listed here.

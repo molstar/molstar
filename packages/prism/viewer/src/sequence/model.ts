@@ -8,13 +8,14 @@
 
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
-import type { FormatResult, Loaders } from '@molstar/seq-core/format';
+import type { FormatResult, Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { MolstarSvsEntry, type StructureSource } from '@molstar/seq-molstar-poc';
 import {
   createSeqViewer,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   type Scheduler,
+  type GraphResult,
   type SeqViewerContext,
   rafScheduler,
   SeqViewerOptionalBehaviors,
@@ -31,6 +32,7 @@ import {
   SectionRef,
   type SequenceTheme,
   sequenceDocument,
+  svsDocument,
 } from './document.js';
 import type { SequenceBehavior, SequenceOffer, SequenceShown, SequenceTrackMenuItem } from './behaviors.js';
 import { legendOf, type SequenceLegend, withTracks } from './legend.js';
@@ -50,6 +52,8 @@ export type { SequenceTheme };
 export interface HostStructure {
   /** Tells one structure from another: a new key rebuilds the view. */
   readonly key: string;
+  /** The structure's state ref (a loaded SeqViewSpec names the one it maps onto by it); absent: none. */
+  readonly ref?: string;
   /** What the person calls it ("1TQN"). */
   readonly title: string;
   /** The host's parse (`StructureSource.of(trajectory, format)`): shared with the 3D view, never read again. */
@@ -58,6 +62,19 @@ export interface HostStructure {
   readonly structure: Structure;
   /** The ligands the 3D view draws, by chemical component id; absent: every ligand. The sequence lists the same ones. */
   readonly ligands?: readonly string[];
+}
+
+/**
+ * A SeqViewSpec document shown instead of the one the model builds (`load.svs`, sequence.md §6; David, 2026-10-15):
+ * while the followed structure is the one it maps its first `molstar:structure` complex onto. Saved with the sequence's
+ * state (§7.1); the viewer ends it when the person focuses or loads another structure.
+ */
+export interface SequenceOverride {
+  readonly document: SeqViewSpecDoc;
+  /** The loaded structure (its state ref) the document's first `molstar:structure` complex maps onto. */
+  readonly structure: string;
+  /** Where it came from (its address); absent: given as data. */
+  readonly url?: string;
 }
 
 /** What a viewer shows, once its document is in: the link's input. */
@@ -136,6 +153,13 @@ export interface SequenceViewer {
   readonly shown: ReadonlyState<SequenceShown | undefined>;
   /** Attaches a behavior (an extension's, sequence.md §3); returns its removal. An id taken throws. */
   addBehavior(behavior: SequenceBehavior): () => void;
+  /** The loaded SeqViewSpec shown instead of the built document; undefined: none. */
+  readonly override: ReadonlyState<SequenceOverride | undefined>;
+  /**
+   * Shows a loaded SeqViewSpec over its structure (when that is the followed one), or the built document again
+   * (undefined); resolves with what Seq* made of the document shown (an override not shown yet: ok).
+   */
+  setOverride(override: SequenceOverride | undefined): Promise<GraphResult>;
 }
 
 export interface SequenceViewers {
@@ -191,6 +215,12 @@ class Viewer implements SequenceViewer {
   readonly rail = this.railState.asReadonly;
   private readonly shownState = observableState<SequenceShown | undefined>(undefined);
   readonly shown = this.shownState.asReadonly;
+  private readonly overrideState = observableState<SequenceOverride | undefined>(undefined, {
+    compare: (a, b) => a === b || (!!a && !!b && a.document === b.document && a.structure === b.structure),
+  });
+  readonly override = this.overrideState.asReadonly;
+  /** The sections of the document shown: the person's style applies to each. */
+  private sections: readonly string[] = [SectionRef];
   /** The behaviors attached, by id: their dispose and their offer. */
   private readonly behaviors = new Map<string, { dispose: () => void; offer?: SequenceOffer }>();
   private dropPreset: (() => void) | undefined;
@@ -347,7 +377,7 @@ class Viewer implements SequenceViewer {
   setStyle(style: SequenceStyle) {
     // Only the preset (and with it the render props) changes: one document serves both styles, so the link survives.
     this.styleState.set(style);
-    this.seq.ui.setStyle(SectionRef, presetOf(style));
+    for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(style));
   }
 
   setRail(rail: TracksRail) {
@@ -357,8 +387,10 @@ class Viewer implements SequenceViewer {
     this.dropPreset?.();
     this.dropPreset = this.seq.register({ presets: [tracksPreset(rail, !!this.deps.actions)] });
     // The section takes the preset again (the layout reads it when the style is set).
-    this.seq.ui.setStyle(SectionRef, null);
-    this.seq.ui.setStyle(SectionRef, presetOf(this.styleState.value));
+    for (const s of this.sections) {
+      this.seq.ui.setStyle(s, null);
+      this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    }
   }
 
   setTheme(theme: SequenceTheme) {
@@ -368,8 +400,19 @@ class Viewer implements SequenceViewer {
     void this.build();
   }
 
+  setOverride(override: SequenceOverride | undefined): Promise<GraphResult> {
+    const now = this.overrideState.value;
+    this.overrideState.set(override);
+    // Only a change to what the followed structure shows rebuilds.
+    const host = this.deps.structure.value;
+    const applies = (o: SequenceOverride | undefined) => !!o && !!host && host.ref === o.structure;
+    if (this.overrideState.value === now || (!applies(now) && !applies(override)))
+      return Promise.resolve({ ok: true, issues: [] });
+    return this.build();
+  }
+
   /** The document for what the host shows now; the latest build wins, an earlier one is dropped when it ends. */
-  private async build(): Promise<void> {
+  private async build(): Promise<GraphResult> {
     const host = this.deps.structure.value;
     const build = ++this.builds;
     // A document is being made: what the behaviors patch for the last one is dropped meanwhile (`patch` checks it).
@@ -378,32 +421,44 @@ class Viewer implements SequenceViewer {
     if (!host) {
       this.structureState.set(undefined);
       this.shownState.set(undefined);
-      return;
+      return { ok: true, issues: [] };
     }
-    const doc = sequenceDocument({
-      title: host.title,
-      key: host.key,
-      format: host.source.format,
-      theme: this.themeState.value,
-      ligands: host.ligands,
-    });
+    // A loaded SeqViewSpec over its structure (sequence.md §6), else the document built for the structure.
+    const override = this.overrideState.value;
+    const svs =
+      override && host.ref === override.structure
+        ? svsDocument(override.document, { key: host.key, format: host.source.format, theme: this.themeState.value })
+        : undefined;
+    const doc =
+      svs?.doc ??
+      sequenceDocument({
+        title: host.title,
+        key: host.key,
+        format: host.source.format,
+        theme: this.themeState.value,
+        ligands: host.ligands,
+      });
     // A new structure is not shown as the old one while its document is made.
     if (this.structureState.value && this.structureState.value.structure !== host.structure)
       this.structureState.set(undefined);
-    await this.seq.setDocument(doc);
-    if (this.disposed || build !== this.builds) return;
-    this.seq.ui.setStyle(SectionRef, presetOf(this.styleState.value));
-    this.structureState.set({ title: host.title, structure: host.structure, complex: ComplexRef });
+    const result = await this.seq.setDocument(doc);
+    if (this.disposed || build !== this.builds) return result;
+    // The person's style over the document's sections (a loaded SeqViewSpec's presets too).
+    this.sections = svs?.sections ?? [SectionRef];
+    for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    const complex = svs?.complex ?? ComplexRef;
+    this.structureState.set({ title: host.title, structure: host.structure, complex });
     // The behaviors add theirs to this document (sequence.md §3).
     this.shownState.set({
       key: host.key,
       title: host.title,
       structure: host.structure,
-      complex: ComplexRef,
-      data: DataRef,
-      section: SectionRef,
-      after: SecondaryTrack,
+      complex,
+      data: svs?.data ?? DataRef,
+      section: svs?.section ?? SectionRef,
+      after: svs?.after ?? SecondaryTrack,
     });
+    return result;
   }
 
   dispose() {

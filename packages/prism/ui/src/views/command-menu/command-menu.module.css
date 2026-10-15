@@ -133,6 +133,11 @@
   text-align: center;
 }
 
+/* The rows not rendered yet: their height, so the scroll bar is the whole list's. */
+.rest {
+  pointer-events: none;
+}
+
 .caption {
   padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
   color: var(--msp-color-text-subtle);

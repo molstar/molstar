@@ -118,6 +118,11 @@ type Row =
   | { kind: 'item'; item: CommandMenuItem; index: number };
 type Pickable = Exclude<Row, { kind: 'caption' }>;
 
+/** Rows rendered at first (and added at a time): more than the list shows. */
+const Screenful = 24;
+/** An option's height (`.row`), for the scroll height of the rows not rendered yet. */
+const RowPx = 28;
+
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
   // The words a sentence was proposed from by the assistant (shown over it), until it closes.
@@ -279,6 +284,28 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
   });
+  // The rows rendered: a screenful first, more as the list scrolls or the highlight moves past them, so opening the menu
+  // builds what shows rather than every command (styling.md §5, G8 perf #3). A spacer keeps the scroll height of the
+  // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its bind below runs before the
+  // input's and the list's, so the list has grown to it by the time they read the highlight.
+  const limit = observableState<{ of?: readonly Row[]; n: number }>({ n: Screenful });
+  const shown = combineLatest([rows, limit.asReadonly]).pipe(
+    map(([r, l]) => (r.length <= (l.of === r ? l.n : Screenful) ? r : r.slice(0, l.of === r ? l.n : Screenful))),
+    distinctUntilChanged((a, b) => a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1]),
+  );
+  const rest = combineLatest([rows, shown]).pipe(
+    map(([r, s]) => (r.length - s.length) * RowPx),
+    distinctUntilChanged(),
+  );
+  const grow = (n: number) => {
+    const l = limit.value;
+    const have = l.of === current ? l.n : Screenful;
+    if (n > have && have < current.length) limit.set({ of: current, n: Math.max(n, have + Screenful) });
+  };
+  bind(highlight.asReadonly, (h) => {
+    const at = current.findIndex((r) => r.kind !== 'caption' && r.index === h);
+    if (at >= 0) grow(at + 1);
+  });
   // A move of the highlight notifies the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
   const active = combineLatest([highlight.asReadonly, rows]).pipe(
@@ -411,9 +438,15 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         id={listId}
         role="listbox"
         aria-label="Commands"
+        viewportRef={(el) => {
+          // Reads only (a scroll event, before anything is written): the rows down to two screens below the top.
+          const more = () => grow(Math.ceil((el.scrollTop + 2 * el.clientHeight) / RowPx));
+          el.addEventListener('scroll', more, { passive: true });
+          onCleanup(() => el.removeEventListener('scroll', more));
+        }}
       >
         <For
-          each={rows}
+          each={shown}
           fallback={() => (
             <p class={classes.empty}>
               {props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.'}
@@ -459,6 +492,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
             );
           }}
         </For>
+        <Show when={rest.pipe(map((h) => h > 0))}>
+          {() => <div class={classes.rest} role="presentation" style={{ height: rest.pipe(map((h) => `${h}px`)) }} />}
+        </Show>
       </ScrollArea>
       {props.assistant ? (
         <AskBar

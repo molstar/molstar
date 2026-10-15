@@ -7,7 +7,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { SequenceViewer } from '../sequence/model.js';
+import type { GraphResult } from '@molstar/seq-viewer';
+import type { SequenceOverride, SequenceViewer } from '../sequence/model.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
 import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
@@ -95,6 +96,15 @@ export class SequenceApi extends ApiArea {
     },
   });
 
+  /**
+   * Shows a loaded SeqViewSpec over its structure (sequence.md §6): the loaders' `load.svs` calls it inside its run, so
+   * it is part of that step. Not an operation of its own: the document comes from a load.
+   */
+  showDocument(override: SequenceOverride): Promise<GraphResult> {
+    this.source.show(override.structure);
+    return this.viewer.setOverride(override);
+  }
+
   readonly get = this.operation({
     id: 'sequence.get',
     title: 'Describe the sequence view',
@@ -103,9 +113,19 @@ export class SequenceApi extends ApiArea {
     run: async () => {
       const shown = this.viewer.structure.value;
       const style = this.viewer.style.value === 'compact' ? 'text' : 'tracks';
-      const value = { structure: shown?.title, style, colors: this.viewer.theme.value.letters ?? 'none' };
+      const override = shown ? this.viewer.override.value : undefined;
+      const document = override
+        ? (override.document.metadata?.title ?? override.url ?? 'a loaded document')
+        : undefined;
+      const value = {
+        structure: shown?.title,
+        style,
+        colors: this.viewer.theme.value.letters ?? 'none',
+        ...(document ? { document } : {}),
+      };
+      const what = document ? `The SeqViewSpec ${document} over ${shown?.title}` : `The sequence of ${shown?.title}`;
       return ApiResult.ok(
-        shown ? `The sequence of ${shown.title}, as ${style}, colored by ${value.colors}.` : 'No sequence is shown.',
+        shown ? `${what}, as ${style}, colored by ${value.colors}.` : 'No sequence is shown.',
         {},
         { value },
       );

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { StateObjectCell } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
@@ -195,21 +196,14 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         remove: () => void api.run('structure.remove', { structure: ref }),
       });
       n.removable = true;
-      // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).
-      n.menu = [
-        {
-          id: 'reset-transform',
-          label: 'Reset transform',
-          icon: 'rotate-ccw',
-          run: () => void api.run('structure.transform-reset', { structure: ref }),
-        },
-      ];
       nodes.set(ref, n);
     }
     const data = s.cell.obj?.data;
     n.set(name, data ? describeStructure(data) : undefined, !!s.cell.state.isHidden);
-    // An open inspector follows the transform (Undo, superposition), without reporting it as an edit.
-    if (data) inspections.get(ref)?.form?.load({ transform: transformValues(currentTransform(s, data), data) });
+    // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off).
+    n.menu = structureMenu(plugin, api, s);
+    // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
+    if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
     return n;
   };
 
@@ -888,6 +882,216 @@ function transformValues(m: Mat4, data: Structure): PD.Values<typeof TransformFo
   };
 }
 
+// parity.md §2, the structure's source and crystal symmetry: v5's Source panel (the model of a trajectory, the structure
+// type: the model, an assembly, symmetry mates or unit cells) as fields over `structure.model`, `.assembly` and
+// `.symmetry`, above the Transform. A field with one choice is left out.
+
+interface SourceValues {
+  model: number;
+  type: string;
+  radius: number;
+  cells: number;
+}
+
+type StructureType = { name: string; params?: { id?: string; radius?: number; ijkMax?: Vec3 } };
+
+const typeOf = (s: StructureRef) => (s.cell.transform.params as { type: StructureType } | undefined)?.type;
+const modelCount = (s: StructureRef) => s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
+const modelIndex = (s: StructureRef) =>
+  (s.model?.cell.transform.params as { modelIndex?: number } | undefined)?.modelIndex ?? 0;
+
+/** What the structure can be built as: the model, its assemblies, and for a crystal its mates or cells. */
+function structureTypes(s: StructureRef, data: Structure): [string, string][] {
+  const symmetry = ModelSymmetry.Provider.get(data.model);
+  const assemblies = symmetry?.assemblies ?? [];
+  const crystal = !!symmetry && !SpacegroupCell.isZero(symmetry.spacegroup.cell);
+  const options: [string, string][] = [['model', 'Model (as deposited)']];
+  for (const a of assemblies) {
+    options.push([`assembly:${a.id}`, `Assembly ${a.id}${a.details ? ` · ${a.details.replace(/_/g, ' ')}` : ''}`]);
+  }
+  if (crystal) options.push(['mates', 'Symmetry mates'], ['cells', 'Unit cells']);
+  // Types no field here sets (the loader's auto, a symmetry assembly from `state.update`): shown while they hold.
+  const now = typeOf(s)?.name;
+  if (now === 'auto') options.unshift(['auto', assemblies.length ? 'Auto (the first assembly)' : 'Auto (the model)']);
+  if (now === 'symmetry-assembly') options.push(['symmetry-assembly', 'Symmetry assembly']);
+  return options;
+}
+
+function typeValue(s: StructureRef, data: Structure): string {
+  const t = typeOf(s);
+  switch (t?.name) {
+    case 'assembly': {
+      const id = t.params?.id || ModelSymmetry.Provider.get(data.model)?.assemblies[0]?.id;
+      return id ? `assembly:${id}` : 'model';
+    }
+    case 'symmetry-mates':
+      return 'mates';
+    case 'symmetry':
+      return 'cells';
+    case 'auto':
+    case 'symmetry-assembly':
+      return t.name;
+    default:
+      return 'model';
+  }
+}
+
+function sourceForm(s: StructureRef, data: Structure): PD.Params {
+  const count = modelCount(s);
+  const types = structureTypes(s, data);
+  return {
+    // A short trajectory as a list, a long one as a number.
+    model:
+      count <= 50
+        ? PD.Select<number>(
+            1,
+            Array.from({ length: count }, (_, i) => [i + 1, `${i + 1}`] as [number, string]),
+            { label: 'Model', description: `The model shown, of ${count}`, isHidden: count < 2 },
+          )
+        : PD.Numeric(
+            1,
+            { min: 1, max: count, step: 1 },
+            { label: 'Model', description: `The model shown, of ${count}` },
+          ),
+    type: PD.Select<string>('model', types, {
+      label: 'Type',
+      description: 'What is built from the model: itself, an assembly, or its crystal symmetry',
+      isHidden: types.length < 2,
+    }),
+    radius: PD.Numeric(
+      5,
+      { min: 0, max: 50, step: 1 },
+      { label: 'Radius (Å)', description: 'The mates within this distance', hideIf: (v) => v.type !== 'mates' },
+    ),
+    cells: PD.Numeric(
+      1,
+      { min: 0, max: 3, step: 1 },
+      { label: 'Cells around', description: '1 is the cells −1 to 1 on each axis', hideIf: (v) => v.type !== 'cells' },
+    ),
+  };
+}
+
+/** The structure's form values: its source (model, type, radius, cells) and its transform. */
+function structureValues(s: StructureRef, data: Structure): SourceValues & PD.Values<typeof TransformForm> {
+  const t = typeOf(s);
+  return {
+    model: modelIndex(s) + 1,
+    type: typeValue(s, data),
+    radius: t?.name === 'symmetry-mates' ? (t.params?.radius ?? 5) : 5,
+    cells: t?.name === 'symmetry' && t.params?.ijkMax ? t.params.ijkMax[0] : 1,
+    transform: transformValues(currentTransform(s, data), data),
+  };
+}
+
+/**
+ * The source fields' edits as operations: a model or a type at once, the radius and cells a moment after the last
+ * (sliders). `reload` puts the structure's values back after each (a refused change leaves the form as it was).
+ */
+function sourceChanges(
+  api: ViewerApi,
+  s: StructureRef,
+  reload: () => void,
+): (values: SourceValues, name: string) => void {
+  const structure = s.cell.transform.ref;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const apply = async (v: SourceValues, name: string) => {
+    if (name === 'model') return api.run('structure.model', { structure, index: v.model - 1 });
+    if (v.type.startsWith('assembly:')) {
+      return api.run('structure.assembly', { structure, id: v.type.slice('assembly:'.length) });
+    }
+    if (v.type === 'mates') return api.run('structure.symmetry', { structure, kind: 'mates', radius: v.radius });
+    if (v.type === 'cells') return api.run('structure.symmetry', { structure, kind: 'cells', cells: v.cells });
+    // The model: from an assembly through `assembly` (its own words), from symmetry through `symmetry` off.
+    if (v.type === 'model') {
+      const now = typeOf(s)?.name;
+      return now === 'assembly' || now === 'auto'
+        ? api.run('structure.assembly', { structure, id: '' })
+        : api.run('structure.symmetry', { structure, kind: 'off' });
+    }
+    return undefined;
+  };
+  return (values, name) => {
+    clearTimeout(timer);
+    const run = () => void apply(values, name).finally(reload);
+    if (name === 'radius' || name === 'cells') timer = setTimeout(run, 150);
+    else run();
+  };
+}
+
+/** The structure row's menu: presets, assemblies, crystal symmetry, density streaming, and the transform's reset. */
+function structureMenu(plugin: PluginContext, api: ViewerApi, s: StructureRef): SceneMenuItem[] {
+  const structure = s.cell.transform.ref;
+  const data = s.cell.obj?.data;
+  const items: SceneMenuItem[] = [];
+  const presets = plugin.builders.structure.representation.providers.filter(
+    (p) => !p.isApplicable || !s.cell.obj || p.isApplicable(s.cell.obj, plugin),
+  );
+  if (presets.length) {
+    items.push({
+      id: 'preset',
+      label: 'Preset',
+      icon: 'shapes',
+      items: presets.map((p) => ({
+        id: p.id,
+        label: p.display.name,
+        run: () => void api.run('structure.preset', { structure, preset: p.id }),
+      })),
+    });
+  }
+  if (data) {
+    const types = structureTypes(s, data).filter(([id]) => id === 'model' || id.startsWith('assembly:'));
+    if (types.length > 1) {
+      items.push({
+        id: 'assembly',
+        label: 'Assembly',
+        icon: 'copy',
+        items: types.map(([id, label]) => ({
+          id,
+          label,
+          run: () =>
+            void api.run('structure.assembly', { structure, id: id === 'model' ? '' : id.slice('assembly:'.length) }),
+        })),
+      });
+    }
+    const symmetry = ModelSymmetry.Provider.get(data.model);
+    if (symmetry && !SpacegroupCell.isZero(symmetry.spacegroup.cell)) {
+      items.push({
+        id: 'symmetry',
+        label: 'Crystal symmetry',
+        icon: 'box',
+        items: (
+          [
+            ['mates', 'Symmetry mates'],
+            ['cells', 'Unit cells'],
+            ['off', 'Off'],
+          ] as const
+        ).map(([kind, label]) => ({
+          id: kind,
+          label,
+          run: () => void api.run('structure.symmetry', { structure, kind }),
+        })),
+      });
+    }
+  }
+  // parity.md §2, volume streaming: turned on from here (its row, once on, turns it off).
+  if (api.describe('volume.streaming') && !streamingOf(plugin, s)) {
+    items.push({
+      id: 'stream-density',
+      label: 'Stream density',
+      icon: 'volume',
+      run: () => void api.run('volume.streaming', { structure, enabled: true }),
+    });
+  }
+  // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).
+  items.push({
+    id: 'reset-transform',
+    label: 'Reset transform',
+    icon: 'rotate-ccw',
+    run: () => void api.run('structure.transform-reset', { structure }),
+  });
+  return items;
+}
+
 // parity.md §2, the unit cell: its color and opacity (the operation's; the line size stays the representation's).
 const UnitCellForm = {
   color: PD.Color(Color(0xffa500), { label: 'Color', isEssential: true }),
@@ -947,23 +1151,33 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?:
     const model = s.model;
     const chains = new Set(s.units.map((u) => u.chainGroupId)).size;
     const ref = plugin.managers.structure.hierarchy.current.refs.get(node.id);
-    const now = ref?.kind === 'structure' ? currentTransform(ref, s) : Mat4.identity();
-    const form = new ParamsFormModel(
-      TransformForm,
-      { transform: transformValues(now, s) },
-      {
-        onChange: debounced(
-          ({ transform }) =>
-            void api.run('structure.transform', {
-              structure: node.id,
-              translation: transform.translation,
-              axis: transform.axis,
-              angle: transform.angle,
-              center: 'centroid',
-            }),
-        ),
-      },
+    const structureRef = ref?.kind === 'structure' ? ref : undefined;
+    const now = structureRef ? currentTransform(structureRef, s) : Mat4.identity();
+    const transform = debounced(
+      ({ transform }: PD.Values<typeof TransformForm>) =>
+        void api.run('structure.transform', {
+          structure: node.id,
+          translation: transform.translation,
+          axis: transform.axis,
+          angle: transform.angle,
+          center: 'centroid',
+        }),
     );
+    const params = { ...(structureRef ? sourceForm(structureRef, s) : {}), ...TransformForm };
+    const values = structureRef ? structureValues(structureRef, s) : { transform: transformValues(now, s) };
+    // After a source change that did nothing (a failure), the form shows what the structure is again.
+    const reload = () => {
+      const fresh = plugin.managers.structure.hierarchy.current.refs.get(node.id);
+      const data = fresh?.kind === 'structure' ? fresh.cell.obj?.data : undefined;
+      if (fresh?.kind === 'structure' && data) form.load(structureValues(fresh, data) as never);
+    };
+    const source = structureRef ? sourceChanges(api, structureRef, reload) : undefined;
+    const form: ParamsFormModel<PD.Params> = new ParamsFormModel(params as PD.Params, values as never, {
+      onChange: (v, name) => {
+        if (name === 'transform') transform(v as PD.Values<typeof TransformForm>);
+        else source?.(v as SourceValues, name);
+      },
+    });
     return {
       node,
       form,

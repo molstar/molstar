@@ -39,7 +39,12 @@ import { createSceneSource } from './sources/scene.js';
 import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
 import { SequenceApi } from './api/sequence.js';
 import { DefaultSequenceTheme } from './sequence/document.js';
-import { createSequenceViewers, type SequenceStyle, type SequenceViewers } from './sequence/model.js';
+import {
+  createSequenceViewers,
+  type SequenceOverride,
+  type SequenceStyle,
+  type SequenceViewers,
+} from './sequence/model.js';
 import type { TracksRail } from './sequence/presets.js';
 import { rafScheduler, type Scheduler } from '@molstar/seq-viewer';
 import { SourceScope } from './sources/state.js';
@@ -481,6 +486,16 @@ function sequenceFrames(page: boolean): Scheduler {
   });
 }
 
+/** The sequence's state in snapshots (sequence.md §7.1): version 2 adds the loaded SeqViewSpec. */
+interface SavedSequence {
+  readonly version: 1 | 2;
+  readonly style: SequenceStyle;
+  readonly colors: string | null;
+  readonly rail: TracksRail;
+  readonly structure?: string;
+  readonly override?: SequenceOverride;
+}
+
 /**
  * The sequence (sequence.md, plan 2.4): its viewer over the structure the source follows, its area in the API, and its
  * state in snapshots (`prism-viewer.sequence`, sequence.md §7.1).
@@ -508,23 +523,32 @@ function createSequence(
   const initial = spec.sequence ? spec.sequence.style : undefined;
   if (initial === 'text') viewer.setStyle('compact');
   scope.add(host.addArea('sequence', (ctx) => new SequenceApi(ctx, viewer, source)));
+  // A loaded SeqViewSpec (sequence.md §6, David 2026-10-15) shows while the sequence shows its structure: set, the
+  // source shows that structure; once the person focuses or loads another (the source ends `show`), it ends.
+  scope.add(viewer.override.subscribe((o) => source.show(o?.structure)));
+  scope.add(
+    source.shows.subscribe((ref) => {
+      if (ref === undefined && viewer.override.value) void viewer.setOverride(undefined);
+    }),
+  );
   scope.add(
     plugin.state.registerCustomState('prism-viewer.sequence', {
-      get: () => ({
-        version: 1,
+      get: (): SavedSequence => ({
+        version: 2,
         style: viewer.style.value,
         colors: viewer.theme.value.letters,
         rail: viewer.rail.value,
         structure: source.followed.value,
+        ...(viewer.override.value ? { override: viewer.override.value } : {}),
       }),
       set: (value) => {
-        const v = value as
-          | { version: number; style: SequenceStyle; colors: string | null; rail: TracksRail; structure?: string }
-          | undefined;
-        if (!v || v.version !== 1) {
+        // Version 1 is version 2 without a loaded SeqViewSpec (the migration).
+        const v = value as SavedSequence | undefined;
+        if (!v || (v.version !== 1 && v.version !== 2)) {
           viewer.setStyle(initial === 'text' ? 'compact' : 'tracks');
           viewer.setTheme(DefaultSequenceTheme);
           source.setFollowed(undefined);
+          void viewer.setOverride(undefined);
           return;
         }
         viewer.setStyle(v.style);
@@ -532,6 +556,7 @@ function createSequence(
         if (v.rail) viewer.setRail(v.rail);
         // Undo's checkpoints leave out what the sequence follows (view state); a session has it.
         if ('structure' in v) source.setFollowed(v.structure);
+        void viewer.setOverride(v.override);
       },
     }),
   );

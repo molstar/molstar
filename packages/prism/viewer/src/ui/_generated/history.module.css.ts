@@ -19,6 +19,7 @@ export const classes = {
   'history': 'msp-viewer-history-history',
   'keep': 'msp-viewer-history-keep',
   'label': 'msp-viewer-history-label',
+  'list': 'msp-viewer-history-list',
   'more': 'msp-viewer-history-more',
   'origin': 'msp-viewer-history-origin',
   'prompt': 'msp-viewer-history-prompt',
@@ -37,9 +38,16 @@ export const classes = {
 
 defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 .msp-viewer-history-history {
+  contain: content;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
+  display: grid;
+}
+
+.msp-viewer-history-list {
+  contain: content;
+  gap: var(--msp-space-2);
   display: grid;
 }
 
@@ -58,6 +66,11 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 .msp-viewer-history-empty {
   padding: var(--msp-space-4);
   color: var(--msp-color-text-muted);
+}
+
+.msp-viewer-history-step, .msp-viewer-history-turn, .msp-viewer-history-separator {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.25rem;
 }
 
 .msp-viewer-history-step {

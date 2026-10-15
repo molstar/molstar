@@ -62,10 +62,11 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
   aborts anyway (the page went away mid-turn) reads as stopped, from what it was begun with. A record that ends (the
   viewer disposed) settles a turn still open as stopped.
 - **Reads** are windows (newest first), so the History view is a `VirtualList` over windows, however long the session.
-  As built (`journal/history-model.ts`): the newest window, "Show earlier" for the one before, read again once per frame
-  after a change and only while the tab is shown; a plain list until a session's rows call for virtualizing. A read
-  longer than the fiber's window (256) goes in windows; a turn under way older than the newest window has everything
-  loaded read again, so its settling shows.
+  As built (`journal/history-model.ts`): the newest window, "Show earlier" for the one before; after a change, once per
+  frame and only while the tab is shown, only what came since the last read (`record.readAfter`, from the oldest turn
+  still under way, so its settling shows), and the newest window again when more came than a window holds (G8 perf).
+  A plain list until a session's rows call for virtualizing, contained, its rows `content-visibility: auto`. A read
+  longer than the fiber's window (256) goes in windows.
 
 ## 3. Shown back
 

@@ -29,7 +29,7 @@ import type {
 import type { AnnotationProvider } from './api/annotations.js';
 import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, ViewerApi } from './api/area.js';
 import type { PrismViewerOptionValues } from './options.js';
-import type { SceneNodeKind } from './model/scene.js';
+import type { SceneNode, SceneNodeKind } from './model/scene.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
 import type { SkillDeclaration } from './agent/toolkit.js';
 import type { OperationToolSpec } from './agent/tools.js';
@@ -246,10 +246,13 @@ export interface ViewerExtensionUI {
     readonly title: string;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
-  /** Structure rows. */
+  /**
+   * Rows in the scene tree, under the nodes `when` holds for (a structure's assembly symmetry, its membrane): the view
+   * gets the node as its `subject`; `SceneRow` draws it as the tree's own rows.
+   */
   readonly rows?: readonly {
     readonly id: PartId;
-    readonly when: (node: unknown) => boolean;
+    readonly when: (node: SceneNode) => boolean;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /** The canvas stack only: a command by id, or a card to open. */

@@ -28,6 +28,7 @@ export const classes = {
   'menuItem': 'msp-viewer-scene-tree-menuItem',
   'picked': 'msp-viewer-scene-tree-picked',
   'row': 'msp-viewer-scene-tree-row',
+  'rowBody': 'msp-viewer-scene-tree-rowBody',
   'subChevron': 'msp-viewer-scene-tree-subChevron',
   'subItems': 'msp-viewer-scene-tree-subItems',
   'subMenu': 'msp-viewer-scene-tree-subMenu',
@@ -247,6 +248,14 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
     background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
     color: var(--msp-color-danger);
   }
+}
+
+.msp-viewer-scene-tree-rowBody {
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+  display: grid;
 }
 }
 `);

@@ -62,6 +62,13 @@ describe('loadsFromUrl', () => {
     expect(loadsFromUrl('?mvs-data=%7B%22a%22%3A1%7D')[0].values).toEqual({ data: '{"a":1}', format: 'mvsj' });
   });
 
+  it('reads svs-url last, after the structures it may name', () => {
+    expect(loadsFromUrl('?svs-url=https://x.org/a.svsj&pdb=1cbs')).toEqual([
+      { operation: 'load.entry', values: { source: 'pdb', id: '1cbs' } },
+      { operation: 'load.svs', values: { url: 'https://x.org/a.svsj' } },
+    ]);
+  });
+
   it('keeps a + in mvs-data (base64), as v5 does', () => {
     expect(loadsFromUrl('?mvs-data=base64,a+b/c%3D&mvs-format=mvsx')[0].values).toMatchObject({
       data: 'base64,a+b/c=',

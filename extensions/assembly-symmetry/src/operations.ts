@@ -16,6 +16,9 @@ import type { StructureRef } from '@molstar/plugin/state/manager/structure/hiera
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '@molstar/prism-viewer/api/area';
 import { StructureParam } from '@molstar/prism-viewer/api/params';
 import { isFailure, labelOf, oneStructure } from '@molstar/prism-viewer/api/scope';
+import { watchedState } from '@molstar/prism-viewer/sources/watched';
+import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import {
   AssemblySymmetryData,
   AssemblySymmetryDataProvider,
@@ -66,8 +69,35 @@ const SymmetryParam = () =>
     { description: 'A symmetry by its number from assembly-symmetry.get (1, 2, …); 0: the first that is not C1' },
   );
 
+/** What the assembly symmetry's row shows of a structure (`prism-viewer-ui.tsx`): read, never fetched for it. */
+export interface SymmetryRowState {
+  /** A PDB entry's assembly: RCSB PDB annotates its symmetry. */
+  readonly applicable: boolean;
+  /** The symmetries, once asked for (`get`, `show` or `color` fetched them). */
+  readonly symmetries?: readonly SymmetryInfo[];
+  /** The symmetry chosen (by number), its axes shown or not. */
+  readonly selected?: number;
+  /** Its axes are in the scene. */
+  readonly shown: boolean;
+}
+
 export class AssemblySymmetryApi extends ApiArea {
   readonly id = 'assembly-symmetry';
+
+  /**
+   * The row's state for a structure (by state ref), following the state tree while watched (a view bound to it): a
+   * read for views, as the animation area's `state` (contexts.md §7). It never fetches: the symmetries show once an
+   * operation has asked RCSB PDB for them.
+   */
+  rowState(structure: string): ReadonlyState<SymmetryRowState> {
+    const plugin = this.ctx.plugin;
+    return watchedState(
+      () => readRow(plugin, structure),
+      // A fetch changes no state (a C1-only answer adds no axes): the row hears of it apart.
+      () => [plugin.state.data.events.changed, fetchedSignal(plugin).asReadonly],
+      { compare: (a, b) => JSON.stringify(a) === JSON.stringify(b) },
+    );
+  }
 
   readonly get = this.operation({
     id: 'assembly-symmetry.get',
@@ -158,6 +188,35 @@ export class AssemblySymmetryApi extends ApiArea {
 
 // --- helpers ----------------------------------------------------------------------------------------------------
 
+function readRow(plugin: PluginContext, ref: string): SymmetryRowState {
+  const s = plugin.managers.structure.hierarchy.current.refs.get(ref);
+  const data = s?.kind === 'structure' ? s.cell.obj?.data : undefined;
+  if (s?.kind !== 'structure' || !data || !AssemblySymmetryData.isApplicable(data)) {
+    return { applicable: false, shown: false };
+  }
+  const list = AssemblySymmetryDataProvider.get(data).value;
+  const index = selected(s);
+  return {
+    applicable: true,
+    shown: !!axesRef(plugin, s),
+    ...(list ? { symmetries: infos(list) } : {}),
+    ...(index >= 0 ? { selected: index + 1 } : {}),
+  };
+}
+
+function infos(list: AssemblySymmetryDataValue): SymmetryInfo[] {
+  return list.map((x, i) => ({
+    index: i + 1,
+    kind: x.kind,
+    symbol: x.symbol,
+    type: x.type,
+    oligomericState: x.oligomeric_state,
+    stoichiometry: x.stoichiometry,
+    clusters: x.clusters?.length ?? 0,
+    axes: x.rotation_axes?.length ?? 0,
+  }));
+}
+
 function applicable(ctx: ApiContext, name: string): StructureRef | ApiFailure {
   const s = oneStructure(ctx, name || undefined);
   if (isFailure(s)) return s;
@@ -176,6 +235,15 @@ function propertyContext(plugin: PluginContext, runtime: CustomProperty.Context[
   return { runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
 }
 
+const fetches = new WeakMap<PluginContext, ObservableState<number>>();
+
+/** Bumped after each fetch, answered or failed: the rows' states read again. */
+function fetchedSignal(plugin: PluginContext): ObservableState<number> {
+  let s = fetches.get(plugin);
+  if (!s) fetches.set(plugin, (s = observableState(0)));
+  return s;
+}
+
 /** The symmetries the service has for the structure's assembly (fetched once per structure). */
 async function fetchList(ctx: ApiContext, s: StructureRef): Promise<AssemblySymmetryDataValue | ApiFailure> {
   const data = s.cell.obj!.data;
@@ -187,12 +255,14 @@ async function fetchList(ctx: ApiContext, s: StructureRef): Promise<AssemblySymm
       ),
     );
   } catch (e) {
+    fetchedSignal(ctx.plugin).set(fetchedSignal(ctx.plugin).value + 1);
     return ApiResult.fail(
       'failed',
       `Could not get the symmetry of ${labelOf(ctx, s)} from ${serverType === 'pdbe' ? 'PDBe' : 'RCSB PDB'}: ${message(e)}`,
       'Try again later.',
     );
   }
+  fetchedSignal(ctx.plugin).set(fetchedSignal(ctx.plugin).value + 1);
   return AssemblySymmetryDataProvider.get(data).value ?? [];
 }
 
@@ -200,16 +270,7 @@ function describe(ctx: ApiContext, s: StructureRef, list: AssemblySymmetryDataVa
   const shown = axesRef(ctx.plugin, s) ? selected(s) : -1;
   return {
     structure: labelOf(ctx, s),
-    symmetries: list.map((x, i) => ({
-      index: i + 1,
-      kind: x.kind,
-      symbol: x.symbol,
-      type: x.type,
-      oligomericState: x.oligomeric_state,
-      stoichiometry: x.stoichiometry,
-      clusters: x.clusters?.length ?? 0,
-      axes: x.rotation_axes?.length ?? 0,
-    })),
+    symmetries: infos(list),
     ...(shown >= 0 ? { shown: shown + 1 } : {}),
   };
 }

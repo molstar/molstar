@@ -18,6 +18,8 @@ import type { StructureRef } from '@molstar/plugin/state/manager/structure/hiera
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '@molstar/prism-viewer/api/area';
 import { StructureParam } from '@molstar/prism-viewer/api/params';
 import { isFailure, labelOf, oneStructure } from '@molstar/prism-viewer/api/scope';
+import { watchedState } from '@molstar/prism-viewer/sources/watched';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { ANVILParams, type ANVILProps } from './algorithm.js';
 import { isTransmembrane, MembraneOrientation3D } from './behavior.js';
 import { MembraneOrientation, MembraneOrientationProvider } from './prop.js';
@@ -71,8 +73,38 @@ const LookParams = {
   structure: StructureParam(),
 };
 
+/** What the membrane's row shows of a structure (`prism-viewer-ui.tsx`): read, never computed for it. */
+export interface MembraneRowState {
+  /** ANVIL places a membrane around it (atomic protein chains of 15 residues or more). */
+  readonly applicable: boolean;
+  /** Its planes and rims are in the scene. */
+  readonly shown: boolean;
+  /** Once placed: the distance between the planes, in Å. */
+  readonly thickness?: number;
+  /** How it looks, while shown. */
+  readonly look?: {
+    readonly planes: boolean;
+    readonly rims: boolean;
+    readonly dashed: boolean;
+    readonly opacity: number;
+  };
+}
+
 export class MembraneApi extends ApiArea {
   readonly id = 'membrane';
+
+  /**
+   * The row's state for a structure (by state ref), following the state tree while watched (a view bound to it): a
+   * read for views, as the animation area's `state` (contexts.md §7); nothing is computed or fetched for it.
+   */
+  rowState(structure: string): ReadonlyState<MembraneRowState> {
+    const plugin = this.ctx.plugin;
+    return watchedState(
+      () => readRow(plugin, structure),
+      () => plugin.state.data.events.changed,
+      { compare: (a, b) => JSON.stringify(a) === JSON.stringify(b) },
+    );
+  }
 
   readonly get = this.operation({
     id: 'membrane.get',
@@ -184,6 +216,38 @@ export class MembraneApi extends ApiArea {
 }
 
 // --- helpers ----------------------------------------------------------------------------------------------------
+
+/** Whether ANVIL applies, once per structure (it walks the entities). */
+const applicability = new WeakMap<Structure, boolean>();
+
+function readRow(plugin: PluginContext, ref: string): MembraneRowState {
+  const s = plugin.managers.structure.hierarchy.current.refs.get(ref);
+  const data = s?.kind === 'structure' ? s.cell.obj?.data : undefined;
+  if (s?.kind !== 'structure' || !data) return { applicable: false, shown: false };
+  let applicable = applicability.get(data);
+  if (applicable === undefined) applicability.set(data, (applicable = MembraneOrientationProvider.isApplicable(data)));
+  const m = MembraneOrientationProvider.get(data.root).value;
+  const thickness = m
+    ? Math.round(Math.abs(Vec3.dot(Vec3.sub(Vec3(), m.planePoint1, m.planePoint2), m.normalVector)) * 10) / 10
+    : undefined;
+  const shownRef = membraneRef(plugin, s);
+  const p = shownRef ? (plugin.state.data.tree.transforms.get(shownRef).params as LookProps | undefined) : undefined;
+  return {
+    applicable,
+    shown: !!shownRef,
+    ...(thickness !== undefined ? { thickness } : {}),
+    ...(p
+      ? {
+          look: {
+            planes: p.visuals.includes('bilayer-planes'),
+            rims: p.visuals.includes('bilayer-rims'),
+            dashed: p.dashedLines,
+            opacity: p.sectorOpacity,
+          },
+        }
+      : {}),
+  };
+}
 
 const changed = (s: StructureRef) => ({ nodes: [s.cell.transform.ref] });
 

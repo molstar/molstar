@@ -122,7 +122,7 @@ export function StructureTab(props: StructureTabProps) {
         }
       </Show>
       <ScrollArea edge class={classes.tree}>
-        <SceneTree scene={scene} />
+        <SceneTree scene={scene} shell={shell} />
       </ScrollArea>
       <ScrollArea
         class={classes.inspector}
