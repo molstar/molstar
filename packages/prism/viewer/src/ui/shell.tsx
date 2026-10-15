@@ -17,15 +17,11 @@ import {
   FullscreenModel,
   For,
   formatChord,
-  HelpPanel,
   HoverLabel,
   isMac,
-  mapState,
   LogView,
-  MolstarWordmark,
   observableState,
   render,
-  SectionList,
   ShellModel,
   ShellView,
   Show,
@@ -42,25 +38,13 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
 import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
-import { createAnnotationOffer, type HomeModel } from '../model/home.js';
-import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
-import { exportCard, selectionSections, selectionTab } from './panels.js';
+import { exportCard } from './export-card.js';
+import { isLazyExtension } from '../spec.js';
 import { settingsTab } from './settings.js';
-import {
-  ModeSwitch,
-  modeSwitchProps,
-  PickLevel,
-  SelectionBar,
-  selectionModel,
-  selectionSummaryModel,
-} from './interaction.js';
-import { StructureTab } from '../views/structure/structure-tab.js';
-import { StructureCommandGroups, structureCommands } from './structure-commands.js';
-import { HelpProse } from '../views/help/help-prose.js';
+import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import type { ViewerCore } from '../viewer.js';
-import { CanvasBindings } from './bindings.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
 import { watchToasts } from '../sources/toasts.js';
@@ -173,33 +157,6 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     if (data.length) void person.load.files({ files: data });
   };
 
-  const home: HomeModel = {
-    actions: core.views.homeActions,
-    // After a load, what a structure carries beyond the built-ins, offered in one click (parity.md §6a).
-    annotationOffer: createAnnotationOffer(person, sources.structures),
-    // The records kept in earlier sessions: one opens in History, read-only (where History is shown).
-    ...(core.options.ui.showHistory
-      ? {
-          keptRecords: {
-            list: core.keptRecords.list,
-            watch: () => core.keptRecords.watch(),
-            forget: (id: string) => core.keptRecords.forget(id),
-            open: (id: string) =>
-              void core.keptRecords.open(id).then((ok) => {
-                if (ok) shell.show('history');
-              }),
-          },
-        }
-      : {}),
-    formats: sources.formats,
-    openFiles,
-    session: {
-      isEmpty: sources.empty,
-      summary: mapState(sources.structures, summaryOf, Object.is),
-      clear: () => void person.session.clear(),
-    },
-  };
-
   const commandMenuOpen = observableState(false);
   const commandMenuGroup = observableState<string | undefined>(undefined);
   // Opened for one command from elsewhere: Esc closes it (no list to go back to).
@@ -217,41 +174,6 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   unregister.push(
     shell.registerTabs(
       own('tab', [
-        {
-          id: 'home',
-          compactBar: true,
-          title: 'Home',
-          heading: () => <MolstarWordmark live />,
-          icon: 'prism',
-          order: 0,
-          place: 'head',
-          render: domView(({ ctx }) => (
-            <HomeTab
-              home={home}
-              onOpenCommandMenu={() => openCommandMenu()}
-              // Features' import sections (the loaders' database and URL forms) after the registry's actions.
-              more={() => <SectionList shell={ctx.shell} slot="home.import" bare collapsed />}
-            />
-          )),
-        },
-        {
-          id: 'structure',
-          compactBar: true,
-          title: 'Structure',
-          icon: 'structure',
-          order: 1,
-          render: domView(({ ctx }) => (
-            <StructureTab
-              shell={ctx.shell}
-              scene={core.views.scene}
-              presets={core.views.presets}
-              options={core.views.componentOptions}
-              quickStyles={core.views.quickStyles}
-              // Preset and Styles open the command menu in their groups (`structure-commands.ts`).
-              openCommands={(group) => openCommandMenu(group)}
-            />
-          )),
-        },
         // History and the log in one panel; `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out: the
         // log alone.
         core.options.ui.showHistory
@@ -265,19 +187,17 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               render: domView(() => <LogView status={managers.notifications} />),
             },
         settingsTab(sources, managers, person, core.storage),
-        {
-          id: 'help',
-          title: 'Help',
-          icon: 'circle-help',
-          order: 2.8,
-          place: 'foot',
-          render: domView(() => (
-            <HelpPanel commands={managers.commands} bindings={CanvasBindings} intro={() => <HelpProse />} />
-          )),
-        },
       ]),
     ),
   );
+  // The built-in features' panels (viewer-spec.md §3.1): Home, Structure, Selection, Help, with the core's ids; each
+  // only when the spec lists its feature.
+  for (const e of core.spec.extensions ?? []) {
+    if (isLazyExtension(e) || !e.builtIn || !e.shell) continue;
+    unregister.push(
+      e.shell({ shell, core, person, own, openCommandMenu: (group) => openCommandMenu(group), openFiles }),
+    );
+  }
 
   const hasData = sources.empty.pipe(map((e) => !e));
   const sequence = core.views.sequence;
@@ -320,25 +240,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       dropUI?.();
     });
   }
-  // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
-  unregister.push(shell.registerTabs(own('tab', [selectionTab(selectionSummaryModel(sources.interaction, person))])));
-  unregister.push(
-    shell.registerSections(
-      own(
-        'section',
-        selectionSections(person, sources.interaction.selection, sources.layers, (ref) => {
-          shell.show('structure');
-          // The tree follows the state on its own schedule: tried until the row is there (a second at most).
-          let tries = 0;
-          const reveal = () => {
-            if (core.views.scene.reveal?.(ref) || ++tries > 20) return;
-            setTimeout(reveal, 50);
-          };
-          reveal();
-        }),
-      ),
-    ),
-  );
+  // The core's home for features' export sections: the Export card (ui/export-card.tsx).
   const exporting = exportCard(shell);
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
   unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));
@@ -485,23 +387,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     ),
   );
   unregister.push(
-    core.registerCommands(structureCommands(core.views.presets, core.views.quickStyles)),
-    managers.commands.registerGroups(StructureCommandGroups),
-  );
-  unregister.push(
     core.registerCommands([
-      {
-        id: 'help.show',
-        title: 'Keyboard and mouse',
-        alias: ['help', 'shortcuts', 'keys', 'bindings', 'controls'],
-        category: 'Help',
-        icon: 'circle-help',
-        shortcut: { key: '?' },
-        run: () => {
-          shell.show('help');
-          return { message: '' };
-        },
-      },
       {
         id: 'record.keep',
         title: "Keep this session's record",
@@ -696,7 +582,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         canvasLead={<Show when={shown('selection-mode')}>{() => <ModeSwitch {...modeProps} />}</Show>}
         canvasAside={<Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>}
         onDropFiles={openFiles}
-        dropFormats={home.formats}
+        dropFormats={sources.formats}
         onOpenLog={() => (core.options.ui.showHistory ? shell.show('history', 'log') : shell.show('log'))}
         commandMenu={
           <Show when={commandMenuOpen}>
@@ -759,10 +645,4 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       releaseStyles(shadow);
     },
   };
-}
-
-function summaryOf(list: readonly { label: string; atoms: number }[]): string {
-  if (!list.length) return 'Nothing loaded';
-  if (list.length === 1) return `${list[0].label} · ${list[0].atoms.toLocaleString('en')} atoms`;
-  return `${list.length} structures · ${list.reduce((n, s) => n + s.atoms, 0).toLocaleString('en')} atoms`;
 }

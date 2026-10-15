@@ -18,6 +18,7 @@ import type { createViewerAgent, ViewerAgent } from './agent/session.js';
 import type { PrismViewer } from './viewer.js';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginConfigItem } from '@molstar/plugin/config';
+import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
 import type {
   CommandDefinition,
@@ -259,6 +260,54 @@ export interface ViewerExtension {
   readonly settings?: PD.Params;
   /** Views in the viewer's slots; a function, so the views are a chunk of their own. */
   readonly ui?: (ctx: ViewerUIContext) => Promise<ViewerExtensionUI> | ViewerExtensionUI;
+  /**
+   * A built-in feature's view models (\`builtIn\` only; viewer-spec.md §3.1): made when the viewer is, headless too, and
+   * read as \`viewer.views\` (the Structure panel's \`scene\`, Home's \`homeActions\`).
+   */
+  readonly views?: (ctx: BuiltInViewsContext) => Partial<BuiltInViews>;
+  /**
+   * A built-in feature's part of the page's shell (\`builtIn\` only): its tabs, sections and commands as the core's own,
+   * with the core's ids (\`home\`, \`structure\`, \`selection\`, \`help\`; \`core.tab.*\` as parts). Returns their removal.
+   */
+  readonly shell?: (ctx: BuiltInShellContext) => () => void;
+}
+
+/** The view models the built-in features make (\`ViewerExtension.views\`), read as \`viewer.views\`. */
+export interface BuiltInViews {
+  /** The scene tree and inspector (the Structure panel). */
+  readonly scene: import('./model/scene.js').SceneModel;
+  /** The representation presets, from the registry (the Structure panel's Preset menu). */
+  readonly presets: import('./model/scene.js').PresetsModel;
+  /** The component manager's options as a form (the Structure panel's options). */
+  readonly componentOptions: import('@molstar/prism-ui/forms/params-form').ParamsFormModel<any>;
+  /** Quick styles (the Structure panel's Styles). */
+  readonly quickStyles: import('./model/scene.js').QuickStylesModel;
+  /** Home's loading actions, from the registry. */
+  readonly homeActions: import('@molstar/prism-ui/core').ReadonlyState<readonly import('./model/home.js').HomeAction[]>;
+}
+
+/** What a built-in feature's view models are made with: the viewer's scope (they go with it), its plugin and API. */
+export interface BuiltInViewsContext {
+  readonly scope: import('./sources/state.js').SourceScope;
+  readonly plugin: PluginContext;
+  /** The API as the person. */
+  readonly person: ViewerApi;
+  /** Opens a command as the command menu does (its form, or runs it). */
+  readonly openCommand: (id: string, values?: Readonly<Record<string, unknown>>) => void;
+}
+
+/** What a built-in feature's part of the shell gets: the shell, the viewer's core, and the shell's own services. */
+export interface BuiltInShellContext {
+  readonly shell: ShellModel;
+  readonly core: import('./viewer.js').ViewerCore;
+  /** The API as the person. */
+  readonly person: ViewerApi;
+  /** The core's parts after \`overrides\` (viewer-spec.md §4): by kind, with their short ids (\`tab\`, \`section\`). */
+  readonly own: <T extends { id: string }>(kind: string, parts: readonly T[]) => T[];
+  /** Opens the command menu, at a group. */
+  readonly openCommandMenu: (group?: string) => void;
+  /** Opens files as a drop does (a session file replaces what is loaded). */
+  readonly openFiles: (files: readonly File[]) => void;
 }
 
 /** What an extension's views get: the viewer's API as the person, its sources and managers (no plugin). */

@@ -39,7 +39,9 @@ export function quoted(text: string): string {
 /** The scene in words, read from the scene's tree (DOM-free) and the interaction sources. */
 export function createAccount(viewer: Pick<PrismViewer, 'views' | 'sources'>): AgentAccountModule {
   return {
-    outline: (max = StateLines, detail: OutlineDetail = 'full') => outline(viewer.views.scene.roots.value, max, detail),
+    // The scene's tree is the Structure panel's model (its feature); without it, no outline.
+    outline: (max = StateLines, detail: OutlineDetail = 'full') =>
+      'scene' in viewer.views ? outline(viewer.views.scene.roots.value, max, detail) : 'The scene is empty.',
     focus: () => {
       const { selection, focus } = viewer.sources.interaction;
       return [

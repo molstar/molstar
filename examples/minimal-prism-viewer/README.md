@@ -59,19 +59,20 @@ file, the counterpart of the Prism viewer app's single file (`apps/prism-viewer/
 
 | Build                                          | JS size    | gzip (level 9) | brotli     |
 | ---------------------------------------------- | ---------- | -------------- | ---------- |
-| minimal example, single file (Vite)            | 3,253.8 kB | 899.9 kB       | 717.5 kB   |
+| minimal example, single file (Vite)            | 2,892.9 kB | 803.9 kB       | 647.7 kB   |
+| the same before the smaller core (2026-10-16)  | 3,253.8 kB | 899.9 kB       | 717.5 kB   |
 | full Prism viewer, `prism-viewer.js` (esbuild) | 6,243.1 kB | 1,888.5 kB     | 1,498.1 kB |
 
-The minimal composition is 52% of the full viewer's single file (48% gzipped). The bundlers differ (the full app is
+The minimal composition is 46% of the full viewer's single file (43% gzipped). The bundlers differ (the full app is
 built by esbuild without identifier minification), so the ratio is approximate; a like-for-like number needs the full
 spec built with Vite too.
 
-**Default build** (`pnpm build` → `build/`, split into chunks): `assets/index-*.js` 3,236.5 kB (894.6 kB gzip, 712.9 kB
+**Default build** (`pnpm build` → `build/`, split into chunks): `assets/index-*.js` 2,875.6 kB (798.4 kB gzip, 643.1 kB
 brotli) and a 2.0 kB chunk (1.0 kB gzip), `index.html` 1.1 kB.
 
 **Engine alone** (no Prism: a bare `PluginContext` with the same four registry entries, a canvas, and the same load; one
-file): 2,187.8 kB, 608.7 kB gzipped, 491.0 kB brotli. So about two thirds of the minimal Prism viewer is the engine, and
-the Prism viewer and its shell add about 1.07 MB (about 0.29 MB gzipped).
+file): 2,187.8 kB, 608.7 kB gzipped, 491.0 kB brotli. So three quarters of the minimal Prism viewer is the engine, and
+the Prism viewer and its shell add about 0.71 MB (about 0.20 MB gzipped; 1.07 MB and 0.29 MB before the smaller core).
 
 The page renders 1CBS about 1 s after load on a laptop (`structure-shown` mark: 0.95 s from the single-file preview, 1.1
 s from the dev server; network included, a rough first number, not a benchmark).
@@ -81,14 +82,13 @@ s from the dev server; network included, a rough first number, not a benchmark).
 Leaving a part out of the spec does not remove it from the bundle when the viewer's core imports it anyway. Measured on
 an unminified build (6.0 MB of module code in all):
 
-- **The core API areas are always built** (`CoreAreas` in `packages/prism/viewer/src/api/index.ts`): `volume`,
-  `particles`, `trajectory`, `annotations`, `styles`, `select`, `contents` and the rest come with the viewer. Together
-  `packages/prism/viewer/src/api` is 214 kB, of which `representation` 28 kB and `volume` 23 kB, and they pull in the
-  volume and particle models, transforms and representations that the composition never shows (volume and particle code
-  together are about 265 kB unminified).
-- **The shell's views come with the shell**: `packages/prism/viewer/src/views` (173 kB, among them the volume transfer
-  and levels forms) and `packages/prism/ui/src/views` and `components` (360 kB) are bundled although the overrides
-  remove every tab and button; overrides take parts out at run time, not out of the bundle.
+- **The core API areas were always built** (resolved): the scene's API is now built-in features (`structure`, `volume`,
+  `trajectory`, `annotations`, viewer-spec.md §3.1); this composition lists `structure` only, so the volume, particle,
+  trajectory and annotation areas, and the engine code they pulled in (volume streaming, isosurfaces), are not bundled.
+- **The shell's views came with the shell** (resolved for the panels): Home, Structure, Selection and Help are features
+  (`home`, `structure-panel`, `selection-panel`, `help`); this composition lists none, so their views and models (the
+  scene tree, the inspectors, the volume forms) are not bundled. History, Settings and the Export card's frame are still
+  the core's, removed here by `overrides` at run time (the params form, 50 kB minified, comes with Settings).
 - **No way to drop the rail**: with every tab and button removed, the shell still draws its empty 44 px right rail.
   `compactRail` only hides it behind a button in the canvas's corner.
 - **MolScript transpilers** (resolved): the viewer read target text through `@molstar/query-language/compile`, which
@@ -106,7 +106,7 @@ an unminified build (6.0 MB of module code in all):
   and `default-spec.ts` are the only modules that do, and nothing in the composition path imports them).
 - **`@molstar/ai-fibers`** (44 kB unminified) is in the bundle through the viewer's imports, although `agent: false`.
 
-So the smallest composition today is the viewer core plus the engine, about 3.2 MB (half of the full viewer's single
-file). The viewer spec trims the features, extensions, the sequence and the assistant (each its own chunk or off the
-bundle), which is where the full viewer's remaining weight is; the core's areas and views would need to become optional
-(areas by spec, views behind the shell's parts) to go lower.
+So the smallest composition today is the viewer core, the scene's API and the engine, about 2.9 MB (under half of the
+full viewer's single file). What is left of Prism above the engine is the shell (its frame, the command menu, icons),
+History and Settings, the API's core, the history and the journal; going lower means making History and Settings
+features too, and trimming prism-ui's shell itself.

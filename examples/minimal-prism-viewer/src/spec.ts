@@ -35,15 +35,12 @@ export function MinimalPrismViewerSpec(): PrismViewerSpec {
     // The canvas's two remaining buttons (the pick mode switch, the trajectory bar), off by option (§2.2).
     options: { ui: { buttons: { selectionMode: false, trajectory: false } } },
     // Nothing is stored in the browser: no `persist` (§2.6).
-    // The shell's parts, removed by id (§4): every tab and rail button, so only the canvas is left.
+    // The shell's core parts, removed by id (§4): the History, Log and Settings tabs and the canvas toolbar's buttons,
+    // so only the canvas is left. Home, Structure, Selection and Help are features this spec does not list.
     overrides: {
-      'core.tab.home': null,
-      'core.tab.structure': null,
-      'core.tab.selection': null,
       'core.tab.log': null,
       'core.tab.history': null,
       'core.tab.settings': null,
-      'core.tab.help': null,
       'core.tab.sequence': null,
       'core.toolbar.theme': null,
       'core.toolbar.palette': null,

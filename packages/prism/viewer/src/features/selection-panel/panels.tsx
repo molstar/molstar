@@ -12,13 +12,10 @@ import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   ActionFooter,
-  type CanvasToolbarItem,
   domView,
   onCleanup,
   ParamsForm,
   SectionList,
-  type ShellModel,
-  type ShellOverlay,
   type ShellSection,
   type ShellTab,
 } from '@molstar/prism-ui';
@@ -26,17 +23,16 @@ import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { map, type Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import type { ViewerApi } from '../api/area.js';
-import type { SelectionSummaryModel } from '../model/selection.js';
-import type { StyleLayerInfo } from '../sources/style-layers.js';
-import { SelectionSummary } from '../views/selection/selection-summary.js';
-import { StyleLayers } from '../views/selection/style-layers.js';
-import { createStyleLayersModel } from './style-layers.js';
+import type { ViewerApi } from '../../api/area.js';
+import type { SelectionSummaryModel } from '../../model/selection.js';
+import type { StyleLayerInfo } from '../../sources/style-layers.js';
+import { SelectionSummary } from '../../views/selection/selection-summary.js';
+import { StyleLayers } from '../../views/selection/style-layers.js';
+import { createStyleLayersModel } from '../../ui/style-layers.js';
 
-// The core's shared homes for features' sections (viewer-spec.md §3.1, the `ViewerSlot`s): the Selection tab
-// (`selection`: what to do with the selection; Measure and Superpose come with their features) and the Export card
-// (`export`: image and session with their features, geometry, models, video with Mol*'s extensions). The Export
-// button shows once something exports.
+// The Selection tab (the `selection-panel` feature, viewer-spec.md §3.1): what is selected, and the home of the
+// `selection` slot's sections (what to do with the selection: style it, make a component of it; Measure and Superpose
+// come with their features).
 
 /** The Selection tab: what is selected, then its slot's sections, folded until one is opened (the selection bar opens one). */
 export function selectionTab(selection: SelectionSummaryModel): ShellTab {
@@ -204,26 +200,4 @@ function ComponentOfSelection(props: { api: ViewerApi; none: Observable<boolean>
       />
     </div>
   );
-}
-
-/** The Export card and its button: there once a section is in the `export` slot. */
-export function exportCard(shell: ShellModel): { overlay: ShellOverlay; toolbar: CanvasToolbarItem } {
-  return {
-    overlay: {
-      id: 'export',
-      title: 'Export',
-      // Folded until opened, but the image (`open`): the card's first use.
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="export" focus={ctx.focus} collapsed />),
-    },
-    toolbar: {
-      id: 'export',
-      // Last in the scene's group, under Canvas, Animation and the Story (David, 2026-10-15).
-      group: 'scene',
-      order: 100,
-      icon: 'download',
-      title: 'Export…',
-      overlay: 'export',
-      visible: shell.sections('export').pipe(map((list) => list.length > 0)),
-    },
-  };
 }

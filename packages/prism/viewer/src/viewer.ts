@@ -37,19 +37,22 @@ import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from
 import { mountCanvas, unmountCanvas } from './sources/canvas-host.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
-import { createHomeActions } from './sources/home.js';
-import { createSceneSource } from './sources/scene.js';
 import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
 import { SequenceApi } from './api/sequence.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
 import type { SequenceViewers } from './sequence/model.js';
 import type { SavedSequence } from './sequence/runtime.js';
 import { SourceScope } from './sources/state.js';
-import { createComponentOptionsForm, createPresetsModel, createQuickStylesModel } from './sources/structure-tab.js';
 import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
-import { isLazyExtension, type PrismViewerSequenceSpec, type PrismViewerSpec, type ViewerExtension } from './spec.js';
+import {
+  type BuiltInViews,
+  isLazyExtension,
+  type PrismViewerSequenceSpec,
+  type PrismViewerSpec,
+  type ViewerExtension,
+} from './spec.js';
 import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
@@ -60,9 +63,6 @@ import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import { createLightRestore, type LightRestore } from './sources/restore.js';
 import { setDataPalette } from './sources/palette.js';
-import type { HomeAction } from './model/home.js';
-import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
-import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 
 // The viewer (viewer-spec.md §6): created from a `PrismViewerSpec`, in a fixed order: validate the spec, compose the
 // plugin spec, create and `init()` the plugin, create the sources, managers and API, activate the extensions (lazy ones
@@ -73,19 +73,14 @@ import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 export type { ViewerPointerEvent } from './sources/pointer.js';
 
 /** The root view models (README §3.3): the shell's on a page; the scene, the selection and the rest as they are built. */
-export interface PrismViewerViews {
+/**
+ * The viewer's view models. The built-in features' (`BuiltInViews`: the Structure panel's `scene`, Home's
+ * `homeActions`) are typed as present, as in the default spec; in a viewer whose spec left the feature out, reading one
+ * throws, naming the feature (`'scene' in viewer.views` asks).
+ */
+export interface PrismViewerViews extends BuiltInViews {
   /** The shell (docks, tabs, cards); undefined headless. */
   readonly shell?: import('@molstar/prism-ui').ShellModel;
-  /** The scene tree and inspector (the Structure tab). */
-  readonly scene: SceneModel;
-  /** The representation presets, from the registry (the Structure tab's Preset menu). */
-  readonly presets: PresetsModel;
-  /** The component manager's options as a form (the Structure tab's options). */
-  readonly componentOptions: ParamsFormModel<any>;
-  /** Quick styles (the Structure tab's Styles). */
-  readonly quickStyles: QuickStylesModel;
-  /** Home's loading actions, from the registry. */
-  readonly homeActions: ReadonlyState<readonly HomeAction[]>;
   /** The one sequence viewer and what it follows (sequence.md); undefined when the spec has none. */
   readonly sequence?: ViewerSequence;
 }
@@ -289,16 +284,6 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const person = host.api.as({ kind: 'person' });
     const viewScope = new SourceScope();
     disposers.push(() => viewScope.dispose());
-    const scene = createSceneSource(
-      viewScope,
-      plugin,
-      person,
-      (id, values) => void managers.commands.open(id, undefined, values as CommandValues),
-    );
-    const presets = createPresetsModel(plugin, person);
-    const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
-    const quickStyles = createQuickStylesModel(person);
-    const homeActions = createHomeActions(viewScope, plugin, person);
     const sequenceSpec = spec.sequence || undefined;
     const sequence = sequenceSpec
       ? createSequence(viewScope, plugin, host, o.modules, sequenceSpec, overrides, (e) =>
@@ -365,8 +350,23 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       : undefined;
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
     const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };
-    await extensions.add((spec.extensions ?? []).filter((e) => gated[e.id] !== false));
+    const listed = (spec.extensions ?? []).filter((e) => gated[e.id] !== false);
+    await extensions.add(listed);
     extensionPort.ensureFor = (need) => extensions.ensureFor(need);
+    // The built-in features' view models (viewer-spec.md §3.1), made once their areas are there; headless too.
+    const builtInViews: Partial<BuiltInViews> = {};
+    for (const e of listed) {
+      if (isLazyExtension(e) || !e.builtIn || !e.views) continue;
+      Object.assign(
+        builtInViews,
+        e.views({
+          scope: viewScope,
+          plugin,
+          person,
+          openCommand: (id, values) => void managers.commands.open(id, undefined, values as CommandValues),
+        }),
+      );
+    }
     // An override of a command nobody registers is a mistake (viewer-spec.md §4); view parts are checked by spec-check.
     const unknown = overrides
       .unused()
@@ -442,7 +442,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           work(plugin, host.bind({ origin: { kind: 'script' }, within: context })),
         ),
       managers,
-      views: { scene, presets, componentOptions, quickStyles, homeActions, ...(sequence ? { sequence } : {}) },
+      views: viewsOf({ ...builtInViews, ...(sequence ? { sequence } : {}) }),
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
@@ -622,4 +622,26 @@ function createSequence(
       viewers.value?.dispose();
     },
   };
+}
+
+/** Each built-in view model's feature, for the error that names it (`PrismViewerViews`). */
+const BuiltInViewFeatures: Readonly<Record<keyof BuiltInViews, string>> = {
+  scene: 'StructurePanelFeature',
+  presets: 'StructurePanelFeature',
+  componentOptions: 'StructurePanelFeature',
+  quickStyles: 'StructurePanelFeature',
+  homeActions: 'HomeFeature',
+};
+
+/** The views object: a built-in one the spec left out throws when read, naming its feature. */
+function viewsOf(present: Partial<PrismViewerViews>): PrismViewerViews {
+  return new Proxy(present as PrismViewerViews, {
+    get(target, prop, receiver) {
+      if (typeof prop === 'string' && !(prop in target) && prop in BuiltInViewFeatures) {
+        const feature = BuiltInViewFeatures[prop as keyof BuiltInViews];
+        throw new Error(`The '${prop}' view model is not in this viewer: add ${feature} to its spec's extensions.`);
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 }

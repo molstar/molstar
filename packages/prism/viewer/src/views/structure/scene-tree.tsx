@@ -24,7 +24,8 @@ import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
  * Where extensions' rows go (viewer-spec.md §3, `rows`): the extension host registers each as a shell section in this
  * slot, its `when(node)` as the section's `when` on the node; the tree shows them under the nodes they are for.
  */
-export const SceneRowSlot = 'scene.row';
+export { SceneRowSlot } from './scene-row-slot.js';
+import { SceneRowSlot } from './scene-row-slot.js';
 
 /**
  * The scene as one tree: structures → components → representations, volumes, measurements. Rows are keyed by node, so

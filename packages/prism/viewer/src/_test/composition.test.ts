@@ -10,7 +10,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ApiResult } from '../api/area.js';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { AnnotationsFeature } from '../features/annotations/index.js';
+import { HomeFeature } from '../features/home/index.js';
 import { StructureFeature } from '../features/structure/index.js';
+import { StructurePanelFeature } from '../features/structure-panel/index.js';
 import { createPrismViewerHeadless } from '../headless.js';
 import type { ViewerExtension } from '../spec.js';
 import type { PrismViewer } from '../viewer.js';
@@ -76,5 +78,18 @@ describe('a viewer composed of fewer features', () => {
     expect(without.api.area('annotations')).toBeUndefined();
     const withIt = await viewer([StructureFeature, AnnotationsFeature, scores]);
     expect(withIt.api.annotations.providers.value.map((p) => p.id)).toContain('test-score');
+  });
+
+  it("makes a panel feature's view models with it; without it, reading one names the feature", async () => {
+    const bare = await viewer([StructureFeature]);
+    expect('scene' in bare.views).toBe(false);
+    expect(() => bare.views.scene).toThrow(
+      "The 'scene' view model is not in this viewer: add StructurePanelFeature to its spec's extensions.",
+    );
+    expect(() => bare.views.homeActions).toThrow(/add HomeFeature/);
+    const full = await viewer([StructureFeature, StructurePanelFeature, HomeFeature]);
+    expect(full.views.scene.roots.value).toEqual([]);
+    expect(full.views.homeActions.value.length).toBeGreaterThan(0);
+    await expect(viewer([StructurePanelFeature])).rejects.toThrow(/'structure-panel' needs 'structure'/);
   });
 });

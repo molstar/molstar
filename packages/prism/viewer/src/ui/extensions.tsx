@@ -16,7 +16,7 @@ import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
 import type { SceneNode } from '../model/scene.js';
-import { SceneRowSlot } from '../views/structure/scene-tree.js';
+import { SceneRowSlot } from '../views/structure/scene-row-slot.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
 
 // Extensions' views in the page's shell (viewer-spec.md §3, README §3.1): sections in the viewer's named slots, tabs,

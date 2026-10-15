@@ -264,15 +264,25 @@ them as it does Mol\*'s extensions. The extension API is then used by the viewer
   `requires` lists the extensions it needs before it; the spec check refuses it without them. An extension's
   annotation providers are offered only where the `annotations` feature is.
 
-| Fixed core (always there; parts still removable by `overrides`)                                | Built-in features (in `DefaultPrismViewerSpec().extensions`)                               |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| the shell: rail, status column, History, Settings, Help, theme, command menu                    | `measurements` (Selection › Measure, measurement nodes)                                     |
-| the canvas and its chrome: camera, expand and fullscreen, hover label, mode switch, selection bar | `superposition` (Selection › Superpose); lazy                                               |
-| loading: Home (the registry's actions, `load.action`), drag and drop (`load.files`), `.molx` / `.molj` | `snapshots` (Snapshots tab, the playback card)                                         |
-| the scene: Structure tab, scene tree, inspectors, presets, quick styles, components             | `state-tree` (State tree tab); lazy                                                         |
-| selection, focus and targets; the history; the agent's account                                  | `animation` (Animation card), `canvas-settings` (Canvas settings card)                      |
-| the sequence viewer (configured by `sequence`, §2.3)                                            | `export-image`, `export-session` (eager); `remote-states` (behind its setting; lazy)       |
-|                                                                                                 | `loaders` (database and URL loaders, `load.entry`, `load.url`, `load.mvs`, `load.snapshot`; URL parameters; `load.svs` later) |
+| Core (always there; parts still removable by `overrides`)                                       | Built-in features (in `DefaultPrismViewerSpec().extensions`)                                |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| the shell: rail, status column, History, Settings, theme, command menu, the Export card's frame  | `structure`, `volume`, `trajectory`, `annotations`: the scene's API (areas and commands)    |
+| the canvas and its chrome: camera, expand and fullscreen, hover label, mode switch, selection bar | `home` (Home), `structure-panel` (Structure tab, scene tree, inspectors, Preset, Styles), `selection-panel` (Selection tab), `help` (Help) |
+| loading files: drag and drop (`load.files`), `.molx` / `.molj` sessions                          | `measurements` (Selection › Measure, measurement nodes)                                     |
+| selection, focus, highlight and targets (keywords, address lists); the history; the agent's account | `superposition` (Selection › Superpose); lazy                                             |
+| the sequence viewer (configured by `sequence`, §2.3)                                              | `snapshots` (Snapshots tab, the playback card); `state-tree` (State tree tab); lazy         |
+|                                                                                                  | `animation` (Animation card), `canvas-settings` (Canvas settings card)                      |
+|                                                                                                  | `export-image`, `export-session` (eager); `remote-states` (behind its setting; lazy)       |
+|                                                                                                  | `loaders` (database and URL loaders, `load.entry`, `load.url`, `load.mvs`, `load.snapshot`; URL parameters; `load.svs` later) |
+
+- **The panels keep the core's ids**: Home, Structure, Selection and Help are features, but their tabs are `home`,
+  `structure`, `selection`, `help` in the shell (`core.tab.*` as parts), as `layout.start`, `view.open` and the
+  features' commands name them. A built-in feature brings them through two hooks extensions do not have: `views` (its
+  view models, made with the viewer, headless too: `viewer.views.scene`, `homeActions`; typed as present, a missing one
+  throws naming its feature) and `shell` (its tabs, sections and commands in the page's shell, with the shell's
+  services: the command menu at a group, opening files).
+- **What a smaller spec saves** (the minimal example, `examples/minimal-prism-viewer`, with only `structure`): 359 kB of
+  the start bundle minified (98 kB gzipped) against the core with every panel in it, 2026-10-16.
 
 - **One module per feature** (review F44): `@molstar/prism-viewer/features/<name>` exports the feature itself;
   `@molstar/prism-viewer/features/lazy` exports a stub for each (`LazyFeatures.superposition`), whose `load` imports the

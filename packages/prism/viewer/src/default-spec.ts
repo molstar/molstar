@@ -7,6 +7,10 @@
  */
 
 import { AnnotationsFeature } from './features/annotations/index.js';
+import { HelpFeature } from './features/help/index.js';
+import { HomeFeature } from './features/home/index.js';
+import { SelectionPanelFeature } from './features/selection-panel/index.js';
+import { StructurePanelFeature } from './features/structure-panel/index.js';
 import { StructureFeature } from './features/structure/index.js';
 import { TrajectoryFeature } from './features/trajectory/index.js';
 import { VolumeFeature } from './features/volume/index.js';
@@ -37,6 +41,11 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
       VolumeFeature,
       TrajectoryFeature,
       AnnotationsFeature,
+      // The panels: Home, Structure, Selection, Help (with the core's tab ids).
+      HomeFeature,
+      StructurePanelFeature,
+      SelectionPanelFeature,
+      HelpFeature,
       LoadersFeature,
       CanvasSettingsFeature,
       MeasurementsFeature,
