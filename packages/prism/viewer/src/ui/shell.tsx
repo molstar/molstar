@@ -36,6 +36,7 @@ import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styl
 import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
+import { StructureTab } from '../views/structure/structure-tab.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
 
@@ -132,6 +133,22 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         order: 0,
         place: 'head',
         render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
+      },
+      {
+        id: 'structure',
+        compactBar: true,
+        title: 'Structure',
+        icon: 'structure',
+        order: 1,
+        render: domView(({ ctx }) => (
+          <StructureTab
+            shell={ctx.shell}
+            scene={core.views.scene}
+            presets={core.views.presets}
+            options={core.views.componentOptions}
+            openCommands={(group) => openCommandMenu(group)}
+          />
+        )),
       },
       {
         id: 'log',

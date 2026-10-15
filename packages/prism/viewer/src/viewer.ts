@@ -32,10 +32,15 @@ import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from
 import { mountCanvas, unmountCanvas } from './sources/canvas-host.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
+import { createSceneSource } from './sources/scene.js';
+import { SourceScope } from './sources/state.js';
+import { createComponentOptionsForm, createPresetsModel } from './sources/structure-tab.js';
 import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
 import { checkSpec } from './spec-check.js';
+import type { PresetsModel, SceneModel } from './model/scene.js';
+import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 
 // The viewer (viewer-spec.md §6): created from a `PrismViewerSpec`, in a fixed order: validate the spec, compose the
 // plugin spec, create and `init()` the plugin, create the sources, managers and API, activate the extensions (lazy ones
@@ -49,6 +54,12 @@ export type { ViewerPointerEvent } from './sources/pointer.js';
 export interface PrismViewerViews {
   /** The shell (docks, tabs, cards); undefined headless. */
   readonly shell?: import('@molstar/prism-ui').ShellModel;
+  /** The scene tree and inspector (the Structure tab). */
+  readonly scene: SceneModel;
+  /** The representation presets, from the registry (the Structure tab's Preset menu). */
+  readonly presets: PresetsModel;
+  /** The component manager's options as a form (the Structure tab's options). */
+  readonly componentOptions: ParamsFormModel<any>;
 }
 
 export interface ViewerError {
@@ -191,6 +202,11 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // The extensions, in order: their API areas, contributed operations and commands (their views with the shell,
     // lazy ones as stubs: plan 3.1).
     const person = host.api.as({ kind: 'person' });
+    const viewScope = new SourceScope();
+    disposers.push(() => viewScope.dispose());
+    const scene = createSceneSource(viewScope, plugin, person);
+    const presets = createPresetsModel(plugin, person);
+    const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
     for (const e of eager) {
       for (const [id, factory] of Object.entries(e.api ?? {})) disposers.push(host.addArea(id, factory));
       for (const c of e.contributes?.(host.areaContext) ?? []) {
@@ -264,7 +280,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           work(plugin, host.bind({ origin: { kind: 'script' }, within: context })),
         ),
       managers,
-      views: {},
+      views: { scene, presets, componentOptions },
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
