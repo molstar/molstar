@@ -18,7 +18,8 @@ describe('lazy features', () => {
   for (const lazy of Object.values(LazyFeatures)) {
     it(`${lazy.id}: the stub declares what the feature brings, and the feature loads`, async () => {
       const feature: ViewerExtension = await lazy.load();
-      const v = await headlessViewer();
+      // Remote states are behind their option (viewer-spec.md §3.1).
+      const v = await headlessViewer({ spec: { options: { ui: { showRemoteStates: true } } } });
       expect(v.extensions.status(lazy.id)?.value).toBe('stub');
       expect(await v.extensions.load(lazy.id)).toBe(true);
       expect(v.extensions.status(lazy.id)?.value).toBe('loaded');

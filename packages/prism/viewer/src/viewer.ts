@@ -268,7 +268,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       },
     });
     disposers.push(() => extensions.dispose());
-    await extensions.add(spec.extensions ?? []);
+    // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
+    const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };
+    await extensions.add((spec.extensions ?? []).filter((e) => gated[e.id] !== false));
     extensionPort.ensureFor = (need) => extensions.ensureFor(need);
     // An override of a command nobody registers is a mistake (viewer-spec.md §4); view parts are checked by spec-check.
     const unknown = overrides

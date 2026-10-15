@@ -63,5 +63,37 @@ export const LazyStateTree: LazyViewerExtension = {
   load: async () => (await import('../state-tree/index.js')).StateTreeFeature,
 };
 
+export const LazyRemoteStates: LazyViewerExtension = {
+  id: 'remote-states',
+  title: 'Remote states',
+  builtIn: true,
+  stub: {
+    parts: [
+      { id: 'remote-states.overlay.states', kind: 'overlay', title: 'Remote states' },
+      { id: 'remote-states.toolbar.states', kind: 'toolbar', title: 'Remote states' },
+    ],
+    operations: ops([
+      ['session.remote.list', 'List the remote states'],
+      ['session.remote.open', 'Open a remote state'],
+      ['session.remote.upload', 'Upload the state'],
+      ['session.remote.remove', 'Remove a remote state'],
+    ]),
+    commands: [
+      { id: 'remote-states.show', title: 'Show the remote states', category: 'Remote states', icon: 'cloud' },
+      ...ops([
+        ['session.remote.list', 'List the remote states'],
+        ['session.remote.open', 'Open a remote state'],
+        ['session.remote.upload', 'Upload the state'],
+        ['session.remote.remove', 'Remove a remote state'],
+      ]).map((c) => ({ ...c, category: 'Remote states', icon: 'cloud' as const })),
+    ],
+  },
+  load: async () => (await import('../remote-states/index.js')).RemoteStatesFeature,
+};
+
 /** The lazy features, by id. */
-export const LazyFeatures = { superposition: LazySuperposition, 'state-tree': LazyStateTree } as const;
+export const LazyFeatures = {
+  superposition: LazySuperposition,
+  'state-tree': LazyStateTree,
+  'remote-states': LazyRemoteStates,
+} as const;
