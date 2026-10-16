@@ -388,6 +388,30 @@ describe('export image', () => {
       }
     });
 
+    it('follows the scene: a visibility toggled previews again; folded, it follows nothing', async () => {
+      const { v, calls } = await track(withHelper(['canvas', 'files']));
+      expectOk(await v.api.load.files({ files: [cbs()] }));
+      const model = make(v);
+      const previews = () => calls.filter((c) => c.op === 'preview').length;
+      try {
+        await vi.waitFor(() => expect(model.settled?.value).toBe(true), { timeout: 2000 });
+        const seen = previews();
+        expectOk(await v.api.structure.visibility({ visible: false }));
+        expect(model.settled?.value).toBe(false);
+        await vi.waitFor(() => expect(model.settled?.value).toBe(true), { timeout: 2000 });
+        expect(previews()).toBe(seen + 1);
+        expectOk(await v.api.structure.visibility({ visible: true }));
+        await vi.waitFor(() => expect(previews()).toBe(seen + 2), { timeout: 2000 });
+        // Folded, it follows nothing.
+        model.setActive(false);
+        expectOk(await v.api.structure.visibility({ visible: false }));
+        await new Promise((r) => setTimeout(r, 700));
+        expect(previews()).toBe(seen + 2);
+      } finally {
+        model.dispose();
+      }
+    });
+
     it('does nothing while inactive, and previews again when active', async () => {
       const { v, calls } = await track(withHelper());
       const model = make(v);

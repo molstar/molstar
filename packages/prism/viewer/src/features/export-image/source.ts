@@ -7,7 +7,7 @@
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
-import { auditTime, map, type Observable, of, startWith, switchMap } from 'rxjs';
+import { auditTime, EMPTY, map, merge, type Observable, of, startWith, switchMap } from 'rxjs';
 import { type CameraValue, cameraValueOf } from '../../api/camera.js';
 
 // The camera as the Export card's Viewport section reads it (v5's camera info, parity.md; state.md §4, a feature's
@@ -27,5 +27,21 @@ export function cameraUpdates(plugin: PluginContext): Observable<CameraValue | u
         map(() => cameraValueOf(canvas)),
       );
     }),
+  );
+}
+
+/**
+ * What changes the picture, for the Image section's preview (cold: followed while the section shows): the scene (the
+ * state tree, a representation, its colors, a visibility) and the view (the camera moving, or the canvas resized, which
+ * changes its projection). Not the canvas's redraws: an export's render starts the loop again with one, and the preview
+ * would follow the exports (a preview renders on a camera of its own, so it moves nothing here).
+ */
+export function sceneChanges(plugin: PluginContext): Observable<unknown> {
+  return merge(
+    plugin.state.data.events.changed,
+    plugin.state.data.events.cell.stateUpdated,
+    plugin.behaviors.canvas3d.initialized.pipe(
+      switchMap((ready) => (ready && plugin.canvas3d ? plugin.canvas3d.camera.changed : EMPTY)),
+    ),
   );
 }

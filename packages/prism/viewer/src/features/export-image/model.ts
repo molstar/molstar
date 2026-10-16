@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { MessageKind } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, debounceTime, type Subscription, tap } from 'rxjs';
+import { auditTime, combineLatest, debounceTime, type Subscription, tap } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
@@ -19,7 +19,8 @@ import type { CropBox, ImageSize } from './operations.js';
 
 // The view model of the Image section: the form, the preview and the crop, over `export.preview`, `export.image` and
 // `export.image-copy` (the people's API; no plugin). The preview is a small render, asked for after the settings or the
-// canvas stop changing, and only while the section shows (`setActive`: a folded section holds no subscription and
+// canvas stop changing, and as the scene or the view change (`export.sceneChanges`: at most every half second while
+// they keep changing, a spin, a trajectory playing), and only while the section shows (`setActive`: a folded section holds no subscription and
 // renders nothing; AGENTS.md, hidden UI). The operations serialize on the one shared helper themselves (a queue in
 // `ExportApi`), so copy and download simply wait behind a running preview. DOM-free.
 
@@ -135,6 +136,8 @@ export interface ImageExport extends ImageExportModel {
 }
 
 const PreviewDelayMs = 250;
+/** While the scene or the view keep changing, the preview follows at most this often. */
+const SceneEveryMs = 500;
 const FallbackAspect = 16 / 9;
 
 export function createImageExportModel(deps: ImageExportDeps): ImageExport {
@@ -214,6 +217,17 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
         )
         .subscribe(() => void refresh()),
     ];
+    const scene = deps.api.export?.sceneChanges;
+    if (scene) {
+      subs.push(
+        scene
+          .pipe(
+            tap(() => settled.set(false)),
+            auditTime(SceneEveryMs),
+          )
+          .subscribe(() => void refresh()),
+      );
+    }
   };
   const stop = () => {
     token++;

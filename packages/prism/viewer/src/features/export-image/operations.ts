@@ -17,7 +17,7 @@ import type { Observable } from 'rxjs';
 import { type ApiContext, ApiArea, ApiResult, type OperationDefinition } from '../../api/area.js';
 import type { CameraValue } from '../../api/camera.js';
 import { FileParam, filesOf } from '../../api/files.js';
-import { cameraUpdates } from './source.js';
+import { cameraUpdates, sceneChanges } from './source.js';
 
 // The `export` area, image part (operations.md §2, the `export` row): an image of the canvas by Mol*'s
 // `ViewportScreenshotHelper`. Exporting changes nothing in the scene, so none of these is a history step
@@ -408,6 +408,14 @@ export class ExportApi extends ApiArea {
    */
   get camera(): Observable<CameraValue | undefined> {
     return cameraUpdates(this.ctx.plugin);
+  }
+
+  /**
+   * The scene's and the view's changes, as they come, while something watches them: the Image section's preview
+   * follows them (`model.ts`). Not an operation: a read of the plugin that stays in this feature's source.
+   */
+  get sceneChanges(): Observable<unknown> {
+    return sceneChanges(this.ctx.plugin);
   }
 
   readonly preview = this.operation({
