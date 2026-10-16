@@ -15,7 +15,8 @@ import type { StructureFormat, StructureSource } from '../sequence/molstar/sourc
 import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
-import type { HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import { createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
@@ -39,6 +40,8 @@ export interface SequenceSource {
   readonly shows: ReadonlyState<string | undefined>;
   /** What the track menus may do to the 3D view: through the API. */
   readonly actions: HostActions;
+  /** The plugin's data cells and their parses by address: the sequence's parse cache (sequence.md §2). */
+  readonly dataByUrl: DataByUrl;
   /** The link's 3D side over a structure. */
   view3d(structure: Structure, resetCamera?: () => void): SequenceView3D;
 }
@@ -205,6 +208,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
 
   return {
     structure: structure.asReadonly,
+    dataByUrl: createDataByUrl(scope, plugin),
     followed: followed.asReadonly,
     setFollowed: (ref) => {
       // Following a structure ends what `show` showed.

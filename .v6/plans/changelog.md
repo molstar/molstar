@@ -448,3 +448,19 @@ the [API change ledger](breaking-v6-changes.md).
   together with no echo.
 - Stories: Viewer › Several viewers (three independent viewers; docking poses with a synced camera).
 
+
+## Seq\* and Prism: coordinate systems with no viewer, the sequence's caches, hiding tracks
+
+- Seq\*: `@molstar/seq-core/translate` has the `SystemRegistry` (a set's own systems by key, `seqstar:<ref>`, beside a
+  host's, changes through `onChange`) and `Coordinates` with their conversions; `registry.map(target, to)` maps between a
+  structure, a sequence set, an alignment's columns and a transcript with no viewer. The viewer's `ctx.systems` is one
+  (`ViewerSystems`, plus its reactive `version`); the Mol\* adapter's `StructureLink` attaches to any registry.
+- Prism: a SeqViewSpec loaded into the sequence reads a file the viewer already holds (a downloaded or opened file, by
+  its address) and shares a structure it already parsed, instead of refusing it; files it does not hold are still
+  refused, saying to load them first.
+- Prism: a sequence track can be hidden from its right-click menu (Hide track) and brought back from the Sequence menu's
+  Visible tracks submenu (a checkbox per track, Show all) or the faint "N hidden" under the tracks. Each change is one Undo
+  step; hidden tracks are saved with snapshots and sessions and stay hidden across another structure, new colors and a
+  reload. Commands `sequence.track.hide`, `sequence.track.show`, `sequence.track.show-all`; operations
+  `sequence.track.hide` and `sequence.track.show`; `sequence.get` lists the tracks.
+- prism-ui: a canvas menu row with `items` is a submenu, opened beside the menu (hover, click, →).

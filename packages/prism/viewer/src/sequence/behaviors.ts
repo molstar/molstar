@@ -44,6 +44,8 @@ export interface SequenceTrackMenuItem {
 /** What a behavior adds beside its nodes: its tracks' menus (by track ref) and legend blocks. */
 export interface SequenceOffer {
   readonly menus?: Readonly<Record<string, readonly SequenceTrackMenuItem[]>>;
+  /** Its tracks' names for people (the Visible tracks menu, sequence.md §8), by ref; absent: the behavior's title. */
+  readonly labels?: Readonly<Record<string, string>>;
   readonly legend?: readonly { readonly title: string; readonly items: readonly LegendItem[] }[];
 }
 

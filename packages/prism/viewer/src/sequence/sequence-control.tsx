@@ -25,6 +25,7 @@ import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
 import type { MarksView } from '../sources/marks.js';
 import { linkSequence, type SequenceView3D } from './link.js';
+import { type SequenceApiRunner, setTrackHidden } from './commands.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
 
@@ -49,6 +50,8 @@ export interface SequenceControlProps {
   onHover?: (lines: readonly string[]) => void;
   /** A view's marks and hover (marks.md): shown here too, through the link. */
   marks?: MarksView;
+  /** The API as the person: a track's Hide and the hidden tracks' hint run through it (steps); none: on the model. */
+  api?: SequenceApiRunner;
 }
 
 /** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */
@@ -117,24 +120,27 @@ export function SequenceControl(props: SequenceControlProps) {
 
   // The track menus (sequence.md §8): the browser's context-menu request on a track (a right-click, Ctrl+click on
   // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and
-  // the place; the model says what the track offers, Prism's menu opens there and runs it on the 3D view. The browser's
-  // own menu is suppressed only over a track that offers one.
+  // the place; the model says what the track offers (its actions on the 3D view), then Hide track; Prism's menu opens
+  // there. The browser's own menu is suppressed only over a track.
   {
     let close: (() => void) | undefined;
     const menus = band.pipe(
       switchMap((ref) => seq.interaction.on('menu', { section: ref, part: ['data', 'header', 'gutter'] })),
     );
     const asked = menus.subscribe((e) => {
-      const actions = e.part.track === null ? [] : viewer.trackActions(e.part.track);
-      if (actions.length === 0) return;
+      const track = e.part.track;
+      if (track === null || !viewer.tracks.value.some((t) => t.ref === track)) return;
+      const actions = viewer.trackActions(track).map((a) => ({ id: a.id, label: a.label, icon: a.icon, run: a.run }));
+      const hide = {
+        id: 'hide-track',
+        label: 'Hide track',
+        icon: 'eye-off' as const,
+        run: () => void setTrackHidden(viewer, props.api, track, true),
+      };
       e.native.preventDefault();
       close?.();
       const root = surface.closest<HTMLElement>('.msp-root') ?? document.body;
-      close = openContextMenu(
-        root,
-        { x: e.place.clientX, y: e.place.clientY },
-        actions.map((a) => ({ id: a.id, label: a.label, icon: a.icon, run: a.run })),
-      );
+      close = openContextMenu(root, { x: e.place.clientX, y: e.place.clientY }, [...actions, hide]);
     });
     onCleanup(() => {
       asked.unsubscribe();
@@ -325,7 +331,7 @@ export function SequenceControl(props: SequenceControlProps) {
       {cursorSaid}
     </div>
   ) as HTMLElement;
-  // The coloring icons of the tracks (round 3), where the host offers colorings.
-  onCleanup(mountTrackGutter(viewer, surface, root, band));
+  // The coloring icons of the tracks (round 3), where the host offers colorings, and the hidden tracks' hint.
+  onCleanup(mountTrackGutter(viewer, surface, root, band, props.api));
   return root;
 }

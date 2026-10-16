@@ -269,7 +269,7 @@ export type {
 } from './state.js';
 // The stream manager as a host reads it; what drawing reads is `/draw`'s, the rest internal.
 export { RegionState, type StreamManager, type StreamStats } from './streams.js';
-export { SystemRegistry } from './systems.js';
+export { ViewerSystems } from './systems.js';
 export { monospaceMeasurer, type TextManagerApi, type TextMeasurer } from './text.js';
 export {
   KernelThemes,

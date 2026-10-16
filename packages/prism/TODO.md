@@ -51,7 +51,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Themes and presets that fetch as they apply carry no addresses (only known services today;
   `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
   (`extensions/model-archive/src/prism-viewer.ts`).
-- The sequence's caches and its edits overlay ([sequence.md](viewer/_spec/sequence.md) §2, §7).
 - Mol*'s first framing of a scene (on load) frames it in the whole canvas, partly under the sequence band; resets frame
   below it (`viewer/src/sources/framing.ts`, [README](viewer/_spec/README.md) decision 28). Needs a reset hook in the
   graphics package's camera reset, after the WebGPU work.
@@ -76,9 +75,9 @@ section); an entry leaves when it is done (its spec section says so then). The s
   with Mol\*'s transpilers, not the viewer's target compiler (`viewer/src/sequence/molstar/query.ts`).
 - The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
   test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
-  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring (Show in 3D,
-  results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several sequence views,
-  focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
+  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring and Hide track
+  (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several
+  sequence views, focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
   (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
   [marks.md](viewer/_spec/marks.md)).
 - Embeddable parts: a viewport alone (canvas, hover label, toolbar) for mvs-stories and the docking viewer, and the

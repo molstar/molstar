@@ -756,3 +756,12 @@ through the indices of the model instead of a MolScript query on every atom for 
   it (`defaultViewLayout()` has it). A kept layout without it restores with none hidden.
 - The `embedded` mode is a layout of its own (shell.md §3): the compact rail, a floating right panel, nothing pinned,
   and compact below `compactWidth` (it was the desktop layout under another name).
+
+## Seq\*: the system registry in core
+
+- `@molstar/seq-viewer` no longer exports `SystemRegistry`: the registry is core's (`@molstar/seq-core/translate`,
+  `SystemRegistry`, with no `version`); the viewer's `ctx.systems` is a `ViewerSystems` (core's registry plus the
+  reactive `version`, exported by the viewer). Code that named the viewer's class names `ViewerSystems`.
+- The `Coordinates` type is core's (`@molstar/seq-core/translate`); the viewer re-exports it and `isCoordinates` as
+  before.
+- Prism's saved sequence state (`prism-viewer.sequence`) is version 3 (adds `edits`); versions 1 and 2 still read.

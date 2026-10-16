@@ -201,33 +201,73 @@ function withOwnAction(item: CanvasToolbarItem, button: Element): readonly Canva
   ];
 }
 
-/** A toolbar button's menu rows (the canvas stack's menus, the rail's): grouped, a toggle's or a choice's check. */
-export function ToolMenuRows(props: { items: readonly CanvasMenuItem[]; onRun(): void }) {
+/** Where a submenu row opens its rows: beside the menu (the canvas stack's), with the row it belongs to. */
+export type OpenSubmenu = (item: CanvasMenuItem | undefined, row?: HTMLElement, focus?: boolean) => void;
+
+/**
+ * A toolbar button's menu rows (the canvas stack's menus, the rail's): grouped, a toggle's or a choice's check. A row
+ * with `items` is a submenu: with `onSubmenu` it opens beside the menu (hover, click, →; any other row's hover closes
+ * it), without it its rows show under its name.
+ */
+export function ToolMenuRows(props: { items: readonly CanvasMenuItem[]; onRun(): void; onSubmenu?: OpenSubmenu }) {
+  const { onSubmenu } = props;
   return (
     <>
       {props.items.map((m, i, all) => (
         <>
           {i > 0 && m.group !== all[i - 1].group ? <div class={classes.toolMenuDivider} role="separator" /> : null}
-          <button
-            type="button"
-            role={m.pressed ? (m.choice ? 'menuitemradio' : 'menuitemcheckbox') : 'menuitem'}
-            aria-checked={m.pressed}
-            class={classes.toolMenuRow}
-            disabled={!!m.disabled}
-            onClick={() => {
-              props.onRun();
-              m.run();
-            }}
-          >
-            {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
-            <span class={classes.toolMenuLabel}>
-              {m.label}
-              {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
-            </span>
-            {m.pressed ? (
-              <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
-            ) : null}
-          </button>
+          {m.items && !onSubmenu ? (
+            <>
+              <div class={classes.toolMenuHeading} role="presentation">
+                {m.label}
+              </div>
+              <Show when={m.items}>{(rows) => <ToolMenuRows items={rows} onRun={props.onRun} />}</Show>
+            </>
+          ) : m.items && onSubmenu ? (
+            <button
+              type="button"
+              role="menuitem"
+              aria-haspopup="menu"
+              class={classes.toolMenuRow}
+              disabled={!!m.disabled}
+              onPointerEnter={(e: PointerEvent) => onSubmenu(m, e.currentTarget as HTMLElement)}
+              onClick={(e: MouseEvent) => onSubmenu(m, e.currentTarget as HTMLElement, true)}
+              onKeyDown={(e: KeyboardEvent) => {
+                if (e.key !== 'ArrowRight') return;
+                e.preventDefault();
+                onSubmenu(m, e.currentTarget as HTMLElement, true);
+              }}
+            >
+              {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+              <span class={classes.toolMenuLabel}>
+                {m.label}
+                {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+              </span>
+              <Icon name="chevron-right" size={14} class={classes.toolMenuChevron} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              role={m.pressed ? (m.choice ? 'menuitemradio' : 'menuitemcheckbox') : 'menuitem'}
+              aria-checked={m.pressed}
+              class={classes.toolMenuRow}
+              disabled={!!m.disabled}
+              onPointerEnter={onSubmenu ? () => onSubmenu(undefined) : undefined}
+              onClick={() => {
+                props.onRun();
+                m.run();
+              }}
+            >
+              {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+              <span class={classes.toolMenuLabel}>
+                {m.label}
+                {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+              </span>
+              {m.pressed ? (
+                <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+              ) : null}
+            </button>
+          )}
         </>
       ))}
     </>
@@ -344,6 +384,29 @@ function ToolMenu(props: { menus: ToolMenus }) {
           const now = deepActiveElement();
           if (!now || el?.contains(now)) (open.button as HTMLElement).focus({ preventScroll: true });
         });
+        // The open submenu: its row, and where it sits (its bottom level with the row's, measured once on opening).
+        const sub = observableState<{ item: CanvasMenuItem; row: HTMLElement; bottom: number } | undefined>(undefined);
+        let subEl: HTMLElement | undefined;
+        const onSubmenu: OpenSubmenu = (item, row, focus = false) => {
+          if (!item || !row || !el) {
+            if (sub.value) sub.set(undefined);
+            return;
+          }
+          const bottom = el.offsetHeight - (row.offsetTop + row.offsetHeight);
+          if (sub.value?.item !== item || sub.value.bottom !== bottom) sub.set({ item, row, bottom });
+          if (focus) queueMicrotask(() => subEl && focusFirstItem(subEl));
+        };
+        // ← or Escape in the submenu: back to its row (the menu stays open).
+        const subKeys = (e: KeyboardEvent) => {
+          if (e.key === 'ArrowLeft' || e.key === 'Escape') {
+            e.preventDefault();
+            const row = sub.value?.row;
+            sub.set(undefined);
+            row?.focus({ preventScroll: true });
+            return;
+          }
+          menuKeys(e);
+        };
         return (
           <div
             class={classes.toolMenu}
@@ -354,7 +417,6 @@ function ToolMenu(props: { menus: ToolMenus }) {
               el = x;
               menus.menu = x;
             }}
-            onKeyDown={menuKeys}
             onPointerEnter={() => menus.keep()}
             onPointerLeave={() => menus.hideSoon()}
             onFocusIn={() => {
@@ -363,9 +425,33 @@ function ToolMenu(props: { menus: ToolMenus }) {
             }}
             onFocusOut={() => menus.hideSoon()}
           >
-            <div class={classes.toolMenuCard}>
-              <ToolMenuRows items={withOwnAction(open.item, open.button)} onRun={() => menus.hide()} />
+            <div class={classes.toolMenuCard} onKeyDown={menuKeys}>
+              <ToolMenuRows
+                items={withOwnAction(open.item, open.button)}
+                onRun={() => menus.hide()}
+                onSubmenu={onSubmenu}
+              />
             </div>
+            <Show when={sub}>
+              {(s) => (
+                <div
+                  class={classes.toolSubmenu}
+                  style={{ bottom: `${s.bottom}px` }}
+                  role="menu"
+                  aria-label={s.item.label}
+                  ref={(x) => {
+                    subEl = x;
+                  }}
+                  onKeyDown={subKeys}
+                >
+                  <div class={classes.toolMenuCard}>
+                    <Show when={s.item.items!}>
+                      {(rows) => <ToolMenuRows items={rows} onRun={() => menus.hide()} />}
+                    </Show>
+                  </div>
+                </div>
+              )}
+            </Show>
           </div>
         );
       }}

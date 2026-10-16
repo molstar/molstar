@@ -36,7 +36,7 @@ import { MarkBit, type MarkSet, type RowMarks, SectionMarks, type ShownRuns } fr
 import { type Coordinates, isCoordinates, Projector } from './projection.js';
 import type { Selection } from './selection.js';
 import type { SeqState, Unsubscribable } from './state.js';
-import type { SystemRegistry } from './systems.js';
+import type { ViewerSystems } from './systems.js';
 
 /** The managers a surface's channels read (a context is one). */
 export interface ChannelSources {
@@ -44,7 +44,7 @@ export interface ChannelSources {
   readonly hover: HoverManager;
   readonly selection: { readonly current: SeqState<Selection> };
   readonly highlight: HighlightManager;
-  readonly systems: SystemRegistry;
+  readonly systems: ViewerSystems;
   /** A section's axis, for the hover's primary; null: not laid out (the primary is then none). */
   readonly layout?: { axis(section: string): ShownRuns | null };
 }

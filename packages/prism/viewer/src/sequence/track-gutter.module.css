@@ -61,3 +61,24 @@
     }
   }
 }
+
+/* The hidden tracks' hint (sequence.md §8): faint text at the foot of the tracks, only while some are hidden; it takes
+   the pointer though the gutter does not. Placed by transform, written when it moves. */
+.hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: var(--msp-space-2);
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  pointer-events: auto;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}

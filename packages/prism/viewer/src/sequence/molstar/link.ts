@@ -70,7 +70,10 @@ function wholeResidues(c: ChainInstance, lo: number, hi: number, out: number[]):
   }
 }
 
-/** One structure linked to one Seq* complex through a `Translator` (the viewer's `ctx.systems`, or a host's own). */
+/**
+ * One structure linked to one Seq* complex through a `Translator`: core's `SystemRegistry` over the set (a host's own,
+ * no viewer needed, or a viewer's `ctx.systems`; seqspec:libraries#the-system-registry), or a bare one.
+ */
 export class StructureLink {
   readonly key: string;
   readonly system: CoordinateSystem;

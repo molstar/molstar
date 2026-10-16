@@ -89,7 +89,7 @@ folder is an entry; a bundle keeps only what it imports.
 | `@molstar/seq-nightingale` | A second viewer for the format: a resolved view materialized as EBI's Nightingale components, with what it cannot draw reported. |
 | `@molstar/seq-viewer/interactions` | An extension: interaction pairs and the fingerprint, a format half and a viewer half (`/viewer`). |
 | `@molstar/seq-core/links` | Command links for a host's markdown: the codec, the runner and a remark adapter (`/remark`). |
-| `@molstar/seq-core/translate` | Maps between coordinate systems, a host's own (Mol\*'s chain residues) and Seq\*'s (units, molecules, rows): the `Translator`, a registry of systems and the routes between them. The viewer's `ctx.systems` is one. |
+| `@molstar/seq-core/translate` | Maps between coordinate systems, a host's own (Mol\*'s chain residues) and Seq\*'s (units, molecules, rows): the `Translator`, a registry of systems and the routes between them, and the `SystemRegistry` over a sequence set, which maps between a structure, the set and an alignment's columns with no viewer (`map`). The viewer's `ctx.systems` is one. |
 | `@molstar/seq-core/algorithms` | Aligners behind one interface (biomsa, Needleman–Wunsch, Myers) and the search matchers (`/search`). No DOM. |
 | `@molstar/seq-core/stream/gmod` | Stream providers for indexed genome files read by byte range: 2bit (letters), BigWig (values), BigBed and tabix VCF (items). |
 | `@molstar/prism-viewer/sequence/molstar` | The Mol\* adapter (Mol\*'s, in the Prism viewer): the `molstar:structure` complex provider, structure formats, and the maps between Mol\* loci and Seq\* runs. |

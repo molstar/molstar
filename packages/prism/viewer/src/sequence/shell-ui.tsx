@@ -79,6 +79,7 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
             shell={ctx.shell}
             dock={ctx.dock ?? 'top'}
             onHover={d.onHover}
+            api={d.person}
             {...(d.marks ? { marks: d.marks } : {})}
           />
         )),
@@ -101,7 +102,7 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
           icon: 'sequence',
           title: 'Sequence',
           visible: viewer.structure.pipe(map((s) => s !== undefined)),
-          menu: sequenceMenu(viewer, shell, d.openCommand),
+          menu: sequenceMenu(viewer, shell, d.openCommand, d.person),
         },
       ]),
     ),

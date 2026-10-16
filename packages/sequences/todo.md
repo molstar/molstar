@@ -19,26 +19,6 @@ next look.
 Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:model#pieces-and-layout-maps`) with the
 biology at application level, never in the core.
 
-**Coordinate systems as a primitive of their own** (David, 2026-10-15). The model is headless already: systems and maps
-(`CoordinateSystem`, `Coords`), mappings and composed paths (`Mappings`, `Paths`) in `@molstar/seq-core/model`, and the
-`Translator` in `@molstar/seq-core/translate`. What makes them usable by name stops at the viewer, though:
-
-- Naming a set's own systems by key (`seqstar:<ref>`) and building their descriptors happens in the viewer's
-  `SystemRegistry` (`viewer/src/systems.ts`), which runs on the viewer's `state` and the shown set.
-- The `Coordinates` type (runs by system key) and `coordinatesOf` live in `viewer/src/systems.ts` and
-  `viewer/src/projection.ts`.
-- A Mol\* structure registers its complex system through a viewer's `ctx.systems`
-  (`packages/prism/viewer/src/sequence/molstar/link.ts`, Prism's `sequence/link.ts`).
-
-Move these into core, as a `@molstar/seq-core/systems` entry or into `/translate`: a registry over a `SeqSet` with no
-viewer, which reports changes through a plain callback; `Coordinates` and its conversions to and from loci and `Extents`
-go with it. The viewer's `ctx.systems` becomes that registry plus its reactive `version`, and the structure link
-attaches to the registry rather than to a viewer. Then a host can map between a structure, a sequence set, an
-alignment's columns and a transcript without drawing anything (an agent tool, MVS or SVS validation, a server, a
-headless test), and a viewer joins the same registry later. `seqspec:libraries#translate` and
-`seqspec:interaction#focus` move with it. _Trigger:_ a consumer of the mapping without a viewer, or the next change to
-`ctx.systems`.
-
 **Loci and coordinates on input events** (2026-10-14, from input as streams: `seqspec:interaction#streams`).
 `ctx.interaction`'s payloads carry refs and indices (`part`, `at`: layer, lane, block, index, row, item), not the hit's
 loci or its `Coordinates`; a consumer that wants them reads `hover.toLoci()` (the hover) or resolves the refs. To add

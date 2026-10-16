@@ -6,10 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { CanvasMenuItem, CommandDefinition, ShellModel } from '@molstar/prism-ui';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest, map, of } from 'rxjs';
 import { colorScheme } from './legend.js';
-import type { SequenceViewer } from './model.js';
+import type { SequenceTrack, SequenceViewer } from './model.js';
 import { LetterSchemes } from './palette.js';
 import type { TracksRail } from './presets.js';
 
@@ -31,11 +32,42 @@ const Rails: readonly { id: string; label: string; rail: TracksRail }[] = [
 const schemeId = (name: string | null) => `sequence.colors.${name === null ? 'none' : name.replace(':', '-')}`;
 const schemeLabel = (name: string | null) => (name === null ? 'No colors' : (colorScheme(name)?.label ?? name));
 
+/** The viewer's API as the person: what changes the sequence's state goes through it, as steps (sequence.md §7). */
+export interface SequenceApiRunner {
+  run(id: string, values?: Readonly<Record<string, unknown>>): Promise<unknown>;
+}
+
+/**
+ * Hides or shows a track (sequence.md §8): `sequence.track.hide` / `.show` through the API as the person (one step), or
+ * on the viewer where there is no API (tests, a bare model).
+ */
+export function setTrackHidden(
+  viewer: SequenceViewer,
+  api: SequenceApiRunner | undefined,
+  track: string,
+  hidden: boolean,
+) {
+  if (api) return api.run(hidden ? 'sequence.track.hide' : 'sequence.track.show', { track });
+  return viewer.setTrackHidden(track, hidden);
+}
+
+/** Every hidden track shown: `sequence.track.show` with no track. */
+export function showAllTracks(viewer: SequenceViewer, api: SequenceApiRunner | undefined) {
+  if (api) return api.run('sequence.track.show', {});
+  return Promise.all(viewer.tracks.value.filter((t) => t.hidden).map((t) => viewer.setTrackHidden(t.ref, false)));
+}
+
+/** A choice of the tracks that `keep` (by ref, labelled by name), for a command's form. */
+function trackChoice(tracks: readonly SequenceTrack[], keep: (t: SequenceTrack) => boolean) {
+  const options = tracks.filter(keep).map((t): [string, string] => [t.ref, t.label]);
+  return { track: PD.Select(options[0]?.[0] ?? '', options, { label: 'Track' }) };
+}
+
 export function sequenceCommands(
   viewer: SequenceViewer,
   shell: ShellModel,
   /** The viewer's API (the person's): style, colors and the rail change through it, as steps (sequence.md §7). */
-  api?: { run(id: string, values?: Readonly<Record<string, unknown>>): Promise<unknown> },
+  api?: SequenceApiRunner,
 ): CommandDefinition<any>[] {
   const hide = () => {
     if (shell.dock('top').active.value) shell.toggle('top');
@@ -98,6 +130,48 @@ export function sequenceCommands(
       }),
     ),
     {
+      id: 'sequence.track.hide',
+      title: 'Hide a sequence track',
+      alias: ['hide track', 'sequence hide track'],
+      category: 'Sequence',
+      icon: 'eye-off',
+      when: () => viewer.tracks.value.some((t) => !t.hidden) || 'No sequence track is shown.',
+      params: () => trackChoice(viewer.tracks.value, (t) => !t.hidden),
+      run: async (args) => {
+        const track = String(args.track ?? '');
+        const label = viewer.tracks.value.find((t) => t.ref === track)?.label ?? track;
+        await setTrackHidden(viewer, api, track, true);
+        return { ...done(`Track hidden: ${label}`), undoable: true };
+      },
+    },
+    {
+      id: 'sequence.track.show',
+      title: 'Show a hidden sequence track',
+      alias: ['show track', 'sequence show track'],
+      category: 'Sequence',
+      icon: 'eye',
+      when: () => viewer.tracks.value.some((t) => t.hidden) || 'No sequence track is hidden.',
+      params: () => trackChoice(viewer.tracks.value, (t) => t.hidden),
+      run: async (args) => {
+        const track = String(args.track ?? '');
+        const label = viewer.tracks.value.find((t) => t.ref === track)?.label ?? track;
+        await setTrackHidden(viewer, api, track, false);
+        return { ...done(`Track shown: ${label}`), undoable: true };
+      },
+    },
+    {
+      id: 'sequence.track.show-all',
+      title: 'Show all sequence tracks',
+      alias: ['show all tracks', 'show hidden tracks'],
+      category: 'Sequence',
+      icon: 'eye',
+      when: () => viewer.tracks.value.some((t) => t.hidden) || 'No sequence track is hidden.',
+      run: async () => {
+        await showAllTracks(viewer, api);
+        return { ...done('All tracks shown'), undoable: true };
+      },
+    },
+    {
       id: 'sequence.legend',
       title: 'Sequence legend…',
       alias: ['what the colors mean', 'sequence colors'],
@@ -118,6 +192,8 @@ export function sequenceMenu(
   viewer: SequenceViewer,
   shell: ShellModel,
   open: (commandId: string) => void,
+  /** The API as the person: the Visible tracks submenu's rows hide and show through it (steps). */
+  api?: SequenceApiRunner,
 ): CanvasMenuItem[] {
   const item = (id: string, label: string, run: string, extra: Partial<CanvasMenuItem> = {}): CanvasMenuItem => ({
     id,
@@ -155,5 +231,39 @@ export function sequenceMenu(
       }),
     ),
     item('legend', 'Legend…', 'sequence.legend', { icon: 'palette', group: 'colors' }),
+    {
+      id: 'track-list',
+      // Not "Tracks": the style above is called that.
+      label: 'Visible tracks',
+      icon: 'layers',
+      group: 'tracks',
+      run: () => {},
+      items: viewer.tracks.pipe(map((tracks) => trackRows(viewer, tracks, api))),
+    },
+  ];
+}
+
+/**
+ * The Visible tracks submenu (sequence.md §8): a checkbox per track of the section shown (checked: shown), then Show all, there
+ * only while one is hidden.
+ */
+function trackRows(
+  viewer: SequenceViewer,
+  tracks: readonly SequenceTrack[],
+  api?: SequenceApiRunner,
+): CanvasMenuItem[] {
+  const rows = tracks.map(
+    (t): CanvasMenuItem => ({
+      id: `track:${t.ref}`,
+      label: t.label,
+      group: 'tracks',
+      pressed: of(!t.hidden),
+      run: () => void setTrackHidden(viewer, api, t.ref, !t.hidden),
+    }),
+  );
+  if (!tracks.some((t) => t.hidden)) return rows;
+  return [
+    ...rows,
+    { id: 'show-all', label: 'Show all', icon: 'eye', group: 'all', run: () => void showAllTracks(viewer, api) },
   ];
 }

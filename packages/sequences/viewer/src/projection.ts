@@ -21,20 +21,13 @@ import {
   Extents,
   CoordinateSystemKind as K,
   type Loci,
-  OrderedSet,
   type SeqLoci,
   type SeqSet,
 } from '@molstar/seq-core/model';
-import type { Translator } from '@molstar/seq-core/translate';
+import { Coordinates, type Translator } from '@molstar/seq-core/translate';
 import { HoverKind } from './hit.js';
 import type { HoverState } from './hover.js';
 import { MarkBit, type MarkSet, type RowMarks } from './marks.js';
-
-/** Runs in coordinate systems named by key (seqspec:interaction#focus): `(index into systems, start, stop)` triples. */
-export interface Coordinates {
-  readonly systems: readonly string[];
-  readonly runs: Int32Array;
-}
 
 /** A ligand in the `position` form: every atom lights the block's one position. */
 class LigandSink implements RunSink {
@@ -122,30 +115,9 @@ class RowSink implements RunSink {
   }
 }
 
-/**
- * `count` start-stop pairs (the first `2 * count` of `pairs`), sorted and merged where they touch or overlap, as an
- * `OrderedSet`: a range for one run. Edge-rate: O(runs) unless several runs remain, then their positions in one array.
- */
-export function ofRuns(pairs: ArrayLike<number>, count: number = pairs.length / 2): OrderedSet {
-  const order = Array.from({ length: count }, (_, i) => i).sort((a, b) => pairs[2 * a] - pairs[2 * b]);
-  const merged: number[] = [];
-  for (const i of order) {
-    const [s, t] = [pairs[2 * i], pairs[2 * i + 1]];
-    const n = merged.length;
-    if (t <= s) continue;
-    if (n > 0 && s <= merged[n - 1]) merged[n - 1] = Math.max(merged[n - 1], t);
-    else merged.push(s, t);
-  }
-  if (merged.length === 2) return OrderedSet.ofRange(merged[0], merged[1]);
-  let total = 0;
-  for (let i = 0; i < merged.length; i += 2) total += merged[i + 1] - merged[i];
-  const out = new Int32Array(total);
-  let at = 0;
-  for (let i = 0; i < merged.length; i += 2) for (let x = merged[i]; x < merged[i + 1]; x++) out[at++] = x;
-  return OrderedSet.ofSortedArray(out);
-}
-
-export const isCoordinates = (t: Loci | Coordinates): t is Coordinates => (t as Coordinates).runs !== undefined;
+export const isCoordinates = (t: Loci | Coordinates): t is Coordinates => Coordinates.is(t);
+export const ofRuns = Coordinates.ofRuns;
+export type { Coordinates };
 
 /** Per block lit: (block in the section, start, stop) triples in `data`, `count` of them; reused, grown when full. */
 export interface BlockHulls {
@@ -199,17 +171,7 @@ export class Projector {
    */
   fromLoci(target: Loci | Coordinates, out: Extents): number {
     if (!isCoordinates(target)) return target.set === this.set && this.set ? Extents.addLoci(out, target) : 0;
-    const sys = this.systems;
-    const before = out.count;
-    const { runs, systems } = target;
-    for (let r = 0; sys && r + 2 < runs.length; r += 3) {
-      const key = systems[runs[r]];
-      const s = sys.system(key);
-      if (!s || !sys.descriptor(key)) continue;
-      if (s.kind === K.external) this.external(sys, s, runs[r + 1], runs[r + 2], out);
-      else if (s.kind !== K.complex && s.kind !== K.item) Extents.add(out, s, runs[r + 1], runs[r + 2]);
-    }
-    return out.count - before;
+    return this.systems ? Coordinates.toExtents(this.systems, target, out, this.one) : 0;
   }
 
   /**
@@ -250,19 +212,6 @@ export class Projector {
       s.id = h.pairUnit;
       s.row = -1;
       Extents.add(out, s, h.pairIndex, h.pairIndex + 1);
-    }
-  }
-
-  /** An external run through each map registered with its system, into the Seq* system at its other end. */
-  private external(sys: Translator, s: CoordinateSystem, start: number, stop: number, out: Extents) {
-    const near = sys.neighbors(s);
-    const one = this.one;
-    for (let k = 0; k < near.length; k++) {
-      const t = near[k];
-      if (t.kind === K.external || t.kind === K.complex) continue;
-      one.count = 0;
-      Extents.add(one, s, start, stop);
-      sys.translate(one, s, t, out);
     }
   }
 
@@ -378,21 +327,7 @@ export class Projector {
    * so a chromosome-long drag closes in O(runs).
    */
   toSeqLoci(ext: Extents): SeqLoci | null {
-    const set = this.set;
-    if (!set) return null;
-    const byUnit = new Map<number, number[]>();
-    const put = (u: number, s: number, t: number) => {
-      const list = byUnit.get(u) ?? byUnit.set(u, []).get(u);
-      list?.push(s, t);
-    };
-    for (let i = 0; i < ext.count; i++) {
-      if (ext.kind[i] === K.unit) put(ext.id[i], ext.start[i], ext.stop[i]);
-      if (ext.kind[i] !== K.molecule) continue;
-      for (let u = 0; u < set.units.count; u++)
-        if (set.units.alive[u] && set.units.molecule[u] === ext.id[i]) put(u, ext.start[i], ext.stop[i]);
-    }
-    const elements = [...byUnit].sort((a, b) => a[0] - b[0]).map(([unit, runs]) => ({ unit, indices: ofRuns(runs) }));
-    return elements.length ? ({ kind: 'seq-loci', set, elements } as unknown as SeqLoci) : null;
+    return this.set ? Coordinates.toSeqLoci(this.set, ext) : null;
   }
 
   /**
@@ -403,23 +338,7 @@ export class Projector {
     const set = this.set;
     const ext = Extents.create(8);
     if (!set || this.fromLoci(c, ext) === 0) return [];
-    const seq = this.toSeqLoci(ext);
-    const out: Loci[] = seq ? [seq] : [];
-    const runs = new Map<number, Map<number, number[]>>(); // alignment → row (-1: its columns) → runs
-    for (let i = 0; i < ext.count; i++) {
-      if (ext.kind[i] !== K.row && ext.kind[i] !== K.columns) continue;
-      const byRow = runs.get(ext.id[i]) ?? runs.set(ext.id[i], new Map()).get(ext.id[i]);
-      const row = ext.kind[i] === K.row ? ext.row[i] : -1;
-      byRow?.set(row, [...(byRow.get(row) ?? []), ext.start[i], ext.stop[i]]);
-    }
-    for (const [alignment, byRow] of runs) {
-      const rows = [...byRow].filter(([r]) => r >= 0).sort((a, b) => a[0] - b[0]);
-      const elements = rows.map(([row, r]) => ({ row, indices: ofRuns(r) }));
-      if (elements.length) out.push({ kind: 'row-loci', set, alignment, elements } as unknown as Loci);
-      const cols = byRow.get(-1);
-      if (cols) out.push({ kind: 'column-loci', set, alignment, columns: ofRuns(cols) } as unknown as Loci);
-    }
-    return out;
+    return Coordinates.toLoci(set, ext);
   }
 
   /** A block over a unit over all of a cyclic molecule. */

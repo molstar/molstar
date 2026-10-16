@@ -613,6 +613,7 @@ function createSequence(
         ink: ink.asReadonly,
         structure: source.structure,
         actions: source.actions,
+        dataByUrl: source.dataByUrl,
         scheduler: runtime.sequenceFrames(modules.includes('page')),
         // The viewer's own behaviors, overrides applied; the extensions' attach as they activate (sequence.md §3).
         behaviors: overrides.parts(spec.behaviors),

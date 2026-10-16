@@ -109,6 +109,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `sequence.get` | Describe the sequence view | read |  |
 | `sequence.rail` | Set the tracks' rail | agent-only | navigator, height |
 | `sequence.style` | Show the sequence as tracks or text | agent-only | style |
+| `sequence.track.hide` | Hide a sequence track | agent-only | track |
+| `sequence.track.show` | Show a hidden sequence track | agent-only | track |
 | `session.clear` | Clear the session | destructive |  |
 | `session.open` | Open a session | destructive | url, data, file, id, type |
 | `session.remote.list` | List the remote states | read; network (addresses); needs network | server |

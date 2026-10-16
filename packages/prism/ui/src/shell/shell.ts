@@ -233,6 +233,12 @@ export interface CanvasMenuItem {
   group?: string;
   /** Why it cannot be used here (shown greyed, the reason in place of the hint): fullscreen in an iframe that forbids it. */
   disabled?: string;
+  /**
+   * A submenu: its rows (a list that may change while the menu is open), shown beside the menu on hover, a click or →
+   * (the canvas stack's menus), or under the row where a menu has no room beside it (the rail's). Its `run` is not
+   * called.
+   */
+  items?: Observable<readonly CanvasMenuItem[]>;
   run(): void;
 }
 

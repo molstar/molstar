@@ -35,7 +35,7 @@ synchronous task context (`@molstar/core`); Node's built-ins only in its CLIs an
 | `/model`                        | the data model; `/model/query`, the SeqQL runtime                                              | `query`, `algorithms/search` (from `/model/query` only) |
 | `/query`                        | SeqQL: the symbol table, reader, binder, printer, checker, skill                               | nothing                                                 |
 | `/algorithms`                   | aligners (biomsa, Needleman–Wunsch, Myers); `/algorithms/search`, the matchers                 | nothing                                                 |
-| `/translate`                    | translation between coordinate systems, a host's included                                      | `model`                                                 |
+| `/translate`                    | translation between coordinate systems, a host's included; `Coordinates`, the system registry  | `model`                                                 |
 | `/format`                       | the format: tables, validation, loading, resolving, patches, `.svsx` reading; the `svs-*` CLIs | `model`, `query`, `algorithms`                          |
 | `/builder`                      | the builder; `/builder/svsx`, writing and bundling archives                                    | `format` (types only, but `/builder/svsx`)              |
 | `/links`                        | command links for a host's markdown                                                            | `format` (types)                                        |

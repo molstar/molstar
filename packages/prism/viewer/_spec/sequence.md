@@ -16,8 +16,9 @@ The code is the truth for how.
 - **The Mol\* adapter is the viewer's** (`src/sequence/molstar/`, exported as `@molstar/prism-viewer/sequence/molstar`;
   its contract is Seq\*'s `libraries.md` § The Mol\* adapter): structures read headless as Seq\* complexes, the
   structure formats, services and providers (`MolstarSvsEntry`; `afdb_pae` among the formats), the link
-  (`StructureLink`, registered on the Seq\* viewer's `ctx.systems`, and `linkViews`) and SeqQL over Mol\*. The Seq\*
-  Storybook's Mol\* demo imports it through the export; its MVS composition and bare plugin are the demo's own.
+  (`StructureLink`, registered on a Seq\* system registry: the Seq\* viewer's `ctx.systems`, or one with no viewer;
+  `seqspec:libraries#the-system-registry`; and `linkViews`) and SeqQL over Mol\*. The Seq\* Storybook's Mol\* demo
+  imports it through the export; its MVS composition and bare plugin are the demo's own.
 - **The sequence model owns every Seq\* context** (`createSequenceViewers`, `sequence/model.ts`), keyed by id with
   `'default'` the only one: one sequence viewer, switched between Text and Tracks. It takes what it follows as plain
   arguments (the ink, the host structure, the actions, a scheduler): no DOM, no plugin, testable headless.
@@ -34,9 +35,17 @@ The code is the truth for how.
 - **One parse.** The document names its structure by host file `structure:<key>`; the loaders' `parsed` answers it with
   a `StructureSource` over the trajectory the 3D view drew, so `StructureLink` maps the very `Structure` the 3D view
   draws. A new key rebuilds the view.
-- **`load` fetches nothing**: it refuses, but for a loaded `.svsx`'s relative URIs (`archiveLoaders`, §6).
-- **Bytes are cached in core**: Mol\*'s asset manager reads URLs through a URL-keyed, ref-counted byte cache
-  (`packages/core/src/util/assets.ts`).
+- **Two caches, both read-through, neither fetching for the sequence:**
+  - **Bytes, in core**: Mol\*'s asset manager reads URLs through a URL-keyed, ref-counted byte cache
+    (`packages/core/src/util/assets.ts`): the plugin's downloads, MVS's and the viewer's loaders share one fetch.
+  - **Parses, in the viewer**: `dataByUrl` (`sources/data-by-url.ts`, `SequenceSource.dataByUrl`) indexes the plugin's
+    data cells by address (a Download's URL, a read file's name) with the trajectory parsed under each. A data-tree
+    change only marks it stale; the next lookup rebuilds it (edge rate), so a large scene pays nothing while no document
+    loads.
+- **`load` reads what the plugin holds**: a URI (resolved against a loaded document's own address) or host file the
+  index has is answered with its bytes; a `molstar:structure` source it parsed is shared through `parsed` (one
+  `StructureSource` per trajectory), never parsed again; a loaded `.svsx`'s relative URIs come from the archive (§6).
+  Anything else is refused, saying to load it in the viewer first (`svs.source.load`): the sequence fetches nothing.
 
 ## 3. Content: the document and sequence behaviors
 
@@ -109,9 +118,17 @@ The code is the truth for how.
 
 ### 7.1 The sequence's state in snapshots
 
-- **Saved as `prism-viewer.sequence`**: `{ version: 2, style, colors, rail, structure?, override? }` (`SavedSequence`,
-  `sequence/runtime.ts`). `override` is the loaded SeqViewSpec (the document itself, its URL, its structure's ref):
-  content, so Undo keeps it. Version 1 reads as 2 without `override`; another version or none resets to the defaults.
+- **Saved as `prism-viewer.sequence`**: `{ version: 3, style, colors, rail, structure?, override?, edits? }`
+  (`SavedSequence`, `sequence/runtime.ts`). `override` is the loaded SeqViewSpec (the document itself, its URL, its
+  structure's ref): content, so Undo keeps it. Version 1 reads as 2 without `override`, version 2 as 3 without `edits`;
+  another version or none resets to the defaults.
+- **The edits overlay** (`SequenceEdits`): the person's changes over the document shown, by track ref
+  (`{ tracks: { [ref]: { hidden } } }`), each a change from the document's own value (a loaded SeqViewSpec may hide a
+  track itself), so showing a track the person hid drops its entry. Written into every document the model builds and
+  into a behavior's inserted tracks (hidden from its first patch, no flash), and brought to the document shown by one
+  base patch (`set` of `hidden`, origin `host:prism-viewer.sequence.edits`) when they change; a ref the document lacks
+  is kept for the next that has it. So a hidden track stays hidden across another structure and back, new colors, a
+  reload and Undo. Seq\* hides by its document (`track.hidden`): no renderer change.
 - **A registry, not a field**: `PluginState.registerCustomState(key, { get, set })`
   (`packages/plugin/core/src/state.ts`). `getSnapshot` writes every key into `snapshot.custom`; `setSnapshot` calls each
   `set` after the data tree, with `undefined` when the snapshot has none; transition frames do not apply it. Snapshots,
@@ -125,9 +142,9 @@ The code is the truth for how.
   `getSnapshot({ data, behavior, componentManager, canvas3d })`, leaving out interactivity, selection, camera, canvas
   context and animation, minus the followed structure; restore applies it without the focus and keeps each trajectory's
   current frame.
-- **Undo restores**: the data tree, behavior settings, canvas props, the sequence's style, colors, rail and override,
-  the hidden contents. **Never**: the camera, the selection, the selection mode and picking level, the focus, which
-  structure the sequence follows, hover, a trajectory's frame, the Snapshots list, open panels.
+- **Undo restores**: the data tree, behavior settings, canvas props, the sequence's style, colors, rail, override and
+  edits (its hidden tracks), the hidden contents. **Never**: the camera, the selection, the selection mode and picking
+  level, the focus, which structure the sequence follows, hover, a trajectory's frame, the Snapshots list, open panels.
 - **Headless**: `camera: false` keeps the checkpoint from reading the canvas.
 - **A lazy extension's load** stays across a restore to before it (its registrations stay; its cells go).
 
@@ -179,10 +196,11 @@ The code is the truth for how.
   or a loaded SeqViewSpec's), none of Seq\*'s DOM or React UI. Seq\* draws letters, ruler, hover, selection and focus
   and handles wheel, drag, click and keys.
 - **The canvas stack's Sequence button** (shown while a structure is) has the menu (`sequenceMenu`): one choice of No
-  sequence, Text, Tracks, then the letters' colors (one choice) and Legend…. Each item runs a command (`sequence.none`,
-  `sequence.text`, `sequence.tracks`, `sequence.colors.<scheme>`, `sequence.legend`), so the command menu does the same;
-  the rail is commands only (`sequence.rail.<ruler|strip|band|none>`). Style, colors and rail go through the API as the
-  person: steps.
+  sequence, Text, Tracks, then the letters' colors (one choice) and Legend…, then the Visible tracks submenu (below).
+  Each item runs a command (`sequence.none`, `sequence.text`, `sequence.tracks`, `sequence.colors.<scheme>`,
+  `sequence.legend`), so the command menu does the same, the Visible tracks rows the operations their commands run; the
+  rail is commands only (`sequence.rail.<ruler|strip|band|none>`). Style, colors, rail and hidden tracks go through the
+  API as the person: steps.
 - **Tracks is the default style** (`spec.sequence.style`); the switch only sets the preset (`ctx.ui.setStyle`): the
   document and the link survive.
 - **Text** is Seq\*'s `compact` with the composition's render props: whole groups per line, centered, letters at most
@@ -194,9 +212,18 @@ The code is the truth for how.
   ruler's own by default), a left gutter of `TrackGutterPx` when the host offers colorings.
 - **Height**: Tracks follow `seq.layout.contentHeight(section)`, Text is fixed (`TextHeight`); plus the air above and
   the fade. Written only when it changes, kept while a new document is made, restored when the band goes.
-- **Track menus**: Seq\*'s `interaction.on('menu', …)` on a track that offers actions (the model's `TrackMenus` and the
-  behaviors' offers) opens prism-ui's `openContextMenu` at the pointer and prevents the browser's menu; elsewhere the
-  browser's menu stays.
+- **Track menus**: Seq\*'s `interaction.on('menu', …)` on a track of the section shown opens prism-ui's
+  `openContextMenu` at the pointer and prevents the browser's menu: the track's actions (the model's `TrackMenus` and
+  the behaviors' offers), then Hide track; elsewhere the browser's menu stays.
+- **Hiding and showing tracks** (`viewer.tracks`: the section's tracks, hidden ones included, each named by its document
+  label, the viewer's own name, a behavior's offered `labels` or its title): `sequence.track.hide` and
+  `sequence.track.show` (a track by ref or name; show with none: every hidden one), steps through the API as the person,
+  so Undo takes each back (§7); the commands `sequence.track.hide`, `.show` (a choice of the tracks) and `.show-all`.
+  The Sequence menu's **Visible tracks** is a submenu (prism-ui's `CanvasMenuItem.items`): a checkbox per track
+  (checked: shown), then Show all while one is hidden. `sequence.get` lists the tracks.
+- **The hidden tracks' hint**: only while tracks are hidden, a faint "N hidden" at the foot of the track gutter (Tracks
+  only); a click opens a menu at it: Show all tracks, then Show each hidden one (a context menu: the canvas stack's
+  submenu belongs to its button). Nothing shows while every track does.
 - **The track gutter** (`sequence/track-gutter.tsx`, Tracks only): a coloring icon per track row that has one (its
   menu's first action), rows read from Seq\*'s layout when it is rebuilt, the row under the pointer from
   `interaction.on('hover')`; the 3D view's current coloring stays lit in the accent; clicking it again does nothing.

@@ -85,7 +85,10 @@ buttons) is the app's. The code is the truth for how.
   span the canvas.
 - **Canvas toolbar**: one glass row in the canvas's bottom-right corner (`place: 'canvas'` items, sections by hairlines,
   after `ShellView`'s `canvasLead`); a floating panel stops above it (`--msp-corner-room`). A button's `menu`
-  (`CanvasMenuItem`) opens upward on hover or focus; a click still runs its action. A narrow row scrolls across.
+  (`CanvasMenuItem`) opens upward on hover or focus; a click still runs its action. A narrow row scrolls across. A row
+  with `items` (an observable list) is a submenu: it opens beside the menu, toward the canvas, on hover, a click or → (←
+  or Escape back to its row), its bottom level with the row's (measured once on opening), its rows following the list
+  while open; in the rail's menus, which have no room beside them, its rows show under its name.
 - **Expand by context** (`FullscreenModel`, `shell/fullscreen.ts`): on a page Expand fills it (fixed position, no
   `<body>` change) with Fullscreen in its menu; in an iframe that allows it the button is Fullscreen; one that forbids
   it greys Fullscreen with why.

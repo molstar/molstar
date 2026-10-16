@@ -8,8 +8,15 @@
 
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
-import { archiveLoaders, type FormatResult, type Loaders, type SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { StructureSource } from './molstar/source.js';
+import {
+  archiveLoaders,
+  type DocNode,
+  type FormatResult,
+  type Loaders,
+  type Op,
+  type SeqViewSpecDoc,
+} from '@molstar/seq-core/format';
+import { STRUCTURE_FORMATS, type StructureSource } from './molstar/source.js';
 import {
   createSeqViewer,
   type Scheduler,
@@ -84,6 +91,45 @@ export interface SequenceArchive {
   readonly base: string;
 }
 
+/** A track of the section the band shows, for the Visible tracks menu and the gutter's hint (sequence.md §8). */
+export interface SequenceTrack {
+  readonly ref: string;
+  /** Its name for people: the document's label, else the viewer's or the behavior's name for it, else its ref. */
+  readonly label: string;
+  readonly hidden: boolean;
+}
+
+/**
+ * The person's edits over the document shown, by track ref (sequence.md §7.1): saved with the sequence's state and
+ * applied to every document the model builds (another structure and back, a reload, Undo). An entry is a change from
+ * the document's own value (a loaded SeqViewSpec may hide a track itself); a ref not shown now is kept for later.
+ */
+export interface SequenceEdits {
+  readonly tracks?: Readonly<Record<string, { readonly hidden: boolean }>>;
+}
+
+/** A data cell the plugin holds for an address, and its parse (state refs). */
+export interface DataByUrlEntry {
+  /** A Download's URL, or a read file's name. */
+  readonly address: string;
+  /** The data cell. */
+  readonly data: string;
+  /** The trajectory parsed from it; absent: not parsed (or not a structure). */
+  readonly parse?: string;
+}
+
+/**
+ * The parse cache (sequence.md §2): the plugin's data cells by address with their parses, so a document's file the
+ * plugin holds is read from it, and a structure it parsed is shared, never parsed again.
+ */
+export interface DataByUrl {
+  entry(address: string): DataByUrlEntry | undefined;
+  /** The bytes the plugin holds for an address (a string cell encoded); undefined: none. */
+  bytes(address: string): Uint8Array | undefined;
+  /** The structure the plugin parsed from an address, as the adapter's source over its trajectory; undefined: none. */
+  structure(address: string): StructureSource | undefined;
+}
+
 /** What a viewer shows, once its document is in: the link's input. */
 export interface SequenceStructure {
   readonly title: string;
@@ -134,6 +180,32 @@ const TrackMenus: Readonly<Record<string, readonly SequenceTrackMenuItem[]>> = {
   ],
 };
 
+/** The viewer's own tracks' names (their document labels are empty: the band shows none). */
+const TrackLabels: Readonly<Record<string, string>> = {
+  ruler: 'Ruler',
+  [LettersRef]: 'Residues',
+  [SecondaryTrack]: 'Secondary structure',
+};
+
+/** The origin of the edits' patches on the document's base. */
+const EditsOrigin = 'host:prism-viewer.sequence.edits';
+
+/** Every track node under `node` (a section, a group, an inserted subtree), in document order. */
+function tracksUnder(node: DocNode, out: DocNode[] = []): DocNode[] {
+  if (node.kind === 'track') out.push(node);
+  for (const c of node.children ?? []) tracksUnder(c, out);
+  return out;
+}
+function findNode(node: DocNode, ref: string): DocNode | undefined {
+  if (node.ref === ref) return node;
+  for (const c of node.children ?? []) {
+    const n = findNode(c, ref);
+    if (n) return n;
+  }
+  return undefined;
+}
+const hiddenIn = (n: DocNode) => n.params?.hidden === true;
+
 export interface SequenceViewer {
   readonly id: string;
   readonly seq: SeqViewerContext;
@@ -171,6 +243,17 @@ export interface SequenceViewer {
   setOverride(override: SequenceOverride | undefined): Promise<GraphResult>;
   /** Keeps an `.svsx`'s files for an override that names it (`archive`); returns its id. */
   addArchive(archive: SequenceArchive): string;
+  /** The tracks of the section the band shows, in order, hidden ones included; empty while a document is made. */
+  readonly tracks: ReadonlyState<readonly SequenceTrack[]>;
+  /** The person's edits over the document (sequence.md §7.1). */
+  readonly edits: ReadonlyState<SequenceEdits>;
+  /** Replaces the edits (a saved state applied); resolves once the document shown has them. */
+  setEdits(edits: SequenceEdits): Promise<void>;
+  /**
+   * Hides or shows a track of the section shown, by ref; resolves false when no such track is shown, or it is already
+   * so (nothing changes).
+   */
+  setTrackHidden(track: string, hidden: boolean): Promise<boolean>;
 }
 
 export interface SequenceViewers {
@@ -196,6 +279,8 @@ export interface SequenceViewersDeps {
   text?: TextMeasurer;
   /** Behaviors attached to each viewer from the start (sequence.md §3); more come with `addBehavior`. */
   behaviors?: readonly SequenceBehavior[];
+  /** The plugin's data cells and parses by address (sequence.md §2); none: a document's files are refused. */
+  dataByUrl?: DataByUrl;
 }
 
 /** The letters' size until the host's tokens are read (`setFonts`): Prism's panel text size, `--msp-font-size-sm`. */
@@ -233,10 +318,18 @@ class Viewer implements SequenceViewer {
     compare: (a, b) => a === b || (!!a && !!b && a.document === b.document && a.structure === b.structure),
   });
   readonly override = this.overrideState.asReadonly;
+  private readonly tracksState = observableState<readonly SequenceTrack[]>([], {
+    compare: (a, b) =>
+      a.length === b.length &&
+      a.every((t, i) => t.ref === b[i].ref && t.label === b[i].label && t.hidden === b[i].hidden),
+  });
+  readonly tracks = this.tracksState.asReadonly;
+  private readonly editsState = observableState<SequenceEdits>({}, { compare: (a, b) => a === b });
+  readonly edits = this.editsState.asReadonly;
   /** The sections of the document shown: the person's style applies to each. */
   private sections: readonly string[] = [SectionRef];
   /** The behaviors attached, by id: their dispose and their offer. */
-  private readonly behaviors = new Map<string, { dispose: () => void; offer?: SequenceOffer }>();
+  private readonly behaviors = new Map<string, { dispose: () => void; title: string; offer?: SequenceOffer }>();
   private dropPreset: (() => void) | undefined;
   private fonts: SequenceFonts | undefined;
   private builds = 0;
@@ -251,18 +344,42 @@ class Viewer implements SequenceViewer {
     private readonly deps: SequenceViewersDeps,
   ) {
     const refuse = (r: { uri: string | null; hostFile?: string | null }) =>
-      Promise.reject(new Error(`the sequence view loads no files (${r.uri ?? r.hostFile ?? 'a file'})`));
+      Promise.reject(
+        new Error(`the sequence view fetches no files; load ${r.uri ?? r.hostFile ?? 'it'} in the viewer first`),
+      );
+    /** A request's address: a URI resolved against the loaded document's own, else the host file. */
+    const addressOf = (r: { uri: string | null; hostFile?: string | null }) => {
+      const base = this.overrideState.value?.url;
+      if (r.uri === null) return r.hostFile ?? undefined;
+      try {
+        return base ? new URL(r.uri, base).href : r.uri;
+      } catch {
+        return r.uri;
+      }
+    };
+    // What the plugin holds (sequence.md §2): its bytes, else refused; nothing is fetched.
+    const held = (r: { uri: string | null; hostFile?: string | null }): Promise<Uint8Array> => {
+      const address = addressOf(r);
+      const bytes = address === undefined ? undefined : deps.dataByUrl?.bytes(address);
+      return bytes ? Promise.resolve(bytes) : refuse(r);
+    };
     const loaders: Loaders = {
-      // The structure comes from the host (`parsed`); nothing is fetched, but what an `.svsx` holds (its relative URIs).
+      // The structure comes from the host (`parsed`); a file the plugin holds is read from it; an `.svsx`'s relative
+      // URIs from the archive; nothing is fetched.
       load: (r, signal) => {
         const id = this.overrideState.value?.archive;
         const archive = id ? this.archives.get(id) : undefined;
-        if (!archive) return refuse(r);
-        return archiveLoaders(archive.files, { load: (q) => refuse(q) }, archive.base).load(r, signal);
+        if (!archive) return held(r);
+        return archiveLoaders(archive.files, { load: (q) => held(q) }, archive.base).load(r, signal);
       },
-      parsed: async (r): Promise<FormatResult | null> => {
+      parsed: async (r, format): Promise<FormatResult | null> => {
         const host = deps.structure.value;
-        return host && r.hostFile === hostFileOf(host.key) ? { kind: 'object', value: host.source } : null;
+        if (host && r.hostFile === hostFileOf(host.key)) return { kind: 'object', value: host.source };
+        // Another structure the plugin parsed (a document's second complex, a file named by URL): shared, not read again.
+        if (!(STRUCTURE_FORMATS as readonly string[]).includes(format)) return null;
+        const address = addressOf(r);
+        const source = address === undefined ? undefined : deps.dataByUrl?.structure(address);
+        return source ? { kind: 'object', value: source } : null;
       },
     };
     this.seq = createSeqViewer(PrismSequenceSpec({ textWidth: deps.textWidth }), {
@@ -280,13 +397,19 @@ class Viewer implements SequenceViewer {
         if (this.themeState.value.letters === null) void this.build();
       }),
       deps.structure.subscribe(() => void this.build()),
+      // The tracks the band shows, for the Visible tracks menu: read from the document shown (behaviors' patches included).
+      this.seq.document.shown.subscribe(() => this.refreshTracks()),
+      this.structure.subscribe(() => this.refreshTracks()),
     );
     for (const b of deps.behaviors ?? []) this.addBehavior(b);
   }
 
   addBehavior(behavior: SequenceBehavior): () => void {
     if (this.behaviors.has(behavior.id)) throw new Error(`A sequence behavior '${behavior.id}' is attached already`);
-    const entry: { dispose: () => void; offer?: SequenceOffer } = { dispose: () => {} };
+    const entry: { dispose: () => void; title: string; offer?: SequenceOffer } = {
+      dispose: () => {},
+      title: behavior.title,
+    };
     this.behaviors.set(behavior.id, entry);
     let attached = true;
     entry.dispose = behavior.attach({
@@ -294,8 +417,9 @@ class Viewer implements SequenceViewer {
       patch: async (shown, ops) => {
         // Only onto the document it was made for: a later one has none of the nodes it refers to.
         if (!attached || this.disposed || shown !== this.shownState.value) return false;
+        // The person's edits over the tracks it adds (sequence.md §7.1): hidden from the start, no flash.
         const r = await this.seq.applyPatch(
-          { format: 'seq_view_spec_patch', ops: [...ops] },
+          { format: 'seq_view_spec_patch', ops: ops.map((op) => this.withEdits(op)) },
           { layer: 'base', origin: `host:${behavior.id}` as never },
         );
         return r.ok;
@@ -324,6 +448,90 @@ class Viewer implements SequenceViewer {
       if (menu) return menu;
     }
     return [];
+  }
+
+  /** A track's name for people: the document's label, the viewer's own, a behavior's offer or title, else its ref. */
+  private labelOf(node: DocNode): string {
+    const ref = node.ref ?? '';
+    const own = typeof node.params?.label === 'string' ? node.params.label.trim() : '';
+    if (own) return own;
+    if (TrackLabels[ref]) return TrackLabels[ref];
+    for (const [id, { offer, title }] of this.behaviors) {
+      const offered = offer?.labels?.[ref];
+      if (offered) return offered;
+      if (ref.startsWith(id)) return title;
+    }
+    return ref;
+  }
+
+  /** The loaded SeqViewSpec shown hides this track itself (its own value, under the person's edits). */
+  private sourceHidden(ref: string): boolean {
+    const o = this.overrideState.value;
+    const host = this.deps.structure.value;
+    if (!o || !host || host.ref !== o.structure) return false;
+    const n = findNode(o.document.root, ref);
+    return !!n && n.kind === 'track' && hiddenIn(n);
+  }
+
+  /** The edits written into a document's tracks (a fresh copy the model owns: written in place). */
+  private applyEdits(root: DocNode): void {
+    const tracks = this.editsState.value.tracks;
+    if (!tracks) return;
+    for (const t of tracksUnder(root)) {
+      const entry = t.ref ? tracks[t.ref] : undefined;
+      if (!entry) continue;
+      const { hidden: _, ...rest } = t.params ?? {};
+      t.params = entry.hidden ? { ...rest, hidden: true } : rest;
+    }
+  }
+
+  /** A behavior's insert with the person's edits over the tracks it adds. */
+  private withEdits(op: Op): Op {
+    if (op.op !== 'insert' || !this.editsState.value.tracks) return op;
+    const node = structuredClone(op.node);
+    this.applyEdits(node);
+    return { ...op, node };
+  }
+
+  /** The document's tracks brought to the edits: one base patch for what differs (nothing while one is made). */
+  private async syncEdits(): Promise<void> {
+    const base = this.seq.document.base.value;
+    if (!base || !this.shownState.value || this.disposed) return;
+    const ops: Op[] = [];
+    for (const t of tracksUnder(base.root)) {
+      if (!t.ref) continue;
+      const entry = this.editsState.value.tracks?.[t.ref];
+      const want = entry ? entry.hidden : this.sourceHidden(t.ref);
+      if (want !== hiddenIn(t)) ops.push({ op: 'set', ref: t.ref, params: { hidden: want ? true : null } });
+    }
+    if (!ops.length) return;
+    await this.seq.applyPatch({ format: 'seq_view_spec_patch', ops }, { layer: 'base', origin: EditsOrigin as never });
+  }
+
+  /** The tracks of the section shown, from the document shown. */
+  private refreshTracks() {
+    const doc = this.seq.document.shown.value;
+    const section = this.structureState.value?.section;
+    const node = doc && section ? findNode(doc.root, section) : undefined;
+    const list = node
+      ? tracksUnder(node).flatMap((t) => (t.ref ? [{ ref: t.ref, label: this.labelOf(t), hidden: hiddenIn(t) }] : []))
+      : [];
+    this.tracksState.set(list);
+  }
+
+  setEdits(edits: SequenceEdits): Promise<void> {
+    this.editsState.set(edits);
+    return this.syncEdits();
+  }
+
+  async setTrackHidden(track: string, hidden: boolean): Promise<boolean> {
+    const now = this.tracksState.value.find((t) => t.ref === track);
+    if (!now || now.hidden === hidden) return false;
+    // Only a change from the document's own value is an edit: showing a track the person hid drops its entry.
+    const { [track]: _, ...rest } = this.editsState.value.tracks ?? {};
+    const tracks = hidden === this.sourceHidden(track) ? rest : { ...rest, [track]: { hidden } };
+    await this.setEdits(Object.keys(tracks).length ? { tracks } : {});
+    return true;
   }
 
   /** What the colors mean: the letters' scheme, the secondary structure, and the behaviors' blocks (a pLDDT track's bands). */
@@ -456,6 +664,8 @@ class Viewer implements SequenceViewer {
         plain: plainCellHex(this.deps.ink.value),
         ligands: host.ligands,
       });
+    // The person's edits (sequence.md §7.1): written into every document built, so a rebuild keeps them.
+    this.applyEdits(doc.root);
     // A new structure is not shown as the old one while its document is made.
     if (this.structureState.value && this.structureState.value.structure !== host.structure)
       this.structureState.set(undefined);
@@ -477,6 +687,8 @@ class Viewer implements SequenceViewer {
       section,
       after: svs?.after ?? SecondaryTrack,
     });
+    // Edits changed while the document was made: brought to them now.
+    await this.syncEdits();
     return result;
   }
 

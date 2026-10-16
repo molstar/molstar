@@ -23,7 +23,7 @@ import {
 export type SystemRefKind = 'molecule' | 'unit' | 'complex' | 'alignment' | 'annotation' | 'item' | 'section';
 export type SystemStructureField = 'structureRef' | 'entity' | 'labelAsymId' | 'authAsymId' | 'instanceId';
 
-/** Plain data, no host types: what a host and the viewer say about a system (seqspec:interaction#focus). */
+/** Plain data, no host types: what a host and the viewer say about a system (seqspec:libraries#the-system-registry). */
 export interface SystemDescriptor {
   /** Stable across patches and reloads: "seqstar:1brs/A", "molstar:3d-1/A@1". */
   readonly key: string;

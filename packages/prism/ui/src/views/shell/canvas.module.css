@@ -375,6 +375,27 @@
   font-size: var(--msp-font-size-xs);
 }
 
+/* A submenu row's mark: its rows open beside the menu. */
+.toolMenuChevron {
+  color: var(--msp-color-text-subtle);
+}
+
+/* A submenu beside the menu (the canvas stack's), toward the canvas: its bottom level with its row's, set inline when
+   it opens (measured once). */
+.toolSubmenu {
+  position: absolute;
+  right: 100%;
+  margin-right: var(--msp-space-2);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+/* A submenu's name over its rows where a menu has no room beside it (the rail's menus). */
+.toolMenuHeading {
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
 /* The toolbar's own corner when no floating dock carries it in its rail. */
 .toolbarSlot {
   position: absolute;

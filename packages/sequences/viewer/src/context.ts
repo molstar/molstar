@@ -58,7 +58,7 @@ import {
   state,
 } from './state.js';
 import { type StreamManager, Streams } from './streams.js';
-import { SystemRegistry } from './systems.js';
+import { ViewerSystems } from './systems.js';
 import { monospaceMeasurer, TextManager, type TextManagerApi, type TextMeasurer } from './text.js';
 import { type IssueManager, Issues, type TaskManager, Tasks, Ui, type UiManager } from './ui.js';
 import { type ScrollGroupManager, ScrollGroups, sectionsOf, type ViewportManager, Viewports } from './viewport.js';
@@ -190,10 +190,10 @@ export interface SeqViewerContext {
   readonly hover: HoverManager;
   readonly highlight: HighlightManager;
   /**
-   * Coordinate systems at the edge (seqspec:interaction#focus): a host's, with their maps, and the shown set's own by
-   * key.
+   * Coordinate systems at the edge (seqspec:libraries#the-system-registry): core's registry over the shown set (a
+   * host's systems with their maps, the set's own by key) plus its reactive `version`.
    */
-  readonly systems: SystemRegistry;
+  readonly systems: ViewerSystems;
   readonly labels: LabelManager;
   readonly viewports: ViewportManager;
   readonly scrollGroups: ScrollGroupManager;
@@ -282,7 +282,7 @@ class Context implements SeqViewerContext {
     () => this.systems?.version.value ?? 0,
   );
   readonly highlight = new Highlight((m) => this.report('seqv.state.error', m));
-  readonly systems = new SystemRegistry();
+  readonly systems = new ViewerSystems();
   readonly labels: Labels;
   readonly input: InputDispatcher;
   readonly behaviors: Behaviors;

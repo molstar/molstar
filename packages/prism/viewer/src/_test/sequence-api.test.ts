@@ -13,6 +13,13 @@ import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 
 // The `sequence` area's operations (api/sequence.ts, api.md §2, sequence.md §6), headless.
 
+/** The built document's tracks, as `sequence.get` lists them. */
+const Tracks = [
+  { ref: 'ruler', name: 'Ruler', hidden: false },
+  { ref: 'letters', name: 'Residues', hidden: false },
+  { ref: 'ss-track', name: 'Secondary structure', hidden: false },
+];
+
 describe('the sequence API', () => {
   it('colors the letters as a step: set, already so, and Undo restores', async () => {
     const v = await headlessViewer({ files: [cbs()] });
@@ -118,22 +125,26 @@ describe('the sequence API', () => {
     };
     // The viewer takes the followed structure's document asynchronously.
     await until(() => viewer.structure.value?.title === '1CBS');
+    await until(() => viewer.tracks.value.length === 3);
     expect(await get()).toEqual({
       structure: '1CBS',
       style: 'tracks',
       colors: 'prism:residues',
       rail: { navigator: 'ruler' },
+      tracks: Tracks,
     });
 
     expectOk(await v.api.sequence!.style({ style: 'text' }));
     expectOk(await v.api.sequence!.colors({ scheme: 'taylor' }));
     expectOk(await v.api.sequence!.follow({ structure: '1crn' }));
     await until(() => viewer.structure.value?.title === '1CRN');
+    await until(() => viewer.tracks.value.length === 3);
     expect(await get()).toEqual({
       structure: '1CRN',
       style: 'text',
       colors: 'taylor',
       rail: { navigator: 'ruler' },
+      tracks: Tracks,
     });
 
     expectOk(await v.api.sequence!.colors({ scheme: 'none' }));

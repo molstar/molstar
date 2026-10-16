@@ -283,14 +283,14 @@ compute and hide it is the `hoverLabel` behavior's.
 
 The viewer talks to its host in coordinates, and a host may own coordinate systems (Mol\*'s chains).
 
-- **Own keys.** The shown set's systems are `seqstar:<ref>` (a unit, a molecule, a complex, an alignment's columns by
-  the alignment's ref, a row `<alignment>/<k>`, `k` in digits); a descriptor lists a numbering's name once.
+- **`ctx.systems`** is core's system registry over the shown set (`seqspec:libraries#the-system-registry`: its own keys
+  `seqstar:<ref>` and their descriptors) with a reactive `version`, bumped by every registration.
 - **Events describe their systems.** What the viewer reports outward gives extents as `Coordinates` with a plain-data
   descriptor per system (key, kind, domain, refs, a unit's `mvs` fields, numberings, a complex's members), so a host
   needs no Seq\* types.
 - **Requests in any registered system.** `hover.setLoci`, `highlight.set`, the selection verbs and `focus.fromLoci` take
-  `Coordinates`. A host registers an external system with its maps (`ctx.systems.register`, a `Translator`:
-  `seqspec:libraries#translate`); it joins the view only through them. A structure registers as one complex system whose
+  `Coordinates` (`seqspec:libraries#coordinates`). A host registers an external system with its maps
+  (`ctx.systems.register`); it joins the view only through them. A structure registers as one complex system whose
   members are its chains'.
 - Coordinates naming a key not registered survive as keys in a hover or a highlight, light nothing, and light again when
   it returns. The selection holds loci: its verbs convert Coordinates at once through the systems registered then, so a

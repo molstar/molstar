@@ -65,10 +65,13 @@ export const classes = {
   'toolMenu': 'msp-shell-canvas-toolMenu',
   'toolMenuCard': 'msp-shell-canvas-toolMenuCard',
   'toolMenuCheck': 'msp-shell-canvas-toolMenuCheck',
+  'toolMenuChevron': 'msp-shell-canvas-toolMenuChevron',
   'toolMenuDivider': 'msp-shell-canvas-toolMenuDivider',
+  'toolMenuHeading': 'msp-shell-canvas-toolMenuHeading',
   'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
   'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
   'toolMenuRow': 'msp-shell-canvas-toolMenuRow',
+  'toolSubmenu': 'msp-shell-canvas-toolSubmenu',
   'toolbar': 'msp-shell-canvas-toolbar',
   'toolbarSlot': 'msp-shell-canvas-toolbarSlot',
 } as const;
@@ -378,6 +381,23 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-shell-canvas-toolMenuChevron {
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-shell-canvas-toolSubmenu {
+  margin-right: var(--msp-space-2);
+  animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+  position: absolute;
+  right: 100%;
+}
+
+.msp-shell-canvas-toolMenuHeading {
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }

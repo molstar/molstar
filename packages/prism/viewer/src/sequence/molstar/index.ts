@@ -9,8 +9,8 @@
 // The Mol* adapter (`@molstar/prism-viewer/sequence/molstar`; seqspec:libraries#the-mol-adapter, sequence.md §1):
 // structures read headless and turned into Seq* complexes (`molstar:structure`), the structure formats and the `pdbe`
 // and `afdb` services, the structure providers (pLDDT, PAE, secondary structure, SIFTS coverage), the link between a
-// structure and a Seq* set (`StructureLink`, registered as external systems on a `Translator`, the viewer's
-// `ctx.systems`), the viewer-to-3D link (`linkViews`) and SeqQL over Mol* (`molql`). Prism's sequence is made on it.
+// structure and a Seq* set (`StructureLink`, registered as external systems on a `Translator`: core's `SystemRegistry`,
+// a host's own with no viewer or a viewer's `ctx.systems`), the viewer-to-3D link (`linkViews`) and SeqQL over Mol* (`molql`). Prism's sequence is made on it.
 
 export * from './chains.js';
 export * from './complex.js';
