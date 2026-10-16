@@ -9,7 +9,8 @@
 // The empty canvas's splash as a quantum system (beside prism-field.ts, the same surface; design/shell.md): the light is
 // a wave, ψ on a 128 × 128 grid round the star, moved on by the Schrödinger equation (ħ = m = 1, H = −∇²/2 + V) with the
 // split-step Fourier method: half a step of the potential, the kinetic step in momentum space (an FFT there and back),
-// the other half. Emitters at the left radiate wave packets, each of its own wavenumber (its color). The wordmark is
+// the other half. Emitters at the left radiate wave packets, each of its own wavenumber (its color), the flow as strong
+// as the word is assembled (none while its pieces fly in; dimmer while it is broken). The wordmark is
 // glass, a potential well carried by its pieces (`Glass`: the filled word, piece by piece where each is now): a packet's
 // refraction through it depends on its energy, so the star splits the light by wavenumber as a prism does; a shatter
 // scatters the well with the pieces and the snap back puts it together (drawing the light in for a moment). The specks
@@ -121,6 +122,8 @@ const EmitAcross = 4;
 const EmitStrength = 0.07;
 const Source = Edge + 6;
 const BeamFade = 26;
+/** How fast a cell's color follows its light's (1/s). */
+const TintEase = 5;
 /** How much stronger the wave shows on a dark canvas. */
 const DarkGlow = 3;
 /** How fast the picture's scale follows the wave's densest part (1/s): no jump when a packet comes in. */
@@ -139,8 +142,16 @@ const Straight = 0.22;
 /** Alpha levels a frame batches specks into (per color). */
 const Levels = 10;
 const Colors = 5;
-/** Seconds of the start the light comes in faster. */
-const Intro = 2;
+/**
+ * The light follows the glass: the flow from the left is as strong as the word is assembled (`Glass.assembled`; none
+ * while its pieces fly in, growing as they come together, dimming when it breaks), eased at this rate (1/s).
+ */
+const FlowEase = 3;
+/**
+ * The least the picture's scale is (|ψ|², about a full packet's): a weaker flow shows weaker instead of being scaled
+ * back up.
+ */
+const RhoFloor = 0.5;
 
 const ColorVars = [
   '--msp-color-text-subtle',
@@ -258,7 +269,9 @@ export class QuantumField {
   readonly #rho = new Float32Array(Cells);
   /** The density's running sum, to draw where a speck starts. */
   readonly #cdf = new Float32Array(Cells);
-  #rhoMax = 1e-6;
+  #rhoMax = RhoFloor;
+  /** How strong the flow from the left is now (0..1, the glass's assembly, eased). */
+  #flow = 0;
   #potential = true;
   #clock = 0;
   #emit = 0;
@@ -272,6 +285,8 @@ export class QuantumField {
   readonly #emK = new Float32Array(Emitters);
   readonly #emAmp = new Float32Array(Emitters);
   readonly #emT0 = new Float32Array(Emitters);
+  /** 1 for the flow's emitters (they follow the glass), 0 for the snap's bursts. */
+  readonly #emFlow = new Uint8Array(Emitters);
   #emitters = 0;
 
   // The specks: position (canvas px), age (s), color (0: the stream's; 1–4: the logo's), a phase for their size; the
@@ -296,6 +311,12 @@ export class QuantumField {
 
   readonly #colors: string[] = ['#888', '#7a4f2f', '#e0ae2c', '#6f9a80', '#3f86ad'];
   readonly #rgb = new Uint8Array(Colors * 3);
+  /** The picture's color per cell, eased toward its light's (no flicker where the phase is noise); set once colors are read. */
+  readonly #tintR = new Float32Array(Cells);
+  readonly #tintG = new Float32Array(Cells);
+  readonly #tintB = new Float32Array(Cells);
+  #tinted = false;
+  #frameDt = 1 / 60;
   /** On a dark canvas (its stream color light): the wave is light added to it, stronger. */
   #dark = false;
   #gradient: CanvasGradient | undefined;
@@ -361,6 +382,8 @@ export class QuantumField {
       this.#emitters = 0;
       this.#births = 0;
       this.#amount = 0;
+      this.#flow = 0;
+      this.#rhoMax = RhoFloor;
     }
     this.#potential = true;
     if (this.#still) this.#drawStill();
@@ -503,6 +526,7 @@ export class QuantumField {
       this.#colorsRead = now;
       this.readColors();
     }
+    this.#frameDt = dt;
     this.#step(dt);
     this.#draw();
     this.#frame = requestAnimationFrame(this.#tick);
@@ -516,6 +540,8 @@ export class QuantumField {
     this.#emitters = 0;
     this.#births = 0;
     this.#amount = 0;
+    this.#flow = 0;
+    this.#rhoMax = RhoFloor;
     this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < 6; t += 1 / 20) this.#step(1 / 20);
@@ -529,7 +555,7 @@ export class QuantumField {
   }
 
   /** An emitter at grid (cx, cy) radiating a packet going `angle` with wavenumber `k` (none if all are busy). */
-  #launch(cx: number, cy: number, angle: number, k: number, amplitude: number): void {
+  #launch(cx: number, cy: number, angle: number, k: number, amplitude: number, flow: boolean): void {
     const e = this.#emitters;
     if (e >= Emitters) return;
     this.#emX[e] = cx;
@@ -539,6 +565,7 @@ export class QuantumField {
     this.#emK[e] = k;
     this.#emAmp[e] = amplitude;
     this.#emT0[e] = this.#sim;
+    this.#emFlow[e] = flow ? 1 : 0;
     this.#emitters = e + 1;
   }
 
@@ -560,11 +587,12 @@ export class QuantumField {
         this.#emK[e] = this.#emK[last];
         this.#emAmp[e] = this.#emAmp[last];
         this.#emT0[e] = this.#emT0[last];
+        this.#emFlow[e] = this.#emFlow[last];
         e--;
         continue;
       }
       const ease = Math.sin(Math.PI * tau);
-      const strength = this.#emAmp[e] * EmitStrength * ease * ease * Dt;
+      const strength = this.#emAmp[e] * EmitStrength * ease * ease * Dt * (this.#emFlow[e] ? this.#flow : 1);
       const k = this.#emK[e];
       const c = this.#emCos[e];
       const sn = this.#emSin[e];
@@ -859,7 +887,7 @@ export class QuantumField {
       }
     }
     // The picture's scale eases toward the densest part, either way (a packet coming in never dims the rest at once).
-    this.#rhoMax = Math.max(1e-6, this.#rhoMax + (most - this.#rhoMax) * Math.min(1, dt * ScaleEase));
+    this.#rhoMax = Math.max(RhoFloor, this.#rhoMax + (most - this.#rhoMax) * Math.min(1, dt * ScaleEase));
   }
 
   /** Bilinear lookup of a grid field at canvas px (x, y). */
@@ -916,6 +944,7 @@ export class QuantumField {
     this.#glass?.step(dt);
     const glass = this.#glass;
     const pull = glass ? glass.pull : 0;
+    this.#flow += ((glass ? glass.assembled : 1) - this.#flow) * Math.min(1, dt * FlowEase);
     const whole = !glass || glass.whole;
     // The pieces moving (or leaning) move the glass's well with them.
     if (whole !== this.#wasWhole || pull > 0 || this.#wasPull > 0 || (glass && !glass.resting)) this.#potential = true;
@@ -929,20 +958,19 @@ export class QuantumField {
     // The light comes in: packets at the left, toward the star, each its own wavenumber (faster at the start).
     const sx = (this.#ox - this.#gx) / Cell;
     const sy = (this.#oy - this.#gy) / Cell;
-    const intro = this.#time < Intro ? 1 + 2 * (1 - this.#time / Intro) : 1;
-    this.#emit += dt * o.rate * intro;
+    this.#emit += dt * o.rate;
     while (this.#emit >= 1) {
       this.#emit -= 1;
       const y = sy + (this.#random() * 2 - 1) * 2;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#launch(Source, y, Math.atan2(sy - y, sx - Source), k, 1);
+      this.#launch(Source, y, Math.atan2(sy - y, sx - Source), k, 1, true);
     }
     // The glass back together: a little of the light it held, out along its arms.
     while (this.#bursts >= 1) {
       this.#bursts -= 1;
       const arm = (Math.floor(this.#random() * 8) * Math.PI) / 4;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#launch(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, 0.8);
+      this.#launch(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, 0.8, false);
     }
 
     // The evolution: as many steps as the time that passed takes.
@@ -986,8 +1014,11 @@ export class QuantumField {
     // Births: |ψ|² is the chance of a speck. As many a second as asked at the wave's usual amount, more with more of it,
     // each drawn from its density.
     const amount = this.#cdf[Cells - 1];
-    this.#amount = this.#amount ? this.#amount + (amount - this.#amount) * Math.min(1, dt * AmountEase) : amount;
-    if (this.#amount > 1e-6) this.#births += dt * o.spawn * (amount / this.#amount);
+    // The usual amount is learned while the flow is full; until then (the first assembly) births follow the flow.
+    if (this.#flow > 0.9) {
+      this.#amount = this.#amount ? this.#amount + (amount - this.#amount) * Math.min(1, dt * AmountEase) : amount;
+    }
+    this.#births += dt * o.spawn * (this.#amount > 1e-6 ? amount / this.#amount : this.#flow);
     while (this.#births >= 1) {
       this.#births -= 1;
       if (this.#alive >= Capacity || !this.#spawn(this.#alive)) continue;
@@ -1013,6 +1044,19 @@ export class QuantumField {
     const rho = this.#rho;
     const inv = 1 / this.#rhoMax;
     const glow = Math.min(1, o.glow) * (this.#dark ? DarkGlow : 1) * 255;
+    const rgb = this.#rgb;
+    const tr = this.#tintR;
+    const tg = this.#tintG;
+    const tb = this.#tintB;
+    if (!this.#tinted) {
+      tr.fill(rgb[0]);
+      tg.fill(rgb[1]);
+      tb.fill(rgb[2]);
+      this.#tinted = true;
+    }
+    const ease = Math.min(1, this.#frameDt * TintEase);
+    const lo = o.k * (1 - o.spectrum);
+    const span = Math.max(1e-3, 2 * o.k * o.spectrum);
     for (let i = 0; i < Cells; i++) {
       const p = rho[i] * inv;
       const j = i * 4;
@@ -1020,10 +1064,34 @@ export class QuantumField {
         data[j + 3] = 0;
         continue;
       }
-      const c = o.colors ? this.#colorFor(this.#vx[i], this.#vy[i]) * 3 : 0;
-      data[j] = this.#rgb[c];
-      data[j + 1] = this.#rgb[c + 1];
-      data[j + 2] = this.#rgb[c + 2];
+      // Its light's color: the stream's while straight on, else between the logo's colors by its wavenumber; trusted
+      // only where the wave is dense (where it is thin its phase is noise).
+      let r = rgb[0];
+      let g = rgb[1];
+      let b = rgb[2];
+      if (o.colors) {
+        const u = this.#vx[i];
+        const w = this.#vy[i];
+        const turn = Math.abs(Math.atan2(w, u));
+        let colorful = Math.min(1, Math.max(0, (turn - Straight * 0.5) / Straight)) * Math.min(1, p * 12);
+        colorful = colorful * colorful * (3 - 2 * colorful);
+        if (colorful > 0) {
+          const f = Math.min(2.999, Math.max(0, ((Math.sqrt(u * u + w * w) - lo) / span) * 4 - 0.5));
+          const k = f | 0;
+          const t = f - k;
+          const a = (1 + k) * 3;
+          const z = (2 + k) * 3;
+          r += (rgb[a] * (1 - t) + rgb[z] * t - r) * colorful;
+          g += (rgb[a + 1] * (1 - t) + rgb[z + 1] * t - g) * colorful;
+          b += (rgb[a + 2] * (1 - t) + rgb[z + 2] * t - b) * colorful;
+        }
+      }
+      tr[i] += (r - tr[i]) * ease;
+      tg[i] += (g - tg[i]) * ease;
+      tb[i] += (b - tb[i]) * ease;
+      data[j] = tr[i];
+      data[j + 1] = tg[i];
+      data[j + 2] = tb[i];
       const front = 1 - o.ripples * 0.5 * (1 - this.#re[i] / Math.sqrt(rho[i]));
       data[j + 3] = Math.min(255, glow * Math.min(1, p ** 0.5) * front * edgeShow[i]);
     }

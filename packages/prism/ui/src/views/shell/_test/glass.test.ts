@@ -108,4 +108,18 @@ describe('the wordmark as glass', () => {
     expect(glass.whole).toBe(true);
     expect(glass.pull).toBe(0);
   });
+
+  it('says how assembled it is: little while the pieces fly in, 1 when whole, less again when broken', () => {
+    const glass = new Glass();
+    glass.scatter();
+    // Its pieces take their places away on the first step.
+    run(glass, 0.02);
+    expect(glass.assembled).toBeLessThan(0.2);
+    run(glass, 4);
+    expect(glass.whole).toBe(true);
+    expect(glass.assembled).toBeCloseTo(1, 5);
+    glass.shatter(20, 10);
+    run(glass, 0.4);
+    expect(glass.assembled).toBeLessThan(0.8);
+  });
 });

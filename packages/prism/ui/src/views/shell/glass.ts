@@ -44,6 +44,9 @@ const HoverTilt = 0.1;
 const Stiffness = 140;
 const Damping = 11;
 
+/** The mean distance of the pieces from home (drawing units) at which `assembled` is 1/e. */
+const AssembledScale = 3;
+
 export type GlassPhase = 'assembling' | 'whole' | 'broken';
 
 /** A small seeded generator (mulberry32). */
@@ -175,6 +178,16 @@ export class Glass {
     out[2] = this.#rot[i] + this.#hr[i];
     out[3] = this.#cx[i];
     out[4] = this.#cy[i];
+  }
+
+  /**
+   * How assembled it is (0..1): 1 with every piece home, falling as they are away (their mean distance in drawing
+   * units, a turn counted as distance), toward 0 when scattered; for a host whose light follows the glass.
+   */
+  get assembled(): number {
+    let away = 0;
+    for (let i = 0; i < Shards; i++) away += Math.hypot(this.#ox[i], this.#oy[i]) + Math.abs(this.#rot[i]) * 6;
+    return Math.exp(-away / Shards / AssembledScale);
   }
 
   /**
