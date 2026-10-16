@@ -24,4 +24,8 @@ describe('the app spec', () => {
     expect(createAppSpec('?PDB=1cbs').options?.ui?.homeWhenEmpty).toBe(false);
     expect(createAppSpec('?Restore').persist?.restore).toBeDefined();
   });
+
+  it('has remote states on: the app is on the web', () => {
+    expect(createAppSpec('').options?.ui?.showRemoteStates).toBe(true);
+  });
 });

@@ -27,7 +27,8 @@ export function createAppSpec(search: string): PrismViewerSpec {
   const loads = LoadUrlParameters.some((p) => params.has(p));
   return {
     ...base,
-    options: { ...options, ui: { homeWhenEmpty: !loads, ...options.ui } },
+    // The app is on the web: remote states (the state server's Save and Open) are on.
+    options: { ...options, ui: { homeWhenEmpty: !loads, showRemoteStates: true, ...options.ui } },
     ...(assistant ? { ui: { ...base.ui, layout: { ...base.ui?.layout, start: 'assistant.tab.assistant' } } } : {}),
     // Light state in the browser (journal.md §6): preferences in localStorage; with `?restore`, this tab's light
     // restore in sessionStorage; both stamped with the app's version.

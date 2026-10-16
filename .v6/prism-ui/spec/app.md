@@ -11,6 +11,8 @@ element, and the URL. Status: **accepted** (2026-10-15).
 - **The extension list** (`MolstarViewerExtensions`) is the app's: the viewer's own features come with
   `DefaultPrismViewerSpec()`; the app adds Mol\*'s extensions, the data-only ones as plain `{ id, title, plugin }`
   entries, heavy ones lazy (video export, Zenodo; the PAE view when it is built).
+- **On the web** (2026-10-16): remote states are on (`ui.showRemoteStates`: Home's Remote states section, the card,
+  Save and Open on the viewer's `state-server`); the library's default leaves them off for pages that embed it.
 - **Build**: ESM with code splitting, one chunk per lazy feature and extension and one for the assistant, content-hashed
   file names (esbuild: `scripts/esbuild/app.mjs` builds IIFE today and gains a splitting mode; the `molstar`
   distribution's ESM build already has shared chunks). Prism's CSS is in its JS modules, so there is no stylesheet.
