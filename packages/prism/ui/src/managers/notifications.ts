@@ -52,6 +52,8 @@ export class NotificationsManager extends ReactiveModel {
   readonly #current = observableState<StatusMessage | undefined>(undefined);
   readonly #history = observableState<readonly StatusMessage[]>([]);
   readonly #tasks = observableState<readonly StatusTask[]>([]);
+  /** The tasks put one by one (`putTask`), by id: `setTasks` leaves them. */
+  readonly #put = new Set<string>();
   readonly #chips = observableState<readonly StatusChip[]>([]);
   readonly #posted = new Subject<StatusMessage>();
   readonly #spoken = observableState('');
@@ -112,14 +114,16 @@ export class NotificationsManager extends ReactiveModel {
     this.#posted.next(message);
   }
 
-  /** Adds or replaces a task by id. */
+  /** Adds or replaces a task by id; it stays until `removeTask`, whatever `setTasks` sets. */
   putTask(task: StatusTask): void {
+    this.#put.add(task.id);
     const tasks = this.#tasks.value;
     const i = tasks.findIndex((t) => t.id === task.id);
     this.#tasks.set(i < 0 ? [...tasks, task] : tasks.map((t, j) => (j === i ? task : t)));
   }
 
   removeTask(id: string): void {
+    this.#put.delete(id);
     if (this.#tasks.value.some((t) => t.id === id)) this.#tasks.set(this.#tasks.value.filter((t) => t.id !== id));
   }
 
@@ -130,8 +134,13 @@ export class NotificationsManager extends ReactiveModel {
     this.#current.set(undefined);
   }
 
+  /**
+   * Sets the tasks one source mirrors (the plugin's): every task but those put one by one (`putTask`), which stay until
+   * they are removed.
+   */
   setTasks(tasks: readonly StatusTask[]): void {
-    this.#tasks.set(tasks);
+    const put = this.#tasks.value.filter((t) => this.#put.has(t.id) && !tasks.some((n) => n.id === t.id));
+    this.#tasks.set(put.length ? [...tasks, ...put] : tasks);
   }
 
   setChips(chips: readonly StatusChip[]): void {
