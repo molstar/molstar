@@ -20,7 +20,7 @@ import type { SourceScope } from './state.js';
 // (grouped as it groups them; operations.md §2, "registries are arguments": the preset is `structure.preset`'s id), and
 // the component manager's options as a form (`component.options`).
 
-export function createPresetsModel(plugin: PluginContext, api: ViewerApi): PresetsModel {
+export function createPresetsModel(scope: SourceScope, plugin: PluginContext, api: ViewerApi): PresetsModel {
   const groups = new Map<string, StructurePreset[]>();
   for (const p of plugin.builders.structure.representation.providers) {
     const group = p.display.group ?? '';
@@ -31,14 +31,28 @@ export function createPresetsModel(plugin: PluginContext, api: ViewerApi): Prese
       ...(p.display.description ? { description: p.display.description } : {}),
     });
   }
+  // The one in effect until the scene changes some other way (Undo, a load, Styles): the state tree it left is the mark.
   const current = observableState<string | undefined>(undefined);
+  let applying = 0;
+  let applied: unknown;
+  scope.add(
+    plugin.state.data.events.changed.subscribe(() => {
+      if (!applying && current.value !== undefined && plugin.state.data.tree !== applied) current.set(undefined);
+    }),
+  );
   return {
     groups: [...groups].map(([label, presets]) => ({ ...(label ? { label } : {}), presets })),
     current: current.asReadonly,
     apply: (id) => {
-      void api.run('structure.preset', { preset: id }).then((r) => {
-        if (r.ok) current.set(id);
-      });
+      applying++;
+      void api
+        .run('structure.preset', { preset: id })
+        .then((r) => {
+          if (!r.ok) return;
+          applied = plugin.state.data.tree;
+          current.set(id);
+        })
+        .finally(() => void applying--);
     },
   };
 }

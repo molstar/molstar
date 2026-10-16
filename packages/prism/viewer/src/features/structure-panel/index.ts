@@ -23,7 +23,7 @@ export const StructurePanelFeature: ViewerExtension = {
   requires: ['structure'],
   views: ({ scope, plugin, person, openCommand }) => ({
     scene: createSceneSource(scope, plugin, person, openCommand),
-    presets: createPresetsModel(plugin, person),
+    presets: createPresetsModel(scope, plugin, person),
     componentOptions: createComponentOptionsForm(scope, plugin, person),
     quickStyles: createQuickStylesModel(person),
   }),
