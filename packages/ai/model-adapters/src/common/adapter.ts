@@ -37,14 +37,14 @@ export interface ProviderSpec {
 }
 
 /** A part's digest, short: enough to tell parts apart in one conversation. */
-const short = async (value: Json) => (await digest(value)).slice(0, 12);
+const short = (value: Json) => digest(value).slice(0, 12);
 
 /** The payload's parts in the order providers cache them: tools, system, then each message. */
-async function segmentsOf(payload: ProjectedPayload): Promise<string[]> {
+function segmentsOf(payload: ProjectedPayload): string[] {
   return [
-    await short(payload.tools as unknown as Json),
-    await short(payload.system),
-    ...(await Promise.all(payload.messages.map((m) => short(m as Json)))),
+    short(payload.tools as unknown as Json),
+    short(payload.system),
+    ...payload.messages.map((m) => short(m as Json)),
   ];
 }
 
@@ -58,10 +58,10 @@ export function createProviderAdapter(spec: ProviderSpec): ModelAdapter {
       const json = payload as unknown as Json;
       return {
         payload: json,
-        digest: await digest(json),
+        digest: digest(json),
         adapterRevision: spec.revision,
         inputTokens: measureProjected(payload, spec.measurement),
-        segments: await segmentsOf(payload),
+        segments: segmentsOf(payload),
       };
     },
     async *invoke(input) {

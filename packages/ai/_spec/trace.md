@@ -28,9 +28,9 @@ what the host knows of a call), `credits(model, usage)`, `ceilings` (by budget k
 `toolNames`, `window`, `now`, `cache` (a `TraceCache` kept across re-reads: heads, entries and blobs are immutable, so a
 re-read fetches only what is new).
 
-`TraceData`: `harnessId`, `execution` (seq, head, runner phase and lease, pending step, parked), `budget` (the kind
-nearest its ceiling in the latest turn), `preamble` (guidance and tool definitions with token estimates), `turns`,
-`loaded` and `declared` tools (from `main`).
+`TraceData`: `harnessId`, `execution` (seq, head, pending step, parked), `budget` (the kind nearest its ceiling in the
+latest turn), `preamble` (guidance and tool definitions with token estimates), `turns`, `loaded` and `declared` tools
+(from `main`).
 
 - `TurnView`: `id`, `prompt`, `focus?`, `status` (`thinking | working | waiting | done | stopped | failed`), times (ms
   from the first event), `tokens`, `steps`, `milestones`, `failure?`.

@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* AI: The harness conformance suite, its storage meter and property models, and test doubles (./testing)",
+  "description": "Mol* AI: The harness conformance suite, the createSession fixture, and test doubles (./testing)",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
@@ -45,7 +45,6 @@
     "@molstar/ai-agent": "workspace:*",
     "@molstar/ai-harness": "workspace:*",
     "vitest": "catalog:",
-    "fast-check": "catalog:",
     "tslib": "catalog:",
     "@molstar/ai-fibers": "workspace:*"
   },

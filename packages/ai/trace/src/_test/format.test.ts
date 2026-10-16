@@ -132,8 +132,7 @@ describe('the default profile', () => {
   });
 
   it('turnStatusOf: the harness’s statuses as Prism’s', () => {
-    const execution = (turn: object | undefined, phase: 'none' | 'live' = 'live') =>
-      ({ runner: { phase }, ...(turn ? { turn } : {}) }) as never;
+    const execution = (turn: object | undefined) => (turn ? { turn } : {}) as never;
     const active = (pending: 'model' | 'tools', extra: object = {}) =>
       execution({ id: 't', pending: { kind: pending }, ...extra });
     expect(turnStatusOf('completed', execution(undefined), 't')).toBe('done');
@@ -143,8 +142,6 @@ describe('the default profile', () => {
     expect(turnStatusOf('active', active('model'), 't')).toBe('thinking');
     expect(turnStatusOf('active', active('tools'), 't')).toBe('working');
     expect(turnStatusOf('active', active('tools', { park: { path: [] } }), 't')).toBe('waiting');
-    expect(turnStatusOf('active', active('model', { blocked: 'stale-schema' }), 't')).toBe('waiting');
-    expect(turnStatusOf('active', execution({ id: 't', pending: { kind: 'model' } }, 'none'), 't')).toBe('waiting');
     // A turn the Execution does not hold (its summary is not final yet).
     expect(turnStatusOf('active', execution(undefined), 't')).toBe('working');
     expect(turnStatusOf(undefined, active('model'), 'other')).toBe('working');

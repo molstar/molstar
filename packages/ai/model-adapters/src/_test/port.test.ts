@@ -259,7 +259,7 @@ describe('pure projection', () => {
     const first = await project(create({ resolveApiKey: () => 'k' }), input);
     const second = await project(create({ resolveApiKey: () => 'other-key' }), structuredClone(input));
     expect(second).toEqual(first);
-    expect(first.digest).toMatch(/^[a-f0-9]{64}$/);
+    expect(first.digest).toMatch(/^[a-f0-9]{32}$/);
     expect(Number.isInteger(first.inputTokens) && first.inputTokens > 0).toBe(true);
   });
 

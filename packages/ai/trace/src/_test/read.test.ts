@@ -20,18 +20,7 @@ import {
   type ToolStepView,
   type TurnView,
 } from '../index.js';
-import {
-  adapterState,
-  configured,
-  createSession,
-  first,
-  fixture,
-  request,
-  runnerOf,
-  turn,
-  until,
-  with_,
-} from './helpers.js';
+import { adapterState, configured, createSession, first, request, turn, until, with_ } from './helpers.js';
 
 const models = (t: TurnView) => t.steps.filter((s): s is ModelStepView => s.kind === 'model');
 const tools = (t: TurnView) => t.steps.filter((s): s is ToolStepView => s.kind === 'tool');
@@ -39,7 +28,7 @@ const shape = (t: TurnView) => t.steps.map((s) => (s.kind === 'tool' ? s.name : 
 
 /** echo succeeds, boom fails: a model that calls both, then answers. */
 async function basic() {
-  const s = await createSession(fixture, {
+  const s = createSession({
     declare: [],
     tools: {
       echo: () => ({ text: 'echoed' }),
@@ -67,7 +56,7 @@ async function basic() {
 describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () => {
   it('reads the turn, its status, request and focus, and its calls in the order they began', async () => {
     const s = await basic();
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     expect(trace.harnessId).toBe(s.harnessId);
     expect(trace.turns).toHaveLength(1);
     const [t] = trace.turns as [TurnView];
@@ -76,13 +65,13 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
     expect(t.focus).toBe('the display');
     expect(shape(t)).toEqual(['model', 'echo', 'boom', 'model']);
     expect(t.failure).toBeUndefined();
-    expect(trace.execution).toMatchObject({ runner: 'none' });
+    expect(trace.execution.parked).toBeUndefined();
     expect(trace.execution.pendingStep).toBeUndefined();
   });
 
   it('shows a tool call with its arguments and result, and a failed one with its failure', async () => {
     const s = await basic();
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     const [echo, boom] = tools(t) as [ToolStepView, ToolStepView];
     expect(echo).toMatchObject({ toolId: 'echo', args: { a: 1 }, status: 'succeeded', result: 'echoed' });
     expect(echo.attempts).toHaveLength(1);
@@ -93,7 +82,7 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
 
   it('shows what each model call asked for, how it ended (finish), and its usage', async () => {
     const s = await basic();
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     const [a, b] = models(t) as [ModelStepView, ModelStepView];
     expect(a.model).toBe('scripted-1');
     expect(a.toolCalls).toEqual(['echo(a=1)', 'boom()']);
@@ -108,7 +97,7 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
 
   it('sums the turn’s tokens, with the cached share, and formats them in one line', async () => {
     const s = await basic();
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     // Uncached 200 + 100, cache reads 1800, cache writes 100.
     expect(t.tokens).toMatchObject({ input: 2200, output: 24, cached: 1800, written: 100, reasoning: 5 });
     expect(formatUsage(t.tokens)).toBe('2.2k in (82% cached, 100 written) · 24 out');
@@ -116,7 +105,7 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
 
   it('measures times in ms from the first step event, and a wait shows in the attempt', async () => {
     const s = await basic();
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     const last = models(t)[1] as ModelStepView;
     const attempt = last.attempts[0];
     expect((attempt?.end ?? 0) - (attempt?.start ?? 0)).toBe(2000);
@@ -127,9 +116,9 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
   });
 
   it('marks a count the provider did not report as estimated', async () => {
-    const s = await createSession(fixture, { declare: [], model: [{ text: 'Hi.', usage: null }] });
+    const s = createSession({ declare: [], model: [{ text: 'Hi.', usage: null }] });
     await turn(s, first(s, request('Hello')));
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     const m = models(t)[0] as ModelStepView;
     expect(m.tokens?.estimated).toBe(true);
     expect(m.tokens?.input).toBeGreaterThan(0);
@@ -140,7 +129,7 @@ describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () =
 
 describe('readTrace: retries', () => {
   it('shows a retried model call as attempts: the failed one, the wait, the one that succeeded', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       model: [
         { fail: { transient: true, message: 'rate limited' } },
@@ -148,7 +137,7 @@ describe('readTrace: retries', () => {
       ],
     });
     await turn(s, first(s, request('Hi')));
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     expect(t.status).toBe('done');
     const [m] = models(t) as [ModelStepView];
     expect(m.attempts.map((a) => a.status)).toEqual(['failed', 'succeeded']);
@@ -161,9 +150,9 @@ describe('readTrace: retries', () => {
   });
 
   it('a turn that failed says why', async () => {
-    const s = await createSession(fixture, { declare: [], model: [{ fail: { message: 'bad key' } }] });
+    const s = createSession({ declare: [], model: [{ fail: { message: 'bad key' } }] });
     await turn(s, first(s, request('Hi')));
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     expect(t.status).toBe('failed');
     expect(t.failure).toBe('bad key');
     expect(models(t)[0]?.attempts[0]).toMatchObject({ status: 'failed', failure: 'bad key' });
@@ -174,7 +163,7 @@ describe('readTrace: retries', () => {
 
 describe('readTrace: nested runs', () => {
   it('records a nested run’s calls under the call that ran it, after it', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       tools: {
         helper: async (context) => {
@@ -196,7 +185,7 @@ describe('readTrace: nested runs', () => {
       ],
     });
     await turn(s, first(s, request('Use the helper')));
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     expect(shape(t)).toEqual(['model', 'helper', 'model', 'inner', 'model', 'model']);
     const helper = t.steps[1] as ToolStepView;
     expect(helper.result).toBe('helper completed');
@@ -217,7 +206,7 @@ describe('readTrace: nested runs', () => {
 describe('readTrace: what each model call saw (harness.md §2)', () => {
   it('lists the window in its parts, and marks what is new since the run’s previous call', async () => {
     const s = await basic();
-    const [t] = (await readTrace(s.client)).turns as [TurnView];
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
     const [a, b] = models(t) as [ModelStepView, ModelStepView];
     const roles = (m: ModelStepView) => m.window?.entries.map((e) => `${e.role}:${e.part}`);
     expect(roles(a)).toEqual(['system:guidance', 'tools:tools', 'user:state']);
@@ -248,7 +237,7 @@ describe('readTrace: what each model call saw (harness.md §2)', () => {
     const s = await basic();
     s.model.push({ text: 'Again.' });
     await turn(s, 'Request: once more');
-    const trace = await readTrace(s.client, { window: 200_000 });
+    const trace = await readTrace(s.harness, { window: 200_000 });
     expect(trace.turns).toHaveLength(2);
     const [, second] = trace.turns as [TurnView, TurnView];
     const m = models(second)[0] as ModelStepView;
@@ -260,7 +249,7 @@ describe('readTrace: what each model call saw (harness.md §2)', () => {
 
   it('reads the preamble from the first call, and the tools loaded from the start', async () => {
     const s = await basic();
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     expect(trace.preamble.guidance).toBe('Be brief.');
     expect(trace.preamble.guidanceTokens).toBeGreaterThan(0);
     expect(trace.preamble.tools.map((t) => t.id)).toEqual(['echo', 'boom']);
@@ -273,7 +262,7 @@ describe('readTrace: what each model call saw (harness.md §2)', () => {
   });
 
   it('gives the turn a tool was first seen loaded in, and what is declared but not loaded', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       tools: {
         echo: () => ({ text: 'echoed' }),
@@ -288,11 +277,11 @@ describe('readTrace: what each model call saw (harness.md §2)', () => {
       ],
     });
     await turn(s, first(s, request('first'), { deferred: ['late'] }));
-    const before = await readTrace(s.client);
+    const before = await readTrace(s.harness);
     expect(before.declared).toEqual(['late']);
     expect(before.loaded.map((t) => t.id)).toEqual(['echo', 'disclose']);
     await turn(s, request('second'));
-    const after = await readTrace(s.client);
+    const after = await readTrace(s.harness);
     expect(after.declared).toEqual([]);
     expect(after.loaded.map((t) => [t.id, t.turn])).toEqual([
       ['echo', undefined],
@@ -314,20 +303,20 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
     const s = await basic();
     s.model.push({ text: 'Again.' });
     await turn(s, 'Request: again');
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     expect(trace.turns.flatMap(breaks)).toEqual([undefined, undefined, undefined]);
     // Without segments from the adapter there is nothing to compare.
-    const t = await createSession(fixture, { declare: [], model: [{ text: 'a' }, { text: 'b' }] });
+    const t = createSession({ declare: [], model: [{ text: 'a' }, { text: 'b' }] });
     await t.send(first(t, request('one')));
     await t.send('Request: two');
-    expect((await readTrace(t.client)).turns.flatMap((x) => models(x).map((m) => m.prefixBreak))).toEqual([
+    expect((await readTrace(t.harness)).turns.flatMap((x) => models(x).map((m) => m.prefixBreak))).toEqual([
       undefined,
       undefined,
     ]);
   });
 
   it('a changed tool list breaks it at the tools', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       tools: {
         disclose: () => ({ text: 'ok', contributions: [declareTools([toolDefinition('late')])] }),
@@ -337,7 +326,7 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
     });
     await turn(s, first(s, request('first'), { deferred: ['late'] }));
     await turn(s, request('second'));
-    const [t1, t2] = (await readTrace(s.client)).turns as [TurnView, TurnView];
+    const [t1, t2] = (await readTrace(s.harness)).turns as [TurnView, TurnView];
     expect(breaks(t1)).toEqual([undefined, 'its tools changed']);
     expect(models(t1)[1]?.prefixBreak).toMatchObject({ kept: 0, of: 3 });
     expect(breaks(t2)).toEqual([undefined]);
@@ -345,36 +334,31 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
 
   it('a changed system text breaks it after the tools', async () => {
     adapterState.systemVersion = 0;
-    const s = await createSession(fixture, { declare: [], model: [{ text: 'one' }, { text: 'two' }] });
+    const s = createSession({ declare: [], model: [{ text: 'one' }, { text: 'two' }] });
     await turn(s, first(s, request('first')));
     adapterState.systemVersion = 1;
     await turn(s, 'Request: second');
     adapterState.systemVersion = 0;
-    const [t1, t2] = (await readTrace(s.client)).turns as [TurnView, TurnView];
+    const [t1, t2] = (await readTrace(s.harness)).turns as [TurnView, TurnView];
     expect(breaks(t1)).toEqual([undefined]);
     expect(breaks(t2)).toEqual(['its system text changed']);
     expect(models(t2)[0]?.prefixBreak).toMatchObject({ kept: 1, of: 3 });
   });
 
   it('an edit to the conversation (a compaction) breaks it at the first message that changed', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       model: [{ text: 'one' }, { text: 'two' }],
       drive: with_({
-        'next-turn': ({ payload }, ctx) =>
-          payload.size.inputTokens > 0 && ctx.inbox.length > 0
-            ? {
-                begin: {
-                  keys: ctx.inbox.map((item) => item.key),
-                  compact: { entries: [...ctx.head.entries.slice(0, 2), user('Summary of the work so far.')] },
-                },
-              }
+        'turn-start': ({ payload }, ctx) =>
+          payload.size.inputTokens > 0
+            ? { compact: { entries: [...ctx.head.entries.slice(0, 2), user('Summary of the work so far.')] } }
             : 'pass',
       }),
     });
     await turn(s, first(s, request('first')));
     await turn(s, 'Request: second');
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     const [t1, t2] = trace.turns as [TurnView, TurnView];
     expect(breaks(t1)).toEqual([undefined]);
     // Guidance and tools kept; the first message after them (the request) was replaced by a summary.
@@ -384,14 +368,14 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
   });
 
   it('a changed model or setting breaks it whole', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       model: [{ text: 'one' }, { text: 'two' }, { text: 'three' }],
     });
     await turn(s, first(s, request('first')));
     await turn(s, 'Request: second', configured(s, { parameters: { temperature: 0.2 } }));
     await turn(s, 'Request: third', configured(s, { target: { provider: 'scripted', model: 'scripted-2' } }));
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     expect(trace.turns.flatMap(breaks)).toEqual([
       undefined,
       "the model's settings changed",
@@ -406,7 +390,7 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
 
 describe('readTrace: a turn that is still going (harness.md §4, §6)', () => {
   it('is thinking while a model step is pending, and working while its tools run', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       tools: {
         slow: (context) =>
@@ -416,27 +400,25 @@ describe('readTrace: a turn that is still going (harness.md §4, §6)', () => {
       },
       model: [{ calls: [{ tool: 'slow', arguments: {} }] }, { text: 'wait', waitMs: 60_000 }, { text: 'end' }],
     });
-    const { launch } = await s.send(first(s, request('go')), { run: false });
-    const running = runnerOf(s).run(launch as string);
+    const { handle } = await s.send(first(s, request('go')), { wait: false });
     await until(() => s.model.invocations.length === 1 && s.tools.callsOf('slow').length === 1);
-    const working = await readTrace(s.client, { now: () => s.clock.now() });
+    const working = await readTrace(s.harness);
     expect(working.turns[0]?.status).toBe('working');
-    expect(working.execution).toMatchObject({ runner: 'live', pendingStep: 'tools' });
-    expect(working.execution.lease?.leaseMs).toBeGreaterThan(0);
+    expect(working.execution).toMatchObject({ pendingStep: 'tools' });
     expect(working.turns[0]?.steps.map((x) => x.kind)).toEqual(['model']);
     s.clock.advance(60_000).catch(() => undefined);
     await until(() => s.model.invocations.length === 2);
-    const thinking = await readTrace(s.client);
+    const thinking = await readTrace(s.harness);
     expect(thinking.turns[0]?.status).toBe('thinking');
     expect(thinking.execution.pendingStep).toBe('model');
     expect(thinking.turns[0]?.end).toBeUndefined();
     expect(thinking.turns[0]?.steps.map((x) => x.kind)).toEqual(['model', 'tool']);
-    await s.clock.runUntil(running);
-    expect((await readTrace(s.client)).turns[0]?.status).toBe('done');
+    await s.run(handle);
+    expect((await readTrace(s.harness)).turns[0]?.status).toBe('done');
   });
 
   it('is waiting when it is parked for an answer', async () => {
-    const s = await createSession(fixture, {
+    const s = createSession({
       declare: [],
       tools: { ask: () => ({ text: 'asked' }) },
       model: [{ calls: [{ tool: 'ask', arguments: {} }] }],
@@ -444,20 +426,18 @@ describe('readTrace: a turn that is still going (harness.md §4, §6)', () => {
       drive: with_({ permission: () => ({ park: {} }) }),
     });
     await turn(s, first(s, request('go')));
-    const trace = await readTrace(s.client);
+    const trace = await readTrace(s.harness);
     expect(trace.turns[0]?.status).toBe('waiting');
     expect(trace.execution).toMatchObject({ parked: true, pendingStep: 'tools' });
   });
 
   it('is stopped when it was stopped', async () => {
-    const s = await createSession(fixture, { declare: [], model: [{ text: 'slow', waitMs: 600_000 }] });
-    const { launch } = await s.send(first(s, request('go')), { run: false });
-    const running = runnerOf(s).run(launch as string);
+    const s = createSession({ declare: [], model: [{ text: 'slow', waitMs: 600_000 }] });
+    const { handle } = await s.send(first(s, request('go')), { wait: false });
     await until(() => s.model.invocations.length === 1);
-    const turnId = (await s.client.execution()).turn?.id as string;
-    await s.client.stop({ key: 'stop-1', turnId });
-    await s.clock.runUntil(running);
-    const trace = await readTrace(s.client);
+    s.harness.stop();
+    await s.run(handle);
+    const trace = await readTrace(s.harness);
     expect(trace.turns[0]?.status).toBe('stopped');
     expect(trace.turns[0]?.failure).toBeUndefined();
   });
@@ -466,7 +446,7 @@ describe('readTrace: a turn that is still going (harness.md §4, §6)', () => {
 describe('readTrace: the budget (harness.md §11)', () => {
   it('shows the kind of count nearest its ceiling, from the profile or from the limits the turn ran under', async () => {
     const s = await basic();
-    const named = await readTrace(s.client, { ceilings: { uncachedInput: 1000, output: 30 } });
+    const named = await readTrace(s.harness, { ceilings: { uncachedInput: 1000, output: 30 } });
     // 300 of 1000 uncached input, 24 of 30 output.
     expect(named.budget).toEqual({
       kind: 'output',
@@ -475,7 +455,7 @@ describe('readTrace: the budget (harness.md §11)', () => {
       dimension: 'output',
       scope: 'latest turn',
     });
-    const unlimited = await readTrace(s.client);
+    const unlimited = await readTrace(s.harness);
     expect(unlimited.budget).toEqual({
       kind: 'uncachedInput',
       consumed: 0,
@@ -484,7 +464,7 @@ describe('readTrace: the budget (harness.md §11)', () => {
       scope: 'latest turn',
     });
 
-    const limited = await createSession(fixture, {
+    const limited = createSession({
       declare: [],
       model: [{ text: 'ok', usage: { inputTokens: 500, outputTokens: 10 } }],
       configuration: {
@@ -494,7 +474,7 @@ describe('readTrace: the budget (harness.md §11)', () => {
       },
     });
     await turn(limited, first(limited, request('hi')));
-    expect((await readTrace(limited.client)).budget).toMatchObject({
+    expect((await readTrace(limited.harness)).budget).toMatchObject({
       kind: 'uncachedInput',
       consumed: 500,
       ceiling: 1000,
@@ -504,9 +484,9 @@ describe('readTrace: the budget (harness.md §11)', () => {
 
 describe('readTrace: the profile (the host’s part)', () => {
   it('reads the request with the host’s own marker', async () => {
-    const s = await createSession(fixture, { declare: [], model: [{ text: 'ok' }] });
+    const s = createSession({ declare: [], model: [{ text: 'ok' }] });
     await turn(s, first(s, 'Question: why?\nWhere: here'));
-    const trace = await readTrace(s.client, {
+    const trace = await readTrace(s.harness, {
       requestOf: (m) => {
         const text = m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
         return { prompt: /Question: (.*)/.exec(text)?.[1] ?? '', focus: /Where: (.*)/.exec(text)?.[1] ?? '' };
@@ -517,7 +497,7 @@ describe('readTrace: the profile (the host’s part)', () => {
 
   it('classifies the window with the host’s own parts', async () => {
     const s = await basic();
-    const trace = await readTrace(s.client, { windowPart: (m) => (m.role === 'user' ? 'state' : 'guidance') });
+    const trace = await readTrace(s.harness, { windowPart: (m) => (m.role === 'user' ? 'state' : 'guidance') });
     const last = models(trace.turns[0] as TurnView)[1] as ModelStepView;
     expect(last.window?.entries.map((e) => e.part)).toEqual(['guidance', 'guidance', 'state', 'guidance', 'state']);
   });
@@ -525,7 +505,7 @@ describe('readTrace: the profile (the host’s part)', () => {
   it('takes a tool call’s title, whether it read, and what it changed from the host', async () => {
     const s = await basic();
     const seen: string[] = [];
-    const trace = await readTrace(s.client, {
+    const trace = await readTrace(s.harness, {
       toolNames: new Map([['echo', 'Echo']]),
       toolCall: (call) => {
         seen.push(`${call.toolId}:${call.name}:${call.status}:${call.text}`);
@@ -550,7 +530,7 @@ describe('readTrace: the profile (the host’s part)', () => {
 
   it('prices model calls with the host’s credits, and sums them for the turn and the budget', async () => {
     const s = await basic();
-    const trace = await readTrace(s.client, {
+    const trace = await readTrace(s.harness, {
       credits: (model, usage) =>
         model === 'scripted-1' ? (usage.uncachedInput + usage.cacheRead * 0.1) / 100 : undefined,
       ceilings: { output: 100 },
@@ -562,7 +542,7 @@ describe('readTrace: the profile (the host’s part)', () => {
     expect(t.tokens.credits).toBeCloseTo(4.8);
     expect(trace.budget.credits).toBeCloseTo(4.8);
     expect(formatUsage(t.tokens)).toBe('2.2k in (82% cached, 100 written) · 24 out · 4.8 credits');
-    const unpriced = await readTrace(s.client);
+    const unpriced = await readTrace(s.harness);
     expect(unpriced.turns[0]?.tokens.credits).toBeUndefined();
   });
 
@@ -570,12 +550,12 @@ describe('readTrace: the profile (the host’s part)', () => {
     const s = await basic();
     const counts = { entries: 0, heads: 0, blobs: 0, events: 0 };
     const reader: HarnessReader = {
-      ...s.client,
-      entries: (ids) => (counts.entries++, s.client.entries(ids)),
-      heads: (ids) => (counts.heads++, s.client.heads(ids)),
-      blobs: (refs) => (counts.blobs++, s.client.blobs(refs)),
+      ...s.harness,
+      entries: (ids) => (counts.entries++, s.harness.entries(ids)),
+      heads: (ids) => (counts.heads++, s.harness.heads(ids)),
+      blobs: (refs) => (counts.blobs++, s.harness.blobs(refs)),
       events: async (input) => {
-        const got = await s.client.events(input);
+        const got = await s.harness.events(input);
         counts.events += got.length;
         return got;
       },
@@ -593,7 +573,7 @@ describe('readTrace: the profile (the host’s part)', () => {
     const three = await readTrace(reader, { cache });
     expect(three.turns).toHaveLength(2);
     expect(counts.events - fetched.events).toBe(cache.log!.events.length - fetched.events);
-    expect(three).toEqual(await readTrace(s.client));
+    expect(three).toEqual(await readTrace(s.harness));
   });
 });
 

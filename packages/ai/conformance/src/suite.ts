@@ -18,20 +18,19 @@ import { regressionCases } from './cases/regressions.js';
 import { stepCases } from './cases/steps.js';
 import { toolCases } from './cases/tools.js';
 import { turnCases } from './cases/turns.js';
-import type { ConformanceFixture } from './session.js';
 
-/** Every conformance case, against one backend. Call it from a Jest file. */
-export function runHarnessConformance(fixture: ConformanceFixture): void {
-  journalCases(fixture);
-  turnCases(fixture);
-  homeCases(fixture);
-  stepCases(fixture);
-  toolCases(fixture);
-  nestedCases(fixture);
-  budgetCases(fixture);
-  projectionCases(fixture);
-  observationCases(fixture);
-  performanceCases(fixture);
-  coverageCases(fixture);
-  regressionCases(fixture);
+/** Every conformance case, on the in-memory harness (testing.md). Call it from a test file. */
+export function runHarnessConformance(): void {
+  journalCases();
+  turnCases();
+  homeCases();
+  stepCases();
+  toolCases();
+  nestedCases();
+  budgetCases();
+  projectionCases();
+  observationCases();
+  performanceCases();
+  coverageCases();
+  regressionCases();
 }

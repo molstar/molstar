@@ -127,8 +127,6 @@ export interface TraceProfile {
   readonly toolNames?: ReadonlyMap<string, string>;
   /** The model's context window, for scale. */
   readonly window?: number;
-  /** The clock the lease is measured against (default `Date.now`). */
-  readonly now?: () => number;
   /** Kept across reads of one harness, so a re-read fetches only what is new. */
   readonly cache?: TraceCache;
 }
@@ -154,7 +152,7 @@ export const estimatedTokens = (text: string): number => Math.max(1, Math.round(
 /** A turn's state (the mapping is documented at `TurnStatus`). */
 export function turnStatusOf(
   status: TurnSummary['status'] | undefined,
-  execution: Pick<Execution, 'runner' | 'turn'>,
+  execution: Pick<Execution, 'turn'>,
   turnId: string,
 ): TurnStatus {
   if (status === 'completed') return 'done';
@@ -162,7 +160,7 @@ export function turnStatusOf(
   if (status === 'stopped' || status === 'reset') return 'stopped';
   const turn = execution.turn?.id === turnId ? execution.turn : undefined;
   if (turn === undefined) return 'working';
-  if (turn.park !== undefined || turn.blocked !== undefined || execution.runner.phase === 'none') return 'waiting';
+  if (turn.park !== undefined) return 'waiting';
   return turn.pending.kind === 'model' ? 'thinking' : 'working';
 }
 
@@ -432,7 +430,6 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
   const requestOf = profile.requestOf ?? defaultRequestOf;
   const partOf = profile.windowPart ?? defaultWindowPart;
   const cache = profile.cache ?? createTraceCache();
-  const now = profile.now ?? Date.now;
 
   const execution = await reader.execution();
   if (cache.log?.harness !== reader.id) cache.log = { harness: reader.id, events: [] };
@@ -672,7 +669,7 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
 
   return {
     harnessId: reader.id,
-    execution: executionView(execution, now),
+    execution: executionView(execution),
     budget: budgetView(summaries.get(latest?.id ?? '')?.usage, ceilings, latest?.tokens.credits),
     preamble: preamble ?? { guidance: '', guidanceTokens: 0, tools: [], toolsTokens: 0 },
     loaded,
@@ -681,21 +678,10 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
   };
 }
 
-function executionView(execution: Execution, now: () => number): ExecutionView {
-  const runner = execution.runner;
+function executionView(execution: Execution): ExecutionView {
   return {
     seq: execution.seq,
     headId: execution.main,
-    runner: runner.phase,
-    ...(runner.phase === 'live' && execution.turn !== undefined
-      ? {
-          lease: {
-            worker: runner.runnerId,
-            renewsInMs: Math.max(0, runner.leaseUntil - now()),
-            leaseMs: runner.leaseUntil - runner.signalAt,
-          },
-        }
-      : {}),
     ...(execution.turn !== undefined ? { pendingStep: execution.turn.pending.kind } : {}),
     ...(execution.turn?.park !== undefined ? { parked: true } : {}),
   };
@@ -705,9 +691,7 @@ function milestone(e: HarnessEvent, origin: number): MilestoneView {
   const compacted = e.kind === 'step' ? e.compaction : undefined;
   const detail = compacted?.length
     ? compacted.map((c) => `compacted ${c.pointer} to ${c.sizeAfter.inputTokens} tokens`).join(', ')
-    : e.kind === 'step' && e.consumed.length
-      ? `${e.consumed.length} items`
-      : undefined;
+    : undefined;
   return {
     position: e.seq,
     at: e.at - origin,

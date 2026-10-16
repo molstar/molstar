@@ -8,16 +8,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { type CallView, drive, type RunResult, type RunSpec, type TurnEnd } from '@molstar/ai-harness';
-import { type ConformanceFixture, createSession, type Session, type SessionSetup } from '../session.js';
-import { settle } from '../testing/clock.js';
+import { createSession, type Session, type SessionSetup } from '../session.js';
 import { textOf, toolDefinition, user } from '../testing/messages.js';
-import { controls, expectWith, lastStep, stepEvents, TURN, with_ } from './helpers.js';
-
-/** Lets real work proceed until `condition` holds. */
-async function until(condition: () => boolean, limit = 500): Promise<void> {
-  for (let i = 0; i < limit && !condition(); i += 1) await settle();
-  if (!condition()) throw new Error('until: the condition never held');
-}
+import { controls, expectWith, lastStep, stepEvents, TURN, until, with_ } from './helpers.js';
 
 /** A nested run over the given tools, all preauthorized, on the scripted model. */
 const nestedRun = (...tools: string[]): RunSpec => ({
@@ -54,9 +47,9 @@ async function endOf(s: Session): Promise<TurnEnd | undefined> {
 const statuses = async (s: Session): Promise<string[]> => (await s.turns()).map((turn) => turn.status);
 
 /** A call bound to nothing: which reason `repair` was opened with, and whether the handler ran. */
-async function unbound(fixture: ConformanceFixture, tool: string) {
+async function unbound(tool: string) {
   const reasons: string[] = [];
-  const s = await createSession(fixture, {
+  const s = createSession({
     declare: ['echo', 'off', 'headless'],
     deferred: ['later'],
     configuration: {
@@ -82,12 +75,12 @@ async function unbound(fixture: ConformanceFixture, tool: string) {
 }
 
 /** Coverage cases: rules of the harness (harness.md) that no other case exercises. */
-export function coverageCases(fixture: ConformanceFixture): void {
+export function coverageCases(): void {
   describe('Coverage', () => {
     // V1. Unbound reasons (harness.md §8).
 
     it('V1 not-loaded: a call to a tool not loaded opens repair with not-loaded and no handler runs (harness.md §8)', async () => {
-      const { s, reasons } = await unbound(fixture, 'later');
+      const { s, reasons } = await unbound('later');
       expect(reasons).toEqual(['later:not-loaded']);
       expect(s.tools.calls).toHaveLength(0);
       expect(await resultsOf(s)).toEqual([{ status: 'failed', text: 'Cannot call later.' }]);
@@ -98,7 +91,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     it('V2 drive-throws: a drive that throws ends the turn failed with drive-error; the next prompt starts a new turn (harness.md §7)', async () => {
       let asked = 0;
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ text: 'one' }, { text: 'two' }],
         drive: with_({
           boundary: () => {
@@ -114,7 +107,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
       expect(end?.status).toBe('failed');
       expect(JSON.stringify(end?.reason)).toContain('drive-error');
       expect(lastStep(await s.events()).ending).toBe('abandoned');
-      expect((await s.client.execution()).turn).toBeUndefined();
+      expect((await s.harness.execution()).turn).toBeUndefined();
       expect((await s.main()).map((message) => message.role)).toEqual(['user']);
 
       await s.send('again');
@@ -126,7 +119,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     it('V3 reset-clears-park: a parked turn, then reset: no active turn, nothing re-runs, and a later prompt runs (harness.md §5)', async () => {
       let asked = 0;
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { t: () => ({ text: 'done' }) },
         configuration: { tools: { enabled: ['t'], preauthorized: [] } },
         model: [{ calls: [{ tool: 't', arguments: {} }] }, { text: 'after the reset' }],
@@ -138,20 +131,17 @@ export function coverageCases(fixture: ConformanceFixture): void {
         }),
       });
       const first = await s.send('go');
-      expect(first.exit?.reason).toBe('released');
-      const turnId = (await s.client.execution()).turn?.id as string;
-      expect((await s.client.execution()).turn?.park).toBeDefined();
+      expect(first.outcome).toMatchObject({ parked: { note: 'ask the person' } });
+      expect((await s.harness.execution()).turn?.park).toBeDefined();
 
-      const reset = await s.client.reset({ key: 'reset-1' });
+      s.harness.reset();
 
-      expect(reset.launch).toBeUndefined();
-      const execution = await s.client.execution();
+      const execution = await s.harness.execution();
       expect(execution.turn).toBeUndefined();
-      expect(execution.runner).toEqual({ phase: 'none' });
       expect(await statuses(s)).toEqual(['reset']);
       expect(controls(await s.events(), 'reset')).toHaveLength(1);
       // The parked turn is gone for good: resuming it is refused.
-      await expect(s.client.resume({ key: 'resume-1', turnId })).rejects.toMatchObject({ code: 'invalid' });
+      expect(() => s.harness.resume()).toThrow(expect.objectContaining({ code: 'invalid' }));
 
       await s.send('again');
       expect(asked).toBe(1);
@@ -164,7 +154,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     it("V4 nested-fail: a nested drive's fail ends only that run: the parent call settles and the turn completes (harness.md §9)", async () => {
       const seen: { result?: RunResult } = {};
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['outer'],
         tools: {
           outer: async (context) => {
@@ -185,7 +175,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
     });
 
     it('V4 nested-stop: stop from a nested drive stops the whole turn (harness.md §9)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['outer'],
         tools: {
           outer: async (context) => {
@@ -203,14 +193,15 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
       expect(await statuses(s)).toEqual(['stopped']);
       expect(lastStep(await s.events())).toMatchObject({ ending: 'abandoned', end: { status: 'stopped' } });
-      expect((await s.client.execution()).turn).toBeUndefined();
+      expect((await s.harness.execution()).turn).toBeUndefined();
       expect(s.model.remaining()).toBe(1);
-      expect(controls(await s.events(), 'stop-requested')).toHaveLength(0);
+      // The step ended the turn: no control event did.
+      expect(controls(await s.events(), 'stopped')).toHaveLength(0);
     });
 
     it('V4 nested-pass: a nested drive that passes lets the outer drive answer, innermost first (harness.md §7)', async () => {
       const order: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['outer'],
         tools: {
           outer: async (context) => ({
@@ -252,24 +243,22 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     // V5. Preconditions (harness.md §12).
 
-    it('V5 resume-not-parked: resume of a turn that is not parked is refused invalid and writes nothing (harness.md §12)', async () => {
-      const s = await createSession(fixture, { model: [{ text: 'slow', waitMs: 60_000 }] });
-      const { launch } = await s.send('go', { run: false });
-      const running = s.runner().run(launch as string);
+    it('V5 resume-not-parked: resume of a turn that is not parked is refused invalid and writes nothing (harness.md §5)', async () => {
+      const s = createSession({ model: [{ text: 'slow', waitMs: 60_000 }] });
+      const invalid = expect.objectContaining({ code: 'invalid' });
+      // No turn at all.
+      expect(() => s.harness.resume()).toThrow(invalid);
+      const { handle } = await s.send('go', { wait: false });
       await until(() => s.model.invocations.length === 1);
-      const turnId = (await s.client.execution()).turn?.id as string;
-      const before = { events: (await s.events()).length, seq: (await s.client.execution()).seq };
+      const before = { events: (await s.events()).length, seq: (await s.harness.execution()).seq };
 
-      await expect(s.client.resume({ key: 'resume-1', turnId })).rejects.toMatchObject({ code: 'invalid' });
-      await expect(s.client.resume({ key: 'resume-2', turnId: 'turn-ghost' })).rejects.toMatchObject({
-        code: 'invalid',
-      });
+      expect(() => s.harness.resume()).toThrow(invalid);
 
       expect((await s.events()).length).toBe(before.events);
-      expect((await s.client.execution()).seq).toBe(before.seq);
-      await s.clock.runUntil(running);
+      expect((await s.harness.execution()).seq).toBe(before.seq);
+      await s.run(handle);
       // An ended turn is not parked either.
-      await expect(s.client.resume({ key: 'resume-3', turnId })).rejects.toMatchObject({ code: 'invalid' });
+      expect(() => s.harness.resume()).toThrow(invalid);
       expect(controls(await s.events(), 'resumed')).toHaveLength(0);
       expect(await statuses(s)).toEqual(['completed']);
     });
@@ -278,7 +267,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     it("V6 tool-calls-limit: the toolCalls limit opens budget before the call's first attempt (harness.md §11)", async () => {
       const asked: { dimension: string; need: number | undefined }[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         configuration: { limits: { toolCalls: 1 } },
         tools: { a: () => ({ text: 'a done' }), b: () => ({ text: 'b done' }) },
         model: [
@@ -297,11 +286,10 @@ export function coverageCases(fixture: ConformanceFixture): void {
           },
         }),
       });
-      const runner = s.runner();
-      await s.send('go', { runner });
+      await s.send('go');
 
       expect(asked).toEqual([{ dimension: 'toolCalls', need: 1 }]);
-      const order = runner.observations;
+      const order = s.observations;
       const opened = order.findIndex((o) => o.kind === 'decision.opened' && o.decisionKind === 'budget');
       const startedOf = (tool: string) =>
         order.findIndex((o) => o.kind === 'attempt.started' && o.callId === s.tools.callsOf(tool)[0]?.callId);
@@ -349,7 +337,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
             schedule: ({ payload }) => ({ stages: stages(payload.calls, denied.id as string) }),
           }),
         };
-        const s = await createSession(fixture, setup);
+        const s = createSession(setup);
         await s.send('go');
         expectWith(await statuses(s), name).toEqual(['failed']);
         expectWith(JSON.stringify((await endOf(s))?.reason), name).toContain('invalid-answer');
@@ -358,7 +346,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
     });
 
     it('V7 default-model-retry: defaultDrive retries a transient model failure three attempts with growing waits, then fails the turn (harness.md §7)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [
           { fail: { transient: true } },
           { fail: { transient: true } },
@@ -383,7 +371,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
     });
 
     it('V7 default-tool-retry: defaultDrive retries a transient failed result three attempts, then reports it; a plain failure is reported at once (harness.md §7)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           flaky: () => ({ status: 'failed', text: 'flaky', transient: true }),
           broken: () => ({ status: 'failed', text: 'broken' }),
@@ -417,7 +405,7 @@ export function coverageCases(fixture: ConformanceFixture): void {
 
     it('V8 filtered: a filtered finish opens model-result too, and accept completes the turn (harness.md §6)', async () => {
       const seen: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ text: 'partial', finish: 'filtered' }],
         drive: with_({
           'model-result': ({ payload }) => {

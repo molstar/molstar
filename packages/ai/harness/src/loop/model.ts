@@ -19,9 +19,9 @@ import {
   UnrepresentableInput,
 } from '@molstar/ai-agent';
 import type { AttemptFailure } from '../contracts/records.js';
-import { ZERO } from '../host/writer.js';
 import { available } from '../tools/plan.js';
-import { admit, blob, charge, compact, decide, modelUsage, openCall, type Run, sizeFrom } from './run.js';
+import { admit, blob, charge, compact, decide, messagesOf, modelUsage, openCall, type Run, sizeFrom } from './run.js';
+import { ZERO } from './state.js';
 
 const failure = (
   code: AttemptFailure['code'],
@@ -42,11 +42,10 @@ const failure = (
  * accepted message; the caller plans its calls, or appends it at a completing boundary.
  */
 export async function modelStep(run: Run): Promise<AssistantMessage> {
-  const { cache, clock, ids, observations } = run.core;
+  const { clock, ids, observations } = run.core;
   const signal = run.abort.signal;
   let configuration: ModelConfiguration = run.model;
   for (;;) {
-    run.core.progress('model');
     let request: ProjectedRequest | undefined;
     let refused: AttemptFailure | undefined;
     let model: Awaited<ReturnType<typeof run.core.model>> | undefined;
@@ -54,7 +53,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
     try {
       model = await run.core.model(configuration);
       const capabilities = model.capabilities;
-      input = { messages: cache.messagesOf(run.context.entries), tools: available(run), configuration, capabilities };
+      input = { messages: messagesOf(run, run.context.entries), tools: available(run), configuration, capabilities };
       request = await model.adapter.project(input);
       const size = sizeFrom(request.inputTokens, capabilities, configuration);
       if (size.inputTokens + size.reservedOutput > size.window)
@@ -75,8 +74,8 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
     }
     const adapter = model.adapter;
     const evidence: Json = {
-      head: run.context.from?.id ?? null,
-      entries: await digest(run.context.entries),
+      head: run.context.from ?? null,
+      entries: digest(run.context.entries),
       configuration: configuration as unknown as Json,
       tools: input.tools.map((tool) => tool.tool.id),
       adapterRevision: request.adapterRevision,
@@ -84,7 +83,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       inputTokens: request.inputTokens,
       ...(request.segments !== undefined ? { segments: [...request.segments] } : {}),
     };
-    const call = await openCall(run, 'model', evidence);
+    const call = openCall(run, 'model', evidence);
     for (let attempt = 1; ; attempt += 1) {
       let fault: AttemptFailure | undefined;
       if (attempt > 1) {
@@ -162,7 +161,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
         break;
       }
       if (result === undefined) break;
-      call.result = await blob(run, result.message as unknown as Json);
+      call.result = blob(run, result.message as unknown as Json);
       if (result.finish === 'output-limit' || result.finish === 'filtered') {
         const answer = await decide(run, 'model-result', { finish: result.finish, message: result.message });
         if (answer !== 'accept') {

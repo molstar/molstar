@@ -1,21 +1,25 @@
 # Mol\* AI
 
-The agent harness and what it needs: durable agent turns, model adapters, storage. Generic and UI-free; Prism hosts it
+The agent harness and what it needs: agent turns in memory, model adapters, tools, a session. Generic and UI-free; Prism hosts it
 (`@molstar/prism-assistant` is the Assistant's UI, [../prism-ui/](../prism-ui/)).
 
 ## Packages (`packages/ai/`)
 
 | Package                      | Holds                                                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest`                |
-| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation                      |
-| `@molstar/ai-components`     | storage (memory, IndexedDB) on one durable core; the in-process supervisor                                                                                |
+| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` (core's MurmurHash3) |
+| `@molstar/ai-harness`        | `createHarness`: an in-memory loop (journal, event log, steps, tools, nested runs, drives, observation) and its reader                                    |
 | `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`./model-catalog`, no dependencies) |
-| `@molstar/ai-tools`          | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure     |
-| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction; one-off runs                                                   |
-| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)                           |
+| `@molstar/ai-tools`          | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure |
+| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction |
+| `@molstar/ai-conformance`    | the harness's conformance cases, the `createSession` fixture, and test doubles at `./testing` (clock, ids, scripted model and tools) |
 
-Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either.
+Also `@molstar/ai-trace` (the Inspector's trace), `@molstar/ai-fibers` (transcripts) and `@molstar/ai-narration`.
+`@molstar/ai-components` (storage backends, the supervisor) is gone (2026-10-16): the harness keeps nothing outside the
+page's memory ([simplification/harness.md](simplification/harness.md)).
+
+Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either (but
+`@molstar/core`'s one hash file, in `ai-agent`; simplification/harness.md §7).
 
 ## Documents
 
@@ -35,12 +39,12 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`. What
    an entry _is_ (the request, the guidance, a skill's guidance) is its optional `label`: content, so hashed, never sent
    to a provider, and never read by the harness (2026-10-14).
-4. **The runner is trusted.** The host checks leases, compare-and-set, atomicity and replay by key, not the step
-   grammar.
-5. **Nested runs re-run instead of being durable.** Much smaller than durable child runs; a crashed parent repeats its
-   helper.
-6. **The watch is level-triggered**, so a dropped connection cannot lose a Stop.
+4. ~~The runner is trusted~~: there is no host and no runner apart from the loop (2026-10-16): the harness is one
+   in-memory loop that applies each step's writes at its end.
+5. **Nested runs are not durable**: they live in their parent's step, and nothing of them is written before it ends.
+6. **The watch is level-triggered**: a reader re-reads on each seq it hears and misses nothing.
 7. **Adapters serve any endpoint of their dialect** under that endpoint's id; replay identity is never a URL.
-8. **Platform-free core.** Only `ai-components` touches the platform (IndexedDB); the rest runs in browsers and Node
-   alike.
-9. **No data migration.** A turn written by another schema version is stopped or reset, not migrated.
+8. **Platform-free.** Nothing touches the platform: no storage, no `node:*`; it runs in browsers and Node alike.
+9. ~~No data migration~~: nothing is stored (2026-10-16), so there is nothing to migrate.
+10. **In memory only** (2026-10-16): no durability, leases, supervisor or storage port; a reload ends the conversation.
+    Hashing is synchronous, `@molstar/core`'s MurmurHash3-128 (simplification/harness.md §3, §7).

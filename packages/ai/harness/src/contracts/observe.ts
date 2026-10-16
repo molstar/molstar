@@ -8,7 +8,7 @@
 
 import type { Json } from '@molstar/ai-agent';
 import type { DecisionKind } from './drive.js';
-import type { AttemptId, AttemptRecord, CallId, HarnessEvent, ItemKey, Seq, StepId } from './records.js';
+import type { AttemptId, AttemptRecord, CallId, HarnessEvent, Seq, StepId } from './records.js';
 
 /** The harness's own minimal observable; apps wrap it in rxjs if they want to. */
 export interface HarnessObservable<T> {
@@ -19,7 +19,6 @@ export interface HarnessObservable<T> {
 /** Ids only, never payloads: observations are meant to be serialized (harness.md §13). */
 export interface DecisionIds {
   readonly calls?: readonly CallId[];
-  readonly items?: readonly ItemKey[];
   readonly step?: StepId;
   readonly seq?: Seq;
 }

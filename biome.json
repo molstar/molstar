@@ -126,9 +126,10 @@
                       "@molstar/*",
                       "@molstar/*/**",
                       "!@molstar/ai-*",
-                      "!@molstar/ai-*/**"
+                      "!@molstar/ai-*/**",
+                      "!@molstar/core/data/util/hash-functions"
                     ],
-                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                    "message": "The AI packages import nothing of Mol* or Prism (but core's one hash file: .v6/ai/simplification/harness.md §7): Prism hosts them, not the other way round."
                   },
                   {
                     "group": ["rxjs", "rxjs/**"],
@@ -200,50 +201,6 @@
                   {
                     "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
-                  },
-                  {
-                    "group": ["zod", "zod/**"],
-                    "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "includes": ["packages/ai/components/src/**", "!packages/ai/components/src/**/_test/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": [
-                      "molstar",
-                      "molstar/**",
-                      "@molstar/*",
-                      "@molstar/*/**",
-                      "!@molstar/ai-*",
-                      "!@molstar/ai-*/**"
-                    ],
-                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
-                  },
-                  {
-                    "group": ["rxjs", "rxjs/**"],
-                    "message": "The AI packages use HarnessObservable, not rxjs."
-                  },
-                  {
-                    "group": [
-                      "@molstar/ai-model-adapters",
-                      "@molstar/ai-model-adapters/**",
-                      "@molstar/ai-conformance",
-                      "@molstar/ai-conformance/**"
-                    ],
-                    "message": "Components implement the harness's contracts only."
                   },
                   {
                     "group": ["zod", "zod/**"],

@@ -8,13 +8,11 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Message, ModelConfiguration } from '@molstar/ai-agent';
-import { createMemoryStorage } from '@molstar/ai-components';
 import { createSession, type Session } from '@molstar/ai-conformance';
 import { createToolBindings, createToolkit, NestedTools, RepeatedReads, toolFor } from '../index.js';
 import { type Toy, toy } from './helpers.js';
 
-/** Whole turns: a real harness and runner, the scripted model, the tools bound as a host binds them. */
-const fixture = { name: 'memory', storage: () => createMemoryStorage() };
+/** Whole turns: a real harness, the scripted model, the tools bound as a host binds them. */
 const none = { kind: 'object', fields: {} } as const;
 const tool = toolFor<Toy, { name: string }>();
 
@@ -98,22 +96,23 @@ async function setup(api: Toy, saved: string[] = []) {
     target: { provider: 'scripted', model: choice.name },
     parameters: {},
   });
-  const s: Session = await createSession(fixture, {
-    model: [],
-    tools: Object.fromEntries(kit.allDefinitions().map((definition) => [definition.tool.id, { definition }])),
-    declare: kit.coreDefinitions().map((d) => d.tool.id),
-    deferred: ['load_volume'],
-  });
-  api.disclosure = {
-    loaded: async () => loadedIn(await s.main()),
-    skills: async () => kit.groupsIn(await s.main()),
-  };
   const bindings = createToolBindings(kit.tools, api, {
     repeats: new RepeatedReads({ version: () => api.state.version }),
     nested: new NestedTools<Toy, { name: string }>(configure),
     afterWrite: async ({ toolId }) => void saved.push(toolId),
   });
-  return { s, bindings, kit };
+  const s: Session = createSession({
+    model: [],
+    tools: Object.fromEntries(kit.allDefinitions().map((definition) => [definition.tool.id, { definition }])),
+    declare: kit.coreDefinitions().map((d) => d.tool.id),
+    deferred: ['load_volume'],
+    toolBindings: bindings,
+  });
+  api.disclosure = {
+    loaded: async () => loadedIn(await s.main()),
+    skills: async () => kit.groupsIn(await s.main()),
+  };
+  return { s, kit };
 }
 
 const toolText = async (s: Session) => {
@@ -129,7 +128,7 @@ describe('whole turns over the harness (tools-and-session.md §1, §3)', () => {
   it('a skill is disclosed, its tool then called, and the host’s write hook ran only for what changed', async () => {
     const api = toy();
     const saved: string[] = [];
-    const { s, bindings } = await setup(api, saved);
+    const { s } = await setup(api, saved);
     s.model.push(
       { calls: [{ tool: 'disclose_skills', arguments: { skills: ['volumes'] } }] },
       {
@@ -141,8 +140,8 @@ describe('whole turns over the harness (tools-and-session.md §1, §3)', () => {
       { calls: [{ tool: 'disclose_skills', arguments: { skills: ['volumes'] } }] },
       { text: 'Done.' },
     );
-    const { exit } = await s.send('show the density', { runner: s.runner({ tools: bindings }) });
-    expect(exit?.reason).toBe('released');
+    const { outcome } = await s.send('show the density');
+    expect(outcome).toMatchObject({ end: { status: 'completed' } });
     expect((await s.turns()).map((t) => t.status)).toEqual(['completed']);
     expect(api.log.lines).toHaveLength(1);
     expect(api.log.lines[0]).toMatch(/^load \S+ none$/);
@@ -159,14 +158,14 @@ describe('whole turns over the harness (tools-and-session.md §1, §3)', () => {
 
   it('a read answered again in one line, and a refused call recorded as before any change', async () => {
     const api = toy();
-    const { s, bindings } = await setup(api);
+    const { s } = await setup(api);
     s.model.push(
       { calls: [{ tool: 'get_state', arguments: {} }] },
       { calls: [{ tool: 'get_state', arguments: {} }] },
       { calls: [{ tool: 'set_value', arguments: { by: 'many' } }] },
       { text: 'Done.' },
     );
-    await s.send('read twice', { runner: s.runner({ tools: bindings }) });
+    await s.send('read twice');
     const texts = await toolText(s);
     expect(texts[0]).toBe('Value 0.');
     expect(texts[1]).toContain('Unchanged: nothing changed since your earlier get_state call');
@@ -181,14 +180,14 @@ describe('whole turns over the harness (tools-and-session.md §1, §3)', () => {
 
   it('a tool runs a helper under its call, whose tool the helper’s model calls', async () => {
     const api = toy();
-    const { s, bindings } = await setup(api);
+    const { s } = await setup(api);
     s.model.push(
       { calls: [{ tool: 'helper', arguments: {} }] },
       { calls: [{ tool: 'inner', arguments: {} }] },
       { text: 'Helper is done.' },
       { text: 'All done.' },
     );
-    await s.send('use the helper', { runner: s.runner({ tools: bindings }) });
+    await s.send('use the helper');
     expect((await s.turns()).map((t) => t.status)).toEqual(['completed']);
     expect(api.state.value).toBe(10);
     expect(await toolText(s)).toEqual(['Helper completed.']);

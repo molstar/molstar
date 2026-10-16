@@ -7,13 +7,9 @@
  */
 
 export type * from './contracts/drive.js';
+export * from './contracts/harness.js';
 export type * from './contracts/observe.js';
-export * from './contracts/ports.js';
 export * from './contracts/records.js';
 export type * from './contracts/runner.js';
-export type * from './contracts/storage.js';
-export type * from './contracts/supervisor.js';
 export { defaultDrive, drive } from './drive/index.js';
-export { buildMove, emptyHead } from './head/index.js';
-export { createHarnessHost, type HostOptions } from './host/index.js';
-export { createRunner } from './runner/index.js';
+export { createHarness, emptyHead } from './loop/index.js';

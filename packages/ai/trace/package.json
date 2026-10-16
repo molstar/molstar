@@ -39,7 +39,6 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@molstar/ai-components": "workspace:*",
     "@molstar/ai-conformance": "workspace:*"
   }
 }

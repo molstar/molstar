@@ -63,12 +63,12 @@ toolkit. Other disclosable texts (Stories' data sources and servers) are entries
 
 ## 4. `@molstar/ai-session`: a conversation
 
-`AgentSession` is one conversation over one harness: host, client, a runner per launch under an in-process supervisor,
-storage (memory by default; IndexedDB to keep it; a host may bring its own `HarnessStorage`).
+`AgentSession` is one conversation over one in-memory harness (`createHarness`; harness.md §4–§6). Until 2026-10-16 it
+also set up a host, a runner per launch under a supervisor, and storage; that went with the harness's durability.
 
 - `turn(request, hooks)` with `request = { prompt, state?, focus?, notes?, attachments?, model?, preamble? }` →
   `TurnResult` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval` with the calls; the last text and the
-  turn's, tool events, usage, context size, compactions). One turn at a time. `resume({ decisions?, hooks? })`, `stop()`, `interrupted()`, `forget()` (back to an
+  turn's, tool events, usage, context size, compactions). One turn at a time. `resume({ decisions?, hooks? })` (a parked turn), `stop()`, `forget()` (back to an
   empty conversation), `dispose()`.
 - **Messages**: the first turn sends the guidance, then the tool definitions (core loaded, the rest declared), then the
   request; later turns send what changed since (new or changed definitions, changed guidance as a user message), then
@@ -94,8 +94,8 @@ Defaults over `defaultDrive`, each replaceable (`drive` option):
 | model-result | cut short at the output limit: once per turn, ask again with twice the room (within the model's maximum)                                                                                                                                                                                                                                                           |
 | budget       | extend the short kind by its initial amount toward its ceiling; a nested run fails                                                                                                                                                                                                                                                                                 |
 | repair       | not loaded: answer failed, load its definition, skip the rest; unknown: point to the disclosure tools; not enabled, no handler: say so, load nothing                                                                                                                                                                                                               |
-| boundary     | compact at the trigger, else proceed (never steer: each prompt is its own turn)                                                                                                                                                                                                                                                                                    |
-| next-turn    | begin with the first waiting item, compacting first from the soft threshold                                                                                                                                                                                                                                                                                        |
+| boundary     | compact at the trigger, else proceed                                                                                                                                                                                                                                                                                    |
+| turn-start   | compact first from the soft threshold, else proceed |
 
 **Budget**: tokens by kind, the same for every model, scaled with the compaction trigger (80% of the window): tool calls
 60 → 200, uncached input max(500k, 4×trigger) → max(2M, 20×), cache reads max(5M, 40×) → max(25M, 200×), output 200k →

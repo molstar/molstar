@@ -32,6 +32,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@molstar/core": "workspace:*",
     "tslib": "catalog:"
   },
   "devDependencies": {

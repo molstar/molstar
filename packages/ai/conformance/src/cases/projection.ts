@@ -8,16 +8,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { type Message } from '@molstar/ai-agent';
-import { type ConformanceFixture, createSession, type Session } from '../session.js';
+import { createSession } from '../session.js';
 import { system, textOf, user } from '../testing/messages.js';
-import { crashMidStep, stepEvents, with_ } from './helpers.js';
+import { stepEvents, with_ } from './helpers.js';
 
-const WINDOWS = { leaseMs: 30_000, launchMs: 10_000 };
 /** A small window, so a long prompt does not fit (harness.md §11, Admission). */
 const SMALL_WINDOW = { contextWindowTokens: 10_000, maxOutputTokens: 1_000, defaultMaxOutputTokens: 1_000 };
 const LONG = user('x'.repeat(60_000));
-
-const crash = (s: Session, launch: string) => crashMidStep(s, launch, WINDOWS.leaseMs);
 
 const toolIds = (tools: readonly { readonly tool: { readonly id: string } }[]) => tools.map((tool) => tool.tool.id);
 
@@ -25,25 +22,21 @@ const toolIds = (tools: readonly { readonly tool: { readonly id: string } }[]) =
 const bytesOf = (messages: readonly Message[]) => JSON.stringify(messages).slice(0, -1);
 
 /** C1–C2 (Projection). */
-export function projectionCases(fixture: ConformanceFixture): void {
+export function projectionCases(): void {
   describe('Projection', () => {
     // C1 (harness.md §11)
-    it('C1 same-input-same-digest: one head projected twice (a step re-run after a crash) gives one digest', async () => {
-      const s = await createSession(fixture, {
-        host: WINDOWS,
-        model: [{ text: 'lost', waitMs: 60_000 }, { text: 'again' }],
-      });
-      const { launch } = await s.send('go', { run: false });
-      await s.run(await crash(s, launch as string));
-      expect(s.model.invocations).toHaveLength(2);
-      const [first, second] = s.model.invocations;
+    it('C1 same-input-same-digest: one head projected twice (in two harnesses) gives one digest', async () => {
+      const [a, b] = [createSession({ model: [{ text: 'one' }] }), createSession({ model: [{ text: 'two' }] })];
+      await a.send('go');
+      await b.send('go');
+      const [first, second] = [a.model.invocations[0], b.model.invocations[0]];
       expect(second?.digest).toBe(first?.digest);
       expect(second?.payload).toEqual(first?.payload);
-      expect(s.model.projections[1]?.messages).toEqual(s.model.projections[0]?.messages);
+      expect(b.model.projections[0]?.messages).toEqual(a.model.projections[0]?.messages);
     });
 
     it('C1 append-prefix: after a model-and-tool round in one turn, the earlier payload is a byte prefix of the new one', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { look: () => ({ text: 'seen' }) },
         model: [{ calls: [{ tool: 'look', arguments: {} }] }, { text: 'done' }],
       });
@@ -59,7 +52,7 @@ export function projectionCases(fixture: ConformanceFixture): void {
     // C2 (harness.md §11, Admission; §7.1)
     it('C2 over-window: failure with capacity opens before any attempt; compact applies the edit and the step projects again', async () => {
       const codes: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         modelOptions: { capabilities: SMALL_WINDOW },
         model: [{ text: 'ok' }],
         drive: with_({
@@ -82,7 +75,7 @@ export function projectionCases(fixture: ConformanceFixture): void {
 
     it('C2 unrepresentable: a role the adapter cannot place yields unrepresentable, never a plain error (defect 15c)', async () => {
       const codes: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         modelOptions: {
           unrepresentable: (input) => (input.messages.some((m) => m.role === 'system') ? 'no system role' : undefined),
         },
@@ -102,7 +95,7 @@ export function projectionCases(fixture: ConformanceFixture): void {
 
     it('C2 unknown-tool-call: a call to a tool not in the request keeps its name and opens repair with unknown-tool (defect 15a)', async () => {
       const seen: { reason: string; toolId: string }[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ calls: [{ tool: 'ghost', arguments: {} }] }, { text: 'ok' }],
         drive: with_({
           repair: ({ payload }) => {

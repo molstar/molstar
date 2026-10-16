@@ -6,7 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { HarnessStorage } from '@molstar/ai-harness';
 import type { Toolkit } from '@molstar/ai-tools';
 import {
   AgentSession,
@@ -33,9 +32,6 @@ export interface ViewerAgentOptions<M extends ModelChoice = ModelChoice> {
   readonly viewer: PrismViewer;
   /** The model adapters by provider, and the default model (the app's: keys are the person's, agent.md §4). */
   readonly models: ModelSource<M>;
-  /** Where the conversation is kept (memory by default; IndexedDB when the person keeps it, journal.md §1). */
-  readonly storage?: HarnessStorage;
-  readonly harnessId?: string;
   /** More guidance after the viewer's (an app's words). */
   readonly guidance?: string;
   /** Domains the person allowed (the assistant keeps them; agent.md §4). */
@@ -148,8 +144,6 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
     toolkit,
     api,
     guidance: o.guidance ? `${ViewerGuidance}\n\n${o.guidance}` : ViewerGuidance,
-    ...(o.storage ? { storage: o.storage } : {}),
-    ...(o.harnessId ? { harnessId: o.harnessId } : {}),
   });
 
   // The person's own changes since the agent's last turn: its notes (what they did, in the viewer's words).

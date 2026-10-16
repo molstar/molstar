@@ -7,19 +7,9 @@
  */
 
 import { canonicalJson, type Json, type Message, type ModelBindings, type ProjectInput } from '@molstar/ai-agent';
-import { createMemoryStorage } from '@molstar/ai-components';
-import { createSession, type Session, type SessionSetup } from '@molstar/ai-conformance';
-import { declareTools, settle, system, user } from '@molstar/ai-conformance/testing';
-import {
-  defaultDrive,
-  drive,
-  type DriveHandlers,
-  type RunnerOptions,
-  type TurnConfiguration,
-} from '@molstar/ai-harness';
-
-/** Whole turns over the harness: memory storage, the scripted model and tools, a simulated clock. */
-export const fixture = { name: 'memory', storage: () => createMemoryStorage() };
+import { createSession as session, type Session, type SessionSetup } from '@molstar/ai-conformance';
+import { declareTools, type ScriptedModel, settle, system, user } from '@molstar/ai-conformance/testing';
+import { defaultDrive, drive, type DriveHandlers, type TurnConfiguration } from '@molstar/ai-harness';
 
 /** A short stable digest of any value (the trace compares them, nothing more). */
 function short(value: Json): string {
@@ -47,12 +37,12 @@ export function segmentsOf(input: ProjectInput): string[] {
 }
 
 /** The session's scripted model, reporting segments. */
-export function segmenting(s: Session): ModelBindings {
+export function segmenting(model: ScriptedModel): ModelBindings {
   const adapter: ModelBindings = {
     resolve: async () => ({
-      ...s.model.adapter,
+      ...model.adapter,
       project: async (input: ProjectInput) => ({
-        ...(await s.model.adapter.project(input)),
+        ...(await model.adapter.project(input)),
         segments: segmentsOf(input),
       }),
     }),
@@ -62,10 +52,8 @@ export function segmenting(s: Session): ModelBindings {
 
 export const with_ = (handlers: DriveHandlers) => drive(handlers, defaultDrive());
 
-/** A runner that reports segments and runs under the given overrides. */
-export function runnerOf(s: Session, overrides: Partial<RunnerOptions> = {}) {
-  return s.runner({ models: segmenting(s), ...overrides });
-}
+/** Whole turns over the harness: the scripted model (reporting segments) and tools, a simulated clock. */
+export const createSession = (setup: SessionSetup = {}): Session => session({ models: segmenting, ...setup });
 
 /** The first prompt: guidance, the tools (all loaded unless named as deferred), then the request. */
 export function first(
@@ -90,9 +78,9 @@ export function first(
   ];
 }
 
-/** Sends a prompt and runs a runner (reporting segments) over it. */
-export const turn = (s: Session, prompt: string | Message[], overrides: Partial<RunnerOptions> = {}) =>
-  s.send(prompt, { runner: runnerOf(s, overrides) });
+/** Sends a prompt and runs its turn, with a configuration of its own if given. */
+export const turn = (s: Session, prompt: string | Message[], options: { configuration?: TurnConfiguration } = {}) =>
+  s.send(prompt, options);
 
 /** A request as the session composes it. */
 export const request = (prompt: string, parts: { state?: string; focus?: string; notes?: string[] } = {}): string =>
@@ -111,15 +99,18 @@ export async function until(condition: () => boolean, limit = 500): Promise<void
   if (!condition()) throw new Error('until: the condition never held');
 }
 
-export const configured = (s: Session, patch: Partial<TurnConfiguration['model']>): Partial<RunnerOptions> => {
+export const configured = (
+  s: Session,
+  patch: Partial<TurnConfiguration['model']>,
+): { configuration: TurnConfiguration } => {
   const ids = s.tools.definitions.map((d) => d.tool.id);
   return {
-    configure: () => ({
+    configuration: {
       model: { target: { provider: 'scripted', model: 'scripted-1' }, parameters: {}, ...patch },
       tools: { enabled: ids, preauthorized: ids },
       limits: {},
-    }),
+    },
   };
 };
 
-export { createSession, type Session, type SessionSetup };
+export type { Session, SessionSetup };

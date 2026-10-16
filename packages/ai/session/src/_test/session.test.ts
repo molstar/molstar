@@ -7,9 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createMemoryStorage } from '@molstar/ai-components';
 import { createToolkit } from '@molstar/ai-tools';
-import { GUIDANCE_UPDATE, type StatusEvent, type ToolEvent, type TurnEvent } from '../index.js';
+import type { StatusEvent, ToolEvent, TurnEvent } from '../index.js';
 import {
   callOf,
   fixture,
@@ -287,23 +286,6 @@ describe('the messages (tools-and-session.md §4)', () => {
     expect(defs).toHaveLength(all.toolkit.allDefinitions().length);
   });
 
-  it('a later session finds whether the guidance changed by its label, not by how its text ends', async () => {
-    const storage = createMemoryStorage();
-    const first = fixture([{ text: 'One.' }], { storage, harnessId: 'h', guidance: 'Be careful. Be brief.' });
-    await first.session.turn({ prompt: 'first' });
-    first.session.dispose();
-    // The new guidance is how the old one ends: the text alone would call it unchanged.
-    const second = fixture([{ text: 'Two.' }, { text: 'Three.' }], { storage, harnessId: 'h', guidance: 'Be brief.' });
-    await second.session.turn({ prompt: 'second' });
-    const sent = messagesOf(second.model, 0);
-    const update = sent.find((m) => m.role === 'user' && textOf(m).startsWith(GUIDANCE_UPDATE));
-    expect(textOf(update as never)).toBe(`${GUIDANCE_UPDATE}\n\nBe brief.`);
-    // Once given, it is current: the next turn sends only its request.
-    await second.session.turn({ prompt: 'third' });
-    const third = messagesOf(second.model, 1);
-    expect(third.filter((m) => textOf(m).startsWith(GUIDANCE_UPDATE))).toHaveLength(1);
-  });
-
   it('forget() empties the conversation: the next turn is a first turn again', async () => {
     const { session, model } = fixture([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }]);
     await session.turn({ prompt: 'first' });
@@ -330,33 +312,6 @@ describe('what a turn said, and how it ended', () => {
     expect(await retried.session.turn({ prompt: 'Go.' })).toMatchObject({ text: 'Whole.', turnText: 'Whole.' });
     const widened = fixture([{ text: 'Cut', finish: 'output-limit' }, { text: 'Whole.' }], { maxOutputTokens: 1_000 });
     expect(await widened.session.turn({ prompt: 'Go.' })).toMatchObject({ text: 'Whole.', turnText: 'Whole.' });
-  });
-
-  it('a turn ended by a reset says so', async () => {
-    let started: () => void = () => undefined;
-    const running = new Promise<void>((resolve) => {
-      started = resolve;
-    });
-    const wait = tool({
-      id: 'wait_long',
-      description: 'Waits.',
-      input: { kind: 'object', fields: {} },
-      modules: [],
-      read: true,
-      run: ({ signal }) =>
-        new Promise((resolve) => {
-          started();
-          signal.addEventListener('abort', () => resolve({ ok: false, code: 'aborted', message: 'Aborted.' }));
-        }),
-    });
-    const { session } = fixture([{ calls: [callOf('wait_long')] }, { text: 'Done.' }], {
-      toolkit: toyToolkit({ tools: [wait] }),
-      startTools: 'all',
-    });
-    const turn = session.turn({ prompt: 'Wait.' });
-    await running;
-    await (await session.client()).reset({ key: 'reset-1' });
-    expect((await turn).status).toBe('reset');
   });
 
   it('keeps the disclosure tools out of repeated reads under the toolkit’s own names', async () => {

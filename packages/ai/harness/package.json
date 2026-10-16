@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* AI: The agent harness: its contracts (storage port, supervisor) and platform-free logic (host protocol, runner, drives, tools, nested runs, observation)",
+  "description": "Mol* AI: The agent harness: an in-memory loop for driving an app (journal, event log, drives, tools, nested runs, observation)",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "@types/node": "catalog:",
-    "fast-check": "catalog:"
+    "@types/node": "catalog:"
   }
 }

@@ -8,19 +8,10 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Message } from '@molstar/ai-agent';
-import {
-  type CallRecord,
-  HarnessError,
-  type LaunchKey,
-  MAIN,
-  type RunnerExit,
-  type RunResult,
-  type RunSpec,
-} from '@molstar/ai-harness';
-import { type ConformanceFixture, createSession, type Session } from '../session.js';
-import { settle } from '../testing/clock.js';
+import { type CallRecord, HarnessError, MAIN, type RunResult, type RunSpec } from '@molstar/ai-harness';
+import { createSession, type Session } from '../session.js';
 import { textOf, toolDefinition, user } from '../testing/messages.js';
-import { stepEvents } from './helpers.js';
+import { stepEvents, until } from './helpers.js';
 
 /** Handlers run inside the session they are made for; this is their way back to it. */
 interface Later {
@@ -29,29 +20,6 @@ interface Later {
 
 const nap = (later: Later, ms: number, signal: AbortSignal): Promise<void> =>
   later.s?.clock.sleep(ms, signal) ?? Promise.resolve();
-
-/** Lets real work proceed until `condition` holds. */
-async function until(condition: () => boolean, limit = 500): Promise<void> {
-  for (let i = 0; i < limit && !condition(); i += 1) await settle();
-  if (!condition()) throw new Error('until: the condition never held');
-}
-
-/** A crash: the runner stops where it is and writes nothing; its lease is left to run out. */
-async function crash(s: Session, launch: LaunchKey, reached: () => boolean): Promise<void> {
-  const runner = s.runner();
-  const running = runner.run(launch);
-  await until(reached);
-  runner.abort('crash');
-  await s.clock.runUntil(running);
-}
-
-/** The lease runs out, `check` launches, and a new runner takes the turn over. */
-async function recover(s: Session): Promise<RunnerExit> {
-  await s.clock.advance(120_000);
-  const { launch } = await s.client.check();
-  if (launch === undefined) throw new Error('no launch after the lease expired');
-  return await s.run(launch);
-}
 
 /** A nested run over the given tools, all preauthorized, on the scripted model. */
 const nestedRun = (...tools: string[]): RunSpec => ({
@@ -73,19 +41,19 @@ async function failureOf(attempt: Promise<RunResult>): Promise<string | undefine
 
 /** The messages of a pointer's current head. */
 async function messagesOf(s: Session, scope: string): Promise<Message[]> {
-  const [pointer] = await s.client.pointers([scope]);
+  const [pointer] = await s.harness.pointers([scope]);
   if (pointer === undefined) return [];
-  const [head] = await s.client.heads([pointer.head]);
-  return head === undefined ? [] : await s.client.entries(head.entries);
+  const [head] = await s.harness.heads([pointer.head]);
+  return head === undefined ? [] : await s.harness.entries(head.entries);
 }
 
 const nestedCalls = (calls: readonly CallRecord[]) => calls.filter((call) => call.parentCallId !== undefined);
 
 /** N1–N3 (Nested runs). */
-export function nestedCases(fixture: ConformanceFixture): void {
+export function nestedCases(): void {
   describe('Nested runs', () => {
     it('N1 nested-records: a settled parent step holds the nested calls, with parentCallId (harness.md §9)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['outer'],
         tools: {
           outer: async (context) => ({ text: (await context.run(nestedRun('inner'))).status }),
@@ -116,7 +84,7 @@ export function nestedCases(fixture: ConformanceFixture): void {
 
     it('N2 depth-exceeded: run() beyond depth 4 fails and the tool call reports it (harness.md §9)', async () => {
       const outcomes: (string | undefined)[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['dive'],
         tools: {
           dive: async (context) => {
@@ -146,7 +114,7 @@ export function nestedCases(fixture: ConformanceFixture): void {
 
     it('N2 pointer-busy: a nested run naming main fails pointer-busy (harness.md §8)', async () => {
       const outcomes: (string | undefined)[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         declare: ['m'],
         tools: {
           m: async (context) => {
@@ -167,8 +135,7 @@ export function nestedCases(fixture: ConformanceFixture): void {
       const later: Later = {};
       const reads: { before: number; after: number }[] = [];
       let reached = false;
-      const s = await createSession(fixture, {
-        host: { leaseMs: 30_000 },
+      const s = createSession({
         tools: {
           note: async (context) => {
             const before = (await context.journal.read('notes')).messages.length;
@@ -185,15 +152,13 @@ export function nestedCases(fixture: ConformanceFixture): void {
         model: [{ calls: [{ tool: 'note', arguments: {} }] }, { text: 'final' }],
       });
       later.s = s;
-      const { launch } = await s.send('go', { run: false });
-      await crash(s, launch as string, () => reached);
+      const { handle } = await s.send('go', { wait: false });
+      await until(() => reached);
+      // The handler waits: its step is open, and the pointer has not moved.
       expect(await messagesOf(s, 'notes')).toEqual([]);
-      await recover(s);
-      // Within the step the handler read its own append; the crashed attempt moved nothing.
-      expect(reads).toEqual([
-        { before: 0, after: 1 },
-        { before: 0, after: 1 },
-      ]);
+      await s.run(handle);
+      // Within the step the handler read its own append.
+      expect(reads).toEqual([{ before: 0, after: 1 }]);
       expect((await messagesOf(s, 'notes')).map(textOf)).toEqual(['remember']);
       const step = stepEvents(await s.events()).find((event) => event.stepKind === 'tools');
       expect(step?.moves.map((move) => move.pointer).sort()).toEqual([MAIN, 'notes']);
@@ -202,12 +167,12 @@ export function nestedCases(fixture: ConformanceFixture): void {
     it("N3 nested-usage: the running budget excludes the nested 10k while the turn's usage totals include it", async () => {
       const later: Later = {};
       const seen: { consumed?: number | undefined; total?: number | undefined } = {};
-      const s = await createSession(fixture, {
+      const s = createSession({
         configuration: { limits: { uncachedInput: 5_000 } },
         tools: {
           investigate: async (context) => ({ text: (await context.run(nestedRun())).status }),
           peek: async () => {
-            const turn = (await later.s?.client.execution())?.turn;
+            const turn = (await later.s?.harness.execution())?.turn;
             seen.consumed = turn?.budget.consumed.uncachedInput;
             seen.total = turn?.usage.uncachedInput;
             return { text: 'peeked' };

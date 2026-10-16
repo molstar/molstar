@@ -7,21 +7,17 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { LaunchKey, RunnerPort } from '@molstar/ai-harness';
-import { type ConformanceFixture, createSession, type Session } from '../session.js';
+import { createSession, type Session } from '../session.js';
 import { user } from '../testing/messages.js';
-import { delegate, stepEvents, with_ } from './helpers.js';
-
-const runWith = (s: Session, launch: LaunchKey | undefined, port: RunnerPort) =>
-  s.run(launch as string, s.runner({ port }));
+import { stepEvents, with_ } from './helpers.js';
 
 const scripted = { target: { provider: 'scripted', model: 'scripted-1' }, parameters: {} };
 
 /** R1–R12: the phase-4 review's proven findings (progress.md), each kept as a case. */
-export function regressionCases(fixture: ConformanceFixture): void {
+export function regressionCases(): void {
   describe('Regressions', () => {
     it("R3 drive-run-in-model-result: a drive's nested run does not replace the step's message (harness.md §6, §7)", async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { a: () => ({ text: 'a done' }) },
         model: [
           { calls: [{ tool: 'a', arguments: {} }], finish: 'output-limit' },
@@ -48,30 +44,32 @@ export function regressionCases(fixture: ConformanceFixture): void {
       expect(withCall).toHaveLength(1);
     });
 
-    it("R4 stop-refuses-exit: Stop refusing a failing step's commit keeps its attempts (harness.md §5, §6)", async () => {
-      const s = await createSession(fixture, { model: [{ fail: { message: 'boom', transient: false } }] });
-      let stopped = false;
-      const port = delegate(s.port, {
-        commit: async (lease, batch) => {
-          if (!stopped && batch.ending === 'abandoned' && batch.end?.status === 'failed') {
-            stopped = true;
-            await s.client.stop({ key: 'stop-1', turnId: batch.turnId });
-          }
-          return await s.port.commit(lease, batch);
-        },
+    it("R4 stop-refuses-exit: Stop asked as a step fails wins over the fail, and keeps the step's attempts (harness.md §5, §6)", async () => {
+      const s: Session = createSession({
+        model: [{ fail: { message: 'boom', transient: false } }],
+        drive: with_({
+          failure: () => {
+            s.harness.stop();
+            return { fail: { reason: 'boom' } };
+          },
+        }),
       });
-      const { launch } = await s.send('go', { run: false });
-      await runWith(s, launch, port);
+      await s.send('go');
       const last = stepEvents(await s.events()).at(-1);
       expect(last?.end?.status).toBe('stopped');
       expect(s.model.invocations).toHaveLength(1);
       expect(last?.calls.flatMap((c) => c.attempts)).toHaveLength(1);
     });
 
-    it('R12 no-adapter: a model that cannot be resolved opens failure; the turn fails, the runner releases (harness.md §6)', async () => {
+    it('R12 no-adapter: a model that cannot be resolved opens failure; the turn fails (harness.md §6)', async () => {
       const failures: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ text: 'ok' }],
+        models: () => ({
+          resolve: async () => {
+            throw new Error('no adapter for scripted-1');
+          },
+        }),
         drive: with_({
           failure: ({ payload }) => {
             failures.push(payload.failure.code);
@@ -79,15 +77,7 @@ export function regressionCases(fixture: ConformanceFixture): void {
           },
         }),
       });
-      const { launch } = await s.send('go', { run: false });
-      const runner = s.runner({
-        models: {
-          resolve: async () => {
-            throw new Error('no adapter for scripted-1');
-          },
-        },
-      });
-      expect((await s.run(launch as string, runner)).reason).toBe('released');
+      expect((await s.send('go')).outcome).toMatchObject({ end: { status: 'failed' } });
       expect(failures).toEqual(['provider']);
       expect((await s.turns())[0]?.status).toBe('failed');
     });

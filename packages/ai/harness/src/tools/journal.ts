@@ -7,11 +7,11 @@
  */
 
 import type { Message } from '@molstar/ai-agent';
-import { HarnessError, type HeadEdit } from '../contracts/ports.js';
+import { HarnessError, type HeadEdit } from '../contracts/harness.js';
 import { type HeadId, MAIN, type ScopeId } from '../contracts/records.js';
 import type { ToolJournal } from '../contracts/runner.js';
-import { append, applyEdit, openPointer, type Run, readPointer, type Writer } from '../runner/run.js';
-import type { Staged } from '../runner/state.js';
+import { append, applyEdit, openPointer, type Run, readPointer, type Writer } from '../loop/run.js';
+import type { Staged } from '../loop/state.js';
 
 /**
  * A tool's own context for one attempt (harness.md §8): writes are staged in the step, the first takes a
@@ -31,18 +31,19 @@ export class Journal implements ToolJournal, Writer {
 
   async read(scope: ScopeId): Promise<{ head?: HeadId; messages: Message[] }> {
     await this.chain;
-    return await readPointer(this.run, scope);
+    return readPointer(this.run, scope);
   }
 
   append(scope: ScopeId, messages: readonly Message[]): void {
     this.hold(scope);
-    this.queue(async () => append(this.run, await this.open(scope), messages));
+    // Queued behind an edit (which sizes the context, so it is async): writes apply in order.
+    this.queue(async () => append(this.run, this.open(scope), messages));
   }
 
   edit(scope: ScopeId, edit: HeadEdit): void {
     this.hold(scope);
     this.queue(async () => {
-      if (!(await applyEdit(this.run, await this.open(scope), edit)))
+      if (!(await applyEdit(this.run, this.open(scope), edit)))
         throw new HarnessError('invalid', `the edit of ${scope} leaves an unprojectable head`);
     });
   }
@@ -57,9 +58,9 @@ export class Journal implements ToolJournal, Writer {
   }
 
   /** The pointer's transient head, held, with its state kept so a drop can restore it. */
-  async open(scope: ScopeId): Promise<Staged> {
+  open(scope: ScopeId): Staged {
     this.hold(scope);
-    const staged = await openPointer(this.run, scope);
+    const staged = openPointer(this.run, scope);
     if (!this.saved.has(staged))
       this.saved.set(staged, { entries: [...staged.entries], appended: staged.appended && [...staged.appended] });
     return staged;

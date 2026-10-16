@@ -6,5 +6,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { type ConformanceFixture, createSession, type Session, type SessionSetup } from './session.js';
+export { createSession, type SendOptions, type Session, type SessionSetup } from './session.js';
 export { runHarnessConformance } from './suite.js';

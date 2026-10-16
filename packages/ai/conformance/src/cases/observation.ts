@@ -7,21 +7,20 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type ConformanceFixture, createSession } from '../session.js';
+import { createSession } from '../session.js';
 
 /** O1 (Observation). */
-export function observationCases(fixture: ConformanceFixture): void {
+export function observationCases(): void {
   describe('Observation', () => {
     it('O1 throwing-subscriber: a subscriber that throws changes no event', async () => {
       const script = [{ text: 'hello' }];
-      const quiet = await createSession(fixture, { model: script });
+      const quiet = createSession({ model: script });
       await quiet.send('go');
-      const loud = await createSession(fixture, { model: script });
-      const runner = loud.runner();
-      runner.observe().subscribe(() => {
+      const loud = createSession({ model: script });
+      loud.harness.observe().subscribe(() => {
         throw new Error('subscriber failure');
       });
-      await loud.send('go', { runner });
+      await loud.send('go');
       const shape = (events: Awaited<ReturnType<typeof quiet.events>>) =>
         events.map((event) => (event.kind === 'step' ? `${event.stepKind}:${event.ending}` : event.control));
       expect(shape(await loud.events())).toEqual(shape(await quiet.events()));

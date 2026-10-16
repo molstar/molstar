@@ -17,8 +17,6 @@ import type { ToolEvent, TurnHooks } from './types.js';
  */
 export interface TurnState {
   hooks: TurnHooks;
-  /** The prompt's key until the turn has begun (the begun step names the items it took). */
-  key?: string;
   /** The turn id the host has been told of. */
   announced?: string;
   /** The tool events shown to the person, in order. */
@@ -46,10 +44,9 @@ export interface TurnState {
   skipShown: string | undefined;
 }
 
-export function newTurnState(hooks: TurnHooks, key?: string): TurnState {
+export function newTurnState(hooks: TurnHooks): TurnState {
   return {
     hooks,
-    ...(key !== undefined ? { key } : {}),
     events: [],
     starts: new Map(),
     retrying: new Map(),

@@ -7,7 +7,6 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createMemoryStorage } from '@molstar/ai-components';
 import type { Decisions } from '@molstar/ai-harness';
 import { AgentSession, createDrive, DENIED, type DriveHost, extendBudget, plainFailure, turnBudget } from '../index.js';
 import {
@@ -118,7 +117,6 @@ describe('permission', () => {
       expect(parked.status).toBe('awaiting-approval');
       expect(parked.approval).toEqual([expect.objectContaining({ tool: 'ask_service', args: {} })]);
       expect(statuses).toContain('permission');
-      expect(await f.session.interrupted()).toBe(true);
       const callId = parked.approval?.[0]?.callId ?? '';
       const done = await f.session.resume({ decisions: { [callId]: answer } });
       expect(done?.status).toBe('completed');
@@ -171,35 +169,6 @@ describe('a call the model should not have made (repair)', () => {
     ]);
     // Nothing is skipped: the call that was fine ran.
     expect(outcomes(r)).toEqual(['fly:failed', 'set_value:failed', 'set_value:succeeded']);
-  });
-
-  it('a tool that cannot run now (loaded earlier, no longer enabled): said so, nothing loaded, nothing skipped', async () => {
-    // One release had a tool the next one has not: its definition is still in the conversation's head.
-    const storage = createMemoryStorage();
-    const legacy = tool({
-      id: 'legacy',
-      description: 'An old tool.',
-      input: { kind: 'object', fields: {} },
-      modules: [],
-      run: () => ({ ok: true, did: 'Legacy.' }),
-    });
-    const before = fixture([{ calls: [callOf('disclose_tools', { tools: ['legacy'] })] }, { text: 'One.' }], {
-      storage,
-      harnessId: 'h-legacy',
-      toolkit: toyToolkit({ tools: [legacy] }),
-    });
-    await before.session.turn({ prompt: 'first' });
-    const f = fixture(
-      [{ calls: [callOf('legacy'), callOf('set_value')] }, { text: 'Ok.' }],
-      { storage, harnessId: 'h-legacy' },
-      {},
-      before.api,
-    );
-    const r = await f.session.turn({ prompt: 'second' });
-    expect(outcomes(r)).toEqual(['legacy:failed', 'set_value:succeeded']);
-    expect(r.tools[0]?.text).toBe('legacy cannot run now.');
-    expect(r.status).toBe('completed');
-    expect(f.model.invocations).toHaveLength(2);
   });
 });
 
@@ -518,71 +487,28 @@ describe('the model per turn', () => {
   });
 });
 
-describe('a conversation that began before a release', () => {
-  it('learns tools added since, and guidance that changed, once', async () => {
-    const storage = createMemoryStorage();
+describe('a toolkit that changes between turns', () => {
+  it('declares a tool added since the last turn, once', async () => {
     const extra = tool({
       id: 'added_later',
-      description: 'Came with a release.',
+      description: 'Came later.',
       input: { kind: 'object', fields: {} },
       modules: [],
       run: () => ({ ok: true, did: 'Added.' }),
     });
-    const api = fixture().api;
-    const session = (withExtra: boolean, guidanceText: string, changed = false) => {
-      const base = toyToolkit(withExtra ? { tools: [extra] } : {});
-      const toolkit = changed
-        ? {
-            ...base,
-            allDefinitions: () =>
-              base
-                .allDefinitions()
-                .map((d) => (d.name === 'get_state' ? { ...d, description: `${d.description} Changed.` } : d)),
-            coreDefinitions: () =>
-              base
-                .coreDefinitions()
-                .map((d) => (d.name === 'get_state' ? { ...d, description: `${d.description} Changed.` } : d)),
-          }
-        : base;
-      return fixture(
-        [{ text: 'Done.' }],
-        { storage, harnessId: 'h-release', guidance: guidanceText, toolkit },
-        {},
-        api,
-      );
-    };
+    const toolkit = toyToolkit();
+    const f = fixture([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }], { toolkit });
     const defs = (messages: Awaited<ReturnType<typeof headOf>>) =>
       messages.flatMap((m) => m.parts.flatMap((p) => (p.kind === 'tool-definition' ? [p.definition.name] : [])));
-    const guidances = (messages: Awaited<ReturnType<typeof headOf>>) =>
-      messages.flatMap((m) =>
-        m.parts.flatMap((p) =>
-          p.kind === 'text' && (m.role === 'system' || p.text.startsWith('Updated guidance')) ? [p.text] : [],
-        ),
-      );
-
-    const one = session(false, 'Guidance one.');
-    await one.session.turn({ prompt: 'first' });
-    expect(defs(await headOf(one.session))).not.toContain('added_later');
-
-    // A later release: one more tool (declared, not loaded), new guidance. The next turn adds exactly those.
-    const two = session(true, 'Guidance two.');
-    await two.session.turn({ prompt: 'second' });
-    const after = await headOf(two.session);
+    await f.session.turn({ prompt: 'first' });
+    expect(defs(await headOf(f.session))).not.toContain('added_later');
+    toolkit.add({ tools: [extra] });
+    await f.session.turn({ prompt: 'second' });
+    const after = await headOf(f.session);
     expect(defs(after).filter((n) => n === 'added_later')).toHaveLength(1);
-    expect(guidances(after).at(-1)).toMatch(/^Updated guidance .*\n\nGuidance two\.$/s);
-
     // Nothing new: nothing added.
-    const three = session(true, 'Guidance two.');
-    await three.session.turn({ prompt: 'third' });
-    const third = await headOf(three.session);
-    expect(defs(third)).toHaveLength(defs(after).length);
-    expect(guidances(third)).toHaveLength(2);
-
-    // A changed definition is sent again, once.
-    const four = session(true, 'Guidance two.', true);
-    await four.session.turn({ prompt: 'fourth' });
-    await session(true, 'Guidance two.', true).session.turn({ prompt: 'fifth' });
-    expect(defs(await headOf(four.session)).filter((n) => n === 'get_state')).toHaveLength(2);
-    expect(messagesOf(four.model, 0).at(-1)?.role).toBe('user');
+    await f.session.turn({ prompt: 'third' });
+    expect(defs(await headOf(f.session))).toHaveLength(defs(after).length);
+    expect(messagesOf(f.model, 2).at(-1)?.role).toBe('user');
   });
 });

@@ -6,25 +6,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, Message, ModelBindings } from '@molstar/ai-agent';
+import type { Message, ModelBindings } from '@molstar/ai-agent';
 import {
-  createHarnessHost,
-  createRunner,
+  createHarness,
   type Drive,
   defaultDrive,
-  type HarnessClient,
+  type Harness,
   type HarnessEvent,
-  type HarnessHost,
-  type HarnessStorage,
-  type HostOptions,
-  type LaunchKey,
+  type HarnessOptions,
   type Observation,
-  type Runner,
-  type RunnerExit,
-  type RunnerOptions,
-  type RunnerPort,
   type ToolBindings,
   type TurnConfiguration,
+  type TurnHandle,
+  type TurnOutcome,
   type TurnSummary,
 } from '@molstar/ai-harness';
 import { SimulatedClock } from './testing/clock.js';
@@ -32,13 +26,6 @@ import { simulatedIds } from './testing/ids.js';
 import { declareTools, user } from './testing/messages.js';
 import { type ModelStep, type ScriptedModel, type ScriptedModelOptions, scriptedModel } from './testing/model.js';
 import { type ScriptedTools, scriptedTools, type ToolRun, type ToolSpec } from './testing/tools.js';
-
-/** What a backend gives the suite. */
-export interface ConformanceFixture {
-  readonly name: string;
-  /** A fresh, empty storage for one case. */
-  storage(): HarnessStorage | Promise<HarnessStorage>;
-}
 
 export interface SessionSetup {
   readonly model?: readonly ModelStep[];
@@ -51,17 +38,18 @@ export interface SessionSetup {
   /** Merged over the default: the scripted model, every tool enabled and preauthorized, no limits. */
   readonly configuration?: Partial<TurnConfiguration>;
   readonly drive?: Drive;
-  readonly runnerLimits?: RunnerOptions['limits'];
-  readonly host?: Omit<HostOptions, 'clock'>;
+  readonly limits?: HarnessOptions['limits'];
+  /** The model bindings, from the scripted model's (default: those). */
+  models?(model: ScriptedModel): ModelBindings;
+  /** The tool bindings (default: the scripted tools'; their definitions are declared either way). */
+  readonly toolBindings?: ToolBindings;
 }
 
 export interface SendOptions {
-  readonly key?: string;
-  readonly options?: Json;
-  readonly interrupt?: { readonly turnId: string };
-  /** Run a runner if the submit launched one (default true). */
-  readonly run?: boolean;
-  readonly runner?: Runner;
+  /** This turn's configuration (default: the session's). */
+  readonly configuration?: TurnConfiguration;
+  /** Run the turn until it ends or parks, in virtual time (default true); else only begin it. */
+  readonly wait?: boolean;
 }
 
 export interface Session {
@@ -69,15 +57,20 @@ export interface Session {
   readonly clock: SimulatedClock;
   readonly model: ScriptedModel;
   readonly tools: ScriptedTools;
-  readonly host: HarnessHost;
-  readonly client: HarnessClient;
-  readonly port: RunnerPort;
-  /** A runner over this session's port; its observations collect in `observations`. */
-  runner(overrides?: Partial<RunnerOptions>): Runner & { readonly observations: Observation[] };
-  /** Submits a prompt; if that launched a runner, runs one until it exits. */
-  send(prompt: string | readonly Message[], options?: SendOptions): Promise<{ launch?: LaunchKey; exit?: RunnerExit }>;
-  /** Runs a runner for a launch key until it exits, in virtual time. */
-  run(launch: LaunchKey, runner?: Runner): Promise<RunnerExit>;
+  readonly harness: Harness;
+  /** The turns' configuration (`setup.configuration` over the default). */
+  readonly configuration: TurnConfiguration;
+  /** Every observation, in order, since the session was made. */
+  readonly observations: Observation[];
+  /** Begins a turn with a prompt (the first carries the tool declarations); runs it unless `wait` is false. */
+  send(
+    prompt: string | readonly Message[],
+    options?: SendOptions,
+  ): Promise<{ handle: TurnHandle; outcome?: TurnOutcome }>;
+  /** Waits for a turn's outcome in virtual time. */
+  run(handle: TurnHandle): Promise<TurnOutcome>;
+  /** Resumes the parked turn and runs it to its outcome. */
+  resume(): Promise<TurnOutcome>;
   events(): Promise<HarnessEvent[]>;
   /** The messages of `main`'s current head. */
   main(): Promise<Message[]>;
@@ -86,23 +79,11 @@ export interface Session {
 
 let sessions = 0;
 
-export async function createSession(fixture: ConformanceFixture, setup: SessionSetup = {}): Promise<Session> {
+/** A harness over a scripted model and scripted tools, on a simulated clock (testing.md). */
+export function createSession(setup: SessionSetup = {}): Session {
   const clock = new SimulatedClock();
   const ids = simulatedIds();
   const harnessId = `harness-${++sessions}`;
-  // Storage work in flight is work in progress for the simulated clock (slow backends).
-  const inner = await fixture.storage();
-  const storage: HarnessStorage = {
-    transact: (harnessId, run) => clock.track(() => inner.transact(harnessId, run)),
-    putBlobs: (harnessId, blobs) => clock.track(() => inner.putBlobs(harnessId, blobs)),
-    getBlobs: (harnessId, refs) => clock.track(() => inner.getBlobs(harnessId, refs)),
-    watch: (harnessId) => inner.watch(harnessId),
-    drop: (harnessId) => clock.track(() => inner.drop(harnessId)),
-  };
-  const host = createHarnessHost(storage, { ...setup.host, clock });
-  await host.create(harnessId, { key: `create-${harnessId}` });
-  const client = host.client(harnessId);
-  const port = host.runnerPort(harnessId);
   const model = scriptedModel(setup.model ?? [], { ...setup.modelOptions, clock });
   const tools = scriptedTools(setup.tools ?? {});
   const toolIds = tools.definitions.map((definition) => definition.tool.id);
@@ -114,38 +95,30 @@ export async function createSession(fixture: ConformanceFixture, setup: SessionS
   };
   const declared = (setup.declare ?? toolIds).map((id) => tools.definition(id));
   const deferred = (setup.deferred ?? []).map((id) => tools.definition(id));
+  const harness = createHarness({
+    id: harnessId,
+    models: setup.models?.(model) ?? model.bindings,
+    tools: setup.toolBindings ?? tools.bindings,
+    drive: setup.drive ?? defaultDrive(),
+    configure: () => configuration,
+    clock,
+    ids,
+    ...(setup.limits !== undefined ? { limits: setup.limits } : {}),
+  });
+  const observations: Observation[] = [];
+  harness.observe().subscribe((observation) => observations.push(observation));
   let first = true;
-  let runners = 0;
 
-  const runner: Session['runner'] = (overrides = {}) => {
-    const observations: Observation[] = [];
-    const made = createRunner({
-      port,
-      runnerId: `runner-${++runners}`,
-      models: model.bindings satisfies ModelBindings,
-      tools: tools.bindings satisfies ToolBindings,
-      drive: setup.drive ?? defaultDrive(),
-      configure: () => configuration,
-      clock,
-      ids,
-      ...(setup.runnerLimits !== undefined ? { limits: setup.runnerLimits } : {}),
-      ...overrides,
-    });
-    made.observe().subscribe((observation) => observations.push(observation));
-    return Object.assign(made, { observations });
-  };
-
-  const run: Session['run'] = (launch, given) => clock.runUntil((given ?? runner()).run(launch));
+  const run = (handle: TurnHandle) => clock.runUntil(handle.done);
 
   return {
     harnessId,
     clock,
     model,
     tools,
-    host,
-    client,
-    port,
-    runner,
+    harness,
+    configuration,
+    observations,
     run,
     async send(prompt, options = {}) {
       const messages: Message[] = typeof prompt === 'string' ? [user(prompt)] : [...prompt];
@@ -154,28 +127,27 @@ export async function createSession(fixture: ConformanceFixture, setup: SessionS
         if (deferred.length > 0) messages.unshift(declareTools(deferred, true));
         if (declared.length > 0) messages.unshift(declareTools(declared));
       }
-      const submitted = await client.submit({
-        key: options.key ?? ids.next('key'),
+      const handle = harness.turn({
         messages,
-        ...(options.options !== undefined ? { options: options.options } : {}),
-        ...(options.interrupt !== undefined ? { interrupt: options.interrupt } : {}),
+        ...(options.configuration !== undefined ? { configuration: options.configuration } : {}),
       });
-      if (submitted.launch === undefined || options.run === false) return submitted;
-      return { launch: submitted.launch, exit: await run(submitted.launch, options.runner) };
+      if (options.wait === false) return { handle };
+      return { handle, outcome: await run(handle) };
     },
+    resume: () => run(harness.resume()),
     async events() {
       const out: HarnessEvent[] = [];
       for (;;) {
-        const page = await client.events({ after: out.at(-1)?.seq ?? 0, limit: 500 });
+        const page = await harness.events({ after: out.at(-1)?.seq ?? 0, limit: 500 });
         out.push(...page);
         if (page.length < 500) return out;
       }
     },
     async main() {
-      const execution = await client.execution();
-      const [head] = await client.heads([execution.main]);
-      return head === undefined ? [] : await client.entries(head.entries);
+      const execution = await harness.execution();
+      const [head] = await harness.heads([execution.main]);
+      return head === undefined ? [] : await harness.entries(head.entries);
     },
-    turns: () => client.turns({ limit: 100 }),
+    turns: () => harness.turns({ limit: 100 }),
   };
 }

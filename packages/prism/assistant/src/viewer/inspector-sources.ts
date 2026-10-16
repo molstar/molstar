@@ -68,8 +68,7 @@ export function createInspectorSources(agent: Pick<ViewerAgent, 'inspect' | 'too
       do {
         again = false;
         try {
-          const client = await session.client();
-          const data = await readTrace(client, {
+          const data = await readTrace(session.client(), {
             cache,
             window: session.contextWindow(),
             toolCall: (call) => ({ read: toolkit.registration(call.toolId)?.read === true }),
@@ -92,10 +91,11 @@ export function createInspectorSources(agent: Pick<ViewerAgent, 'inspect' | 'too
   let watchers = 0;
   const watch = () => {
     if (watchers++ > 0) return;
-    void session.client().then((client) => {
-      if (disposed || watchers === 0 || unwatch) return;
-      unwatch = client.watch().subscribe(() => void read());
-    });
+    if (disposed || unwatch) return;
+    unwatch = session
+      .client()
+      .watch()
+      .subscribe(() => void read());
   };
   const release = () => {
     if (--watchers > 0) return;

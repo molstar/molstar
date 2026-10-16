@@ -533,7 +533,6 @@ Reading the state again and again; five reads done, the last next.
       toolkit: kit(),
       api: toy(),
       guidance,
-      harnessId: 'h-window',
     });
     const client = await session.client();
     // While the turn runs, the limit on its uncached input: 4 × the trigger (80% of a 1M window).

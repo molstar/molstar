@@ -6,14 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { murmurHash3_128_fromBytes } from '@molstar/core/data/util/hash-functions';
 import type { Message } from './messages.js';
 import type { Json } from './values.js';
 
 /**
- * Hashes (harness.md §2, §14). `hashMessage` walks a message's fields into bytes, never through JSON text:
+ * Hashes (harness.md §2). `hashMessage` walks a message's fields into bytes, never through JSON text:
  * each value is a type tag plus its content, strings and object keys length-prefixed UTF-8, object
- * keys in sorted order, `undefined` properties skipped. `digest` is RFC 8785 canonical JSON. Both use
- * SHA-256 through WebCrypto, so both are async, in browsers and Node alike.
+ * keys in sorted order, `undefined` properties skipped. `digest` hashes the UTF-8 of RFC 8785 canonical
+ * JSON. Both are MurmurHash3_x86_128 (`@molstar/core`'s, as MolViewSpec uses it), synchronous: an id
+ * within one page's memory, well mixed and 128 bits wide, not a cryptographic hash (a crafted message
+ * could collide with another; .v6/ai/simplification/harness.md §7).
  */
 
 const TAG = { null: 0, false: 1, true: 2, number: 3, string: 4, array: 5, object: 6 } as const;
@@ -93,14 +96,14 @@ export function encodeMessage(message: Message): Uint8Array<ArrayBuffer> {
   return out.buffer.slice(0, out.length);
 }
 
-async function sha256(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-  return Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
+/** The one hash `hashMessage` and `digest` take: an object, so a test can count the calls (P11 hash-once). */
+export const hashing = {
+  bytes: (bytes: Uint8Array): string => murmurHash3_128_fromBytes(bytes, 42),
+};
 
-/** An entry's id: SHA-256 of the message's structural encoding, lowercase hex. */
-export async function hashMessage(message: Message): Promise<string> {
-  return await sha256(encodeMessage(message));
+/** An entry's id: the 128-bit hash of the message's structural encoding, 32 lowercase hex digits. */
+export function hashMessage(message: Message): string {
+  return hashing.bytes(encodeMessage(message));
 }
 
 /** RFC 8785 (JCS): keys sorted by UTF-16 code units, ECMAScript number and string serialization. */
@@ -115,7 +118,7 @@ export function canonicalJson(value: Json): string {
   return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson((value as Record<string, Json>)[key] as Json)}`).join(',')}}`;
 }
 
-/** SHA-256 of `canonicalJson(value)`, lowercase hex. */
-export async function digest(value: Json): Promise<string> {
-  return await sha256(text.encode(canonicalJson(value)));
+/** The 128-bit hash of `canonicalJson(value)`'s UTF-8 bytes, 32 lowercase hex digits. */
+export function digest(value: Json): string {
+  return hashing.bytes(text.encode(canonicalJson(value)));
 }

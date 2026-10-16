@@ -17,7 +17,7 @@ export interface CallIdentity {
   readonly callId: string;
   /** The call's key: the same for a re-run of the same call. */
   readonly key: string;
-  /** `possible`: an earlier attempt may have run (the harness is re-running it). */
+  /** `possible`: an earlier attempt may have run (a retry). */
   readonly prior: 'none' | 'possible';
 }
 

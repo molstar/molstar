@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, Message, ModelConfiguration } from '@molstar/ai-agent';
+import type { Json, ModelConfiguration } from '@molstar/ai-agent';
 
-/** The records of harness.md §2–§4 and api.md: what the host stores and the event log holds. */
+/** The records of harness.md §2–§5: what the harness holds in memory and the event log records. */
 
 export type HarnessId = string;
 export type ScopeId = string;
@@ -19,8 +19,6 @@ export type TurnId = string;
 export type StepId = string;
 export type CallId = string;
 export type AttemptId = string;
-export type ItemKey = string;
-export type LaunchKey = string;
 /** `digest(body)`. */
 export type BlobRef = string;
 export type Seq = number;
@@ -28,36 +26,14 @@ export type Seq = number;
 /** The top-level pointer's scope. */
 export const MAIN: ScopeId = 'main';
 
-/** The schema version this harness writes; a turn written by another one is blocked (harness.md §4). */
-export const SCHEMA_VERSION = 1;
-
-/** A head as read: its entries' hashes in order (a hash may repeat). */
+/** A head: its entries' hashes in order (a hash may repeat); `id` digests them, so a head is content-addressed. */
 export interface Head {
   readonly id: HeadId;
-  readonly entries: readonly EntryId[];
-}
-/** How a head is stored: its segments, content-addressed (`id` digests the segment ids). */
-export interface HeadRecord {
-  readonly id: HeadId;
-  readonly segments: readonly string[];
-  readonly length: number;
-}
-/** An immutable chunk of entry hashes, content-addressed. */
-export interface Segment {
-  readonly id: string;
   readonly entries: readonly EntryId[];
 }
 export interface Pointer {
   readonly scope: ScopeId;
   readonly head: HeadId;
-}
-
-export interface Item {
-  readonly key: ItemKey;
-  readonly messages: readonly Message[];
-  readonly options?: Json;
-  readonly submittedAt: number;
-  readonly interrupt?: { readonly turnId: TurnId };
 }
 
 export interface ToolSet {
@@ -113,41 +89,19 @@ export type PendingStep =
 
 export interface ActiveTurn {
   readonly id: TurnId;
-  readonly schemaVersion: number;
   readonly configuration: TurnConfiguration;
   readonly budget: Budget;
   readonly pending: PendingStep;
   readonly park?: { readonly path: readonly CallId[]; readonly note?: Json };
-  readonly stopRequested?: { readonly reason?: Json; readonly at: number };
-  readonly blocked?: 'stale-schema';
   /** Running totals, nested runs included. */
   readonly usage: Usage;
 }
 
-export interface Progress {
-  readonly step?: StepId;
-  readonly phase: 'model' | 'tools' | 'decision' | 'idle';
-  readonly since: number;
-  readonly detail?: Json;
-}
-export type RunnerState =
-  | { readonly phase: 'none' }
-  | { readonly phase: 'launching'; readonly key: LaunchKey; readonly until: number }
-  | {
-      readonly phase: 'live';
-      readonly runnerId: string;
-      readonly leaseUntil: number;
-      readonly signalAt: number;
-      readonly progress?: Progress;
-    };
-
+/** The reader's snapshot of the harness (harness.md §4): the log's last seq, `main`, and the active turn. */
 export interface Execution {
   readonly harnessId: HarnessId;
   readonly seq: Seq;
-  readonly schemaVersion: number;
   readonly main: HeadId;
-  readonly inbox: readonly Item[];
-  readonly runner: RunnerState;
   readonly turn?: ActiveTurn;
 }
 
@@ -198,7 +152,7 @@ export interface TurnEnd {
 export interface TurnSummary {
   readonly id: TurnId;
   readonly status: 'active' | TurnEnd['status'];
-  readonly startedBy: readonly ItemKey[];
+  /** The turn's begin step. */
   readonly firstStep: StepId;
   readonly lastStep?: StepId;
   readonly usage: Usage;
@@ -216,38 +170,23 @@ export interface StepEvent {
   readonly turnId: TurnId;
   readonly step: StepId;
   readonly stepKind: 'begin' | 'model' | 'tools';
-  readonly ending: 'settled' | 'parked' | 'interrupted' | 'abandoned';
+  readonly ending: 'settled' | 'parked' | 'abandoned';
   readonly calls: readonly CallRecord[];
   readonly moves: readonly { readonly pointer: ScopeId; readonly from?: HeadId; readonly to: HeadId }[];
   readonly compaction?: readonly Compaction[];
-  readonly consumed: readonly ItemKey[];
   readonly next?: PendingStep;
   readonly end?: TurnEnd;
   readonly summary?: TurnSummary;
-  readonly begun?: { readonly items: readonly ItemKey[]; readonly configuration: TurnConfiguration };
+  /** On a begin step: the turn's configuration. */
+  readonly begun?: { readonly configuration: TurnConfiguration };
   readonly limits?: Limits;
-  readonly commitKey: string;
-  /** `digest` of the commit's input, so a reused key with other input is refused. */
-  readonly inputDigest?: string;
 }
+/** What happened outside a step: a parked turn stopped or resumed, a reset (harness.md §5). */
 export interface ControlEvent {
   readonly kind: 'control';
   readonly seq: Seq;
   readonly at: number;
-  readonly control:
-    | 'submitted'
-    | 'withdrawn'
-    | 'stop-requested'
-    | 'stopped'
-    | 'resumed'
-    | 'reset'
-    | 'claimed'
-    | 'blocked'
-    | 'released'
-    | 'launched';
-  readonly key?: string;
-  /** `digest` of the operation's input, so a reused key with other input is refused. */
-  readonly inputDigest?: string;
+  readonly control: 'stopped' | 'resumed' | 'reset';
   readonly turnId?: TurnId;
   readonly summary?: TurnSummary;
   readonly detail: Json;

@@ -194,9 +194,6 @@
       "path": "./packages/ai/conformance"
     },
     {
-      "path": "./packages/ai/components"
-    },
-    {
       "path": "./packages/ai/model-adapters"
     },
     {

@@ -128,7 +128,7 @@ describe('Anthropic adapter', () => {
     const second = await project(adapter, sonnet45());
     await assertDigestMatches(first);
     expect(first.digest).toBe(second.digest);
-    expect(first.digest).toMatch(/^[a-f0-9]{64}$/);
+    expect(first.digest).toMatch(/^[a-f0-9]{32}$/);
     expect(first.adapterRevision).toBe('anthropic-ai-sdk-v3');
     expect(JSON.stringify(first.payload)).not.toContain(secret);
     expect(payloadOf(first).model).toBe('claude-sonnet-4-5');

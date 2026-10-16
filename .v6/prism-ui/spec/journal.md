@@ -91,8 +91,8 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 
 ## 4. The agent's session
 
-- **`AgentSession`** is made by the viewer's `createViewerAgent` (agent.md §1), over the harness's memory storage
-  (`@molstar/ai-components`), with the viewer's toolkit (agent.md §3), its drive's policies (approvals, agent.md §4),
+- **`AgentSession`** is made by the viewer's `createViewerAgent` (agent.md §1), over an in-memory harness
+  (`@molstar/ai-harness`), with the viewer's toolkit (agent.md §3), its drive's policies (approvals, agent.md §4),
   and the account and focus each turn (agent.md §5); the assistant and headless hosts both call it. Like the record, it lives as long as the page: a
   reload ends a running turn, and a kept record shows it as stopped.
 - The session's journal (what the model sees, compacted) and the record (what the person sees) are separate: compaction

@@ -111,7 +111,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
         } satisfies Json);
       return {
         payload,
-        digest: await digest(payload),
+        digest: digest(payload),
         adapterRevision: 'scripted-1',
         inputTokens: Math.ceil(canonicalJson(payload).length / 4),
       };

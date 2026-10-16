@@ -7,11 +7,12 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { type ConformanceFixture, createSession } from '../session.js';
+import { hashing } from '@molstar/ai-agent';
+import { createSession } from '../session.js';
 
-/** Counts `crypto.subtle.digest` calls (every hash the harness takes goes through it) while `run` works. */
+/** Counts hashes (`hashMessage` and `digest` both go through `hashing.bytes`) while `run` works. */
 async function withDigestSpy<T>(run: (digests: { calls(): number }) => Promise<T>): Promise<T> {
-  const spy = vi.spyOn(globalThis.crypto.subtle, 'digest');
+  const spy = vi.spyOn(hashing, 'bytes');
   try {
     return await run({ calls: () => spy.mock.calls.length });
   } finally {
@@ -20,13 +21,13 @@ async function withDigestSpy<T>(run: (digests: { calls(): number }) => Promise<T
 }
 
 /** P11 (Performance): hashing is done once. The one cost bound kept: hashing is real CPU in memory too. */
-export function performanceCases(fixture: ConformanceFixture): void {
+export function performanceCases(): void {
   describe('Performance', () => {
     it('P11 hash-once: no round hashes more than the first, however long the head', async () => {
       await withDigestSpy(async (digests) => {
         const rounds = 16;
         const calls: number[] = [];
-        const s = await createSession(fixture, {
+        const s = createSession({
           tools: {
             work: (context) => {
               calls.push(digests.calls());
@@ -38,7 +39,7 @@ export function performanceCases(fixture: ConformanceFixture): void {
             { text: 'done' },
           ],
         });
-        await s.send('go', { runner: s.runner() });
+        await s.send('go');
         const perRound = calls.slice(1).map((count, i) => count - (calls[i] as number));
         expect(digests.calls()).toBeGreaterThan(0);
         for (const count of perRound) expect(count).toBeLessThanOrEqual((perRound[0] as number) + 2);

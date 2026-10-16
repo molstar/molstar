@@ -7,13 +7,13 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 
 ## Files (`session/src/`)
 
-| File          | What                                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| `session.ts`  | `AgentSession`: harness setup (`ensure`), `turn`, `resume`, `stop`, hooks from observations, results     |
-| `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`         |
-| `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                           |
-| `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`          |
-| `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`) |
+| File          | What                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `session.ts`  | `AgentSession`: the harness (made on first use), `turn`, `resume`, `stop`, hooks from observations, results |
+| `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`            |
+| `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                              |
+| `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`             |
+| `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)    |
 
 ## Making one
 
@@ -23,23 +23,21 @@ const session = new AgentSession<MyApi>({
   toolkit,                       // createToolkit(...) from ai-tools
   api,                           // the host's modules; the session adds `disclosure` if absent
   guidance,                      // the system text of the first turn
-  storage: createIndexedDbStorage('my-app-agent'), // default: memory
-  harnessId: 'conversation-42',  // stable, so storage finds it again
 });
 ```
 
-Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` default, or `'all'`), `clock`, `leaseMs` (10
-s: the most a reopened tab waits to take over a turn), `contextWindow`, `compaction` (overrides or `false`),
-`compactionDomain`, `maxToolCalls` (200), `thinking` (one `ReasoningParameters` or per model; pass the catalog's
-`defaultReasoning`), `maxOutputTokens` (16384), `version()` (enables repeated-read answers), `afterWrite` (where a host
-saves after a write), `price`, `drive` (the host's own `DriveHandlers`, over the session's), and the `DrivePolicy`
-fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2), `toolRetryDelayMs` (1000),
-`providerNames`. Also `notesHeading` (heads the notes; default `NOTES_HEADING`).
+Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` default, or `'all'`), `clock`,
+`contextWindow`, `compaction` (overrides or `false`), `compactionDomain`, `maxToolCalls` (200), `thinking` (one
+`ReasoningParameters` or per model; pass the catalog's `defaultReasoning`), `maxOutputTokens` (16384), `version()`
+(enables repeated-read answers), `afterWrite` (where a host saves after a write), `price`, `drive` (the host's own
+`DriveHandlers`, over the session's), and the `DrivePolicy` fields: `approve(call)`, `retries` (3), `retryDelayMs`
+(1500), `toolRetries` (2), `toolRetryDelayMs` (1000), `providerNames`. Also `notesHeading` (heads the notes; default
+`NOTES_HEADING`).
 
-`ensure()` (lazy, on the first call) builds: `createHarnessHost(storage, { leaseMs, launchMs: leaseMs })`, the client,
-`createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time) wrapped to
-observe calls, `ModelBindings` over `adapterFor`, `createDrive(...)`, and a `createInProcessSupervisor` whose
-`startRunner` makes a `createRunner` per launch and subscribes to its observations.
+The harness (made on first use) is `createHarness({ models, tools, drive, clock, price })`: `ModelBindings` over
+`adapterFor`, `createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time)
+wrapped to observe calls, and `createDrive(...)`; the session subscribes to its observations. It lives in memory, as
+long as the session (a reload ends the conversation).
 
 ## Turns
 
@@ -56,12 +54,12 @@ observe calls, `ModelBindings` over `adapterFor`, `createDrive(...)`, and a `cre
   `LABEL_GUIDANCE`/`LABEL_GUIDANCE_UPDATE` keyed by the text's fingerprint, `guidanceLabel(text)`, and the toolkit's
   `tools:definitions`). Compaction, `catchUp` and the trace read labels; the markers stay in the text for the model and
   are read only for entries written before labels.
-- The item is `submit`ted with `options: { configuration }`; the runner's `configure` reads it back. Tool set: the
+- The turn begins with `harness.turn({ messages, configuration })` and the session awaits its `done`. Tool set: the
   toolkit's `toolSet()` as the turn begins (every registration enabled, all but `approval` ones preauthorized, and the
   tools lazy skills will bring; tools.md, "Dynamic").
 - **`TurnResult`**: `status` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval`), `approval?` (pending
   calls), `text` (the last reply), `turnText` (every reply of the turn: one per model call, a retry counted once, a
-  widened reply replacing the cut one; since this session took the turn up), `error?`, `tools: ToolEvent[]`, `usage?`
+  widened reply replacing the cut one; for a resumed turn, since the resume), `error?`, `tools: ToolEvent[]`, `usage?`
   (`input`, `output`, `cached`, `written`, `modelCalls`), `context?` (tokens after the turn), `compactions?`.
 - **Hooks** (`TurnHooks`): `onText(textSoFar)`, `onTool(ToolEvent)` (top-level calls: `started`, `progress`,
   `succeeded`, `failed`, `skipped`; with `read`, times),
@@ -70,11 +68,12 @@ observe calls, `ModelBindings` over `adapterFor`, `createDrive(...)`, and a `cre
 - **Approval**: a turn parks at `permission`; the result is `awaiting-approval`.
   `resume({ decisions: { [callId]: 'allow' | 'deny' }, hooks? })` continues it. A denial is told to the model as
   `DENIED` ("The person did not allow this call.").
-- `stop()` (durable; changes already applied stay), `interrupted()` (an active turn: parked, or unowned after a reload),
-  `resume({ hooks })` with no decisions takes over an interrupted turn once the old lease has run out, `forget()` (reset
-  `main` to the empty head: a fresh conversation, history kept in the log), `dispose()` (stops supervising; another
-  session takes the harness up), `client()` (the `HarnessClient`, for a trace), `isFresh()`, `contextWindow()`,
-  `budget(choice?)`.
+- `stop()` (the running or parked turn ends stopped; changes already applied stay; a stop while the turn is being
+  composed keeps it from beginning), `forget()` (reset `main` to the empty head: a fresh conversation, history kept in
+  the log; a parked turn ends reset), `dispose()` (a turn still running or parked ends stopped), `client()` (the
+  harness's `HarnessReader`, for a trace and the Inspector), `isFresh()`, `contextWindow()`, `budget(choice?)`.
+- Gone 2026-10-16: the options `storage`, `harnessId`, `leaseMs`, `interrupted()` and the takeover of a turn after a
+  reload (nothing outlives the page).
 
 ## The drive (`createDrive`, `drive.ts`)
 
@@ -89,9 +88,8 @@ the session's.
 | `model-result` | cut at the output limit: once per turn, `replace` with twice `maxOutputTokens` (within the model's max); nested runs accept                                                                                                                                                                                                                                                                                                                     |
 | `budget`       | `extendBudget`: the short kind grows by its initial amount toward its ceiling; nested runs fail                                                                                                                                                                                                                                                                                                                                                 |
 | `repair`       | not loaded: fail it, load its definition (a contribution), skip the rest of the response; unknown (or not loaded and not registered): point to the disclosure tools; not enabled or no handler: "cannot run now"; invalid arguments: "takes its arguments as one JSON object"                                                                                                                                                                   |
-| `boundary`     | compact at the trigger, else proceed; never steers (each prompt is its own turn)                                                                                                                                                                                                                                                                                                                                                                |
-| `next-turn`    | begin with the first waiting item only, compacting first from the soft threshold                                                                                                                                                                                                                                                                                                                                                                |
-| `interrupt`    | `defaultDrive`'s                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `boundary`     | compact at the trigger, else proceed                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `turn-start`   | compact first from the soft threshold, else proceed                                                                                                                                                                                                                                                                                                                                                                                             |
 
 **Budget** (`turnBudget(trigger, maxToolCalls)`): tokens by kind, the same for every model, scaled with the compaction
 trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached input max(500k, 4×trigger) → max(2M,
@@ -116,15 +114,15 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
 
 ## Gotchas
 
-- A session is one conversation: one `harnessId`. Several sessions may share one storage.
+- A session is one conversation: one harness, in memory.
 - Model choices are the host's: the session knows no models; context windows and output limits come from the choice, the
   adapter's capabilities, or `contextWindow`/`maxOutput` given for custom models.
 - `onText` streams one model call at a time (it restarts with each top-level call); `TurnResult.text` is the last
   non-empty text, else the last assistant message; `turnText` is the whole turn's.
 - Only "a turn is already running" throws from `turn()`; a missing adapter or unknown model is `status: 'failed'`.
   `resume()` returns `undefined` when busy or with nothing to resume; `forget()` throws while a turn runs.
-- Approval decisions passed to `resume` live in memory only: after a reload the host passes them again (a parked turn
-  resumed without them parks again). The pending calls are in `TurnResult.approval`.
+- Approval decisions passed to `resume` are kept for the conversation (a parked turn resumed without one for a call
+  parks again). The pending calls are in `TurnResult.approval`.
 - Prompts during a running turn are not steered in; the host queues them (Stories kept one follow-up).
 - `TurnResult` and hooks cover top-level calls; a helper's calls (nested runs, compaction) are only in the trace.
 - The session keeps no person-facing history: a durable transcript is the application's to compose (from the hooks and

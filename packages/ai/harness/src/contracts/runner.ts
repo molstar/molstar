@@ -10,72 +10,26 @@ import type {
   AssistantMessage,
   Json,
   Message,
-  ModelBindings,
   ModelConfiguration,
   ModelVisiblePart,
   ToolDefinition,
 } from '@molstar/ai-agent';
 import type { Drive } from './drive.js';
-import type { HarnessObservable, Observation } from './observe.js';
-import type { HeadEdit, RunnerPort } from './ports.js';
-import type {
-  CallId,
-  HarnessId,
-  HeadId,
-  Item,
-  LaunchKey,
-  Limits,
-  ScopeId,
-  Seq,
-  ToolSet,
-  TurnConfiguration,
-  TurnId,
-  Usage,
-} from './records.js';
+import type { HeadEdit } from './harness.js';
+import type { CallId, HarnessId, HeadId, Limits, ScopeId, ToolSet, TurnId, Usage } from './records.js';
 
-/** Time, injected so every lease, retry and deadline runs on a simulated clock in tests. */
+/** What the loop runs with (harness.md §6–§9): time and ids, injected; tool handlers and their contexts. */
+
+/** Time, injected so every retry and deadline runs on a simulated clock in tests. */
 export interface Clock {
   now(): number;
   /** Resolves after `ms`, or rejects with the signal's reason when it aborts. */
   sleep(ms: number, signal?: AbortSignal): Promise<void>;
 }
 
-/** Fresh ids for turns, steps, calls, attempts and runners; collision-resistant across workers. */
+/** Fresh ids for turns, steps, calls and attempts. */
 export interface IdSource {
-  next(kind: 'turn' | 'step' | 'call' | 'attempt' | 'runner' | 'launch' | 'key'): string;
-}
-
-export interface RunnerOptions {
-  readonly port: RunnerPort;
-  readonly runnerId: string;
-  readonly models: ModelBindings;
-  readonly tools: ToolBindings;
-  readonly drive: Drive;
-  configure(items: readonly Item[]): TurnConfiguration | Promise<TurnConfiguration>;
-  price?(configuration: ModelConfiguration, usage: Usage): number;
-  readonly clock?: Clock;
-  readonly ids?: IdSource;
-  /** Default: `SCHEMA_VERSION`; another value only in tests (a runner of another version). */
-  readonly schemaVersion?: number;
-  readonly limits?: {
-    readonly signalEveryMs?: number;
-    readonly handOffAfterMs?: number;
-    readonly depth?: number;
-    readonly cacheBytes?: number;
-  };
-}
-
-export interface RunnerExit {
-  readonly reason: 'released' | 'handed-off' | 'lost' | 'stale-launch' | 'stale-schema' | 'aborted';
-  readonly seq?: Seq;
-}
-
-export interface Runner {
-  /** Claims with the launch key, serves turns, then releases or hands off. */
-  run(launch: LaunchKey): Promise<RunnerExit>;
-  observe(): HarnessObservable<Observation>;
-  /** Local only: stop working now. Not a durable Stop (that is the client's `stop`). */
-  abort(reason?: string): void;
+  next(kind: 'turn' | 'step' | 'call' | 'attempt'): string;
 }
 
 export interface ToolBindings {
@@ -101,7 +55,7 @@ export interface ToolHandler {
 /** A tool's own context (harness.md §8): reads see this step's staged moves; writes are staged. */
 export interface ToolJournal {
   read(scope: ScopeId): Promise<{ head?: HeadId; messages: Message[] }>;
-  /** Throws `pointer-busy` for another writer's pointer and for `main`. */
+  /** Throws `pointer-busy` for another writer's pointer and for `main`; a failed write fails the attempt. */
   append(scope: ScopeId, messages: readonly Message[]): void;
   edit(scope: ScopeId, edit: HeadEdit): void;
 }
@@ -129,6 +83,7 @@ export interface RunContext {
   readonly callId: CallId;
   readonly path: readonly CallId[];
   readonly key: string;
+  /** `possible` on a retry: an earlier attempt may have had its effect. */
   readonly prior: 'none' | 'possible';
   readonly attempt: number;
   readonly definition: ToolDefinition;

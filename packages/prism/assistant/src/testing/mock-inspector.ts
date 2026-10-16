@@ -732,10 +732,7 @@ export function mockTrace(options: { running?: boolean } = {}): TraceData {
     execution: {
       seq: running ? 118 : 131,
       headId: running ? '5dcdfe502d9e7e2f003fd34f12345509' : 'a41f0c9e8b27d6e35f1c0a9b8e7d6c5b',
-      runner: running ? 'live' : 'none',
-      ...(running
-        ? { lease: { worker: 'tab-1', renewsInMs: 6200, leaseMs: 10_000 }, pendingStep: 'model' as const }
-        : {}),
+      ...(running ? { pendingStep: 'model' as const } : {}),
     },
     budget: {
       consumed: uncached,

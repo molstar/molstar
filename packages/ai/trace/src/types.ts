@@ -17,8 +17,8 @@ import type { JsonObject, ModelFinish } from '@molstar/ai-agent';
 /**
  * A turn's state. A turn that ended maps from the harness's status: `completed` is `done`, `failed` is `failed`,
  * `stopped` and `reset` are `stopped`. A turn still active is read from the Execution (harness.md §4–§6): `waiting`
- * when it is parked (a permission answered `park`), blocked (written by another schema version) or has no runner on
- * it; else by the step it will run next: `thinking` for a model step, `working` for a tools step.
+ * when it is parked (a permission answered `park`); else by the step it will run next: `thinking` for a model step,
+ * `working` for a tools step.
  */
 export type TurnStatus = 'thinking' | 'working' | 'waiting' | 'done' | 'stopped' | 'failed';
 
@@ -54,9 +54,6 @@ export interface ExecutionView {
   readonly seq: number;
   /** The head `main` points at. */
   readonly headId: string;
-  readonly runner: 'none' | 'launching' | 'live';
-  /** While a runner is live on a turn: who owns it, and when the lease renews. */
-  readonly lease?: { readonly worker: string; readonly renewsInMs: number; readonly leaseMs: number };
   /** The step the harness will run or resume next. */
   readonly pendingStep?: 'model' | 'tools';
   /** The active turn is parked, waiting for an answer. */

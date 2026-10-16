@@ -10,7 +10,6 @@ export { SimulatedClock, settle } from './clock.js';
 export { simulatedIds } from './ids.js';
 export { assistant, declareTools, system, textOf, toolDefinition, user } from './messages.js';
 export { type ModelStep, type ScriptedModel, type ScriptedModelOptions, scriptedModel } from './model.js';
-export { simulatedSupervisor } from './supervisor.js';
 export {
   type ScriptedTools,
   scriptedTools,

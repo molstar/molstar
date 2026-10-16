@@ -64,7 +64,7 @@ export async function project(
 export const payloadOf = (request: ProjectedRequest): JsonObject => request.payload as JsonObject;
 
 export async function assertDigestMatches(request: ProjectedRequest): Promise<void> {
-  if (request.digest !== (await digest(request.payload))) throw new Error('digest does not match the payload.');
+  if (request.digest !== digest(request.payload)) throw new Error('digest does not match the payload.');
 }
 
 export function resultOf(frames: readonly ModelFrame[]): Extract<ModelFrame, { kind: 'result' }> {

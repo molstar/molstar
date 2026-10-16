@@ -276,7 +276,7 @@ describe('OpenAI Responses adapter', () => {
     const adapter = create(recorded.fetch);
     const request = await project(adapter, input());
     const payload = { ...payloadOf(request), provider: 'google' };
-    await expect(collectFrames(adapter, { ...request, payload, digest: await digest(payload) })).rejects.toThrow(
+    await expect(collectFrames(adapter, { ...request, payload, digest: digest(payload) })).rejects.toThrow(
       /provider does not match/,
     );
     expect(recorded.requests).toHaveLength(0);

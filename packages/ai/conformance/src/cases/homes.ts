@@ -8,15 +8,15 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Message, ToolDefinition } from '@molstar/ai-agent';
-import { type ConformanceFixture, createSession } from '../session.js';
+import { createSession } from '../session.js';
 import { assistant, declareTools, textOf, toolDefinition } from '../testing/messages.js';
 import { with_ } from './helpers.js';
 
 /** H1, all negative: each concern stays in its home (harness.md §1). */
-export function homeCases(fixture: ConformanceFixture): void {
+export function homeCases(): void {
   describe('Homes', () => {
     it('H1 contribution-like-answer: an assistant-text contribution does not end the turn (defect 2)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { note: () => ({ text: 'noted', contributions: [assistant('All done.')] }) },
         model: [{ calls: [{ tool: 'note', arguments: {} }] }, { text: 'final' }],
       });
@@ -34,7 +34,7 @@ export function homeCases(fixture: ConformanceFixture): void {
         parts: [{ kind: 'tool-call', requestId: 'smuggled', tool: { id: 'note' }, arguments: {} }],
       };
       const failures: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { note: () => ({ text: 'noted', contributions: [smuggled] }) },
         model: [{ calls: [{ tool: 'note', arguments: {} }] }, { text: 'final' }],
         drive: with_({
@@ -59,7 +59,7 @@ export function homeCases(fixture: ConformanceFixture): void {
     it('H1 redeclared: a later redeclaration of a tool does not change the definition a planned call runs under (defect 7)', async () => {
       const redeclared = toolDefinition('probe', { depth: { type: 'string' } });
       const seen: ToolDefinition[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           probe: (context) => {
             seen.push(context.definition);

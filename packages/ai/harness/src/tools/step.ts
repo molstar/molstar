@@ -10,9 +10,8 @@ import type { AssistantMessage, Json, Message, ModelVisiblePart, UserMessage } f
 import type { SkipAnswer } from '../contracts/drive.js';
 import type { AttemptFailure, CallId, Usage } from '../contracts/records.js';
 import type { RunContext, ToolFrame } from '../contracts/runner.js';
-import { ZERO } from '../host/writer.js';
-import { admit, blob, charge, decide, linked, openCall, type Run, raise } from '../runner/run.js';
-import { Exit } from '../runner/state.js';
+import { add, admit, blob, charge, decide, linked, openCall, type Run, raise } from '../loop/run.js';
+import { Exit, ZERO } from '../loop/state.js';
 import { Journal } from './journal.js';
 import { type Planned, projectable, viewOf } from './plan.js';
 
@@ -32,8 +31,8 @@ const failed = (parts: readonly ModelVisiblePart[], contributions?: readonly Mes
 const textOf = (parts: readonly ModelVisiblePart[]) => parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
 
 /**
- * The step's skips (harness.md §7, §10): a `skip` without calls (every unstarted call), one naming calls
- * (only those), or an interrupt answered `skip`; and which calls have started.
+ * The step's skips (harness.md §7): a `skip` without calls (every unstarted call), or one naming calls (only
+ * those); and which calls have started.
  */
 interface Skip {
   text?: string;
@@ -42,8 +41,7 @@ interface Skip {
   readonly started: Set<CallId>;
   readonly results: Map<CallId, Result>;
 }
-const skipping = (run: Run, skip: Skip, callId: CallId) =>
-  skip.calls.get(callId) ?? skip.text ?? (run.depth === 0 ? run.state.skip : undefined);
+const skipping = (skip: Skip, callId: CallId) => skip.calls.get(callId) ?? skip.text;
 /** The step's calls that have neither started nor got a result, but `except`. */
 const unstarted = (skip: Skip, except: CallId) =>
   skip.plan
@@ -74,7 +72,7 @@ async function attemptCall(
     callId: call.callId,
     path: run.path,
     key: call.key,
-    prior: attempt > 1 || run.rerun ? 'possible' : 'none',
+    prior: attempt > 1 ? 'possible' : 'none',
     attempt,
     definition: call.bound,
     arguments: call.arguments,
@@ -101,7 +99,6 @@ async function attemptCall(
           attemptId,
           value: frame.value,
         });
-        run.core.progress('tools', true);
       } else if (frame.kind === 'usage') usage = frame.usage;
       else result = frame;
     }
@@ -137,7 +134,7 @@ async function attemptCall(
 /** A bound call's attempts until it has its one result (harness.md §6). */
 async function runCall(run: Run, call: Planned, skip: Skip): Promise<Result> {
   const { clock, ids, observations } = run.core;
-  const record = await openCall(
+  const record = openCall(
     run,
     'tool',
     { toolId: call.toolId, key: call.key, arguments: call.arguments },
@@ -152,7 +149,6 @@ async function runCall(run: Run, call: Planned, skip: Skip): Promise<Result> {
     const scope = { path: run.path, callId: call.callId, attemptId };
     const startedAt = clock.now();
     observations.next({ kind: 'attempt.started', ...scope });
-    run.core.progress('tools');
     const { result, fault, usage } = await attemptCall(run, call, attempt, attemptId, controller.signal, journal);
     const aborted = controller.signal.aborted;
     const used: Usage = { ...ZERO, ...usage, toolCalls: attempt === 1 ? 1 : 0 };
@@ -199,7 +195,7 @@ async function runCall(run: Run, call: Planned, skip: Skip): Promise<Result> {
       parts: reported.parts,
       ...(reported.contributions ? { contributions: reported.contributions } : {}),
     };
-    record.result = await blob(run, body as unknown as Json);
+    record.result = blob(run, body as unknown as Json);
     return body;
   }
 }
@@ -210,7 +206,7 @@ async function runStage(run: Run, calls: readonly Planned[], limit: number, resu
   const errors: unknown[] = [];
   const worker = async () => {
     for (let call = queue.shift(); call !== undefined; call = queue.shift()) {
-      const skipped = skipping(run, skip, call.callId);
+      const skipped = skipping(skip, call.callId);
       if (skipped !== undefined) {
         results.set(call.callId, failed(text(skipped)));
         continue;
@@ -277,7 +273,6 @@ export async function toolsStep(run: Run, message: AssistantMessage, plan: reado
         skip,
       );
   }
-  if (run.depth === 0) await Promise.all(run.state.pending);
   if (run.abort.signal.aborted) throw run.abort.signal.reason;
   const user: UserMessage = {
     role: 'user',
@@ -293,14 +288,14 @@ export async function toolsStep(run: Run, message: AssistantMessage, plan: reado
     }),
   };
   const round: Message[] = [message, user];
-  const ids = await run.core.cache.add(round);
+  const ids = add(run, round);
   let present: Set<string> | undefined;
   for (const call of plan) {
     const contributions = results.get(call.callId)?.contributions ?? [];
     if (contributions.length === 0) continue;
     present ??= new Set(run.context.entries);
     const seen = present;
-    const hashed = await run.core.cache.add(contributions);
+    const hashed = add(run, contributions);
     for (const [i, contribution] of contributions.entries()) {
       const id = hashed[i] as string;
       if (seen.has(id)) continue;

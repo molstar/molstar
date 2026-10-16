@@ -12,17 +12,17 @@ calls a real model costs money; ask before running it.
 
 ## The conformance suite
 
-`runHarnessConformance({ name, storage: () => HarnessStorage })` runs the 59 essential cases against a backend. It is
-the harness's contract: a change to a contract (a record, an operation, a decision, an ending) comes with a case here.
-The one runner is `components/src/harness/_test/conformance.test.ts` (memory); the IndexedDB run is gone, and with it
-the cases only a durable or shared store makes reachable: backend faults, leases and launch races, supervisor liveness,
-schema versions, tombstones, crash re-runs and storage cost (what was cut, and why:
-`.v6/ai/simplification/conformance.md`).
+`runHarnessConformance()` runs the 59 essential cases on the in-memory harness (`createHarness`). It is the harness's
+contract: a change to a contract (a record, an operation, a decision, an ending) comes with a case here. The runner is
+`conformance/src/_test/conformance.test.ts`. The cases only a durable or shared store made reachable (backend faults,
+leases and launch races, supervisor liveness, schema versions, tombstones, crash re-runs, storage cost) and those of
+mechanisms the in-memory harness no longer has (keyed operations, commit batches, steering, interrupts) are gone (what
+was cut, and why: `.v6/ai/simplification/conformance.md`).
 
 | File (`conformance/src/cases/`) | Ids | Cases | What                                                                             |
 | ------------------------------- | --- | ----: | -------------------------------------------------------------------------------- |
 | `journal.ts`                    | J   |     2 | stop during tools leaves `main` as it was; the message hash is stable            |
-| `turns.ts`                      | T   |     5 | begin while active, Stop (a live runner, before a settlement), reset, catch-up   |
+| `turns.ts`                      | T   |     5 | begin while active, Stop (during a step, before a settlement), reset, catch-up   |
 | `homes.ts`                      | H   |     3 | negative cases: each concern stays in its home                                   |
 | `steps.ts`                      | E   |     9 | step endings, rounds, retries, park and resume                                   |
 | `tools.ts`                      | X   |     9 | denied, unbound, failed, skipped calls, keys, parked permission, sibling failure |
@@ -37,7 +37,7 @@ schema versions, tombstones, crash re-runs and storage cost (what was cut, and w
 Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 
 `@molstar/ai-conformance/fibers`: `runFiberConformance({ name, create, durable? })`, the fibers' suite, run on memory
-and IndexedDB rows in `components/src/fibers/_test/`.
+(`conformance/src/fibers/_test/`) and on the viewer's IndexedDB rows (`prism/viewer/src/journal/_test/`).
 
 ## Test doubles (`@molstar/ai-conformance/testing`)
 
@@ -45,12 +45,14 @@ and IndexedDB rows in `components/src/fibers/_test/`.
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `scriptedModel(steps, options?)`                                          | a `ModelAdapter` playing `ModelStep`s (`text`, `calls`, `reasoning`, `finish`, `usage`, `fail`, `waitMs`, `deltas`); `.bindings`, `.projections`, `.invocations`, `.push()` |
 | `scriptedTools(specs)`                                                    | `ToolBindings` from functions or specs; records calls                                                                                                                       |
-| `SimulatedClock`, `settle()`                                              | virtual time (`advance`, `runUntil`); `settle` lets WebCrypto hashing finish                                                                                                |
-| `simulatedIds()`, `simulatedSupervisor()`                                 | deterministic ids; a supervisor that starts once per launch key, optionally losing launches (`failLaunch`)                                                                  |
+| `SimulatedClock`, `settle()`                                              | virtual time (`advance`, `runUntil`); `settle` lets pending promises run                                                                                                    |
+| `simulatedIds()`                                                          | deterministic ids                                                                                                                                                           |
 | `user`, `system`, `assistant`, `toolDefinition`, `declareTools`, `textOf` | message builders                                                                                                                                                            |
 
-`createSession(fixture, setup)` (from the main entry) wires host, client, port, scripted model and tools on a simulated
-clock for harness-level tests: `send(prompt)`, `run(launch)`, `events()`, `main()`, `turns()`.
+`createSession(setup)` (from the main entry) makes a harness over a scripted model and tools on a simulated clock for
+harness-level tests: `harness`, `observations`, `send(prompt, { configuration?, wait? })` (a turn, run to its outcome
+unless `wait: false`), `run(handle)`, `resume()`, `events()`, `main()`, `turns()`; `setup.models` and
+`setup.toolBindings` replace the scripted bindings.
 
 ## Testing at each level
 
@@ -68,8 +70,8 @@ clock for harness-level tests: `send(prompt)`, `run(launch)`, `events()`, `main(
 
 ## Pitfalls
 
-- Hashing is WebCrypto (off the microtask queue). On a simulated clock, wait with `settle()` or `runUntil`, not a fixed
-  number of ticks; the clock counts in-flight digests as pending work.
+- Hashing is synchronous (core's MurmurHash3); on a simulated clock, wait for a condition (`until` in
+  `cases/helpers.ts`, `settle()`) or `runUntil`, not a fixed number of ticks.
 - Some cases still wait a fixed number of event-loop rounds and retry under load (`.v6/ai/plan.md`, "The suite waits on
   conditions"); prefer waiting on the condition in new cases.
 - Tests import packages by name (`@molstar/ai-conformance/testing`); Vitest resolves them to sources through the

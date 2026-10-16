@@ -7,7 +7,6 @@
  */
 
 import type {
-  Json,
   ModelAdapter,
   ModelBindings,
   ModelCapabilities,
@@ -15,25 +14,23 @@ import type {
   ReasoningParameters,
   ToolDefinition,
 } from '@molstar/ai-agent';
-import { createInProcessSupervisor, createMemoryStorage } from '@molstar/ai-components';
 import {
   type Clock,
-  createHarnessHost,
-  createRunner,
+  createHarness,
   type DriveContext,
   type DriveHandlers,
-  type Execution,
   emptyHead,
-  type HarnessClient,
-  type HarnessStorage,
+  type Harness,
+  HarnessError,
+  type HarnessOptions,
+  type HarnessReader,
   type HeadEdit,
-  type Item,
   type LastCompaction,
   MAIN,
   type Observation,
-  type RunnerOptions,
   type ToolBindings,
   type TurnConfiguration,
+  type TurnOutcome,
   type TurnSummary,
 } from '@molstar/ai-harness';
 import {
@@ -106,14 +103,7 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   startTools?: 'core' | 'all';
   /** System guidance (the first message of a conversation). */
   guidance: string;
-  /** Where the harness keeps its records; default: in memory only. Pass one over IndexedDB to resume across
-   * reloads and restarts, or bring your own `HarnessStorage`. Several conversations may share one. */
-  storage?: HarnessStorage;
-  /** Stable harness id, so durable storage finds this conversation's history. */
-  harnessId?: string;
   clock?: Clock;
-  /** Ownership lease; a reopened tab waits at most this long to resume a turn. */
-  leaseMs?: number;
   /** The default model's context window in tokens; default: what its adapter reports. */
   contextWindow?: number;
   /**
@@ -142,17 +132,11 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   /** Runs after a call that changed something, before its result is recorded (where a host saves). */
   afterWrite?: AfterWrite;
   /** What a model call cost, in the host's unit (the harness keeps it in the usage). */
-  price?: RunnerOptions['price'];
+  price?: HarnessOptions['price'];
   /** The host's own decisions, over the session's policies (which are over `defaultDrive`); 'pass' leaves one to them. */
   drive?: Partial<DriveHandlers>;
   /** Heads the request's notes (default: "Notes since your last turn:"). */
   notesHeading?: string;
-}
-
-interface Harness {
-  readonly id: string;
-  readonly client: HarnessClient;
-  readonly supervisor: ReturnType<typeof createInProcessSupervisor>;
 }
 
 const wallClock: Clock = {
@@ -172,17 +156,12 @@ const wallClock: Clock = {
     }),
 };
 
-const uuid = () => globalThis.crypto.randomUUID();
-
-/** What `activeTurn` holds while a resume or a forget reads the harness, before a turn id is known (or for none). */
-const RESUMING = 'resuming';
-const FORGETTING = 'forgetting';
-const claimed = (active: string | undefined) => active === RESUMING || active === FORGETTING;
+/** What `activeTurn` holds while a turn is being composed, before the harness gives its id. */
+const COMPOSING = 'composing';
 
 /**
- * One conversation over one harness (tools-and-session.md §4). Prompts go to its harness as items; a runner (started
- * by an in-process supervisor) works each turn under this session's drive. One turn at a time; stop() cancels the
- * running turn.
+ * One conversation over one in-memory harness (tools-and-session.md §4): each prompt is a turn of the harness, run
+ * under this session's drive. One turn at a time; stop() cancels the running (or parked) turn.
  */
 export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = ModelChoice> {
   private readonly options: AgentSessionOptions<Api, M>;
@@ -197,12 +176,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     const { toolkit } = this.options;
     return { ...toolkitDomain(toolkit), evicted: () => toolkit.removed(), ...this.options.compactionDomain };
   }
-  private harness: Harness | undefined;
-  private settingUp: Promise<Harness> | undefined;
+  private made: Harness | undefined;
   /** Everything of the running turn, made afresh for each turn and resume. */
   private state: TurnState = newTurnState({});
-  /** The running turn: its prompt's key until it has begun, then its turn id. */
+  /** The running turn: `COMPOSING` until the harness has begun it, then its turn id. */
   private activeTurn: string | undefined;
+  /** stop() came while the turn was being composed: it does not begin. */
+  private stopAsked = false;
   /** Answers a repeated read briefly (per turn). */
   private readonly repeats: RepeatedReads | undefined;
   /** The person's answers to calls that needed approval, by call id (kept across resumes). */
@@ -317,19 +297,18 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     return this.budgetFor(this.modelConfiguration(choice));
   }
 
-  /** The harness's client, for reading the conversation (a trace). */
-  async client(): Promise<HarnessClient> {
-    return (await this.ensure()).client;
+  /** The harness's reader, for reading the conversation (a trace, the Inspector). */
+  client(): HarnessReader {
+    return this.harness;
   }
 
   /** Whether the next turn is the conversation's first (no head yet): what a host's preamble depends on. */
   async isFresh(): Promise<boolean> {
-    await this.ensure();
     return this.fresh;
   }
 
   /** The messages of the conversation's committed context. */
-  private async head(client: HarnessClient) {
+  private async head(client: HarnessReader) {
     const execution = await client.execution();
     const [head] = await client.heads([execution.main]);
     return head === undefined ? [] : await client.entries(head.entries);
@@ -345,13 +324,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   }
 
   /**
-   * What a conversation that began earlier has not seen: tools added or changed since (a conversation keeps its
-   * harness across releases; a changed definition replaces the old one): the starting tools and any it loaded later,
-   * loaded; the others declared (deferred); and the guidance, when its text changed. Undefined when nothing is
+   * What the conversation has not seen: tools added or changed since its first turn (a dynamic toolkit changes between
+   * turns; a changed definition replaces the old one): the starting tools and any it loaded later, loaded; the others
+   * declared (deferred); and the guidance, when the context does not hold its current text. Undefined when nothing is
    * missing.
    */
   private async catchUp(
-    client: HarnessClient,
+    client: HarnessReader,
     starting: readonly ToolDefinition[],
     deferring: readonly ToolDefinition[],
     guidance: string,
@@ -382,32 +361,21 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     return tools.length || deferred.length || !current ? { tools, deferred, guidance: !current } : undefined;
   }
 
-  /** The harness, set up once: concurrent first calls (a turn, a trace reader) share one setup. */
-  private ensure(): Promise<Harness> {
-    if (this.harness) return Promise.resolve(this.harness);
-    this.settingUp ??= this.setUp().finally(() => {
-      this.settingUp = undefined;
-    });
-    return this.settingUp;
+  /** The harness, made on first use. */
+  private get harness(): Harness {
+    this.made ??= this.setUp();
+    return this.made;
   }
 
-  private async setUp(): Promise<Harness> {
-    const { clock } = this;
-    const storage = this.options.storage ?? createMemoryStorage();
-    const leaseMs = this.options.leaseMs ?? 10_000;
-    const host = createHarnessHost(storage, { clock, leaseMs, launchMs: leaseMs });
-    const id = this.options.harnessId ?? `session-${uuid()}`;
-    await host.create(id, { key: `create-${id}` });
-    const client = host.client(id);
-    this.fresh = (await this.head(client)).length === 0;
+  private setUp(): Harness {
     // Which tools and skills the conversation has: read from its committed context.
     const { toolkit } = this.options;
     const disclosure = {
       loaded: async () =>
-        (await this.head(client)).flatMap((m) =>
+        (await this.head(this.harness)).flatMap((m) =>
           m.parts.flatMap((p) => (p.kind === 'tool-definition' && !p.deferred ? [p.definition.tool.id] : [])),
         ),
-      skills: async () => toolkit.groupsIn(await this.head(client)),
+      skills: async () => toolkit.groupsIn(await this.head(this.harness)),
     };
     const given = this.options.api;
     const api = given.disclosure ? given : ({ ...given, disclosure } as Api);
@@ -426,28 +394,15 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         return { ...found, capabilitiesFor: (configuration) => this.capabilitiesOf(found, configuration) };
       },
     };
-    const port = host.runnerPort(id);
-    const drive = createDrive(this.driveHost(), this.options.drive);
-    const supervisor = createInProcessSupervisor({
-      client,
-      clock,
-      startRunner: () => {
-        const runner = createRunner({
-          port,
-          runnerId: `agent-session-${uuid()}`,
-          models,
-          tools,
-          drive,
-          configure: (items) => this.configure(items),
-          clock,
-          ...(this.options.price ? { price: this.options.price } : {}),
-        });
-        runner.observe().subscribe((o) => this.observe(o));
-        return runner;
-      },
+    const harness = createHarness({
+      models,
+      tools,
+      drive: createDrive(this.driveHost(), this.options.drive),
+      clock: this.clock,
+      ...(this.options.price ? { price: this.options.price } : {}),
     });
-    this.harness = { id, client, supervisor };
-    return this.harness;
+    harness.observe().subscribe((o) => this.observe(o));
+    return harness;
   }
 
   /** What the drive reads and writes of this session. */
@@ -465,14 +420,6 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       status: (event) => this.status(event),
       shown: (event) => this.shown(event),
     };
-  }
-
-  /** A turn's configuration, as its item carries it (else the session's own). */
-  private configure(items: readonly Item[]): TurnConfiguration {
-    const given = (items[0]?.options as { configuration?: TurnConfiguration } | undefined)?.configuration;
-    if (given !== undefined) return given;
-    const model = this.modelConfiguration(undefined);
-    return { ...this.toolSet(), model, limits: this.budgetFor(model).initial };
   }
 
   private toolSet(): Pick<TurnConfiguration, 'tools'> {
@@ -580,8 +527,6 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       this.status({ kind: tools ? 'tools' : 'model' });
     } else if (o.kind === 'event' && o.event.kind === 'step') {
       const step = o.event;
-      // The step that begins this prompt's turn: its id is known, before the first model call.
-      if (state.key !== undefined && step.begun?.items.includes(state.key)) this.begin(step.turnId);
       for (const call of step.calls)
         if (call.kind === 'model' && call.parentCallId === undefined) {
           const u = call.attempts.at(-1)?.usage;
@@ -614,9 +559,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     when: 'force' | 'trigger' | 'soft',
     sized?: { size: { inputTokens: number }; lastCompaction?: LastCompaction },
   ): Promise<HeadEdit | undefined> {
-    // At a turn's start, the coming turn's model (its prompt carries the configuration).
-    const coming = (context.inbox[0]?.options as { configuration?: TurnConfiguration } | undefined)?.configuration;
-    const model = context.configuration?.model ?? coming?.model ?? this.modelConfiguration(undefined);
+    const model = context.configuration?.model ?? this.modelConfiguration(undefined);
     const settings = this.compactionSettings(this.windowOf(model.target.provider, model.target.model));
     if (settings === undefined) return undefined;
     const state = this.state;
@@ -642,11 +585,11 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   /** Runs one turn to completion (or stop/failure/park). Throws only on programming errors. */
   async turn(request: TurnRequest<M>, hooks: TurnHooks = {}): Promise<TurnResult> {
     if (this.activeTurn) throw new Error('A turn is already running.');
-    const key = `prompt-${Date.now().toString(36)}-${uuid()}`;
-    this.activeTurn = key;
-    this.reset(hooks, key);
+    this.activeTurn = COMPOSING;
+    this.stopAsked = false;
+    this.reset(hooks);
     try {
-      const harness = await this.ensure();
+      const harness = this.harness;
       let configuration: TurnConfiguration;
       try {
         configuration = await this.configurationFor(request.model);
@@ -661,7 +604,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       }
       const { starting, deferring } = this.toolsAtStart();
       const { guidance } = this.options;
-      const catchUp = this.fresh ? undefined : await this.catchUp(harness.client, starting, deferring, guidance);
+      const catchUp = this.fresh ? undefined : await this.catchUp(harness, starting, deferring, guidance);
       const messages = turnInput({
         prompt: request.prompt,
         ...(request.state !== undefined ? { state: request.state } : {}),
@@ -676,14 +619,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         guidance,
         ...(catchUp ? { catchUp } : {}),
       });
-      const submitted = await harness.client.submit({
-        key,
-        messages,
-        options: { configuration } as unknown as Json,
-      });
+      if (this.stopAsked) return { status: 'stopped', text: '', turnText: '', tools: [] };
+      const handle = harness.turn({ messages, configuration });
       this.fresh = false;
-      if (submitted.launch !== undefined) harness.supervisor.ensure(harness.id, submitted.launch);
-      return await this.outcome(harness, { key });
+      this.activeTurn = handle.turnId;
+      // Before the turn's first model call, so before any change it makes.
+      this.begin(handle.turnId);
+      return await this.outcome(await handle.done);
     } catch (e) {
       return {
         status: 'failed',
@@ -697,77 +639,49 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     }
   }
 
-  private reset(hooks: TurnHooks, key?: string): void {
-    this.state = newTurnState(hooks, key);
+  private reset(hooks: TurnHooks): void {
+    this.state = newTurnState(hooks);
     this.repeats?.reset();
   }
 
-  /**
-   * Stops looking after this conversation's turns (its supervisor): the session it served is gone, as a closed tab's
-   * is, and another (a reload, the server's next session) takes them up. A runner at work finishes its step; one
-   * whose lease runs out is relaunched by whoever supervises next.
-   */
+  /** The session's work is over: a turn still running or parked ends as stopped. */
   dispose(): void {
-    this.harness?.supervisor.close();
-  }
-
-  /** Whether the harness holds a turn that was interrupted or parked (resume() would continue it). */
-  async interrupted(): Promise<boolean> {
-    if (this.activeTurn) return false;
-    const { client } = await this.ensure();
-    return (await client.execution()).turn !== undefined;
+    this.made?.stop();
   }
 
   /**
    * Back to an empty conversation: `main` returns to the empty head, so the next turn is a first turn again
-   * (guidance, tools, then its request). A turn that was parked or interrupted ends as reset. Throws while a turn runs.
+   * (guidance, tools, then its request). A parked turn ends as reset. Throws while a turn runs.
    */
   async forget(): Promise<void> {
     if (this.activeTurn) throw new Error('A turn is running: stop it first.');
-    this.activeTurn = FORGETTING;
-    try {
-      const { client } = await this.ensure();
-      const empty = await emptyHead();
-      await client.reset({ key: `forget-${uuid()}`, pointers: { [MAIN]: empty.id } });
-      this.fresh = true;
-      this.decided.clear();
-      this.contextTokens = undefined;
-      this.repeats?.reset();
-    } finally {
-      this.activeTurn = undefined;
-    }
+    this.harness.reset({ [MAIN]: emptyHead().id });
+    this.fresh = true;
+    this.decided.clear();
+    this.contextTokens = undefined;
+    this.repeats?.reset();
   }
 
   /**
-   * Resumes a turn that was parked for approval (with the person's decisions) or interrupted (the tab closed
-   * mid-turn: a runner takes it over once the old owner's lease runs out). Returns undefined when there is no such
-   * turn.
+   * Resumes a turn that was parked for approval, with the person's decisions. Returns undefined when a turn runs or
+   * none is parked.
    */
   async resume({ decisions = {}, hooks = {} }: ResumeOptions = {}): Promise<TurnResult | undefined> {
     if (this.activeTurn) return undefined;
-    // Claimed before the first await, as `turn` does, so a turn, a resume or a forget cannot start meanwhile.
-    this.activeTurn = RESUMING;
+    let handle: ReturnType<Harness['resume']>;
     try {
-      for (const [callId, d] of Object.entries(decisions)) this.decided.set(callId, d);
-      const harness = await this.ensure();
-      const turn = (await harness.client.execution()).turn;
-      if (turn === undefined) return undefined;
-      this.reset(hooks);
-      this.activeTurn = turn.id;
-      return await this.resumed(harness, turn);
-    } finally {
-      this.activeTurn = undefined;
+      handle = this.harness.resume();
+    } catch (e) {
+      if (e instanceof HarnessError) return undefined;
+      throw e;
     }
-  }
-
-  private async resumed(harness: Harness, turn: NonNullable<Execution['turn']>): Promise<TurnResult> {
+    // The loop starts after this tick: the decisions and the hooks are in place for its first decision.
+    for (const [callId, d] of Object.entries(decisions)) this.decided.set(callId, d);
+    this.reset(hooks);
+    this.activeTurn = handle.turnId;
     try {
-      this.begin(turn.id, true);
-      const key = `resume-${turn.id}-${Date.now().toString(36)}`;
-      const { launch } =
-        turn.park !== undefined ? await harness.client.resume({ key, turnId: turn.id }) : await harness.client.check();
-      if (launch !== undefined) harness.supervisor.ensure(harness.id, launch);
-      return await this.outcome(harness, { turnId: turn.id });
+      this.begin(handle.turnId, true);
+      return await this.outcome(await handle.done);
     } catch (e) {
       return {
         status: 'failed',
@@ -776,105 +690,57 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         error: e instanceof Error ? e.message : String(e),
         tools: this.state.events,
       };
+    } finally {
+      this.activeTurn = undefined;
     }
   }
 
-  /** Waits until the turn (begun by the prompt `key`, or `turnId`) ends or parks. */
-  private outcome(harness: Harness, want: { key?: string; turnId?: string }): Promise<TurnResult> {
-    let turnId = want.turnId;
-    return new Promise<TurnResult>((resolve, reject) => {
-      let busy = false;
-      let again = false;
-      let done = false;
-      let unsubscribe: () => void = () => undefined;
-      const finish = (f: () => void) => {
-        done = true;
-        unsubscribe();
-        f();
-      };
-      const check = async () => {
-        if (busy) {
-          again = true;
-          return;
-        }
-        busy = true;
-        try {
-          do {
-            again = false;
-            const execution = await harness.client.execution();
-            if (want.key !== undefined && execution.inbox.some((i) => i.key === want.key)) continue;
-            if (turnId === undefined) {
-              const begun = (await harness.client.turns({ limit: 8 })).find((t) =>
-                t.startedBy.includes(want.key ?? ''),
-              );
-              turnId = begun?.id;
-              if (turnId === undefined) continue;
-              if (this.activeTurn === want.key) this.activeTurn = turnId;
-              this.begin(turnId);
-            }
-            const result = await this.settled(harness.client, execution, turnId);
-            if (result !== undefined) return finish(() => resolve(result));
-          } while (again);
-        } catch (e) {
-          finish(() => reject(e));
-        } finally {
-          busy = false;
-        }
-      };
-      unsubscribe = harness.client.watch().subscribe(
-        () => {
-          if (!done) void check();
-        },
-        (e) => {
-          if (!done) finish(() => reject(e));
-        },
-      );
-    });
-  }
-
-  /** The turn's result once it ended or parked; undefined while it runs. */
-  private async settled(client: HarnessClient, execution: Execution, turnId: string): Promise<TurnResult | undefined> {
+  /** The result of a turn that ended or parked. */
+  private async outcome(outcome: TurnOutcome): Promise<TurnResult> {
     const state = this.state;
-    if (execution.turn?.id === turnId) {
-      if (execution.turn.park === undefined) return undefined;
+    const client = this.harness;
+    if ('parked' in outcome)
       return {
         status: 'awaiting-approval',
-        approval: this.awaiting(execution),
+        approval: await this.awaiting(),
         text: state.lastText,
         turnText: turnTextOf(state),
         tools: state.events,
       };
-    }
-    const summary = (await client.turns({ limit: 16 })).find((t) => t.id === turnId);
-    if (summary === undefined || summary.status === 'active') return undefined;
-    const status = summary.status;
-    const error = status === 'failed' ? ((await this.endReason(client, summary)) ?? 'The turn failed.') : undefined;
+    const summary = (await client.turns({ limit: 16 })).find((t) => t.id === outcome.turnId);
+    const status = outcome.end.status;
+    const error =
+      status === 'failed' ? ((summary && (await this.endReason(client, summary))) ?? 'The turn failed.') : undefined;
     if (!state.lastText && status === 'completed') {
       const last = (await this.head(client)).findLast((m) => m.role === 'assistant');
       state.lastText = last?.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('') ?? '';
     }
     const turnText = turnTextOf(state) || state.lastText;
-    const u = summary.usage;
+    const u = summary?.usage;
     return {
       status,
       text: state.lastText,
       turnText,
       ...(error !== undefined ? { error } : {}),
       tools: state.events,
-      usage: {
-        input: u.uncachedInput + u.cacheRead + u.cacheWrite,
-        output: u.output,
-        cached: u.cacheRead,
-        written: u.cacheWrite,
-        modelCalls: u.modelCalls,
-      },
+      ...(u !== undefined
+        ? {
+            usage: {
+              input: u.uncachedInput + u.cacheRead + u.cacheWrite,
+              output: u.output,
+              cached: u.cacheRead,
+              written: u.cacheWrite,
+              modelCalls: u.modelCalls,
+            },
+          }
+        : {}),
       ...(this.contextTokens !== undefined ? { context: this.contextTokens } : {}),
       ...(state.compactions.length ? { compactions: [...state.compactions] } : {}),
     };
   }
 
   /** Why a turn ended, in words, from the event that ended it. */
-  private async endReason(client: HarnessClient, summary: TurnSummary): Promise<string | undefined> {
+  private async endReason(client: HarnessReader, summary: TurnSummary): Promise<string | undefined> {
     if (summary.lastStep === undefined) return undefined;
     const ending = (await client.steps([summary.lastStep])).findLast((e) => e.end !== undefined);
     const reason = ending?.end?.reason as { reason?: string; message?: string; kind?: string } | undefined;
@@ -883,8 +749,8 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   }
 
   /** The calls a parked turn waits on: its pending calls that need approval and are not decided. */
-  private awaiting(execution: Execution): PendingApproval[] {
-    const pending = execution.turn?.pending;
+  private async awaiting(): Promise<PendingApproval[]> {
+    const pending = (await this.harness.execution()).turn?.pending;
     if (pending?.kind !== 'tools') return [];
     const set = this.options.toolkit.toolSet();
     const asked = new Set(set.enabled.filter((id) => !set.preauthorized.includes(id)));
@@ -926,18 +792,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
 
   /** Cancels the running (or parked) turn. Changes already applied stay (the host can undo the turn). */
   async stop(): Promise<void> {
-    if (!this.harness) return;
-    const { client } = this.harness;
-    const key = `stop-${Date.now().toString(36)}-${uuid()}`;
-    try {
-      const active = this.activeTurn;
-      if (active?.startsWith('prompt-')) await client.stop({ key, item: active });
-      else {
-        const turnId = (claimed(active) ? undefined : active) ?? (await client.execution()).turn?.id;
-        if (turnId !== undefined) await client.stop({ key, turnId });
-      }
-    } catch {
-      // A turn that ended meanwhile needs no stop.
-    }
+    if (this.activeTurn === COMPOSING) this.stopAsked = true;
+    else this.made?.stop();
   }
 }

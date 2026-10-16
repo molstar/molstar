@@ -391,12 +391,6 @@
       "private": true
     },
     {
-      "name": "@molstar/ai-components",
-      "path": "packages/ai/components",
-      "kind": "library",
-      "private": true
-    },
-    {
       "name": "@molstar/ai-model-adapters",
       "path": "packages/ai/model-adapters",
       "kind": "library",

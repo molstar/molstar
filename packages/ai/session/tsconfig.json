@@ -16,9 +16,6 @@
       "path": "../harness"
     },
     {
-      "path": "../components"
-    },
-    {
       "path": "../tools"
     }
   ]

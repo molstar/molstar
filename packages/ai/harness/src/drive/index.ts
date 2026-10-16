@@ -64,14 +64,10 @@ export function legal(decision: Decision, answer: unknown): boolean {
       );
     case 'boundary': {
       const completing = (decision as Decision<'boundary'>).payload.completing;
-      return answer === 'proceed' || has(answer, 'steer') || has(answer, 'compact') || (completing && answer === 'end');
+      return answer === 'proceed' || has(answer, 'compact') || (completing && answer === 'end');
     }
-    case 'interrupt':
-      return (
-        answer === 'abandon' || (answer === 'skip' && (decision as Decision<'interrupt'>).payload.stepKind === 'tools')
-      );
-    case 'next-turn':
-      return answer === 'release' || has(answer, 'begin');
+    case 'turn-start':
+      return answer === 'proceed' || has(answer, 'compact');
   }
 }
 
@@ -117,10 +113,7 @@ export function defaultDrive(options: DefaultDriveOptions = {}): Drive {
     },
     'model-result': () => 'accept',
     repair: () => ({ report: {} }),
-    boundary: ({ payload }, context) =>
-      payload.completing && context.inbox.length > 0 ? { steer: context.inbox.map((item) => item.key) } : 'proceed',
-    interrupt: ({ payload }) => (payload.stepKind === 'tools' ? 'skip' : 'abandon'),
-    'next-turn': (_decision, context) =>
-      context.inbox.length > 0 ? { begin: { keys: context.inbox.map((item) => item.key) } } : 'release',
+    boundary: () => 'proceed',
+    'turn-start': () => 'proceed',
   });
 }

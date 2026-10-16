@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { AttemptFailure, Decision, StepEvent, ToolFrame } from '@molstar/ai-harness';
-import { type ConformanceFixture, createSession, type Session } from '../session.js';
+import { createSession, type Session } from '../session.js';
 import { lastStep, stepEvents, with_ } from './helpers.js';
 
 /** Handlers run inside the session they are made for; this is their way back to it. */
@@ -54,10 +54,10 @@ const toolsStep = (events: Awaited<ReturnType<Session['events']>>): StepEvent | 
   stepEvents(events).find((event) => event.stepKind === 'tools');
 
 /** X1–X5 (Tools). */
-export function toolCases(fixture: ConformanceFixture): void {
+export function toolCases(): void {
   describe('Tools', () => {
     it('X1 denied: a denied call gives one failed result with its text and never runs (harness.md §6)', async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         configuration: { tools: { enabled: ['a'], preauthorized: [] } },
         tools: { a: () => ({ text: 'a done' }) },
         model: [{ calls: [{ tool: 'a', arguments: {} }] }, { text: 'final' }],
@@ -74,7 +74,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it('X1 unbound-report: a call reported at repair gives one failed result with the reported text (harness.md §8)', async () => {
       const reasons: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { echo: () => ({ text: 'echo' }) },
         model: [{ calls: [{ tool: 'ghost', arguments: {} }] }, { text: 'final' }],
         drive: with_({
@@ -91,7 +91,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it("X1 failure-report: a failure answered report is the call's one failed result (harness.md §6, §7)", async () => {
       const failures: AttemptFailure[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { a: () => ({ status: 'failed', text: 'boom' }) },
         model: [{ calls: [{ tool: 'a', arguments: {} }] }, { text: 'final' }],
         drive: reportFailures(failures),
@@ -104,7 +104,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it('X1 invalid-arguments: non-object arguments open repair and skip the handler; schema-rejected ones reach it (harness.md §8)', async () => {
       const reasons: string[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           echo: () => ({ text: 'echo' }),
           strict: {
@@ -148,7 +148,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it('X1 skip-rest: report with a skip gives the unstarted calls failed results with that text (harness.md §7)', async () => {
       const failures: AttemptFailure[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           a: () => ({ status: 'failed', text: 'a broke' }),
           b: () => ({ text: 'b done' }),
@@ -185,7 +185,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it('X1 no-result: a stream with no result fails the attempt stream-protocol, effect unknown (harness.md §8)', async () => {
       const failures: AttemptFailure[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           silent: async function* (): AsyncGenerator<ToolFrame> {
             yield { kind: 'progress', value: 'working' };
@@ -203,7 +203,7 @@ export function toolCases(fixture: ConformanceFixture): void {
     });
 
     it("X2 park-no-effects: with the second call's permission parked, neither handler ran (harness.md §6)", async () => {
-      const s = await createSession(fixture, {
+      const s = createSession({
         configuration: { tools: { enabled: ['a', 'b'], preauthorized: [] } },
         tools: { a: () => ({ text: 'a done' }), b: () => ({ text: 'b done' }) },
         model: [
@@ -217,9 +217,9 @@ export function toolCases(fixture: ConformanceFixture): void {
         ],
         drive: with_({ permission: ({ payload }) => (payload.call.toolId === 'b' ? { park: {} } : 'allow') }),
       });
-      const { exit } = await s.send('go');
-      expect(exit?.reason).toBe('released');
-      expect((await s.client.execution()).turn?.park).toBeDefined();
+      const { outcome } = await s.send('go');
+      expect(outcome).toMatchObject({ parked: { path: [] } });
+      expect((await s.harness.execution()).turn?.park).toBeDefined();
       expect(lastStep(await s.events()).ending).toBe('parked');
       expect(s.tools.callsOf('a')).toHaveLength(0);
       expect(s.tools.callsOf('b')).toHaveLength(0);
@@ -227,7 +227,7 @@ export function toolCases(fixture: ConformanceFixture): void {
 
     it('X3 key-across-retry: attempt 2 has the same key, prior possible, attempt 2', async () => {
       let attempts = 0;
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: {
           flaky: () => {
             attempts += 1;
@@ -257,7 +257,7 @@ export function toolCases(fixture: ConformanceFixture): void {
         return { text: `${name} done` };
       };
       const failures: AttemptFailure[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { a: () => ({ status: 'failed', text: 'a failed' }), b: waiter('b'), c: waiter('c') },
         model: [
           {

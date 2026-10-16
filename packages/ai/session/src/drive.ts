@@ -181,7 +181,7 @@ export function createDrive<Api>(host: DriveHost<Api>, overrides: DriveHandlers 
   const permission: DriveHandlers['permission'] = ({ payload, path }) => {
     const p = { callId: payload.call.callId, tool: payload.call.toolId, args: payload.call.arguments };
     const decided = host.decided.get(p.callId) ?? host.policy.approve?.(p) ?? rule(p);
-    // Ask: the turn parks (durably) until the person answers and the turn resumes.
+    // Ask: the turn parks until the person answers and the turn resumes.
     if (decided === undefined) return { park: { note: p as unknown as Json } };
     if (decided === 'deny') {
       // Told to the model and the turn goes on; the person sees a failed call.
@@ -343,18 +343,15 @@ export function createDrive<Api>(host: DriveHost<Api>, overrides: DriveHandlers 
         'model-result': modelResult,
         budget,
         repair,
-        // Mid-turn compaction once the context reaches the trigger. Queued prompts are not steered in: each prompt is
-        // its own turn.
+        // Mid-turn compaction once the context reaches the trigger.
         boundary: async ({ payload }, context) => {
           const edit = await host.compaction(context, 'trigger', payload);
           return edit === undefined ? 'proceed' : { compact: edit };
         },
-        // One prompt per turn; from the soft threshold, the turn begins with a compaction.
-        'next-turn': async ({ payload }, context) => {
-          const item = context.inbox[0];
-          if (item === undefined) return 'release';
+        // From the soft threshold, the turn begins with a compaction.
+        'turn-start': async ({ payload }, context) => {
           const compact = await host.compaction(context, 'soft', payload);
-          return { begin: { keys: [item.key], ...(compact !== undefined ? { compact } : {}) } };
+          return compact === undefined ? 'proceed' : { compact };
         },
       },
       defaultDrive(),

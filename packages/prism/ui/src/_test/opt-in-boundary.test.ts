@@ -22,7 +22,6 @@ const OptIn = [
   '@molstar/prism-viewer',
   '@molstar/ai-agent',
   '@molstar/ai-harness',
-  '@molstar/ai-components',
   '@molstar/ai-model-adapters',
   '@molstar/ai-conformance',
   '@molstar/ai-tools',

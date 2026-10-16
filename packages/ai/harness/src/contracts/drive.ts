@@ -14,7 +14,7 @@ import type {
   ModelVisiblePart,
   ToolDefinition,
 } from '@molstar/ai-agent';
-import type { HeadEdit } from './ports.js';
+import type { HeadEdit } from './harness.js';
 import type {
   AttemptFailure,
   Budget,
@@ -24,7 +24,6 @@ import type {
   HarnessId,
   Head,
   HeadId,
-  ItemKey,
   Limits,
   ScopeId,
   Seq,
@@ -35,13 +34,6 @@ import type { RunResult, RunSpec } from './runner.js';
 
 /** Decisions and drives (harness.md §7). */
 
-export interface ItemView {
-  readonly key: ItemKey;
-  readonly messages: readonly Message[];
-  readonly options?: Json;
-  readonly submittedAt: number;
-  readonly interrupt: boolean;
-}
 export interface CallView {
   readonly callId: CallId;
   readonly toolId: string;
@@ -97,13 +89,10 @@ export interface Decisions {
   ];
   boundary: [
     { size: ContextSize; completing: boolean; lastCompaction?: LastCompaction },
-    'proceed' | { steer: readonly ItemKey[] } | { compact: HeadEdit } | 'end',
+    'proceed' | { compact: HeadEdit } | 'end',
   ];
-  interrupt: [{ item: ItemView; stepKind: 'model' | 'tools' }, 'abandon' | 'skip'];
-  'next-turn': [
-    { size: ContextSize; lastCompaction?: LastCompaction },
-    { begin: { keys: readonly ItemKey[]; compact?: HeadEdit } } | 'release',
-  ];
+  /** A turn's begin step, before its messages are appended: where a drive compacts first. */
+  'turn-start': [{ size: ContextSize; lastCompaction?: LastCompaction }, 'proceed' | { compact: HeadEdit }];
 }
 export type DecisionKind = keyof Decisions;
 /** Legal for every kind. */
@@ -122,8 +111,6 @@ export interface DriveContext {
   readonly budget: Budget;
   readonly head: Head;
   readonly configuration?: TurnConfiguration;
-  /** At depth 0; a nested drive sees the inbox by passing up. */
-  readonly inbox: readonly ItemView[];
   readonly signal: AbortSignal;
   readonly journal: { read(scope: ScopeId): Promise<{ head?: HeadId; messages: Message[] }> };
   /** A nested run inside the open step (how a drive calls a model to compact). */

@@ -9,22 +9,12 @@
 import { describe, expect, it } from 'vitest';
 import { type Message } from '@molstar/ai-agent';
 import { defaultDrive, drive } from '@molstar/ai-harness';
-import { type ConformanceFixture, createSession, type Session, type SessionSetup } from '../session.js';
-import { settle } from '../testing/clock.js';
+import { createSession, type Session, type SessionSetup } from '../session.js';
 import { system, textOf, user } from '../testing/messages.js';
 import { expectWith, stepEvents, TURN, with_ } from './helpers.js';
 
-/** Waits (in real turns of the event loop) until `ok` holds. */
-async function until(ok: () => boolean | Promise<boolean>, rounds = 200): Promise<void> {
-  for (let i = 0; i < rounds; i += 1) {
-    if (await ok()) return;
-    await settle();
-  }
-  throw new Error('until: the condition never held');
-}
-
 /** Steps (conformance.md): E1–E6. */
-export function stepCases(fixture: ConformanceFixture): void {
+export function stepCases(): void {
   describe('Steps', () => {
     // E1. A step ends exactly one way, its commit matches that ending, and nothing is decided after the commit.
 
@@ -38,7 +28,7 @@ export function stepCases(fixture: ConformanceFixture): void {
             tools: tool,
             configuration: { tools: { enabled: ['t'], preauthorized: [] } },
             model: [call],
-            drive: with_({ permission: () => ({ steer: ['item-x'] }) as never }),
+            drive: with_({ permission: () => 'proceed' as never }),
           },
         ],
         ['schedule', { tools: tool, model: [call], drive: with_({ schedule: () => 'allow' as never }) }],
@@ -68,9 +58,10 @@ export function stepCases(fixture: ConformanceFixture): void {
           },
         ],
         ['boundary', { model: [{ text: 'hi' }], drive: with_({ boundary: () => ({ retry: {} }) as never }) }],
+        ['turn-start', { model: [{ text: 'hi' }], drive: with_({ 'turn-start': () => 'end' as never }) }],
       ];
       for (const [kind, setup] of cases) {
-        const s = await createSession(fixture, setup);
+        const s = createSession(setup);
         await s.send('go');
         const [turn] = await s.turns();
         expectWith(turn?.status, kind).toBe('failed');
@@ -80,20 +71,6 @@ export function stepCases(fixture: ConformanceFixture): void {
         expectWith(JSON.stringify(end?.reason), kind).toContain('invalid-answer');
         if (kind === 'permission') expectWith(s.tools.calls, kind).toHaveLength(0);
       }
-      // interrupt: opened by an interrupt item during a model step.
-      const s = await createSession(fixture, {
-        model: [{ text: 'slow', waitMs: 60_000 }],
-        drive: with_({ interrupt: () => 'proceed' as never }),
-      });
-      const { launch } = await s.send('go', { run: false });
-      const running = s.runner().run(launch as string);
-      await until(() => s.model.invocations.length === 1);
-      const turnId = (await s.client.execution()).turn?.id as string;
-      await s.client.submit({ key: 'int-1', messages: [user('redirect')], interrupt: { turnId } });
-      await s.clock.runUntil(running);
-      const end = stepEvents(await s.events()).find((e) => e.end !== undefined)?.end;
-      expectWith(end?.status, 'interrupt').toBe('failed');
-      expectWith(JSON.stringify(end?.reason), 'interrupt').toContain('invalid-answer');
     });
 
     // E2. A round moves main once.
@@ -102,11 +79,9 @@ export function stepCases(fixture: ConformanceFixture): void {
       let session: Session | undefined;
       const slow = (ms: number, name: string) => async () => {
         await session?.clock.sleep(ms);
-        // The fastest call submits the item that will be steered in at the round's boundary.
-        if (name === 'c') await session?.client.submit({ key: 'steer-1', messages: [user('steered')] });
         return { text: `after ${ms}`, contributions: [system(`note ${name}`)] };
       };
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { a: slow(300, 'a'), b: slow(200, 'b'), c: slow(100, 'c') },
         model: [
           {
@@ -120,8 +95,6 @@ export function stepCases(fixture: ConformanceFixture): void {
         ],
         drive: with_({
           schedule: ({ payload }) => ({ stages: [payload.calls.map((call) => call.callId)], maxConcurrency: 3 }),
-          boundary: ({ payload }, ctx) =>
-            payload.completing || ctx.inbox.length === 0 ? 'proceed' : { steer: ctx.inbox.map((item) => item.key) },
         }),
       });
       session = s;
@@ -134,13 +107,13 @@ export function stepCases(fixture: ConformanceFixture): void {
       const resultIds = results.parts.flatMap((p) => (p.kind === 'tool-result' ? [p.requestId] : []));
       expect(results.role).toBe('user');
       expect(resultIds).toEqual(callIds);
-      // Then each call's contributions in call order, then the steered item, then the next model step.
+      // Then each call's contributions in call order, then the next model step.
       const after = main.slice(callIndex + 2).map((m) => textOf(m));
-      expect(after).toEqual(['note a', 'note b', 'note c', 'steered', 'final']);
+      expect(after).toEqual(['note a', 'note b', 'note c', 'final']);
     });
 
     it('E2 no-calls-round: a model step without calls appends its message alone and ends the turn', async () => {
-      const s = await createSession(fixture, { model: [{ text: 'hello' }] });
+      const s = createSession({ model: [{ text: 'hello' }] });
       await s.send('go');
       expect((await s.main()).map((m) => m.role)).toEqual(['user', 'assistant']);
       const last = stepEvents(await s.events()).at(-1);
@@ -152,7 +125,7 @@ export function stepCases(fixture: ConformanceFixture): void {
 
     it('E2 skill-twice: two tools contributing the same skill text in one round leave one entry', async () => {
       const skill = system('skill: how to look closely');
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { a: () => ({ text: 'a', contributions: [skill] }), b: () => ({ text: 'b', contributions: [skill] }) },
         model: [
           {
@@ -180,7 +153,7 @@ export function stepCases(fixture: ConformanceFixture): void {
       const prompt = user('go');
       const labelled: Message = { ...prompt, label: { kind: 'session:request', data: { note: 'x'.repeat(40_000) } } };
       for (const message of [prompt, labelled]) {
-        const s = await createSession(fixture, { model: [{ text: 'ok' }], drive });
+        const s = createSession({ model: [{ text: 'ok' }], drive });
         await s.send([message]);
         expect((await s.main())[0]).toEqual(message);
       }
@@ -191,7 +164,7 @@ export function stepCases(fixture: ConformanceFixture): void {
     // E4. A retry is a new attempt of the same call, with the same request; `replace` is a new call.
 
     it('E4 retry-same-digest: a failed model attempt and a retry make one call with two attempts of equal digests', async () => {
-      const s = await createSession(fixture, { model: [{ fail: { transient: true } }, { text: 'ok' }] });
+      const s = createSession({ model: [{ fail: { transient: true } }, { text: 'ok' }] });
       await s.send('go');
       const calls = stepEvents(await s.events()).flatMap((e) => e.calls.filter((c) => c.kind === 'model'));
       expect(calls).toHaveLength(1);
@@ -204,7 +177,7 @@ export function stepCases(fixture: ConformanceFixture): void {
 
     it('E4 retry-after: the wait a provider asks for is in the failure, its evidence, and the default retry', async () => {
       const asked: (number | undefined)[] = [];
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ fail: { transient: true, retryAfterMs: 7_000 } }, { text: 'ok' }],
         drive: drive(
           {
@@ -228,7 +201,7 @@ export function stepCases(fixture: ConformanceFixture): void {
 
     it('E4 replace-new-call: replace after output-limit makes a second call in the same step', async () => {
       const bigger = { ...TURN.model, parameters: { maxOutputTokens: 8_000 } };
-      const s = await createSession(fixture, {
+      const s = createSession({
         model: [{ text: 'cut', finish: 'output-limit' }, { text: 'complete' }],
         drive: with_({ 'model-result': () => ({ replace: bigger }) }),
       });
@@ -246,29 +219,27 @@ export function stepCases(fixture: ConformanceFixture): void {
 
     // E6. A park at any depth parks the top-level step; `resume` re-runs it with the drive asked again.
 
-    it('E6 park-resume: permission answered park releases; resume re-runs the step, asks again, settles once', async () => {
+    it('E6 park-resume: permission answered park parks the turn; resume re-runs the step, asks again, settles once', async () => {
       let asked = 0;
-      const s = await createSession(fixture, {
+      const s = createSession({
         tools: { t: () => ({ text: 'done' }) },
         configuration: { tools: { enabled: ['t'], preauthorized: [] } },
         model: [{ calls: [{ tool: 't', arguments: {} }] }, { text: 'final' }],
         drive: with_({ permission: () => (++asked === 1 ? { park: { note: 'ask the person' } } : 'allow') }),
       });
       const first = await s.send('go');
-      expect(first.exit?.reason).toBe('released');
-      const parked = await s.client.execution();
+      expect(first.outcome).toMatchObject({ parked: { note: 'ask the person' } });
+      const parked = await s.harness.execution();
       expect(parked.turn?.park).toBeDefined();
       expect(s.tools.calls).toHaveLength(0);
 
-      const { launch } = await s.client.resume({ key: 'resume-1', turnId: parked.turn?.id as string });
-      expect(launch).toBeDefined();
-      await s.run(launch as string);
+      expect(await s.resume()).toMatchObject({ end: { status: 'completed' } });
       expect(asked).toBe(2);
       expect(s.tools.callsOf('t')).toHaveLength(1);
       const [turn] = await s.turns();
       expect(turn?.status).toBe('completed');
       const toolsStep = stepEvents(await s.events()).find((e) => e.stepKind === 'tools');
-      const endings = (await s.client.steps([toolsStep?.step as string])).map((e) => e.ending);
+      const endings = (await s.harness.steps([toolsStep?.step as string])).map((e) => e.ending);
       expect(endings).toEqual(['parked', 'settled']);
     });
   });

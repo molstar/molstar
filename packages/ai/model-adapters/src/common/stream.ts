@@ -48,7 +48,7 @@ export async function* invokeProjectedRequest(input: {
   if (input.request.adapterRevision !== input.expectedRevision) {
     throw refused('Projected request belongs to an incompatible adapter revision.');
   }
-  if (input.request.digest !== (await digest(input.request.payload))) {
+  if (input.request.digest !== digest(input.request.payload)) {
     throw refused('Projected request payload digest does not match the payload.');
   }
   const payload = decodeProjectedPayload(input.request.payload);
