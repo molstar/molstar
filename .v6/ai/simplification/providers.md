@@ -84,7 +84,8 @@ conversation where it loads, so the request's prefix stays byte-stable while ski
   `common/adapter.ts:43`). The viewer's toolkit discloses skills lazily (`packages/prism/viewer/src/agent/toolkit.ts`), so
   this costs money per disclosure on the default model (`claude-sonnet-5-5` in `packages/ai/_spec/session.md:24`).
 
-Open question 4 in the README.
+**Decided** (2026-10-16): keep it. The providers keep the native path for the models with the quirk; estimates
+elsewhere in this folder count those ~300 lines and the two tests as staying.
 
 ## 4. Tests
 

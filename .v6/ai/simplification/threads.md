@@ -67,10 +67,12 @@ What the fiber machinery exists for, and whether an in-memory thread still needs
 | **Inactivity aborts and heartbeat**                                  | kernel, host                                              | yes: the viewer's turn entries heartbeat (`record.ts:329`) | keep        |
 | **Limits** (15 fields, hard bounds, relations)                       | `limits.ts`                                               | partly: the viewer uses hard bounds with `maxActiveStreams: 8` (`record.ts:208`) | ~60 of 123 |
 
-Two shapes, by open question 1 (kept records):
+Two shapes, by open question 1 (kept records). **Decided** (2026-10-16): A, with the kept records' IndexedDB rows in
+prism-viewer; the streamed deltas **stay** (a later streaming record may need them), only the unused cleanup pages go:
 
-- **A. Keep the row port** (`RowStore`) because the viewer's kept records write IndexedDB rows: rename, drop deltas and
-  cleanup, keep concurrency and watch for the IndexedDB rows wherever they live. About **350 source lines** go.
+- **A. Keep the row port** (`RowStore`) because the viewer's kept records write IndexedDB rows: rename, drop the
+  cleanup pages, keep the deltas, the concurrency and the watch for the IndexedDB rows wherever they live. About **40
+  source lines** go (the decided shape).
 - **B. No row port**: if nothing persists threads, the host holds `ThreadState` in a `Map`; `state.ts`, `storage.ts`,
   `memory.ts`, the conflict loop and the watch go. About **700 source lines** go (inferred), and the viewer's
   `FiberRows` uses (`journal/kept-records.ts:9`, `storage/sources.ts:9`, `viewer.ts:11`, the spec's `persist.rows`) are
@@ -80,7 +82,7 @@ Both keep the API the viewer calls (§1) unchanged apart from names.
 
 ## 4. Tests
 
-- `fibers/src/_test/kernel.test.ts` (494), `host.test.ts` (163), `review-cursor-1.test.ts` (66): stay, minus delta cases.
+- `fibers/src/_test/kernel.test.ts` (494), `host.test.ts` (163), `review-cursor-1.test.ts` (66): stay (the delta cases too).
 - `conformance/src/fibers/` (705: `conformance.ts` 539, `fixtures.ts` 95, `generators.ts` 47) runs on memory and
   IndexedDB rows (`components/src/fibers/_test/conformance-{memory,indexeddb}.test.ts`). With one backend it becomes
   `threads/_test/thread.test.ts`; its three unused exports (`FIBER_INVALID_ENVELOPES`, `fiberCleanupCursorPages`,

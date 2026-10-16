@@ -51,7 +51,7 @@ The fibers' IndexedDB rows back a real feature: History's **Keep** copies the se
 
 | Option                                                        | `@molstar/ai`                         | prism-viewer                                                         |
 | ------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
-| **A. Move the rows into prism-viewer** (recommended)          | memory only; keeps the `ThreadRows` port (threads.md §3 A) | gains `journal/indexeddb-rows.ts` (130 lines) and `rows.test.ts`' IndexedDB half; imports change at `record.ts:774`, `history.tsx:92`, two tests |
+| **A. Move the rows into prism-viewer** (decided 2026-10-16)  | memory only; keeps the `ThreadRows` port (threads.md §3 A) | gains `journal/indexeddb-rows.ts` (130 lines) and `rows.test.ts`' IndexedDB half; imports change at `record.ts:774`, `history.tsx:92`, two tests |
 | B. Drop Keep for now                                          | memory only, no row port (threads.md §3 B) | Keep, the kept-records index, Home's list and `persist.rows` go; journal.md §1 rewritten |
 | C. Keep the IndexedDB rows in `@molstar/ai`                   | one IndexedDB file stays (`threads/indexeddb.ts`) | unchanged apart from import paths                                    |
 

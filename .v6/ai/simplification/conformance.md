@@ -103,11 +103,11 @@ max-concurrency.
 | Part                         | Today | After (estimate) |
 | ---------------------------- | ----: | ---------------: |
 | harness cases + helpers      | 7,213 | ~1,950 (59 cases at the ~30 lines a case the non-P files average) |
-| fibers suite                 |   705 | ~350 (no delta cases, no generators) |
+| fibers suite                 |   705 | ~650 (the unused generators go; the delta cases stay) |
 | meter, suite, index          |   208 | 0                |
 | fixture (`session.ts`)       |   186 | ~150             |
 | testing doubles              |   602 | ~500             |
-| **total**                    | 8,914 | **~2,950**       |
+| **total**                    | 8,914 | **~3,250**       |
 
 ## 4. CI after
 

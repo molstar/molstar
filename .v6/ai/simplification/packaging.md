@@ -26,7 +26,7 @@ folder rules (§5).
 | `trace/`                    | `trace/src/**` (with `format.ts`)                                     |                                                                       |
 | `threads/`                  | `fibers/src/**`, renamed (`threads.md`)                               | the memory rows only                                                  |
 | `testing/`                  | `conformance/src/testing/**`, `conformance/src/session.ts` (`createSession`), `conformance/src/cases/helpers.ts` | no vitest import |
-| `narration/`                | `narration/src/**`, only if kept (open question 3)                    | otherwise deleted                                                     |
+| `narration/`                | `narration/src/**` (kept, decided 2026-10-16)                         | imports nothing of the other folders                                  |
 
 Proposed `package.json` `exports` (explicit; no `./*`):
 
@@ -41,6 +41,8 @@ Proposed `package.json` `exports` (explicit; no `./*`):
   "./models": "./src/providers/models.ts",
   "./trace": "./src/trace/index.ts",
   "./testing": "./src/testing/index.ts",
+  "./narration": "./src/narration/index.ts",
+  "./narration/mediabunny": "./src/narration/mediabunny.ts",
   "./_test/*": null
 }
 ```
@@ -62,7 +64,7 @@ Proposed `package.json` `exports` (explicit; no `./*`):
   package must not make that worse.
 
 Dependencies of `@molstar/ai`: `@molstar/core` (only `data/util/hash-functions`, harness.md §7), `ai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`,
-`@ai-sdk/openai-compatible`, `zod`, `tslib` (+ `mediabunny` only if narration stays). Dev: `vitest` (root already has it); `fast-check`
+`@ai-sdk/openai-compatible`, `zod`, `tslib` + `mediabunny` (only `./narration/mediabunny` imports it). Dev: `vitest` (root already has it); `fast-check`
 leaves with `head.test.ts` and the S1 case (harness.md §6). `fake-indexeddb` leaves the AI
 package (it stays in the catalog: prism-viewer and prism-assistant tests use it, `pnpm-workspace.yaml:110`).
 

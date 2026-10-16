@@ -108,5 +108,5 @@ Biome rule "zod is ai-tools' own" (it becomes "zod: providers only, as the SDK's
 ## 5. Where it goes in the plan
 
 - **12a, the isolation** (§0): after the collapse (slice 6), or before it on today's packages; tiny.
-- **12b, our own schema code** (§3), optional: after 12a, touching only `src/tools/` and the two disclosure tools;
+- **12b, our own schema code** (§3), optional and **deferred** (2026-10-16): after 12a, touching only `src/tools/` and the two disclosure tools;
   parallel with slices 7–9.

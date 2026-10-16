@@ -28,11 +28,11 @@ checker scan over import declarations; the components package's dynamic imports 
 
 | What                                         | Where                                            | Src | Test | Evidence                                                                 | Recommendation |
 | -------------------------------------------- | ------------------------------------------------ | --: | ---: | ------------------------------------------------------------------------ | -------------- |
-| **Narration** (TTS providers, WAV, Mediabunny) | `packages/ai/narration/`                       | 651 |  636 | no import outside `packages/ai` (only `prism/ui/src/_test/opt-in-boundary.test.ts:32` names it); built for a story mode that is not built (`.v6/ai/plan.md` "Also") | delete (open question 3); `mediabunny` stays in the catalog for `extensions/video-export/package.json:48` |
-| **`runOnce`**, `terminalToolFor`, `Settlement` | `session/src/once.ts`                          | 161 |  122 | no caller; meant for "the command menu's assistant proposing a filled command" (`_spec/session.md` § One-off runs), not built | delete (open question 9) |
+| **Narration** (TTS providers, WAV, Mediabunny) | `packages/ai/narration/`                       | 651 |  636 | no import outside `packages/ai` (only `prism/ui/src/_test/opt-in-boundary.test.ts:32` names it); built for a story mode that is not built (`.v6/ai/plan.md` "Also") | **kept** (decided 2026-10-16): a `narration/` folder of `@molstar/ai` (packaging.md §2) |
+| **`runOnce`**, `terminalToolFor`, `Settlement` | `session/src/once.ts`                          | 161 |  122 | no caller; meant for "the command menu's assistant proposing a filled command" (`_spec/session.md` § One-off runs), not built | delete (decided 2026-10-16) |
 | **Session prices**: `PriceTable`, `dollarsOf`, `creditsOf`, `ModelPrice` | `session/src/prices.ts`             |  48 |   34 | no caller; collides with the catalog's names (packaging.md §3)           | delete         |
 | **`callTool`** (run a handler without a harness) | `harness/src/tools/call.ts`                  |  56 |    0 | no importer and no internal use                                          | delete         |
-| **Fiber deltas**: `appendDelta`, `deltas`, delta pages, gap detection | `fibers/src/kernel.ts:278–353, 585–650`, `host.ts:597+`, `domain.ts` | ~250 | ~250 | the viewer never streams deltas (threads.md §1) | delete (open question 5) |
+| **Fiber deltas**: `appendDelta`, `deltas`, delta pages, gap detection | `fibers/src/kernel.ts:278–353, 585–650`, `host.ts:597+`, `domain.ts` | ~250 | ~250 | the viewer never streams deltas (threads.md §1) | **kept** (decided 2026-10-16: streaming may need them) |
 | **Fiber cleanup pages** (`nextFiberCleanupPage`, `cleanupPageSize`, `deltaFlush*`, `heartbeatIntervalMs` validated only) | `fibers/src/kernel.ts:651–663`, `limits.ts` | ~40 | — | "validated but the host does not use them" (`_spec/fibers.md` Gotchas) | delete |
 | **`@molstar/ai-tools/zod`** (`zodInput`, `verbatim`) | `tools/src/zod.ts`                         | 118 |  205 | no import outside `tools/src/_test/zod.test.ts`                          | drop the entry; zod itself per the TODO note (open question 7) |
 | **Runner retention inspection** (`RetentionSnapshot`, `retention()`) | `harness/src/contracts/inspect.ts` (20), `runner/state.ts:259`, `runner/index.ts:728` | ~30 | — | read only by the P10 cases (`conformance/src/cases/performance.ts:103`) | delete with P |
@@ -60,14 +60,13 @@ Reading entries "written before labels" (persistence.md §5): `session/src/compa
 
 | Item                                       | Src    | Test   |
 | ------------------------------------------ | -----: | -----: |
-| narration                                  |    651 |    636 |
 | `runOnce`                                  |    161 |    122 |
 | session prices                             |     48 |     34 |
 | `callTool`                                 |     56 |      0 |
-| fiber deltas and cleanup                   |   ~290 |   ~250 |
+| fiber cleanup pages                        |    ~40 |      — |
 | `./zod`                                    |    118 |    205 |
 | retention, meter, generators, small        |   ~240 |      — |
 | pre-label fallbacks                        |    ~60 |    ~15 |
-| **total**                                  | **~1,600** | **~1,250** |
+| **total**                                  | **~700**   | **~350**   |
 
 The meter, retention and generators are also counted in conformance.md's cut; the README's totals count them once.

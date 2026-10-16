@@ -85,18 +85,18 @@ No `./*` wildcard: every deep import that exists today is one of the entries abo
 | -------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------- | --------------- |
 | Rename only                | fibers → threads; `Fiber*` → `Thread*`, the `fiber` table and `fiber:` scope prefix      | 0                                | ~1,750 occurrences in ~40 files    | threads.md      |
 | Collapse                   | ten packages into folders of one; one `package.json`, tsconfig, Biome block, inventory entry | ~1,000 of plumbing (package.json, tsconfig, Biome) | all 37,171 lines move; 57 external import sites, 196 internal import lines (126 files) rewritten | packaging.md |
-| Replace                    | model adapters → providers: retained neutral payload, its decode and native projection go | ~1,700 / ~2,500 (inferred estimate) | ~900 new provider lines (inferred) | providers.md    |
-| Remove: IndexedDB          | the durable core, IndexedDB storage and rows, their tests and conformance run            | 557 / 210                        | the viewer's kept records (decision) | persistence.md |
+| Replace                    | model adapters → providers: the retained neutral payload and its decode go; the native tool additions stay | ~1,400 / ~2,250 (inferred estimate) | ~900 new provider lines (inferred) | providers.md    |
+| Remove: IndexedDB          | the durable core, IndexedDB storage and rows, their tests and conformance run            | 557 / 210                        | the viewer's kept records move into prism-viewer | persistence.md |
 | Remove: durability (decided) | host protocol, storage port, leases, launches, supervisor, schema version, crash re-runs, cache, segment heads, steering | ~3,050 / ~1,300 beyond the conformance cut (inferred) | the session's takeover path | persistence.md §4 |
-| Simplify: conformance      | 219 harness cases → 59; no second backend; no performance suite or storage meter        | ~5,950 of 8,914 (to ~2,950)      | the cases left become `harness/_test/` | conformance.md |
-| Dead or speculative        | narration, `runOnce`, session prices, `callTool`, fiber deltas, `./zod`, pre-label fallbacks | ~1,600 / ~1,250             | —                                  | dead-code.md    |
+| Simplify: conformance      | 219 harness cases → 59; no second backend; no performance suite or storage meter        | ~5,650 of 8,914 (to ~3,250)      | the cases left become `harness/_test/` | conformance.md |
+| Dead or speculative        | `runOnce`, session prices, `callTool`, fiber cleanup pages, `./zod`, pre-label fallbacks (narration and fiber deltas kept) | ~700 / ~350             | —                                  | dead-code.md    |
 | Isolate: zod               | no `./zod`, no zod in the API, a repository rule; optionally our own schema code in tools | 323 (`zod.ts` and its test); optionally ~490 replaced by ~180 | the two disclosure tools as field shapes (optional step) | tool-schemas.md |
 | Duplicates                 | markers, token estimates, prices, canonical JSON, two storage ports, three model-limit sources | ~150 (and two concepts fewer) | —                                | duplicates.md   |
 
-Totals, if every recommendation is taken (the durability machinery included, as decided), counting each line once:
-about **18,000 of 38,400 lines go** (source, tests and package plumbing; ~47%), the package count goes from ten to one,
-and the AI tests' serial tail in CI goes from about 52 s to an estimated 15 s (conformance.md §4), or to almost nothing
-if they can leave the serial Vitest project.
+Totals, with the decisions taken (2026-10-16), counting each line once: about **15,500 of 38,400 lines go**
+(source, tests and package plumbing; ~40%), the package count goes from ten to one, and the AI tests' serial tail in CI
+goes from about 52 s to an estimated 15 s (conformance.md §4), or to almost nothing if they can leave the serial
+Vitest project.
 
 ## Top findings
 
@@ -110,8 +110,9 @@ if they can leave the serial Vitest project.
    memory 8.5 s), all in the `serial` Vitest project that runs after everything else with `fileParallelism: false`
    (`vitest.config.ts:17`). Dropping the IndexedDB run alone saves ~26 s of CI; the performance (P) and liveness (S)
    cases are most of the rest.
-4. **Narration has no consumer** (651 + 636 lines, the `mediabunny` dependency), and neither do `runOnce`, the
-   session's `prices.ts`, the catalog's `dollarsOf`, `callTool`, the fiber deltas and the `./zod` entry.
+4. **Narration has no consumer** (651 + 636 lines, the `mediabunny` dependency; kept, by decision), and neither do
+   `runOnce`, the session's `prices.ts`, the catalog's `dollarsOf`, `callTool`, the fiber deltas (kept, by decision) and
+   the `./zod` entry.
 5. **The adapter layer converts twice**: `Message` → a neutral retained payload (`common/payload.ts`) → AI SDK
    `ModelMessage` (`common/stream.ts`) → HTTP, plus a fetch-rewriting transport for OpenAI tool additions
    (`openai/disclosure-transport.ts`). A provider can project straight to the SDK's own message shape.
@@ -128,27 +129,27 @@ if they can leave the serial Vitest project.
 
 ## Open questions for the owner
 
-1. **Kept records** (finding 2): move the IndexedDB rows into prism-viewer (recommended: the viewer owns its one
-   persistent store; `@molstar/ai` stays memory-only), drop Keep for now, or keep IndexedDB rows in `@molstar/ai`?
+All answered (2026-10-16); kept here with the answers.
+
+1. ~~Kept records~~: **decided 2026-10-16**: the IndexedDB rows move into prism-viewer; `@molstar/ai` stays memory-only and keeps
+   the threads' row port ([persistence.md](persistence.md) §3 A).
 2. ~~Durability machinery~~: **decided 2026-10-16, removed**: "just basic in memory harness for now for driving an
    app" ([harness.md](harness.md)).
-3. **Narration**: delete (recommended: no consumer; the story mode can bring it back from git), a `./narration` entry
-   of `@molstar/ai` (then `mediabunny` becomes its dependency), or its own package?
-4. **Tool additions mid-conversation** (providers.md §3): keep the native `tool_addition` / `additional_tools` path for
-   the two catalog models with the quirk (Claude Sonnet 5.5, GPT-6 Luna), or accept that disclosing a tool changes the
-   request's tool list (a cache break at the tools segment)?
-5. **Fiber deltas** (threads.md §3): streamed byte-offset deltas, delta pages and gap detection have no production
-   user (the viewer settles whole payloads). Remove (recommended)?
-6. **Names**: `ModelAdapter` → `Provider`, `model-catalog` → `models`, `@molstar/ai/threads` or threads on the root
-   entry? (packaging.md §2 proposes names.)
+3. ~~Narration~~: **decided 2026-10-16**, **kept**: a `narration/` folder of `@molstar/ai` with the entries `./narration` and
+   `./narration/mediabunny`; `mediabunny` becomes a dependency, imported only by the second (packaging.md §2).
+4. ~~Tool additions mid-conversation~~: **decided 2026-10-16**, **kept**: the providers keep the native `tool_addition` /
+   `additional_tools` path for the models with the quirk ([providers.md](providers.md) §3).
+5. ~~Fiber deltas~~: **decided 2026-10-16**, **kept** (streaming may need them later); only the unused cleanup pages
+   go ([threads.md](threads.md) §3).
+6. ~~Names~~: **decided 2026-10-16**, as proposed: `ModelAdapter` → `Provider` (`createAnthropicProvider`, …), `model-catalog` →
+   `./models`, threads on the root entry (packaging.md §2, providers.md §5).
 7. ~~zod~~: **decided 2026-10-16**: zod stays inside `packages/ai`, no zod schemas elsewhere: no `./zod` entry, no zod
    type in the API, one Biome override restricting zod outside `packages/ai/**` ([tool-schemas.md](tool-schemas.md) §0).
-   Optional on top: replace zod inside the tools with ~180 lines of our own (§3); the AI SDK keeps it installed
-   either way.
+   Replacing zod inside the tools with our own code (§3, slice 12b) is deferred: optional, not in this round.
 8. ~~Folder rules~~: **verified 2026-10-16, no decision needed**: Biome's `noRestrictedImports` patterns like
    `**/providers/**` catch a relative import of another folder at any depth and leave a folder's own imports alone
    (Biome 2.5.15, a scratch config), so the per-package rules become per-folder Biome rules (packaging.md §5).
-9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
+9. ~~`runOnce`~~: **decided 2026-10-16**, **deleted** (dead-code.md §1); the command menu's assistant brings its own when built.
 10. ~~Hashing~~: **decided 2026-10-16**: synchronous, `@molstar/core`'s MurmurHash3-128 over UTF-8 bytes (as
     MolViewSpec uses it), imported from core's one hash file with a narrow Biome exception; the core hash was fixed
     first (`1fd60f0af`) ([harness.md](harness.md) §7).
