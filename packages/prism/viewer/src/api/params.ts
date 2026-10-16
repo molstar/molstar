@@ -12,9 +12,10 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 // resolves them with one rule), empty meaning the only one, or what the operation says. Each operation passes its own
 // description where its meaning for "empty" differs.
 
-/** A structure by label or state ref. Empty: the one in view, unless the operation's description says otherwise. */
-export const StructureParam = (description = 'A structure by label or state ref; empty: the one in view') =>
-  PD.Text('', { description });
+/** A structure by label or state ref. Empty: the one being worked with (targets.md §1), unless the description says otherwise. */
+export const StructureParam = (
+  description = 'A structure by label or state ref; empty: the focused one, else the selected one, else the only one',
+) => PD.Text('', { description });
 
 /** A structure by label or state ref. Empty: every one (the operation acts on many). */
 export const EveryStructureParam = () => StructureParam('A structure by label or state ref; empty: every one');

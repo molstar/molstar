@@ -469,10 +469,11 @@ export class StructureApi extends ApiArea {
   readonly remove = this.operation({
     id: 'structure.remove',
     title: 'Remove a structure',
-    params: { structure: StructureParam() },
+    params: { structure: StructureParam('A structure by label or state ref; empty: the only one (several: name it)') },
     approval: 'destructive',
     async run({ structure }, ctx) {
-      const s = oneStructure(ctx, structure || undefined);
+      // Destructive: never the focused or selected one by default (targets.md §1).
+      const s = oneStructure(ctx, structure || undefined, { destructive: true });
       if (isFailure(s)) return s;
       // The whole entry goes: the model, trajectory and data it came from too, unless something else hangs off them.
       await ctx.plugin.managers.structure.hierarchy.remove([entryRoot(ctx, s.cell.transform.ref)], false);

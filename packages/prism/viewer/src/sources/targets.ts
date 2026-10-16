@@ -11,7 +11,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import type { ApiErrorCode, ApiFailure } from '../api/area.js';
 import type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from '../api/targets.js';
-import { findStructure, structureNames } from './naming.js';
+import { findStructure, structureNames, structuresWithSelection, workingStructure } from './naming.js';
 import { isLociTarget } from '../api/target-param.js';
 import {
   type CompiledTarget,
@@ -30,7 +30,8 @@ import {
 
 // The target resolver over the plugin (targets.md §1–2, plan 2.1): a target, in any of its forms, compiled to MolQL
 // (the `targets/` port) and evaluated on the structures it applies to. Named structure (a state ref or a label), else
-// the focused one, else the one with a selection, else every loaded one; the result says which it was. `selection` and
+// the one being worked with (`workingStructure`: focused, else the one holding the selection), else every loaded one;
+// the result says which it was. `selection` and
 // `focus` are the person's: Mol*'s selection and focus on that structure.
 
 export function createTargetResolver(plugin: PluginContext): TargetResolver {
@@ -38,21 +39,6 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
 
   const byName = (name: string): StructureRef | undefined => findStructure(structures(), name);
   const nameOf = (s: StructureRef) => structureNames(structures()).get(s.cell.transform.ref) ?? s.cell.transform.ref;
-
-  const focused = (): StructureRef | undefined => {
-    const loci = plugin.managers.structure.focus.current?.loci;
-    if (!loci) return undefined;
-    const root = loci.structure.root;
-    return structures().find((s) => s.cell.obj?.data === loci.structure || s.cell.obj?.data.root === root);
-  };
-
-  const withSelection = (): StructureRef[] =>
-    structures().filter((s) => {
-      const data = s.cell.obj?.data;
-      if (!data) return false;
-      const loci = plugin.managers.structure.selection.getLoci(data);
-      return StructureElement.Loci.is(loci) && !StructureElement.Loci.isEmpty(loci);
-    });
 
   const personLoci = (which: PersonKeyword, structure: Structure): StructureElement.Loci | undefined => {
     if (which === 'selection') {
@@ -102,15 +88,14 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
         scope = [s];
         scoping = 'named';
       } else {
-        const f = focused();
-        const sel = withSelection();
-        if (f) {
-          scope = [f];
-          scoping = 'focused';
-        } else if (target === 'selection' && sel.length) {
-          scope = sel;
-          scoping = 'selected';
-        } else if (sel.length === 1) {
+        // The one rule (targets.md §1): the structure being worked with, else every loaded one; `selection` reads
+        // every structure that holds some.
+        const working = workingStructure(plugin, all);
+        const sel = target === 'selection' && !working ? structuresWithSelection(plugin, all) : [];
+        if (working) {
+          scope = [working.structure];
+          scoping = working.why;
+        } else if (sel.length) {
           scope = sel;
           scoping = 'selected';
         } else {

@@ -26,9 +26,13 @@ interface Scoped { target: Target; structure?: StructureRef }   // StructureRef:
   that did not and a hint.
 - **`selection` and `focus`** are the person's: Mol\*'s current selection and focus, so "color the selection red" and
   the agent's "what the person points at" are one target.
-- **The structure**: absent, the target applies to the structure the person works with (the focused one, else the
-  selected, else the one in view, else every loaded one: the sequence's rule, sequence.md §3), and the result says
-  which it was.
+- **The structure** (one rule for every operation, 2026-10-16; `workingStructure` in `sources/naming.ts`): a
+  `structure` given is that one (a state ref, else a label). Absent, it is the one the person works with: the focused
+  one, else the one holding the selection when only one does. Past that it depends on what the operation acts on: a
+  target applies to every loaded structure (`selection` to every one holding some); an operation on one structure takes
+  the only one loaded, else fails `ambiguous` listing them; an operation on many (`EveryStructureParam`) takes every
+  one. A destructive operation (`structure.remove`) skips the one worked with: with several loaded, it needs a name.
+  The result says which it was.
 
 ## 2. Underneath: MolQL
 

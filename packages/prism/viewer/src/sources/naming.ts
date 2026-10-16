@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { StructureElement } from '@molstar/model/model/structure';
+import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 
 // What a structure is called for people, the model and the API (targets.md §1, "a label"): its entry ("1CBS"), the
@@ -40,4 +42,33 @@ export function findStructure(list: readonly StructureRef[], name: string): Stru
     list.find((s) => entryOf(s).toLowerCase() === lower) ??
     list.find((s) => (s.cell.obj?.label ?? '').toLowerCase() === lower)
   );
+}
+
+/**
+ * The structure the person is working with (targets.md §1, "the structure"): the focused one, else the one holding the
+ * selection when only one does. Undefined when neither says; then an operation takes the only one loaded, or (a target)
+ * every one, or fails `ambiguous`.
+ */
+export function workingStructure(
+  plugin: PluginContext,
+  list: readonly StructureRef[] = plugin.managers.structure.hierarchy.current.structures,
+): { readonly structure: StructureRef; readonly why: 'focused' | 'selected' } | undefined {
+  const focus = plugin.managers.structure.focus.current?.loci;
+  if (focus) {
+    const root = focus.structure.root;
+    const s = list.find((x) => x.cell.obj?.data === focus.structure || x.cell.obj?.data.root === root);
+    if (s) return { structure: s, why: 'focused' };
+  }
+  const selected = structuresWithSelection(plugin, list);
+  return selected.length === 1 ? { structure: selected[0], why: 'selected' } : undefined;
+}
+
+/** The structures that hold some of the selection. */
+export function structuresWithSelection(plugin: PluginContext, list: readonly StructureRef[]): StructureRef[] {
+  return list.filter((s) => {
+    const data = s.cell.obj?.data;
+    if (!data) return false;
+    const loci = plugin.managers.structure.selection.getLoci(data);
+    return StructureElement.Loci.is(loci) && !StructureElement.Loci.isEmpty(loci);
+  });
 }

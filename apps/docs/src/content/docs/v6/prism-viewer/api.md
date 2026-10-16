@@ -175,9 +175,10 @@ items, for example `{ auth_asym_id: 'A', beg_auth_seq_id: 248, end_auth_seq_id: 
 a MolScript expression as JSON. Whatever the form, everything compiles to MolQL, and that is what the history and the
 session record store.
 
-When several structures are loaded, say which with `structure: '1TQN'`, a label or a state ref. Without it a target
-applies to the structure you are working with: the focused one, else the selected one, else the one in view, else every
-loaded structure. The result says which it was.
+When several structures are loaded, say which with `structure: '1TQN'`, a label or a state ref. Without it an operation
+uses the structure you are working with: the focused one, else the one holding the selection. Past that, a target
+applies to every loaded structure, and an operation on one structure fails and lists them. Removing a structure always
+needs its name when several are loaded. The result says which it was.
 
 ## Nodes
 

@@ -9,7 +9,7 @@
 import { StateTransform } from '@molstar/core/state';
 import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
-import { entryOf, structureNames } from '../sources/naming.js';
+import { entryOf, structureNames, workingStructure } from '../sources/naming.js';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 
 // Which things an operation acts on (targets.md §1, "the structure"): the one rule that turns a name into one of a
@@ -99,13 +99,20 @@ function structureRule(list: readonly StructureRef[]): NameRule<StructureRef> {
   };
 }
 
-/** One structure: the named one, else the focused one, else the only one loaded. */
-export function oneStructure(ctx: ApiContext, name: string | undefined): StructureRef | ApiFailure {
+/**
+ * One structure (targets.md §1, "the structure"): the named one, else the one being worked with (focused, else the one
+ * holding the selection), else the only one loaded, else `ambiguous`. A destructive operation skips the one being worked
+ * with: with several loaded, it acts only on a named structure.
+ */
+export function oneStructure(
+  ctx: ApiContext,
+  name: string | undefined,
+  options: { readonly destructive?: boolean } = {},
+): StructureRef | ApiFailure {
   const list = loadedStructures(ctx);
-  if (!name && list.length > 1) {
-    const focus = ctx.plugin.managers.structure.focus.current?.loci.structure.root;
-    const focused = focus && list.find((s) => s.cell.obj?.data.root === focus);
-    if (focused) return focused;
+  if (!name && list.length > 1 && !options.destructive) {
+    const working = workingStructure(ctx.plugin, list);
+    if (working) return working.structure;
   }
   return pickNamed(list, name, structureRule(list));
 }
