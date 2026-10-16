@@ -34,7 +34,8 @@ otherwise write. They came from Stories Untold's agent with its story cut out
 - **Nested tools**: a tool runs a helper agent under its own call (`nest`), the helper's tools seen by nothing else.
 - **Schedule**: `toolSchedule(calls, reads)`: consecutive reads one stage, every other call its own, in the model's
   order.
-- **Direct run**: a tool called from code, checked the same way, its result as data.
+- **Direct run**: a tool called from code, its arguments checked by the same shape, its result as data; stricter on
+  one point: an argument the tool does not take fails the run, where a model's call has it dropped with a warning.
 
 ## 2. Field shapes
 
@@ -60,14 +61,16 @@ field shapes (`paramsShape`).
 ## 3. Tool groups (skills)
 
 A **toolkit** holds the registrations, the **core** (loaded from the first turn) and the **groups**: a group (a skill)
-is `{ id, title, summary, tags?, guidance, tools, extras?, unavailable?(api) }`; its tools load with its guidance, its
-extras by name or when called. Every tool has one place (core, a group's tools or extras, or single), which the toolkit
-checks. `disclose_skills` and `disclose_tools` (names configurable) load groups and single tools as contributions: the
-definitions as one system message of `tool-definition` parts, the guidance as a user message labelled `tools:skill`
-with the group's key (`skill:<id>@<fingerprint>`, the fingerprint of its text, so a changed text is given again). Their
-descriptions list what there is, generated from the toolkit. Other disclosable texts (a data source's notes) are
-entries `{ id, summary, text, tools? }`. The toolkit is dynamic: parts are added and removed between turns (`add`), and
-a lazy skill loads its tools when disclosed.
+is `{ id, title, summary, tags?, guidance, tools, extras?, modules?, unavailable?(api), load?(), pending? }`; its tools
+load with its guidance, its extras by name or when called; `modules` are what `unavailable` reads; a lazy skill has
+`load` (it brings the real group) and `pending` (the tools it will bring, enabled from the turn's start). Every tool has
+one place (core, a group's tools or extras, an entry's tools, or single), which the toolkit checks. `disclose_skills`
+and `disclose_tools` (names configurable) load groups and single tools as contributions: the definitions as one system
+message of `tool-definition` parts, the guidance as a user message labelled `tools:skill` with the group's key
+(`skill:<id>@<fingerprint>`, the fingerprint of its text, so a changed text is given again). Their descriptions list
+what there is, generated from the toolkit. Other disclosable texts (a data source's notes) are entries `{ id, summary,
+text, tools? }`. The toolkit is dynamic: parts are added and removed between turns (`add`), and a lazy skill loads its
+tools when disclosed.
 
 ## 4. `session/`: a conversation
 
@@ -83,7 +86,8 @@ kept as long as the session.
   the request. The request is `[preamble][state]\n\nFocus: [focus]\n\n[notes]Request: [prompt]`; the markers stay in the
   text for the model, and every message the session writes is labelled (`session:request` with the prompt and focus
   as data, `session:guidance`, `session:guidance-update`, `tools:definitions`), so compaction, `catchUp` and the trace
-  read labels, not text.
+  find entries by their labels, not their text (a found entry's text is read for display or carry-over: the state
+  before the request's marker, an updated guidance's body).
 - **Hooks**: `onText`, `onTool` (started, progress, succeeded, failed, skipped; with `read` and times), `onStatus`
   (`{ kind: model | tools | permission | budget | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
   (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).

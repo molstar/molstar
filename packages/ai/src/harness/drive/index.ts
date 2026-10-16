@@ -18,6 +18,7 @@ import type {
 } from '../contracts/drive.js';
 
 export interface DefaultDriveOptions {
+  /** A transient failure is retried until a call has had `max` attempts (default 3: two retries). */
   readonly retry?: { readonly max: number; backoffMs(attempt: number): number };
   readonly maxConcurrency?: number;
 }

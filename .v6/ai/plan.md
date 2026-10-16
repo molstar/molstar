@@ -9,7 +9,7 @@ logic, as nine `@molstar/ai-*` packages; Stories' own code (its tools, drive and
 On 2026-10-16 they were simplified into what this folder describes ([simplification/](simplification/README.md)): one
 package, `@molstar/ai`; a basic in-memory harness in place of the durable one (no storage, leases or supervisor);
 providers as a thin layer over the AI SDK; fibers renamed threads; the conformance suite cut to its 59 essential cases;
-about 40% of the lines gone.
+about 30% of the lines gone (37,171 → 25,919 TypeScript lines in `packages/ai`).
 
 What carried over from the rewrite:
 

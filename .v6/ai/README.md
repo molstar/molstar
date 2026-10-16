@@ -48,7 +48,9 @@ Opt-in: nothing in Mol\* or prism-ui imports it, and it imports nothing of eithe
 2. **One home per concern**: the journal for what a model sees, the event log for evidence, the drive for choices.
 3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`. What
    an entry _is_ (the request, the guidance, a skill's guidance) is its optional `label`: content, so hashed, never
-   sent to a provider, and never read by the harness. Code reads an entry by its label, never by its text or markers.
+   sent to a provider, and never read by the harness. Code finds an entry by its label, never by its text or markers;
+   the text of an entry so found may be read for display or carry-over (the state before a request's marker, an
+   updated guidance's body).
 4. **One loop, one turn at a time.** The harness is a loop in the page that calls it; each step's writes apply
    together at its end, so a stop, a failure or a reset mid-step leaves the journal as it was. A second prompt waits
    for its own turn: no steering, no interrupts.

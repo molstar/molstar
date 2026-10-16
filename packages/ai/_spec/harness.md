@@ -90,16 +90,16 @@ then outward. A `Drive.decide` returns an answer or `'pass'`; `drive(handlers, f
 `{ fail }` are legal for every kind; a drive that throws (`drive-error`), passes all the way out or answers illegally
 (`legal()`, `invalid-answer`) fails the run: the turn at depth 0, only the nested run inside a call.
 
-| Kind           | Payload                                          | Answers                                                                                                | `defaultDrive`                                                                         |
-| -------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `permission`   | `call`                                           | `'allow'`, `{ deny: text }`, `{ park: { note } }`                                                      | allow                                                                                  |
-| `schedule`     | `calls`                                          | `{ stages: CallId[][], maxConcurrency? }` (every call once)                                            | one stage per call                                                                     |
-| `budget`       | `dimension`, `budget`, `need?`                   | `{ extend: Limits }`                                                                                   | fail                                                                                   |
-| `failure`      | `call?`, `attempt?`, `failure`, `unstarted?`     | `{ retry }`, `{ replace: config }` (model), `{ report: { skip? } }` (tool), `{ compact }` (projection) | transient: retry ×3 with back-off (not before `retryAfterMs`); tool: report; else fail |
-| `model-result` | `finish` (`output-limit`, `filtered`), `message` | `'accept'`, `{ replace: config }`                                                                      | accept                                                                                 |
-| `repair`       | `call`, `reason`, `unstarted`                    | `{ report: { parts?, contributions?, skip? } }`                                                        | report                                                                                 |
-| `boundary`     | `size`, `completing`, `lastCompaction?`          | `'proceed'`, `{ compact: HeadEdit }`, `'end'` (completing)                                             | proceed                                                                                |
-| `turn-start`   | `size`, `lastCompaction?`                        | `'proceed'`, `{ compact: HeadEdit }`                                                                   | proceed                                                                                |
+| Kind           | Payload                                          | Answers                                                                                                | `defaultDrive`                                                                                             |
+| -------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `permission`   | `call`                                           | `'allow'`, `{ deny: text }`, `{ park: { note } }`                                                      | allow                                                                                                      |
+| `schedule`     | `calls`                                          | `{ stages: CallId[][], maxConcurrency? }` (every call once)                                            | one stage per call                                                                                         |
+| `budget`       | `dimension`, `budget`, `need?`                   | `{ extend: Limits }`                                                                                   | fail                                                                                                       |
+| `failure`      | `call?`, `attempt?`, `failure`, `unstarted?`     | `{ retry }`, `{ replace: config }` (model), `{ report: { skip? } }` (tool), `{ compact }` (projection) | transient: up to 3 attempts (2 retries) with back-off (not before `retryAfterMs`); tool: report; else fail |
+| `model-result` | `finish` (`output-limit`, `filtered`), `message` | `'accept'`, `{ replace: config }`                                                                      | accept                                                                                                     |
+| `repair`       | `call`, `reason`, `unstarted`                    | `{ report: { parts?, contributions?, skip? } }`                                                        | report                                                                                                     |
+| `boundary`     | `size`, `completing`, `lastCompaction?`          | `'proceed'`, `{ compact: HeadEdit }`, `'end'` (completing)                                             | proceed                                                                                                    |
+| `turn-start`   | `size`, `lastCompaction?`                        | `'proceed'`, `{ compact: HeadEdit }`                                                                   | proceed                                                                                                    |
 
 `failure` without `call` and with `attempt` is a model attempt; without `attempt` it is a projection failure
 (`capacity`, `unrepresentable`, or `provider`: no provider, or `project` threw). `skip { text, calls? }` names only
@@ -152,12 +152,14 @@ sibling the park cut short, a writer whose writes went with the step, their nest
 ## Observation
 
 `harness.observe()`: `model.delta`, `tool.progress`, `attempt.started`, `attempt.ended`, `decision.opened`,
-`decision.answered`, and `event` (each event as it is written). Best effort, ids not payloads. `watch()` is
-level-triggered: it emits the current `seq`, then each change, so a missed emission loses nothing; re-read on each.
+`decision.answered`, and `event` (each event as it is written). Best effort; ids and small values (a delta's text, a
+progress value), not records. `watch()` is level-triggered: it emits the current `seq`, then each change, so a missed
+emission loses nothing; re-read on each.
 
 ## Gotchas
 
-- `hashMessage` and `digest` are synchronous: `@molstar/core`'s MurmurHash3_x86_128 (seed 42) over UTF-8 bytes, an id
+- `hashMessage` and `digest` are synchronous: `@molstar/core`'s MurmurHash3_x86_128 (seed 42), `digest` over the UTF-8
+  bytes of canonical JSON, `hashMessage` over a tagged structural encoding of the message (`encodeMessage`); an id
   within one page's memory, not a cryptographic hash. A crafted message (text from a file in a tool result) could
   collide with an earlier entry and be taken for it; low for a single person's viewer session.
 - `main` is the harness's: tools and nested runs cannot write it; reset and compaction move it.

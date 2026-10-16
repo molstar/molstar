@@ -22,8 +22,9 @@ one-line sections. The working spec, with the files and signatures, is
 `Provider` port, `hashMessage` and `digest`.
 
 Each concern has one home and is kept nowhere else: what a model sees is the **journal** (§2); evidence (requests,
-attempts, results, usage) is the **event log** (§3); what runs next is read from the last step event, never from a head;
-a call's authority is the definition it was planned against (§8); every choice is the drive's (§7).
+attempts, results, usage) is the **event log** (§3); what runs next is the active turn's pending step (kept with the
+turn and recorded in each step event's `next`), never read from a head; a call's authority is the definition it was
+planned against (§8); every choice is the drive's (§7).
 
 ## 2. The journal
 
@@ -89,7 +90,8 @@ A decision is `{ kind, path, payload }` (`path`: the call ids down to the nested
 `permission`, `schedule`, `budget`, `failure`, `model-result`, `repair`, `boundary`, `turn-start`. It goes to the
 innermost drive, then outward; the app's drive answers or passes to its fallback (`drive(handlers, defaultDrive())`).
 `stop` and `fail` are legal everywhere; a drive that throws fails the turn. `defaultDrive` answers every kind (allow,
-one stage per call, retry transient failures up to 3 times, accept, proceed…), so an app writes only its overrides.
+one stage per call, a transient failure tried up to 3 times (2 retries), accept, proceed…), so an app writes only its
+overrides.
 
 ## 8. Tools
 
@@ -137,7 +139,8 @@ active turn does nothing.
 ## 13. Observation
 
 `harness.observe()` emits live observations (`model.delta`, `tool.progress`, attempts, decisions) and, once committed,
-events, as each is written. Live ones are best effort and carry ids, not payloads. `watch()` is level-triggered (it says
+events, as each is written. Live ones are best effort and carry ids and small values, not records: a `model.delta`
+its text, a `tool.progress` its value. `watch()` is level-triggered (it says
 only that `seq` moved), so a missed emission loses nothing. Views (the trace, cost) are projections that store ids.
 
 ## 14. Storage

@@ -66,8 +66,8 @@ unless `wait: false`), `run(handle)`, `resume()`, `events()`, `main()`, `turns()
 - **Providers**: SSE fixtures and a recording `fetch` (`src/providers/_test/support.ts`); the tests record the HTTP
   bodies and check what they say (models.md § Tests). A change to projection or replay rules raises the provider's
   `revision`.
-- **Trace**: `src/trace/_test/helpers.ts` runs turns on `createSession` (with segmenting model bindings) and reads them
-  back with `readTrace`.
+- **Trace**: `src/trace/_test/helpers.ts` runs turns on `createSession` (with model bindings that report the request's
+  `prefix`, `prefixing`) and reads them back with `readTrace`.
 
 ## Pitfalls
 

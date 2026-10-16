@@ -5,11 +5,12 @@
 The collapse landed as proposed, with these differences:
 
 - **The model port stays in `messages/models.ts`** (not `providers/port.ts`): the harness uses it throughout, and the
-  harness may import only `messages/`. It moves when the providers slice (8) gives the port its final shape.
+  harness may import only `messages/`. The providers slice (8) kept it there.
 - **The fibers' conformance suite stays in `fibers/_test/`** and has its own entry, `./testing/fibers`
   (`runFiberConformance`, for prism-viewer's IndexedDB run), not `./testing`: it imports Vitest, and `./testing` is
   loaded by browser stories (`scriptedModel`). The four suite files are listed in `tsconfig.json` `files`, so `lib/`
-  carries them although `_test/` is excluded.
+  carries them although `_test/` is excluded. (Since the review gate the suite is `src/testing/threads/`, so it is
+  built and packed as library code: `./testing/threads`.)
 - **The harness cases are plain test files** in `harness/_test/` (`*.test.ts`, one per old case file); `suite.ts`,
   `runHarnessConformance` and `ConformanceFixture` are gone. `createSession` is exported from `./testing`.
 - **Biome folder blocks** carry their full pattern list (a later override replaces an earlier one): no Mol\*, rxjs,

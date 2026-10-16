@@ -109,8 +109,8 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
   (`session:guidance`, `tools:definitions`, `LABEL_CARRY_OVER`, `LABEL_MEMORY`). If the call fails, a digest stands in.
   Sizes (`sizeOf`, `editTokens` of an edit) count what is sent, not labels.
 - **What it keeps is the host's**: `CompactionDomain` (`isRequest`, `requestText?`, `coreToolIds`, `groups`, `groupsIn`,
-  `groupEntry`, `memory?`, `pins?`, `wishSources?`); the session builds it from the toolkit (`toolkitDomain`) and merges
-  `compactionDomain`.
+  `groupEntry`, `memory?`, `pins?`, `wishSources?`, `evicted?()`: the tools the toolkit no longer has, an eviction
+  hint); the session builds it from the toolkit (`toolkitDomain`) and merges `compactionDomain`.
 
 ## Gotchas
 

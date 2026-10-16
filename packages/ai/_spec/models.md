@@ -77,13 +77,14 @@ factories, each its own entry so a host imports only the SDKs it uses
   this provider's (revision, digest, provider: a `ModelError` with effect `none` otherwise), strips the identity fields,
   wraps each tool's schema in `jsonSchema` and passes the rest to `streamText` as it is (`common/stream.ts`). `toolIds`
   maps a returned call's wire name back to its tool id (a call to an unknown name keeps it).
-- **Shared core** `common/`: `createProvider(spec: ProviderSpec)` (`provider.ts`: projection, the input estimate,
-  segments, invocation), the converter and the context order (`messages.ts`), the stream mapper and the error mapping
-  (`stream.ts`), attachments (`attachments.ts`), capabilities (`resolveProviderCapabilities`: `modelLimits[model]`, else
-  the catalog, else an error asking for an override). A provider (`anthropic/provider.ts`, `openai/provider.ts`,
-  `google/provider.ts`) gives only what differs: the SDK model factory, its parameter checks, reasoning and caching as
-  `providerOptions`, its attachment rule, how a call's reasoning is kept and replayed, and (Anthropic, OpenAI) the
-  appended layout (`ProviderSpec.native`: which models, and their `project`; OpenAI's in `openai/native.ts`).
+- **Shared core** `common/`: `createProvider(spec: ProviderSpec)` (`provider.ts`: projection, the input estimate, the
+  request's `prefix`, invocation), the converter and the context order (`messages.ts`), the stream mapper and the error
+  mapping (`stream.ts`), attachments (`attachments.ts`), capabilities (`resolveProviderCapabilities`:
+  `modelLimits[model]`, else the catalog, else an error asking for an override). A provider (`anthropic/provider.ts`,
+  `openai/provider.ts`, `google/provider.ts`) gives only what differs: the SDK model factory, its parameter checks,
+  reasoning and caching as `providerOptions`, its attachment rule, how a call's reasoning is kept and replayed, and
+  (Anthropic, OpenAI) the appended layout (`ProviderSpec.native`: which models, and their `project`; OpenAI's in
+  `openai/native.ts`).
 - **Any endpoint of a dialect**: `createOpenAIProvider({ api: 'chat', baseURL, provider: 'lab', modelLimits })` serves a
   compatible endpoint under its own provider id. A foreign `baseURL` uses no catalog: limits come only from
   `modelLimits` (keyed by model id), and tools are never appended. Replay identity is the provider id, never a URL.
