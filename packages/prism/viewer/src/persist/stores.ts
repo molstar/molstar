@@ -46,15 +46,45 @@ export function isListedStore(store: PrismStore | undefined): store is ListedSto
 
 const isEnvelope = (e: unknown): e is Envelope => !!e && typeof e === 'object' && typeof (e as Envelope).v === 'string';
 
-function storageOf(kind: 'local' | 'session'): Storage | undefined {
+/** Storages found to work (a write and a remove of a probe key), and found not to. */
+const probed = new WeakMap<Storage, boolean>();
+
+/**
+ * A storage that works, or none: reading the property can throw (blocked site data, a sandboxed frame), and one that
+ * exists can refuse writes (full, or a private mode); each is probed once.
+ */
+function working(name: 'localStorage' | 'sessionStorage'): Storage | undefined {
+  let storage: Storage | undefined;
   try {
-    return kind === 'local' ? globalThis.localStorage : globalThis.sessionStorage;
+    storage = globalThis[name];
   } catch {
     return undefined;
   }
+  if (!storage) return undefined;
+  let ok = probed.get(storage);
+  if (ok === undefined) {
+    try {
+      storage.setItem('msp-probe', '1');
+      storage.removeItem('msp-probe');
+      ok = true;
+    } catch {
+      ok = false;
+    }
+    probed.set(storage, ok);
+  }
+  return ok ? storage : undefined;
 }
 
-/** A store over the window's localStorage or sessionStorage (absent in Node: a store that keeps nothing). */
+/** localStorage, else sessionStorage (it lasts for the tab), else none (nothing is kept); sessionStorage, else none. */
+function storageOf(kind: 'local' | 'session'): Storage | undefined {
+  return kind === 'local' ? (working('localStorage') ?? working('sessionStorage')) : working('sessionStorage');
+}
+
+/**
+ * A store over the window's localStorage (falling back to sessionStorage where localStorage does not work) or
+ * sessionStorage; where neither works (Node, blocked site data) a store that keeps nothing. Every access is guarded: a
+ * storage that throws never breaks the viewer.
+ */
 export function webStore(kind: 'local' | 'session', o: WebStoreOptions): ListedStore {
   const key = (k: string) => `${o.prefix}.${k}`;
   let warned = false;

@@ -17,6 +17,8 @@
   [data-msp-theme="light"] {
     color-scheme: light;
     --msp-color-bg: #eeece7;
+    /* The 3D canvas's background in this theme (set when the theme is chosen, if the canvas has a plain color). */
+    --msp-canvas-bg: #fcfbf9;
     --msp-color-text: #332b1f;
     /* The accent and the status colors are also text: each at least 4.5:1 on a panel (accessibility.md). */
     --msp-color-accent: #995103;
@@ -43,6 +45,8 @@
   [data-msp-theme="dark"] {
     color-scheme: dark;
     --msp-color-bg: #111318;
+    /* The 3D canvas's background in this theme (set when the theme is chosen, if the canvas has a plain color). */
+    --msp-canvas-bg: #16181d;
     --msp-color-text: #ccd4e0;
     --msp-color-accent: #51a2fb;
     --msp-color-accent-strong: #68befd;
@@ -67,6 +71,8 @@
   [data-msp-theme="blue"] {
     color-scheme: dark;
     --msp-color-bg: #2d3e50;
+    /* The 3D canvas's background in this theme (set when the theme is chosen, if the canvas has a plain color). */
+    --msp-canvas-bg: #243344;
     --msp-color-text: #edf1f2;
     /* Lighter than the classic blue theme's, for 4.5:1 as text on the mid-tone panels (accessibility.md). */
     --msp-color-accent: #77b6e5;
@@ -95,6 +101,8 @@
   [data-msp-theme="contrast"] {
     color-scheme: dark;
     --msp-color-bg: #000;
+    /* The 3D canvas's background in this theme (set when the theme is chosen, if the canvas has a plain color). */
+    --msp-canvas-bg: #000;
     --msp-color-text: #fff;
     --msp-color-accent: #ffd60a;
     --msp-color-accent-strong: #ffe866;
@@ -118,6 +126,7 @@
     [data-msp-theme="auto"] {
       color-scheme: dark;
       --msp-color-bg: #111318;
+      --msp-canvas-bg: #16181d;
       --msp-color-text: #ccd4e0;
       --msp-color-accent: #51a2fb;
       --msp-color-accent-strong: #68befd;

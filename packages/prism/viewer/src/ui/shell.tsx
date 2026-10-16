@@ -48,6 +48,7 @@ import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } 
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
+import { decodeColor } from '@molstar/core/util/color/utils';
 import { frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
@@ -684,6 +685,18 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     });
     const mounted = await core.mountCanvas(canvasHost);
     if (!mounted) managers.notifications.post('The canvas could not start: WebGL is not available.', 'error');
+    // The canvas takes the theme's color (`--msp-canvas-bg`) as the theme is chosen, if its background is a plain color
+    // (no image, gradient or skybox style); at the start too, unless the options gave a background.
+    const themeCanvas = () => {
+      const c3 = core.plugin.canvas3d;
+      if (!c3 || c3.props.postprocessing.background.variant.name !== 'off') return;
+      const color = decodeColor(getComputedStyle(root).getPropertyValue('--msp-canvas-bg').trim());
+      if (color === undefined || c3.props.renderer.backgroundColor === color) return;
+      core.plugin.setCanvas3DProps({ renderer: { backgroundColor: color } });
+    };
+    if (!core.options.canvas.background) themeCanvas();
+    const followTheme = theme.theme.pipe(skip(1)).subscribe(themeCanvas);
+    steps.push(() => followTheme.unsubscribe());
     // Resets frame the scene below the sequence band (a frameless top tab; its faded bottom lets the scene through), not
     // under it (sequence.md §8, README decision 28).
     const canvas3d = core.plugin.canvas3d;

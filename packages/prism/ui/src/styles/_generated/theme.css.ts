@@ -14,6 +14,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
   :root, :host, [data-msp-theme="light"] {
     color-scheme: light;
     --msp-color-bg: #eeece7;
+    --msp-canvas-bg: #fcfbf9;
     --msp-color-text: #332b1f;
     --msp-color-accent: #995103;
     --msp-color-accent-strong: #974102;
@@ -34,6 +35,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
   [data-msp-theme="dark"] {
     color-scheme: dark;
     --msp-color-bg: #111318;
+    --msp-canvas-bg: #16181d;
     --msp-color-text: #ccd4e0;
     --msp-color-accent: #51a2fb;
     --msp-color-accent-strong: #68befd;
@@ -57,6 +59,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
   [data-msp-theme="blue"] {
     color-scheme: dark;
     --msp-color-bg: #2d3e50;
+    --msp-canvas-bg: #243344;
     --msp-color-text: #edf1f2;
     --msp-color-accent: #77b6e5;
     --msp-color-accent-strong: #fff;
@@ -80,6 +83,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
   [data-msp-theme="contrast"] {
     color-scheme: dark;
     --msp-color-bg: #000;
+    --msp-canvas-bg: #000;
     --msp-color-text: #fff;
     --msp-color-accent: #ffd60a;
     --msp-color-accent-strong: #ffe866;
@@ -102,6 +106,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     [data-msp-theme="auto"] {
       color-scheme: dark;
       --msp-color-bg: #111318;
+      --msp-canvas-bg: #16181d;
       --msp-color-text: #ccd4e0;
       --msp-color-accent: #51a2fb;
       --msp-color-accent-strong: #68befd;
