@@ -29,7 +29,7 @@ const def = (id: string): ToolDefinition => ({
   inputSchema: { type: 'object' },
 });
 
-describe('the request text (tools-and-session.md §4)', () => {
+describe('the request text (session.md §2)', () => {
   it('is [preamble][state], the Focus, the notes, the request: a part absent leaves out its separator', () => {
     expect(
       requestOf({

@@ -6,7 +6,7 @@
 The order of work is now [../seq/plan.md](../seq/plan.md); the rest of this file still holds.
 
 For the next agent picking up branch `v6-ui-next`. Read this, then [README.md](README.md) (Prism),
-[../ai/README.md](../ai/README.md) (AI), and the `AGENTS.md` files (root, `packages/prism`, `packages/ai`). Everything
+[packages/ai/\_spec](../../packages/ai/_spec/README.md) (AI), and the `AGENTS.md` files (root, `packages/prism`, `packages/ai`). Everything
 below is committed and pushed; the working tree was clean.
 
 ## Where things stand
@@ -28,13 +28,13 @@ built yet.
     presets as a row, object-list presets beside Add, line-graph presets.
   - **PD params as an agent tool's input**: `paramsShape` in `@molstar/prism-assistant/tools/params`.
 
-**The AI packages** (`packages/ai/*`, docs in `.v6/ai`):
+**The AI packages** (`packages/ai/*`, spec in `packages/ai/_spec`):
 
 - **Ported from Stories Untold**:
   - `agent`, `harness`, `components` (memory and IndexedDB storage, the in-process supervisor; SQLite removed for now);
   - `model-adapters`;
   - `conformance` (the harness suite and `./threads`);
-  - `tools` and `session` ([../ai/tools-and-session.md](../ai/tools-and-session.md));
+  - `tools` and `session` ([tools.md](../../packages/ai/_spec/tools.md), [session.md](../../packages/ai/_spec/session.md));
   - `trace` (feeds the Inspector);
   - `threads` (transcripts);
   - `narration` (TTS providers; audio through Mediabunny with the browser's AAC, then Opus, then WAV; no MP3 encoding,
@@ -44,8 +44,8 @@ built yet.
 ## The plan from here
 
 Superseded by [../seq/plan.md](../seq/plan.md) (2026-10-13): Seq\* is ported and merged first, then Prism is built over
-it, then the agent in Prism. The model catalog is done ([../ai/plan.md](../ai/plan.md) §2.5). The decided but unbuilt
-items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan.md) Phases 7–8.
+it, then the agent in Prism. The model catalog is done ([models.md](../../packages/ai/_spec/models.md)). The decided but unbuilt
+items stay where they are: [packages/ai/TODO.md](../../packages/ai/TODO.md) and [plan.md](plan.md) Phases 7–8.
 
 ## How the user works (keep doing this)
 
@@ -94,6 +94,6 @@ items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan
     compiles it as React, and the runtime prints "Cannot render".
   - The Browser pane pauses animations while it is hidden, so measure with timers, not animation frames.
   - The fake-IndexedDB conformance file retries its cases, because fixed-round waits can lose to WebCrypto under load
-    ([../ai/plan.md](../ai/plan.md), "The suite waits on conditions").
+    ([packages/ai/TODO.md](../../packages/ai/TODO.md)).
   - `pnpm-lock.yaml` conflicts are regenerated with `pnpm install`, never hand-merged.
 - **Open points**: the follow-ups in [../seq/plan.md](../seq/plan.md) §4.

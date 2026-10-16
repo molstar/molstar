@@ -21,7 +21,7 @@ import { type CompactionDomain, requestTextOf } from './domain.js';
 import { CARRY_OVER_HEADER, type CompactionSettings, SIZE_NOTE } from './settings.js';
 
 /**
- * The plan of a compaction (tools-and-session.md §6): what the model's answer says to carry over, checked, and the
+ * The plan of a compaction (session.md §4): what the model's answer says to carry over, checked, and the
  * new head built from it.
  */
 

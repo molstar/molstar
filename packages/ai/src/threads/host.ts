@@ -42,7 +42,7 @@ import { draftOf, type ThreadState, type Stream, stateOf, writesOf } from './sta
 import { type ThreadRows, RowConflict, type Unsubscribe } from './storage.js';
 
 /**
- * The threads' host (analysis/viewer-mode.md §6), written from anyfold's in-memory host and its Convex host as
+ * The threads' host (threads.md), written from anyfold's in-memory host and its Convex host as
  * Stories ported it: the kernel decides every command; the host keeps each thread's state and writes what a command
  * changed through to its rows before the command returns (so an accepted command is durable). Unlike the in-memory
  * host, a thread is its own scope of rows, loaded when first used and kept in memory after.

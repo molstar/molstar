@@ -2,7 +2,7 @@
 
 An agent (an in-app assistant, or an outside one over MCP) controls Mol\* through the same commands people use, sees a
 compact account of what is loaded and what the person points at, and every change it makes is visible, attributed, and
-undoable in one step. The harness (`@molstar/ai`, [../../ai/](../../ai/)) runs the model loop and calls tools; it
+undoable in one step. The harness (`@molstar/ai`, [packages/ai/\_spec](../../../packages/ai/_spec/README.md)) runs the model loop and calls tools; it
 knows nothing about UI. This document is the Mol\* side: what the harness is given and how the UI shows an agent at
 work.
 
@@ -193,10 +193,11 @@ does registers it as a contribution (`agentContribution({ … })`), with the har
 that include it but turn it on per user. Each mode's agent parts (its skills and guidance, its state and focus accounts,
 its drive overrides) are an `agent` folder of the mode's package (`@molstar/prism-viewer/agent`,
 `@molstar/prism-stories/agent`), the only code there that imports the assistant or `@molstar/ai`, imported only by
-apps with the assistant; an extension brings its skills the same way
-([../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md) §2.1, §8).
+apps with the assistant; an extension brings its skills the same way (an `agent` folder of the extension, which an app
+with the assistant registers with it).
 
 ## 7. Skills
 
-The viewer mode's tools and skills (selections first), the generic tool layer and session, the Inspector (trace, tools,
-limits) and threads are analysed in [../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md).
+The viewer mode's tools and skills (selections first) are the viewer's (`@molstar/prism-viewer`'s `src/agent/`); the
+generic tool layer and session, the trace behind the Inspector and threads are `@molstar/ai`'s
+([packages/ai/\_spec](../../../packages/ai/_spec/README.md)).

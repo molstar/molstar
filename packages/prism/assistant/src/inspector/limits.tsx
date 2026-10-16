@@ -29,9 +29,9 @@ export function parseLimit(text: string): number | undefined {
 }
 
 /**
- * What bounds the agent (analysis/viewer-mode.md §5): each limit with what it bounds, its value (typed, committed on
- * Enter or leaving the field, Esc puts it back), its unit and its default, with a reset when it differs; the turn
- * budget's rows with what the latest turn used. Credits are shown, never a limit.
+ * What bounds the agent (packages/ai/_spec/trace.md § The Inspector): each limit with what it bounds, its value
+ * (typed, committed on Enter or leaving the field, Esc puts it back), its unit and its default, with a reset when it
+ * differs; the turn budget's rows with what the latest turn used. Credits are shown, never a limit.
  */
 export function LimitsView(props: { model: InspectorModel }) {
   const { model } = props;

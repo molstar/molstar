@@ -7,7 +7,7 @@
  */
 
 /**
- * Voicing a scene's narration (.v6/ai/plan.md): a text-to-speech provider behind one interface, so none is forced
+ * Voicing a scene's narration (narration.md): a text-to-speech provider behind one interface, so none is forced
  * (Gemini is one; OpenAI another; more can join). A provider returns the audio as it comes: raw PCM, or already
  * encoded (a provider's MP3 is kept as it arrives); the encoder (./encoder.ts) turns that into the one kind of file
  * the app stores. No MP3 is ever encoded here.

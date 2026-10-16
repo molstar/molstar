@@ -12,7 +12,7 @@ import type { Nest, NestedBinding, NestedRuns } from './nest.js';
 import type { RepeatedReads } from './repeats.js';
 import { type Effect, type ToolOutcome, toFrame } from './result.js';
 
-/** Which call this is, for a tool that must answer a re-run of it (tools-and-session.md §1). */
+/** Which call this is, for a tool that must answer a re-run of it (tools.md §1). */
 export interface CallIdentity {
   readonly callId: string;
   /** The call's key: the same for a re-run of the same call. */
@@ -51,7 +51,7 @@ export interface HandlerOptions<Api> {
   readonly afterWrite?: AfterWrite;
 }
 
-/** Runs after a call that changed something, before its result is recorded (tools-and-session.md §1). */
+/** Runs after a call that changed something, before its result is recorded (tools.md §3). */
 export type AfterWrite = (call: { toolId: string; callId: string }) => Promise<void>;
 
 export interface RegisterOptions<Api> {
@@ -79,7 +79,7 @@ const isRecord = (v: Json): v is Record<string, Json> => typeof v === 'object' &
 /**
  * Registers a tool: its definition, the API modules it may use, and how it executes. The execute function only sees the
  * modules it declared, frozen. The handler pumps the call: progress frames while it runs, then one result frame whose
- * `effect` is the outcome's own or derived (tools-and-session.md §1):
+ * `effect` is the outcome's own or derived (tools.md §3):
  *
  * | the call                              | effect                       |
  * | ------------------------------------- | ---------------------------- |

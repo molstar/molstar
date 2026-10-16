@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The words and labels the session writes into a conversation (tools-and-session.md §4), here so the trace reads them
+// The words and labels the session writes into a conversation (session.md §2), here so the trace reads them
 // without importing the session (and, through it, the tools).
 
 /** Opens the person's words in a request: compaction and the trace find them by it. */

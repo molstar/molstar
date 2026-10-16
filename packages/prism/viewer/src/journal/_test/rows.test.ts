@@ -11,7 +11,7 @@ import 'fake-indexeddb/auto';
 import { createMemoryRows, type ThreadRows, type ThreadTable, RowConflict } from '@molstar/ai';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
 
-// The row store contract, directly, on each backend: what the host relies on (analysis/viewer-mode.md §6).
+// The row store contract, directly, on each backend: what the host relies on (packages/ai/_spec/threads.md § Storage).
 const closers: (() => void)[] = [];
 afterAll(() => {
   for (const close of closers) close();

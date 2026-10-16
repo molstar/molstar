@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { camelCaseToWords } from '@molstar/core/util/string';
 
 /**
- * A command's params as a tool's input (agent.md §2; .v6/ai/tools-and-session.md §2): the field shapes the model
+ * A command's params as a tool's input (agent.md §2; packages/ai/_spec/tools.md §2): the field shapes the model
  * fills in, and the way back from its arguments to the params' values. Every field may be left out (a param has a
  * default); what JSON cannot carry (files, line graphs, opaque values) is left out of the shape and keeps its default.
  */

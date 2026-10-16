@@ -16,7 +16,7 @@ import { failed } from './result.js';
 import { defineTool } from './tool.js';
 
 /**
- * What the agent sees of its tools, and when (tools-and-session.md §3): a small core from the first turn; everything
+ * What the agent sees of its tools, and when (tools.md §5): a small core from the first turn; everything
  * else loaded on demand, added where the model asks for it, so the prompt's prefix only grows at its end.
  * - A group (a skill) is a family of tools with the know-how to use them: the disclosure tool adds its guidance as a
  *   context entry keyed by the group (`groupKey`: what says it is loaded, for disclosure and compaction alike) and its
@@ -59,7 +59,7 @@ export interface ToolGroup<Api> {
   /** Why it cannot be used here, if it cannot (a module the host does not provide). */
   unavailable?(api: Partial<Api>): { message: string; hint?: string } | undefined;
   /**
-   * A lazy skill (tools-and-session.md §3, a dynamic toolkit): in the catalog by its summary before its code is
+   * A lazy skill (tools.md §5, a dynamic toolkit): in the catalog by its summary before its code is
    * loaded. Disclosing it calls `load`, which brings its tools by replacing this group with the real one
    * (`Toolkit.add`, the stub's part removed); the disclosure then goes on with the group as it is after the load.
    */

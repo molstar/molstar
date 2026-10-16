@@ -10,7 +10,7 @@ import { estimatedTokens, type ToolDefinition } from '../messages/index.js';
 import type { ToolGroupView, ToolsData, ToolView } from './types.js';
 
 /**
- * The Tools view (analysis/viewer-mode.md §5) from plain inputs, so a host passes the contents of its toolkit without
+ * The Tools view (trace.md § The other tabs) from plain inputs, so a host passes the contents of its toolkit without
  * this package knowing it: the tools with where they load, the skills that group them, and what a trace says is loaded.
  */
 

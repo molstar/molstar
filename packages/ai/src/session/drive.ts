@@ -23,7 +23,7 @@ import { type Toolkit, type ToolRegistration, toolSchedule } from '../tools/inde
 import type { TurnState } from './state.js';
 import type { ApprovalDecision, PendingApproval, StatusEvent, ToolEvent } from './types.js';
 
-/** The session's decisions over `defaultDrive` (tools-and-session.md §5). */
+/** The session's decisions over `defaultDrive` (session.md §3). */
 
 /** What the model reads for a call the person did not allow. */
 export const DENIED = 'The person did not allow this call.';
@@ -209,7 +209,7 @@ export function createDrive<Api>(host: DriveHost<Api>, overrides: DriveHandlers 
       const registration = host.registration(toolId);
       // Most tool errors are deterministic (validation) and go back to the model at once. A transient one (network,
       // 5xx) is retried a few times first, but only when running it again cannot repeat a change: the attempt made
-      // none, or the tool is safe to run again (tools-and-session.md §5).
+      // none, or the tool is safe to run again (session.md §3).
       if (
         f.transient &&
         attempt <= (host.policy.toolRetries ?? 2) &&

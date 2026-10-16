@@ -9,7 +9,7 @@
 import type { Json, ReasoningParameters, Reference } from '../messages/index.js';
 import type { CompactionReport } from './compaction/index.js';
 
-/** What the hooks and results of a session carry (tools-and-session.md §4). */
+/** What the hooks and results of a session carry (session.md §2). */
 
 export interface ToolEvent {
   /** The call it is about: a started call, its progress and its end share it. */
@@ -70,7 +70,7 @@ export interface ResumeOptions {
   readonly hooks?: TurnHooks;
 }
 
-/** What a prompt carries beyond its words (tools-and-session.md §4); each part is the host's text. */
+/** What a prompt carries beyond its words (session.md §2); each part is the host's text. */
 export interface TurnRequest<M extends ModelChoice = ModelChoice> {
   prompt: string;
   /** The state the model sees with every prompt: compact, ids first. */

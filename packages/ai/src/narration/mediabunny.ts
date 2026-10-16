@@ -7,7 +7,7 @@
  */
 
 /**
- * The narration encoder over Mediabunny (.v6/ai/plan.md): the browser's own AAC and Opus encoders (WebCodecs), found by
+ * The narration encoder over Mediabunny (narration.md): the browser's own AAC and Opus encoders (WebCodecs), found by
  * asking whether it can encode, never by which browser it is. At its own entry (`./mediabunny`) so the core entry does
  * not pull Mediabunny in. No MP3 is encoded: its encoders are LGPL, and a provider's MP3 is kept as it arrives.
  */

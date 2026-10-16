@@ -11,11 +11,11 @@ import type { ToolFrame } from '../harness/index.js';
 
 /**
  * What a call did to the world (harness.md §8): `none` (a read, or a failure before any change), `applied`, or
- * `unknown` (it threw and it is not a read). A tool may say it; otherwise it is derived (tools-and-session.md §1).
+ * `unknown` (it threw and it is not a read). A tool may say it; otherwise it is derived (tools.md §3).
  */
 export type Effect = NonNullable<Extract<ToolFrame, { kind: 'result' }>['effect']>;
 
-/** What a tool returns: what it did, what changed, and what else the model should know (tools-and-session.md §1). */
+/** What a tool returns: what it did, what changed, and what else the model should know (tools.md §3). */
 export type ToolResult =
   | {
       ok: true;

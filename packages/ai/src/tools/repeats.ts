@@ -23,7 +23,7 @@ export const DEFAULT_STREAK = 6;
 
 /**
  * Guards against reading instead of acting (Gemini, thinking more, gathers far more than it needs: neighboring scenes,
- * the state again in full, one method at a time; tools-and-session.md §1):
+ * the state again in full, one method at a time; tools.md §4):
  * - a read called again in the same turn with the same arguments, while the host's state version is unchanged, answers
  *   in one line instead of repeating its result (a changed state reads fresh);
  * - after `streak` reads in a row with no other call, each read's result says to act now.

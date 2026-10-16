@@ -1,8 +1,7 @@
 # Tools (`src/tools/` of `@molstar/ai`)
 
-How a host declares tools, what the model reads back, and how they become the harness's `ToolBindings`. Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this folder: no export
-names it, and a Biome rule keeps it out of the rest of the repository.
+How a host declares tools, what the model reads back, and how they become the harness's `ToolBindings`. Code comments
+cite the numbered sections (`tools.md §2`).
 
 ## Files (`src/tools/`)
 
@@ -20,7 +19,7 @@ names it, and a Biome rule keeps it out of the rest of the repository.
 | `schedule.ts` | `toolSchedule`                                                                                       |
 | `closest.ts`  | `suggest`, `closestHint` ("did you mean")                                                            |
 
-## Defining a tool
+## 1. Defining a tool
 
 ```ts
 const tool = toolFor<MyApi>(); // MyApi: the host's object of modules
@@ -47,7 +46,7 @@ export const setColor = tool({
   and checked as for a model's call, but unknown ones fail (`tool.arguments`) instead of being dropped.
 - `registered(definition, modules, execute, options)` registers a tool with a hand-written definition.
 
-## Input: field shapes
+## 2. Field shapes
 
 `FieldShape`: `string` (`enum?`, `verbatim?`, `format?`), `number`/`integer` (`min?`, `max?`), `boolean`, `array`
 (`item`, `max?`), `object` (`fields`), `variant` (`tag`, `variants`), `json`; each with `optional?`, `description?`,
@@ -56,10 +55,11 @@ know the dialect) and the validator are made once.
 
 `normalize` repairs what small models send, before the check: `""` and `null` are absent; strings trimmed (not
 `verbatim`); `"3"` → number and `"true"` → boolean where asked; a number → string where a string is asked; a list of
-strings → one comma-joined string, `"A, B"` → a list; enums match in any case. Prism maps PD params to field shapes
+strings → one comma-joined string, `"A, B"` → a list (of non-objects); enums match in any case; objects (in a list too)
+are read by their own fields, a variant's by the variant its tag names. Prism maps PD params to field shapes
 (`paramsShape`, `@molstar/prism-viewer`'s `src/agent/params.ts`).
 
-## Results
+## 3. Results
 
 `ToolResult` is `{ ok: true, did, changed?, view?, warnings?, body?, next?, contributions?, effect? }` or
 `{ ok: false, code, message, hint?, transient?, effect? }`. `render` writes it for the model, always in this order:
@@ -72,7 +72,7 @@ write `applied`, the tool's own `{ ok: false }` `none`, a throw `none` for a rea
 error with `transient: true` becomes `tool.transient`. After a write, `afterWrite` runs before the result is recorded;
 if it throws, the call fails transient with effect `applied`.
 
-## Bindings
+## 4. Bindings
 
 `createToolBindings(registrations | toolkit, api, { repeats?, nested?, afterWrite? })` → the harness's `ToolBindings`:
 resolves a definition by tool id to `registration.handler(api, options)`, else to a nested helper's tool. Given a
@@ -91,7 +91,7 @@ works, then one result frame (`toFrame`).
 - **`toolSchedule(calls, reads)`**: consecutive reads are one stage, every other call its own, in the model's order (the
   session's `schedule` answer).
 
-## The toolkit (skills and disclosure)
+## 5. The toolkit (skills and disclosure)
 
 `createToolkit({ tools, core, groups, entries?, names? })` → `Toolkit` (`Api` must extend `DisclosureApi`: the
 disclosure tools use its `disclosure` module and every group's `modules`). Every tool has exactly one place (checked; it
@@ -99,7 +99,8 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
 `extras` (named by its guidance; loaded by name or when called), an **entry**'s tools (never alone), or **single**
 (loaded by name).
 
-- `ToolGroup<Api>` (a skill): `{ id, title, summary, tags?, guidance, tools, extras?, modules?, unavailable?(api) }`.
+- `ToolGroup<Api>` (a skill): `{ id, title, summary, tags?, guidance, tools, extras?, modules?, unavailable?(api) }`
+  (`modules`: what `unavailable` reads; a lazy skill adds `load()` and `pending`, below).
 - `DisclosableEntry`: `{ id, summary, text, tools? }` (other texts the model may load: a data source's notes).
 - The toolkit makes two **disclosure tools**, `disclose_skills({ skills })` and `disclose_tools({ tools })` (names
   configurable), whose descriptions are the generated catalog. They answer with **contributions**: the definitions as
@@ -120,6 +121,17 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
   from the turn's start; disclosing it calls `load`, which replaces the stub's part with the real group and tools, and
   the disclosure answers with them in the same turn. A tool added between turns is offered at the next (the session's
   catch-up appends what the conversation has not seen).
+
+## Decisions
+
+- **Tool inputs are field shapes**: a host declares each input once, with no schema library; `tools/` makes the JSON
+  Schema and the validator from it. Prism maps PD params to them.
+- **zod is the package's own**: only in `tools/` (and `providers/`, as the AI SDK's peer); no zod type in an export, no
+  `./zod` entry; a Biome rule restricts zod everywhere outside `packages/ai`. Hosts keep one schema vocabulary (whether
+  zod stays at all: [../TODO.md](../TODO.md)).
+- **Lenient for a model, strict for code**: a model's call is repaired (`normalize`) and its unknown arguments dropped
+  with a warning, since small models are sloppy; a direct run fails on an unknown argument.
+- **Results are text the model can act on**, in a fixed order (§3), and a failed check is one message.
 
 ## Gotchas
 

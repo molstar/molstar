@@ -51,13 +51,13 @@ function open(name: string): Promise<IDBDatabase> {
 }
 
 /**
- * The threads' rows in IndexedDB, the browser's backend (analysis/viewer-mode.md §6): one database, one record per
- * row keyed [scope, table, key], and one generation per scope. `apply` is one `readwrite` transaction that reads the
- * generation and then only issues puts and deletes from that request's callback, so the transaction never waits on
- * anything but itself (IndexedDB commits a transaction with nothing left to do), and the check and the writes are
- * one step even against a second tab: a tab that wrote the same scope first makes the generation differ and this
- * write is refused as a `RowConflict`, with nothing written. After a commit the scope is told on a
- * `BroadcastChannel`, so other tabs hear of it (`watch`), as the harness's backend does.
+ * The threads' rows in IndexedDB, the browser's backend (packages/ai/_spec/threads.md § Storage): one database, one
+ * record per row keyed [scope, table, key], and one generation per scope. `apply` is one `readwrite` transaction that
+ * reads the generation and then only issues puts and deletes from that request's callback, so the transaction never
+ * waits on anything but itself (IndexedDB commits a transaction with nothing left to do), and the check and the writes
+ * are one step even against a second tab: a tab that wrote the same scope first makes the generation differ and this
+ * write is refused as a `RowConflict`, with nothing written. After a commit the scope is told on a `BroadcastChannel`,
+ * so other tabs hear of it (`watch`), as the harness's backend does.
  */
 export function createIndexedDbRows<T extends string = string>(
   name: string,

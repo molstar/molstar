@@ -159,7 +159,7 @@ Evidence: operations.md:11-22; viewer-spec.md:139-150; `ai/tools/src/registry.ts
   - a slot context map.
 
 **F12 · minor · confirmed** `paramsShape` lives only in `@molstar/prism-assistant`, which the viewer may not depend on. No spec file says it moves, and the AI specs still cite the old path. Its dependencies are all reachable from the viewer, so this is a move, not a blocker.
-- Evidence: `prism/assistant/src/tools/params.ts:42`; `ai/_spec/tools.md:58`; `ai/_spec/README.md:90`; `.v6/ai/plan.md:41`.
+- Evidence: `prism/assistant/src/tools/params.ts:42`; `ai/_spec/tools.md:58`; `ai/_spec/README.md:90`; the AI plan (since removed).
 - Edit:
   - agent.md §1: `paramsShape` and its test move to `packages/prism/viewer/src/agent/params.ts`.
   - Update the three AI-spec references.

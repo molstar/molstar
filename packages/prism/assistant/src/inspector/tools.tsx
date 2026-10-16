@@ -20,10 +20,10 @@ import { DetailHead, Facts, firstSentence, Json, listKeys, parts, reveal, TextTa
 const HeadHeight = 40;
 
 /**
- * The agent's tools as the model is offered them (analysis/viewer-mode.md §5): the core from the first turn, each skill
- * (its guidance and tools, loaded together), the tools loaded by name; what the conversation has loaded, what cannot be
- * used here and why; per tool its description, its input (as fields and as JSON Schema), whether it only reads, asks
- * first or is turned off, and its size.
+ * The agent's tools as the model is offered them (packages/ai/_spec/trace.md § The Inspector): the core from the first
+ * turn, each skill (its guidance and tools, loaded together), the tools loaded by name; what the conversation has
+ * loaded, what cannot be used here and why; per tool its description, its input (as fields and as JSON Schema),
+ * whether it only reads, asks first or is turned off, and its size.
  */
 export function ToolsView(props: { model: InspectorModel }) {
   const { model } = props;

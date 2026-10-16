@@ -13,7 +13,7 @@ import { createSession, type Session, type SessionSetup } from '../../testing/se
 import { system, textOf, user } from '../../testing/messages.js';
 import { expectWith, stepEvents, TURN, with_ } from './helpers.js';
 
-/** Steps (conformance.md): E1–E6. */
+/** Steps (harness.md §6; testing.md § The harness cases): E1–E6. */
 describe('Steps', () => {
   // E1. A step ends exactly one way, its commit matches that ending, and nothing is decided after the commit.
 

@@ -17,7 +17,7 @@ const message = (shape: ObjectShape, args: Record<string, unknown>) => {
   return r.ok ? undefined : r.message;
 };
 
-describe('a field shape, as the JSON Schema the model sees and the check (tools-and-session.md §2)', () => {
+describe('a field shape, as the JSON Schema the model sees and the check (tools.md §2)', () => {
   it('is an object schema in draft 2020-12, required where not optional and without a default', () => {
     const shape = {
       kind: 'object',

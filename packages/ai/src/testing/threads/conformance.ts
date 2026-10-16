@@ -69,7 +69,7 @@ export const THREAD_CONFORMANCE_CASE_NAMES = [
   'says why a read fails: a missing Thread or entry, a request out of its limits',
 ] as const;
 
-/** What a backend gives the suite (analysis/viewer-mode.md §6). */
+/** What a backend gives the suite (threads.md § Storage). */
 export interface ThreadConformanceFixture {
   readonly name: string;
   /** A thread port over fresh, empty storage for one case, on the case's clock and limits. */

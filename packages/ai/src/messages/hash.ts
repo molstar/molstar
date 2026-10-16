@@ -16,7 +16,7 @@ import type { Json } from './values.js';
  * keys in sorted order, `undefined` properties skipped. `digest` hashes the UTF-8 of RFC 8785 canonical
  * JSON. Both are MurmurHash3_x86_128 (`@molstar/core`'s, as MolViewSpec uses it), synchronous: an id
  * within one page's memory, well mixed and 128 bits wide, not a cryptographic hash (a crafted message
- * could collide with another; .v6/ai/simplification/harness.md §7).
+ * could collide with another; harness.md § Gotchas).
  */
 
 const TAG = { null: 0, false: 1, true: 2, number: 3, string: 4, array: 5, object: 6 } as const;

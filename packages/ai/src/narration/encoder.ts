@@ -7,7 +7,7 @@
  */
 
 /**
- * The audio encoded behind a port (.v6/ai/plan.md): a provider's audio in, the one file the app stores out. The WAV
+ * The audio encoded behind a port (narration.md): a provider's audio in, the one file the app stores out. The WAV
  * encoder here has no dependency and runs anywhere (Node too); the browser's own AAC and Opus encoders are at
  * `./mediabunny`, so this entry does not pull Mediabunny in.
  */

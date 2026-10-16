@@ -23,7 +23,7 @@ import {
   toyToolkit,
 } from './helpers.js';
 
-describe('a turn (tools-and-session.md §4)', () => {
+describe('a turn (session.md §2)', () => {
   it('runs a tool call and answers in words; the hooks see the text, the calls, the status and the turn', async () => {
     const { session, api, model } = fixture([{ calls: [callOf('set_value', { by: '2' })] }, { text: 'Bumped it.' }]);
     const texts: string[] = [];
@@ -246,7 +246,7 @@ describe('what the host hooks into', () => {
   });
 });
 
-describe('the messages (tools-and-session.md §4)', () => {
+describe('the messages (session.md §2)', () => {
   it('the first turn sends the guidance, the tools (the core loaded, the rest declared), then the request', async () => {
     const { session, model, toolkit } = fixture([{ text: 'Hi.' }]);
     await session.turn({

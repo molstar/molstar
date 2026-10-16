@@ -37,7 +37,7 @@ import type { ThreadCommandId, ThreadEntryId } from './ids.js';
 import { createThreadLimits, type ThreadLimits } from './limits.js';
 
 /**
- * The threads' kernel (analysis/viewer-mode.md §6): pure functions that decide a command against the state the host
+ * The threads' kernel (threads.md): pure functions that decide a command against the state the host
  * gives them, and project windows and delta pages from it.
  */
 export type ThreadCommandKind = 'create' | 'append' | 'begin' | 'append-delta' | 'settle' | 'abort' | 'remove';

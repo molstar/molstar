@@ -51,7 +51,7 @@ import type {
 } from './types.js';
 
 /**
- * The agent trace (harness.md §11, §13; analysis/viewer-mode.md §5): the event log, heads and blobs of one harness as
+ * The agent trace (harness.md §11, §13; trace.md): the event log, heads and blobs of one harness as
  * data for the Inspector. Read-only and safe while a turn runs: it shows what has been committed. Everything that
  * belongs to a host (how a request is worded, what a tool call changed, prices) is a hook of the `TraceProfile`, with
  * a default.

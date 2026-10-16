@@ -14,7 +14,7 @@ const none = { kind: 'object', fields: {} } as const;
 const make = (id: string, read: boolean, run: () => ToolResult | Promise<ToolResult>, extra = {}) =>
   tool({ id, description: `${id}.`, input: none, modules: [], read, run, ...extra });
 
-describe('the effect on the result frame (tools-and-session.md §1)', () => {
+describe('the effect on the result frame (tools.md §3)', () => {
   const cases: [string, boolean, () => ToolResult, string][] = [
     ['success of a read', true, () => ({ ok: true, did: 'Read.' }), 'none'],
     ['success of a write', false, () => ({ ok: true, did: 'Wrote.' }), 'applied'],
@@ -65,7 +65,7 @@ describe('the effect on the result frame (tools-and-session.md §1)', () => {
   });
 });
 
-describe('afterWrite (tools-and-session.md §1)', () => {
+describe('afterWrite (tools.md §3)', () => {
   it('runs after a write, before the result, with the tool and the call', async () => {
     const order: string[] = [];
     const afterWrite = async (c: { toolId: string; callId: string }) => {

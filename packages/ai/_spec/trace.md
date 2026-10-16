@@ -54,7 +54,16 @@ latest turn), `preamble` (guidance and tool definitions with token estimates), `
   and `declared`.
 - Limits views (`LimitRowView`, `LimitsGroupView`, `LimitsData`) are types only; the host builds them.
 
-## Consumers
+## The Inspector
+
+What the trace is shaped for:
+
+- Three views: **Trace** (an overview strip, the turns as rows, nested runs indented; a model call shows exactly what it
+  saw), **Tools** (as the model is offered them: core, skills, single; loaded, unavailable and why; sizes), **Limits**
+  (each limit, its value and default; the turn budget against what the latest turn used).
+- A page over the whole app, not a panel: it needs the room.
+- One usage formatter (`format.ts`) for the Inspector, the Assistant's card and the History.
+- Credits are a display unit from the host's prices, never a limit.
 
 `@molstar/prism-assistant`'s Inspector (`src/inspector/`) uses the types and `format`; in the Prism viewer its data
 comes from `src/viewer/inspector-sources.ts` (`readTrace` on the session's client, re-read on `watch()`, one read at a
