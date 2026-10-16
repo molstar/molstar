@@ -255,7 +255,8 @@ export function ShellView(props: ShellViewProps) {
           {/* The bottom of the canvas: the status on the left, and in the corner on the right the work in hand (the
               selection) to the left of the canvas toolbar on its row. Compact too: on the canvas, so a message or a selection
               coming and going moves nothing. */}
-          <div class={canvasClasses.bottom}>
+          {/* It acts on the scene as the canvas does: a press on it leaves an open card open (`OverlayCard`). */}
+          <div class={canvasClasses.bottom} data-keeps-card="">
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>

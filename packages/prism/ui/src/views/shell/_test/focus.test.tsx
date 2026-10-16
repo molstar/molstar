@@ -39,7 +39,17 @@ function mount() {
   const status = new StatusModel();
   const container = document.createElement('div');
   document.body.append(container);
-  const dispose = render(() => <ShellView shell={shell} status={status} canvas={<canvas />} />, container);
+  const dispose = render(
+    () => (
+      <ShellView
+        shell={shell}
+        status={status}
+        canvas={<canvas />}
+        context={() => <button type="button">Clear selection</button>}
+      />
+    ),
+    container,
+  );
   return {
     shell,
     status,
@@ -123,12 +133,16 @@ describe('shell focus', () => {
     t.done();
   });
 
-  it('an overlay card stays open while the canvas is turned, and closes on a pointer down elsewhere', () => {
+  it('an overlay card stays open while the canvas is turned or its bottom bar used, and closes on a pointer down elsewhere', () => {
     const t = mount();
     t.shell.openOverlay('card');
     const down = (el: Element) =>
       el.dispatchEvent(new (window.PointerEvent ?? MouseEvent)('pointerdown', { bubbles: true, composed: true }));
     down(t.container.querySelector('[data-msp-canvas] canvas')!);
+    expect(t.shell.overlay.value?.overlay.id).toBe('card');
+    // The bar at the canvas's bottom acts on the scene too: the selection's Clear keeps the card (a PAE plot's pick).
+    const clear = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'Clear selection')!;
+    down(clear);
     expect(t.shell.overlay.value?.overlay.id).toBe('card');
     const outside = document.createElement('div');
     document.body.append(outside);

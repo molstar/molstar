@@ -641,7 +641,8 @@ function OverlayCard(props: { shell: ShellModel }) {
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;
-    // What acts on the open card leaves it open: the command menu and its button.
+    // What acts on the open card or the scene leaves it open: the command menu and its button, the canvas and the bar
+    // at its bottom (the status, the selection's Clear, the toolbar).
     if (target.closest?.('[data-keeps-card], [data-msp-canvas]')) return;
     shell.closeOverlay();
   };

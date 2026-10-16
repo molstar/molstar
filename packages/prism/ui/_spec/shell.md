@@ -67,8 +67,8 @@ buttons) is the app's. The code is the truth for how.
   `focus`). A section otherwise opens as the person left it (`sectionOpen`/`setSectionOpen`).
 - **Cards** (`ShellOverlay`: `title`, `render`, `persistent?`, `fill?`), one at a time, take the right panel's place,
   full height, whether the panel is open or not; over the open panel they swap in without a transition and the panel
-  steps aside. A card closes on Esc, its ✕, or a pointer down outside it (not on the canvas, which stays usable; not a
-  `persistent` one). Panels and cards share one header.
+  steps aside. A card closes on Esc, its ✕, or a pointer down outside it (not on the canvas or the bar at its bottom,
+  which act on the scene and stay usable; not a `persistent` one). Panels and cards share one header.
 - **Pages** (`ShellPage`, `openPage`): a full-size opaque card over the canvas for what needs room (the agent's
   Inspector), with its own header; Esc closes it, focus goes back; opening one closes a card.
 - **Hidden panels.** A panel is mounted only while it is its dock's active tab (`Show` in `DockView`). What the shell
