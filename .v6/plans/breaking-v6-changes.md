@@ -749,3 +749,10 @@ through the indices of the model instead of a MolScript query on every atom for 
   naming it, where the later command used to replace the earlier one silently. Override before registering.
 - The viewer's Structure tab has no inline preset or style lists: `StructureTab` loses `presets`, `quickStyles` and
   `onAction`; Preset and Styles open the command menu through `openCommands`.
+
+## Prism UI: the shell's layout
+
+- `ViewLayout` has `hiddenTabs` (the tabs `ShellModel.hideTab` took out of view); a `ViewLayout` built by hand needs
+  it (`defaultViewLayout()` has it). A kept layout without it restores with none hidden.
+- The `embedded` mode is a layout of its own (shell.md §3): the compact rail, a floating right panel, nothing pinned,
+  and compact below `compactWidth` (it was the desktop layout under another name).

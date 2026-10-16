@@ -10,6 +10,7 @@
 
 import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
+import { type ContextMenuItem, openContextMenu } from '../../components/context-menu/context-menu.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { activity, For, Show } from '../../dom/control-flow.js';
@@ -347,6 +348,32 @@ function CollapsedBar(props: { shell: ShellModel; dock: DockModel }) {
   );
 }
 
+/**
+ * A tab button's menu (its context menu, or Shift+F10 / the menu key): hide this tab, show a hidden one, reset the
+ * layout (shell.md §3). The ways back are here and in the app's commands.
+ */
+export function tabMenuItems(shell: ShellModel, tab: ShellTab): ContextMenuItem[] {
+  return [
+    { id: 'hide', label: `Hide ${tab.title}`, icon: 'eye-off', run: () => shell.hideTab(tab.id) },
+    ...shell.hiddenTabs.value.map(
+      (t): ContextMenuItem => ({
+        id: `show:${t.id}`,
+        label: `Show ${t.title}`,
+        icon: 'eye',
+        run: () => shell.showTab(t.id),
+      }),
+    ),
+    { id: 'reset', label: 'Reset layout', icon: 'rotate-ccw', run: () => shell.resetLayout() },
+  ];
+}
+
+/** Opens a tab button's menu at a point (the pointer), or below the button (from the keyboard). */
+function openTabMenu(shell: ShellModel, tab: ShellTab, button: HTMLElement, at?: { x: number; y: number }) {
+  const root = button.closest<HTMLElement>('.msp-root') ?? document.body;
+  const r = button.getBoundingClientRect();
+  openContextMenu(root, at ?? { x: r.left, y: r.bottom }, tabMenuItems(shell, tab));
+}
+
 /** A panel's tab: one of a tab list (`rovingTabs`: one Tab stop, the arrows between tabs); it controls the dock's panel. */
 function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; panel: string }) {
   const { shell, dock, tab } = props;
@@ -368,6 +395,15 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; p
       aria-controls={props.panel}
       data-tab={tab.id}
       onClick={() => activateTab(shell, dock, tab)}
+      onContextMenu={(e: MouseEvent) => {
+        e.preventDefault();
+        openTabMenu(shell, tab, e.currentTarget as HTMLElement, { x: e.clientX, y: e.clientY });
+      }}
+      onKeyDown={(e: KeyboardEvent) => {
+        if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
+        e.preventDefault();
+        openTabMenu(shell, tab, e.currentTarget as HTMLElement);
+      }}
     >
       <Icon name={tab.icon} size={20} />
     </button>
@@ -381,19 +417,28 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; p
 export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   const { shell } = props;
   const dock = shell.dock(props.dock);
+  // Embedded, nothing is pinned (shell.md §3): no pin to offer.
+  const pinnable = shell.mode.pipe(
+    map((m) => m !== 'embedded'),
+    distinctUntilChanged(),
+  );
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      class={classes.pin}
-      icon={<Icon name="pin" />}
-      title="Pin beside the canvas"
-      pressed={dock.state.pipe(
-        map((s) => s.pinned),
-        distinctUntilChanged(),
+    <Show when={pinnable}>
+      {() => (
+        <Button
+          variant="ghost"
+          size="sm"
+          class={classes.pin}
+          icon={<Icon name="pin" />}
+          title="Pin beside the canvas"
+          pressed={dock.state.pipe(
+            map((s) => s.pinned),
+            distinctUntilChanged(),
+          )}
+          onClick={() => shell.setPinned(props.dock, !dock.state.value.pinned)}
+        />
       )}
-      onClick={() => shell.setPinned(props.dock, !dock.state.value.pinned)}
-    />
+    </Show>
   );
 }
 

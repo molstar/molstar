@@ -115,12 +115,31 @@ buttons) is the app's. The code is the truth for how.
 `page`, `toolbar`, `tabFocus`, `sections(slot)`; `registerTabs`, `registerOverlays`, `registerPages`,
 `registerSections`, `registerToolbar` (each returns its undo); `show`, `select`, `toggle`, `move`, `setSize`,
 `setFloating`, `setPinned`, `setMode`, `setWidth`, `openOverlay`, `toggleOverlay`, `closeOverlay`, `openPage`,
-`closePage`, `setButtons`, compact rail and `expanded`.
+`closePage`, `setButtons`, `hideTab`, `showTab`, `showAllTabs`, `hiddenTabs`, `resetLayout`, compact rail and
+`expanded`.
 
 - **Two managers hold its state**, given or made: `viewState` (`ViewStateManager`: the layout, serializable: docks'
   tabs, sizes, float, pin, mode, compact rail, buttons) and `navigation` (`NavigationManager`: what is open: each dock's
   tab and collapse, the card, the page, a tab's section, `expanded`). An app keeps and restores the layout through
-  `viewState.save()`/`restore()` (the shell has no layout getter of its own).
-- **Modes**: `desktop`, `compact` (chosen by `auto` from the shell's width), `embedded` (a value, no layout of its own).
+  `viewState.save()`/`restore()` (the shell has no layout getter of its own): versioned (`StoredViewLayout`, another
+  version is dropped), validated, sizes clamped, tab ids that are not registered kept (a tab that registers later lands
+  where it was left). The viewer keeps it in its preferences ([journal.md](../../viewer/_spec/journal.md) §6).
+- **Reset** (`resetLayout`; the viewer's `view.reset-layout`, a tab's menu): `viewState.reset()` goes back to the layout
+  the manager started with (`defaultViewLayout()` and the app's seed, the viewer's `ui.layout`), then each registered
+  tab the seed does not place goes back to its own dock by its order. Hidden tabs show again; each dock keeps its open
+  tab where that tab still is.
+- **Hidden tabs** (`hideTab`, `showTab`, `showAllTabs`; `ViewLayout.hiddenTabs`): a tab out of view without
+  unregistering it, for a person who never uses it. It keeps its dock and place, so it comes back there; its open panel
+  closes. Part of the layout, so a kept layout keeps it hidden. `show(tab)` (a command, a link, `view.open`) brings it
+  back: asked for by name, it shows. A rail tab's menu (context menu, Shift+F10 or the menu key: `tabMenuItems`) has
+  Hide, Show for each hidden tab, and Reset layout; the viewer adds `view.show-tabs`.
+- **Modes**: `desktop`, `compact` (chosen by `auto` from the shell's width), `embedded`.
+- **Embedded is a layout of its own**: for a viewer inside a page, which has neither the width nor the attention of a
+  page of its own. The rail is the compact one (`compactRail` in effect, starting hidden: `setMode('embedded')` closes
+  what opened from it), the right panel floats and nothing is pinned (`DockState` says so while the layout keeps its
+  values for another mode; no pin button), so the canvas never gives up its width; below `compactWidth` it is compact,
+  as `auto` is (a narrow page column needs the bottom sheet more than a full page does). The viewer opens no panel at
+  start in it and keeps no layout of it ([viewer-spec.md](../../viewer/_spec/viewer-spec.md) §2.5): the host page drives
+  it.
 - **Default sizes** (`DefaultDockSizes`): left 300, right 340, top 88, bottom 220 px; minimums in `MinDockSizes`.
 - **Prism's own layout**: the plugin's `PluginLayout` and `leftPanelTabName` are neither read nor written.

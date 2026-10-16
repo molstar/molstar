@@ -45,6 +45,7 @@ import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard } from './export-card.js';
 import { isLazyExtension } from '../spec.js';
 import { settingsTab } from './settings.js';
+import { keepLayout, layoutCommands, layoutStore, restoreLayout } from './layout.js';
 import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
@@ -130,6 +131,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     });
     if (layout.compactRail) shell.setCompactRail(true);
     if (layout.mode) shell.setMode(layout.mode);
+    // The layout the person left (journal.md §6, `ui/layout.ts`), before the tabs register so each lands where it was;
+    // the host's parts of it (mode, compact rail, buttons) stay the spec's.
+    const layoutPreferences = layoutStore(spec);
+    if (layoutPreferences) restoreLayout(managers, layoutPreferences);
     // The theme the person chose last, kept in the preferences when the spec gives them (journal.md §6).
     const preferences = spec.persist?.preferences;
     const kept = preferences?.get('theme');
@@ -486,6 +491,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             return { message: '' };
           },
         },
+        ...layoutCommands(shell),
       ]),
     );
 
@@ -623,11 +629,18 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     document.addEventListener('keydown', onKey);
 
     // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab, or
-    // `homeWhenEmpty` opens Home while nothing is loaded (where to load from).
-    const start = layout.start ?? (core.options.ui.homeWhenEmpty && sources.empty.value ? 'home' : undefined);
-    if (start && !core.options.ui.collapsed) shell.show(start);
+    // `homeWhenEmpty` opens Home while nothing is loaded (where to load from); not in the embedded layout, whose rail
+    // starts hidden and whose page drives what loads (shell.md §3).
+    const homeAtStart = core.options.ui.homeWhenEmpty && sources.empty.value && layout.mode !== 'embedded';
+    const start = layout.start ?? (homeAtStart ? 'home' : undefined);
+    // A tab the person hid does not open at start (`show` would bring it back).
+    const startHidden = !!start && managers.viewState.layout.value.hiddenTabs.includes(start);
+    if (start && !startHidden && !core.options.ui.collapsed) shell.show(start);
     else managers.navigation.setDock('right', { collapsed: true });
     shell.mount();
+    // From here on, what changes is the person's: kept a moment after each change. Stopped first on dispose, before
+    // the tabs unregister (that is not a change to keep).
+    if (layoutPreferences) steps.unshift(keepLayout(managers, layoutPreferences));
 
     const disposeRender = render(
       () => (

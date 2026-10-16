@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { observableState } from '../reactive/observable-state.js';
+import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
 // The UI's layout as state (api.md §11, library.md §1): the docks' tabs, sizes and float, the shell's mode and its
-// rail, which toolbar buttons show. DOM-free and serializable: what a layout preference keeps and restores. What is
-// open is `navigation`'s; `ShellModel` registers the parts and reads both.
+// rail, which toolbar buttons show, which tabs are hidden. DOM-free and serializable: what a layout preference keeps
+// and restores (shell.md §3). What is open is `navigation`'s; `ShellModel` registers the parts and reads both.
 
 export type DockId = 'left' | 'right' | 'top' | 'bottom';
 export const DockIds: readonly DockId[] = ['left', 'right', 'top', 'bottom'];
@@ -44,7 +44,17 @@ export interface ViewLayout {
   readonly compactRail: boolean;
   /** Which toolbar buttons show, by item id; ids not listed show. */
   readonly buttons: Readonly<Record<string, boolean>>;
+  /**
+   * Tabs taken out of view (`ShellModel.hideTab`) without unregistering them: each keeps its place in its dock, and
+   * comes back there (`showTab`, a reset). Ids, registered or not.
+   */
+  readonly hiddenTabs: readonly string[];
 }
+
+/** What the constructor and `restore` take: any part of a layout, docks by part. */
+export type ViewLayoutSeed = Partial<Omit<ViewLayout, 'docks'>> & {
+  docks?: Partial<Record<DockId, Partial<DockLayout>>>;
+};
 
 export const DefaultDockSizes: Readonly<Record<DockId, number>> = { left: 300, right: 340, top: 88, bottom: 220 };
 // Side docks are resized by their splitter; a top or bottom dock is sized by its view (the sequence follows its content).
@@ -55,7 +65,7 @@ export function defaultViewLayout(): ViewLayout {
   for (const id of DockIds) {
     docks[id] = { tabs: [], size: DefaultDockSizes[id], floating: id === 'right' || id === 'top', pinned: false };
   }
-  return { docks, mode: 'auto', compactRail: false, buttons: {} };
+  return { docks, mode: 'auto', compactRail: false, buttons: {}, hiddenTabs: [] };
 }
 
 /** The serialized form, versioned: a stored layout of another version is dropped (journal.md §7). */
@@ -65,15 +75,44 @@ export interface StoredViewLayout {
 }
 
 export class ViewStateManager {
-  readonly #layout = observableState<ViewLayout>(defaultViewLayout());
+  /** The layout it started with: the defaults and the seed (an app's spec); what `reset` goes back to. */
+  readonly #initial: ViewLayout;
+  readonly #layout: ObservableState<ViewLayout>;
 
-  constructor(initial?: Partial<Omit<ViewLayout, 'docks'>> & { docks?: Partial<Record<DockId, Partial<DockLayout>>> }) {
-    if (initial) this.#layout.set(mergeLayout(this.#layout.value, initial));
+  constructor(initial?: ViewLayoutSeed) {
+    this.#initial = initial ? mergeLayout(defaultViewLayout(), initial) : defaultViewLayout();
+    this.#layout = observableState<ViewLayout>(this.#initial);
   }
 
-  /** The docks, the mode, the rail and the buttons. */
+  /** The docks, the mode, the rail, the buttons and the hidden tabs. */
   get layout(): ReadonlyState<ViewLayout> {
     return this.#layout.asReadonly;
+  }
+
+  /** The layout it started with (`defaultViewLayout()` and the constructor's seed). */
+  get initial(): ViewLayout {
+    return this.#initial;
+  }
+
+  /**
+   * Back to the layout it started with (shell.md §3): docks, mode, rail, buttons; hidden tabs show again. Tabs the seed
+   * does not place leave their docks: `ShellModel.resetLayout` puts the registered ones back by their defaults.
+   */
+  reset(): void {
+    this.#layout.set(this.#initial);
+  }
+
+  /** Takes a tab out of view, or brings it back; it keeps its dock and place either way. */
+  setTabHidden(id: string, hidden: boolean): void {
+    const current = this.#layout.value;
+    if (current.hiddenTabs.includes(id) === hidden) return;
+    const hiddenTabs = hidden ? [...current.hiddenTabs, id] : current.hiddenTabs.filter((t) => t !== id);
+    this.#layout.set({ ...current, hiddenTabs });
+  }
+
+  /** Brings every hidden tab back. */
+  showAllTabs(): void {
+    if (this.#layout.value.hiddenTabs.length) this.#layout.set({ ...this.#layout.value, hiddenTabs: [] });
   }
 
   setDock(id: DockId, partial: Partial<DockLayout>): void {
@@ -129,10 +168,7 @@ function hasChange<T extends object>(current: T, partial: Partial<T>): boolean {
   return false;
 }
 
-function mergeLayout(
-  base: ViewLayout,
-  over: Partial<Omit<ViewLayout, 'docks'>> & { docks?: Partial<Record<DockId, Partial<DockLayout>>> },
-): ViewLayout {
+function mergeLayout(base: ViewLayout, over: ViewLayoutSeed): ViewLayout {
   const docks = { ...base.docks };
   for (const id of DockIds) {
     const d = over.docks?.[id];
@@ -143,6 +179,7 @@ function mergeLayout(
     mode: over.mode ?? base.mode,
     compactRail: over.compactRail ?? base.compactRail,
     buttons: { ...base.buttons, ...over.buttons },
+    hiddenTabs: over.hiddenTabs ? [...new Set(over.hiddenTabs)] : base.hiddenTabs,
   };
 }
 
@@ -152,16 +189,20 @@ function isStoredLayout(value: unknown): value is StoredViewLayout {
   if (v.version !== 1 || !v.layout || typeof v.layout !== 'object') return false;
   const docks = v.layout.docks as Record<string, unknown> | undefined;
   if (!docks || typeof docks !== 'object') return false;
-  const { mode, compactRail, buttons } = v.layout;
+  const { mode, compactRail, buttons, hiddenTabs } = v.layout;
   if (mode !== undefined && !(mode === 'auto' || (ShellModes as readonly unknown[]).includes(mode))) return false;
   if (compactRail !== undefined && typeof compactRail !== 'boolean') return false;
   if (buttons !== undefined && (!buttons || typeof buttons !== 'object')) return false;
+  if (hiddenTabs !== undefined && !(Array.isArray(hiddenTabs) && hiddenTabs.every((t) => typeof t === 'string'))) {
+    return false;
+  }
   return DockIds.every((id) => {
     const d = docks[id] as Partial<DockLayout> | undefined;
     if (!d) return true;
     const flag = (f: unknown) => f === undefined || typeof f === 'boolean';
     return (
       Array.isArray(d.tabs) &&
+      d.tabs.every((t) => typeof t === 'string') &&
       (d.size === undefined || (typeof d.size === 'number' && Number.isFinite(d.size))) &&
       flag(d.floating) &&
       flag(d.pinned)

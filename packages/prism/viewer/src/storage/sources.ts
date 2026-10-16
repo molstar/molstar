@@ -151,7 +151,7 @@ export function storeSource(o: StoreSourceOptions): StorageSource {
 }
 
 /** What the preferences hold, in words. */
-const PreferenceLabels: Readonly<Record<string, string>> = { theme: 'Theme' };
+const PreferenceLabels: Readonly<Record<string, string>> = { theme: 'Theme', layout: 'Layout' };
 
 /**
  * The viewer's own sources: kept records always (empty when there are none), the preferences and the light restore when

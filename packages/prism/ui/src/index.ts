@@ -38,6 +38,7 @@ export {
   MinDockSizes,
   type StoredViewLayout,
   type ViewLayout,
+  type ViewLayoutSeed,
   ViewStateManager,
 } from './managers/view-state.js';
 

@@ -64,10 +64,9 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Before Prism becomes the default viewer: accessibility and touch, compact mode, several viewers on a page, performance
   budgets (a one-node change in a scene tree of 1,000 components or a state tree of 5,000 cells within a frame), and
   [parity.md](viewer/_spec/parity.md)'s missing rows; the classic `apps/viewer` stays beside it for a major version.
-- Kept data: preferences keep only the theme (not the layout, `viewState.save()`, or settings); kept records past 90
-  days are only marked; the Storage view does not refresh while open and does not list the assistant's own stores
-  (`prism-assistant.*` in localStorage, `prism-assistant-keys` in IndexedDB)
-  ([journal.md §6–7](viewer/_spec/journal.md)).
+- Kept data: preferences keep the theme and the layout, not settings; kept records past 90 days are only marked; the
+  Storage view does not refresh while open and does not list the assistant's own stores (`prism-assistant.*` in
+  localStorage, `prism-assistant-keys` in IndexedDB) ([journal.md §6–7](viewer/_spec/journal.md)).
 - Sources: no state of the latest registered presets, themes and actions (only Home's actions follow registrations,
   `viewer/src/sources/home.ts`); none for trajectories from coordinate files or segmentations; the trajectory bar cannot
   choose among several trajectories ([state.md §1](viewer/_spec/state.md)).
@@ -106,8 +105,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Commands: a `select` group with a shared mode, generated selection-query commands, previews while browsing, counts on
   the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6);
   contextual commands, menus and buttons by command id.
-- The shell's layout: restore and reset, `hideTab`, a layout of its own for `embedded`
-  ([shell.md §3](ui/_spec/shell.md)).
 - No lint rule against `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views
   (§5).
 - The viewer's scene and state trees are not virtualized (`VirtualList` only in

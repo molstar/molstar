@@ -70,13 +70,20 @@ headless.
 - **The embedded layout** (`layout.compactRail: true`; the app's `?hide-rail`): the rail is hidden behind a button in
   the canvas's corner and the canvas goes edge to edge; the button slides the rail in over the canvas, a panel opens
   beside it. For a viewer inside a page (Storybook: Viewer / With extensions, Embedded; the Seq\* introduction).
+  `layout.mode: 'embedded'` is that layout as a mode, with the rest of what an embedded viewer needs
+  ([shell.md](../../ui/_spec/shell.md) §3): no pinned or docked right panel, compact where narrow, and no panel at start
+  (not even Home with `homeWhenEmpty`).
+- **The kept layout**: with `persist.preferences`, the layout the person leaves is restored at start (§2.6); the spec's
+  `ui.layout` is what Reset layout (`view.reset-layout`) goes back to.
 
 ### 2.6 `persist`
 
-`key` (namespace of every stored key), `preferences` (localStorage), `restore` (sessionStorage, the light restore,
-[journal.md](journal.md) §6), `rows` (IndexedDB, kept records, [journal.md](journal.md) §1). Each absent by default:
-nothing kept. Values are versioned and budgeted ([journal.md](journal.md) §7). Two live viewers on a page with the same
-`key` are refused at creation (`page.ts`, README decision 29).
+`key` (namespace of every stored key), `preferences` (localStorage: the theme and the layout), `layout` (keep the layout
+in `preferences`: on, except for an embedded layout, `ui.layout.mode: 'embedded'` or `compactRail`, which is the host
+page's), `restore` (sessionStorage, the light restore, [journal.md](journal.md) §6), `rows` (IndexedDB, kept records,
+[journal.md](journal.md) §1). Each absent by default: nothing kept. Values are versioned and budgeted
+([journal.md](journal.md) §7). Two live viewers on a page with the same `key` are refused at creation (`page.ts`, README
+decision 29).
 
 ### 2.7 `languages`: what target text is read in
 

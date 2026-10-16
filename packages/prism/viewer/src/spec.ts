@@ -190,8 +190,14 @@ export interface PrismViewerUISpec {
 export interface PrismViewerPersist {
   /** The namespace of every stored key ('prism-viewer'); one per live viewer on a page. */
   readonly key: string;
-  /** localStorage: layout, theme, settings (small, lasting). */
+  /** localStorage: the theme and the layout (small, lasting; journal.md §6). */
   readonly preferences?: PrismStore;
+  /**
+   * Keep the layout in `preferences` (docks, sizes, hidden tabs, what is open in them) and restore it at start
+   * (journal.md §6). On by default, except for an embedded layout (`ui.layout.mode: 'embedded'` or `compactRail`): that
+   * one is the host page's, not the person's.
+   */
+  readonly layout?: boolean;
   /** sessionStorage: this tab's light restore after a reload (journal.md §6). */
   readonly restore?: PrismStore;
   /** IndexedDB: a session record the person keeps (journal.md §1). */
