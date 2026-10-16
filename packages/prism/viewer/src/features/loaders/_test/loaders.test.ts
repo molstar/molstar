@@ -296,6 +296,13 @@ describe('load.url', () => {
     expect(structures(v)).toHaveLength(1);
   });
 
+  it('takes bcif as the name of the binary mmCIF format', async () => {
+    serve({ 'files.test/1cbs.bcif': await bytes('1cbs_full.bcif') });
+    const v = await viewer();
+    expectOk(await v.api.load.url!({ url: 'https://files.test/1cbs.bcif', format: 'bcif' }));
+    expect(structures(v)).toHaveLength(1);
+  });
+
   it('fails on a 404 and on a file that does not parse, leaving nothing', async () => {
     serve({ 'files.test/bad.cif': 'this is not mmCIF' });
     const v = await viewer();

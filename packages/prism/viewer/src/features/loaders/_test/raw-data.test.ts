@@ -52,9 +52,11 @@ describe('load.data', () => {
     const base64 = `base64,${Buffer.from(bcif).toString('base64')}`;
     expectOk(await v.api.load.data!({ data: base64, format: 'mmcif' }));
     expectOk(await v.api.load.data!({ bytes: bcif, format: 'mmcif' }));
+    // BinaryCIF is also named as such.
+    expectOk(await v.api.load.data!({ bytes: bcif, format: 'bcif' }));
     expectOk(await v.api.load.data!({ data: await text('adrenalin.mol2'), format: 'auto', label: 'adrenalin.mol2' }));
-    expect(structures(v)).toHaveLength(3);
-    expect(steps(v)).toBe(3);
+    expect(structures(v)).toHaveLength(4);
+    expect(steps(v)).toBe(4);
   });
 
   it('refuses what it cannot load, and a failed load leaves nothing', async () => {

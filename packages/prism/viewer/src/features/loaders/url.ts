@@ -138,7 +138,12 @@ export function loadsFromUrl(search: string): UrlLoad[] {
     // v5 needs `url-format`; without it the format is read from the address.
     loads.push({
       operation: 'load.url',
-      values: { url, format: get('url-format') ?? 'auto', binary: flag('url-is-binary'), ...structureOptions },
+      values: {
+        url,
+        format: get('url-format')?.toLowerCase() ?? 'auto',
+        binary: flag('url-is-binary'),
+        ...structureOptions,
+      },
     });
   }
 

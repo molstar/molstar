@@ -440,6 +440,8 @@ const url: OperationDefinition<typeof UrlParams, Loaded> = {
     const loaded = ctx.copy ? undefined : urlLoaded(address, ctx);
     if (loaded) return ApiResult.already(loaded);
     format = format.trim() || 'mmcif';
+    // BinaryCIF is the mmCIF format read as binary.
+    if (format === 'bcif') [format, binary] = ['mmcif', true];
     const unknown = await formatProblem(ctx, format);
     if (unknown) return unknown;
     const options = { models, assembly };
@@ -512,6 +514,8 @@ const rawData: OperationDefinition<typeof DataParams, Loaded> = {
       return ApiResult.fail('invalid', 'Which data?', "Give the file's contents as data.");
     }
     format = format.trim() || 'mmcif';
+    // BinaryCIF is the mmCIF format; whether the data is binary follows from the data.
+    if (format === 'bcif') format = 'mmcif';
     if (format === 'auto' && !getFileNameInfo(label.trim()).ext) {
       return ApiResult.fail('invalid', 'Which format?', "Give the format, or a label with the file's extension.");
     }

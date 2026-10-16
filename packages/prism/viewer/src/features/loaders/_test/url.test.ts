@@ -41,6 +41,8 @@ describe('loadsFromUrl', () => {
       binary: true,
     });
     expect(loadsFromUrl('?url=https://x.org/a.bcif')[0].values).toMatchObject({ format: 'auto', binary: false });
+    // The name is read as the other format parameters are: in any case.
+    expect(loadsFromUrl('?url=https://x.org/a.pdb&url-format=PDB')[0].values).toMatchObject({ format: 'pdb' });
   });
 
   it('reads structure-url with its format (default mmcif) and binary flag', () => {
