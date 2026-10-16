@@ -250,6 +250,14 @@ interface LazyViewerExtension {
   contributed to the area, and replaced by the feature's `contributes` when it loads.
 - **Owned files and sessions**: `load.files` loads the lazy extension owning a file's extension first; `session.open`
   of a `.molj` the ones owning its transformers (a `.molx`, zipped, not yet).
+- **An extension names its own areas** (David, 2026-10-16): the viewer does not know the extensions it will get, so the
+  names come from them (`membrane` from `anvil`, `video` from `video-export`: named for what they add), and each is the
+  extension's alone. An area another extension or the viewer has fails the extension's activation, naming who has it;
+  only the viewer's own features contribute operations to core areas.
+- **Mounted at runtime**: `viewer.extensions.mount(ext)` adds an extension the spec did not list to a running viewer
+  (its plugin part on the running plugin, its areas, commands and views; a lazy one as its stub) and returns its
+  removal. It is the first step to extensions loaded from elsewhere (an open registry, later); today they still live
+  in this repository.
 
 ### 3.1 The viewer's own features: a small core and built-in extensions
 

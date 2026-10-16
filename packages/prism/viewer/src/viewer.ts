@@ -134,8 +134,11 @@ export interface PrismViewer {
     readonly click: Observable<ViewerPointerEvent>;
     readonly error: Observable<ViewerError>;
   };
-  /** The extensions: which are loaded, each lazy one's status, and loading one (README §3.6). */
-  readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor'>;
+  /**
+   * The extensions: which are loaded, each lazy one's status, loading one (README §3.6), and mounting one the spec did
+   * not list, at runtime (viewer-spec.md §3).
+   */
+  readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor' | 'mount'>;
   /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */
   readonly record: SessionRecord;
   /** The records kept in earlier sessions (journal.md §3, §5): Home's list, one opened read-only in History, Forget. */

@@ -99,6 +99,8 @@ export class ExtensionHost {
   readonly #activated = new Subject<string>();
   readonly #failed = new Subject<{ id: string; message: string }>();
   #port: ExtensionUIPort | undefined;
+  /** Who brought each area an extension added (operations.md §2: an extension names its own areas, once). */
+  readonly #areaOwners = new Map<string, string>();
   /** Set by `dispose`: a load in flight then stops at its next step and undoes what it did. */
   #disposed = false;
 
@@ -137,6 +139,58 @@ export class ExtensionHost {
       }
     }
     for (const e of list) if (isLazyExtension(e) && e.preload) await this.load(e.id);
+  }
+
+  /**
+   * Adds an extension to the running viewer (viewer-spec.md §3): an eager one is activated, its plugin part on the
+   * running plugin; a lazy one gets its stub (and loads when asked, or now when `preload`). The extension must be new to
+   * the viewer and its areas' names free. Returns its removal.
+   */
+  async mount(ext: ViewerExtension | LazyViewerExtension): Promise<() => Promise<void>> {
+    if (this.#disposed) throw new Error('The viewer is gone.');
+    if (this.#entries.has(ext.id)) throw new Error(`Extension '${ext.id}' is in the viewer already`);
+    if (isLazyExtension(ext)) {
+      await this.add([ext]);
+    } else {
+      checkContributes(ext);
+      const parts = await this.#activate(ext, undefined, true);
+      const entry = this.#entry(ext.id, 'loaded');
+      entry.disposers.push(...parts);
+      entry.ext = ext;
+      this.#mountUI(entry);
+      this.#loaded.set([...this.#loaded.value, ext.id]);
+      this.#activated.next(ext.id);
+    }
+    return () => this.#unmount(ext.id);
+  }
+
+  async #unmount(id: string): Promise<void> {
+    const entry = this.#entries.get(id);
+    if (!entry) return;
+    await entry.loading?.catch(() => false);
+    this.#entries.delete(id);
+    entry.ui?.();
+    entry.ui = undefined;
+    await runAll(entry.disposers);
+    await runAll(entry.stub);
+    this.#loaded.set(this.#loaded.value.filter((x) => x !== id));
+  }
+
+  /** An area an extension brings: a name another has fails, naming who has it. */
+  #addArea(owner: string, id: string, factory: Parameters<ViewerApiHost['addArea']>[1]): Disposer {
+    const { host } = this.#deps;
+    if (host.api.area(id)) {
+      const by = this.#areaOwners.get(id);
+      throw new Error(
+        `Extension '${owner}' brings the API area '${id}', which ${by ? `extension '${by}'` : 'the viewer'} has already: an extension names its own areas`,
+      );
+    }
+    const remove = host.addArea(id, factory);
+    this.#areaOwners.set(id, owner);
+    return () => {
+      if (this.#areaOwners.get(id) === owner) this.#areaOwners.delete(id);
+      remove();
+    };
   }
 
   /** Loads a lazy extension (once); true when it is loaded. A failure leaves its stub and says why. */
@@ -203,13 +257,13 @@ export class ExtensionHost {
    * An extension's parts, in order, all or nothing: on a failure, what was done is undone and the error rethrown. The
    * disposers are returned to the caller, which keeps them once the activation is accepted.
    */
-  async #activate(e: ViewerExtension, lazy?: LazyViewerExtension): Promise<Disposer[]> {
+  async #activate(e: ViewerExtension, lazy?: LazyViewerExtension, running = !!lazy): Promise<Disposer[]> {
     const { host, person, registerCommands, annotations } = this.#deps;
     const done: Disposer[] = [];
     try {
-      // An eager extension's plugin part is in the composition; a lazy one's goes on the running plugin.
-      if (lazy && e.plugin) done.push(await this.#deps.applyPlugin(e.plugin));
-      for (const [id, factory] of Object.entries(e.api ?? {})) done.push(host.addArea(id, factory));
+      // An eager extension's plugin part is in the composition; a lazy or mounted one's goes on the running plugin.
+      if (running && e.plugin) done.push(await this.#deps.applyPlugin(e.plugin));
+      for (const [id, factory] of Object.entries(e.api ?? {})) done.push(this.#addArea(e.id, id, factory));
       for (const c of e.contributes?.(host.areaContext) ?? []) {
         const area = host.api.area(c.area);
         if (!area) throw new Error(`Extension '${e.id}' adds to an area that does not exist: '${c.area}'`);
@@ -260,11 +314,16 @@ export class ExtensionHost {
       const existing = host.api.area(area);
       if (existing) {
         if (!lazy.builtIn) {
-          throw new Error(`Extension '${lazy.id}' adds '${ops[0].id}' to a core area: only the viewer's features may`);
+          const by = this.#areaOwners.get(area);
+          throw new Error(
+            by
+              ? `Extension '${lazy.id}' adds '${ops[0].id}' to the area '${area}', which extension '${by}' has: an extension names its own areas`
+              : `Extension '${lazy.id}' adds '${ops[0].id}' to a core area: only the viewer's features may`,
+          );
         }
         for (const op of ops) entry.stub.push(existing.contribute(memberName(op.id), stubDefinition(op, load, lazy)));
       } else {
-        entry.stub.push(host.addArea(area, (ctx) => new StubArea(ctx, area, ops, load, lazy)));
+        entry.stub.push(this.#addArea(lazy.id, area, (ctx) => new StubArea(ctx, area, ops, load, lazy)));
       }
     }
     // Stub commands: listed by title; running one loads the chunk, then opens the real one.

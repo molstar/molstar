@@ -215,3 +215,38 @@ describe('extensions', () => {
     expect(v.managers.commands.get('shout.say')).toBeUndefined();
   });
 });
+
+describe('extensions mounted at runtime (viewer-spec.md §3)', () => {
+  it('mounts an extension the spec did not list, with its plugin part, area and commands; unmounting removes them', async () => {
+    const v = await headlessViewer();
+    expect(v.api.area('shout')).toBeUndefined();
+    const unmount = await v.extensions.mount(shout);
+    expect(v.extensions.loaded.value).toContain('shout');
+    expect(v.managers.commands.get('shout.say')).toBeDefined();
+    expectOk(await v.api.run('shout.say', {}));
+    await unmount();
+    expect(v.api.area('shout')).toBeUndefined();
+    expect(v.managers.commands.get('shout.say')).toBeUndefined();
+    expect(v.extensions.loaded.value).not.toContain('shout');
+  });
+
+  it('mounts a lazy one as its stub, loading on the first call', async () => {
+    const v = await headlessViewer();
+    const { extension, count } = lazyShout();
+    await v.extensions.mount(extension);
+    expect(count()).toBe(0);
+    expectOk(await v.api.run('shout.say', {}));
+    expect(count()).toBe(1);
+  });
+
+  it('refuses an id the viewer has, and an area another extension has, naming it', async () => {
+    const v = await headlessViewer({ extensions: [shout] });
+    await expect(v.extensions.mount(shout)).rejects.toThrow(/in the viewer already/);
+    const echo: ViewerExtension = { id: 'echo', title: 'Echo', api: { shout: (ctx) => new ShoutApi(ctx) } };
+    await expect(v.extensions.mount(echo)).rejects.toThrow(/'shout', which extension 'shout' has already/);
+    const core: ViewerExtension = { id: 'core-clash', title: 'Clash', api: { canvas: (ctx) => new ShoutApi(ctx) } };
+    await expect(v.extensions.mount(core)).rejects.toThrow(/'canvas', which the viewer has already/);
+    // Nothing of a refused one stays.
+    expect(v.extensions.loaded.value).not.toContain('echo');
+  });
+});

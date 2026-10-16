@@ -121,7 +121,7 @@ describe('lazy extensions', () => {
     const r = await v.api.run('canvas.stereo', {});
     expect(r).toMatchObject({ ok: false, code: 'unavailable' });
     expect(v.extensions.status('xr')?.value).toBe('failed');
-    expect(failed[0]).toMatch(/exists already/);
+    expect(failed[0]).toMatch(/has already/);
     // The stub is back: its operations and command; nothing of the real one stayed.
     expect(v.api.describe('canvas.stereo')?.params).toEqual({});
     expect(v.api.describe('camera.xr')).toBeDefined();
