@@ -18,11 +18,12 @@ type Target = string | SelectorT;
 interface Scoped { target: Target; structure?: StructureRef }   // StructureRef: a state ref, or a label ("1TQN")
 ```
 
-- **Reading a string**, in order: a keyword, then an address list, then a query text in the given language (PyMOL
-  unless the call says `language: 'vmd' | 'jmol' | 'molscript'`), when the viewer reads it: its spec lists the languages
-  it bundles (viewer-spec.md §2.7; the default spec all four). Permissive as Stories reads small models' input:
-  spaces, case, `A/120`, `A 120-130`, a trailing comma are all read; what still does not parse fails with the part that
-  did not and a hint.
+- **Reading a string**, in order: a keyword, then an address list, then a query text in the given language (the first
+  the viewer reads, PyMOL in the default spec, unless the call says `language: 'vmd' | 'jmol' | 'molscript'`), when the
+  viewer reads it: its spec lists the languages it bundles (viewer-spec.md §2.7; the default spec all four). The
+  `language` param offers only those, and is hidden where there are none. Permissive as Stories reads small models'
+  input: spaces, case, `A/120`, `A 120-130`, a trailing comma are all read; what still does not parse fails with the part
+  that did not and a hint.
 - **`selection` and `focus`** are the person's: Mol\*'s current selection and focus, so "color the selection red" and
   the agent's "what the person points at" are one target.
 - **The structure**: absent, the target applies to the structure the person works with (the focused one, else the

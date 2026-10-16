@@ -8,7 +8,8 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { StructureElement } from '@molstar/model/model/structure';
-import type { Target } from '../targets/types.js';
+import { defaultQueryLanguage, type QueryLanguageEntry, queryLanguages } from '../targets/languages.js';
+import type { QueryLanguage, Target } from '../targets/types.js';
 
 // The `target` param (targets.md §1): a keyword, an address list, a query text or a selector (schema items, `{ molql }`),
 // and, from code in the page (the sequence link), loci directly (`{ loci }`, never stored). A plain value param: its
@@ -21,14 +22,30 @@ export function TargetParam(description = 'What to act on: ligand, A:120-130, re
   return PD.Value<TargetValue>('', { description });
 }
 
-/** The query language of a target's text (targets.md §1): PyMOL unless said. */
-export function LanguageParam() {
-  return PD.Select<'pymol' | 'vmd' | 'jmol' | 'molscript'>('pymol', [
-    ['pymol', 'PyMOL'],
-    ['vmd', 'VMD'],
-    ['jmol', 'Jmol'],
-    ['molscript', 'MolScript'],
-  ]);
+/**
+ * The query language of a target's text (targets.md §1): one of those this viewer reads (its spec's `languages`), the
+ * first unless said; hidden where it reads none. The languages are registered when a viewer is made, after the areas'
+ * params are declared, so the default, the options and whether it shows are read when asked (a form, a tool's schema,
+ * a call's defaults).
+ */
+export function LanguageParam(): PD.Select<QueryLanguage> {
+  let options: readonly (readonly [QueryLanguage, string])[] = [];
+  let of: readonly QueryLanguageEntry[] | undefined;
+  return Object.defineProperties(PD.Select<QueryLanguage>('pymol', []), {
+    defaultValue: { get: defaultQueryLanguage, enumerable: true },
+    options: {
+      get() {
+        const languages = queryLanguages();
+        if (languages !== of) {
+          of = languages;
+          options = languages.map((l) => [l.id, l.name] as const);
+        }
+        return options;
+      },
+      enumerable: true,
+    },
+    isHidden: { get: () => queryLanguages().length === 0, enumerable: true },
+  });
 }
 
 /** Whether a value names loci directly. */

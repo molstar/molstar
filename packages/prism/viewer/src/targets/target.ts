@@ -15,6 +15,7 @@ import type { Expression } from '@molstar/query-language/language/expression';
 import { type AddressResult, parseAddressList } from './addresses.js';
 import { checkMolQL, compileQuery, failure, formatMolQL, messageOf } from './compile.js';
 import { KEYWORD_EXPRESSIONS, isKeyword, readKeyword } from './keywords.js';
+import { defaultQueryLanguage } from './languages.js';
 import { isMolQLSelector, itemsExpression } from './selector.js';
 import type {
   CompileOptions,
@@ -43,7 +44,7 @@ export function parseTarget(target: Target, options: Pick<CompileOptions, 'langu
 }
 
 function readTarget(target: Target, options: Pick<CompileOptions, 'language'>): Read {
-  if (typeof target === 'string') return parseString(target, options.language ?? 'pymol');
+  if (typeof target === 'string') return parseString(target, options.language ?? defaultQueryLanguage());
   return parseSelector(target);
 }
 

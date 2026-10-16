@@ -25,16 +25,25 @@ export interface QueryLanguageEntry {
 }
 
 const registered = new Map<QueryLanguage, QueryLanguageEntry>();
+// The registered entries as a list, made again only when one is added: params read it per call (`LanguageParam`).
+let list: readonly QueryLanguageEntry[] = [];
 
 /** Makes languages readable (a viewer's spec's, when it is made); again is harmless. */
 export function registerQueryLanguages(languages: readonly QueryLanguageEntry[]): void {
   for (const l of languages) registered.set(l.id, l);
+  if (registered.size !== list.length) list = [...registered.values()];
 }
 
 export function queryLanguage(id: QueryLanguage): QueryLanguageEntry | undefined {
   return registered.get(id);
 }
 
+/** The languages read, in the order the spec lists them. */
 export function queryLanguages(): readonly QueryLanguageEntry[] {
-  return [...registered.values()];
+  return list;
+}
+
+/** The language of a text that names none: the first the viewer reads (PyMOL in the default spec). */
+export function defaultQueryLanguage(): QueryLanguage {
+  return list[0]?.id ?? 'pymol';
 }
