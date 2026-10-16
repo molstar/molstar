@@ -25,6 +25,24 @@ const hex = (list: readonly string[]) => list.map((h) => Number.parseInt(h, 16))
 
 /** The lists compared, in the order chains take them; the smallest OKLab distance among the first eight in the label. */
 const Palettes: Readonly<Record<string, { label: string; colors: readonly number[] }>> = {
+  // Mol*'s own order (many-distinct's: Dark2's green, orange, purple, pink, lime, gold, brown), redrawn in OKLCH with
+  // even weight, a sky blue where Dark2 has grey, then a second eight filling the hues between, lightness alternating.
+  'prism-d': {
+    label: 'D · Mol*’s green and orange first, refined (min ΔE 0.103; all 16: 0.102)',
+    colors: hex(
+      '07a57b e57434 7b74c4 d8588f 78b248 ecb333 915a23 4cbadc cb4644 2a61b1 1a8390 c793df 7f8026 f6a88d 883f73 9bdcb1'.split(
+        ' ',
+      ),
+    ),
+  },
+  'prism-e': {
+    label: 'E · the same, lighter (min ΔE 0.097; all 16: 0.095)',
+    colors: hex(
+      '46b58f f38c56 8d88d1 e672a1 8fc367 fcc85f a06e3f 6fcceb d9615b 4374bd 4294a0 d8a9ee 909146 ffc0ab 975482 b4efc7'.split(
+        ' ',
+      ),
+    ),
+  },
   'prism-a': {
     label: 'A · soft (min ΔE 0.136)',
     colors: hex(
@@ -50,7 +68,7 @@ const Palettes: Readonly<Record<string, { label: string; colors: readonly number
     ),
   },
   'many-distinct': {
-    label: 'Mol*’s many-distinct (min ΔE 0.099)',
+    label: 'Mol*’s many-distinct (min ΔE 0.099; all 16: 0.035)',
     colors: ColorLists['many-distinct'].list as number[],
   },
   'okabe-ito': { label: 'Okabe–Ito, colorblind-safe (min ΔE 0.118)', colors: ColorLists['okabe-ito'].list as number[] },
@@ -118,7 +136,7 @@ interface Args {
  * (4HHB, 4), a nucleosome (1KX5, 10: protein and DNA).
  */
 export const OnAStructure: StoryObj<Args> = {
-  args: { palette: 'prism-a', entry: '1AON', theme: 'chain-id', background: 'light' },
+  args: { palette: 'prism-d', entry: '1AON', theme: 'chain-id', background: 'light' },
   argTypes: {
     palette: { control: 'select', options: Object.keys(Palettes) },
     entry: { control: 'select', options: ['1AON', '4HHB', '1KX5'] },
