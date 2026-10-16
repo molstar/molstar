@@ -39,9 +39,9 @@ export interface BehaviorKit<P> {
 
 /**
  * A behavior from a setup run at `register`; everything it adds is released on dispose. `bindings`: its binding params
- * described (seqspec:viewer#behaviors).
+ * described (seqspec:viewer#behaviors). Pure (it builds a provider), so a behavior no spec lists is left out of a
+ * bundle.
  */
-// Pure (it builds a provider): a behavior no spec lists is left out of a bundle.
 /* @__NO_SIDE_EFFECTS__ */
 export function defineBehavior<P extends object>(
   name: string,

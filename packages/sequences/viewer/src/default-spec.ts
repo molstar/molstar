@@ -76,8 +76,8 @@ export const ViewerLayerTypes: SvsRegistryEntry = viewerOwn({
 /**
  * Every built-in, both halves; the phases that build renderers, themes and the rest add theirs. The viewer owns `seqv`:
  * its registry passes `ViewerIssueCodes` and `ViewerLayerTypes` to the format's `register` as its own (registry.ts).
+ * Built in a pure call, so a host that does not register it (a partial spec) bundles none of it.
  */
-// Built in a pure call, so a host that does not register it (a partial spec) bundles none of it.
 export const DefaultRegistry: SeqViewerRegistryEntry = /* @__PURE__ */ (() => ({
   svs: [KernelRegistry, MvsRegistry, ViewerIssueCodes, ViewerLayerTypes],
   nodeKinds: DefaultNodeKinds,
