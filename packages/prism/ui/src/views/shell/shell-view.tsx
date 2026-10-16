@@ -253,16 +253,14 @@ export function ShellView(props: ShellViewProps) {
           {/* The compact rail's button: in the rail's column, at the bottom, where the rail slides in around it. */}
           <Show when={railToggle}>{() => <RailToggle shell={shell} />}</Show>
           {/* The bottom of the canvas: the status on the left, and in the corner on the right the work in hand (the
-              selection) to the left of the canvas toolbar on its row. Compact: the selection is docked under the canvas; the
-              status stays on it, as here (a message coming and going moves nothing). */}
+              selection) to the left of the canvas toolbar on its row. Compact too: on the canvas, so a message or a selection
+              coming and going moves nothing. */}
           <div class={canvasClasses.bottom}>
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>
                 <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} quiet={props.empty} />
-                <Show when={compact.pipe(map((c) => !c))}>
-                  {() => <ContextChips status={status} lead={props.context?.()} />}
-                </Show>
+                <ContextChips status={status} lead={props.context?.()} />
               </div>
             </div>
           </div>
@@ -326,14 +324,6 @@ export function ShellView(props: ShellViewProps) {
           </Show>
         </div>
       </main>
-      {/* Compact: the selection docked under the canvas, not over it. */}
-      <Show when={compact}>
-        {() => (
-          <div class={canvasClasses.compactStatus} data-docked="">
-            <ContextChips status={status} lead={props.context?.()} />
-          </div>
-        )}
-      </Show>
       <Show when={combineLatest([floating, expanded]).pipe(map(([f, e]) => !f && !e))}>
         {() => (
           <DockView

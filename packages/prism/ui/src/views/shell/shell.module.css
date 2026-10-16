@@ -31,11 +31,10 @@
     /* What fixed-size targets grow to (`max(<their size>, var(--msp-touch-target, 0px))`). */
     --msp-touch-target: 44px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       "top"
       "viewport"
-      "status"
       "bottom"
       "right";
   }

@@ -60,19 +60,5 @@ defineStyles('viewer/views/canvas/selection-bar.module.css', `@layer msp.compone
     color: var(--msp-color-text);
   }
 }
-
-:where([data-docked]) .msp-viewer-selection-bar-bar {
-  width: 100%;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  border-top: 1px solid var(--msp-glass-edge);
-  background: none;
-  border-radius: 0;
-  animation: none;
-}
-
-:where([data-docked]) .msp-viewer-selection-bar-summary {
-  flex: 1;
-}
 }
 `);

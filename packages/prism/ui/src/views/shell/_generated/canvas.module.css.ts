@@ -35,7 +35,6 @@ export const classes = {
   'cardHeader': 'msp-shell-canvas-cardHeader',
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
-  'compactStatus': 'msp-shell-canvas-compactStatus',
   'context': 'msp-shell-canvas-context',
   'corner': 'msp-shell-canvas-corner',
   'countdown': 'msp-shell-canvas-countdown',
@@ -675,46 +674,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
   display: grid;
   position: absolute;
-}
-
-.msp-shell-canvas-compactStatus {
-  background: var(--msp-color-panel);
-  grid-area: status;
-  display: grid;
-
-  &:empty {
-    display: none;
-  }
-
-  & .msp-shell-canvas-status, & .msp-shell-canvas-context {
-    grid-area: auto;
-    justify-content: stretch;
-    justify-self: stretch;
-    gap: 0;
-    padding-bottom: 0;
-    display: grid;
-  }
-
-  & .msp-shell-canvas-progress {
-    flex: 1;
-  }
-
-  & .msp-shell-canvas-status:empty, & .msp-shell-canvas-context:empty {
-    display: none;
-  }
-
-  & .msp-shell-canvas-pill {
-    width: 100%;
-    max-width: none;
-    height: max(34px, var(--msp-touch-target, 0px));
-    padding-left: var(--msp-space-3);
-    text-shadow: none;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    border-top: 1px solid var(--msp-glass-edge);
-    background: none;
-    border-radius: 0;
-  }
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-card {

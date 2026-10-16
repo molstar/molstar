@@ -705,52 +705,6 @@
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
 }
 
-/* Compact: the selection docked between the canvas and the sheet, as plain full-width rows: no glass, no rounding, a
-   hairline between them (the status stays on the canvas: `.bottomGrid`). */
-.compactStatus {
-  grid-area: status;
-  display: grid;
-  background: var(--msp-color-panel);
-
-  &:empty {
-    display: none;
-  }
-
-  & .status,
-  & .context {
-    grid-area: auto;
-    padding-bottom: 0;
-    display: grid;
-    justify-self: stretch;
-    justify-content: stretch;
-    gap: 0;
-  }
-
-  /* A task's bar takes the row, its ✕ at the end. */
-  & .progress {
-    flex: 1;
-  }
-
-  & .status:empty,
-  & .context:empty {
-    display: none;
-  }
-
-  & .pill {
-    width: 100%;
-    max-width: none;
-    height: max(34px, var(--msp-touch-target, 0px));
-    padding-left: var(--msp-space-3);
-    text-shadow: none;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-top: 1px solid var(--msp-glass-edge);
-  }
-}
-
 /* Compact: no side panel to stand in for; a card fills the canvas. */
 :where([data-mode="compact"]) .card {
   left: var(--msp-canvas-edge);
