@@ -15,8 +15,9 @@ import { createAppSpec } from './spec.js';
 import { modesFromUrl, unknownUrlParameters } from './url.js';
 
 // The Prism viewer app (app.md §1): the page, the spec the app ships (the viewer's defaults, Mol*'s extensions, the
-// URL's options) and the viewer, exposed on `window.molstar` for the console and for scripts on the page. The URL's
-// load parameters run once the viewer is created (app.md §4), as the loaders feature's operations.
+// URL's options) and the viewer, exposed on `window.molstar` for the console and for scripts on the page with Mol*'s
+// library (`lib`, app.md §1, loaded beside the viewer in a chunk of its own). The URL's load parameters run once the
+// viewer is created (app.md §4), as the loaders feature's operations.
 
 async function main() {
   const target = document.getElementById('app');
@@ -25,8 +26,13 @@ async function main() {
   const modes = modesFromUrl(location.search);
   if (modes.debug) setDebugMode(true);
   if (modes.timing) setTimingMode(true);
+  // The library is not part of the start bundle: its chunk loads while the viewer starts; a failed load leaves it out.
+  const lib = import('./lib.js').then(
+    (m) => m.lib,
+    (e: unknown) => console.error('molstar.lib could not be loaded', e),
+  );
   const viewer = await createPrismViewer({ target, spec: createAppSpec(location.search) });
-  (window as unknown as { molstar: unknown }).molstar = { viewer, api: viewer.api };
+  (window as unknown as { molstar: unknown }).molstar = { viewer, api: viewer.api, lib: await lib };
 
   const unknown = unknownUrlParameters(location.search, LoadUrlParameters);
   if (unknown.length) console.info(`Ignored URL parameters (not known to the viewer): ${unknown.join(', ')}`);

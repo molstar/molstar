@@ -138,6 +138,7 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: Help's basics (load, select, focus, the command menu, undo, the assistant) above the bindings
 - Prism viewer: an Illumination toggle and, where WebXR is, an XR button on the canvas toolbar (`canvas.xr`).
 - Prism viewer: an expanded viewport (`view.expand`: the canvas fills the viewer, Escape brings the panels back) and `view.fullscreen`.
+- Prism viewer: `window.molstar.lib` in the app (and so in the `molstar` distribution's `build/prism-viewer/`): v5's `molstar.lib` without the classic UI, plus `lib.prism` (`createPrismViewer`, `DefaultPrismViewerSpec`, `FullPrismViewerSpec`, `node`, `MS`)
 - Prism viewer: the Export card's Camera section: the camera in numbers (as v5's), Copy MVS camera; `export.viewport`
 - Prism viewer: the Selection tab's summary (what is selected, the structures and chains it spans, Focus, Clear; with nothing selected, a way into Select mode); the style layers applied (color, transparency, glow, material, clipping) listed under its style form, each edited or removed, Clear all (`representation.layers`, `.layer-update`, `.layer-remove`, `representation.reset` with `all`); the superpositions made listed under Superpose and removed (`superpose.list`, `superpose.remove`)
   and `load.viewport` (a viewport state as JSON); `camera.set` and a richer `camera.get`. Session & state is v5's State

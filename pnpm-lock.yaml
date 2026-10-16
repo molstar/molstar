@@ -640,24 +640,39 @@ importers:
       '@molstar/kinemage-extension':
         specifier: workspace:*
         version: link:../../extensions/kinemage
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../packages/model
       '@molstar/model-archive-extension':
         specifier: workspace:*
         version: link:../../extensions/model-archive
       '@molstar/model-export-extension':
         specifier: workspace:*
         version: link:../../extensions/model-export
+      '@molstar/mvs':
+        specifier: workspace:*
+        version: link:../../packages/mvs/runtime
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../packages/mvs/builder
       '@molstar/pdbe-extension':
         specifier: workspace:*
         version: link:../../extensions/pdbe
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/plugin-extension':
+        specifier: workspace:*
+        version: link:../../extensions/plugin
       '@molstar/prism-assistant':
         specifier: workspace:*
         version: link:../../packages/prism/assistant
       '@molstar/prism-viewer':
         specifier: workspace:*
         version: link:../../packages/prism/viewer
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@molstar/rcsb-extension':
         specifier: workspace:*
         version: link:../../extensions/rcsb

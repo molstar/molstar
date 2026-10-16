@@ -21,9 +21,19 @@ element, and the URL. Status: **accepted** (2026-10-15).
   (agent.md §4). A publish adds files rather than replacing the site, so the hashed chunks of the last few versions
   stay for tabs left open across a deploy (journal.md §7); `index.html` is not cached. Chunks load relative to the
   entry, so the app works from any base path.
+- **Page globals**: `window.molstar = { viewer, api, lib }` once the viewer is made. `lib` (`src/lib.ts`) is v5's
+  `molstar.lib` where the app has its parts (`structure`, `volume`, `shape`, `loci`, `math`, `plugin`, `extensions`;
+  not the classic UI's `PluginUIContext`, `DefaultPluginUISpec` and view models, nor `StateTransforms`, which
+  architecture.md §9.3 keeps for the classic Viewer only) and `lib.prism`: `createPrismViewer`,
+  `DefaultPrismViewerSpec`, `FullPrismViewerSpec`, `node`, `MS` (the MolScript builder). It is the app's, in a chunk
+  loaded beside the viewer (115 kB, none of it in the start bundle); `@molstar/prism-viewer` stays tree-shakable and
+  the single file does not export it (it would add 32 kB gzipped to every page that imports it).
 - **Size**: the first chunk is what opening an empty viewer needs; a budget per file (`molstar.budgets` in the app's
-  manifest: `index.js` 3.2 MB, `prism-viewer.js` 8 MB, minified) fails a production build that outgrows it. Not yet:
-  hashed entry names, the assistant's chunk loaded on first use rather than at start.
+  manifest: `index.js` 3.2 MB, `prism-viewer.js` 8 MB, minified) fails a production build that outgrows it. Since
+  `lib`'s import shares the start code, esbuild puts that code in shared chunks and `index.js` is a 6 kB list of
+  imports: the start bundle is its static-import closure (65 files, 4.4 MB, 1.29 MB gzipped, 2026-10-16), which the
+  `index.js` budget no longer bounds. Not yet: a budget over that closure, hashed entry names, the assistant's chunk
+  loaded on first use rather than at start.
 
 ## 2. The single-file viewer
 

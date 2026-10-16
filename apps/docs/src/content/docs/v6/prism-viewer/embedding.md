@@ -81,8 +81,9 @@ it and needs no build step:
 ```
 
 The module exports `createPrismViewer`, `FullPrismViewerSpec`, `DefaultPrismViewerSpec` and the element's
-`createPrismViewerElementClass` and `definePrismViewerElement`. It has no assistant (see below) and does not read the
-URL.
+`createPrismViewerElementClass` and `definePrismViewerElement`. It has no assistant (see below), does not read the URL
+and sets no globals: `molstar.lib`, Mol\*'s library for page scripts, is the app's
+([Page globals](/docs/v6/prism-viewer/#page-globals)).
 
 Importing it also defines the `<prism-viewer>` element, which wraps `createPrismViewer` with `FullPrismViewerSpec()`
 until its `spec` property is set:
@@ -96,8 +97,8 @@ The attributes are `pdb` (an entry to load; a new value loads that one too), `th
 `element.viewer` is the viewer once it is made, and `element.ready` a promise of it. Setting `element.spec` makes the
 viewer again. Several on a page each own their viewer, and one leaving the page disposes its viewer.
 
-`pnpm build:apps` writes it to `apps/prism-viewer/build/prism-viewer.js`. Nothing publishes it yet: it is not deployed
-and not part of the `molstar` distribution.
+`pnpm build:apps` writes it to `apps/prism-viewer/build/prism-viewer.js`. The `molstar` distribution carries it
+(`build/prism-viewer/`, beside the app); it is not deployed yet.
 
 ## The spec
 

@@ -35,8 +35,29 @@ pnpm dev:apps -- prism-viewer   # watch mode, prints the page URL
 pnpm build:apps                 # builds every app, this one included, into apps/prism-viewer/build
 ```
 
-The build holds `index.html`, `index.js` with its `chunks/` and `prism-viewer.js`. The app exposes the viewer on
-`window.molstar.viewer` (and `window.molstar.api`) for the browser console.
+The build holds `index.html`, `index.js` with its `chunks/` and `prism-viewer.js`.
+
+## Page globals
+
+Once the viewer is made, the app sets `window.molstar` for the browser console and for scripts on the page:
+
+| Name        | What                                                                                                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `viewer`    | The viewer (`viewer.plugin` is its Mol\* plugin).                                                                                                                                                                                                                        |
+| `api`       | `viewer.api`. See [API](/docs/v6/prism-viewer/api/).                                                                                                                                                                                                                     |
+| `lib`       | Mol\*'s library without a build step, as v5's Viewer has it: `structure`, `volume`, `shape`, `loci`, `math`, `plugin` (`PluginContext`, `PluginSpec`, `DefaultPluginSpec`, `StateActions`, …) and `extensions` (MolViewSpec, wwPDB struct-conn, Model Archive, loaders). |
+| `lib.prism` | The Prism viewer's own: `createPrismViewer`, `DefaultPrismViewerSpec`, `FullPrismViewerSpec`, `node` (writes a [node selector](/docs/v6/prism-viewer/api/#nodes)) and `MS` (the MolScript builder).                                                                      |
+
+```js
+const { api, lib } = window.molstar;
+const ligand = lib.prism.node('component', { type: 'ligand' }).child('representation');
+await api.representation.visibility({ node: ligand, visible: false });
+const all = lib.prism.MS.struct.generator.all();
+```
+
+`lib` leaves out v5's classic UI (`PluginUIContext`, `DefaultPluginUISpec`, the view models) and `StateTransforms`:
+import a transformer from its module. The app loads it beside the viewer, in a chunk of its own; `prism-viewer.js` and
+`@molstar/prism-viewer` do not include it.
 
 ## URL parameters
 

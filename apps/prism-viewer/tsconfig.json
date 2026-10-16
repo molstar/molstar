@@ -62,6 +62,21 @@
     },
     {
       "path": "../../extensions/anvil"
+    },
+    {
+      "path": "../../packages/model"
+    },
+    {
+      "path": "../../packages/query-language"
+    },
+    {
+      "path": "../../packages/mvs/runtime"
+    },
+    {
+      "path": "../../packages/mvs/builder"
+    },
+    {
+      "path": "../../extensions/plugin"
     }
   ]
 }
