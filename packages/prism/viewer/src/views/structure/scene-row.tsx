@@ -61,6 +61,11 @@ export function SceneRow(props: SceneRowProps) {
   const open = observableState(false);
   const shown = props.shown ?? of(true);
   const hidden = shown.pipe(map((s) => !s));
+  let isHidden = false;
+  const sub = hidden.subscribe((h) => {
+    isHidden = h;
+  });
+  onCleanup(() => sub.unsubscribe());
   const labelId = uniqueId('msp-tree-label');
   let rowEl: HTMLElement | undefined;
   const gone = new Subject<void>();
@@ -137,6 +142,8 @@ export function SceneRow(props: SceneRowProps) {
               onClick={(e) => {
                 e.stopPropagation();
                 props.onToggle?.();
+                // Turned on, a row with controls is picked: they are in the inspector at once.
+                if (isHidden && props.body) pick();
               }}
             >
               <Show when={hidden} fallback={() => <Icon name="eye" size={14} />}>

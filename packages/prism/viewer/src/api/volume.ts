@@ -346,9 +346,10 @@ export class VolumeApi extends ApiArea {
       }
       if (root) await ctx.plugin.managers.structure.hierarchy.remove([root], false);
       const defs = InitVolumeStreaming.definition.params?.(cell.obj, ctx.plugin) as PD.Params | undefined;
-      await ctx.plugin.runTask(
-        state.applyAction(InitVolumeStreaming, (defs ? PD.getDefaultValues(defs) : {}) as never, cell.transform.ref),
-      );
+      // The Auto view for X-ray maps too (Mol*'s default there is the selection box): the density around the whole
+      // structure at once, around the selection while there is one.
+      const values = { ...(defs ? PD.getDefaultValues(defs) : {}), defaultView: 'auto' };
+      await ctx.plugin.runTask(state.applyAction(InitVolumeStreaming, values as never, cell.transform.ref));
       const made = StateSelection.findTagInSubtree(state.tree, cell.transform.ref, VolumeStreaming.RootTag);
       const madeCell = made ? state.cells.get(made) : undefined;
       if (

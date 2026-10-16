@@ -225,6 +225,9 @@ export function createSceneSource(
   // The view streaming last had that was not off (and its radius), which the eye brings back.
   const streamingShown = new Map<string, { view: string; radius?: number }>();
   const streamingBehaviors = new Map<string, string>();
+  // The structures whose streaming the person turned on: the streaming's node is picked once made, so its controls are in
+  // the inspector at once (as a unit cell's when its eye turns it on).
+  const pickStreaming = new Set<string>();
   /** How map levels are shown and typed (σ or map units), one choice for every map. */
   const levelUnit = observableState<VolumeLevelUnit>('sigma');
   // The ids to refresh once a sync is done (a volume and each of its representations ask for it).
@@ -269,8 +272,11 @@ export function createSceneSource(
     let n = nodes.get(ref);
     if (!n) {
       n = new Node(ref, 'unit-cell', 'box', 'Unit cell', false, {
-        visibility: (hide) =>
-          void api.run('structure.unit-cell', { structure: unitCellOwners.get(ref), visible: !hide }),
+        visibility: (hide) => {
+          // Turned on, it is picked: its controls in the inspector.
+          if (!hide) picked.set(nodes.get(ref));
+          void api.run('structure.unit-cell', { structure: unitCellOwners.get(ref), visible: !hide });
+        },
       });
       n.removable = false;
       nodes.set(ref, n);
@@ -292,9 +298,10 @@ export function createSceneSource(
     if (!n) {
       n = new Node(ref, 'extension', 'volume', 'Volume streaming', false, {
         visibility: (hide) => {
+          if (!hide) picked.set(nodes.get(ref));
           const owner = streamingOwners.get(ref);
           const last = streamingShown.get(ref);
-          const view = hide ? 'off' : (last?.view ?? (on.entry.kind === 'em' ? 'auto' : 'selection-box'));
+          const view = hide ? 'off' : (last?.view ?? 'auto');
           void api.run('volume.streaming-view', {
             structure: owner,
             view,
@@ -314,6 +321,7 @@ export function createSceneSource(
     n.set('Volume streaming', streamingSummary(on), view.name === 'off');
     inspections.get(ref)?.form?.load(streamingValues(on));
     refreshLevels(ref);
+    if (pickStreaming.delete(structureRef)) picked.set(n);
     return n;
   };
 
@@ -327,7 +335,13 @@ export function createSceneSource(
     if (!n) {
       n = new Node(id, 'extension', 'volume', 'Volume streaming', false, {
         visibility: (hide) => {
-          if (!hide) void api.run('volume.streaming', { structure: structureRef, on: true });
+          if (hide) return;
+          // The streaming's own node takes its place, picked (`streamingNode`): this row's inspector would stay on a
+          // row that is gone.
+          pickStreaming.add(structureRef);
+          void api.run('volume.streaming', { structure: structureRef, on: true }).then((r) => {
+            if (!r.ok) pickStreaming.delete(structureRef);
+          });
         },
       });
       n.removable = false;

@@ -37,6 +37,8 @@ describe('the unit cell row', () => {
     await until(() => runs.some((r) => r.operation === 'structure.unit-cell' && !!r.result));
     await until(() => !row.isHidden.value);
     expect(v.managers.history.steps.value[0].label).toMatch(/unit cell/);
+    // Turned on, it is picked: its controls are in the inspector at once.
+    expect(v.views.scene.picked.value).toBe(row);
   });
 
   it('inspects the cell: space group, size and angles; its form sets the color', async () => {
