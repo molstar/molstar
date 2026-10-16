@@ -36,6 +36,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "1350", "--directory", "distributions/molstar/build"],
       "port": 1350
+    },
+    {
+      "name": "deploy",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "1360", "--directory", "deploy/data"],
+      "port": 1360
     }
   ]
 }

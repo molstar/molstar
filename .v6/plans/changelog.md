@@ -13,7 +13,8 @@ the [API change ledger](breaking-v6-changes.md).
 - The documentation is an Astro Starlight site (`apps/docs`) that keeps the v5 docs (`/docs/v5/`) next to the v6 docs
   (`/docs/v6/`); `/docs/` redirects to the default version and the old page URLs redirect to v5
 - `pnpm deploy:local` and `pnpm deploy:remote` are back: they build the workspace and prepare (and, remotely, push) the
-  GitHub Pages folder, which now also carries the Prism viewer (`prism/`) and the UI Storybook (`ui-storybook/`)
+  GitHub Pages folder, which now also carries the Prism viewer (`prism/`) and the UI Storybook (`ui-storybook/`);
+  `--<app>-prefix <folder>` moves an app (`pnpm deploy:remote -- --prism-prefix prism-preview`)
 
 ## Plugin composition (#1961)
 

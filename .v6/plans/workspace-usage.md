@@ -138,8 +138,10 @@ model.
 `ui-storybook/` (the static build of `storybook/`). Every entry uses relative paths, so a static server checks it
 (`npx http-server deploy/data`, then `/prism/` and `/ui-storybook/`). `pnpm deploy:remote` does the same, then commits
 the folder into a clone in `deploy/molstar.github.io` and pushes it (maintainers only); `node scripts/deploy.js
---dry-run` prepares the folder from the existing builds and prints what it would push. The script is `pnpm deploy:remote`, not `deploy`, because
-`pnpm deploy` is a pnpm command.
+--dry-run` prepares the folder from the existing builds and prints what it would push. `--<app>-prefix <folder>` puts an
+app elsewhere (`viewer`, `prism`, `storybook`, `mesoscale`, `stories`, `demos`): `pnpm deploy:remote -- --prism-prefix
+prism-preview` serves the Prism viewer at `/prism-preview/`; `--help` lists the defaults. The script is
+`pnpm deploy:remote`, not `deploy`, because `pnpm deploy` is a pnpm command.
 
 ## Versions and checks
 
