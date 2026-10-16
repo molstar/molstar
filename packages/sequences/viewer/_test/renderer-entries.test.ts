@@ -25,7 +25,7 @@ import {
   type SeqViewerContext,
   type Theme,
 } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import type { PairsState } from '../src/prepare.js';
 import { Arcs } from '../src/renderer-helpers.js';
 import type { MatrixState } from '../src/rows.js';

@@ -11,7 +11,7 @@
 import type { ChannelEntry, ChannelKind, ResolvedLayer, ResolvedSection, ThemeRef } from '@molstar/seq-core/format';
 import type { Issue, KeyTarget, SeqSet } from '@molstar/seq-core/model';
 import { createSeqViewer, type Theme, ThemeLocation } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 
 import { createTheme, themeContext } from '../src/themes.js';
 

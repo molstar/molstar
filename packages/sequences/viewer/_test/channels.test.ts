@@ -41,7 +41,7 @@ import {
   SelectBehavior,
   type SeqViewerContext,
 } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { shown } from './projection-fixtures.js';
 
 type Shown = Awaited<ReturnType<typeof shown>>;

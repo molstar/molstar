@@ -707,10 +707,7 @@ class Context implements SeqViewerContext {
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Builds the managers, registers `spec.registry`, then creates `spec.behaviors` in order. */
-export function createSeqViewer(
-  spec: SeqViewerSpec,
-  ports: Partial<SeqViewerPorts> = {},
-): SeqViewerContext {
+export function createSeqViewer(spec: SeqViewerSpec, ports: Partial<SeqViewerPorts> = {}): SeqViewerContext {
   const ctx = new Context(spec, ports);
   if (spec.registry) ctx.register(spec.registry);
   for (const b of spec.behaviors) ctx.behaviors.add(b.behavior, b.defaultParams);

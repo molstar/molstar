@@ -30,7 +30,7 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
 } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { headerLegend } from '../src/legend.js';
 import { StarsFormat, StarsRenderer } from '../src/testing/index.js';
 import { SizeUnit } from '../src/themes.js';

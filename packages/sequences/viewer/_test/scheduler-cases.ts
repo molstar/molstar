@@ -16,7 +16,7 @@
 // 2026-10-14; a browser's rAF hands its own new double each frame).
 
 import { createSeqViewer, type Scheduler } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 
 /** One frame and one timer at a time, fired by `tick`. */
 function fieldPort() {

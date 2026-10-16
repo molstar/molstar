@@ -303,6 +303,10 @@ Known, measured, unowned: whoever next touches the code takes one, and its commi
     instead, ~240 kB of the 721. Measure with `node scripts/esbuild/app.mjs apps/prism-viewer --prd --metafile` and a
     probe entry (`createSeqViewer({ registry: [], behaviors: [] })`). _Trigger:_ the Prism viewer's band (David asked,
     2026-10-16).
+  - **Streaming as a part** (measured 2026-10-16): the stream manager, the stream layer, its patches, levels and sources
+    come to ~51 kB minified (the streamed sources themselves, GMOD and tiles, are not in the default spec), but the
+    context makes the manager always and ~30 viewer modules read it. Not worth the refactor for Prism's band (David
+    decided its default is everything but streaming, 2026-10-16: it keeps the default until a trim pays).
 
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates

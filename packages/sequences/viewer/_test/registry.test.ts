@@ -12,7 +12,7 @@
 import { SimpleParamsSchema } from '@molstar/seq-core/format';
 import { describe, expect, it, vi } from 'vitest';
 import { createSeqViewer, SeqRegistrationError, ViewerIssueCodes, ViewerLayerTypes } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 
 describe('seqv', () => {
   it("DefaultRegistry registers the viewer's issue codes and seqv:map", () => {

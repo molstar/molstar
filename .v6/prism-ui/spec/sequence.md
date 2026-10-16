@@ -34,6 +34,13 @@ Neither engine knows the other. The viewer joins them in three places, each one 
 
 Actions that change the 3D view from the sequence go through the viewer's API, never straight to the plugin (§5).
 
+**Seq\*'s composition** (2026-10-16): `PrismSequenceSpec()` in `sequence/spec.ts` is the one place it is made: Seq\*'s
+default (every layer type and behavior, so a SeqViewSpec document `load.svs` opens draws in full, as UniProt's feature
+viewer: ranges, sites, line plots, bars, coverage; streaming included, ~51 kB, until a trim pays), the Mol\* structure as
+a source (`MolstarSvsEntry`), Prism's palette and the optional reveal of what another view lights. Seq\* now bundles
+only what a spec lists (`createSeqViewer` takes its spec; the default is its own module), so a trim lists fewer parts
+there (packages/sequences/todo.md "No slim build yet").
+
 ## 2. Data: read once, through the plugin
 
 Seq\* already has the ports: `Loaders.load` (bytes for a URI or a host file), `Loaders.parsed` (a parse the host shares:

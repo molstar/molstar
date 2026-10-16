@@ -30,7 +30,7 @@ import {
 } from '../../core/_test/format/stream-provider.js';
 import { DynamicNodes, heldNodeRefs } from '../src/dynamic.js';
 import { ChannelMarks, createSeqViewer, Hit, MarkBit } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { itemSystemNodes } from '../src/item-systems.js';
 import type { Features } from '../src/prepare.js';
 import type { Streams } from '../src/streams.js';

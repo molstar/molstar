@@ -9,17 +9,13 @@
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
 import { archiveLoaders, type FormatResult, type Loaders, type SeqViewSpecDoc } from '@molstar/seq-core/format';
-import { MolstarSvsEntry, type StructureSource } from '@molstar/seq-molstar-poc';
+import type { StructureSource } from '@molstar/seq-molstar-poc';
 import {
   createSeqViewer,
-  DefaultRegistry,
-  DefaultSeqViewerSpec,
   type Scheduler,
   type GraphResult,
   type SeqViewerContext,
   rafScheduler,
-  SeqViewerOptionalBehaviors,
-  SeqViewerSpec,
   type TextMeasurer,
 } from '@molstar/seq-viewer';
 import {
@@ -36,7 +32,7 @@ import {
 } from './document.js';
 import type { SequenceBehavior, SequenceOffer, SequenceShown, SequenceTrackMenuItem } from './behaviors.js';
 import { legendOf, type SequenceLegend, withTracks } from './legend.js';
-import { PrismRegistry } from './palette.js';
+import { PrismSequenceSpec } from './spec.js';
 import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
 import { type SequenceFonts, skinFor, plainCellHex } from './skin.js';
 
@@ -203,7 +199,6 @@ export interface SequenceViewersDeps {
 }
 
 /** The letters' size until the host's tokens are read (`setFonts`): Prism's panel text size, `--msp-font-size-sm`. */
-const DefaultFontPx = 12;
 
 const windowFrames = (): Scheduler =>
   rafScheduler({
@@ -270,33 +265,11 @@ class Viewer implements SequenceViewer {
         return host && r.hostFile === hostFileOf(host.key) ? { kind: 'object', value: host.source } : null;
       },
     };
-    const base = DefaultSeqViewerSpec();
-    const behaviors = [...base.behaviors];
-    // What another view lights comes into view (text scrolls its lines in, tracks pan at the zoom): Seq*'s optional
-    // `revealHighlight`, following the link channels (`links:*`) and the 3D view's hover, which the link writes as an
-    // external hover owned by `3d` (seqspec:interaction#highlight).
-    behaviors.push(
-      SeqViewerSpec.Behavior(SeqViewerOptionalBehaviors.RevealHighlight, { channels: ['links:*'], hovers: ['3d'] }),
-    );
-    this.seq = createSeqViewer(
-      {
-        ...base,
-        behaviors,
-        registry: [DefaultRegistry, { svs: MolstarSvsEntry }, { svs: PrismRegistry }],
-        // The text version (Seq*'s `compact` preset leaves these to the host): whole blocks per line over the full width,
-        // centered, the letters in the layer's colors and no larger than the panel text (set from the host's tokens:
-        // `setFonts`); `textWidth` limits the line.
-        render: {
-          wrappedAlign: 'center',
-          wrappedColors: true,
-          unobservedGray: true,
-          wrappedMaxWidth: deps.textWidth ?? 0,
-          wrappedFontPx: DefaultFontPx,
-          maxLetterPx: DefaultFontPx,
-        },
-      },
-      { loaders, scheduler: deps.scheduler ?? windowFrames(), ...(deps.text ? { text: deps.text } : {}) },
-    );
+    this.seq = createSeqViewer(PrismSequenceSpec({ textWidth: deps.textWidth }), {
+      loaders,
+      scheduler: deps.scheduler ?? windowFrames(),
+      ...(deps.text ? { text: deps.text } : {}),
+    });
     this.dropPreset = this.seq.register({ presets: [tracksPreset(DefaultTracksRail, !!this.deps.actions)] });
     this.applySkin(deps.ink.value);
     this.subs.push(

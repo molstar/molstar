@@ -19,7 +19,7 @@ import {
 } from '@molstar/seq-core/model';
 import { describe, expect, it } from 'vitest';
 import { createSeqViewer, type SeqViewerContext, type WritableSeqState } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { carry } from '../src/lineage.js';
 import { patch, smallDoc, viewer } from './graph-fixtures.js';
 

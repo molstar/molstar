@@ -19,7 +19,7 @@ import {
   type NodeKind,
   type SeqViewerContext,
 } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { Issues } from '../src/ui.js';
 import { domMoved, manualLoaders, patch, smallDoc } from './graph-fixtures.js';
 

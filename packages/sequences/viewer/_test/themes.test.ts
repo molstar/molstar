@@ -20,7 +20,7 @@ import { case3 } from '../../core/_test/format/cases.js';
 import { trackPositions } from '../src/actions.js';
 import { GlyphShape, NO_COLOR } from '../src/draw/backend.js';
 import { createSeqViewer, type Theme, ThemeLocation } from '../src/index.js';
-import { DefaultSeqViewerSpec } from '../src/spec.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import {
   CellInk,
   cellInk,
