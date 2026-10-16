@@ -49,14 +49,14 @@ comments cite are its sections).
 so a provider the host replaced between them is the one used), `tools: ToolBindings` (`resolve(definition) → handler`),
 the `drive`, `configure(messages)` (a turn's configuration when `turn` gives none), `price(configuration, usage)`.
 
-| Operation                            | What                                                                                                                                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `turn({ messages, configuration? })` | begins a turn; refused (`invalid`) while one is active. Returns `{ turnId, done }`; `done` resolves with the `TurnOutcome`: `{ turnId, end: TurnEnd }` or `{ turnId, parked }`     |
-| `stop(reason?)`                      | the running step is aborted and recorded `abandoned`, end `stopped`; a parked turn ends at once (`stopped`)                                                                        |
-| `resume()`                           | re-runs a parked turn's step, asking the drive again (`resumed`); calls that succeeded before the park keep their results (below); refused (`invalid`) unless one is parked        |
-| `reset(heads?, reason?)`             | ends any turn as `reset` (a running step's writes are dropped) and moves pointers: the given heads, else `main` to its head at the end of the last completed turn; deletes nothing |
-| `observe()`                          | live observations and each event as it is written                                                                                                                                  |
-| reads (`HarnessReader`)              | `id`, `execution`, `heads`, `pointers`, `entries`, `events`, `steps`, `turns`, `blobs`, `watch`                                                                                    |
+| Operation                            | What                                                                                                                                                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `turn({ messages, configuration? })` | begins a turn; refused (`invalid`) while one is active. Returns `{ turnId, done }`; `done` resolves with the `TurnOutcome`: `{ turnId, end: TurnEnd }` or `{ turnId, parked }`                                 |
+| `stop(reason?)`                      | the running step is aborted and recorded `abandoned`, end `stopped`; a parked turn ends at once (`stopped`)                                                                                                    |
+| `resume()`                           | re-runs a parked turn's step, asking the drive again (`resumed`); calls that succeeded before the park keep their results (below); refused (`invalid`) unless one is parked                                    |
+| `reset(heads?, reason?)`             | ends any turn as `reset` (a running step's writes are dropped) and moves pointers: the given heads, else `main` to its head at the end of the last completed turn (the empty head before any); deletes nothing |
+| `observe()`                          | live observations and each event as it is written                                                                                                                                                              |
+| reads (`HarnessReader`)              | `id`, `execution`, `heads`, `pointers`, `entries`, `events`, `steps`, `turns`, `blobs`, `watch`                                                                                                                |
 
 The reads are async (a reader may be remote: the trace and the Inspector take a `HarnessReader`). `emptyHead()` is the
 empty head (the same id in every harness; `forget` resets `main` to it).

@@ -583,7 +583,8 @@ export function createHarness(options: HarnessOptions): Harness {
     },
     reset(heads, reason) {
       const targets: Record<ScopeId, HeadId> = { ...heads };
-      if (heads === undefined && store.completedMain !== undefined) targets[MAIN] = store.completedMain;
+      // By default main goes back to the last completed turn's head, or the empty head before any (harness.md §5).
+      if (heads === undefined) targets[MAIN] = store.completedMain ?? emptyHead().id;
       for (const head of Object.values(targets))
         if (!store.heads.has(head)) throw new HarnessError('invalid', `no head ${head}`);
       const run = active?.run;

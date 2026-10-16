@@ -7,9 +7,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { HarnessEvent } from '../index.js';
+import { emptyHead, type HarnessEvent, MAIN } from '../index.js';
+import { user } from '../../testing/messages.js';
 import { createSession, type Session } from '../../testing/session.js';
-import { lastStep, until, with_ } from './helpers.js';
+import { controls, lastStep, until, with_ } from './helpers.js';
 
 const statuses = async (s: Session): Promise<string[]> => (await s.turns()).map((turn) => turn.status);
 
@@ -85,6 +86,50 @@ describe('Turns and operations', () => {
     expect((await s.harness.execution()).main).toBe(completed);
     expect(await s.main()).toEqual(completedMessages);
     expect(await statuses(s)).toEqual(['reset', 'completed']);
+  });
+
+  it('T5 reset-default-none-completed: before any completed turn, reset moves main back to the empty head', async () => {
+    const s = createSession({ model: [{ fail: { message: 'boom', transient: false } }] });
+    await s.send('hello');
+    expect((await s.turns())[0]?.status).toBe('failed');
+    // The failed turn's begin step appended its request to main.
+    expect((await s.main()).length).toBeGreaterThan(0);
+    s.harness.reset();
+    expect(await s.main()).toEqual([]);
+    expect((await s.harness.execution()).main).toBe(emptyHead().id);
+  });
+
+  it('T5 reset-heads: reset with heads moves exactly the pointers it names, main or not', async () => {
+    const s = createSession({
+      tools: {
+        note: (context) => {
+          context.journal.append('notes', [user('remember')]);
+          return { text: 'noted' };
+        },
+      },
+      model: [{ text: 'one' }, { calls: [{ tool: 'note', arguments: {} }] }, { text: 'two' }],
+    });
+    await s.send('first');
+    const first = (await s.harness.execution()).main;
+    await s.send('second');
+    const [notes] = await s.harness.pointers(['notes']);
+    const second = (await s.harness.execution()).main;
+    expect(notes?.head).toBeDefined();
+    // A pointer alone: main stays.
+    s.harness.reset({ notes: emptyHead().id });
+    expect((await s.harness.pointers(['notes']))[0]?.head).toBe(emptyHead().id);
+    expect((await s.harness.execution()).main).toBe(second);
+    // Main to an earlier head, the pointer back to where it was.
+    s.harness.reset({ [MAIN]: first, notes: notes?.head as string });
+    expect((await s.harness.execution()).main).toBe(first);
+    expect((await s.harness.pointers(['notes']))[0]?.head).toBe(notes?.head);
+    expect(controls(await s.events(), 'reset').map((e) => e.detail)).toEqual([
+      { pointers: { notes: emptyHead().id } },
+      { pointers: { [MAIN]: first, notes: notes?.head } },
+    ]);
+    // An unknown head is refused, and moves nothing.
+    expect(() => s.harness.reset({ notes: 'no-such-head' })).toThrow('no head');
+    expect((await s.harness.execution()).main).toBe(first);
   });
 
   it('T5 provider-per-turn: each turn and each resume resolve the provider again (a host may replace it between)', async () => {
