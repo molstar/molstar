@@ -115,8 +115,12 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
     }
     return `url("${url}")`;
   };
+  // The last read and what it read from: the manager emits `changed` on every frame of a transition and step of the
+  // scrubber, with the entries (an immutable list), the current one and `isPlaying` as they were.
+  let last: { entries: unknown; current: string | undefined; playing: boolean; state: SnapshotsState } | undefined;
   const read = (): SnapshotsState => {
     const { entries, current, isPlaying } = manager.state;
+    if (last && last.entries === entries && last.current === current && last.playing === isPlaying) return last.state;
     const infos = entries.toArray().map((e): SnapshotInfo => {
       const image = imageOf(e);
       return {
@@ -138,7 +142,9 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
         urls.delete(id);
       }
     }
-    return { entries: infos, ...(current ? { current } : {}), playing: isPlaying };
+    const state: SnapshotsState = { entries: infos, ...(current ? { current } : {}), playing: isPlaying };
+    last = { entries, current, playing: isPlaying, state };
+    return state;
   };
   const state = fromChanged(scope, read, manager.events.changed, sameState);
   const transition = fromChanged(

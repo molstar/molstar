@@ -58,12 +58,8 @@ const Options = () =>
     },
   );
 
-const ShowFor = () =>
-  PD.Numeric(
-    0,
-    { min: 0, max: 60000, step: 100 },
-    { description: 'How long playback shows it, in ms (0: the default)' },
-  );
+const ShowFor = (zero = 'the default') =>
+  PD.Numeric(0, { min: 0, max: 60000, step: 100 }, { description: `How long playback shows it, in ms (0: ${zero})` });
 
 const AddParams = {
   name: PD.Text('', { description: 'Its name; empty: Snapshot <n>' }),
@@ -88,7 +84,7 @@ const UpdateParams = {
 
 const ReplaceParams = {
   entry: EntryParam(`${ByIdNameOrKey}; empty: the current one`),
-  showFor: ShowFor(),
+  showFor: ShowFor('keep its own'),
   options: Options(),
 };
 
@@ -101,7 +97,7 @@ const PlayParams = {
   delay: PD.Numeric(
     0,
     { min: 0, max: 60000, step: 100 },
-    { description: 'How long to show a snapshot that does not say, in ms (0: the default)' },
+    { description: 'How long to show a snapshot that has no time of its own, in ms (0: the default)' },
   ),
 };
 
@@ -363,7 +359,9 @@ export class SnapshotApi extends ApiArea {
     async run({ entry, showFor, options }, ctx) {
       const found = find(ctx, entry, true);
       if (isFailure(found)) return found;
-      const { snapshot, image } = await capture(ctx, options, showFor);
+      // The time it is shown for stays the entry's own (the options' time is for new snapshots).
+      const time = showFor > 0 ? showFor : (found.entry.snapshot.durationInMs ?? 0);
+      const { snapshot, image } = await capture(ctx, options, time);
       // The id changes with the state it holds (the manager's rule).
       ctx.plugin.managers.snapshot.replace(found.entry.snapshot.id, snapshot, { image });
       return ApiResult.ok(
@@ -473,7 +471,16 @@ export class SnapshotApi extends ApiArea {
       if (!count) return none();
       if (count < 2) return ApiResult.fail('blocked', 'Playing needs at least two snapshots.', 'Add another.');
       if (manager.state.isPlaying) return ApiResult.already('The snapshots are playing.');
-      if (delay > 0) setManagerState(ctx, { nextSnapshotDelayInMs: delay });
+      if (delay > 0) {
+        // The manager keeps the delay for good (and saves it in a session): this play's only.
+        const was = manager.state.nextSnapshotDelayInMs;
+        setManagerState(ctx, { nextSnapshotDelayInMs: delay });
+        const stopped = manager.events.changed.subscribe(() => {
+          if (manager.state.isPlaying) return;
+          stopped.unsubscribe();
+          setManagerState(ctx, { nextSnapshotDelayInMs: was });
+        });
+      }
       await manager.play();
       // The manager applies each snapshot on its own timer: a presentation, not steps; the history leaves it alone
       // (sources/checkpoint.ts) and Undo after it restores as usual.

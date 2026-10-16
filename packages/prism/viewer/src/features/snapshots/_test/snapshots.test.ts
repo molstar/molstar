@@ -13,6 +13,7 @@ import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapsh
 import { createSnapshotStepper, createSnapshotsModel, createSnapshotTransition } from '../model.js';
 import { SnapshotsFeature } from '../index.js';
 import type { SnapshotList } from '../operations.js';
+import { createSnapshotsSource } from '../source.js';
 
 // The `snapshots` feature (viewer-spec.md §3.1): the `snapshot` area on the plugin's snapshot manager, headless (no
 // canvas: the camera is not part of a snapshot here).
@@ -97,6 +98,16 @@ describe('snapshot.update', () => {
     expectOk(await snap(v).update({ showFor: 3000 }));
     expect((await list(v)).entries[0].showFor).toBe(3000);
     expect(await snap(v).update({ showFor: 3000 })).toMatchObject({ unchanged: true });
+  });
+
+  it('keeps its time when replaced, unless a new one is asked for', async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add({ name: 'A', showFor: 3000 }));
+    // What the tab sends: its save options, with their own time.
+    expectOk(await snap(v).replace({ options: { durationInMs: 1500 } }));
+    expect((await list(v)).entries[0].showFor).toBe(3000);
+    expectOk(await snap(v).replace({ showFor: 5000, options: { durationInMs: 1500 } }));
+    expect((await list(v)).entries[0].showFor).toBe(5000);
   });
 
   it('refuses a key another entry has', async () => {
@@ -292,6 +303,18 @@ describe('snapshot.play and stop', () => {
     expect((await list(v)).playing).toBe(false);
     expect(steps(v)).toBe(before);
   });
+
+  it("restores the manager's delay when a play with its own delay stops", async () => {
+    const v = await viewer();
+    const manager = v.plugin.managers.snapshot;
+    await snap(v).add({ name: 'A' });
+    await snap(v).add({ name: 'B' });
+    const was = manager.state.nextSnapshotDelayInMs;
+    expectOk(await snap(v).play({ delay: 4000 }));
+    expect(manager.state.nextSnapshotDelayInMs).toBe(4000);
+    expectOk(await snap(v).stop());
+    expect(manager.state.nextSnapshotDelayInMs).toBe(was);
+  });
 });
 
 describe('playing', () => {
@@ -435,6 +458,24 @@ describe('the Snapshots tab model while hidden', () => {
     }
   });
 
+  it('keeps a form with a pending edit while the list changes', async () => {
+    const v = await viewer();
+    const area = snap(v);
+    await area.add({ name: 'A' });
+    const model = createSnapshotsModel(v.api, area, () => {});
+    try {
+      const id = (await list(v)).entries[0].id;
+      const form = model.entryOptions(id)!;
+      form.set('durationInMs', 2500 as never);
+      // Another edit of the list lands before the slider rests: it does not pull the slider back.
+      await area.add({ name: 'B' });
+      expect(form.values.value.durationInMs).toBe(2500);
+      await vi.waitFor(async () => expect((await list(v)).entries[0].showFor).toBe(2500));
+    } finally {
+      model.dispose();
+    }
+  });
+
   it('does not report an edit for a hidden form, and makes the edit a form reports once it rests', async () => {
     const v = await viewer();
     const area = snap(v);
@@ -447,6 +488,27 @@ describe('the Snapshots tab model while hidden', () => {
       await vi.waitFor(async () => expect((await list(v)).entries[0].showFor).toBe(2500));
     } finally {
       model.dispose();
+    }
+  });
+});
+
+describe('the snapshots source', () => {
+  it('does not read the list again for an event that changed neither entries, current nor playing', async () => {
+    const v = await viewer();
+    await snap(v).add({ name: 'A' });
+    await snap(v).add({ name: 'B' });
+    const manager = v.plugin.managers.snapshot;
+    const source = createSnapshotsSource(v.plugin);
+    try {
+      const toArray = vi.spyOn(manager.state.entries, 'toArray');
+      // The manager's events on each frame of a transition and step of the scrubber.
+      manager.events.changed.next(void 0);
+      manager.events.changed.next(void 0);
+      expect(toArray).not.toHaveBeenCalled();
+      await snap(v).add({ name: 'C' });
+      expect(source.state.value.entries.map((e) => e.name)).toEqual(['A', 'B', 'C']);
+    } finally {
+      source.dispose();
     }
   });
 });

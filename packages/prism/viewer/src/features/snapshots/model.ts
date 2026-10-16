@@ -138,8 +138,10 @@ export function createSnapshotsModel(
     follow = state.subscribe((s) => {
       for (const [id, form] of [...forms]) {
         const e = s.entries.find((x) => x.id === id);
-        if (e) form.load({ durationInMs: e.showFor ?? DefaultShowFor });
-        else forget(id);
+        // A pending edit is newer than the list: loading would pull the slider back mid-drag.
+        if (e) {
+          if (!timers.has(id)) form.load({ durationInMs: e.showFor ?? DefaultShowFor });
+        } else forget(id);
       }
       if (!forms.size) stopFollowing();
     });
