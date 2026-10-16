@@ -239,15 +239,15 @@ describe('volume', () => {
 
   it('streams density only for a structure, and is described as a network operation', async () => {
     const v = await headlessViewer();
-    expect(await v.api.volume.streaming({ enabled: true })).toMatchObject({ ok: false, code: 'not-found' });
+    expect(await v.api.volume.streaming({ on: true })).toMatchObject({ ok: false, code: 'not-found' });
     const d = v.api.describe('volume.streaming');
     expect(d?.definition.approval).toBe('network');
     expect(d?.definition.modules).toEqual(['network']);
-    expect(d?.params.enabled).toBeDefined();
+    expect(d?.params.on).toBeDefined();
 
     // Off where it was never on is already so, without touching the network.
     await v.api.load.files({ files: [cbs()] });
-    const off = await v.api.volume.streaming({ enabled: false });
+    const off = await v.api.volume.streaming({ on: false });
     expectOk(off);
     expect(off.unchanged).toBe(true);
   });

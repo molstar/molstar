@@ -40,7 +40,7 @@ export const VideoSkill: ViewerSkill = {
     'Skill video: export_video renders an animation frame by frame into a video file (MP4 or WebM).',
     '- animation: a registered name (animation.get lists them): built-in.animate-camera-spin,',
     '  built-in.animate-camera-rock, built-in.animate-state-snapshots, …; params are its own.',
-    "- duration (seconds) is the video's length (spin and rock play over it); 0: the animation's own.",
+    "- duration (seconds) is the video's length (spin and rock play over it); leave it out for the animation's own.",
     '- It needs a canvas, and takes as long as the frames take to render; cancel_video_export stops it.',
   ].join('\n'),
   tools: [

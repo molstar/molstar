@@ -85,13 +85,14 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       category: 'View',
       icon: 'maximize-2',
       alias: ['expand', 'expand viewport', 'hide panels', 'maximize', 'canvas only'],
-      values: { on: 'toggle' },
+      // The command flips it; the operation takes the state wanted (operations.md §1).
+      toggle: { key: 'on', current: () => api.view.isExpanded },
     }),
     operationCommand(api, api.view.fullscreen, {
       category: 'View',
       icon: 'fullscreen',
       alias: ['fullscreen', 'full screen'],
-      values: { on: 'toggle' },
+      toggle: { key: 'on', current: () => api.view.isFullscreen },
     }),
     ...selectionCommands(api),
     operationCommand(api, api.focus.again, {

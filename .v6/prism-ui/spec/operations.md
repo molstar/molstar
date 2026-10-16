@@ -38,6 +38,17 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 - **Desired state.** An operation says what should be, not what to do: `representation.set` with the same values twice
   changes nothing the second time (`ApiResult.already("… already so.")`: `unchanged`, no history step), so a retried
   step is safe.
+- **Absent versus given** (2026-10-16): a value an operation can leave as it is is optional (`OptionalParam`, Mol*'s
+  `PD.Optional`): absent, it is kept; given, it is set. No sentinel stands for "keep" (no `0`, `-1`, `''` or `'keep'`):
+  `structure.unitCell({ color: 'red' })` restyles the cell and leaves its visibility, `canvas.clipping({ clip: 30 })`
+  leaves `far`. A call that gives nothing to change fails `invalid` ("Change what?", "Move how?"), naming what it takes.
+- **Switches** (2026-10-16): a switch takes the state wanted, never a toggle (the commands flip it, `toggle` in
+  `operationCommand`). One with settings is a union, as Mol*'s own on/off props are (`SwitchParam`): `{ name: 'off' }`
+  or `{ name: 'on', params }`, its settings partial (given: set; absent: kept), the whole switch absent kept
+  (`canvas.lighting({ shadow: { name: 'on', params: { steps: 3 } }, fog: { name: 'off' } })`). One without settings is a
+  boolean `on` (`canvas.xr`, `view.expand`, `view.fullscreen`, `select.mode`, `volume.streaming`); visibility is
+  `visible`. A choice with its own settings is a union too (`export.image`'s and `video.export`'s `size`: `{ name: 'hd'
+  }` or `{ name: 'custom', params: { width, height } }`). `checkValues` checks a union's name and its settings.
 - **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
   (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
   order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already

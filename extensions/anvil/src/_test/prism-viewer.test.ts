@@ -131,13 +131,13 @@ describe('the anvil extension in the Prism viewer', () => {
     const blocked = await m.options({ opacity: 0.2 });
     expect(!blocked.ok && blocked.code).toBe('blocked');
     await m.show({});
-    const r = await m.options({ rims: 'off', color: 'steelblue', opacity: 0.2 });
+    const r = await m.options({ rims: false, color: 'steelblue', opacity: 0.2 });
     expect(r.ok, r.ok ? '' : r.message).toBe(true);
     expect(look(v)).toMatchObject({ visuals: ['bilayer-planes'], sectorOpacity: 0.2, radiusFactor: 1.2 });
     expect(Color.toHexStyle(look(v).color)).toBe('#4682b4');
     const same = await m.options({ opacity: 0.2 });
     expect(same.ok && same.unchanged).toBe(true);
-    const none = await m.options({ planes: 'off' });
+    const none = await m.options({ planes: false });
     expect(!none.ok && none.code).toBe('invalid');
     const bad = await m.options({ color: 'not-a-color' });
     expect(!bad.ok && bad.code).toBe('invalid');

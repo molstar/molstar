@@ -82,9 +82,9 @@ function MembraneControls(props: {
         void area.options({
           structure,
           ...(name === 'opacity' ? { opacity: v.opacity } : {}),
-          ...(name === 'planes' ? { planes: v.planes ? 'on' : 'off' } : {}),
-          ...(name === 'rims' ? { rims: v.rims ? 'on' : 'off' } : {}),
-          ...(name === 'dashed' ? { dashed: v.dashed ? 'on' : 'off' } : {}),
+          ...(name === 'planes' ? { planes: v.planes } : {}),
+          ...(name === 'rims' ? { rims: v.rims } : {}),
+          ...(name === 'dashed' ? { dashed: v.dashed } : {}),
         });
       if (name === 'opacity') timer = setTimeout(run, 150);
       else run();

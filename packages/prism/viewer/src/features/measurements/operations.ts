@@ -22,7 +22,7 @@ import {
   type ViewerApi,
 } from '../../api/area.js';
 import { pickNamed } from '../../api/scope.js';
-import { StructureParam } from '../../api/params.js';
+import { StructureParam, OptionalParam } from '../../api/params.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from '../../api/target-param.js';
 import {
   createMeasurementsSource,
@@ -239,20 +239,22 @@ export class MeasureApi extends ApiArea {
     id: 'measure.options',
     title: 'Set the measurement options',
     params: {
-      distanceUnitLabel: PD.Text('', { description: 'The unit written after distances (Å); empty: keep' }),
-      textColor: PD.Text('', { description: 'The text color as #rrggbb; empty: keep' }),
+      // Each absent: kept (operations.md §1).
+      distanceUnitLabel: OptionalParam(PD.Text('Å', { description: 'The unit written after distances (Å)' })),
+      textColor: OptionalParam(PD.Text('#000000', { description: 'The text color as #rrggbb' })),
     },
-    async run({ distanceUnitLabel, textColor }, ctx) {
+    async run(v, ctx) {
+      const { distanceUnitLabel, textColor } = v as { distanceUnitLabel?: string; textColor?: string };
       const manager = ctx.plugin.managers.structure.measurement;
       const current = manager.state.options;
       let color = current.textColor;
-      if (textColor) {
+      if (textColor !== undefined) {
         if (!/^#[0-9a-f]{6}$/i.test(textColor.trim())) {
           return ApiResult.fail('invalid', `'${textColor}' is not a color.`, 'Give it as #rrggbb, e.g. #ff8800.');
         }
         color = Color.fromHexStyle(textColor.trim());
       }
-      const next = { distanceUnitLabel: distanceUnitLabel || current.distanceUnitLabel, textColor: color };
+      const next = { distanceUnitLabel: distanceUnitLabel ?? current.distanceUnitLabel, textColor: color };
       if (next.distanceUnitLabel === current.distanceUnitLabel && next.textColor === current.textColor) {
         return ApiResult.already('The measurement options are already so.');
       }

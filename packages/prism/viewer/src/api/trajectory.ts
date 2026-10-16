@@ -12,7 +12,7 @@ import type { StructureRef } from '@molstar/plugin/state/manager/structure/hiera
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { isPlayingFrames, type TrajectoryInfo, trajectoryInfos, whileViewing } from '../sources/trajectory.js';
 import { ApiArea, type ApiContext, ApiResult } from './area.js';
-import { StructureParam } from './params.js';
+import { StructureParam, OptionalParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
 
 // `trajectory` (operations.md §2): the models of a structure built from a trajectory (an NMR ensemble, a simulation).
@@ -56,30 +56,35 @@ export class TrajectoryApi extends ApiArea {
     title: 'Show a frame',
     params: {
       structure: StructureParam('A structure by label or state ref; empty: the one with frames in view'),
-      index: PD.Numeric(-1, { min: -1, step: 1 }, { label: 'Model', description: 'The frame, from 0; -1: use `by`' }),
-      by: PD.Numeric(
-        0,
-        { step: 1 },
-        { label: 'Move by', description: 'Frames to move by (negative: back), wrapping around; 0: use `index`' },
+      index: OptionalParam(PD.Numeric(0, { min: 0, step: 1 }, { label: 'Model', description: 'The frame, from 0' })),
+      by: OptionalParam(
+        PD.Numeric(
+          1,
+          { step: 1 },
+          { label: 'Move by', description: 'Frames to move by (negative: back), wrapping around' },
+        ),
       ),
     },
     when: hasFrames,
     // The classic's arrows are viewing (sequence.md §7.3): the frame is not a step, and Undo leaves it where it is.
     history: false,
-    async run({ structure, index, by }, ctx) {
-      if (index >= 0 && by !== 0) return ApiResult.fail('invalid', 'Give an `index` or `by`, not both.');
-      if (index < 0 && by === 0) {
+    async run(v, ctx) {
+      const { structure } = v;
+      const { index, by } = v as { index?: number; by?: number };
+      if (index !== undefined && by !== undefined)
+        return ApiResult.fail('invalid', 'Give an `index` or `by`, not both.');
+      if (index === undefined && by === undefined) {
         return ApiResult.fail('invalid', 'Give the frame to show (`index`, from 0) or how far to move (`by`).');
       }
       const found = pickFramed(ctx, structure);
       if (isFailure(found)) return found;
       const s = trajectoryInfos(ctx.plugin).find((t) => t.ref === found.cell.transform.ref);
       if (!s) return ApiResult.fail('blocked', `${labelOf(ctx, found)} has one model, no frames to move through.`);
-      if (index >= s.count) {
+      if (index !== undefined && index >= s.count) {
         return ApiResult.fail('invalid', `${s.label} has ${s.count} models.`, `Give 0 to ${s.count - 1}.`);
       }
       // As `UpdateTrajectory` moves (the classic's arrows): past the end is the start.
-      const to = index >= 0 ? index : (((s.index + by) % s.count) + s.count) % s.count;
+      const to = index !== undefined ? index : (((s.index + by!) % s.count) + s.count) % s.count;
       if (to === s.index) return ApiResult.already(`${s.label} already shows model ${to + 1} of ${s.count}.`);
       // The model cell, not `UpdateTrajectory`: that moves every trajectory in the scene.
       const cell = ctx.plugin.state.data.cells.get(s.model)!;

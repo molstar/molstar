@@ -23,7 +23,7 @@ import { whileViewing } from '../sources/trajectory.js';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 import { reapplyContents } from './contents.js';
-import { EveryStructureParam, StructureParam } from './params.js';
+import { EveryStructureParam, OptionalParam, StructureParam } from './params.js';
 import { entryRoot, isFailure, labelOf, oneStructure, someStructures } from './scope.js';
 import { defaultPreset } from './styles.js';
 
@@ -226,12 +226,21 @@ export class StructureApi extends ApiArea {
     id: 'structure.unit-cell',
     title: 'Show the unit cell',
     params: {
-      visible: PD.Boolean(true, { description: "Show or hide the crystal's unit cell" }),
-      color: PD.Text('', { description: "The cell's color, a CSS color (orange, #ff8800); empty: keep" }),
-      opacity: PD.Numeric(0, { min: 0, max: 1, step: 0.05 }, { description: 'Opacity from 0.05 to 1; 0: keep' }),
+      visible: OptionalParam(
+        PD.Boolean(true, {
+          description: "Show or hide the crystal's unit cell; absent: shown when nothing else is given",
+        }),
+      ),
+      color: OptionalParam(PD.Text('', { description: "The cell's color, a CSS color (orange, #ff8800)" })),
+      opacity: OptionalParam(
+        PD.Numeric(1, { min: 0.05, max: 1, step: 0.05 }, { description: 'Opacity from 0.05 to 1' }),
+      ),
       structure: StructureParam(),
     },
-    async run({ visible, color, opacity, structure }, ctx) {
+    async run(v, ctx) {
+      // Absent: kept (operations.md §1); called with nothing, it shows the cell (what the operation is for).
+      const { color, opacity, structure } = v as { color?: string; opacity?: number; structure: string };
+      const given = v as { visible?: boolean };
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const name = labelOf(ctx, s);
@@ -242,7 +251,7 @@ export class StructureApi extends ApiArea {
         return ApiResult.fail('blocked', `${name} has no crystal cell.`, 'Only crystal structures have a unit cell.');
       }
       let cellColor: Color | undefined;
-      if (color.trim()) {
+      if (color?.trim()) {
         cellColor = decodeColor(color.trim());
         if (cellColor === undefined) {
           return ApiResult.fail('invalid', `'${color}' is not a color.`, 'Use a CSS color: orange, #ff8800.');
@@ -252,10 +261,11 @@ export class StructureApi extends ApiArea {
       const current = existing?.transform.params as { cellColor: Color; alpha: number } | undefined;
       const style = {
         ...(cellColor !== undefined && cellColor !== current?.cellColor ? { cellColor } : {}),
-        ...(opacity > 0 && opacity !== current?.alpha ? { alpha: opacity } : {}),
+        ...(opacity !== undefined && opacity !== current?.alpha ? { alpha: opacity } : {}),
       };
       const restyle = Object.keys(style).length > 0;
       const shown = !!existing && !existing.state.isHidden;
+      const visible = given.visible ?? (color === undefined && opacity === undefined ? true : shown || !existing);
       if (!restyle && shown === visible) {
         return ApiResult.already(`The unit cell of ${name} is already ${visible ? 'shown' : 'hidden'}.`);
       }
@@ -300,9 +310,17 @@ export class StructureApi extends ApiArea {
     id: 'structure.transform',
     title: 'Move or rotate a structure',
     params: {
-      translation: PD.Vec3(Vec3.create(0, 0, 0), {}, { description: 'Translation in Å: [x, y, z]' }),
-      axis: PD.Vec3(Vec3.create(0, 0, 1), {}, { description: 'Rotation axis: [x, y, z]' }),
-      angle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Rotation angle in degrees' }),
+      translation: OptionalParam(PD.Vec3(Vec3.create(0, 0, 0), {}, { description: 'Translation in Å: [x, y, z]' })),
+      axis: OptionalParam(
+        PD.Vec3(
+          Vec3.create(0, 0, 1),
+          {},
+          { description: 'Rotation axis: [x, y, z], with an angle ([0, 0, 1] when absent)' },
+        ),
+      ),
+      angle: OptionalParam(
+        PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Rotation angle in degrees' }),
+      ),
       center: PD.Select<'centroid' | 'origin'>(
         'centroid',
         [
@@ -311,20 +329,35 @@ export class StructureApi extends ApiArea {
         ],
         { description: 'What the rotation turns about: the structure’s center or the origin' },
       ),
-      matrix: PD.Mat4(Mat4.identity(), {
-        description: 'A 4×4 matrix (column-major, 16 numbers) instead of the axis, angle and translation',
-      }),
+      matrix: OptionalParam(
+        PD.Mat4(Mat4.identity(), {
+          description: 'A 4×4 matrix (column-major, 16 numbers) instead of the axis, angle and translation',
+        }),
+      ),
       compose: PD.Boolean(false, { description: 'Apply on top of the current transform instead of replacing it' }),
       structure: StructureParam(),
     },
-    async run({ translation, axis, angle, center, matrix, compose, structure }, ctx) {
+    async run(v, ctx) {
+      const { center, compose, structure } = v;
+      // What was given (operations.md §1): a matrix, or parts (a translation, an angle about an axis); not both, not none.
+      const {
+        translation: t,
+        axis: a,
+        angle: g,
+        matrix,
+      } = v as {
+        translation?: Vec3;
+        axis?: Vec3;
+        angle?: number;
+        matrix?: Mat4;
+      };
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const name = labelOf(ctx, s);
       const data = s.cell.obj?.data;
       if (!data) return ApiResult.fail('blocked', `${name} is not built yet.`);
-      const byMatrix = !Mat4.isIdentity(matrix, 1e-6);
-      const byParts = angle !== 0 || !Vec3.exactEquals(translation, Vec3.zero());
+      const byMatrix = matrix !== undefined;
+      const byParts = t !== undefined || g !== undefined || a !== undefined;
       if (byMatrix && byParts) {
         return ApiResult.fail(
           'invalid',
@@ -332,11 +365,24 @@ export class StructureApi extends ApiArea {
           'Leave the matrix out to move by parts.',
         );
       }
+      if (!byMatrix && !byParts) {
+        return ApiResult.fail(
+          'invalid',
+          'Move how?',
+          'Give a translation, an angle (about an axis), or a matrix; structure.transform-reset puts it back.',
+        );
+      }
+      if (a !== undefined && g === undefined) {
+        return ApiResult.fail('invalid', 'An axis needs an angle.', 'Give the angle in degrees with the axis.');
+      }
+      const translation = t ?? Vec3.zero();
+      const axis = a ?? Vec3.create(0, 0, 1);
+      const angle = g ?? 0;
       if (!byMatrix && angle !== 0 && Vec3.magnitude(axis) < 1e-6) {
         return ApiResult.fail('invalid', 'The rotation axis is zero.', 'Give an axis such as [0, 0, 1].');
       }
       const wanted: TransformParam = byMatrix
-        ? { name: 'matrix', params: { data: Mat4.clone(matrix), transpose: false } }
+        ? { name: 'matrix', params: { data: Mat4.clone(matrix!), transpose: false } }
         : {
             name: 'components',
             params: {

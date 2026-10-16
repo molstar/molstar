@@ -16,7 +16,7 @@ import { type Structure, StructureSelection } from '@molstar/model/model/structu
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '@molstar/prism-viewer/api/area';
-import { StructureParam } from '@molstar/prism-viewer/api/params';
+import { OptionalParam, StructureParam } from '@molstar/prism-viewer/api/params';
 import { isFailure, labelOf, oneStructure } from '@molstar/prism-viewer/api/scope';
 import { watchedState } from '@molstar/prism-viewer/sources/watched';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
@@ -52,24 +52,18 @@ export interface MembraneInfo {
   readonly settings: ANVILProps;
 }
 
-const Switch = (what: string) =>
-  PD.Select<'keep' | 'on' | 'off'>(
-    'keep',
-    [
-      ['keep', 'Keep'],
-      ['on', 'On'],
-      ['off', 'Off'],
-    ],
-    { description: `${what}: on, off, or keep` },
-  );
-
+// Each absent: kept as it is (Prism's operations.md §1); given: set.
 const LookParams = {
-  planes: Switch('The two planes'),
-  rims: Switch('The rims around them'),
-  dashed: Switch('Dashed rims'),
-  color: PD.Text('', { description: 'A CSS color for the planes and rims (lightgrey, #cccccc); empty: keep' }),
-  opacity: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { description: "The planes' opacity; 0: keep" }),
-  radius: PD.Numeric(0, { min: 0, max: 3, step: 0.01 }, { description: "The planes' radius as a factor; 0: keep" }),
+  planes: OptionalParam(PD.Boolean(true, { description: 'Show the two planes' })),
+  rims: OptionalParam(PD.Boolean(true, { description: 'Show the rims around them' })),
+  dashed: OptionalParam(PD.Boolean(false, { description: 'Dashed rims' })),
+  color: OptionalParam(
+    PD.Text('lightgrey', { description: 'A CSS color for the planes and rims (lightgrey, #cccccc)' }),
+  ),
+  opacity: OptionalParam(PD.Numeric(0.5, { min: 0.01, max: 1, step: 0.01 }, { description: "The planes' opacity" })),
+  radius: OptionalParam(
+    PD.Numeric(1, { min: 0.01, max: 3, step: 0.01 }, { description: "The planes' radius as a factor" }),
+  ),
   structure: StructureParam(),
 };
 
@@ -175,7 +169,16 @@ export class MembraneApi extends ApiArea {
     id: 'membrane.options',
     title: 'Set how the membrane looks',
     params: LookParams,
-    async run({ structure, planes, rims, dashed, color, opacity, radius }, ctx) {
+    async run(v, ctx) {
+      const { structure } = v;
+      const { planes, rims, dashed, color, opacity, radius } = v as {
+        planes?: boolean;
+        rims?: boolean;
+        dashed?: boolean;
+        color?: string;
+        opacity?: number;
+        radius?: number;
+      };
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const ref = membraneRef(ctx.plugin, s);
@@ -188,8 +191,8 @@ export class MembraneApi extends ApiArea {
       }
       const old = ctx.plugin.state.data.tree.transforms.get(ref).params as LookProps;
       const visuals = new Set(old.visuals);
-      if (planes !== 'keep') visuals[planes === 'on' ? 'add' : 'delete']('bilayer-planes');
-      if (rims !== 'keep') visuals[rims === 'on' ? 'add' : 'delete']('bilayer-rims');
+      if (planes !== undefined) visuals[planes ? 'add' : 'delete']('bilayer-planes');
+      if (rims !== undefined) visuals[rims ? 'add' : 'delete']('bilayer-rims');
       if (!visuals.size) {
         return ApiResult.fail(
           'invalid',
@@ -200,10 +203,10 @@ export class MembraneApi extends ApiArea {
       const next: LookProps = {
         ...old,
         visuals: (['bilayer-planes', 'bilayer-rims'] as const).filter((x) => visuals.has(x)),
-        dashedLines: dashed === 'keep' ? old.dashedLines : dashed === 'on',
+        dashedLines: dashed ?? old.dashedLines,
         color: painted ?? old.color,
-        sectorOpacity: opacity || old.sectorOpacity,
-        radiusFactor: radius || old.radiusFactor,
+        sectorOpacity: opacity ?? old.sectorOpacity,
+        radiusFactor: radius ?? old.radiusFactor,
       };
       const keys = ['visuals', 'dashedLines', 'color', 'sectorOpacity', 'radiusFactor'] as const;
       if (keys.every((k) => JSON.stringify(next[k]) === JSON.stringify(old[k]))) {

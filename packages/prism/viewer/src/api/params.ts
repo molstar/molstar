@@ -27,6 +27,41 @@ export const ComponentParam = (description = 'A component by label or state ref;
   PD.Text('', { description });
 
 /**
+ * A value an operation can leave as it is (operations.md §1): absent, it is kept; `checkValues` leaves it out (Mol*'s
+ * `PD.Optional`). Its type stays the param's own, so read it in `run` as possibly undefined.
+ */
+export function OptionalParam<P extends PD.Any>(p: P): P {
+  return { ...p, isOptional: true };
+}
+
+/** A switch's value (operations.md §1): off, or on with its settings, only those given set (the rest keep theirs). */
+export type SwitchValue<S extends PD.Params = PD.Params> =
+  | { readonly name: 'off'; readonly params?: Record<string, never> }
+  | { readonly name: 'on'; readonly params?: Partial<PD.Values<S>> };
+
+/** A switch's param, typed by its value (`SwitchValue`) for scripts; Mol*'s mapped on/off underneath. */
+export type SwitchParamDef<S extends PD.Params> = Omit<PD.Mapped<any>, 'defaultValue'> & {
+  readonly defaultValue: SwitchValue<S> | undefined;
+};
+
+/**
+ * A switch with settings (operations.md §1), as Mol*'s own on/off props are: `{ name: 'off' }` or `{ name: 'on', params
+ * }`, each setting optional (given: set, absent: keep); the whole switch absent keeps it as it is.
+ */
+export function SwitchParam<S extends PD.Params>(settings: S, info?: PD.Info): SwitchParamDef<S> {
+  const optional: PD.Params = {};
+  for (const [k, p] of Object.entries(settings)) optional[k] = PD.Optional(p) as PD.Any;
+  return PD.Optional(
+    PD.MappedStatic('on', { on: PD.Group(optional), off: PD.Group({}) }, info),
+  ) as unknown as SwitchParamDef<S>;
+}
+
+/** The settings a switch turns on with: the current ones (or the defaults), the given ones over them. */
+export function switchedOn<T extends object>(current: T, given: SwitchValue | undefined): T {
+  return given?.name === 'on' && given.params ? { ...current, ...(given.params as Partial<T>) } : current;
+}
+
+/**
  * Params patched: a plain group merges one level (some of its values), anything else replaces; a value with a `kind`
  * (an iso value) replaces as a whole, so a relative one does not keep an absolute one's field.
  */

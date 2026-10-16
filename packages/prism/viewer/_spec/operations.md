@@ -19,14 +19,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `camera.orient` | Orient along the principal axes | view; needs canvas | structure, animate |
 | `camera.reset` | Reset the camera | view; needs canvas | animate |
 | `camera.reset-axes` | Align the view with the x, y and z axes | view; needs canvas | animate |
-| `camera.set` | Set the camera | view; needs canvas | position, target, up, fov, mode, animate, distance, radius, sceneRadius, showsAll |
+| `camera.set` | Set the camera | view; needs canvas | position, target, up, animate, distance, radius, sceneRadius, showsAll |
 | `camera.zoom` | Zoom | view; needs canvas | factor, animate |
 | `canvas.background` | Set the background | needs canvas | color |
 | `canvas.camera` | Set the camera | needs canvas | mode, fov |
 | `canvas.clipping` | Clip the scene | needs canvas | clip, far |
 | `canvas.get` | Describe the canvas | read |  |
-| `canvas.illumination` | Turn illumination on or off | needs canvas | on |
-| `canvas.lighting` | Change the lighting | needs canvas | occlusion, shadow, outline, fog |
+| `canvas.lighting` | Change the lighting | needs canvas | occlusion, shadow, outline, fog, illumination |
 | `canvas.palette` | Set the data palette |  | palette |
 | `canvas.settings` | Change canvas settings | needs canvas; ui-only | section, values |
 | `canvas.xr` | Enter or leave XR | view; needs canvas | on |
@@ -39,9 +38,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `component.visibility` | Show or hide a component |  | component, visible, structure |
 | `contents.get` | List the contents | read | structure |
 | `contents.visibility` | Show or hide an entity or a chain |  | entity, chain, visible, structure |
-| `export.image` | Export an image | view; no undo; needs canvas | size, width, height, transparent, crop, box, format, quality, axes, name |
-| `export.image-copy` | Copy an image | view; no undo; needs canvas, page | size, width, height, transparent, crop, box, format, quality, axes |
-| `export.preview` | Preview an image | view; no undo; needs canvas; ui-only | size, width, height, transparent, crop, box, format, quality, axes, max |
+| `export.image` | Export an image | view; no undo; needs canvas | size, transparent, crop, box, format, quality, axes, name |
+| `export.image-copy` | Copy an image | view; no undo; needs canvas, page | size, transparent, crop, box, format, quality, axes |
+| `export.preview` | Preview an image | view; no undo; needs canvas; ui-only | size, transparent, crop, box, format, quality, axes, max |
 | `export.viewport` | Export the viewport state | view; no undo; needs canvas | name |
 | `focus.again` | Focus again | view | entry |
 | `focus.clear` | Clear the focus | view |  |
@@ -132,7 +131,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `snapshot.seek` | Show a frame of the snapshot's transition | view; agent-only | time |
 | `snapshot.stop` | Stop playing the snapshots | view |  |
 | `snapshot.transition` | Play the snapshot's transition | view; needs canvas; agent-only | play |
-| `snapshot.update` | Edit a snapshot | no undo; agent-only | entry, name, description, key, showFor, clear |
+| `snapshot.update` | Edit a snapshot | no undo; agent-only | entry, name, description, key, showFor |
 | `state.action` | Apply an action to a state cell | network (asks); agent-only | ref, action, params |
 | `state.get` | Read the state tree | read | ref |
 | `state.remove` | Remove a state cell | destructive | ref |
@@ -168,7 +167,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `volume.isovalue` | Set the iso value |  | value, kind, volume, representation |
 | `volume.remove` | Remove a volume | destructive | volume, representation |
 | `volume.representation` | Show a volume as… |  | type, params, volume |
-| `volume.streaming` | Stream density for a structure | network (addresses); needs network | enabled, structure |
+| `volume.streaming` | Stream density for a structure | network (addresses); needs network | on, structure |
 | `volume.streaming-view` | Set how streamed density shows | network (addresses); needs network | view, radius, detail, channels, structure |
 | `volume.update` | Update a volume representation | ui-only | representation, params |
 | `volume.visibility` | Show or hide a volume |  | visible, volume, representation |

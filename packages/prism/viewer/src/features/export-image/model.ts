@@ -15,7 +15,7 @@ import type { ViewerApi } from '../../api/area.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
 import type { ExportFrameValues } from '../../spec.js';
-import type { CropBox, ImageSize } from './operations.js';
+import { type CropBox, type ImageSize, ImageSizeParam } from './operations.js';
 
 // The view model of the Image section: the form, the preview and the crop, over `export.preview`, `export.image` and
 // `export.image-copy` (the people's API; no plugin). The preview is a small render, asked for after the settings or the
@@ -31,33 +31,7 @@ const isImage = (v: { mode?: string }) => !v.mode || v.mode === 'image';
 export const FormParams = {
   // What the section exports: set by its switch, not a row of the form.
   mode: PD.Text('image', { isHidden: true }),
-  resolution: PD.MappedStatic(
-    'viewport',
-    {
-      viewport: PD.Group({}, { isFlat: true }),
-      hd: PD.Group({}, { isFlat: true }),
-      'full-hd': PD.Group({}, { isFlat: true }),
-      'ultra-hd': PD.Group({}, { isFlat: true }),
-      '8k-ultra-hd': PD.Group({}, { isFlat: true }),
-      custom: PD.Group(
-        {
-          width: PD.Numeric(1920, { min: 128, max: 8192, step: 1 }),
-          height: PD.Numeric(1080, { min: 128, max: 8192, step: 1 }),
-        },
-        { isFlat: true },
-      ),
-    },
-    {
-      options: [
-        ['viewport', 'Viewport'],
-        ['hd', 'HD (1280 × 720)'],
-        ['full-hd', 'Full HD (1920 × 1080)'],
-        ['ultra-hd', 'Ultra HD (3840 × 2160)'],
-        ['8k-ultra-hd', '8K (7680 × 4320)'],
-        ['custom', 'Custom'],
-      ],
-    },
-  ),
+  resolution: ImageSizeParam(),
   format: PD.MappedStatic(
     'png',
     {
@@ -91,11 +65,8 @@ const Full: CropBox = { x: 0, y: 0, width: 1, height: 1 };
 
 /** The form's values as an image operation's. */
 export function imageValues(v: FormValues): Record<string, unknown> {
-  const custom = v.resolution.name === 'custom';
   return {
-    size: v.resolution.name,
-    width: custom ? (v.resolution.params as { width: number }).width : 0,
-    height: custom ? (v.resolution.params as { height: number }).height : 0,
+    size: v.resolution,
     format: v.format.name,
     quality: v.format.name === 'png' ? 0.9 : (v.format.params as { quality: number }).quality,
     transparent: isImage(v) && v.transparent,
@@ -108,9 +79,9 @@ export function imageValues(v: FormValues): Record<string, unknown> {
 export function frameValues(v: FormValues, box: CropBox): ExportFrameValues {
   const r = v.resolution;
   const crop = { ...box };
-  if (r.name === 'viewport') return { size: 'viewport', width: 0, height: 0, axes: v.axes, box: crop };
+  if (r.name === 'viewport') return { size: { name: 'viewport' }, axes: v.axes, box: crop };
   const { width, height } = frameOf(v, undefined)!;
-  return { size: 'custom', width, height, axes: v.axes, box: crop };
+  return { size: { name: 'custom', params: { width, height } }, axes: v.axes, box: crop };
 }
 
 function frameOf(v: FormValues, viewport: { width: number; height: number } | undefined) {

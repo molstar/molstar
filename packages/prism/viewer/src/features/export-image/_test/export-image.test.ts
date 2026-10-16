@@ -167,7 +167,7 @@ describe('export image', () => {
   it('renders a data URI at the size asked, cropped, and leaves the helper as it was', async () => {
     const { v, calls, helper } = await track(withHelper());
     const steps = v.managers.history.steps.value.length;
-    const r = await v.api.export!.image({ size: 'hd', transparent: true, axes: true });
+    const r = await v.api.export!.image({ size: { name: 'hd' }, transparent: true, axes: true });
     expectOk(r);
     // The automatic crop (found on a preview) is what is cut: 0.5 x 0.4 of 1280 x 720.
     expect(r.value).toMatchObject({ filename: '1CBS.png', width: 640, height: 288 });
@@ -195,14 +195,17 @@ describe('export image', () => {
 
   it('takes a custom size, no crop, a box, and JPEG with a quality', async () => {
     const { v, calls } = await track(withHelper());
-    const none = await v.api.export!.image({ width: 800, height: 600, crop: 'none' });
+    const none = await v.api.export!.image({
+      size: { name: 'custom', params: { width: 800, height: 600 } },
+      crop: 'none',
+    });
     expectOk(none);
     expect(none.value).toMatchObject({ width: 800, height: 600 });
     expect(calls.map((c) => c.op)).toEqual(['image']);
     expect(calls[0].values.resolution).toEqual({ name: 'custom', params: { width: 800, height: 600 } });
 
     const box = await v.api.export!.image({
-      size: 'full-hd',
+      size: { name: 'full-hd' },
       format: 'jpeg',
       quality: 0.5,
       box: { x: 0, y: 0, width: 0.5, height: 0.5 },
@@ -215,8 +218,16 @@ describe('export image', () => {
 
   it('fails invalid for a size or a box that cannot be', async () => {
     const { v, calls } = await track(withHelper());
-    expect(await v.api.export!.image({ size: 'custom' })).toMatchObject({ ok: false, code: 'invalid' });
-    expect(await v.api.export!.image({ width: 100, height: 600 })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.export!.image({ size: { name: 'custom', params: {} } as never })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+    expect(await v.api.export!.image({ size: { name: 'custom', params: { width: 100, height: 600 } } })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+    // A preset is a name; its old string form is refused with the shape to give.
+    expect(await v.api.export!.image({ size: 'hd' as never })).toMatchObject({ ok: false, code: 'invalid' });
     expect(await v.api.export!.image({ box: { x: 0.8, y: 0, width: 0.5, height: 1 } })).toMatchObject({
       ok: false,
       code: 'invalid',
@@ -244,10 +255,10 @@ describe('export image', () => {
   it('serializes overlapping exports on the shared helper: each image has its own settings, the helper ends restored', async () => {
     const { v, calls, helper } = await track(withHelper());
     const [a, b, c, p] = await Promise.all([
-      v.api.export!.image({ size: 'hd', crop: 'none', name: 'a' }),
-      v.api.export!.image({ size: 'full-hd', format: 'jpeg', crop: 'none', name: 'b' }),
-      v.api.export!.imageCopy({ width: 800, height: 600, crop: 'none' }),
-      v.api.export!.preview({ size: 'hd', transparent: true, crop: 'none' }),
+      v.api.export!.image({ size: { name: 'hd' }, crop: 'none', name: 'a' }),
+      v.api.export!.image({ size: { name: 'full-hd' }, format: 'jpeg', crop: 'none', name: 'b' }),
+      v.api.export!.imageCopy({ size: { name: 'custom', params: { width: 800, height: 600 } }, crop: 'none' }),
+      v.api.export!.preview({ size: { name: 'hd' }, transparent: true, crop: 'none' }),
     ]);
     expectOk(a);
     expectOk(b);
@@ -300,7 +311,7 @@ describe('export image', () => {
 
   it('copies to the clipboard, only where there is a page; fails cleanly when the browser cannot', async () => {
     const { v, calls, helper } = await track(withHelper());
-    expectOk(await v.api.export!.imageCopy({ size: 'hd', crop: 'none' }));
+    expectOk(await v.api.export!.imageCopy({ size: { name: 'hd' }, crop: 'none' }));
     expect(calls[0]).toMatchObject({ op: 'copy', values: { resolution: { name: 'hd' } } });
     (helper as { copyToClipboard: unknown }).copyToClipboard = () => undefined;
     expect(await v.api.export!.imageCopy({ crop: 'none' })).toMatchObject({ ok: false, code: 'unavailable' });
@@ -313,10 +324,10 @@ describe('export image', () => {
 
   it('previews the whole frame with the crop on it', async () => {
     const { v } = await track(withHelper());
-    const r = await v.api.export!.preview({ size: 'hd' });
+    const r = await v.api.export!.preview({ size: { name: 'hd' } });
     expectOk(r);
     expect(r.value).toEqual({ dataUri: 'data:image/png;base64,UFJFVklFVw==', width: 1280, height: 720, crop: Crop });
-    const whole = await v.api.export!.preview({ size: 'hd', crop: 'none' });
+    const whole = await v.api.export!.preview({ size: { name: 'hd' }, crop: 'none' });
     expectOk(whole);
     expect(whole.value?.crop).toEqual({ x: 0, y: 0, width: 1, height: 1 });
   });
@@ -353,7 +364,8 @@ describe('export image', () => {
       expect(saved.map((x) => x.filename)).toEqual(['1CBS.png']);
       expect(await saved[0].blob.text()).toBe('IMAGE');
       expect(posted[1]).toBe('Saved 1CBS.png (640 × 360).');
-      expect(imageValues(model.form.values.value)).toMatchObject({ size: 'hd', width: 0, height: 0 });
+      expect(imageValues(model.form.values.value)).toMatchObject({ size: { name: 'hd' } });
+      expect(imageValues(model.form.values.value)).not.toHaveProperty('width');
     } finally {
       model.dispose();
     }

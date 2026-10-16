@@ -12,15 +12,15 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
 import { ApiArea, ApiResult } from './area.js';
-import { EveryStructureParam, StructureParam } from './params.js';
+import { EveryStructureParam, OptionalParam, StructureParam } from './params.js';
 import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
 // `camera` (operations.md §2, plan 2.3): view state, never a history step (sequence.md §7.3). `reset`, `frame` (a
-// target), `zoom`, `orient`, `set` (position, target, up, fov, mode: v5's camera info, parity.md) and `get`. What moves the camera needs the canvas (`modules: ['canvas']`); a headless
+// target), `zoom`, `orient`, `set` (position, target, up: v5's camera info, parity.md; the projection is `canvas.camera`'s) and `get`. What moves the camera needs the canvas (`modules: ['canvas']`); a headless
 // viewer says so instead of running.
 
-/** What `camera.get` gives back; undefined without a canvas. */
+/** The camera in values, with its projection (the Export card's Camera section); `camera.get` gives `CameraView`. */
 export interface CameraValue {
   readonly mode: 'perspective' | 'orthographic';
   /** Field of view in degrees. */
@@ -145,14 +145,9 @@ export class CameraApi extends ApiArea {
     id: 'camera.set',
     title: 'Set the camera',
     params: {
-      position: VecParam('Where the camera is: "x, y, z" in Å (empty: keep)'),
-      target: VecParam('What it looks at: "x, y, z" in Å (empty: keep)'),
-      up: VecParam('Its up direction: "x, y, z" (empty: keep)'),
-      fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees (0: keep)' }),
-      mode: PD.Select<'keep' | 'perspective' | 'orthographic'>(
-        'keep',
-        PD.arrayToOptions(['keep', 'perspective', 'orthographic'] as const),
-      ),
+      position: OptionalParam(VecParam('Where the camera is: "x, y, z" in Å')),
+      target: OptionalParam(VecParam('What it looks at: "x, y, z" in Å')),
+      up: OptionalParam(VecParam('Its up direction: "x, y, z"')),
       animate: AnimateParam(),
       distance: ReadOnlyParam(),
       radius: ReadOnlyParam(),
@@ -205,26 +200,13 @@ export class CameraApi extends ApiArea {
           said.push(`up ${sayVec(up)}`);
         }
       }
-      // Mode and field of view are the canvas's props (the Canvas card follows them), as `canvas.camera` sets them.
-      const lens: { mode?: Camera.Mode; fov?: number } = {};
-      if (v.mode !== 'keep' && v.mode !== current.mode) {
-        lens.mode = v.mode;
-        said.push(v.mode);
-      }
-      if (v.fov > 0) {
-        const fov = Math.max(10, v.fov);
-        if (fov !== Math.round(radToDeg(current.fov))) {
-          lens.fov = fov;
-          said.push(`${fov}°`);
-        }
-      }
+      // The projection (mode, field of view) is the canvas's, set by `canvas.camera` (one operation per state).
       if (!said.length) return ApiResult.already('The camera is already so.');
       // Moving the camera: the radius it shows follows the distance to the target (as `Camera.getFocus` keeps them).
       if (snapshot.position || snapshot.target) {
         const ratio = current.radius / Math.max(Vec3.distance(current.position, current.target), 1e-6);
         snapshot.radius = Vec3.distance(position, target) * ratio;
       }
-      if (lens.mode || lens.fov) ctx.plugin.setCanvas3DProps({ camera: lens });
       if (Object.keys(snapshot).length) ctx.plugin.managers.camera.setSnapshot(snapshot, duration(ctx, v.animate));
       return ApiResult.ok(`Camera: ${said.join(', ')}.`, { view: true });
     },
@@ -238,9 +220,10 @@ export class CameraApi extends ApiArea {
     async run(_, ctx) {
       const canvas = ctx.plugin.canvas3d;
       if (!canvas) return ApiResult.ok('No canvas (a headless viewer).', {}, { value: undefined });
-      const value = cameraValueOf(canvas);
+      const { mode: _mode, fov: _fov, ...value } = cameraValueOf(canvas);
+      const lens = cameraValueOf(canvas);
       return ApiResult.ok(
-        `${value.mode === 'perspective' ? 'Perspective' : 'Orthographic'} camera (${value.fov}°)${value.showsAll ? ', showing the whole scene' : ', zoomed in on part of the scene'}: at ${said(value.position)}, looking at ${said(value.target)}, up ${said(value.up)}.`,
+        `${lens.mode === 'perspective' ? 'Perspective' : 'Orthographic'} camera (${lens.fov}°)${value.showsAll ? ', showing the whole scene' : ', zoomed in on part of the scene'}: at ${said(value.position)}, looking at ${said(value.target)}, up ${said(value.up)}.`,
         {},
         { value },
       );
@@ -254,7 +237,10 @@ const vec = (v: Vec3): [number, number, number] => [round2(v[0]), round2(v[1]), 
 const said = (v: readonly number[]) => `(${v.join(', ')})`;
 const sayVec = (v: Vec3) => said(vec(v));
 
-/** The camera in values (`camera.get`, the Export card's Viewport section). */
+/** What `camera.get` gives (and `camera.set` takes back): the view; the projection is `canvas.get`'s and `canvas.camera`'s. */
+export type CameraView = Omit<CameraValue, 'mode' | 'fov'>;
+
+/** The camera in values (the Export card's Viewport section; `camera.get` without the projection). */
 export function cameraValueOf(canvas: Pick<Canvas3D, 'camera' | 'boundingSphere'>): CameraValue {
   const { mode, fov, radius, position, target, up } = canvas.camera.state;
   const sceneRadius = canvas.boundingSphere.radius;

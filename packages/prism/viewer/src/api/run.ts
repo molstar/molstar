@@ -474,6 +474,39 @@ function checkParam(name: string, p: PD.Any, value: unknown): ApiFailure | undef
       return value && typeof value === 'object' && !Array.isArray(value)
         ? undefined
         : ApiResult.fail('invalid', `'${name}' takes an object.`);
+    case 'mapped': {
+      // A switch or a choice with settings (operations.md §1): `{ name, params }`, the params the named case's.
+      const names = p.select.options.map((o) => o[0]);
+      const v = value as { name?: unknown; params?: unknown } | null;
+      if (!v || typeof v !== 'object' || Array.isArray(v) || !names.includes(v.name as string)) {
+        return ApiResult.fail(
+          'invalid',
+          `'${name}' takes { name, params } with a name of: ${names.join(', ')}.`,
+          names.includes('on') ? `For example { name: 'on' } or { name: 'off' }.` : undefined,
+        );
+      }
+      if (v.params === undefined) return undefined;
+      const inner = p.map(v.name as string);
+      if (inner.type !== 'group') return undefined;
+      if (!v.params || typeof v.params !== 'object' || Array.isArray(v.params)) {
+        return ApiResult.fail('invalid', `'${name}.params' takes an object.`);
+      }
+      for (const [k, val] of Object.entries(v.params as Record<string, unknown>)) {
+        if (val === undefined) continue;
+        const q = inner.params[k];
+        if (!q) {
+          const known = Object.keys(inner.params);
+          return ApiResult.fail(
+            'invalid',
+            `Unknown value '${name}.params.${k}'.`,
+            known.length ? `It takes: ${known.join(', ')}.` : 'It takes no values.',
+          );
+        }
+        const problem = checkParam(`${name}.params.${k}`, q, val);
+        if (problem) return problem;
+      }
+      return undefined;
+    }
     default:
       return undefined;
   }

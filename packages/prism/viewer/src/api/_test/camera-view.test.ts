@@ -68,8 +68,6 @@ describe('camera.get and camera.set', () => {
     const r = await v.api.camera.get();
     expectOk(r);
     expect(r.value).toMatchObject({
-      mode: 'perspective',
-      fov: 45,
       position: [0, 0, 100],
       target: [0, 0, 0],
       up: [0, 1, 0],
@@ -77,21 +75,25 @@ describe('camera.get and camera.set', () => {
       showsAll: true,
     });
     expect(r.did).toMatch(/Perspective camera \(45°\).*at \(0, 0, 100\), looking at \(0, 0, 0\)/);
+    // The projection is the canvas's (canvas.get, canvas.camera): not in the camera's value.
+    expect(r.value).not.toHaveProperty('mode');
+    expect(r.value).not.toHaveProperty('fov');
   });
 
-  it('sets the position, target and up; the lens through the canvas props; no history step', async () => {
+  it('sets the position, target and up, each absent kept; no history step', async () => {
     const { v, state, snapshots, props } = await withCamera();
-    const r = await v.api.camera.set({ position: '10, 0, 0', target: '[0, 0, 0]', up: '0 0 2', fov: 60 });
+    const r = await v.api.camera.set({ position: '10, 0, 0', target: '[0, 0, 0]', up: '0 0 2' });
     expectOk(r);
-    expect(r.did).toBe('Camera: at (10, 0, 0), up (0, 0, 1), 60°.');
+    expect(r.did).toBe('Camera: at (10, 0, 0), up (0, 0, 1).');
     expect(Array.from(state.position)).toEqual([10, 0, 0]);
     expect(Array.from(state.up)).toEqual([0, 0, 1]);
     // The radius follows the distance (50 of 100 before: 5 of 10 now).
     expect(snapshots[0].radius).toBeCloseTo(5);
-    expect(props).toEqual([{ camera: { fov: 60 } }]);
+    // The projection is canvas.camera's: camera.set leaves the canvas props alone.
+    expect(props).toEqual([]);
     expect(v.managers.history.steps.value).toHaveLength(0);
 
-    const again = await v.api.camera.set({ position: '10, 0, 0', up: '0, 0, 1', fov: 60 });
+    const again = await v.api.camera.set({ position: '10, 0, 0', up: '0, 0, 1' });
     expect(again).toMatchObject({ ok: true, unchanged: true });
     expect(snapshots).toHaveLength(1);
   });
@@ -140,7 +142,7 @@ describe('camera.get and camera.set', () => {
 
   it('says so without a canvas', async () => {
     const v = await headlessViewer();
-    expect(await v.api.camera.set({ fov: 30 })).toMatchObject({ ok: false, code: 'unavailable' });
+    expect(await v.api.camera.set({ position: '0, 0, 10' })).toMatchObject({ ok: false, code: 'unavailable' });
     const r = await v.api.camera.get();
     expectOk(r);
     expect(r.value).toBeUndefined();
@@ -161,11 +163,13 @@ describe('view.expand and view.fullscreen', () => {
     const v = await headlessViewer();
     const nav = v.managers.navigation;
     nav.setCard({ id: 'core.overlay.export' });
-    expectOk(await v.api.view.expand({ on: 'on' }));
+    expectOk(await v.api.view.expand({ on: true }));
     expect(nav.expanded.value).toBe(true);
     expect(nav.state.value.card).toBeUndefined();
-    expect(await v.api.view.expand({ on: 'on' })).toMatchObject({ ok: true, unchanged: true });
-    expectOk(await v.api.view.expand({ on: 'toggle' }));
+    // The state wanted, never a toggle (operations.md §1): asked again, it is already so.
+    expect(await v.api.view.expand({ on: true })).toMatchObject({ ok: true, unchanged: true });
+    expect(await v.api.view.expand({})).toMatchObject({ ok: true, unchanged: true });
+    expectOk(await v.api.view.expand({ on: false }));
     expect(nav.expanded.value).toBe(false);
     expect(v.managers.history.steps.value).toHaveLength(0);
   });
@@ -185,10 +189,10 @@ describe('view.expand and view.fullscreen', () => {
   it('fullscreen asks through the navigation state in a page', async () => {
     const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['page'] });
     open = v;
-    expectOk(await v.api.view.fullscreen({ on: 'on' }));
+    expectOk(await v.api.view.fullscreen({ on: true }));
     expect(v.managers.navigation.fullscreen.value).toBe(true);
-    expect(await v.api.view.fullscreen({ on: 'on' })).toMatchObject({ ok: true, unchanged: true });
-    expectOk(await v.api.view.fullscreen({}));
+    expect(await v.api.view.fullscreen({ on: true })).toMatchObject({ ok: true, unchanged: true });
+    expectOk(await v.api.view.fullscreen({ on: false }));
     expect(v.managers.navigation.fullscreen.value).toBe(false);
   });
 });

@@ -25,7 +25,7 @@ import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/m
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import type { PluginContext } from '@molstar/plugin/context';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { mergeParams, StructureParam } from './params.js';
+import { mergeParams, StructureParam, OptionalParam } from './params.js';
 import { entryRoot, isFailure, labelOf, namesOf, oneStructure, pickOne } from './scope.js';
 import { commitRepresentation, setRepresentation } from './set-representation.js';
 
@@ -274,14 +274,14 @@ export class VolumeApi extends ApiArea {
     id: 'volume.streaming',
     title: 'Stream density for a structure',
     params: {
-      enabled: PD.Boolean(true, { description: 'Turn volume streaming on or off for the structure' }),
+      on: PD.Boolean(true, { description: 'Turn volume streaming on (true) or off (false) for the structure' }),
       structure: StructureParam(),
     },
     modules: ['network'],
     approval: 'network',
     // The configured volume server's.
     addresses: () => [],
-    async run({ enabled, structure }, ctx) {
+    async run({ on: enabled, structure }, ctx) {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const name = labelOf(ctx, s);
@@ -331,27 +331,33 @@ export class VolumeApi extends ApiArea {
   });
 
   // parity.md §2: what v5's Volume Streaming panel sets once streaming is on: the view (what part of the map is fetched),
-  // the detail level and each channel's iso value, color and opacity. Empty or zero values leave a setting as it is.
+  // the detail level and each channel's iso value, color and opacity. An absent value leaves a setting as it is.
   readonly streamingView = this.operation({
     id: 'volume.streaming-view',
     title: 'Set how streamed density shows',
     params: {
-      view: PD.Select<'' | VolumeStreaming.ViewTypes>('', [['', 'Unchanged'], ...VolumeStreaming.ViewTypeOptions], {
-        description:
-          'What of the map is streamed: off, box (the structure box), selection-box (around the focus), camera-target, cell (the whole structure), auto (around the focus, else the whole)',
-      }),
-      radius: PD.Numeric(
-        0,
-        { min: 0, max: 50, step: 0.5 },
-        {
+      view: OptionalParam(
+        PD.Select<VolumeStreaming.ViewTypes>('auto', VolumeStreaming.ViewTypeOptions, {
           description:
-            'Around the focus (selection-box, auto): Å; around the camera target (camera-target): a fraction of the view, 0 to 1. 0: unchanged',
-        },
+            'What of the map is streamed: off, box (the structure box), selection-box (around the focus), camera-target, cell (the whole structure), auto (around the focus, else the whole)',
+        }),
       ),
-      detail: PD.Numeric(
-        0,
-        { min: 0, max: 7, step: 1 },
-        { description: 'The detail level, 1 (coarsest) up to what the server has (often 7). 0: unchanged' },
+      radius: OptionalParam(
+        PD.Numeric(
+          5,
+          { min: 0, max: 50, step: 0.5 },
+          {
+            description:
+              'Around the focus (selection-box, auto): Å; around the camera target (camera-target): a fraction of the view, 0 to 1',
+          },
+        ),
+      ),
+      detail: OptionalParam(
+        PD.Numeric(
+          4,
+          { min: 1, max: 7, step: 1 },
+          { description: 'The detail level, 1 (coarsest) up to what the server has (often 7)' },
+        ),
       ),
       channels: PD.Value<StreamingChannelsChange>(
         {},
@@ -366,7 +372,9 @@ export class VolumeApi extends ApiArea {
     approval: 'network',
     // The configured volume server's.
     addresses: () => [],
-    async run({ view, radius, detail, channels, structure }, ctx) {
+    async run(v, ctx) {
+      const { channels, structure } = v;
+      const { view, radius, detail } = v as Partial<Pick<StreamingChange, 'view' | 'radius' | 'detail'>>;
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const name = labelOf(ctx, s);
@@ -399,11 +407,12 @@ export interface StreamingChannelChange {
 }
 export type StreamingChannelsChange = Partial<Record<string, StreamingChannelChange>>;
 
+/** A change of the streaming view (`volume.streaming-view`): what is given is set, what is absent kept. */
 export interface StreamingChange {
-  readonly view: '' | VolumeStreaming.ViewTypes;
-  readonly radius: number;
-  readonly detail: number;
-  readonly channels: StreamingChannelsChange;
+  readonly view?: VolumeStreaming.ViewTypes;
+  readonly radius?: number;
+  readonly detail?: number;
+  readonly channels?: StreamingChannelsChange;
 }
 
 /** Streaming on a structure: its info cell (the root), its behavior cell, the entry shown and the behavior's params. */
@@ -477,13 +486,13 @@ export function nextStreamingParams(
 ): VolumeStreaming.Params | ApiFailure {
   const cur = current.entry.params;
   const defs = VolumeStreaming.createEntryParams({ entryData: entry, structure });
-  const name = change.view || cur.view.name;
+  const name = change.view ?? cur.view.name;
   const viewDefs = defs.view.map(name) as PD.Group<Record<string, any>> | undefined;
   if (!viewDefs) return ApiResult.fail('invalid', `There is no streaming view '${name}'.`);
   const viewParams: Record<string, any> =
     name === cur.view.name ? { ...(cur.view.params as object) } : PD.getDefaultValues(viewDefs.params);
 
-  if (change.radius > 0) {
+  if (change.radius !== undefined) {
     if (!('radius' in viewParams)) {
       return ApiResult.fail(
         'invalid',
@@ -498,7 +507,7 @@ export function nextStreamingParams(
   }
 
   let detailLevel = cur.detailLevel;
-  if (change.detail > 0) {
+  if (change.detail !== undefined) {
     const levels = entry.header.availablePrecisions.length;
     if (!Number.isInteger(change.detail) || change.detail > levels) {
       return ApiResult.fail('invalid', `The detail level is a whole number from 1 to ${levels} for ${entry.dataId}.`);

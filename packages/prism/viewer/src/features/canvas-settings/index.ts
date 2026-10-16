@@ -7,13 +7,12 @@
  */
 
 import type { OperationFn } from '../../api/area.js';
-import { operationCommand } from '../../commands/operations.js';
+import { operationCommand, runAsCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import {
   type CameraParams,
   type ClippingParams,
   canvasSettingsOperations,
-  type IlluminationParams,
   type LightingParams,
   type SettingsParams,
   type XrParams,
@@ -24,7 +23,6 @@ declare module '../../api/canvas.js' {
   interface CanvasApi {
     readonly settings: OperationFn<typeof SettingsParams>;
     readonly lighting: OperationFn<typeof LightingParams>;
-    readonly illumination: OperationFn<typeof IlluminationParams>;
     readonly camera: OperationFn<typeof CameraParams>;
     readonly clipping: OperationFn<typeof ClippingParams>;
     readonly xr: OperationFn<typeof XrParams>;
@@ -41,18 +39,30 @@ export const CanvasSettingsFeature: ViewerExtension = {
   contributes: () => canvasSettingsOperations(),
   commands: (api) => {
     const canvas = api.canvas;
-    if (!canvas.lighting || !canvas.illumination || !canvas.camera || !canvas.clipping) return [];
     return [
       operationCommand(api, canvas.lighting, {
         category: 'Canvas',
         icon: 'lightbulb',
         alias: ['lighting', 'shadows', 'occlusion', 'outline', 'fog'],
       }),
-      operationCommand(api, canvas.illumination, {
+      // Illumination on or off in one go (the toolbar's button): the lighting's switch, the other of what it is.
+      {
+        id: 'canvas.illumination',
+        title: 'Turn illumination on or off',
         category: 'Canvas',
         icon: 'lightbulb',
         alias: ['illumination', 'path tracing', 'gi'],
-      }),
+        when: () => api.describe('canvas.lighting')?.available ?? 'There is no canvas.',
+        async run() {
+          const r = await api.canvas.get();
+          const lit =
+            r.ok && (r.value as { lighting?: { illumination?: boolean } } | undefined)?.lighting?.illumination;
+          return {
+            ...(await runAsCommand(api, 'canvas.lighting', { illumination: { name: lit ? 'off' : 'on' } })),
+            undoable: true,
+          };
+        },
+      },
       operationCommand(api, canvas.camera, {
         category: 'Canvas',
         icon: 'camera',
@@ -66,7 +76,14 @@ export const CanvasSettingsFeature: ViewerExtension = {
               category: 'Canvas',
               icon: 'glasses',
               alias: ['xr', 'vr', 'ar', 'webxr', 'headset'],
-              values: { on: 'toggle' },
+              // The command flips it; the operation takes the state wanted (operations.md §1).
+              toggle: {
+                key: 'on',
+                current: async () => {
+                  const r = await api.canvas.get();
+                  return !!(r.ok && (r.value as { xr?: boolean } | undefined)?.xr);
+                },
+              },
             }),
           ]
         : []),

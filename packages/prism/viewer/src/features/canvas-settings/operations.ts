@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Canvas3DParams, type Canvas3DProps, type PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { type ApiContext, ApiResult, type ApiFailure, type OperationDefinition } from '../../api/area.js';
+import { OptionalParam, SwitchParam, type SwitchValue } from '../../api/params.js';
 import { checkValues } from '../../api/run.js';
 import { changeWords } from '../../api/change-words.js';
 
@@ -112,30 +113,44 @@ export function sectionProps(section: CanvasSection, v: Record<string, any>): Pa
   }
 }
 
-const OnOff = () => PD.Select<'keep' | 'on' | 'off'>('keep', PD.arrayToOptions(['keep', 'on', 'off'] as const));
+const pp = Canvas3DParams.postprocessing.params;
+/** A mapped param's 'on' case's params (Mol*'s own on/off props). */
+const onParams = (m: PD.Any): PD.Params =>
+  m.type === 'mapped' && m.map('on').type === 'group' ? (m.map('on') as PD.Group<any>).params : {};
+const { enabled: _enabled, ...illuminationSettings } = Canvas3DParams.illumination.params;
 
 export const SettingsParams = {
   section: PD.Select<CanvasSection>('background', PD.arrayToOptions(Object.keys(CanvasSections) as CanvasSection[])),
   values: PD.Value<Record<string, unknown>>({}),
 };
-export const LightingParams = { occlusion: OnOff(), shadow: OnOff(), outline: OnOff(), fog: OnOff() };
-export const IlluminationParams = { on: PD.Boolean(true, { description: 'Path-traced global illumination' }) };
+/** The lighting's switches (operations.md §1): each off, or on with its settings (given: set; absent: kept). */
+export const LightingParams = {
+  occlusion: SwitchParam(onParams(pp.occlusion), { description: 'Ambient occlusion: { name: "on", params } or off' }),
+  shadow: SwitchParam(onParams(pp.shadow), { description: 'Shadows: { name: "on", params } or off' }),
+  outline: SwitchParam(onParams(pp.outline), { description: 'Outline: { name: "on", params } or off' }),
+  fog: SwitchParam(onParams(Canvas3DParams.cameraFog), { description: 'Fog: { name: "on", params } or off' }),
+  illumination: SwitchParam(illuminationSettings, {
+    description: 'Path-traced global illumination: { name: "on", params } or off',
+  }),
+};
 export const CameraParams = {
-  mode: PD.Select<'keep' | 'perspective' | 'orthographic'>(
-    'keep',
-    PD.arrayToOptions(['keep', 'perspective', 'orthographic'] as const),
+  mode: OptionalParam(
+    PD.Select<'perspective' | 'orthographic'>(
+      'perspective',
+      PD.arrayToOptions(['perspective', 'orthographic'] as const),
+    ),
   ),
-  fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees; 0: keep' }),
+  fov: OptionalParam(PD.Numeric(45, { min: 10, max: 130, step: 1 }, { description: 'Field of view in degrees' })),
 };
 export const XrParams = {
-  on: PD.Select<'toggle' | 'on' | 'off'>('toggle', PD.arrayToOptions(['toggle', 'on', 'off'] as const), {
-    description: 'Enter (on) or leave (off) the headset view',
-  }),
+  on: PD.Boolean(true, { description: 'Enter (true) or leave (false) the headset view' }),
 };
 export const ClippingParams = {
   // As Canvas3D's `cameraClipping.radius`: how much is clipped away, around the camera's target.
-  clip: PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
-  far: PD.Boolean(true, { description: 'Hide the scene in the distance' }),
+  clip: OptionalParam(
+    PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
+  ),
+  far: OptionalParam(PD.Boolean(true, { description: 'Hide the scene in the distance' })),
 };
 
 const canvasModule = ['canvas'] as const;
@@ -168,10 +183,6 @@ function set(ctx: ApiContext, change: PartialCanvas3DProps, did: string) {
 
 /** A mapped param's 'on' case's defaults. */
 const defaultsOf = (m: PD.Any) => (m.type === 'group' ? structuredClone(PD.getDefaultValues(m.params)) : {});
-
-/** On or off, as Canvas3D's mapped params say it; turning on keeps the current settings, or takes the defaults. */
-const onOff = (on: boolean, current: { name: string; params: unknown }, defaults: { name: string; params: unknown }) =>
-  on ? (current.name === 'on' ? current : defaults) : { name: 'off', params: {} };
 
 /** Checks a definition against its own params, then lists it with the others. */
 const typed = <P extends PD.Params>(d: OperationDefinition<P, unknown>) => d as OperationDefinition<any, any>;
@@ -223,49 +234,56 @@ export const canvasSettingsOperations = (): {
       async run(v, ctx) {
         const p = props(ctx);
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
-        const pp = Canvas3DParams.postprocessing.params as unknown as Record<string, PD.Mapped<any>>;
-        const wanted = (key: 'occlusion' | 'shadow' | 'outline') =>
-          v[key] === 'keep'
-            ? p.postprocessing[key]
-            : onOff(v[key] === 'on', p.postprocessing[key], { name: 'on', params: defaultsOf(pp[key].map('on')) });
-        const change = {
-          postprocessing: { occlusion: wanted('occlusion'), shadow: wanted('shadow'), outline: wanted('outline') },
-          cameraFog:
-            v.fog === 'keep'
-              ? p.cameraFog
-              : onOff(v.fog === 'on', p.cameraFog, {
+        const keys = (['occlusion', 'shadow', 'outline', 'fog', 'illumination'] as const).filter(
+          (k) => v[k] !== undefined,
+        );
+        if (!keys.length) {
+          return ApiResult.fail(
+            'invalid',
+            'Change what?',
+            'occlusion, shadow, outline, fog or illumination: { name: "on" } (with params to set) or { name: "off" }.',
+          );
+        }
+        // Absent: kept; off; on: its current settings (or the defaults), the given ones over them (operations.md §1).
+        const switched = (current: { name: string; params: any }, given: SwitchValue | undefined, m: PD.Any) =>
+          given === undefined
+            ? current
+            : given.name === 'off'
+              ? { name: 'off', params: {} }
+              : {
                   name: 'on',
-                  params: defaultsOf(Canvas3DParams.cameraFog.map('on')),
-                }),
+                  params: {
+                    ...(current.name === 'on' ? current.params : defaultsOf(m.type === 'mapped' ? m.map('on') : m)),
+                    ...(given.params ?? {}),
+                  },
+                };
+        const illumination =
+          v.illumination === undefined
+            ? p.illumination
+            : v.illumination.name === 'off'
+              ? { ...p.illumination, enabled: false }
+              : { ...p.illumination, ...(v.illumination.params ?? {}), enabled: true };
+        const change = {
+          postprocessing: {
+            occlusion: switched(p.postprocessing.occlusion, v.occlusion, pp.occlusion),
+            shadow: switched(p.postprocessing.shadow, v.shadow, pp.shadow),
+            outline: switched(p.postprocessing.outline, v.outline, pp.outline),
+          },
+          cameraFog: switched(p.cameraFog, v.fog, Canvas3DParams.cameraFog),
+          illumination,
         };
-        const said = (['occlusion', 'shadow', 'outline', 'fog'] as const)
-          .filter((k) => v[k] !== 'keep')
-          .map((k) => `${k} ${v[k]}`);
-        if (!said.length)
-          return ApiResult.fail('invalid', 'Change what?', 'occlusion, shadow, outline or fog: on or off.');
-        const same =
-          change.postprocessing.occlusion.name === p.postprocessing.occlusion.name &&
-          change.postprocessing.shadow.name === p.postprocessing.shadow.name &&
-          change.postprocessing.outline.name === p.postprocessing.outline.name &&
-          change.cameraFog.name === p.cameraFog.name;
-        if (same) return ApiResult.already('The lighting is already so.');
+        const before = {
+          postprocessing: {
+            occlusion: p.postprocessing.occlusion,
+            shadow: p.postprocessing.shadow,
+            outline: p.postprocessing.outline,
+          },
+          cameraFog: p.cameraFog,
+          illumination: p.illumination,
+        };
+        if (JSON.stringify(change) === JSON.stringify(before)) return ApiResult.already('The lighting is already so.');
+        const said = keys.map((k) => `${k} ${v[k]!.name}`);
         return set(ctx, change as PartialCanvas3DProps, `Lighting: ${said.join(', ')}.`);
-      },
-    }),
-  },
-  {
-    area: 'canvas',
-    name: 'illumination',
-    operation: typed({
-      id: 'canvas.illumination',
-      title: 'Turn illumination on or off',
-      params: IlluminationParams,
-      modules: canvasModule,
-      async run({ on }, ctx) {
-        const p = props(ctx);
-        if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
-        if (p.illumination.enabled === on) return ApiResult.already(`Illumination is already ${on ? 'on' : 'off'}.`);
-        return set(ctx, { illumination: { enabled: on } }, `Illumination ${on ? 'on' : 'off'}.`);
       },
     }),
   },
@@ -290,7 +308,7 @@ export const canvasSettingsOperations = (): {
         if (!xr.isSupported.value)
           return ApiResult.fail('unavailable', 'XR is not supported by this browser or device.');
         const presenting = xr.isPresenting.value;
-        const next = on === 'toggle' ? !presenting : on === 'on';
+        const next = on;
         if (next === presenting) return ApiResult.already(next ? 'Already in XR.' : 'Not in XR.');
         if (!next) {
           await xr.end();
@@ -324,11 +342,15 @@ export const canvasSettingsOperations = (): {
       title: 'Set the camera',
       params: CameraParams,
       modules: canvasModule,
-      async run({ mode, fov }, ctx) {
+      async run(v, ctx) {
+        const { mode, fov } = v as { mode?: 'perspective' | 'orthographic'; fov?: number };
         const p = props(ctx);
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
-        const nextMode = mode === 'keep' ? p.camera.mode : mode;
-        const nextFov = fov > 0 ? Math.max(10, fov) : p.camera.fov;
+        if (mode === undefined && fov === undefined) {
+          return ApiResult.fail('invalid', 'Change what?', 'mode (perspective, orthographic) or fov (degrees).');
+        }
+        const nextMode = mode ?? p.camera.mode;
+        const nextFov = fov ?? p.camera.fov;
         if (nextMode === p.camera.mode && nextFov === p.camera.fov)
           return ApiResult.already('The camera is already so.');
         return set(ctx, { camera: { mode: nextMode, fov: nextFov } }, `Camera: ${nextMode}, ${nextFov}°.`);
@@ -343,10 +365,16 @@ export const canvasSettingsOperations = (): {
       title: 'Clip the scene',
       params: ClippingParams,
       modules: canvasModule,
-      async run({ clip, far }, ctx) {
+      async run(v, ctx) {
+        const { clip, far: farGiven } = v as { clip?: number; far?: boolean };
         const p = props(ctx);
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
-        const radius = Math.max(0, Math.min(99, clip));
+        if (clip === undefined && farGiven === undefined) {
+          return ApiResult.fail('invalid', 'Change what?', 'clip (percent clipped away) or far (true or false).');
+        }
+        // Absent: kept (operations.md §1).
+        const radius = clip === undefined ? p.cameraClipping.radius : Math.max(0, Math.min(99, clip));
+        const far = farGiven ?? p.cameraClipping.far;
         if (p.cameraClipping.radius === radius && p.cameraClipping.far === far) {
           return ApiResult.already('The clipping is already so.');
         }

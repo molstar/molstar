@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { OptionalParam } from '../../api/params.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginState } from '@molstar/plugin/state';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
@@ -58,8 +59,15 @@ const Options = () =>
     },
   );
 
-const ShowFor = (zero = 'the default') =>
-  PD.Numeric(0, { min: 0, max: 60000, step: 100 }, { description: `How long playback shows it, in ms (0: ${zero})` });
+/** How long playback shows a snapshot; absent: `absent` (operations.md §1). */
+const ShowFor = (absent = 'the default') =>
+  OptionalParam(
+    PD.Numeric(
+      1500,
+      { min: 100, max: 60000, step: 100 },
+      { description: `How long playback shows it, in ms (absent: ${absent})` },
+    ),
+  );
 
 const AddParams = {
   name: PD.Text('', { description: 'Its name; empty: Snapshot <n>' }),
@@ -71,15 +79,13 @@ const AddParams = {
 
 const UpdateParams = {
   entry: EntryParam(`${ByIdNameOrKey}; empty: the current one`),
-  name: PD.Text('', { description: 'A new name; empty: keep it' }),
-  description: PD.Text('', { description: 'A new description (markdown); empty: keep it' }),
-  key: PD.Text('', { description: 'A new key; empty: keep it' }),
-  showFor: PD.Numeric(
-    0,
-    { min: 0, max: 60000, step: 100 },
-    { description: 'How long playback shows it, in ms (0: keep it)' },
+  // Each given is set (empty text clears it), each absent kept (operations.md §1).
+  name: OptionalParam(PD.Text('', { description: 'A new name ("": none)' })),
+  description: OptionalParam(PD.Text('', { description: 'A new description in markdown ("": none)' })),
+  key: OptionalParam(PD.Text('', { description: 'A new key ("": none)' })),
+  showFor: OptionalParam(
+    PD.Numeric(1500, { min: 100, max: 60000, step: 100 }, { description: 'How long playback shows it, in ms' }),
   ),
-  clear: PD.Boolean(false, { description: 'Clear the name, description and key left empty instead of keeping them' }),
 };
 
 const ReplaceParams = {
@@ -94,10 +100,12 @@ const MoveParams = {
 };
 
 const PlayParams = {
-  delay: PD.Numeric(
-    0,
-    { min: 0, max: 60000, step: 100 },
-    { description: 'How long to show a snapshot that has no time of its own, in ms (0: the default)' },
+  delay: OptionalParam(
+    PD.Numeric(
+      1500,
+      { min: 100, max: 60000, step: 100 },
+      { description: "How long to show a snapshot that has no time of its own, in ms (absent: the manager's)" },
+    ),
   ),
 };
 
@@ -174,10 +182,10 @@ function keyTaken(ctx: ApiContext, key: string, except?: Entry): boolean {
 }
 
 /** The state of a new or replacing snapshot: what Mol*'s Add and Replace take, without the canvas where there is none. */
-async function capture(ctx: ApiContext, options: Record<string, unknown>, showFor: number) {
+async function capture(ctx: ApiContext, options: Record<string, unknown>, showFor: number | undefined) {
   const plugin = ctx.plugin;
   const params: PluginState.SnapshotParams = { ...options };
-  if (showFor > 0) params.durationInMs = showFor;
+  if (showFor !== undefined) params.durationInMs = showFor;
   // `getSnapshot` reads the camera from the canvas; a thumbnail needs one.
   if (!plugin.canvas3d) {
     params.camera = false;
@@ -322,16 +330,25 @@ export class SnapshotApi extends ApiArea {
     surface: { kind: 'agent-only', reason: "The Snapshots tab's rows." },
     params: UpdateParams,
     undoable: false,
-    async run({ entry, name, description, key, showFor, clear }, ctx) {
+    async run(v, ctx) {
+      const { entry } = v;
+      const { name, description, key, showFor } = v as {
+        name?: string;
+        description?: string;
+        key?: string;
+        showFor?: number;
+      };
       const found = find(ctx, entry, true);
       if (isFailure(found)) return found;
       const e = found.entry;
+      const text = (given: string | undefined, current: string | undefined) =>
+        given === undefined ? current : given.trim() || undefined;
       const next = {
-        name: name.trim() || (clear ? undefined : e.name),
-        description: description.trim() || (clear ? undefined : e.description),
-        key: key.trim() || (clear ? undefined : e.key),
+        name: text(name, e.name),
+        description: text(description, e.description),
+        key: text(key, e.key),
       };
-      const time = showFor > 0 ? showFor : e.snapshot.durationInMs;
+      const time = showFor ?? e.snapshot.durationInMs;
       if (
         next.name === e.name &&
         next.description === e.description &&
@@ -360,7 +377,7 @@ export class SnapshotApi extends ApiArea {
       const found = find(ctx, entry, true);
       if (isFailure(found)) return found;
       // The time it is shown for stays the entry's own (the options' time is for new snapshots).
-      const time = showFor > 0 ? showFor : (found.entry.snapshot.durationInMs ?? 0);
+      const time = (showFor as number | undefined) ?? found.entry.snapshot.durationInMs ?? 0;
       const { snapshot, image } = await capture(ctx, options, time);
       // The id changes with the state it holds (the manager's rule).
       ctx.plugin.managers.snapshot.replace(found.entry.snapshot.id, snapshot, { image });
@@ -471,7 +488,7 @@ export class SnapshotApi extends ApiArea {
       if (!count) return none();
       if (count < 2) return ApiResult.fail('blocked', 'Playing needs at least two snapshots.', 'Add another.');
       if (manager.state.isPlaying) return ApiResult.already('The snapshots are playing.');
-      if (delay > 0) {
+      if (delay !== undefined) {
         // The manager keeps the delay for good (and saves it in a session): this play's only.
         const was = manager.state.nextSnapshotDelayInMs;
         setManagerState(ctx, { nextSnapshotDelayInMs: delay });

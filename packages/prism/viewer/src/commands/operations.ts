@@ -31,6 +31,11 @@ export interface OperationCommandOptions {
   /** Values fixed for this command; the form shows the rest. */
   readonly values?: Readonly<Record<string, unknown>>;
   /**
+   * A switch the command flips (operations.md §1: operations take the state wanted, commands toggle): `key` is set to
+   * the other of `current()` when it runs, and is not asked for.
+   */
+  readonly toggle?: { readonly key: string; readonly current: () => boolean | Promise<boolean> };
+  /**
    * Where it is in the UI ("Export › Models"): a card or a tab by part id, at a section; the command's form offers to go
    * there (`CommandDefinition.view`).
    */
@@ -67,7 +72,10 @@ export function operationCommand(
   o: OperationCommandOptions,
 ): CommandDefinition<ViewerCommandContext> {
   const def = op.definition;
-  const fixed = o.values ?? {};
+  const fixed: Readonly<Record<string, unknown>> = {
+    ...(o.values ?? {}),
+    ...(o.toggle ? { [o.toggle.key]: true } : {}),
+  };
   const form = () => {
     const params = api.describe(def.id)?.params ?? {};
     const open = Object.keys(params).filter((k) => !(k in fixed));
@@ -99,7 +107,11 @@ export function operationCommand(
     when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,
     async run(args) {
       // File pickers give Mol*'s file assets; the operation takes DOM files.
-      const values: Record<string, unknown> = { ...args, ...fixed };
+      const values: Record<string, unknown> = {
+        ...args,
+        ...fixed,
+        ...(o.toggle ? { [o.toggle.key]: !(await o.toggle.current()) } : {}),
+      };
       for (const k of files) {
         if (!(k in values)) continue;
         const list = filesOf(values[k]);
@@ -131,6 +143,8 @@ function formParams(params: PD.Params): PD.Params {
 function formDefaults(params: PD.Params | undefined): CommandValues {
   const out: Record<string, string | number | boolean> = {};
   for (const [k, p] of Object.entries(params ?? {})) {
+    // An optional one (absent: kept as it is) starts empty.
+    if (p.isOptional) continue;
     if (p.type === 'select' || p.type === 'boolean' || p.type === 'number') out[k] = p.defaultValue;
   }
   return out;

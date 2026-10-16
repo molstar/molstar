@@ -77,7 +77,7 @@ describe('snapshot.update', () => {
     expectOk(await snap(v).update({ entry: 'a', name: 'Alpha', key: 'alpha' }));
     expect((await list(v)).entries[0]).toMatchObject({ name: 'Alpha', key: 'alpha', description: 'first' });
     // By key, and cleared on request.
-    expectOk(await snap(v).update({ entry: 'alpha', clear: true, name: 'Alpha' }));
+    expectOk(await snap(v).update({ entry: 'alpha', name: 'Alpha', description: '', key: '' }));
     const e = (await list(v)).entries[0];
     expect(e.description).toBeUndefined();
     expect(e.key).toBeUndefined();

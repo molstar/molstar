@@ -13,6 +13,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginStateAnimation } from '@molstar/plugin/state/animation/model';
 import type { ViewportScreenshotHelper } from '@molstar/plugin/util/viewport-screenshot';
 import { type ApiAreaContext, ApiArea, type ApiContext, ApiResult } from '@molstar/prism-viewer/api/area';
+import { OptionalParam } from '@molstar/prism-viewer/api/params';
 import { checkValues, messageOf } from '@molstar/prism-viewer/api/run';
 import { operationCommand } from '@molstar/prism-viewer/commands/operations';
 import type { ViewerExtension } from '@molstar/prism-viewer/spec';
@@ -68,21 +69,41 @@ export const VideoExportParams = (ctx: ApiAreaContext) => {
       {},
       { description: "Some of the animation's params (animation.get lists them); the rest are its defaults" },
     ),
-    duration: PD.Numeric(
-      0,
-      { min: 0, max: 600, step: 0.1 },
-      { description: "Seconds: the video's length (spin and rock play over it); 0: the animation's own" },
+    duration: OptionalParam(
+      PD.Numeric(
+        10,
+        { min: 0.1, max: 600, step: 0.1 },
+        { description: "Seconds: the video's length (spin and rock play over it); absent: the animation's own" },
+      ),
     ),
     fps: PD.Numeric(30, { min: 1, max: 120, step: 1 }, { description: 'Frames per second' }),
-    size: PD.Select<VideoSize>('viewport', [
-      ['viewport', 'Viewport'],
-      ['hd', 'HD (1280 × 720)'],
-      ['full-hd', 'Full HD (1920 × 1080)'],
-      ['ultra-hd', 'Ultra HD / 4K (3840 × 2160)'],
-      ['custom', 'Custom'],
-    ]),
-    width: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with height: a custom size' }),
-    height: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with width: a custom size' }),
+    // A preset, or custom with its sides (Prism's operations.md §1: a choice with its settings is a union).
+    size: PD.MappedStatic(
+      'viewport',
+      {
+        viewport: PD.Group({}, { isFlat: true }),
+        hd: PD.Group({}, { isFlat: true }),
+        'full-hd': PD.Group({}, { isFlat: true }),
+        'ultra-hd': PD.Group({}, { isFlat: true }),
+        custom: PD.Group(
+          {
+            width: PD.Numeric(1920, { min: MinSide, max: MaxSide, step: 1 }, { description: 'Pixels' }),
+            height: PD.Numeric(1080, { min: MinSide, max: MaxSide, step: 1 }, { description: 'Pixels' }),
+          },
+          { isFlat: true },
+        ),
+      },
+      {
+        options: [
+          ['viewport', 'Viewport'],
+          ['hd', 'HD (1280 × 720)'],
+          ['full-hd', 'Full HD (1920 × 1080)'],
+          ['ultra-hd', 'Ultra HD / 4K (3840 × 2160)'],
+          ['custom', 'Custom'],
+        ],
+        description: "The video's size: a preset, or { name: 'custom', params: { width, height } }",
+      },
+    ),
     axes: PD.Boolean(false, { description: 'Show the orientation axes' }),
     box: PD.Value<{ x: number; y: number; width: number; height: number }>(
       { x: 0, y: 0, width: 1, height: 1 },
@@ -125,13 +146,10 @@ export function cropOf(b: { x: number; y: number; width: number; height: number 
 /** Sets the screenshot helper to the video's size (the classic UI's too) and returns how to put it back. */
 function configure(helper: ViewportScreenshotHelper, v: ExportValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
-  const custom = v.size === 'custom' || v.width > 0 || v.height > 0;
   const on = PD.getDefaultValues((CameraHelperParams.axes.map('on') as PD.Group<any>).params);
   helper.behaviors.values.next({
     ...before.values,
-    resolution: custom
-      ? { name: 'custom', params: { width: v.width, height: v.height } }
-      : ({ name: v.size, params: {} } as never),
+    resolution: (v.size.name === 'custom' ? v.size : { name: v.size.name, params: {} }) as never,
     // A video has no alpha (MP4): an opaque background, whatever an image export left.
     transparent: false,
     axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,
@@ -218,7 +236,8 @@ export class VideoApi extends ApiArea {
     const checked = checkValues(anim.params(plugin) as PD.Params, v.params ?? {});
     if (ApiResult.isFailure(checked)) return checked;
     // A duration sets the animation's own (spin, rock) and the video's length (any animation with no end of its own).
-    const customMs = v.duration > 0 ? Math.round(v.duration * 1000) : undefined;
+    const duration = (v as { duration?: number }).duration;
+    const customMs = duration !== undefined ? Math.round(duration * 1000) : undefined;
     if (customMs !== undefined && 'durationInMs' in checked.values) checked.values.durationInMs = customMs;
     const lengthMs = customMs ?? fixedDuration(plugin, anim, checked.values);
     if (!lengthMs) {
@@ -228,8 +247,11 @@ export class VideoApi extends ApiArea {
         'Give a duration in seconds (snapshots: add some first).',
       );
     }
-    const custom = v.size === 'custom' || v.width > 0 || v.height > 0;
-    if (custom && !(v.width >= MinSide && v.width <= MaxSide && v.height >= MinSide && v.height <= MaxSide)) {
+    const sides = v.size.name === 'custom' ? (v.size.params as { width?: number; height?: number }) : undefined;
+    if (
+      sides &&
+      !(sides.width! >= MinSide && sides.width! <= MaxSide && sides.height! >= MinSide && sides.height! <= MaxSide)
+    ) {
       return ApiResult.fail('invalid', `A custom size needs a width and a height of ${MinSide} to ${MaxSide} pixels.`);
     }
     // The values are checked first: they do not need the canvas.

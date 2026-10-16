@@ -93,7 +93,7 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | `focus`               | `set`, `clear`, `get`, `again`, `history`.                                                                                                                       |
 | `highlight`           | `set`, `clear`, `mark`, `unmark`.                                                                                                                                |
 | `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `set`, `get`.                                                                                                  |
-| `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting`, `illumination`, `camera`, `clipping`.                                      |
+| `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting` (its switches, illumination among them), `camera`, `clipping`.              |
 | `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                  |
 | `volume`, `particles` | `get`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                      |
 | `sequence`            | `style`, `colors`, `follow`, `get`. Present when the spec has a sequence.                                                                                        |

@@ -24,7 +24,14 @@ import { setStructureEmissive } from '@molstar/plugin/state/helpers/structure-em
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { setStructureTransparency } from '@molstar/plugin/state/helpers/structure-transparency';
 import { type ApiAreaContext, type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { ComponentParam, EveryStructureParam, InStructure, mergeParams, StructureParam } from './params.js';
+import {
+  ComponentParam,
+  EveryStructureParam,
+  InStructure,
+  mergeParams,
+  StructureParam,
+  OptionalParam,
+} from './params.js';
 import {
   componentName,
   findComponent,
@@ -345,13 +352,22 @@ export class RepresentationApi extends ApiArea {
       const themes = ctx.plugin.representation.structure.themes.sizeThemeRegistry.types;
       return {
         target: TargetParam('What to resize: ligand, A:120-130, …; empty: everything'),
-        theme: PD.Select('', [['', 'Keep'], ...themes.map((t) => [t[0], t[1]] as [string, string])], {
-          description: 'A size theme: uniform, physical, …',
-        }),
-        factor: PD.Numeric(
-          0,
-          { min: 0, max: 10, step: 0.05 },
-          { description: 'A multiple of the default size (1: the default, 2: twice as big); 0 leaves the size alone' },
+        // Each absent: kept (operations.md §1); one of them is needed.
+        theme: OptionalParam(
+          PD.Select(
+            themes[0]?.[0] ?? 'uniform',
+            themes.map((t) => [t[0], t[1]] as [string, string]),
+            {
+              description: 'A size theme: uniform, physical, …',
+            },
+          ),
+        ),
+        factor: OptionalParam(
+          PD.Numeric(
+            1,
+            { min: 0.05, max: 10, step: 0.05 },
+            { description: 'A multiple of the default size (1: the default, 2: twice as big)' },
+          ),
         ),
         structure: EveryStructureParam(),
         language: LanguageParam(),

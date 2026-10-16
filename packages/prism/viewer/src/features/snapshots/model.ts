@@ -189,13 +189,12 @@ export function createSnapshotsModel(
     update: (id, patch) => {
       const e = entryOf(id);
       if (!e) return;
-      // The operation keeps what is empty, unless `clear` says to empty it: the whole edit goes in.
+      // What the edit gives is set ("" clears it), the rest kept (operations.md §1).
       void api.snapshot?.update({
         entry: id,
-        name: patch.name ?? e.name,
-        description: patch.description ?? e.description ?? '',
-        key: patch.key ?? e.key ?? '',
-        clear: true,
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+        ...(patch.key !== undefined ? { key: patch.key } : {}),
       });
     },
     replace: (id) => void api.snapshot?.replace({ entry: id, options: { ...saveOptions.values.value } }),

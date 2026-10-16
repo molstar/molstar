@@ -42,26 +42,52 @@ export interface CropBox {
 export type ImageSize = 'viewport' | 'hd' | 'full-hd' | 'ultra-hd' | '8k-ultra-hd' | 'custom';
 export type ImageFormat = 'png' | 'jpeg' | 'webp';
 
+/**
+ * The image's size (operations.md §1: a choice with its own settings is a union), as Mol*'s screenshot resolution: a
+ * preset, `{ name: 'hd' }`, or `{ name: 'custom', params: { width, height } }`.
+ */
+/** A custom size's sides, in pixels. */
+const MaxSide = 8192;
+const MinSide = 128;
+
+/** An image's size as a script gives it: a preset by name, or custom with its sides. */
+export type ImageSizeValue =
+  | { readonly name: Exclude<ImageSize, 'custom'>; readonly params?: Record<string, never> }
+  | { readonly name: 'custom'; readonly params: { readonly width: number; readonly height: number } };
+
+export const ImageSizeParam = (info?: PD.Info) =>
+  PD.MappedStatic(
+    'viewport',
+    {
+      viewport: PD.Group({}, { isFlat: true }),
+      hd: PD.Group({}, { isFlat: true }),
+      'full-hd': PD.Group({}, { isFlat: true }),
+      'ultra-hd': PD.Group({}, { isFlat: true }),
+      '8k-ultra-hd': PD.Group({}, { isFlat: true }),
+      custom: PD.Group(
+        {
+          width: PD.Numeric(1920, { min: MinSide, max: MaxSide, step: 1 }, { description: 'Pixels' }),
+          height: PD.Numeric(1080, { min: MinSide, max: MaxSide, step: 1 }, { description: 'Pixels' }),
+        },
+        { isFlat: true },
+      ),
+    },
+    {
+      options: [
+        ['viewport', 'Viewport'],
+        ['hd', 'HD (1280 × 720)'],
+        ['full-hd', 'Full HD (1920 × 1080)'],
+        ['ultra-hd', 'Ultra HD (3840 × 2160)'],
+        ['8k-ultra-hd', '8K (7680 × 4320)'],
+        ['custom', 'Custom'],
+      ],
+      ...info,
+    },
+  ) as unknown as Omit<PD.Mapped<any>, 'defaultValue'> & { readonly defaultValue: ImageSizeValue };
+
 /** What the image is, shared by `export.image`, `export.image-copy` and the preview. */
 const ShotParams = {
-  size: PD.Select<ImageSize>('viewport', [
-    ['viewport', 'Viewport'],
-    ['hd', 'HD (1280 x 720)'],
-    ['full-hd', 'Full HD (1920 x 1080)'],
-    ['ultra-hd', 'Ultra HD / 4K (3840 x 2160)'],
-    ['8k-ultra-hd', '8K Ultra HD (7680 x 4320)'],
-    ['custom', 'Custom'],
-  ]),
-  width: PD.Numeric(
-    0,
-    { min: 0, max: 8192, step: 1 },
-    { description: 'Pixels, with height: a custom size (0: use size)' },
-  ),
-  height: PD.Numeric(
-    0,
-    { min: 0, max: 8192, step: 1 },
-    { description: 'Pixels, with width: a custom size (0: use size)' },
-  ),
+  size: ImageSizeParam({ description: "The image's size: a preset, or { name: 'custom', params: { width, height } }" }),
   transparent: PD.Boolean(false, { description: 'Transparent background (PNG and WebP)' }),
   crop: PD.Select<'auto' | 'none'>(
     'auto',
@@ -145,8 +171,6 @@ export interface PreviewResult {
 }
 
 const Full: CropBox = { x: 0, y: 0, width: 1, height: 1 };
-const MaxSide = 8192;
-const MinSide = 128;
 
 function helperOf(ctx: ApiContext): ViewportScreenshotHelper | undefined {
   return ctx.plugin.helpers.viewportScreenshot;
@@ -173,9 +197,9 @@ function validBox(b: CropBox): boolean {
 
 /** Checks the values a render needs; a message when one is wrong. */
 function check(v: ShotValues): string | undefined {
-  const custom = v.size === 'custom' || v.width > 0 || v.height > 0;
-  if (custom) {
-    if (!(v.width >= MinSide && v.width <= MaxSide && v.height >= MinSide && v.height <= MaxSide)) {
+  if (v.size.name === 'custom') {
+    const { width, height } = v.size.params as { width?: number; height?: number };
+    if (!(width! >= MinSide && width! <= MaxSide && height! >= MinSide && height! <= MaxSide)) {
       return `A custom size needs a width and a height of ${MinSide} to ${MaxSide} pixels.`;
     }
   }
@@ -190,13 +214,10 @@ function check(v: ShotValues): string | undefined {
  */
 function configure(helper: ViewportScreenshotHelper, v: ShotValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
-  const custom = v.size === 'custom' || v.width > 0 || v.height > 0;
   const on = PD.getDefaultValues((CameraHelperParams.axes.map('on') as PD.Group<any>).params);
   helper.behaviors.values.next({
     ...before.values,
-    resolution: custom
-      ? { name: 'custom', params: { width: v.width, height: v.height } }
-      : ({ name: v.size, params: {} } as never),
+    resolution: (v.size.name === 'custom' ? v.size : { name: v.size.name, params: {} }) as never,
     format: v.format === 'png' ? { name: 'png', params: {} } : { name: v.format, params: { quality: v.quality } },
     transparent: v.transparent,
     axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,

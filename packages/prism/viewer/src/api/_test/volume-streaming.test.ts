@@ -57,7 +57,7 @@ const xray: VolumeServerInfo.EntryData = {
 const defaults = (entry: VolumeServerInfo.EntryData) =>
   PD.getDefaultValues(VolumeStreaming.createParams({ data: { serverUrl: '', entries: [entry] } as never }));
 
-const none: StreamingChange = { view: '', radius: 0, detail: 0, channels: {} };
+const none: StreamingChange = {};
 
 afterEach(() => vi.unstubAllGlobals());
 

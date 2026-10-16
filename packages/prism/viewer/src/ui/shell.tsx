@@ -367,8 +367,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             pressed: combineLatest([managers.navigation.expanded, fullscreen.active]).pipe(map(([e, f]) => e || f)),
             run: () =>
               void (fullscreen.mode === 'fullscreen'
-                ? person.view.fullscreen({ on: 'toggle' })
-                : person.view.expand({ on: 'toggle' })),
+                ? person.view.fullscreen({ on: !managers.navigation.fullscreen.value })
+                : person.view.expand({ on: !managers.navigation.expanded.value })),
             menu: [
               {
                 id: 'expand-viewport',
@@ -376,7 +376,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                 icon: 'maximize-2',
                 hint: 'Hide the panels; Escape brings them back',
                 pressed: managers.navigation.expanded,
-                run: () => void person.view.expand({ on: 'toggle' }),
+                run: () => void person.view.expand({ on: !managers.navigation.expanded.value }),
               },
               {
                 id: 'fullscreen',
@@ -385,7 +385,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                 hint: 'The viewer fills the screen',
                 pressed: fullscreen.active,
                 ...(fullscreen.unavailableReason ? { disabled: fullscreen.unavailableReason } : {}),
-                run: () => void person.view.fullscreen({ on: 'toggle' }),
+                run: () => void person.view.fullscreen({ on: !managers.navigation.fullscreen.value }),
               },
             ],
           },
@@ -395,7 +395,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             place: 'canvas',
             group: 'rendering',
             visible: combineLatest([hasData, sources.canvas]).pipe(
-              map(([data, c]) => data && c !== undefined && person.describe('canvas.illumination') !== undefined),
+              map(([data, c]) => data && c !== undefined && person.describe('canvas.lighting') !== undefined),
               distinctUntilChanged(),
             ),
             icon: 'lightbulb',
@@ -404,7 +404,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               map((c) => !!c?.illumination),
               distinctUntilChanged(),
             ),
-            run: () => void person.canvas.illumination({ on: !sources.canvas.value?.illumination }),
+            // The lighting's illumination switch, set to the other of what it is (operations.md §1).
+            run: () =>
+              void person.canvas.lighting({
+                illumination: { name: sources.canvas.value?.illumination ? 'off' : 'on' },
+              }),
           },
           {
             id: 'xr',
@@ -420,7 +424,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               map((x) => x.presenting),
               distinctUntilChanged(),
             ),
-            run: () => void person.canvas.xr({ on: 'toggle' }),
+            run: () => void person.canvas.xr({ on: !xr.state.value.presenting }),
           },
         ]),
       ),

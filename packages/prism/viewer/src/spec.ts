@@ -226,9 +226,10 @@ export interface ExportFrame {
 }
 
 export interface ExportFrameValues {
-  readonly size: 'viewport' | 'custom';
-  readonly width: number;
-  readonly height: number;
+  /** The viewport's, or its pixels (operations.md §1: a choice with its settings is a union). */
+  readonly size:
+    | { readonly name: 'viewport' }
+    | { readonly name: 'custom'; readonly params: { readonly width: number; readonly height: number } };
   readonly axes: boolean;
   /** The crop, as fractions of the frame (the preview's box, auto or the person's). */
   readonly box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };

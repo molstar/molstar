@@ -78,6 +78,6 @@ describe('the Canvas card', () => {
     props.transparentBackground = false;
     v.plugin.events.canvas3d.settingsUpdated.next(void 0);
     await until(() => toggle().getAttribute('aria-checked') === 'false');
-    expectOk(await v.api.canvas.illumination!({ on: true }));
+    expectOk(await v.api.canvas.lighting!({ illumination: { name: 'on' } }));
   });
 });

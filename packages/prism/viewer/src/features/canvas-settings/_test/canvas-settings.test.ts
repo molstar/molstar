@@ -69,45 +69,57 @@ async function withCanvas(): Promise<{ v: PrismViewer; props: Canvas3DProps; set
 describe('canvas settings', () => {
   it('is in the default spec: its operations in the canvas area, and its commands', async () => {
     const v = await headlessViewer();
-    for (const id of [
-      'canvas.settings',
-      'canvas.lighting',
-      'canvas.illumination',
-      'canvas.camera',
-      'canvas.clipping',
-    ]) {
+    for (const id of ['canvas.settings', 'canvas.lighting', 'canvas.camera', 'canvas.clipping']) {
       expect(v.api.describe(id)).toBeDefined();
     }
     expect(v.api.canvas.lighting).toBeDefined();
     expect(v.managers.commands.get('canvas.lighting')).toBeDefined();
+    // Illumination is the lighting's switch; its one-click command runs canvas.lighting.
+    expect(v.api.describe('canvas.illumination')).toBeUndefined();
+    expect(v.managers.commands.get('canvas.illumination')).toBeDefined();
     // No canvas, nothing to change.
-    expect(await v.api.canvas.lighting!({ shadow: 'on' })).toMatchObject({ ok: false, code: 'unavailable' });
+    expect(await v.api.canvas.lighting!({ shadow: { name: 'on' } })).toMatchObject({ ok: false, code: 'unavailable' });
   });
 
   it('turns lighting effects on and off, as one step; already so when they are', async () => {
     const { v, props } = await withCanvas();
     expect(props.postprocessing.shadow.name).toBe('off');
-    expectOk(await v.api.canvas.lighting!({ shadow: 'on', fog: 'off' }));
+    expectOk(await v.api.canvas.lighting!({ shadow: { name: 'on' }, fog: { name: 'off' } }));
     expect(props.postprocessing.shadow.name).toBe('on');
     expect(props.cameraFog.name).toBe('off');
-    const again = await v.api.canvas.lighting!({ shadow: 'on', fog: 'off' });
+    const again = await v.api.canvas.lighting!({ shadow: { name: 'on' }, fog: { name: 'off' } });
     expect(again).toMatchObject({ ok: true, unchanged: true });
     const none = await v.api.canvas.lighting!({});
     expect(none, JSON.stringify(none)).toMatchObject({ ok: false, code: 'invalid' });
+    // On with settings: the given ones set, the rest kept; a wrong name or setting is refused.
+    expectOk(await v.api.canvas.lighting!({ shadow: { name: 'on', params: { steps: 3 } } }));
+    expect((props.postprocessing.shadow.params as { steps: number }).steps).toBe(3);
+    expect(await v.api.canvas.lighting!({ shadow: { name: 'maybe' } as never })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+    expect(await v.api.canvas.lighting!({ shadow: { name: 'on', params: { nope: 1 } } as never })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
   });
 
   it('sets illumination, the camera and clipping', async () => {
     const { v, props } = await withCanvas();
-    expectOk(await v.api.canvas.illumination!({ on: true }));
+    expectOk(await v.api.canvas.lighting!({ illumination: { name: 'on' } }));
     expect(props.illumination.enabled).toBe(true);
-    expect(await v.api.canvas.illumination!({ on: true })).toMatchObject({ ok: true, unchanged: true });
+    expect(await v.api.canvas.lighting!({ illumination: { name: 'on' } })).toMatchObject({ ok: true, unchanged: true });
     expectOk(await v.api.canvas.camera!({ mode: 'orthographic' }));
     expect(props.camera.mode).toBe('orthographic');
     expectOk(await v.api.canvas.clipping!({ clip: 50, far: false }));
     expect(props.cameraClipping).toMatchObject({ radius: 50, far: false });
     expect(await v.api.canvas.clipping!({ clip: 50, far: false })).toMatchObject({ ok: true, unchanged: true });
-    // A field of view below 10° is 10°; the same again is already so.
-    expectOk(await v.api.canvas.camera!({ fov: 5 }));
+    // An absent value is kept (operations.md §1): far stays off when only the clip changes.
+    expectOk(await v.api.canvas.clipping!({ clip: 20 }));
+    expect(props.cameraClipping).toMatchObject({ radius: 20, far: false });
+    // A field of view below 10° is refused; the same again is already so.
+    expect(await v.api.canvas.camera!({ fov: 5 })).toMatchObject({ ok: false, code: 'invalid' });
+    expectOk(await v.api.canvas.camera!({ fov: 10 }));
     expect(props.camera.fov).toBe(10);
     expect(await v.api.canvas.camera!({ fov: 10 })).toMatchObject({ ok: true, unchanged: true });
   });
@@ -165,13 +177,13 @@ describe('canvas settings', () => {
     const { v, props } = await withCanvas();
     const steps = () => v.managers.history.steps.value.length;
     const before = structuredClone(props);
-    expectOk(await v.api.canvas.lighting!({ shadow: 'on' }));
-    expectOk(await v.api.canvas.illumination!({ on: true }));
+    expectOk(await v.api.canvas.lighting!({ shadow: { name: 'on' } }));
+    expectOk(await v.api.canvas.lighting!({ illumination: { name: 'on' } }));
     expectOk(await v.api.canvas.camera!({ mode: 'orthographic' }));
     expectOk(await v.api.canvas.clipping!({ clip: 30 }));
     expectOk(await v.api.run('canvas.settings', { section: 'background', values: { transparent: true } }));
     expect(steps()).toBe(5);
-    await v.api.canvas.illumination!({ on: true });
+    await v.api.canvas.lighting!({ illumination: { name: 'on' } });
     expect(steps()).toBe(5);
     for (let i = 0; i < 5; i++) expectOk(await v.api.history.undo());
     expect(props.postprocessing.shadow.name).toBe(before.postprocessing.shadow.name);

@@ -14,18 +14,23 @@ import { ApiArea, ApiResult } from './area.js';
 // navigation state only (nothing shows it). `open`, `close`, `expand` (the canvas fills the viewer) and `fullscreen`
 // (the page's shell follows `navigation.fullscreen` with the browser's; parity.md's "expand, fullscreen" row).
 
-/** On, off, or the other of what it is. */
-const ToggleParam = () =>
-  PD.Select<'toggle' | 'on' | 'off'>('toggle', PD.arrayToOptions(['toggle', 'on', 'off'] as const), {
-    description: 'on, off, or toggle',
-  });
+/** On (true) or off (false): the state wanted, never a toggle (operations.md §1; commands flip it). */
+const OnParam = (description: string) => PD.Boolean(true, { description });
 
 const DockSides = ['right', 'left', 'top', 'bottom'] as const;
 
-const want = (on: 'toggle' | 'on' | 'off', current: boolean) => (on === 'toggle' ? !current : on === 'on');
-
 export class ViewApi extends ApiArea {
   readonly id = 'view';
+
+  /** Whether the viewport is expanded (for a command that flips it). */
+  get isExpanded(): boolean {
+    return this.ctx.managers.navigation.expanded.value;
+  }
+
+  /** Whether the viewer is fullscreen (for a command that flips it). */
+  get isFullscreen(): boolean {
+    return this.ctx.managers.navigation.fullscreen.value;
+  }
 
   /** Whether a tab (by part id or core name) is in the layout: `view.open` finds a panel only if it is. */
   hasTab(tab: string): boolean {
@@ -85,11 +90,11 @@ export class ViewApi extends ApiArea {
   readonly expand = this.operation({
     id: 'view.expand',
     title: 'Expand the viewport',
-    params: { on: ToggleParam() },
+    params: { on: OnParam('Expand (true): the canvas fills the viewer; false: the panels come back') },
     history: false,
     async run({ on }, ctx) {
       const nav = ctx.managers.navigation;
-      const next = want(on, nav.expanded.value);
+      const next = on;
       if (next === nav.expanded.value) {
         return ApiResult.already(next ? 'The viewport is already expanded.' : 'The viewport is not expanded.');
       }
@@ -105,7 +110,7 @@ export class ViewApi extends ApiArea {
   readonly fullscreen = this.operation({
     id: 'view.fullscreen',
     title: 'Fullscreen',
-    params: { on: ToggleParam() },
+    params: { on: OnParam('Enter (true) or leave (false) fullscreen') },
     history: false,
     modules: ['page'],
     // The page Mol* is embedded in may forbid it (`<iframe allow="fullscreen">`, molstar#1663).
@@ -115,7 +120,7 @@ export class ViewApi extends ApiArea {
         : true,
     async run({ on }, ctx) {
       const nav = ctx.managers.navigation;
-      const next = want(on, nav.fullscreen.value);
+      const next = on;
       if (next === nav.fullscreen.value) {
         return ApiResult.already(next ? 'Already fullscreen.' : 'Not fullscreen.');
       }

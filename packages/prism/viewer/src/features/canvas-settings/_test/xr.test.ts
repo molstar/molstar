@@ -45,10 +45,10 @@ describe('canvas.xr', () => {
   it('enters and leaves XR, no history step; already-so', async () => {
     const { v, xr } = await withXr(true);
     expect(v.api.describe('canvas.xr')?.available).toBe(true);
-    expectOk(await v.api.canvas.xr!({ on: 'toggle' }));
+    expectOk(await v.api.canvas.xr!({ on: true }));
     expect(xr.isPresenting.value).toBe(true);
-    expect(await v.api.canvas.xr!({ on: 'on' })).toMatchObject({ ok: true, unchanged: true });
-    expectOk(await v.api.canvas.xr!({ on: 'off' }));
+    expect(await v.api.canvas.xr!({ on: true })).toMatchObject({ ok: true, unchanged: true });
+    expectOk(await v.api.canvas.xr!({ on: false }));
     expect(xr.isPresenting.value).toBe(false);
     expect(v.managers.history.steps.value).toHaveLength(0);
   });
@@ -61,7 +61,7 @@ describe('canvas.xr', () => {
     open = undefined;
 
     const refused = await withXr(true, 'The person declined');
-    expect(await refused.v.api.canvas.xr!({ on: 'on' })).toMatchObject({
+    expect(await refused.v.api.canvas.xr!({ on: true })).toMatchObject({
       ok: false,
       code: 'failed',
       message: 'Could not enter XR: The person declined',

@@ -115,7 +115,7 @@ and not part of the `molstar` distribution.
 | `selection-panel` | The Selection tab. Needs `structure`.                                                               |
 | `help`            | Help.                                                                                               |
 | `loaders`         | `load.entry`, `load.url`, `load.mvs`, `load.snapshot`, `load.trajectory`, `load.volume`.            |
-| `canvas-settings` | The canvas settings card and `canvas.lighting`, `.illumination`, `.camera`, `.clipping`.            |
+| `canvas-settings` | The canvas settings card and `canvas.lighting` (illumination too), `.camera`, `.clipping`.          |
 | `measurements`    | The `measure` area and the Measure section.                                                         |
 | `superposition`   | The `superpose` area and the Superpose section. Lazy.                                               |
 | `state-tree`      | The `state` area and the State tree tab. Lazy.                                                      |

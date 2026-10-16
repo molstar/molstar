@@ -223,7 +223,7 @@ export function createSceneSource(
   /** The structure a volume streaming row is under, and the streaming's behavior cell (its params change). */
   const streamingOwners = new Map<string, string>();
   // The view streaming last had that was not off (and its radius), which the eye brings back.
-  const streamingShown = new Map<string, { view: string; radius: number }>();
+  const streamingShown = new Map<string, { view: string; radius?: number }>();
   const streamingBehaviors = new Map<string, string>();
   /** How map levels are shown and typed (σ or map units), one choice for every map. */
   const levelUnit = observableState<VolumeLevelUnit>('sigma');
@@ -295,9 +295,13 @@ export function createSceneSource(
           const owner = streamingOwners.get(ref);
           const last = streamingShown.get(ref);
           const view = hide ? 'off' : (last?.view ?? (on.entry.kind === 'em' ? 'auto' : 'selection-box'));
-          void api.run('volume.streaming-view', { structure: owner, view, radius: hide ? 0 : (last?.radius ?? 0) });
+          void api.run('volume.streaming-view', {
+            structure: owner,
+            view,
+            ...(!hide && last?.radius !== undefined ? { radius: last.radius } : {}),
+          });
         },
-        remove: () => void api.run('volume.streaming', { structure: streamingOwners.get(ref), enabled: false }),
+        remove: () => void api.run('volume.streaming', { structure: streamingOwners.get(ref), on: false }),
       });
       n.removable = true;
       nodes.set(ref, n);
@@ -305,7 +309,7 @@ export function createSceneSource(
     const view = on.params.entry.params.view;
     if (view.name !== 'off') {
       const radius = (view.params as { radius?: unknown } | undefined)?.radius;
-      streamingShown.set(ref, { view: view.name, radius: typeof radius === 'number' ? radius : 0 });
+      streamingShown.set(ref, { view: view.name, ...(typeof radius === 'number' ? { radius } : {}) });
     }
     n.set('Volume streaming', streamingSummary(on), view.name === 'off');
     inspections.get(ref)?.form?.load(streamingValues(on));
@@ -323,7 +327,7 @@ export function createSceneSource(
     if (!n) {
       n = new Node(id, 'extension', 'volume', 'Volume streaming', false, {
         visibility: (hide) => {
-          if (!hide) void api.run('volume.streaming', { structure: structureRef, enabled: true });
+          if (!hide) void api.run('volume.streaming', { structure: structureRef, on: true });
         },
       });
       n.removable = false;
@@ -1535,7 +1539,7 @@ function structureMenu(plugin: PluginContext, api: ViewerApi, s: StructureRef): 
       id: 'stream-density',
       label: 'Stream density',
       icon: 'volume',
-      run: () => void api.run('volume.streaming', { structure, enabled: true }),
+      run: () => void api.run('volume.streaming', { structure, on: true }),
     });
   }
   // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).
