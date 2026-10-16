@@ -13,7 +13,7 @@ import {
 } from '@molstar/model/model/structure/structure/element/schema-selection/fields';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { type AddressResult, parseAddressList } from './addresses.js';
-import { checkMolQL, compileQuery, failure, formatMolQL, messageOf } from './compile.js';
+import { LanguageName, checkMolQL, compileQuery, failure, formatMolQL, messageOf } from './compile.js';
 import { KEYWORD_EXPRESSIONS, isKeyword, readKeyword } from './keywords.js';
 import { defaultQueryLanguage } from './languages.js';
 import { isMolQLSelector, itemsExpression } from './selector.js';
@@ -67,12 +67,8 @@ function parseString(text: string, language: NonNullable<CompileOptions['languag
   }
   // Neither: say what the text looked like.
   return addresses.addressy
-    ? failure(addresses.message, `${addresses.hint} (Not read as ${languageName(language)} either: ${query.message})`)
+    ? failure(addresses.message, `${addresses.hint} (Not read as ${LanguageName[language]} either: ${query.message})`)
     : query;
-}
-
-function languageName(language: string): string {
-  return { pymol: 'PyMOL', vmd: 'VMD', jmol: 'Jmol', molscript: 'MolScript' }[language] ?? language;
 }
 
 function parseSelector(selector: Exclude<Target, string>): Read {

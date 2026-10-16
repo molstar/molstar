@@ -52,6 +52,14 @@ describe('trajectory', () => {
     expect(v.managers.history.steps.value.length).toBe(steps);
   });
 
+  it('structure.model shows a model as viewing too: no history step', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    const steps = v.managers.history.steps.value.length;
+    expectOk(await v.api.structure.model({ index: 2 }));
+    expect(modelIndex(v)).toBe(2);
+    expect(v.managers.history.steps.value.length).toBe(steps);
+  });
+
   it('keeps the earlier steps undoable while it moves', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     expectOk(await v.api.structure.visibility({ visible: false }));

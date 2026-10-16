@@ -20,6 +20,8 @@ const ToggleParam = () =>
     description: 'on, off, or toggle',
   });
 
+const DockSides = ['right', 'left', 'top', 'bottom'] as const;
+
 const want = (on: 'toggle' | 'on' | 'off', current: boolean) => (on === 'toggle' ? !current : on === 'on');
 
 export class ViewApi extends ApiArea {
@@ -47,9 +49,7 @@ export class ViewApi extends ApiArea {
         nav.setCard({ id: card, ...(section ? { section } : {}) });
         return ApiResult.ok(`Opened ${card}.`, { view: true });
       }
-      const dock = (['right', 'left', 'top', 'bottom'] as const).find((d) =>
-        ctx.managers.viewState.layout.value.docks[d].tabs.includes(tab),
-      );
+      const dock = DockSides.find((d) => ctx.managers.viewState.layout.value.docks[d].tabs.includes(tab));
       if (!dock) return ApiResult.fail('not-found', `There is no '${tab}' panel.`);
       if (section) nav.setFocus({ tab, section });
       nav.setDock(dock, { active: tab, collapsed: false });
@@ -64,8 +64,13 @@ export class ViewApi extends ApiArea {
     params: {},
     history: false,
     async run(_, ctx) {
-      ctx.managers.navigation.setCard(undefined);
-      ctx.managers.navigation.setDock('right', { collapsed: true });
+      const nav = ctx.managers.navigation;
+      const { docks } = ctx.managers.viewState.layout.value;
+      // Every dock that holds tabs and is open (`view.open` finds the tab in any of them), not the right one alone.
+      const open = DockSides.filter((d) => docks[d].tabs.length > 0 && !nav.state.value.docks[d].collapsed);
+      if (!open.length && !nav.state.value.card) return ApiResult.already('Nothing is open.');
+      nav.setCard(undefined);
+      for (const d of open) nav.setDock(d, { collapsed: true });
       return ApiResult.ok('Closed.', { view: true });
     },
   });

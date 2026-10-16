@@ -60,6 +60,11 @@ export class StylesApi extends ApiArea {
   });
 }
 
+/** The preset the viewer is configured to apply by default (`PluginConfig.Structure.DefaultRepresentationPreset`). */
+export function defaultPreset(ctx: ApiContext): string | undefined {
+  return presetOf(ctx, 'default');
+}
+
 function presetOf(ctx: ApiContext, style: keyof typeof RepresentationStyles): string | undefined {
   const builder = ctx.plugin.builders.structure.representation;
   const id =

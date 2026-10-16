@@ -160,7 +160,7 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
       const nonEmpty = parts.filter((p) => p.selected.atoms > 0);
       const summary =
         nonEmpty.length === 0
-          ? `${formatTarget(target as Target)} selects nothing${parts.length > 1 ? ` in ${parts.length} structures` : ` in ${parts[0].structure.label}`}.`
+          ? `${shown(target as Target)} selects nothing${parts.length > 1 ? ` in ${parts.length} structures` : ` in ${parts[0].structure.label}`}.`
           : nonEmpty
               .map(
                 (p) => `${p.selected.line}${parts.length > 1 || scoping !== 'only' ? ` in ${p.structure.label}` : ''}`,
@@ -180,6 +180,11 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
 
 function withTarget(r: Evaluated | Failure, target: Extract<CompiledTarget, { ok: true }>): EvaluatedTarget {
   return r.ok ? { ...r, target } : r;
+}
+
+/** A target for a message: text as it was written (not its MolScript, nor compiled again in another language). */
+function shown(target: Target): string {
+  return typeof target === 'string' ? target.trim() : formatTarget(target);
 }
 
 function fail(code: ApiErrorCode, message: string, hint?: string): ApiFailure {

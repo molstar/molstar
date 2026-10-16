@@ -220,6 +220,23 @@ describe('volume', () => {
     expect((await infos(v))[1].representations[0].isoValue?.relative).toBeCloseTo(1.25);
   });
 
+  it('names the volume that has no representation, not "which volume?"', async () => {
+    const v = await headlessViewer();
+    await v.api.load.files({ files: [mapFile('a.ccp4')] });
+    await v.api.load.files({ files: [mapFile('b.ccp4')] });
+    const [a] = await infos(v);
+    await v.plugin.managers.volume.hierarchy.remove(
+      a.representations.map((r) => r.ref),
+      false,
+    );
+    const r = await v.api.volume.isovalue({ value: 1, volume: 'a.ccp4' });
+    expect(r).toMatchObject({ ok: false, code: 'not-found' });
+    if (!r.ok) {
+      expect(r.message).toMatch(/a\.ccp4 has no isosurface/);
+      expect(r.hint).toMatch(/volume\.representation/);
+    }
+  });
+
   it('streams density only for a structure, and is described as a network operation', async () => {
     const v = await headlessViewer();
     expect(await v.api.volume.streaming({ enabled: true })).toMatchObject({ ok: false, code: 'not-found' });

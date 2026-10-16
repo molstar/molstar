@@ -132,6 +132,21 @@ describe('representation.layer-update and layer-remove', () => {
     expect((await layers(v)).some((l) => l.id === red.id)).toBe(true);
   });
 
+  it('do not guess a layer when none is named: the only one, else ambiguous with the ids', async () => {
+    const v = await styled();
+    const before = (await layers(v)).length;
+    const r = await v.api.representation.layerRemove({});
+    expect(r).toMatchObject({ ok: false, code: 'ambiguous' });
+    if (!r.ok) expect(r.hint).toContain('color:');
+    expect(await v.api.representation.layerUpdate({ value: 'red' })).toMatchObject({ ok: false, code: 'ambiguous' });
+    expect(await layers(v)).toHaveLength(before);
+
+    const one = await headlessViewer({ files: [cbs()] });
+    expectOk(await one.api.representation.color({ target: 'ligand', color: 'red' }));
+    expectOk(await one.api.representation.layerRemove({}));
+    expect(await layers(one)).toEqual([]);
+  });
+
   it('are not available without layers', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     expect(v.api.describe('representation.layer-remove')?.available).toMatch(/No style layers/);

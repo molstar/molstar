@@ -19,6 +19,9 @@ export const StructureParam = (description = 'A structure by label or state ref;
 /** A structure by label or state ref. Empty: every one (the operation acts on many). */
 export const EveryStructureParam = () => StructureParam('A structure by label or state ref; empty: every one');
 
+/** For an operation that finds a component among the structures' when none is named. */
+export const InStructure = 'A structure by label or state ref; empty: every one (the component is found among them)';
+
 /** A component by label or state ref. Empty: the only one, unless the operation's description says otherwise. */
 export const ComponentParam = (description = 'A component by label or state ref; empty: the only one') =>
   PD.Text('', { description });

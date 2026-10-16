@@ -24,8 +24,8 @@ import type { Expression } from '@molstar/query-language/language/expression';
 import { compileTarget, fromMolqlJson, PERSON_KEYWORDS, readKeyword, type Target } from '../targets/index.js';
 import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area.js';
 import { type ComponentParams, expressionOf, ownParams, reapplyContents, setOwnParams } from './contents.js';
-import { ComponentParam, EveryStructureParam, StructureParam } from './params.js';
-import { componentName, findComponent, isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
+import { ComponentParam, EveryStructureParam, InStructure, StructureParam } from './params.js';
+import { componentName, inStructures, isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
 // `component` (operations.md §2, plan 2.2): the components of a structure, which are the unit the representations hang
@@ -34,8 +34,6 @@ import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './ta
 // shape (see `structure.ts`): a `structure` field naming one by label or ref, a component by label or ref, registry
 // ids validated with the valid ones in the hint, "already so" when nothing would change. `add` follows decision 30:
 // a component of exactly that target on the structure already exists, unless `copy` asks for another.
-
-const InStructure = 'A structure by label or state ref; empty: every one (the component is found among them)';
 
 /** A representation of a component, as `list` gives it. */
 export interface RepresentationInfo {
@@ -499,12 +497,6 @@ function findExisting(ctx: ApiAreaContext, s: StructureRef, key: string): Struct
     const type = params?.type;
     return type?.name === 'expression' && JSON.stringify(type.params) === key;
   });
-}
-
-/** One component by the one rule (scope.ts), in the named structure or in all of them. */
-function inStructures(ctx: ApiContext, name: string, structure: string) {
-  const structures = someStructures(ctx, structure || undefined);
-  return isFailure(structures) ? structures : findComponent(ctx, structures, name);
 }
 
 /**

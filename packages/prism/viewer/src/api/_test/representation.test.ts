@@ -12,7 +12,7 @@ import { EmissiveStructureRepresentation3DFromBundle } from '@molstar/plugin/sta
 import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { TransparencyStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/transparency';
 import { describe, expect, it } from 'vitest';
-import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
+import { cbs, crambin, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
 // `representation` (operations.md §2, plan 2.2) on a headless viewer with 1CBS.
@@ -242,5 +242,50 @@ describe('representation', () => {
     expect(
       await v.api.representation.material({ material: { metalness: 0.5, roughness: 0.3, bumpiness: 0 } }),
     ).toMatchObject({ ok: true, unchanged: true });
+  });
+});
+
+describe('representation among several structures', () => {
+  it('finds a component by ref or name wherever it is, as component.* do', async () => {
+    const v = await headlessViewer({ files: [cbs(), crambin()] });
+    expectOk(
+      await v.api.component.add({
+        target: 'ligand',
+        label: 'Retinoic acid',
+        representation: 'ball-and-stick',
+        structure: '1cbs',
+      }),
+    );
+    // 1CRN has no such component: one only 1CBS has is found for the material, and not an error.
+    const ligand = v.plugin.managers.structure.hierarchy.current.structures
+      .flatMap((s) => s.components)
+      .find((c) => /retinoic/i.test(nameOf(c)))!;
+    expect(ligand).toBeDefined();
+    expectOk(
+      await v.api.representation.material({
+        component: nameOf(ligand),
+        material: { metalness: 0.5, roughness: 0.3, bumpiness: 0 },
+      }),
+    );
+    const none = await v.api.representation.material({ component: 'nonexistent', material: { metalness: 0.1 } as any });
+    expect(none).toMatchObject({ ok: false, code: 'not-found' });
+
+    // A ref is unique: no focus or structure is needed.
+    expectOk(await v.api.representation.set({ component: ligand.cell.transform.ref, type: 'spacefill' }));
+    expect(ligand.representations.length).toBeGreaterThan(0);
+    expectOk(await v.api.representation.remove({ component: ligand.cell.transform.ref, type: 'spacefill' }));
+  });
+
+  it('says a theme changed the components holding a partial target, with a warning', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const r = await v.api.representation.color({ target: 'A:10-20', theme: 'hydrophobicity' });
+    expectOk(r);
+    expect(r.did).toMatch(/whole of/);
+    expect(r.did).toMatch(/A:10-20|residues/);
+    expect(r.warnings?.join(' ')).toMatch(/whole components/);
+    // The whole structure: nothing to warn about.
+    const all = await v.api.representation.color({ target: 'all', theme: 'chain-id' });
+    expectOk(all);
+    expect(all.warnings ?? []).toEqual([]);
   });
 });

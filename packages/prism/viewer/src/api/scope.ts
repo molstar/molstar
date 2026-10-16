@@ -156,6 +156,12 @@ export function findComponent(
   });
 }
 
+/** One component by the one rule, in the named structure or in all of them (a component ref is unique among them). */
+export function inStructures(ctx: ApiContext, name: string, structure: string): FoundComponent | ApiFailure {
+  const structures = someStructures(ctx, structure || undefined);
+  return isFailure(structures) ? structures : findComponent(ctx, structures, name);
+}
+
 // --- hierarchy lists (volumes, particle lists) ------------------------------------------------------------------
 
 type Listed = { cell: { obj?: { label?: string }; transform: { ref: string } } };

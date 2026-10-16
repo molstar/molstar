@@ -63,6 +63,8 @@ describe('select', () => {
     expect(absent.unchanged).toBe(true);
     const none = await v.api.select.set({ target: 'chain Z' });
     expect(none).toMatchObject({ ok: false, code: 'not-found' });
+    // The message names the target as it was written, not its MolScript.
+    if (!none.ok) expect(none.message).toMatch(/^chain Z selects nothing in 1CBS\.$/);
     expect(count(v)).toBeGreaterThan(0);
   });
 
@@ -231,6 +233,21 @@ describe('highlight', () => {
     expect(v.sources.marks.hover.value).toMatchObject({ owner: 'highlight' });
     expect(StructureElement.Loci.isEmpty(v.sources.marks.hover.value!.loci)).toBe(false);
     expectOk(await v.api.highlight.clear());
+    expect(v.sources.marks.hover.value).toBeUndefined();
+  });
+
+  it('lights loci in the sequence when asked, and a later plain highlight leaves no stale hover', async () => {
+    const v = await setup();
+    const resolved = await createTargetResolver(v.plugin).resolve('A:10-14');
+    if (!resolved.ok) throw new Error(resolved.message);
+    const target = { loci: resolved.parts[0].loci };
+    expectOk(await v.api.highlight.set({ target, sequence: true }));
+    expect(v.sources.marks.hover.value).toMatchObject({ owner: 'highlight' });
+    expect(StructureElement.Loci.isEmpty(v.sources.marks.hover.value!.loci)).toBe(false);
+    expectOk(await v.api.highlight.set({ target }));
+    expect(v.sources.marks.hover.value).toBeUndefined();
+    expectOk(await v.api.highlight.set({ target: 'A:10', sequence: true }));
+    expectOk(await v.api.highlight.set({ target: 'ligand' }));
     expect(v.sources.marks.hover.value).toBeUndefined();
   });
 

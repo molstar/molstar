@@ -49,6 +49,17 @@ describe('contents', () => {
     expect(componentAtoms(v)).toBe(before);
   });
 
+  it('keeps what is hidden out of the components a symmetry change rebuilds', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expectOk(await v.api.contents.visibility({ chain: 'A', visible: false }));
+    const hidden = componentAtoms(v);
+    expectOk(await v.api.structure.symmetry({ kind: 'mates', radius: 5 }));
+    const s = v.plugin.managers.structure.hierarchy.current.structures[0];
+    // Chain A's copies are left out too: the components hold less than the structure they were made from.
+    expect(componentAtoms(v)).toBeLessThan(s.cell.obj!.data.elementCount);
+    expect(hidden).toBeLessThan(s.cell.obj!.data.elementCount);
+  });
+
   it('refuses unknown entities and chains with the ones it has', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const r = await v.api.contents.visibility({ chain: 'Z', visible: false });

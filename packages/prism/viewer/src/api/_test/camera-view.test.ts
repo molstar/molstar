@@ -192,3 +192,21 @@ describe('view.expand and view.fullscreen', () => {
     expect(v.managers.navigation.fullscreen.value).toBe(false);
   });
 });
+
+describe('view.close', () => {
+  it('collapses every open dock that holds tabs, not the right one alone, and is already-so when nothing is open', async () => {
+    const v = await headlessViewer();
+    const nav = v.managers.navigation;
+    // Tabs in the left and bottom docks (a spec's `ui.layout.docks`); the right dock holds none here.
+    v.managers.viewState.setDock('left', { tabs: ['a.tab.one'] });
+    v.managers.viewState.setDock('bottom', { tabs: ['a.tab.two'] });
+    nav.setDock('left', { active: 'a.tab.one', collapsed: false });
+    nav.setDock('bottom', { active: 'a.tab.two', collapsed: false });
+    nav.setCard({ id: 'core.overlay.export' });
+    expectOk(await v.api.view.close({}));
+    expect(nav.state.value.docks.left.collapsed).toBe(true);
+    expect(nav.state.value.docks.bottom.collapsed).toBe(true);
+    expect(nav.state.value.card).toBeUndefined();
+    expect(await v.api.view.close({})).toMatchObject({ ok: true, unchanged: true });
+  });
+});

@@ -101,7 +101,7 @@ export type ParseResult = { ok: true; parsed: ParsedTarget } | Failure;
 export type PersonResolver = (which: PersonKeyword) => Expression | undefined;
 
 export interface CompileOptions {
-  /** The language of query text (PyMOL unless said). */
+  /** The language of query text (the first the viewer reads unless said: PyMOL in the default spec). */
   language?: QueryLanguage;
   /** Resolves `selection` and `focus`; without one they fail with a message. */
   resolvePerson?: PersonResolver;

@@ -587,9 +587,11 @@ function resolveRepresentation(
   defaultToIso: boolean,
 ): { rep: VolumeRepresentationRef; volume: VolumeRef } | ApiFailure {
   let pool: VolumeRepresentationRef[];
+  let owner: VolumeRef | undefined;
   if (volumeName || !name) {
     const v = oneVolume(ctx, volumeName || undefined);
     if (isFailure(v)) return v;
+    owner = v;
     pool = v.representations;
   } else {
     pool = allRepresentations(ctx);
@@ -614,8 +616,9 @@ function resolveRepresentation(
         : 'Add one with volume.representation.',
     );
   }
-  // The volume's first isosurface; else any with an iso value.
-  const v = pool[0]?.volume ?? oneVolume(ctx, undefined);
+  // The volume's first isosurface; else any with an iso value. `name` is empty here, so the volume is the one resolved
+  // above (a named volume without representations is that one, not the only one there is).
+  const v = owner ?? oneVolume(ctx, undefined);
   if (isFailure(v)) return v;
   const rep =
     (defaultToIso ? (pool.find((r) => typeOf(r) === 'isosurface') ?? pool.find(hasIso)) : pool[0]) ?? undefined;

@@ -97,6 +97,16 @@ describe('structure.transform', () => {
     expect(t?.name).toBe('components');
   });
 
+  it('turns a structure in place when composing a rotation on a moved one', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const c0 = center(v);
+    expectOk(await v.api.structure.transform({ translation: Vec3.create(50, 0, 0) }));
+    expectOk(await v.api.structure.transform({ axis: Vec3.create(0, 0, 1), angle: 90, compose: true }));
+    // Its center stays where the move put it: the turn is about the structure, not about where it was loaded.
+    const c1 = center(v);
+    expect(Vec3.distance(c1, Vec3.create(c0[0] + 50, c0[1], c0[2]))).toBeLessThan(1e-2);
+  });
+
   it('takes a matrix, composes on top, and refuses a matrix with parts', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const c0 = center(v);

@@ -11,7 +11,7 @@ import { StructureElement } from '@molstar/model/model/structure';
 import type { Mark, MarkTone } from '../sources/marks.js';
 import { ApiArea, ApiResult } from './area.js';
 import { StructureParam } from './params.js';
-import { isFailure } from './scope.js';
+import { isFailure, loadedStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam } from './target-param.js';
 
 // `highlight` (operations.md §2, plan 2.3): the hover mark, for embedding hosts and the sequence link; with `sequence`,
@@ -55,6 +55,11 @@ export class HighlightApi extends ApiArea {
           return ApiResult.fail('not-found', 'There is nothing to highlight.');
         }
         highlights.highlightOnly({ loci: target.loci }, false);
+        const root = target.loci.structure.root;
+        const ref = sequence
+          ? loadedStructures(ctx).find((s) => s.cell.obj?.data.root === root)?.cell.transform.ref
+          : undefined;
+        ctx.sources.marks.setHover(HighlightOwner, ref ? { structure: ref, loci: target.loci } : undefined);
         return ApiResult.ok('Highlighted.', { view: true });
       }
       const resolved = await ctx.targets.resolve(target, {
@@ -63,6 +68,8 @@ export class HighlightApi extends ApiArea {
       });
       if (isFailure(resolved)) return resolved;
       if (resolved.empty) return ApiResult.fail('not-found', resolved.summary, 'Nothing was changed.');
+      // The sequence follows this call: a hover it lit before is not left behind.
+      if (!sequence) ctx.sources.marks.setHover(HighlightOwner, undefined);
       let first = true;
       for (const p of resolved.parts) {
         if (p.selected.atoms === 0) continue;

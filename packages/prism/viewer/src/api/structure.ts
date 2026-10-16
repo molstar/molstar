@@ -19,11 +19,13 @@ import { getTransformFromParams, type TransformParam } from '@molstar/plugin/sta
 import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
+import { whileViewing } from '../sources/trajectory.js';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 import { reapplyContents } from './contents.js';
 import { EveryStructureParam, StructureParam } from './params.js';
 import { entryRoot, isFailure, labelOf, oneStructure, someStructures } from './scope.js';
+import { defaultPreset } from './styles.js';
 
 // `structure` (operations.md §2, plan 2.2): the scene outline (`get`), representation presets by id, the model of a
 // trajectory, the assembly, a structure's visibility and removal. The first scene area: the others follow its shape
@@ -95,6 +97,9 @@ export class StructureApi extends ApiArea {
       index: PD.Numeric(0, { min: 0, step: 1 }, { description: 'The model, from 0' }),
       structure: StructureParam(),
     },
+    // As `trajectory.frame`: a model shown is viewing, not a step (sequence.md §7.3), so Undo never lists a change it
+    // would leave where it is (the checkpoint restore keeps the frame shown now).
+    history: false,
     async run({ index, structure }, ctx) {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
@@ -111,10 +116,12 @@ export class StructureApi extends ApiArea {
       }
       const params = model.cell.transform.params as { modelIndex: number };
       if (params.modelIndex === index) return ApiResult.already(`${labelOf(ctx, s)} already shows model ${index + 1}.`);
-      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, model.cell.transform.ref, {
-        ...params,
-        modelIndex: index,
-      });
+      await whileViewing(ctx.plugin, () =>
+        ctx.plugin.state.updateTransform(ctx.plugin.state.data, model.cell.transform.ref, {
+          ...params,
+          modelIndex: index,
+        }),
+      );
       return ApiResult.ok(`${labelOf(ctx, s)} shows model ${index + 1} of ${count}.`, {
         nodes: [s.cell.transform.ref],
       });
@@ -142,7 +149,9 @@ export class StructureApi extends ApiArea {
           assemblies.length ? `Assemblies: ${assemblies.map((a) => a.id).join(', ')}.` : 'It has no assemblies.',
         );
       }
-      const want = id ? { name: 'assembly', params: { id } } : { name: 'model', params: {} };
+      // The structure's common params (bond computation, …) carry over, as in `symmetry`.
+      const common = commonTypeParams(current.type.params);
+      const want = id ? { name: 'assembly', params: { ...common, id } } : { name: 'model', params: common };
       if (current.type.name === want.name && (want.name === 'model' || current.type.params?.id === id)) {
         return ApiResult.already(
           id ? `${labelOf(ctx, s)} already shows assembly ${id}.` : `${labelOf(ctx, s)} already shows the model.`,
@@ -185,7 +194,7 @@ export class StructureApi extends ApiArea {
       }
       const current = s.cell.transform.params as { type: { name: string; params?: Record<string, unknown> } };
       // The structure's common params (bond computation, …) carry over; the type's own are set.
-      const { id: _, radius: __, ijkMin: ___, ijkMax: ____, ...common } = current.type.params ?? {};
+      const common = commonTypeParams(current.type.params);
       const n = Math.round(cells);
       const want =
         kind === 'mates'
@@ -345,7 +354,7 @@ export class StructureApi extends ApiArea {
       const next = compose
         ? {
             name: 'matrix' as const,
-            params: { data: Mat4.mul(Mat4(), matrixOf(wanted, data), now), transpose: false },
+            params: { data: Mat4.mul(Mat4(), matrixOf(wanted, data, now), now), transpose: false },
           }
         : wanted;
       if (Mat4.areEqual(matrixOf(next, data), now, 1e-3)) {
@@ -432,9 +441,14 @@ function freshStructures(ctx: ApiContext, list: readonly StructureRef[]): Struct
   return ctx.plugin.managers.structure.hierarchy.current.structures.filter((s) => refs.has(s.cell.transform.ref));
 }
 
-/** The matrix of a transform param, rotating about the structure's own center where it says so (as the decorator). */
-function matrixOf(t: TransformParam, s: Structure): Mat4 {
-  return getTransformFromParams(t, s.boundary.sphere.center);
+/**
+ * The matrix of a transform param, rotating about the structure's own center where it says so (as the decorator).
+ * `placed` is a transform already on the structure: its center is where the center now is (a rotation composed on top
+ * of it turns the structure in place).
+ */
+function matrixOf(t: TransformParam, s: Structure, placed?: Mat4): Mat4 {
+  const center = placed ? Vec3.transformMat4(Vec3(), s.boundary.sphere.center, placed) : s.boundary.sphere.center;
+  return getTransformFromParams(t, center);
 }
 
 /** A structure's conformation transform now (identity without one); `data` is the structure before it. */
@@ -454,7 +468,16 @@ function presetIds(ctx: ApiContext): string[] {
   return ctx.plugin.builders.structure.representation.providers.map((p) => p.id);
 }
 
-/** A structure's params changed in a way that drops its components (v5's "Structure Type"): the default preset again. */
+/** A structure type's params without its own (an assembly's id, symmetry's radius and cells): the common ones. */
+function commonTypeParams(params: Record<string, unknown> | undefined): Record<string, unknown> {
+  const { id: _, radius: __, ijkMin: ___, ijkMax: ____, ...common } = params ?? {};
+  return common;
+}
+
+/**
+ * A structure's params changed in a way that drops its components (v5's "Structure Type"): the default preset again,
+ * with what the person hid left out of it (decision 18, as `structure.preset`).
+ */
 async function rebuildStructure(ctx: ApiContext, ref: string, params: unknown) {
   const plugin = ctx.plugin;
   const state = plugin.state.data;
@@ -462,5 +485,9 @@ async function rebuildStructure(ctx: ApiContext, ref: string, params: unknown) {
   const children = state.tree.children.get(root).toArray();
   await plugin.managers.structure.hierarchy.remove(children, false);
   await plugin.state.updateTransform(state, ref, params, 'Structure');
-  await plugin.builders.structure.representation.applyPreset(ref, 'auto');
+  await plugin.builders.structure.representation.applyPreset(ref, defaultPreset(ctx) ?? 'auto');
+  await reapplyContents(
+    ctx,
+    plugin.managers.structure.hierarchy.current.structures.filter((s) => s.cell.transform.ref === ref),
+  );
 }

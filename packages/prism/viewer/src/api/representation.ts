@@ -24,14 +24,14 @@ import { setStructureEmissive } from '@molstar/plugin/state/helpers/structure-em
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { setStructureTransparency } from '@molstar/plugin/state/helpers/structure-transparency';
 import { type ApiAreaContext, type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { ComponentParam, EveryStructureParam, mergeParams, StructureParam } from './params.js';
+import { ComponentParam, EveryStructureParam, InStructure, mergeParams, StructureParam } from './params.js';
 import {
   componentName,
   findComponent,
+  inStructures,
   isFailure,
   labelOf,
   loadedStructures,
-  oneStructure,
   someStructures,
 } from './scope.js';
 import {
@@ -126,13 +126,11 @@ export class RepresentationApi extends ApiArea {
           description: 'A representation type: cartoon, ball-and-stick, gaussian-surface, …',
         }),
         params: PD.Value<Record<string, unknown>>({}, { description: "Some of the type's params, by name" }),
-        structure: StructureParam(),
+        structure: StructureParam(InStructure),
       };
     },
     async run({ component, type, params, structure }, ctx) {
-      const s = oneStructure(ctx, structure || undefined);
-      if (isFailure(s)) return s;
-      const found = findComponent(ctx, [s], component);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
       const c = found.component;
       return setRepresentation(ctx, {
@@ -163,7 +161,7 @@ export class RepresentationApi extends ApiArea {
     params: {
       component: ComponentParam(),
       type: PD.Text('', { description: 'A representation type; empty: all of the component' }),
-      structure: StructureParam(),
+      structure: StructureParam(InStructure),
       representation: PD.Text('', { description: 'One representation by state ref (instead of a component and type)' }),
     },
     approval: 'destructive',
@@ -174,9 +172,7 @@ export class RepresentationApi extends ApiArea {
         await ctx.plugin.managers.structure.hierarchy.remove([r], false);
         return ApiResult.ok(`Removed ${typeOf(r)} from ${componentName(r.component)}.`, { nodes: [representation] });
       }
-      const s = oneStructure(ctx, structure || undefined);
-      if (isFailure(s)) return s;
-      const found = findComponent(ctx, [s], component);
+      const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
       const c = found.component;
       if (type && !ctx.plugin.representation.structure.registry.has(type)) {
@@ -390,16 +386,18 @@ export class RepresentationApi extends ApiArea {
         if (theme) await changeTheme(ctx, where, { size: theme }, warnings);
         if (factor) await changeSizeFactor(ctx, where, factor, warnings);
       });
+      const touched = touchedText(where);
       if (before === signature(ctx, where.reprs)) {
         return warnings.length
           ? ApiResult.fail('blocked', warnings.join(' '))
-          : ApiResult.already(`${where.summary} already has that size.`);
+          : ApiResult.already(`${touched.text} already has that size.`);
       }
+      if (touched.warning) warnings.push(touched.warning);
       const did = [theme ? `the ${theme} size theme` : '', factor ? `size ×${factor}` : '']
         .filter(Boolean)
         .join(' and ');
       return ApiResult.ok(
-        `Set ${did} on ${where.summary}.`,
+        `Set ${did} on ${touched.text}.`,
         { nodes: where.reprs.map(refOf) },
         warnings.length ? { warnings } : {},
       );
@@ -419,14 +417,24 @@ export class RepresentationApi extends ApiArea {
       const targets = someStructures(ctx, structure || undefined);
       if (isFailure(targets)) return targets;
       const reprs: StructureRepresentationRef[] = [];
+      let matched = 0;
       for (const s of targets) {
         if (component) {
+          // A component only some of the structures have is fine; only a name that is unclear in one is a failure.
           const c = findComponent(ctx, [s], component);
-          if (isFailure(c)) return c;
+          if (isFailure(c)) {
+            if (c.code !== 'not-found') return c;
+            continue;
+          }
+          matched++;
           reprs.push(...c.component.representations);
         } else {
           for (const c of s.components) reprs.push(...c.representations);
         }
+      }
+      if (component && !matched) {
+        const none = findComponent(ctx, targets, component);
+        return isFailure(none) ? none : ApiResult.fail('not-found', `There is no component '${component}'.`);
       }
       if (!reprs.length) return ApiResult.fail('not-found', 'There are no representations to change.');
 
@@ -609,18 +617,25 @@ function layerLine(l: StyleLayerInfo): string {
   return `${what} on ${l.where} of ${l.structure.label}`;
 }
 
-/** A layer by id, its choices the layers applied now (those `keep` keeps). */
+/** A layer by id, its choices the layers applied now (those `keep` keeps). Left out, it is the only layer there is. */
 function LayerParam(ctx: ApiAreaContext, keep: (l: StyleLayerInfo) => boolean = () => true) {
   const list = ctx.sources.layers.value.filter(keep);
-  return PD.Select<string>(
-    list[0]?.id ?? '',
-    list.map((l) => [l.id, layerLine(l)] as [string, string]),
-    { description: 'A style layer by id, as representation.layers lists them' },
-  );
+  return PD.Select<string>('', [['', 'Choose one'], ...list.map((l) => [l.id, layerLine(l)] as [string, string])], {
+    description: 'A style layer by id, as representation.layers lists them; empty: the only one',
+  });
 }
 
 function findLayer(ctx: ApiContext, id: string): StyleLayerInfo | ApiFailure {
   const list = readStyleLayers(ctx.plugin);
+  // No id: the only layer, else the call does not say which (an operation that removes or recolors never guesses).
+  if (!id && list.length === 1) return list[0];
+  if (!id && list.length > 1) {
+    return ApiResult.fail(
+      'ambiguous',
+      `Which layer? ${list.length} are applied.`,
+      `Name one: ${list.map((l) => l.id).join(', ')}.`,
+    );
+  }
   const found = list.find((l) => l.id === id);
   if (found) return found;
   return ApiResult.fail(
@@ -755,6 +770,27 @@ async function allCovered(ctx: ApiContext, structure: string | undefined): Promi
   };
 }
 
+/**
+ * What a theme or a size changes, as text: the representations of the whole components a target touches (unlike a
+ * layer, which holds just the target). A target that covers its components only in part names them, with a warning.
+ */
+function touchedText(where: Covered): { text: string; warning?: string } {
+  const partial = where.parts.some((p) =>
+    p.components.some((c) => {
+      const data = c.cell.obj?.data;
+      return (
+        !!p.loci && !!data && StructureElement.Loci.size(StructureElement.Loci.remap(p.loci, data)) < data.elementCount
+      );
+    }),
+  );
+  if (!partial) return { text: where.summary };
+  const names = [...new Set(where.parts.flatMap((p) => p.components.map(componentName)))].join(', ');
+  return {
+    text: `the whole of ${names} (holding ${where.summary})`,
+    warning: `This applies to whole components: ${names} changed, not only ${where.summary}.`,
+  };
+}
+
 // --- layers -----------------------------------------------------------------------------------------------------
 
 interface LayerCell {
@@ -861,13 +897,15 @@ async function applyTheme(ctx: ApiContext, where: Covered, change: ThemeChange) 
   const warnings: string[] = [];
   await ctx.plugin.dataTransaction(() => changeTheme(ctx, where, change, warnings));
   const name = change.color ?? change.size;
+  const touched = touchedText(where);
   if (before === signature(ctx, where.reprs)) {
     return warnings.length
       ? ApiResult.fail('blocked', warnings.join(' '))
-      : ApiResult.already(`${where.summary} already uses the ${name} ${change.color ? 'color' : 'size'} theme.`);
+      : ApiResult.already(`${touched.text} already uses the ${name} ${change.color ? 'color' : 'size'} theme.`);
   }
+  if (touched.warning) warnings.push(touched.warning);
   return ApiResult.ok(
-    `Colored ${where.summary} by ${name}.`,
+    `Colored ${touched.text} by ${name}.`,
     { nodes: where.reprs.map(refOf) },
     warnings.length ? { warnings } : {},
   );

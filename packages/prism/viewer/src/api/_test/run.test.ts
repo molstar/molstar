@@ -160,7 +160,7 @@ describe('the run path', () => {
     // A call inside that fails, ignored by the work, still fails the group.
     const bad = await v.api.group('Ignores a failure', async (api) => {
       await api.session.clear();
-      await api.structure.model({ index: 99, structure: '1crn' });
+      await api.structure.assembly({ id: '1', structure: '1crn' });
     });
     // The first failure inside is the group's: 1CRN was cleared before it was asked for.
     expect(bad).toMatchObject({ ok: false, code: 'not-found' });

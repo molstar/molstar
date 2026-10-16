@@ -12,6 +12,6 @@ import type { QueryLanguageEntry } from '../languages.js';
 export const JmolLanguage: QueryLanguageEntry = {
   id: 'jmol',
   name: 'Jmol',
-  hint: 'Jmol selection syntax, e.g. ":A and 100-120", "HIS"; or an address list ("A:100-120").',
+  hint: 'Jmol selection syntax, e.g. ":A and 100-120", "[HIS]"; or an address list ("A:100-120").',
   transpile: (source) => transpiler(source),
 };

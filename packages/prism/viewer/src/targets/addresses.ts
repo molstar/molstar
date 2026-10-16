@@ -97,6 +97,13 @@ const ReservedChains = new Set(
   ).split(' '),
 );
 
+/**
+ * Short keywords and abbreviations of the query languages (PyMOL `het`, VMD `at` and `coil`, Jmol `dna` and `rna`) that
+ * a bare word could be taken for as a chain id: only a bare word is query text (`AT:100` is still a chain). Kept here,
+ * not read from the transpilers, so that reading addresses does not bundle them.
+ */
+const ReservedBareWords = new Set('het at cg dna rna turn coil'.split(' '));
+
 const ChainPattern = /^[A-Za-z0-9]{1,4}$/;
 const ResiduePattern = /^(-?\d+)([A-Za-z]?)(?:\s*(?:-|\.\.|–|—|to)\s*(-?\d+)([A-Za-z]?))?$/i;
 
@@ -128,11 +135,11 @@ export function parseAddressList(text: string): AddressResult {
     return { ok: false, message: 'The address list is empty.', hint: AddressHint, addressy: false };
   }
   const items: ComponentExpression[] = [];
-  let chain: string | undefined;
+  let sticky: Sticky = {};
   try {
     for (const part of parts) {
-      const item = parseItem(part, chain);
-      if (item.chain !== undefined) chain = item.chain;
+      const item = parseItem(part, sticky);
+      if (item.chain !== undefined) sticky = { chain: item.chain, instance: item.instance };
       items.push(item.expression);
     }
   } catch (e) {
@@ -142,13 +149,17 @@ export function parseAddressList(text: string): AddressResult {
   return { ok: true, items };
 }
 
-interface Item {
-  expression: ComponentExpression;
-  /** The chain this item names (the next residue-only item belongs to it). */
+/** What a residue-only item takes from the one before: its chain, and the assembly instance it named. */
+interface Sticky {
   chain?: string;
+  instance?: string;
 }
 
-function parseItem(part: string, stickyChain: string | undefined): Item {
+interface Item extends Sticky {
+  expression: ComponentExpression;
+}
+
+function parseItem(part: string, sticky: Sticky): Item {
   // `C:122@OG1` is `C:122 @OG1`; key:value pairs lose the space after the colon.
   const normalized = part
     .replace(/\s*@\s*/g, ' @')
@@ -184,21 +195,22 @@ function parseItem(part: string, stickyChain: string | undefined): Item {
     else rest.push(token);
   }
 
-  let named: string | undefined;
+  let named: Sticky = {};
   let residueOnly = false;
   const address = rest.join(' ');
   if (address) {
-    const residues = readResidues(part, address, expression, stickyChain);
-    named = residues.chain;
+    const residues = readResidues(part, address, expression, sticky);
+    named = residues;
     residueOnly = residues.residueOnly;
   }
-  if (residueOnly && expression.auth_asym_id === undefined && stickyChain !== undefined) {
-    expression.auth_asym_id = stickyChain;
+  if (residueOnly && expression.auth_asym_id === undefined && sticky.chain !== undefined) {
+    expression.auth_asym_id = sticky.chain;
+    if (sticky.instance !== undefined) expression.instance_id = sticky.instance;
   }
   if (Object.keys(expression).length === 0) {
     throw new AddressError(`Nothing to select in "${part}".`, AddressHint, false);
   }
-  return { expression, chain: named };
+  return { expression, chain: named.chain, instance: named.instance };
 }
 
 /** A whole number written in an address ("1234"), or an error saying which part is not one. */
@@ -218,13 +230,13 @@ function readResidues(
   part: string,
   address: string,
   expression: ComponentExpression,
-  stickyChain: string | undefined,
-): { chain?: string; residueOnly: boolean } {
+  sticky: Sticky,
+): Sticky & { residueOnly: boolean } {
   const addressy = /[:/[\]@]|\d/.test(part);
   // Residues only: `120`, `-5`, `120-130`, `120A`.
   if (/^-?\d/.test(address) && !/[:/]/.test(address)) {
     setResidues(part, address, expression);
-    return { residueOnly: true, chain: stickyChain };
+    return { residueOnly: true, chain: sticky.chain, instance: sticky.instance };
   }
   let chain: string;
   let instance: string | undefined;
@@ -252,7 +264,10 @@ function readResidues(
     residues = (m[3] ?? m[4] ?? '') as string;
   }
   const bare = !instance && !residues && !part.includes(':') && !part.includes('/');
-  if (ReservedChains.has(chain.toLowerCase()) || (bare && !ChainPattern.test(chain))) {
+  if (
+    ReservedChains.has(chain.toLowerCase()) ||
+    (bare && (ReservedBareWords.has(chain.toLowerCase()) || !ChainPattern.test(chain)))
+  ) {
     throw new AddressError(
       `"${chain}" is not a chain id (in "${part}").`,
       `${AddressHint} Chain ids are author chain ids of up to 4 characters.`,
@@ -269,7 +284,7 @@ function readResidues(
   expression.auth_asym_id = chain;
   if (instance) expression.instance_id = instance;
   if (residues) setResidues(part, residues, expression);
-  return { chain, residueOnly: false };
+  return { chain, instance, residueOnly: false };
 }
 
 function setResidues(part: string, text: string, expression: ComponentExpression) {

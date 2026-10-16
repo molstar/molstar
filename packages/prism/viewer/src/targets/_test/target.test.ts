@@ -143,6 +143,37 @@ describe('address lists', () => {
     }
   });
 
+  it('keep the assembly instance of an item for the residue-only items after it', () => {
+    expect(items('A[ASM-X0-1]:120, 130-140')).toEqual([
+      { auth_asym_id: 'A', instance_id: 'ASM-X0-1', auth_seq_id: 120 },
+      { auth_asym_id: 'A', instance_id: 'ASM-X0-1', beg_auth_seq_id: 130, end_auth_seq_id: 140 },
+    ]);
+    // A new chain ends it.
+    expect(items('A[ASM-X0-1]:120, B:5, 7')).toEqual([
+      { auth_asym_id: 'A', instance_id: 'ASM-X0-1', auth_seq_id: 120 },
+      { auth_asym_id: 'B', auth_seq_id: 5 },
+      { auth_asym_id: 'B', auth_seq_id: 7 },
+    ]);
+  });
+
+  it('leave the short keywords of the query languages to the languages', () => {
+    for (const [text, language] of [
+      ['het', 'pymol'],
+      ['at', 'vmd'],
+      ['coil', 'vmd'],
+      ['cg', 'vmd'],
+      ['dna', 'jmol'],
+      ['rna', 'jmol'],
+      ['turn', 'jmol'],
+      ['[HIS]', 'jmol'],
+    ] as const) {
+      const r = parseTarget(text, { language });
+      expect(r.ok && r.parsed.kind, text).toBe('query');
+    }
+    // Only a bare word: a chain of that name with residues is still a chain.
+    expect(items('AT:100')).toEqual([{ auth_asym_id: 'AT', auth_seq_id: 100 }]);
+  });
+
   it('say which part did not read, with a hint', () => {
     for (const [text, part] of [
       ['B:12x3', '12x3'],
