@@ -20,7 +20,7 @@ extension UI) are placed.
   light drifting in behind the word and leaving the star along its arms as small spectra of the logo's colors, in
   bubbles that answer the pointer (pushed, stirred, a burst on a press). The word is glass, drawn by the splash's canvas: it
   gathers smoothly from drifting pieces as the splash starts, its pieces lean a little under the pointer, and a press on
-  it shatters it, then it snaps back (pulling the light in for a moment, like gravity; the light thrown out, unsplit until it is whole again, then a pop); `ui.splash`
+  it shatters it, then it snaps back (pulling the light in for a moment, like gravity; the light thrown out, unsplit until it is whole again, then a pop); the light goes through air (`fluid.ts`, a coarse Navier–Stokes grid) the pointer's strokes stir; `ui.splash`
   turns it off; the camera and rendering tools only once something is;
   trajectory controls only for multi-model trajectories; snapshot controls only when there are snapshots; the selection
   bar only while something is selected; the Sequence button only while there is a sequence and its card is hidden; the

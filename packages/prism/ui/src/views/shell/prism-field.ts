@@ -15,15 +15,18 @@
 //
 // Circles, playful: dots in the stream, bubbles of varied sizes in the rays that swell and shrink and twinkle each at its
 // own pace. It moves on its own: the stream rushes in at the start (meeting the wordmark's colors as they wipe in), the
-// light comes in waves, the specks curl a little as they go, the rays breathe. And it answers the pointer (mouse, pen or
-// touch) without taking it from the canvas: specks near it are pushed aside, dragged along its stroke and stirred round it
-// in a little eddy, the arms facing it take more of the light, moving it brings more light, and a press releases a burst
+// light comes in waves, the rays breathe. The light goes through air (`fluid.ts`, Navier–Stokes on a coarse grid), stirred
+// by a few slow eddies of its own, and each speck moves at its own velocity plus the air's where it is (a classic
+// Runge–Kutta step through the flow). And it answers the pointer (mouse, pen or touch) without taking it from the canvas:
+// specks near it are pushed aside, its stroke drives the air (so the light swirls round behind it, in eddies that keep
+// turning a while), the arms facing it take more of the light, moving it brings more light, and a press releases a burst
 // along every arm. A speck pushed off the star's line passes by uncolored.
 //
 // A 2D canvas: everything per frame is preallocated (memory: render paths stay allocation-free); it draws nothing while
 // hidden or stopped, and one still frame under reduced motion.
 
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
+import { Fluid } from './fluid.js';
 import { Glass } from './glass.js';
 
 export interface PrismFieldOptions {
@@ -58,7 +61,7 @@ export interface PrismFieldOptions {
    * as the wordmark fades in; 0: it starts at its pace.
    */
   intro: number;
-  /** The specks curl as they go (0: straight). */
+  /** The air stirs on its own: slow eddies the light drifts in (0: still air). */
   curl: number;
   /** The rays breathe: their spread swells and narrows by this much (0..1). */
   breathe: number;
@@ -68,9 +71,9 @@ export interface PrismFieldOptions {
   radius: number;
   /** How hard it pushes specks aside (px/s² at its center). */
   push: number;
-  /** How much of its stroke it lends the specks it passes (0..1). */
+  /** How much its stroke drives the air (0..1): the light swirls on behind it. */
   wake: number;
-  /** How much it stirs them round it, a little eddy (0..1). */
+  /** How long the air's eddies keep turning (0: they die down soon; 1: they hold their spin). */
   swirl: number;
   /** How much more light goes out along the arms facing it (0..1). */
   follow: number;
@@ -139,6 +142,21 @@ const ShockSpeed = 260;
  */
 const GravityRadius = 360;
 const Gravity = 900;
+
+/** The air: px past the light's reach it covers, how fast its motion dies down (1/s), its confinement at full `swirl`. */
+const AirMargin = 60;
+const AirDrag = 0.5;
+const AirConfinement = 5;
+/** The fastest stroke the air takes on (px/s). */
+const StrokeCap = 700;
+/** The air's own eddies: how many, how wide (px), how hard each turns it at full `curl` (px/s²). */
+const Eddies = 3;
+const EddyRadius = 150;
+const EddyForce = 30;
+/** A shatter's gust: two eddies turning opposite ways on either side of the press (px apart, px wide, px/s). */
+const GustApart = 36;
+const GustRadius = 110;
+const GustSpeed = 160;
 
 /** How much faster (and denser) the stream is at the very start of its intro. */
 const IntroBoost = 8;
@@ -230,12 +248,20 @@ export class PrismField {
   #gradient: CanvasGradient | undefined;
   #burst = 0;
 
+  /** The air the light goes through (none when still), and its eddies' phases. */
+  readonly #air: Fluid | undefined;
+  readonly #eddy = new Float32Array(Eddies * 2);
+
   constructor(canvas: HTMLCanvasElement, options: Partial<PrismFieldOptions> = {}, init: { still?: boolean } = {}) {
     this.#canvas = canvas;
     this.#ctx = canvas.getContext('2d');
     this.#options = { ...PrismFieldDefaults, ...options };
     this.#random = generator(this.#options.seed);
     this.#still = !!init.still;
+    if (!this.#still) {
+      this.#air = new Fluid();
+      for (let i = 0; i < this.#eddy.length; i++) this.#eddy[i] = this.#random() * Math.PI * 2;
+    }
   }
 
   setOptions(options: Partial<PrismFieldOptions>): void {
@@ -245,6 +271,7 @@ export class PrismField {
       this.#random = generator(this.#options.seed);
       this.#alive = 0;
     }
+    this.#layoutAir();
     if (this.#still) this.#drawStill();
   }
 
@@ -252,7 +279,20 @@ export class PrismField {
   setOrigin(x: number, y: number): void {
     this.#ox = x;
     this.#oy = y;
+    this.#layoutAir();
     if (this.#still) this.#drawStill();
+  }
+
+  /** The air covers where the light goes: the stream's start to the rays' reach round the star, within the canvas. */
+  #layoutAir(): void {
+    const air = this.#air;
+    if (!air) return;
+    const o = this.#options;
+    const x0 = Math.max(0, this.#ox - Math.max(o.beam, o.reach) - AirMargin);
+    const x1 = Math.min(this.#width, this.#ox + o.reach + AirMargin);
+    const y0 = Math.max(0, this.#oy - o.reach - AirMargin);
+    const y1 = Math.min(this.#height, this.#oy + o.reach + AirMargin);
+    air.layout(x0, y0, Math.max(0, x1 - x0), Math.max(0, y1 - y0));
   }
 
   /** Reads the canvas's size (and the screen's pixel ratio) and the theme's colors. */
@@ -267,6 +307,7 @@ export class PrismField {
     this.#canvas.width = Math.round(w * dpr);
     this.#canvas.height = Math.round(h * dpr);
     this.readColors();
+    this.#layoutAir();
     if (this.#still) this.#drawStill();
   }
 
@@ -336,6 +377,15 @@ export class PrismField {
       const f = 1 - d / ShockRadius;
       this.#vx[i] += (dx / d) * ShockSpeed * f;
       this.#vy[i] += (dy / d) * ShockSpeed * f;
+    }
+    // The shards stir the air: a gust out of the press, two eddies either side of it turning opposite ways.
+    const air = this.#air;
+    if (air) {
+      const a = this.#random() * Math.PI * 2;
+      const ax = Math.cos(a) * GustApart;
+      const ay = Math.sin(a) * GustApart;
+      air.swirl(x + ax, y + ay, GustSpeed, GustRadius);
+      air.swirl(x - ax, y - ay, -GustSpeed, GustRadius);
     }
     this.#burst += this.#options.burst;
     return true;
@@ -546,6 +596,27 @@ export class PrismField {
     }
 
     const pointer = this.#pointer && o.interactive;
+    const air = this.#air;
+    if (air) {
+      // The air's own eddies wander slowly round the star, turning alternate ways.
+      if (o.curl > 0) {
+        for (let e = 0; e < Eddies; e++) {
+          const ex = this.#ox + o.reach * 0.55 * Math.sin(t * (0.05 + 0.03 * e) + this.#eddy[2 * e]);
+          const ey = this.#oy + o.reach * 0.45 * Math.cos(t * (0.04 + 0.025 * e) + this.#eddy[2 * e + 1]);
+          air.swirl(ex, ey, (e % 2 ? -1 : 1) * o.curl * EddyForce * dt, EddyRadius);
+        }
+      }
+      // A stroke drives the air under it along.
+      if (pointer && o.wake > 0 && (this.#pvx || this.#pvy)) {
+        // A flick no harder than a brisk stroke.
+        const k = o.wake * Math.min(1, StrokeCap / (Math.hypot(this.#pvx, this.#pvy) || 1));
+        air.drive(this.#px, this.#py, this.#pvx * k, this.#pvy * k, o.radius * 0.7, Math.min(1, dt * 12));
+      }
+      air.drag = AirDrag;
+      air.confinement = o.swirl * AirConfinement;
+      air.step(dt);
+    }
+
     // The glass snapping back pulls the light toward the word's middle for a moment (its pop throws it out again).
     const pull = this.#glass ? this.#glass.pull : 0;
     const gx = this.#wordX + (WordmarkGeometry.width / 2 - 1) * this.#wordScale;
@@ -568,10 +639,9 @@ export class PrismField {
           const d = Math.sqrt(d2) + 1e-3;
           const f = 1 - d / r;
           const f2 = f * f;
-          // Aside, along its stroke, and round it (an eddy).
-          const eddy = o.push * o.swirl * f2 * dt;
-          vx += (dx / d) * o.push * f2 * dt + this.#pvx * o.wake * f2 * dt * 4 - (dy / d) * eddy;
-          vy += (dy / d) * o.push * f2 * dt + this.#pvy * o.wake * f2 * dt * 4 + (dx / d) * eddy;
+          // Aside (its stroke moves the air, which carries them).
+          vx += (dx / d) * o.push * f2 * dt;
+          vy += (dy / d) * o.push * f2 * dt;
         }
       }
 
@@ -593,29 +663,28 @@ export class PrismField {
         }
       }
 
-      // A slow curl: a drift across the speck's way from a field that moves, added to its motion but not to its velocity
-      // (so it wavers, and never wanders off).
-      let cx = 0;
-      let cy = 0;
-      if (o.curl > 0) {
-        // Straight out of the star, wavering more the farther a ray has gone (the stream barely).
-        const far =
-          this.#color[i] === 0 ? 0.2 : Math.min(1, Math.hypot(x - this.#sx[i], y - this.#sy[i]) / o.reach) * 1.5;
-        const w =
-          o.curl *
-          0.45 *
-          far *
-          this.#base[i] *
-          Math.sin(x * 0.013 + t * 0.7 * this.#pace[i] + this.#shimmer[i]) *
-          Math.cos(y * 0.019 - t * 0.5);
-        const inv = 1 / (Math.hypot(vx, vy) || 1);
-        cx = -vy * inv * w;
-        cy = vx * inv * w;
-      }
-      // The stream moves at the intro's pace; the rays at their own.
+      // On through the air: its own velocity (the stream at the intro's pace) plus the air's where it is, a classic
+      // Runge–Kutta step along the flow.
       const pace = this.#color[i] === 0 ? boost : 1;
-      const nx = x + (vx + cx) * dt * pace;
-      const ny = y + (vy + cy) * dt * pace;
+      const ox = vx * pace;
+      const oy = vy * pace;
+      let nx = x + ox * dt;
+      let ny = y + oy * dt;
+      if (air?.on) {
+        const h = dt / 2;
+        air.sample(x, y);
+        const k1x = air.su;
+        const k1y = air.sv;
+        air.sample(x + (ox + k1x) * h, y + (oy + k1y) * h);
+        const k2x = air.su;
+        const k2y = air.sv;
+        air.sample(x + (ox + k2x) * h, y + (oy + k2y) * h);
+        const k3x = air.su;
+        const k3y = air.sv;
+        air.sample(x + (ox + k3x) * dt, y + (oy + k3y) * dt);
+        nx += ((k1x + 2 * k2x + 2 * k3x + air.su) * dt) / 6;
+        ny += ((k1y + 2 * k2y + 2 * k3y + air.sv) * dt) / 6;
+      }
       this.#vx[i] = vx;
       this.#vy[i] = vy;
       this.#x[i] = nx;
