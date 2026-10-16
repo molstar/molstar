@@ -10,9 +10,9 @@ import { operationCommand, runAsCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import { MeasureApi } from './operations.js';
 
-declare module '../../api.js' {
-  // The feature's area (present while it is in the spec, as by default).
-  interface ExtensionApis {
+declare module '../../api/area.js' {
+  // The feature's area (typed as present, as in the default spec: api/area.ts `BuiltInApis`).
+  interface BuiltInApis {
     measure: MeasureApi;
   }
 }

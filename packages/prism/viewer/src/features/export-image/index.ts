@@ -12,9 +12,9 @@ import type { ViewerExtension } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { ExportApi, LoadViewport, type ViewportLoadParams } from './operations.js';
 
-declare module '../../api.js' {
+declare module '../../api/area.js' {
   // The `export` area (operations.md §2): image here; other exports (models, geometry, animation) are extensions'.
-  interface ExtensionApis {
+  interface BuiltInApis {
     export: ExportApi;
   }
 }
@@ -22,7 +22,7 @@ declare module '../../api.js' {
 declare module '../../api/load.js' {
   // The viewport state's import, in the core's `load` area (present while the feature is in the spec, as by default).
   interface LoadApi {
-    readonly viewport?: OperationFn<typeof ViewportLoadParams>;
+    readonly viewport: OperationFn<typeof ViewportLoadParams>;
   }
 }
 

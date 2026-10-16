@@ -60,7 +60,10 @@ one name in the API, the command menu, the tools, the run log and the docs.
 `trajectory`, `annotations`) are there when the spec lists the feature, as the default spec does, and typed as present
 (`BuiltInApis`): a script writes `api.structure.preset(...)`, not `api.structure?.preset`. In a viewer whose spec left
 the feature out, reading the area throws, naming the feature to add; code that works either way asks `api.area(id)`.
-Extensions' areas are optional in the type (`Partial<ExtensionApis>`).
+The eager built-in features' other areas (`measure`, `snapshot`, `animation`, `export`) and their operations in core
+areas (`load.entry`, `load.url`, …, `load.viewport`, `session.save`, `canvas.lighting`, …) follow the same rule
+(`BuiltInApis`, `BuiltInOperationFeatures`); code that works either way asks `api.describe(id)`. The lazy and gated ones
+(`superpose`, `state`, remote states) and extensions' areas are optional in the type (`Partial<ExtensionApis>`).
 
 ## 3. The shape every area shares
 

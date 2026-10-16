@@ -25,14 +25,14 @@ import {
 declare module '../../api/load.js' {
   // What the feature adds to the core's `load` area (present while it is in the spec, as by default).
   interface LoadApi {
-    readonly entry?: OperationFn<typeof EntryParams, Loaded>;
-    readonly url?: OperationFn<typeof UrlParams, Loaded>;
-    readonly data?: OperationFn<typeof DataParams, Loaded>;
-    readonly mvs?: OperationFn<typeof MvsParams, Loaded>;
-    readonly svs?: OperationFn<typeof SvsParams, Loaded>;
-    readonly snapshot?: OperationFn<typeof SnapshotParams, Loaded>;
-    readonly trajectory?: OperationFn<typeof TrajectoryParams, Loaded>;
-    readonly volume?: OperationFn<typeof VolumeParams, Loaded>;
+    readonly entry: OperationFn<typeof EntryParams, Loaded>;
+    readonly url: OperationFn<typeof UrlParams, Loaded>;
+    readonly data: OperationFn<typeof DataParams, Loaded>;
+    readonly mvs: OperationFn<typeof MvsParams, Loaded>;
+    readonly svs: OperationFn<typeof SvsParams, Loaded>;
+    readonly snapshot: OperationFn<typeof SnapshotParams, Loaded>;
+    readonly trajectory: OperationFn<typeof TrajectoryParams, Loaded>;
+    readonly volume: OperationFn<typeof VolumeParams, Loaded>;
   }
 }
 

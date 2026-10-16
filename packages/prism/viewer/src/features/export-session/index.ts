@@ -15,7 +15,7 @@ import { type SaveParams, type SavedSession, exportSessionOperations } from './o
 declare module '../../api/session.js' {
   // What the feature adds to the core's `session` area (present while it is in the spec, as by default).
   interface SessionApi {
-    readonly save?: OperationFn<typeof SaveParams, SavedSession>;
+    readonly save: OperationFn<typeof SaveParams, SavedSession>;
   }
 }
 

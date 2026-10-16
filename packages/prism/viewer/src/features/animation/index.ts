@@ -13,9 +13,9 @@ import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import { AnimationApi } from './operations.js';
 
-declare module '../../api.js' {
+declare module '../../api/area.js' {
   // The `animation` area (operations.md §2): the plugin's animations and the wiggle as operations.
-  interface ExtensionApis {
+  interface BuiltInApis {
     animation: AnimationApi;
   }
 }

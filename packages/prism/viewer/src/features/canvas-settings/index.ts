@@ -22,12 +22,12 @@ import {
 declare module '../../api/canvas.js' {
   // What the feature adds to the core's `canvas` area (present while it is in the spec, as by default).
   interface CanvasApi {
-    readonly settings?: OperationFn<typeof SettingsParams>;
-    readonly lighting?: OperationFn<typeof LightingParams>;
-    readonly illumination?: OperationFn<typeof IlluminationParams>;
-    readonly camera?: OperationFn<typeof CameraParams>;
-    readonly clipping?: OperationFn<typeof ClippingParams>;
-    readonly xr?: OperationFn<typeof XrParams>;
+    readonly settings: OperationFn<typeof SettingsParams>;
+    readonly lighting: OperationFn<typeof LightingParams>;
+    readonly illumination: OperationFn<typeof IlluminationParams>;
+    readonly camera: OperationFn<typeof CameraParams>;
+    readonly clipping: OperationFn<typeof ClippingParams>;
+    readonly xr: OperationFn<typeof XrParams>;
   }
 }
 

@@ -46,6 +46,19 @@ describe('a viewer composed of fewer features', () => {
     expect(await v.api.run('structure.preset', {})).toMatchObject({ ok: false, code: 'not-found' });
   });
 
+  it('names the feature of a built-in operation in a core area, or a built-in area, it left out', async () => {
+    const v = await viewer([StructureFeature]);
+    expect(v.api.describe('load.entry')).toBeUndefined();
+    expect(() => v.api.load.entry).toThrow(
+      "The operation 'load.entry' is not in this viewer: add LoadersFeature to its spec's extensions (DefaultPrismViewerSpec has it).",
+    );
+    expect(() => v.api.canvas.lighting).toThrow(/add CanvasSettingsFeature/);
+    expect(() => v.api.session.save).toThrow(/add ExportSessionFeature/);
+    expect(() => v.api.snapshot).toThrow(/add SnapshotsFeature/);
+    // The core's own operations are there.
+    expect(v.api.load.files).toBeTypeOf('function');
+  });
+
   it('has what a listed feature brings', async () => {
     const v = await viewer([StructureFeature]);
     expect(v.api.area('structure')).toBeDefined();

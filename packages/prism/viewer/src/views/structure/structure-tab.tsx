@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { debounceTime, distinctUntilChanged, filter, map, type Observable, of, type Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, type Observable, of } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
@@ -72,7 +72,7 @@ export function StructureTab(props: StructureTabProps) {
     pickedRow.set(undefined);
   });
   // The picked row gone from the tree: its inspector goes with it (what it controls may be gone).
-  let gone: Subscription | undefined;
+  let gone: { unsubscribe(): void } | undefined;
   onCleanup(() => {
     picks.unsubscribe();
     gone?.unsubscribe();
@@ -182,10 +182,12 @@ export function StructureTab(props: StructureTabProps) {
             scene.pick(undefined);
             pick.mark(true);
             pickedRow.set(pick);
-            gone?.unsubscribe();
-            gone = pick.gone.subscribe(() => {
+            // Its row or its structure gone: its inspector goes too. One watch at a time, the last cleaned up.
+            const watch = pick.gone.subscribe(() => {
               if (pickedRow.value === pick) pickedRow.set(undefined);
             });
+            gone?.unsubscribe();
+            gone = { unsubscribe: () => watch.unsubscribe() };
           };
           el.addEventListener(SceneRowPickEvent, onPick);
           onCleanup(() => el.removeEventListener(SceneRowPickEvent, onPick));

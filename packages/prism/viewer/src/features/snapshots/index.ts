@@ -11,9 +11,9 @@ import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import { SnapshotApi } from './operations.js';
 
-declare module '../../api.js' {
+declare module '../../api/area.js' {
   // The `snapshot` area (operations.md §2): the plugin's snapshot manager as operations.
-  interface ExtensionApis {
+  interface BuiltInApis {
     snapshot: SnapshotApi;
   }
 }

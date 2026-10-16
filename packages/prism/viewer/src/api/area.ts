@@ -355,6 +355,10 @@ export interface BuiltInApis {
 
 /** Each built-in area's feature, for the error that names it (`BuiltInApis`). */
 export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = {
+  measure: 'MeasurementsFeature',
+  snapshot: 'SnapshotsFeature',
+  animation: 'AnimationFeature',
+  export: 'ExportImageFeature',
   structure: 'StructureFeature',
   contents: 'StructureFeature',
   component: 'StructureFeature',
@@ -364,6 +368,30 @@ export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = 
   volume: 'VolumeFeature',
   particles: 'VolumeFeature',
   trajectory: 'TrajectoryFeature',
+};
+
+/**
+ * The built-in features' operations in core areas (`load.entry`, `canvas.lighting`, `session.save`), typed as present
+ * like `BuiltInApis`: in a viewer whose spec left the feature out, reading one throws, naming the feature. Code that
+ * works either way asks `api.describe(id)`. The lazy and gated ones (remote states) stay optional.
+ */
+export const BuiltInOperationFeatures: Readonly<Record<string, string>> = {
+  'load.entry': 'LoadersFeature',
+  'load.url': 'LoadersFeature',
+  'load.data': 'LoadersFeature',
+  'load.mvs': 'LoadersFeature',
+  'load.svs': 'LoadersFeature',
+  'load.snapshot': 'LoadersFeature',
+  'load.trajectory': 'LoadersFeature',
+  'load.volume': 'LoadersFeature',
+  'load.viewport': 'ExportImageFeature',
+  'session.save': 'ExportSessionFeature',
+  'canvas.settings': 'CanvasSettingsFeature',
+  'canvas.lighting': 'CanvasSettingsFeature',
+  'canvas.illumination': 'CanvasSettingsFeature',
+  'canvas.camera': 'CanvasSettingsFeature',
+  'canvas.clipping': 'CanvasSettingsFeature',
+  'canvas.xr': 'CanvasSettingsFeature',
 };
 
 /** An operation as commands and tools see it, before running: its params resolved, and whether it can run now. */

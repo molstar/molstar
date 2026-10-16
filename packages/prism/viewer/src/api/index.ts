@@ -14,6 +14,7 @@ import {
   type ApiModules,
   ApiResult,
   BuiltInAreaFeatures,
+  BuiltInOperationFeatures,
   bindOperation,
   type Changed,
   type ExtensionPort,
@@ -127,6 +128,15 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
             bound.set(prop, fn);
           }
           return fn;
+        }
+        if (value === undefined && typeof prop === 'string') {
+          // A built-in feature's operation in a core area this viewer's spec left out (`BuiltInOperationFeatures`).
+          const id = `${target.id}.${prop}`;
+          if (Object.hasOwn(BuiltInOperationFeatures, id)) {
+            throw new Error(
+              `The operation '${id}' is not in this viewer: add ${BuiltInOperationFeatures[id]} to its spec's extensions (DefaultPrismViewerSpec has it).`,
+            );
+          }
         }
         return typeof value === 'function' && prop !== 'constructor' ? value.bind(target) : value;
       },

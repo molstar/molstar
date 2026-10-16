@@ -72,10 +72,12 @@ The operation `component.add` is `api.component.add(...)`, and it is the same op
 and the assistant call. A hyphen in an operation id is camel case on the area: `history.undo-turn` is
 `api.history.undoTurn`, `superpose.tm-align` is `api.superpose.tmAlign`. These are the areas the viewer has today. The
 core's (`load`, `session`, `select`, `focus`, `highlight`, `camera`, `canvas`, `settings`, `history`, `view`) are always
-there. The scene's (`structure`, `contents`, `component`, `representation`, `styles`, `annotations`, `trajectory`,
-`volume`, `particles`) come with built-in features in the default spec and are typed as present: reading one in a viewer
-whose spec left its feature out throws, naming the feature. Other features' areas are optional in the type, so check for
-them (`api.measure?.distance(...)`) when you do not control the spec; `api.area(id)` asks for any.
+there. The built-in features' areas (`structure`, `contents`, `component`, `representation`, `styles`, `annotations`,
+`trajectory`, `volume`, `particles`, `measure`, `snapshot`, `animation`, `export`) and their operations in core areas
+(`load.entry`, `load.url`, `session.save`, `canvas.lighting`, …) come with the default spec and are typed as present, so
+`await api.load.entry({ id: '1tqn' })` needs no `!`: reading one in a viewer whose spec left its feature out throws,
+naming the feature. The lazy ones (`superpose`, `state`) and remote states are optional in the type, so check for them
+(`api.superpose?.chains(...)`) when you do not control the spec; `api.area(id)` and `api.describe(id)` ask for any.
 
 | Area                  | Operations                                                                                                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
