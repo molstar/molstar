@@ -118,6 +118,32 @@ export function themeDomain(params: ValueThemeParams, stats: Volume['grid']['sta
   return [(d[0] - min) / span, (d[1] - min) / span];
 }
 
+const sameList = <T>(a: readonly T[], b: readonly T[], same: (x: T, y: T) => boolean) =>
+  a === b || (a.length === b.length && a.every((x, i) => same(x, b[i])));
+
+/** Control points by value (each read makes new ones). */
+export const samePoints = (a: readonly TransferPoint[], b: readonly TransferPoint[]) =>
+  sameList(a, b, (p, q) => p.x === q.x && p.alpha === q.alpha);
+
+/** Colors by value (each read makes new ones). */
+export function sameColors(a: TransferColors, b: TransferColors): boolean {
+  if (a === b) return true;
+  switch (a.kind) {
+    case 'uniform':
+      return b.kind === 'uniform' && a.color === b.color;
+    case 'theme':
+      return b.kind === 'theme' && a.label === b.label;
+    case 'value':
+      return (
+        b.kind === 'value' &&
+        a.interpolate === b.interpolate &&
+        a.domain[0] === b.domain[0] &&
+        a.domain[1] === b.domain[1] &&
+        sameList(a.stops, b.stops, (p, q) => p.x === q.x && p.color === q.color)
+      );
+  }
+}
+
 /** The transfer function of a direct-volume representation `rep` of `volume`. */
 export function createVolumeTransfer(
   plugin: PluginContext,
@@ -153,8 +179,9 @@ export function createVolumeTransfer(
   };
 
   const histogram = observableState(histogramOf(data));
-  const points = observableState<readonly TransferPoint[]>([]);
-  const colors = observableState<TransferColors>(readColors());
+  // Compared by value: a drag of the points leaves the colors as they were (and the other way round).
+  const points = observableState<readonly TransferPoint[]>([], { compare: samePoints });
+  const colors = observableState<TransferColors>(readColors(), { compare: sameColors });
   const publish = () => {
     const o = steps.overlay('tf');
     points.set(o?.points ?? readPoints());

@@ -14,7 +14,7 @@ import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, filter, map, type Observable, shareReplay } from 'rxjs';
 import type { VolumeLevelUnit } from '../../model/volume-levels.js';
 import {
   type TransferColors,
@@ -87,7 +87,8 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   const palettesOpen = observableState(false);
   let paletteAnchor: HTMLElement | undefined;
   const gradientId = uniqueId('msp-tf');
-  const samples = model.colors.pipe(map(samplesOf));
+  // Computed once per change of the colors for the many bindings below (the gradient's stops, the strip, the classes).
+  const samples = model.colors.pipe(map(samplesOf), shareReplay({ bufferSize: 1, refCount: true }));
   const points = model.points;
   const stops = model.colors.pipe(map((c) => (c.kind === 'value' ? c.stops : [])));
   const indices = (o: Observable<readonly unknown[]>) =>
@@ -183,6 +184,16 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
     rect = undefined;
     model.settle();
   };
+  // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
+  onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    if (dragging) {
+      dragging = undefined;
+      rect = undefined;
+      model.settle();
+    }
+  });
   const onMove = (e: PointerEvent) => {
     if (!dragging) return;
     pointer = { x: e.clientX, y: e.clientY };

@@ -150,6 +150,25 @@ describe('the transfer function of a direct volume', () => {
     expect(t.rep.cell.transform.params.type.params.controlPoints[1][1]).toBe(0.03);
   });
 
+  it('emits colors only when they change, not when the points move or a refresh reads the same ones', async () => {
+    const t = await directVolume();
+    let colorEmits = 0;
+    let pointEmits = 0;
+    const subs = [t.tf.colors.subscribe(() => colorEmits++), t.tf.points.subscribe(() => pointEmits++)];
+    const [c0, p0] = [colorEmits, pointEmits];
+    t.tf.refresh();
+    expect([colorEmits, pointEmits]).toEqual([c0, p0]);
+
+    const points = t.tf.points.value;
+    t.tf.change({ points: points.map((p, i) => (i === 1 ? { ...p, alpha: 0.02 } : p)) });
+    expect(pointEmits).toBeGreaterThan(p0);
+    expect(colorEmits).toBe(c0);
+    t.tf.settle();
+    await flush();
+    expect(colorEmits).toBe(c0);
+    for (const s of subs) s.unsubscribe();
+  });
+
   it('puts colors at the peaks: a stop at each end of each, the theme’s own colors in order, offsets on the axis', async () => {
     const t = await directVolume();
     const peaks = transferPeaks(t.tf.points.value);

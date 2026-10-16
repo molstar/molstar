@@ -10,6 +10,7 @@
 
 import { colorToHex } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import type {
@@ -98,6 +99,16 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
     rect = undefined;
     model.settle();
   };
+  // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
+  onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    if (dragging) {
+      dragging = undefined;
+      rect = undefined;
+      model.settle();
+    }
+  });
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
     const el = e.currentTarget as HTMLElement;

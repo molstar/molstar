@@ -44,6 +44,22 @@ export interface VolumeLevelsSource extends VolumeLevelsModel {
   refresh(): void;
 }
 
+/** Levels by value (each read makes new ones). */
+export const sameLevels = (a: readonly VolumeLevel[], b: readonly VolumeLevel[]) =>
+  a === b ||
+  (a.length === b.length &&
+    a.every((l, i) => {
+      const m = b[i];
+      return (
+        l.id === m.id &&
+        l.label === m.label &&
+        l.value === m.value &&
+        l.color === m.color &&
+        l.opacity === m.opacity &&
+        l.hidden === m.hidden
+      );
+    }));
+
 export function createVolumeLevels(
   api: ViewerApi,
   port: VolumeLevelsPort,
@@ -51,7 +67,7 @@ export function createVolumeLevels(
   options: { quietMs?: number; throttleMs?: number } = {},
 ): VolumeLevelsSource {
   const histogram = observableState(port.histogram());
-  const levels = observableState<readonly VolumeLevel[]>([]);
+  const levels = observableState<readonly VolumeLevel[]>([], { compare: sameLevels });
   // What is shown: the tree's levels with the changes of steps still in progress over them (a marker being dragged
   // stays under the pointer while earlier positions land).
   const publish = () =>

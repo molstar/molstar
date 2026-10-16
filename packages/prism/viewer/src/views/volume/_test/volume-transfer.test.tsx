@@ -11,7 +11,7 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { VolumeLevelUnit } from '../../../model/volume-levels.js';
 import type {
   TransferChange,
@@ -45,6 +45,8 @@ function mount() {
     ],
   });
   const changes: TransferChange[] = [];
+  const settled: number[] = [];
+  const subscribed = vi.spyOn(colors.asReadonly, 'subscribe');
   const model: VolumeTransferModel = {
     stats: { min: -2, max: 8, mean: 0, sigma: 1 },
     histogram: observableState({ min: -2, max: 8, counts: [1, 4, 9, 4, 1] }).asReadonly,
@@ -59,17 +61,17 @@ function mount() {
       if (c.points) points.set(c.points);
       if (c.stops && colors.value.kind === 'value') colors.set({ ...colors.value, stops: c.stops });
     },
-    settle: () => {},
+    settle: () => void settled.push(1),
     colorsAtPeaks: () => {},
     palettes: [],
     applyPreset: () => {},
   };
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <VolumeTransfer model={model} />, container);
+  const dispose = render(() => <VolumeTransfer model={model} />, container);
   const sliders = () => [...container.querySelectorAll<HTMLElement>('[data-point]')];
   const key = (el: HTMLElement, k: string) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
-  return { container, points, colors, changes, sliders, key };
+  return { container, dispose, points, colors, changes, settled, subscribed, sliders, key };
 }
 
 describe('the transfer function view', () => {
@@ -103,5 +105,31 @@ describe('the transfer function view', () => {
     expect(t.points.value).toHaveLength(2);
     t.key(t.sliders()[0], 'Delete');
     expect(t.points.value).toHaveLength(2);
+  });
+
+  it('reads the colors once for all its bindings (the gradient has dozens of stops)', () => {
+    const t = mount();
+    expect(t.container.querySelectorAll('stop').length).toBeGreaterThan(60);
+    expect(t.subscribed.mock.calls.length).toBeLessThan(10);
+  });
+
+  it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
+    const frames: FrameRequestCallback[] = [];
+    const cancelled: number[] = [];
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
+    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    const t = mount();
+    const point = t.sliders()[1];
+    point.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 5 }));
+    point.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6, clientY: 6 }));
+    expect(t.settled).toEqual([]);
+    expect(frames.length).toBeGreaterThan(0);
+
+    t.dispose();
+    expect(t.settled).toEqual([1]);
+    expect(cancelled.length).toBeGreaterThan(0);
+    raf.mockRestore();
+    caf.mockRestore();
   });
 });

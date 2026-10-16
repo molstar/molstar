@@ -11,7 +11,7 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   VolumeLevel,
   VolumeLevelChange,
@@ -50,8 +50,8 @@ function mount() {
   };
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <VolumeLevels model={model} />, container);
-  return { container, changes, unit, settled: () => settled };
+  const dispose = render(() => <VolumeLevels model={model} />, container);
+  return { container, dispose, changes, unit, settled: () => settled };
 }
 
 describe('the levels view', () => {
@@ -96,5 +96,26 @@ describe('the levels view', () => {
     t.container.querySelector<HTMLButtonElement>('button[title="More colors"]')!.click();
     await Promise.resolve();
     expect(t.container.querySelector('[aria-label="Palette"]')).not.toBeNull();
+  });
+
+  it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
+    const frames: FrameRequestCallback[] = [];
+    const cancelled: number[] = [];
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
+    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
+    (globalThis as { CSS?: unknown }).CSS ??= { escape: (s: string) => s };
+    const t = mount();
+    const marker = t.container.querySelector<HTMLElement>('[data-level]')!;
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5 }));
+    marker.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6 }));
+    expect(t.settled()).toBe(0);
+    expect(frames.length).toBeGreaterThan(0);
+
+    t.dispose();
+    expect(t.settled()).toBe(1);
+    expect(cancelled.length).toBeGreaterThan(0);
+    raf.mockRestore();
+    caf.mockRestore();
   });
 });

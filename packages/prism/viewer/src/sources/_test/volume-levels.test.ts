@@ -58,6 +58,18 @@ function fake() {
 }
 
 describe('a map levels model', () => {
+  it('does not emit its levels again when a refresh reads the same ones', () => {
+    const f = fake();
+    const m = createVolumeLevels(f.api, { ...f.port, read: () => f.port.read().map((l) => ({ ...l })) }, f.unit);
+    let emitted = 0;
+    const sub = m.levels.subscribe(() => emitted++);
+    const first = emitted;
+    m.refresh();
+    m.refresh();
+    expect(emitted).toBe(first);
+    sub.unsubscribe();
+  });
+
   it('applies a drag as one group: one change at a time, the latest winning, shown at once', async () => {
     const f = fake();
     const m = createVolumeLevels(f.api, f.port, f.unit, { quietMs: 10_000 });
