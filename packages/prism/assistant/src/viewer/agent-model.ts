@@ -120,6 +120,11 @@ export function createViewerAgentModel(
       return;
     }
     if (r.status === 'awaiting-approval') {
+      // Parked after Stop (the run parked before the stop reached it): the card's turn is over, so is the agent's.
+      if (isFinished(t.status)) {
+        agent.stop().catch((e) => notifications.post(`The turn could not be stopped: ${messageOf(e)}`, 'warning'));
+        return;
+      }
       pending = r.approval ?? [];
       decided.clear();
       notifications.announce('The assistant is waiting for your approval.');

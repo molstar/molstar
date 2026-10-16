@@ -7,11 +7,12 @@
  */
 
 import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
+import type { TurnResult } from '@molstar/ai-session';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { observableState } from '@molstar/prism-ui/core';
 import { createDomainRules, type DomainRules } from '@molstar/prism-viewer/agent/policies';
-import { createViewerAgent } from '@molstar/prism-viewer/agent/session';
+import { createViewerAgent, type ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
@@ -210,6 +211,30 @@ describe('the assistant over the viewer agent', () => {
     expect((await recordedTurns(v)).map((i) => i.open)).toEqual([false, false]);
     m.dispose();
     agent.dispose();
+  });
+
+  it('ends a turn that parks for an approval after Stop, instead of showing it waiting', async () => {
+    const v = await headlessViewer({ files: [] });
+    let park!: (r: TurnResult) => void;
+    const stop = vi.fn(async () => {});
+    const agent = {
+      session: { busy: false },
+      parked: false,
+      policy: { hostsOf: () => [] },
+      turn: () => new Promise<TurnResult>((resolve) => (park = resolve)),
+      stop,
+    } as unknown as ViewerAgent;
+    const setup = observableState({ provider: 'scripted', model: 'scripted' });
+    const m = createViewerAgentModel(v, agent, { setup: setup.asReadonly } as unknown as ViewerAISettings);
+    m.ask('remove the ligand');
+    m.stop();
+    expect(stop).toHaveBeenCalledTimes(1);
+    park({ status: 'awaiting-approval', approval: [{ callId: 'c1', tool: 'remove_component', args: {} }] } as never);
+    await until(() => stop.mock.calls.length === 2);
+    expect(m.turn.value?.status).toBe('stopped');
+    expect(m.turn.value?.runs).toEqual([]);
+    expect(said(v)).not.toContain('The assistant is waiting for your approval.');
+    m.dispose();
   });
 
   it('refuses a second ask while a turn waits for an approval, in words, and keeps the waiting card', async () => {
