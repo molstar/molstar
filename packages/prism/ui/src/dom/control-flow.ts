@@ -42,10 +42,11 @@ export function Show<T>(props: {
   /**
    * Content that opens (hidden to shown after the first render; not one shown value replacing another, like a tab
    * switch) is revealed: its element gets `data-reveal`, which `reset.css` animates (it grows to its height and fades
-   * in, or slides in from the side with `'side'`). Closing plays it back (collapses or slides out, then goes). None
-   * with reduced motion. Overview › Foundations › Motion.
+   * in; slides in from the side with `'side'`; only fades in with `'fade'`, for what must not change size, like a band
+   * drawn on a canvas). Closing plays it back (collapses, slides out or fades, then goes). None with reduced motion.
+   * Overview › Foundations › Motion.
    */
-  reveal?: boolean | 'side';
+  reveal?: boolean | 'side' | 'fade';
 }): Node {
   let first = true;
   let shown = false;
@@ -57,7 +58,8 @@ export function Show<T>(props: {
   const content = (v: NonNullable<T>, reveal: boolean) => () => {
     const child = props.children(v);
     tops = topElements(child);
-    if (reveal) for (const el of tops) el.setAttribute('data-reveal', props.reveal === 'side' ? 'side' : '');
+    if (reveal)
+      for (const el of tops) el.setAttribute('data-reveal', props.reveal === true ? '' : String(props.reveal));
     return child;
   };
   return region(
@@ -90,7 +92,8 @@ export function Show<T>(props: {
             return;
           }
           shownValue = shownFn = undefined;
-          const animations = closingNow && props.reveal ? tops.map((el) => playClose(el, props.reveal === 'side')) : [];
+          const kind = props.reveal === true ? 'grow' : props.reveal;
+          const animations = closingNow && kind ? tops.map((el) => playClose(el, kind)) : [];
           if (animations.length === 0 || animations.some((a) => !a)) {
             subscriber.next(props.fallback ?? null);
             return;

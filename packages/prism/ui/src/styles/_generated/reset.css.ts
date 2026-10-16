@@ -79,6 +79,12 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   }
 }
 
+@keyframes msp-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
     interpolate-size: allow-keywords;
@@ -151,6 +157,10 @@ defineStyles('styles/reset.css', `@property --msp-fade {
 
   :where(.msp-root) :where([data-reveal="side"]) {
     animation-name: msp-reveal-side;
+  }
+
+  :where(.msp-root) :where([data-reveal="fade"]) {
+    animation: msp-reveal-fade var(--msp-motion-fade) var(--msp-ease-reveal);
   }
 
   :where(.msp-root) :where([hidden]) {

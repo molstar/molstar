@@ -116,7 +116,7 @@ export function FloatingDock(props: {
         classList={{ [classes.band]: dock.active.pipe(map((tab) => tab?.frame === 'none')) }}
         style={size}
       >
-        <Show when={dock.active} reveal>
+        <Show when={dock.active} reveal="fade">
           {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
         </Show>
       </div>

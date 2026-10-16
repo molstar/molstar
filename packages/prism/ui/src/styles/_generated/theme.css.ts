@@ -183,6 +183,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-z-tooltip: 40;
     --msp-motion-fast: .1s;
     --msp-motion-base: .22s;
+    --msp-motion-fade: .36s;
     --msp-ease: cubic-bezier(.2, 0, 0, 1);
     --msp-ease-reveal: cubic-bezier(.4, 0, .2, 1);
   }

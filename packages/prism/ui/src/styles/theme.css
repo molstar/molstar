@@ -234,6 +234,8 @@
     /* Motion. */
     --msp-motion-fast: 100ms;
     --msp-motion-base: 220ms;
+    /* A fade in or out of what does not change size (the sequence band). */
+    --msp-motion-fade: 360ms;
     --msp-ease: cubic-bezier(0.2, 0, 0, 1);
     /* Content that opens or closes: eases in as well as out, so the growth is even (the quick ease above is mostly
        done in its first frames, which reads as a jump on a tall block). */

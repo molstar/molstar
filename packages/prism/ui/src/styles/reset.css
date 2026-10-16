@@ -111,6 +111,12 @@
   }
 }
 
+@keyframes msp-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
     /* Heights animate to and from auto (a reveal grows to its height). */
@@ -189,6 +195,11 @@
 
   :where(.msp-root) :where([data-reveal="side"]) {
     animation-name: msp-reveal-side;
+  }
+
+  /* Only a fade, no change of size (a band drawn on a canvas would be laid out again every frame as it grew). */
+  :where(.msp-root) :where([data-reveal="fade"]) {
+    animation: msp-reveal-fade var(--msp-motion-fade) var(--msp-ease-reveal);
   }
 
   :where(.msp-root) :where([hidden]) {

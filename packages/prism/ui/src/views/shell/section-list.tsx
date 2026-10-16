@@ -86,7 +86,7 @@ function SectionBlock(props: {
     closing = undefined;
     expanded.set(!expanded.value);
     // Closing plays the reveal back first (the body stays rendered, so it only hides after).
-    const anim = !expanded.value && open.value && body ? playClose(body, false) : undefined;
+    const anim = !expanded.value && open.value && body ? playClose(body, 'grow') : undefined;
     if (anim) {
       closing = anim;
       ctx.shell.setSectionOpen(props.slot, section.id, false);
