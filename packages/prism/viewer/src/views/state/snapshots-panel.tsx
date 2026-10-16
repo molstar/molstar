@@ -136,21 +136,30 @@ function SnapshotRow(props: {
         role="option"
         tabIndex={0}
         aria-selected={props.current}
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
         onClick={() => model.apply(entry.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             model.apply(entry.id);
+          } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.target === e.currentTarget) {
+            // The order by keyboard (the handle is for the pointer): the row moves and keeps the focus.
+            e.preventDefault();
+            const row = e.currentTarget as HTMLElement;
+            model.move(entry.id, e.key === 'ArrowUp' ? -1 : 1);
+            queueMicrotask(() => {
+              if (row.isConnected && document.activeElement !== row) row.focus();
+            });
           }
         }}
       >
-        {/* The position; on hover, the handle that drags the row (the one way to reorder by hand). */}
+        {/* The position; on hover, the handle that drags the row (by hand; Alt+Up and Down on the row move it by key). */}
         <span class={classes.slot}>
           <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
           <span
             class={classes.grip}
             aria-hidden="true"
-            data-tip="Drag to reorder"
+            data-tip="Drag to reorder (Alt+Up or Down on the row)"
             onPointerDown={props.onGrab}
             onClick={(e) => e.stopPropagation()}
           >
@@ -190,7 +199,7 @@ function SnapshotRow(props: {
           </button>
         </span>
       </div>
-      {/* A popover from ⋯ (as the tree's rows): Remove; the order is the drag handle's (no Move up and down). */}
+      {/* A popover from ⋯ (as the tree's rows): Remove; the order is the drag handle's and Alt+Up and Down's (no Move up and down). */}
       <Show when={menu}>
         {() => (
           <MenuPopover

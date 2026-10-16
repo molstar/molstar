@@ -43,8 +43,11 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   // One walk of the scene per search (and per change of the scene while searching), every row reading its result.
-  const hits: Observable<SearchHits> = combineLatest([filter, scene.roots]).pipe(
-    map(([t, roots]) => (t ? searchHits(roots, t) : undefined)),
+  const sections: Observable<readonly ShellSection[]> = shell ? shell.sections(SceneRowSlot) : of([]);
+  const hits: Observable<SearchHits> = combineLatest([filter, scene.roots, sections]).pipe(
+    map(([t, roots, all]) =>
+      t ? searchHits(roots, t, (node) => !!shell && all.some((r) => rowMatches(shell, r, node, t))) : undefined,
+    ),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   // A row picked from elsewhere (the inspector's list, the canvas) is brought into view, once it is drawn (its rows
@@ -92,16 +95,25 @@ const PageSize = 5;
 /** The rows a search shows: those that match and the rows they are in; undefined: no search. */
 type SearchHits = ReadonlySet<SceneNode> | undefined;
 
+/** An extension's row for this node whose title matches a search (it shows under the node). */
+const rowMatches = (shell: ShellModel, row: ShellSection, node: SceneNode, text: string) =>
+  row.title.toLowerCase().includes(text) && (!row.when || row.when({ shell, subject: node }));
+
 /**
- * The rows that match a search (their label or description) and the rows they are in, in one walk; lazy rows are
- * looked into (`load(true)`: they stay lazy, so later syncs do not compute them).
+ * The rows that match a search (their label or description, or an extension's row under them by its title) and the
+ * rows they are in, in one walk; lazy rows are looked into (`load(true)`: they stay lazy, so later syncs do not
+ * compute them).
  */
-function searchHits(roots: readonly SceneNode[], text: string): ReadonlySet<SceneNode> {
+function searchHits(
+  roots: readonly SceneNode[],
+  text: string,
+  hasRow: (node: SceneNode) => boolean,
+): ReadonlySet<SceneNode> {
   const hits = new Set<SceneNode>();
   const hit = (v: string | undefined) => !!v && v.toLowerCase().includes(text);
   const walk = (node: SceneNode): boolean => {
     if (node.lazy) node.load?.(true);
-    let any = hit(node.label.value) || hit(node.description.value);
+    let any = hit(node.label.value) || hit(node.description.value) || hasRow(node);
     for (const c of node.children.value) if (walk(c)) any = true;
     if (any) hits.add(node);
     return any;
@@ -160,8 +172,8 @@ function TreeItem(props: {
   );
   // Searching, a row with matches under it is open; otherwise as the person left it.
   const searching = filter.pipe(map((t) => !!t));
-  const open = combineLatest([node.isExpanded, hasChildren, hits]).pipe(
-    map(([e, h, s]) => h && (e || (!!s && node.children.value.some((c) => s.has(c))))),
+  const open = combineLatest([node.isExpanded, hasChildren, hits, rows ?? of([])]).pipe(
+    map(([e, h, s, r]) => h && (e || (!!s && (node.children.value.some((c) => s.has(c)) || r.length > 0)))),
     distinctUntilChanged(),
   );
   const menuOpen = observableState(false);

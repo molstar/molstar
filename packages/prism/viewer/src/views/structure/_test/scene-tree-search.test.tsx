@@ -11,8 +11,13 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { ShellModel } from '@molstar/prism-ui/shell/shell';
+import { domView } from '@molstar/prism-ui/dom/view';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { SceneModel, SceneNode, SceneNodeKind } from '../../../model/scene.js';
+import { extensionUIPort } from '../../../ui/extensions.js';
+import type { ViewerUIContext } from '../../../spec.js';
+import { SceneRow } from '../scene-row.js';
 import { SceneTree } from '../scene-tree.js';
 
 // A big structure in the tree: Contents shows its first entities and Show all for the rest (the few again once closed
@@ -120,5 +125,39 @@ describe('the scene tree with many rows', () => {
     expect(t.container.textContent).toContain('Nothing matches.');
     t.filter.set('');
     expect(t.labels()).toEqual(['1JJ2', 'Contents', 'Polymer']);
+  });
+});
+
+describe('the scene tree search and extension rows', () => {
+  it('finds a structure by the title of an extension row under it, opened to show the row', () => {
+    const structure = node('s', 'structure', '1JJ2', [node('c', 'component', 'Polymer')], false);
+    const scene = {
+      roots: observableState([structure]).asReadonly,
+      picked: observableState<SceneNode | undefined>(undefined).asReadonly,
+      pick: () => {},
+    } as unknown as SceneModel;
+    const shell = new ShellModel();
+    const port = extensionUIPort(shell, {} as never, {} as ViewerUIContext);
+    port.register('x', {
+      rows: [
+        {
+          id: 'x.row.membrane',
+          when: (n) => n.kind === 'structure',
+          render: domView(() => <SceneRow label="Membrane" />),
+        },
+      ],
+    });
+    const filter = observableState('');
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <SceneTree scene={scene} shell={shell} filter={filter.asReadonly} />, container);
+    const labels = () =>
+      [...container.querySelectorAll('[data-tree-row]')].map((r) => r.querySelector('[id]')!.textContent);
+
+    filter.set('membrane');
+    expect(container.textContent).not.toContain('Nothing matches.');
+    expect(labels()).toEqual(['1JJ2', 'Membrane']);
+    filter.set('nothing like it');
+    expect(container.textContent).toContain('Nothing matches.');
   });
 });

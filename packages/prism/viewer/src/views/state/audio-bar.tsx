@@ -10,6 +10,7 @@
 
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { combineLatest, map } from 'rxjs';
 import { type AudioModel, formatTime } from '../../features/snapshots/audio.js';
 import { classes } from './_generated/audio-bar.module.css.js';
@@ -20,11 +21,24 @@ import { classes } from './_generated/audio-bar.module.css.js';
 export function AudioBar(props: { model: AudioModel }) {
   const { model } = props;
   const fraction = combineLatest([model.time, model.duration]).pipe(map(([t, d]) => (d > 0 ? Math.min(1, t / d) : 0)));
-  // Seeking: a press on the line, then a drag along it (the pointer captured).
+  // Seeking: a press on the line, then a drag along it (the pointer captured); the drag seeks once a frame, not for each
+  // move (each seek is the media element's, and a request for streamed audio), and where it was let go.
   let rect: DOMRect | undefined;
-  const seekAt = (e: PointerEvent) => {
-    if (rect) model.seek((e.clientX - rect.left) / (rect.width || 1));
+  let frame = 0;
+  let clientX = 0;
+  const seek = () => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    if (rect) model.seek((clientX - rect.left) / (rect.width || 1));
   };
+  const release = () => {
+    seek();
+    rect = undefined;
+  };
+  onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+  });
   return (
     <div class={classes.bar} role="group" aria-label="Audio">
       <button
@@ -55,15 +69,21 @@ export function AudioBar(props: { model: AudioModel }) {
           const el = e.currentTarget as HTMLElement;
           rect = el.getBoundingClientRect();
           el.setPointerCapture(e.pointerId);
-          seekAt(e);
+          clientX = e.clientX;
+          seek();
         }}
         onPointerMove={(e) => {
-          if (rect) seekAt(e);
+          if (!rect) return;
+          clientX = e.clientX;
+          if (!frame) frame = requestAnimationFrame(seek);
         }}
-        onPointerUp={() => {
-          rect = undefined;
+        onPointerUp={(e) => {
+          clientX = e.clientX;
+          release();
         }}
         onPointerCancel={() => {
+          if (frame) cancelAnimationFrame(frame);
+          frame = 0;
           rect = undefined;
         }}
         onKeyDown={(e) => {
