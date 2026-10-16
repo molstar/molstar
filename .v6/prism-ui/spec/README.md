@@ -386,6 +386,7 @@ What the spec asks of other packages, collected from the sections above; each is
 | ------------------------------------ | ------------------------------------------------------------------------------------------ | ------- |
 | [viewer-spec.md](viewer-spec.md)     | `PrismViewerSpec`: fields, extensions and the viewer's own features, parts and overrides, creation | written |
 | [targets.md](targets.md)             | the address language: keywords, addresses, query texts, schema items; MolQL underneath     | written |
+| [nodes.md](nodes.md)                 | node selectors: cells of the state tree by CSS-like text, over Mol*'s `StateSelection`    | written |
 | [sequence.md](sequence.md)           | the sequence view and the 3D view: shared data, sequence behaviors, the link, MVS and SVS, history | written |
 | [state.md](state.md)                 | the plugin's state, area by area: its source, view model, story, what is missing           | written |
 | [parity.md](parity.md)               | v5 → Prism, feature by feature: where it lives, its API area, its state                    | written |

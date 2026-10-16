@@ -77,10 +77,10 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `measure.remove` | Remove a measurement | destructive | measurement |
 | `measure.visibility` | Show or hide a measurement |  | visible, measurement |
 | `particles.get` | Describe the particles | read |  |
-| `particles.remove` | Remove particles | destructive | particles, representation |
+| `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
-| `particles.update` | Update a particle representation | ui-only | representation, params |
-| `particles.visibility` | Show or hide particles |  | visible, particles, representation |
+| `particles.update` | Update a particle representation | ui-only | node, params |
+| `particles.visibility` | Show or hide particles |  | visible, particles, representation, node |
 | `representation.clipping` | Exclude from clipping |  | target, groups, structure, language |
 | `representation.color` | Color |  | target, color, theme, structure, language |
 | `representation.emissive` | Set emissive strength |  | target, strength, structure, language |
@@ -88,13 +88,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `representation.layer-update` | Change a style layer |  | layer, value |
 | `representation.layers` | List the style layers | read | structure |
 | `representation.material` | Set material |  | material, component, structure |
-| `representation.remove` | Remove a representation | destructive | component, type, structure, representation |
+| `representation.remove` | Remove a representation | destructive | component, type, structure, node |
 | `representation.reset` | Reset a style layer |  | layer, structure |
 | `representation.set` | Show a component as… |  | component, type, params, structure |
 | `representation.size` | Set size |  | target, theme, factor, structure, language |
 | `representation.transparency` | Set transparency |  | target, alpha, structure, language |
-| `representation.update` | Update a representation | ui-only | representation, params |
-| `representation.visibility` | Show or hide a representation |  | representation, visible |
+| `representation.update` | Update a representation | ui-only | node, params |
+| `representation.visibility` | Show or hide a representation |  | node, visible |
 | `select.all` | Select everything | view | structure |
 | `select.around` | Select the surroundings | view | radius, asWholeResidues, structure |
 | `select.clear` | Clear the selection | view |  |
@@ -132,11 +132,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `snapshot.stop` | Stop playing the snapshots | view |  |
 | `snapshot.transition` | Play the snapshot's transition | view; needs canvas; agent-only | play |
 | `snapshot.update` | Edit a snapshot | no undo; agent-only | entry, name, description, key, showFor |
-| `state.action` | Apply an action to a state cell | network (asks); agent-only | ref, action, params |
-| `state.get` | Read the state tree | read | ref |
-| `state.remove` | Remove a state cell | destructive | ref |
-| `state.update` | Update a state cell | agent-only | ref, params |
-| `state.visibility` | Show or hide a state cell |  | ref, visible |
+| `state.action` | Apply an action to a state cell | network (asks); agent-only | node, action, params |
+| `state.apply` | Apply a transform | agent-only | node, transformer, params, tags |
+| `state.get` | Read the state tree | read | node |
+| `state.remove` | Remove state cells | destructive | node |
+| `state.select` | Find state cells | read | node |
+| `state.update` | Update state cells | agent-only | node, params |
+| `state.visibility` | Show or hide state cells |  | node, visible |
 | `structure.assembly` | Show an assembly |  | id, structure |
 | `structure.get` | Describe the scene | read |  |
 | `structure.model` | Show another model | view | index, structure |
@@ -164,10 +166,10 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `view.fullscreen` | Fullscreen | view; needs page | on |
 | `view.open` | Open a panel | view; agent-only | tab, card, section |
 | `volume.get` | Describe the volumes | read |  |
-| `volume.isovalue` | Set the iso value |  | value, kind, volume, representation |
-| `volume.remove` | Remove a volume | destructive | volume, representation |
+| `volume.isovalue` | Set the iso value |  | value, kind, volume, representation, node |
+| `volume.remove` | Remove a volume | destructive | volume, representation, node |
 | `volume.representation` | Show a volume as… |  | type, params, volume |
 | `volume.streaming` | Stream density for a structure | network (addresses); needs network | on, structure |
 | `volume.streaming-view` | Set how streamed density shows | network (addresses); needs network | view, radius, detail, channels, structure |
-| `volume.update` | Update a volume representation | ui-only | representation, params |
-| `volume.visibility` | Show or hide a volume |  | visible, volume, representation |
+| `volume.update` | Update a volume representation | ui-only | node, params |
+| `volume.visibility` | Show or hide a volume |  | visible, volume, representation, node |

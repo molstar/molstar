@@ -358,6 +358,8 @@ function unionOf(runs: readonly RunRecord[]): Changed {
 }
 
 export * from './area.js';
+export type { NodeAttrs, NodeKind, NodeQuery } from './nodes.js';
+export { node, NodeKinds, parseNodeSelector, selectNodes } from './nodes.js';
 export type { RunRecord } from './run.js';
 export { ApiRunner, checkValues } from './run.js';
 export type { ViewerCommandContext, ViewerManagers } from './managers.js';

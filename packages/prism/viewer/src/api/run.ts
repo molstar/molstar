@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isNodeQuery } from './nodes.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import {
@@ -427,6 +428,11 @@ export function checkValues(
   for (const [name, value] of Object.entries(input ?? {})) {
     if (value === undefined) continue;
     const p = params[name];
+    // A node(...) query is its selector text (nodes.ts).
+    if (p?.type === 'text' && isNodeQuery(value)) {
+      values[name] = value.text;
+      continue;
+    }
     if (!p) {
       const known = Object.keys(params);
       return ApiResult.fail(

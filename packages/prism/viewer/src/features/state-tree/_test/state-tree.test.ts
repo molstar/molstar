@@ -41,7 +41,15 @@ describe('state tree', () => {
   it('is a built-in feature with the state area', async () => {
     expect(StateTreeFeature.builtIn).toBe(true);
     const v = await viewer();
-    for (const id of ['state.get', 'state.remove', 'state.visibility', 'state.update', 'state.action']) {
+    for (const id of [
+      'state.get',
+      'state.select',
+      'state.remove',
+      'state.visibility',
+      'state.update',
+      'state.apply',
+      'state.action',
+    ]) {
       expect(v.api.describe(id)).toBeDefined();
     }
     expect(v.api.describe('state.get')?.definition.read).toBe(true);
@@ -82,7 +90,7 @@ describe('state tree', () => {
       const v = await viewer();
       const nodes = await tree(v);
       const structure = byTransform(nodes, 'Structure')[0];
-      const r = await v.api.state!.get({ ref: structure.ref });
+      const r = await v.api.state!.get({ node: structure.ref });
       expectOk(r);
       const d = r.value as any;
       expect(d.ref).toBe(structure.ref);
@@ -95,7 +103,7 @@ describe('state tree', () => {
 
     it('fails for an unknown ref', async () => {
       const v = await viewer();
-      const r = await v.api.state!.get({ ref: 'nope' });
+      const r = await v.api.state!.get({ node: 'nope' });
       expect(r).toMatchObject({ ok: false, code: 'not-found' });
     });
 
@@ -113,12 +121,12 @@ describe('state tree', () => {
       const v = await viewer();
       const rep = byTransform(await tree(v), '3D Representation')[0];
       const before = steps(v);
-      const r = await v.api.state!.visibility({ ref: rep.ref, visible: false });
+      const r = await v.api.state!.visibility({ node: rep.ref, visible: false });
       expectOk(r);
       expect(cellOf(v, rep.ref).state.isHidden).toBe(true);
       expect(steps(v)).toBe(before + 1);
 
-      const again = await v.api.state!.visibility({ ref: rep.ref, visible: false });
+      const again = await v.api.state!.visibility({ node: rep.ref, visible: false });
       expectOk(again);
       expect(again.unchanged).toBe(true);
       expect(steps(v)).toBe(before + 1);
@@ -130,16 +138,16 @@ describe('state tree', () => {
     it('shows it again', async () => {
       const v = await viewer();
       const rep = byTransform(await tree(v), '3D Representation')[0];
-      expectOk(await v.api.state!.visibility({ ref: rep.ref, visible: false }));
-      expectOk(await v.api.state!.visibility({ ref: rep.ref, visible: true }));
+      expectOk(await v.api.state!.visibility({ node: rep.ref, visible: false }));
+      expectOk(await v.api.state!.visibility({ node: rep.ref, visible: true }));
       expect(cellOf(v, rep.ref).state.isHidden).toBeFalsy();
     });
 
     it('fails for an unknown ref, an empty one and the root', async () => {
       const v = await viewer();
-      expect(await v.api.state!.visibility({ ref: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
-      expect(await v.api.state!.visibility({ ref: '' })).toMatchObject({ ok: false, code: 'invalid' });
-      expect(await v.api.state!.visibility({ ref: StateTransform.RootRef })).toMatchObject({
+      expect(await v.api.state!.visibility({ node: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
+      expect(await v.api.state!.visibility({ node: '' })).toMatchObject({ ok: false, code: 'invalid' });
+      expect(await v.api.state!.visibility({ node: StateTransform.RootRef })).toMatchObject({
         ok: false,
         code: 'blocked',
       });
@@ -158,7 +166,7 @@ describe('state tree', () => {
       const current = cellOf(v, rep.ref).transform.params as any;
       const before = steps(v);
       const r = await v.api.state!.update({
-        ref: rep.ref,
+        node: rep.ref,
         params: { type: { name: 'cartoon', params: { ...current.type.params, alpha: 0.5 } } },
       });
       expectOk(r);
@@ -176,7 +184,7 @@ describe('state tree', () => {
       const rep = await cartoon(v);
       expectOk(
         await v.api.state!.update({
-          ref: rep.ref,
+          node: rep.ref,
           params: { colorTheme: { name: 'secondary-structure', params: {} } },
         }),
       );
@@ -189,14 +197,14 @@ describe('state tree', () => {
       const v = await viewer();
       const rep = await cartoon(v);
       const r = await v.api.state!.update({
-        ref: rep.ref,
+        node: rep.ref,
         params: { colorTheme: { name: 'secondary-structure', params: {} } },
       });
       expectOk(r);
       expect(r.did).toBe('Updated Cartoon of 1CBS: color theme.');
       // The structure itself has no "of".
       const structure = byTransform(await tree(v), 'Structure')[0];
-      const own = await v.api.state!.update({ ref: structure.ref, params: { label: 'mine' } });
+      const own = await v.api.state!.update({ node: structure.ref, params: { label: 'mine' } });
       if (own.ok) expect(own.did).not.toMatch(/ of /);
     });
 
@@ -205,7 +213,7 @@ describe('state tree', () => {
       const rep = await cartoon(v);
       const current = cellOf(v, rep.ref).transform.params as any;
       const before = steps(v);
-      const r = await v.api.state!.update({ ref: rep.ref, params: { colorTheme: current.colorTheme } });
+      const r = await v.api.state!.update({ node: rep.ref, params: { colorTheme: current.colorTheme } });
       expectOk(r);
       expect(r.unchanged).toBe(true);
       expect(steps(v)).toBe(before);
@@ -215,12 +223,12 @@ describe('state tree', () => {
       const v = await viewer();
       const component = byTransform(await tree(v), 'Component')[0];
       const before = steps(v);
-      expect(await v.api.state!.update({ ref: component.ref, params: { bogus: 1 } })).toMatchObject({
+      expect(await v.api.state!.update({ node: component.ref, params: { bogus: 1 } })).toMatchObject({
         ok: false,
         code: 'invalid',
         message: expect.stringContaining('bogus'),
       });
-      expect(await v.api.state!.update({ ref: component.ref, params: { label: 5 } })).toMatchObject({
+      expect(await v.api.state!.update({ node: component.ref, params: { label: 5 } })).toMatchObject({
         ok: false,
         code: 'invalid',
       });
@@ -229,8 +237,8 @@ describe('state tree', () => {
 
     it('fails for an unknown ref, and for a cell without params', async () => {
       const v = await viewer();
-      expect(await v.api.state!.update({ ref: 'nope', params: {} })).toMatchObject({ ok: false, code: 'not-found' });
-      expect(await v.api.state!.update({ ref: StateTransform.RootRef, params: {} })).toMatchObject({
+      expect(await v.api.state!.update({ node: 'nope', params: {} })).toMatchObject({ ok: false, code: 'not-found' });
+      expect(await v.api.state!.update({ node: StateTransform.RootRef, params: {} })).toMatchObject({
         ok: false,
         code: 'blocked',
       });
@@ -245,7 +253,7 @@ describe('state tree', () => {
       const structure = byTransform(await tree(v), 'Structure')[0];
       const cells = v.plugin.state.data.cells.size;
       const before = steps(v);
-      const r = await v.api.state!.action({ ref: structure.ref, action: 'selection', params: { script } });
+      const r = await v.api.state!.action({ node: structure.ref, action: 'selection', params: { script } });
       expectOk(r);
       expect(v.plugin.state.data.cells.size).toBe(cells + 1);
       expect(steps(v)).toBe(before + 1);
@@ -260,27 +268,27 @@ describe('state tree', () => {
       const v = await viewer();
       const structure = byTransform(await tree(v), 'Structure')[0];
       const cells = v.plugin.state.data.cells.size;
-      expectOk(await v.api.state!.action({ ref: structure.ref, action: 'selection' }));
+      expectOk(await v.api.state!.action({ node: structure.ref, action: 'selection' }));
       expect(v.plugin.state.data.cells.size).toBe(cells + 1);
     });
 
     it('names the actions when the name is wrong', async () => {
       const v = await viewer();
       const structure = byTransform(await tree(v), 'Structure')[0];
-      const r = await v.api.state!.action({ ref: structure.ref, action: 'dance' });
+      const r = await v.api.state!.action({ node: structure.ref, action: 'dance' });
       expect(r).toMatchObject({ ok: false, code: 'not-found', hint: expect.stringContaining('selection') });
     });
 
     it('checks the action params', async () => {
       const v = await viewer();
       const structure = byTransform(await tree(v), 'Structure')[0];
-      const r = await v.api.state!.action({ ref: structure.ref, action: 'selection', params: { bogus: 1 } });
+      const r = await v.api.state!.action({ node: structure.ref, action: 'selection', params: { bogus: 1 } });
       expect(r).toMatchObject({ ok: false, code: 'invalid' });
     });
 
     it('fails for an unknown ref', async () => {
       const v = await viewer();
-      expect(await v.api.state!.action({ ref: 'nope', action: 'selection' })).toMatchObject({
+      expect(await v.api.state!.action({ node: 'nope', action: 'selection' })).toMatchObject({
         ok: false,
         code: 'not-found',
       });
@@ -295,7 +303,7 @@ describe('state tree', () => {
       const below = all(ligand.children ?? []).map((n) => n.ref);
       expect(below.length).toBeGreaterThan(0);
       const before = steps(v);
-      const r = await v.api.state!.remove({ ref: ligand.ref });
+      const r = await v.api.state!.remove({ node: ligand.ref });
       expectOk(r);
       expect(r.did).toContain('Ligand');
       expect(v.plugin.state.data.cells.has(ligand.ref)).toBe(false);
@@ -310,16 +318,16 @@ describe('state tree', () => {
     it('removes a structure as structure.remove would', async () => {
       const v = await viewer();
       const structure = byTransform(await tree(v), 'Structure')[0];
-      expectOk(await v.api.state!.remove({ ref: structure.ref }));
+      expectOk(await v.api.state!.remove({ node: structure.ref }));
       expect(v.managers.history.steps.value.length).toBeGreaterThan(0);
       expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(0);
     });
 
     it('fails for an unknown ref, an empty one and the root', async () => {
       const v = await viewer();
-      expect(await v.api.state!.remove({ ref: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
-      expect(await v.api.state!.remove({ ref: '' })).toMatchObject({ ok: false, code: 'invalid' });
-      expect(await v.api.state!.remove({ ref: StateTransform.RootRef })).toMatchObject({ ok: false, code: 'blocked' });
+      expect(await v.api.state!.remove({ node: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
+      expect(await v.api.state!.remove({ node: '' })).toMatchObject({ ok: false, code: 'invalid' });
+      expect(await v.api.state!.remove({ node: StateTransform.RootRef })).toMatchObject({ ok: false, code: 'blocked' });
     });
   });
 
@@ -354,7 +362,7 @@ describe('state tree', () => {
         const water = reps[reps.length - 1];
         const other = reps[0];
         const otherBefore = find(first, other.ref)!;
-        expectOk(await v.api.state!.visibility({ ref: water.ref, visible: false }));
+        expectOk(await v.api.state!.visibility({ node: water.ref, visible: false }));
         await until(() => find(seen[seen.length - 1], water.ref)?.visible === false);
         const now = seen[seen.length - 1];
         expect(find(now, other.ref)).toBe(otherBefore);
@@ -392,12 +400,12 @@ describe('state tree', () => {
       const sub = source.roots.subscribe((r) => seen.push(r));
       try {
         const structure = byTransform(await tree(v), 'Structure')[0];
-        expectOk(await v.api.state!.action({ ref: structure.ref, action: 'selection' }));
+        expectOk(await v.api.state!.action({ node: structure.ref, action: 'selection' }));
         await until(
           () => find(seen[seen.length - 1], structure.ref)?.children?.some((c) => c.transform === 'Selection') === true,
         );
         const ligand = byTransform(await tree(v), 'Component').find((n) => n.label === 'Ligand')!;
-        expectOk(await v.api.state!.remove({ ref: ligand.ref }));
+        expectOk(await v.api.state!.remove({ node: ligand.ref }));
         await until(() => !find(seen[seen.length - 1], ligand.ref));
       } finally {
         sub.unsubscribe();
@@ -411,7 +419,7 @@ describe('state tree', () => {
       sub.unsubscribe();
       const first = source.roots.value;
       const rep = byTransform(await tree(v), '3D Representation')[0];
-      expectOk(await v.api.state!.visibility({ ref: rep.ref, visible: false }));
+      expectOk(await v.api.state!.visibility({ node: rep.ref, visible: false }));
       // Read again: current, with no event ever handled.
       expect(find(source.roots.value, rep.ref)!.visible).toBe(false);
       expect(find(first, rep.ref)!.visible).toBe(true);
@@ -427,7 +435,7 @@ describe('state tree', () => {
         const current = cellOf(v, rep.ref).transform.params as any;
         expectOk(
           await v.api.state!.update({
-            ref: rep.ref,
+            node: rep.ref,
             params: { type: { name: current.type.name, params: { ...current.type.params, alpha: 0.7 } } },
           }),
         );
@@ -455,7 +463,72 @@ describe('where data comes from (gate G5)', () => {
     const v = await viewer();
     const tree = v.plugin.state.data.tree;
     const source = tree.children.get(StateTransform.RootRef).first()!;
-    expect(await v.api.run('state.update', { ref: source, params: {} })).toMatchObject({ ok: false, code: 'blocked' });
+    expect(await v.api.run('state.update', { node: source, params: {} })).toMatchObject({ ok: false, code: 'blocked' });
     expect(v.api.describe('state.action')?.definition.approval).toBe('network');
+  });
+});
+
+describe('nodes by selector (nodes.md)', () => {
+  it('lists what a selector matches, with kinds', async () => {
+    const v = await viewer();
+    const r = await v.api.state!.select({ node: 'component[type=ligand] > representation' });
+    expectOk(r);
+    const value = (r as any).value as { ref: string; kind: string; label: string }[];
+    expect(value.length).toBeGreaterThan(0);
+    expect(value.every((x) => x.kind === 'representation')).toBe(true);
+    expect(await v.api.state!.select({ node: 'volume' })).toMatchObject({ ok: true, value: [] });
+    expect(await v.api.state!.select({ node: 'structure[' })).toMatchObject({ ok: false, code: 'invalid' });
+  });
+
+  it('hides every match as one step, and Undo shows them', async () => {
+    const v = await viewer();
+    const before = steps(v);
+    const r = await v.api.state!.visibility({ node: 'representation:visible', visible: false });
+    expectOk(r);
+    const reps = v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap(
+      (c) => c.representations,
+    );
+    expect(reps.every((x) => x.cell.state.isHidden)).toBe(true);
+    expect(steps(v)).toBe(before + 1);
+    await v.api.history.undo({});
+    expect(reps.some((x) => !x.cell.state.isHidden)).toBe(true);
+  });
+
+  it('applies a transform under every match, returns the new refs, and Undo removes them', async () => {
+    const v = await viewer();
+    const components = await v.api.state!.select({ node: 'component' });
+    expectOk(components);
+    const n = ((components as any).value as unknown[]).length;
+    const r = await v.api.state!.apply({
+      node: 'component',
+      transformer: 'structure-representation-3d',
+      params: { type: { name: 'spacefill', params: {} } },
+      tags: ['mine'],
+    });
+    expectOk(r);
+    const refs = (r as any).value.refs as string[];
+    expect(refs).toHaveLength(n);
+    const mine = await v.api.state!.select({ node: 'representation.mine[type=spacefill]' });
+    expectOk(mine);
+    expect(((mine as any).value as { ref: string }[]).map((x) => x.ref)).toEqual(refs);
+    await v.api.history.undo({});
+    expect(refs.every((ref) => !v.plugin.state.data.cells.has(ref))).toBe(true);
+  });
+
+  it('refuses a transformer that does not apply, naming those that do', async () => {
+    const v = await viewer();
+    const wrong = await v.api.state!.apply({
+      node: 'representation[type=cartoon]',
+      transformer: 'structure-component',
+    });
+    expect(wrong).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.state!.apply({ node: 'structure', transformer: 'nope' })).toMatchObject({
+      ok: false,
+      code: 'not-found',
+      hint: expect.stringMatching(/structure-component/),
+    });
+    expect(
+      await v.api.state!.apply({ node: 'structure', transformer: 'structure-component', params: { bogus: 1 } }),
+    ).toMatchObject({ ok: false, code: 'invalid' });
   });
 });

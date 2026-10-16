@@ -217,9 +217,9 @@ describe('representation', () => {
     const [first, second] = ofPolymer().map((r) => r.cell.transform.ref);
     expect(second).toBeDefined();
 
-    expectOk(await v.api.representation.remove({ representation: first }));
+    expectOk(await v.api.representation.remove({ node: first }));
     expect(ofPolymer().map((r) => r.cell.transform.ref)).toEqual([second]);
-    expect(await v.api.representation.remove({ representation: first })).toMatchObject({
+    expect(await v.api.representation.remove({ node: first })).toMatchObject({
       ok: false,
       code: 'not-found',
     });

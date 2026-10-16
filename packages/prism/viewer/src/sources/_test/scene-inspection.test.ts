@@ -75,7 +75,7 @@ describe('an inspection', () => {
     v.views.scene.pick(volume);
     expect(v.views.scene.inspection!.value?.levels).toHaveLength(1);
 
-    expectOk(await v.api.volume.remove({ representation: volume.children.value[0].id }));
+    expectOk(await v.api.volume.remove({ node: volume.children.value[0].id }));
     expect(v.views.scene.inspection!.value?.levels).toBeUndefined();
     expectOk(await v.api.volume.representation({ type: 'isosurface' }));
     expect(v.views.scene.inspection!.value?.node).toBe(volume);
@@ -88,11 +88,11 @@ describe('an inspection', () => {
     v.views.scene.pick(rep);
     const shown = v.views.scene.inspection!.value;
     const uniform = { colorTheme: { name: 'uniform', params: { value: 0xff0000 } } };
-    expectOk(await v.api.volume.update({ representation: rep.id, params: uniform }));
+    expectOk(await v.api.volume.update({ node: rep.id, params: uniform }));
     // Its params changed, its type not: the same inspection, its form following.
     expect(v.views.scene.inspection!.value).toBe(shown);
 
-    expectOk(await v.api.volume.update({ representation: rep.id, params: { type: { name: 'slice', params: {} } } }));
+    expectOk(await v.api.volume.update({ node: rep.id, params: { type: { name: 'slice', params: {} } } }));
     expect(typeOf(v, rep.id)).toBe('slice');
     expect(v.views.scene.inspection!.value).not.toBe(shown);
     expect(v.views.scene.inspection!.value?.node).toBe(rep);

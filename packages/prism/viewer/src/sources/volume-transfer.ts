@@ -251,7 +251,7 @@ export function createVolumeTransfer(
           : change.stops
             ? valueTheme(change.stops)
             : p.colorTheme;
-      await g.run('volume.update', { representation: rep, params: { type, ...(colorTheme ? { colorTheme } : {}) } });
+      await g.run('volume.update', { node: rep, params: { type, ...(colorTheme ? { colorTheme } : {}) } });
     },
     changed: () => publish(),
     ...(options.quietMs !== undefined ? { quietMs: options.quietMs } : {}),

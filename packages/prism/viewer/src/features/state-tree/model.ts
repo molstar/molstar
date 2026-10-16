@@ -57,11 +57,11 @@ export class LiveStateTreeModel implements StateTreeModel {
 
   toggleVisible(ref: string): void {
     const node = this.state.tree.node(ref);
-    void this.state.visibility({ ref, visible: node?.visible === false });
+    void this.state.visibility({ node: ref, visible: node?.visible === false });
   }
 
   remove(ref: string): void {
-    void this.state.remove({ ref });
+    void this.state.remove({ node: ref });
   }
 
   /** The forms take the cells' current values (the cells changed elsewhere: Undo, a command, a session). */
@@ -129,7 +129,7 @@ export class LiveStateTreeModel implements StateTreeModel {
           busy.set(true);
           try {
             await this.state.action({
-              ref: target,
+              node: target,
               action: a.name,
               params: (form?.values.value ?? {}) as Record<string, unknown>,
             });
@@ -147,7 +147,7 @@ export class LiveStateTreeModel implements StateTreeModel {
     const values = this.#pending.get(ref);
     this.#pending.delete(ref);
     if (!values) return;
-    const result = await this.state.update({ ref, params: values });
+    const result = await this.state.update({ node: ref, params: values });
     // Not applied (invalid values, a failed update): the forms show what the cell has.
     if (!result.ok) this.refresh(new Set([ref]));
   }

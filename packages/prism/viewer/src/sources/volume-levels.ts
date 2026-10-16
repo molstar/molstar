@@ -184,8 +184,7 @@ export function mapLevels(plugin: PluginContext, volume: () => VolumeRef | undef
         await api.run('volume.isovalue', {
           value: relative ? (change.value - stats.mean) / (stats.sigma || 1) : change.value,
           kind: relative ? 'relative' : 'absolute',
-          volume: volume()!.cell.transform.ref,
-          representation: level.id,
+          node: level.id,
         });
       }
       if (change.color === undefined && change.opacity === undefined) return;
@@ -206,7 +205,7 @@ export function mapLevels(plugin: PluginContext, volume: () => VolumeRef | undef
               },
             };
       await api.run('volume.update', {
-        representation: level.id,
+        node: level.id,
         params: { type, ...(colorTheme ? { colorTheme } : {}) },
       });
     },

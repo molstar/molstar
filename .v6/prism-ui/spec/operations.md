@@ -49,6 +49,10 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   boolean `on` (`canvas.xr`, `view.expand`, `view.fullscreen`, `select.mode`, `volume.streaming`); visibility is
   `visible`. A choice with its own settings is a union too (`export.image`'s and `video.export`'s `size`: `{ name: 'hd'
   }` or `{ name: 'custom', params: { width, height } }`). `checkValues` checks a union's name and its settings.
+- **Nodes** (2026-10-16, [nodes.md](nodes.md)): an operation on cells of the state tree takes `node`, a CSS-like
+  selector compiled to Mol*'s `StateSelection` (`component[type=ligand] > representation`, `#ref`, a ref alone); one
+  that acts on several acts on every match as one step, one that acts on one fails `ambiguous` with the matches.
+  Friendly scopes (a component by label, a volume by name, a representation type) stay beside it.
 - **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
   (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
   order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already
@@ -98,7 +102,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `canvas`       | `background`; canvas settings: `settings` (ui-only), `lighting`, `illumination`, `camera`, `clipping`; `xr`                 | `get`                         | core; canvas settings |
 | `export`       | `image` (size, crop, transparent, format), `image-copy`, `preview` (ui-only), `viewport` (the camera and canvas as JSON; `load.viewport` reads it); extensions add `models`, `geometry`, `animation` (a session is `session.save`) | —           | export-image; extensions |
 | `sequence`     | `style` (text, tracks), `colors`, `follow` (structure), `legend`                                                            | `get`                         | core                |
-| `state`        | `remove`, `visibility`, `update` (a cell's params), `action` (an applicable state action by id)                             | `get` (the tree)              | state tree          |
+| `state`        | `remove`, `visibility`, `update` (a cell's params), `apply` (a transformer under each match), `action` (an applicable state action by id); all by `node` | `get` (the tree), `select` (a selector's matches) | state tree          |
 | `settings`     | `set` (a group's values)                                                                                                    | `get`                         | core                |
 | `history`      | `undo`, `undo-turn` (redo later, sequence.md §7.3)                                                                          | `list`                        | core                |
 | `view`         | `open` (tab, card, section, page; `reveal` a node), `expand`, `fullscreen`, `theme` (UI only, no history step)               | —                             | core                |

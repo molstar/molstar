@@ -217,7 +217,7 @@ describe('measure', () => {
     expectOk(await v.api.measure!.visibility({ measurement: d.value!.ref, visible: true }));
 
     // Hidden through its representation cell alone (the State tree's eye): showing it shows it.
-    expectOk(await v.api.state!.visibility({ ref: d.value!.ref, visible: false }));
+    expectOk(await v.api.state!.visibility({ node: d.value!.ref, visible: false }));
     const viaRepresentation = await v.api.measure!.get();
     expectOk(viaRepresentation);
     expect(viaRepresentation.value?.[1]).toMatchObject({ hidden: true });

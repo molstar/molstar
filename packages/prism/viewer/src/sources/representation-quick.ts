@@ -252,7 +252,7 @@ export function createRepresentationQuick(
         const base = colorTheme.name === 'uniform' ? colorTheme.params : themeDefaults('uniform');
         colorTheme = { name: 'uniform', params: { ...base, value: Color(change.color) } };
       }
-      await g.run('representation.update', { representation: ref, params: { type, colorTheme } });
+      await g.run('representation.update', { node: ref, params: { type, colorTheme } });
     },
     changed: () => publish(),
     ...(options.quietMs !== undefined ? { quietMs: options.quietMs } : {}),

@@ -381,9 +381,9 @@ export function createSceneSource(
     const type = (r.cell.transform.params as { type?: { name: string } } | undefined)?.type?.name ?? '';
     if (!n) {
       n = new Node(ref, 'representation', ReprIcons[type] ?? 'cartoon', reprLabel(plugin, r), false, {
-        visibility: (hide) => void api.run('representation.visibility', { representation: ref, visible: !hide }),
+        visibility: (hide) => void api.run('representation.visibility', { node: ref, visible: !hide }),
         // This one by its ref: its type may have changed since, and another of that type may sit beside it.
-        remove: () => void api.run('representation.remove', { representation: ref }),
+        remove: () => void api.run('representation.remove', { node: ref }),
       });
       n.removable = true;
       nodes.set(ref, n);
@@ -557,9 +557,8 @@ export function createSceneSource(
     let n = nodes.get(ref);
     if (!n) {
       n = new Node(ref, 'volume-representation', 'volume', '', false, {
-        visibility: (hide) =>
-          void api.run('volume.visibility', { volume: volumeRef, representation: ref, visible: !hide }),
-        remove: () => void api.run('volume.remove', { volume: volumeRef, representation: ref }),
+        visibility: (hide) => void api.run('volume.visibility', { node: ref, visible: !hide }),
+        remove: () => void api.run('volume.remove', { node: ref }),
       });
       n.removable = true;
       nodes.set(ref, n);
@@ -604,9 +603,8 @@ export function createSceneSource(
     let n = nodes.get(ref);
     if (!n) {
       n = new Node(ref, 'particles-representation', 'shapes', '', false, {
-        visibility: (hide) =>
-          void api.run('particles.visibility', { particles: listRef, representation: ref, visible: !hide }),
-        remove: () => void api.run('particles.remove', { particles: listRef, representation: ref }),
+        visibility: (hide) => void api.run('particles.visibility', { node: ref, visible: !hide }),
+        remove: () => void api.run('particles.remove', { node: ref }),
       });
       n.removable = true;
       nodes.set(ref, n);
@@ -1732,7 +1730,7 @@ function inspect(
         // Sliders change values at pointer rate: one update a moment after the last.
         onChange: (values) => {
           clearTimeout(timer);
-          timer = setTimeout(() => void api.run(updateOperation, { representation: node.id, params: values }), 150);
+          timer = setTimeout(() => void api.run(updateOperation, { node: node.id, params: values }), 150);
         },
       });
       // An isosurface: its level above the whole form (the iso value, the color, the opacity at hand).

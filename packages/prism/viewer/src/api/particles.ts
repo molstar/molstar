@@ -15,7 +15,8 @@ import type {
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { mergeParams } from './params.js';
+import { NodeParam } from './params.js';
+import { nodesFor, updateEach } from './nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from './scope.js';
 import { commitRepresentation, setRepresentation } from './set-representation.js';
 
@@ -118,25 +119,17 @@ export class ParticlesApi extends ApiArea {
     id: 'particles.update',
     title: 'Update a particle representation',
     params: {
-      representation: PD.Text('', { description: 'A particle representation by state ref' }),
+      node: RepresentationNodeParam(),
       params: PD.Value<Record<string, unknown>>(
         {},
         { description: "The representation's params (type, color theme, size theme)" },
       ),
     },
     surface: { kind: 'ui-only', reason: "The inspector's form; tools use representation" },
-    async run({ representation, params }, ctx) {
-      const rep = lists(ctx)
-        .flatMap((l) => l.representations)
-        .find((r) => r.cell.transform.ref === representation);
-      if (!rep) return ApiResult.fail('not-found', `There is no particle representation '${representation}'.`);
-      const current = rep.cell.transform.params as Record<string, unknown>;
-      const next = mergeParams(current, params);
-      if (JSON.stringify(next) === JSON.stringify(current)) {
-        return ApiResult.already('The representation is already so.');
-      }
-      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, representation, next, 'Particle representation');
-      return ApiResult.ok('Updated the representation.', { nodes: [representation] });
+    async run({ node, params }, ctx) {
+      const reps = particleRepresentationsOf(ctx, node);
+      if (isFailure(reps)) return reps;
+      return updateEach(ctx, reps, params, 'Particle representation');
     },
   });
 
@@ -146,11 +139,20 @@ export class ParticlesApi extends ApiArea {
     params: {
       visible: PD.Boolean(true),
       particles: ListParam(),
-      representation: PD.Text('', {
-        description: 'One representation (by state ref or type) instead of the whole list',
-      }),
+      representation: PD.Text('', { description: 'One representation by type instead of the whole list' }),
+      node: RepresentationNodeParam(),
     },
-    async run({ visible, particles, representation }, ctx) {
+    async run({ visible, particles, representation, node }, ctx) {
+      if (node) {
+        const reps = particleRepresentationsOf(ctx, node);
+        if (isFailure(reps)) return reps;
+        const todo = reps.filter((r) => !!r.cell.state.isHidden === visible);
+        if (!todo.length) return ApiResult.already(`They are already ${visible ? 'shown' : 'hidden'}.`);
+        ctx.plugin.managers.particles.hierarchy.toggleVisibility(todo, visible ? 'show' : 'hide');
+        return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} ${namesOfReps(ctx, todo)}.`, {
+          nodes: todo.map((r) => r.cell.transform.ref),
+        });
+      }
       const t = representation ? findRepresentation(ctx, particles, representation) : undefined;
       if (isFailure(t)) return t;
       const l = t ? undefined : oneList(ctx, particles || undefined);
@@ -170,12 +172,17 @@ export class ParticlesApi extends ApiArea {
     title: 'Remove particles',
     params: {
       particles: ListParam(),
-      representation: PD.Text('', {
-        description: 'One representation (by state ref or type) instead of the whole list',
-      }),
+      representation: PD.Text('', { description: 'One representation by type instead of the whole list' }),
+      node: RepresentationNodeParam(),
     },
     approval: 'destructive',
-    async run({ particles, representation }, ctx) {
+    async run({ particles, representation, node }, ctx) {
+      if (node) {
+        const reps = particleRepresentationsOf(ctx, node);
+        if (isFailure(reps)) return reps;
+        await ctx.plugin.managers.particles.hierarchy.remove(reps, false);
+        return ApiResult.ok(`Removed ${namesOfReps(ctx, reps)}.`, { nodes: reps.map((r) => r.cell.transform.ref) });
+      }
       if (representation) {
         const t = findRepresentation(ctx, particles, representation);
         if (isFailure(t)) return t;
@@ -210,11 +217,26 @@ function oneList(ctx: ApiContext, name: string | undefined): ParticleListRef | A
   );
 }
 
+const RepresentationNodeParam = () =>
+  NodeParam('Particle representations by selector (representation[type=spheres]) or a state ref');
+
+/** The particle representations a node selector matches (operations.md §1 "Nodes"). */
+function particleRepresentationsOf(ctx: ApiContext, node: string): ParticleRepresentationRef[] | ApiFailure {
+  const byRef = new Map(lists(ctx).flatMap((l) => l.representations.map((r) => [r.cell.transform.ref, r] as const)));
+  return nodesFor(ctx.plugin.state.data, node, 'particle representation', (cell) => byRef.get(cell.transform.ref));
+}
+
+function namesOfReps(ctx: ApiContext, reps: readonly ParticleRepresentationRef[]): string {
+  return reps.length === 1
+    ? `${reps[0].cell.obj?.label ?? typeOf(reps[0])} of ${listName(ctx, reps[0].list)}`
+    : `${reps.length} representations`;
+}
+
 function typeOf(r: ParticleRepresentationRef): string {
   return (r.cell.transform.params as { type?: { name?: string } } | undefined)?.type?.name ?? '';
 }
 
-/** A representation by state ref, else by type, among a list's (or every list's when only the representation is named). */
+/** A representation by type, among a list's (or every list's when only the representation is named). */
 function findRepresentation(
   ctx: ApiContext,
   listName_: string,
@@ -228,20 +250,18 @@ function findRepresentation(
   } else {
     pool = lists(ctx).flatMap((l) => l.representations);
   }
-  const byRef = pool.find((r) => r.cell.transform.ref === name);
-  if (byRef) return { rep: byRef, list: byRef.list };
   const byType = pool.filter((r) => typeOf(r) === name);
   if (byType.length === 1) return { rep: byType[0], list: byType[0].list };
   if (byType.length > 1) {
     return ApiResult.fail(
       'ambiguous',
       `There are ${byType.length} ${name} representations.`,
-      `Name one by state ref: ${byType.map((r) => r.cell.transform.ref).join(', ')}.`,
+      `Pick one with node: ${byType.map((r) => `#${r.cell.transform.ref}`).join(', ')}.`,
     );
   }
   return ApiResult.fail(
     'not-found',
-    `There is no particle representation '${name}'.`,
+    `There is no ${name} representation.`,
     pool.length
       ? `Representations: ${pool.map((r) => `${typeOf(r)} (${r.cell.transform.ref})`).join(', ')}.`
       : 'Add one with particles.representation.',

@@ -31,7 +31,9 @@ import {
   mergeParams,
   StructureParam,
   OptionalParam,
+  NodeParam,
 } from './params.js';
+import { nodesFor, updateEach } from './nodes.js';
 import {
   componentName,
   findComponent,
@@ -74,50 +76,45 @@ const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Name
 export class RepresentationApi extends ApiArea {
   readonly id = 'representation';
 
-  // The inspector's form (plan 2.2): a representation's whole params, by its state ref; equal params: already.
+  // The inspector's form (plan 2.2): the whole params of the representations a node selector matches (`#ref` for a
+  // row's); equal params: already.
   readonly update = this.operation({
     id: 'representation.update',
     title: 'Update a representation',
     params: {
-      representation: PD.Text('', { description: 'A representation by state ref' }),
+      node: NodeParam('Representations by selector (component[label=Ligand] > representation) or a state ref'),
       params: PD.Value<Record<string, unknown>>(
         {},
         { description: "The representation's params (type, color theme, size theme)" },
       ),
     },
     surface: { kind: 'ui-only', reason: "The inspector's form; tools use set, color and size" },
-    async run({ representation, params }, ctx) {
-      const cell = ctx.plugin.state.data.cells.get(representation);
-      if (!cell || !representationRef(ctx, representation)) {
-        return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
-      }
-      const current = cell.transform.params as Record<string, unknown>;
-      const next = mergeParams(current, params);
-      if (JSON.stringify(next) === JSON.stringify(current))
-        return ApiResult.already('The representation is already so.');
-      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, representation, next, 'Representation');
-      return ApiResult.ok('Updated the representation.', { nodes: [representation] });
+    async run({ node, params }, ctx) {
+      const found = representationsOf(ctx, node);
+      if (isFailure(found)) return found;
+      return updateEach(ctx, found, params, 'Representation');
     },
   });
 
-  // A representation row's eye (the scene tree): its cell and what hangs off it (its layers) shown or hidden.
+  // A representation row's eye (the scene tree): the matched cells and what hangs off them (their layers).
   readonly visibility = this.operation({
     id: 'representation.visibility',
     title: 'Show or hide a representation',
     params: {
-      representation: PD.Text('', { description: 'A representation by state ref' }),
+      node: NodeParam('Representations by selector (representation[type=cartoon]) or a state ref'),
       visible: PD.Boolean(true),
     },
-    async run({ representation, visible }, ctx) {
-      const cell = ctx.plugin.state.data.cells.get(representation);
-      if (!cell || !representationRef(ctx, representation)) {
-        return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
+    async run({ node, visible }, ctx) {
+      const found = representationsOf(ctx, node);
+      if (isFailure(found)) return found;
+      const todo = found.filter((r) => !!r.cell.state.isHidden === visible);
+      if (!todo.length) {
+        return ApiResult.already(
+          `${representationsName(found)} ${found.length > 1 ? 'are' : 'is'} already ${visible ? 'shown' : 'hidden'}.`,
+        );
       }
-      if (!!cell.state.isHidden === !visible) {
-        return ApiResult.already(`The representation is already ${visible ? 'shown' : 'hidden'}.`);
-      }
-      setSubtreeVisibility(ctx.plugin.state.data, representation, !visible);
-      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} the representation.`, { nodes: [representation] });
+      for (const r of todo) setSubtreeVisibility(ctx.plugin.state.data, refOf(r), !visible);
+      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} ${representationsName(todo)}.`, { nodes: todo.map(refOf) });
     },
   });
 
@@ -160,8 +157,8 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: removes that type (or all) from the component; or one representation by state ref (a tree row's,
-  // which another of the same type may sit beside).
+  // operations.md §2: removes that type (or all) from the component; or the representations a node selector matches
+  // (a tree row's by `#ref`, which another of the same type may sit beside).
   readonly remove = this.operation({
     id: 'representation.remove',
     title: 'Remove a representation',
@@ -169,15 +166,15 @@ export class RepresentationApi extends ApiArea {
       component: ComponentParam(),
       type: PD.Text('', { description: 'A representation type; empty: all of the component' }),
       structure: StructureParam(InStructure),
-      representation: PD.Text('', { description: 'One representation by state ref (instead of a component and type)' }),
+      node: NodeParam('Representations by selector or a state ref (instead of a component and type)'),
     },
     approval: 'destructive',
-    async run({ component, type, structure, representation }, ctx) {
-      if (representation) {
-        const r = representationRef(ctx, representation);
-        if (!r) return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
-        await ctx.plugin.managers.structure.hierarchy.remove([r], false);
-        return ApiResult.ok(`Removed ${typeOf(r)} from ${componentName(r.component)}.`, { nodes: [representation] });
+    async run({ component, type, structure, node }, ctx) {
+      if (node) {
+        const found = representationsOf(ctx, node);
+        if (isFailure(found)) return found;
+        await ctx.plugin.managers.structure.hierarchy.remove(found, false);
+        return ApiResult.ok(`Removed ${representationsName(found)}.`, { nodes: found.map(refOf) });
       }
       const found = inStructures(ctx, component, structure);
       if (isFailure(found)) return found;
@@ -704,12 +701,19 @@ interface RepresentationParams {
 const typeOf = (r: StructureRepresentationRef) => (r.cell.transform.params as RepresentationParams).type.name;
 const refOf = (r: StructureRepresentationRef) => r.cell.transform.ref;
 
-/** A representation of the scene by state ref. */
-function representationRef(ctx: ApiContext, ref: string): StructureRepresentationRef | undefined {
+/** The scene's structure representations a node selector matches (operations.md §1 "Nodes"). */
+function representationsOf(ctx: ApiContext, node: string): StructureRepresentationRef[] | ApiFailure {
+  const byRef = new Map<string, StructureRepresentationRef>();
   for (const s of loadedStructures(ctx)) {
-    for (const c of s.components) for (const r of c.representations) if (r.cell.transform.ref === ref) return r;
+    for (const c of s.components) for (const r of c.representations) byRef.set(refOf(r), r);
   }
-  return undefined;
+  return nodesFor(ctx.plugin.state.data, node, 'representation', (cell) => byRef.get(cell.transform.ref));
+}
+
+/** "cartoon of Polymer", "3 representations". */
+function representationsName(list: readonly StructureRepresentationRef[]): string {
+  if (list.length === 1) return `${typeOf(list[0])} of ${componentName(list[0].component)}`;
+  return `${list.length} representations`;
 }
 
 function typeIds(ctx: ApiContext): string {

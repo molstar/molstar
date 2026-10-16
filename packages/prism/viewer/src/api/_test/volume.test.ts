@@ -133,12 +133,12 @@ describe('volume', () => {
     const current = rep.cell.transform.params as any;
     // The form gives all of the values.
     const params = { type: { name: 'isosurface', params: { ...current.type.params, alpha: 0.3 } } };
-    expectOk(await v.api.volume.update({ representation: ref, params }));
+    expectOk(await v.api.volume.update({ node: ref, params }));
     expect((rep.cell.transform.params as any).type.params.alpha).toBe(0.3);
-    const again = await v.api.volume.update({ representation: ref, params });
+    const again = await v.api.volume.update({ node: ref, params });
     expectOk(again);
     expect(again.unchanged).toBe(true);
-    expect(await v.api.volume.update({ representation: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
+    expect(await v.api.volume.update({ node: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
   });
 
   it('fails cleanly where a representation cannot be made (direct volume needs a canvas), leaving the scene as it was', async () => {
@@ -216,7 +216,7 @@ describe('volume', () => {
       code: 'not-found',
     });
     // A representation named by its state ref needs no volume.
-    expectOk(await v.api.volume.isovalue({ value: 1.25, representation: b.representations[0].ref }));
+    expectOk(await v.api.volume.isovalue({ value: 1.25, node: b.representations[0].ref }));
     expect((await infos(v))[1].representations[0].isoValue?.relative).toBeCloseTo(1.25);
   });
 

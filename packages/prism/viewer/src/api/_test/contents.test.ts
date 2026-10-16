@@ -74,16 +74,16 @@ describe('representation rows', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const repr = v.plugin.managers.structure.hierarchy.current.structures[0].components[0].representations[0];
     const ref = repr.cell.transform.ref;
-    expectOk(await v.api.representation.visibility({ representation: ref, visible: false }));
+    expectOk(await v.api.representation.visibility({ node: ref, visible: false }));
     expect(v.plugin.state.data.cells.get(ref)!.state.isHidden).toBe(true);
-    expect(await v.api.representation.visibility({ representation: ref, visible: false })).toMatchObject({
+    expect(await v.api.representation.visibility({ node: ref, visible: false })).toMatchObject({
       unchanged: true,
     });
 
     const params = repr.cell.transform.params as { colorTheme: { name: string } };
     expectOk(
       await v.api.representation.update({
-        representation: ref,
+        node: ref,
         params: { colorTheme: { name: 'uniform', params: {} } },
       }),
     );

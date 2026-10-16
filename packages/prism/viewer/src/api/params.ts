@@ -75,3 +75,11 @@ export function mergeParams(base: Record<string, any>, patch: Record<string, any
 
 const isPlain = (x: unknown): x is Record<string, any> =>
   !!x && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
+
+/**
+ * Nodes of the state tree (operations.md §1 "Nodes", `api/nodes.ts`): a selector such as
+ * `component[label=Ligand] > representation[type=ball-and-stick]`, `#ref`, or a ref alone; in scripts also `node(...)`.
+ */
+export function NodeParam(description = 'Nodes by selector (representation[type=cartoon], #ref) or a state ref') {
+  return PD.Text('', { description });
+}

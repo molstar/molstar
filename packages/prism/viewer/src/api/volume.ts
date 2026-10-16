@@ -25,7 +25,8 @@ import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/m
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import type { PluginContext } from '@molstar/plugin/context';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { mergeParams, StructureParam, OptionalParam } from './params.js';
+import { NodeParam, StructureParam, OptionalParam } from './params.js';
+import { nodesFor, updateEach } from './nodes.js';
 import { entryRoot, isFailure, labelOf, namesOf, oneStructure, pickOne } from './scope.js';
 import { commitRepresentation, setRepresentation } from './set-representation.js';
 
@@ -37,8 +38,10 @@ import { commitRepresentation, setRepresentation } from './set-representation.js
 const VolumeParam = () => PD.Text('', { description: 'A volume by label or state ref; empty: the only one loaded' });
 const RepresentationParam = () =>
   PD.Text('', {
-    description: "A volume representation by state ref or type (isosurface, …); empty: the volume's first isosurface",
+    description: "A volume representation's type (isosurface, slice, …); empty: the volume's first isosurface",
   });
+const RepresentationNodeParam = () =>
+  NodeParam('Volume representations by selector (volume[label=emd_1234] > representation) or a state ref');
 
 /** A volume's grid facts, as the classic UI and the inspector show them. */
 export interface VolumeStats {
@@ -120,9 +123,33 @@ export class VolumeApi extends ApiArea {
       ),
       volume: VolumeParam(),
       representation: RepresentationParam(),
+      node: RepresentationNodeParam(),
     },
-    async run({ value, kind, volume, representation }, ctx) {
+    async run({ value, kind, volume, representation, node }, ctx) {
       if (!Number.isFinite(value)) return ApiResult.fail('invalid', "'value' takes a number.");
+      if (node) {
+        // Every matched representation that has a level.
+        const reps = volumeRepresentationsOf(ctx, node);
+        if (isFailure(reps)) return reps;
+        const withIso = reps.filter(hasIso);
+        if (!withIso.length) return ApiResult.fail('invalid', `No representation '${node}' matches has an iso value.`);
+        for (const rep of withIso) {
+          const problem = checkRange(statsOf(rep.volume), kind, value);
+          if (problem) return problem;
+        }
+        const changed: VolumeRepresentationRef[] = [];
+        for (const rep of withIso) if (await setIso(ctx, rep, kind, value)) changed.push(rep);
+        const want = Volume.IsoValue.toString(
+          kind === 'relative' ? Volume.IsoValue.relative(value) : Volume.IsoValue.absolute(value),
+        );
+        const name = (reps: readonly VolumeRepresentationRef[]) =>
+          reps.length === 1 ? volumeLabel(ctx, reps[0].volume) : `${reps.length} representations`;
+        if (!changed.length)
+          return ApiResult.already(`${name(withIso)} ${withIso.length > 1 ? 'are' : 'is'} already at ${want}.`);
+        return ApiResult.ok(`Set the iso value of ${name(changed)} to ${want}.`, {
+          nodes: changed.map((r) => r.cell.transform.ref),
+        });
+      }
       const r = resolveRepresentation(ctx, volume, representation, true);
       if (isFailure(r)) return r;
       const stats = statsOf(r.volume);
@@ -196,23 +223,17 @@ export class VolumeApi extends ApiArea {
     id: 'volume.update',
     title: 'Update a volume representation',
     params: {
-      representation: PD.Text('', { description: 'A volume representation by state ref' }),
+      node: RepresentationNodeParam(),
       params: PD.Value<Record<string, unknown>>(
         {},
         { description: "The representation's params (type, color theme, size theme)" },
       ),
     },
     surface: { kind: 'ui-only', reason: "The inspector's form; tools use representation and isovalue" },
-    async run({ representation, params }, ctx) {
-      const rep = allRepresentations(ctx).find((r) => r.cell.transform.ref === representation);
-      if (!rep) return ApiResult.fail('not-found', `There is no volume representation '${representation}'.`);
-      const current = rep.cell.transform.params as Record<string, unknown>;
-      const next = mergeParams(current, params);
-      if (JSON.stringify(next) === JSON.stringify(current)) {
-        return ApiResult.already('The representation is already so.');
-      }
-      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, representation, next, 'Volume representation');
-      return ApiResult.ok('Updated the representation.', { nodes: [representation] });
+    async run({ node, params }, ctx) {
+      const reps = volumeRepresentationsOf(ctx, node);
+      if (isFailure(reps)) return reps;
+      return updateEach(ctx, reps, params, 'Volume representation');
     },
   });
 
@@ -222,11 +243,20 @@ export class VolumeApi extends ApiArea {
     params: {
       visible: PD.Boolean(true),
       volume: VolumeParam(),
-      representation: PD.Text('', {
-        description: 'One representation (by state ref or type) instead of the whole volume',
-      }),
+      representation: PD.Text('', { description: 'One representation by type instead of the whole volume' }),
+      node: RepresentationNodeParam(),
     },
-    async run({ visible, volume, representation }, ctx) {
+    async run({ visible, volume, representation, node }, ctx) {
+      if (node) {
+        const reps = volumeRepresentationsOf(ctx, node);
+        if (isFailure(reps)) return reps;
+        const todo = reps.filter((r) => !!r.cell.state.isHidden === visible);
+        if (!todo.length) return ApiResult.already(`They are already ${visible ? 'shown' : 'hidden'}.`);
+        ctx.plugin.managers.volume.hierarchy.toggleVisibility(todo, visible ? 'show' : 'hide');
+        return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} ${namesOfReps(ctx, todo)}.`, {
+          nodes: todo.map((r) => r.cell.transform.ref),
+        });
+      }
       const t = representation ? resolveRepresentation(ctx, volume, representation, false) : undefined;
       if (isFailure(t)) return t;
       const v = t ? undefined : oneVolume(ctx, volume || undefined);
@@ -246,12 +276,17 @@ export class VolumeApi extends ApiArea {
     title: 'Remove a volume',
     params: {
       volume: VolumeParam(),
-      representation: PD.Text('', {
-        description: 'One representation (by state ref or type) instead of the whole volume',
-      }),
+      representation: PD.Text('', { description: 'One representation by type instead of the whole volume' }),
+      node: RepresentationNodeParam(),
     },
     approval: 'destructive',
-    async run({ volume, representation }, ctx) {
+    async run({ volume, representation, node }, ctx) {
+      if (node) {
+        const reps = volumeRepresentationsOf(ctx, node);
+        if (isFailure(reps)) return reps;
+        await ctx.plugin.managers.volume.hierarchy.remove(reps, false);
+        return ApiResult.ok(`Removed ${namesOfReps(ctx, reps)}.`, { nodes: reps.map((r) => r.cell.transform.ref) });
+      }
       if (representation) {
         const t = resolveRepresentation(ctx, volume, representation, false);
         if (isFailure(t)) return t;
@@ -588,7 +623,7 @@ function oneVolume(ctx: ApiContext, name: string | undefined): VolumeRef | ApiFa
   return pickOne(volumes(ctx), name, 'volume', 'Open a map file (ccp4, mrc, map, cube, dx, …) first.');
 }
 
-/** A representation by state ref, else by type, among a volume's (or every volume's when `volume` is empty and a representation is named). */
+/** A representation by type, among a volume's (or every volume's when `volume` is empty and a representation is named). */
 function resolveRepresentation(
   ctx: ApiContext,
   volumeName: string,
@@ -606,20 +641,18 @@ function resolveRepresentation(
     pool = allRepresentations(ctx);
   }
   if (name) {
-    const byRef = pool.find((r) => r.cell.transform.ref === name);
     const byType = pool.filter((r) => typeOf(r) === name);
-    if (byRef) return { rep: byRef, volume: byRef.volume };
     if (byType.length === 1) return { rep: byType[0], volume: byType[0].volume };
     if (byType.length > 1) {
       return ApiResult.fail(
         'ambiguous',
         `There are ${byType.length} ${name} representations.`,
-        `Name one by state ref: ${byType.map((r) => r.cell.transform.ref).join(', ')}.`,
+        `Pick one with node: ${byType.map((r) => `#${r.cell.transform.ref}`).join(', ')}.`,
       );
     }
     return ApiResult.fail(
       'not-found',
-      `There is no volume representation '${name}'.`,
+      `There is no ${name} representation.`,
       pool.length
         ? `Representations: ${pool.map((r) => `${typeOf(r)} (${r.cell.transform.ref})`).join(', ')}.`
         : 'Add one with volume.representation.',
@@ -639,6 +672,39 @@ function resolveRepresentation(
     );
   }
   return { rep, volume: rep.volume };
+}
+
+/** The volume representations a node selector matches (operations.md §1 "Nodes"). */
+function volumeRepresentationsOf(ctx: ApiContext, node: string): VolumeRepresentationRef[] | ApiFailure {
+  const byRef = new Map(allRepresentations(ctx).map((r) => [r.cell.transform.ref, r]));
+  return nodesFor(ctx.plugin.state.data, node, 'volume representation', (cell) => byRef.get(cell.transform.ref));
+}
+
+/** "isosurface of emd_1234", "3 representations". */
+function namesOfReps(ctx: ApiContext, reps: readonly VolumeRepresentationRef[]): string {
+  return reps.length === 1
+    ? `${repLabel(reps[0])} of ${volumeLabel(ctx, reps[0].volume)}`
+    : `${reps.length} representations`;
+}
+
+/** Sets a representation's level; false when it is already there. */
+async function setIso(
+  ctx: ApiContext,
+  rep: VolumeRepresentationRef,
+  kind: 'relative' | 'absolute',
+  value: number,
+): Promise<boolean> {
+  const params = rep.cell.transform.params as RepresentationValues;
+  const want = kind === 'relative' ? Volume.IsoValue.relative(value) : Volume.IsoValue.absolute(value);
+  const old = params.type.params.isoValue as Volume.IsoValue | undefined;
+  if (old && sameIso(old, want)) return false;
+  await ctx.plugin.state.updateTransform(
+    ctx.plugin.state.data,
+    rep.cell.transform.ref,
+    { ...params, type: { name: params.type.name, params: { ...params.type.params, isoValue: want } } },
+    'Iso value',
+  );
+  return true;
 }
 
 function typeOf(r: VolumeRepresentationRef): string {

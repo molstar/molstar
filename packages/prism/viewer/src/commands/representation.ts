@@ -62,7 +62,7 @@ export function representationCommands(api: ViewerApi): CommandDefinition<Viewer
       alias: ['remove representation', 'hide representation', 'delete representation'],
       action: 'Remove',
       // By component and type here; one by state ref is the tree row's.
-      values: { representation: '' },
+      values: { node: '' },
     }),
     operationCommand(api, api.representation.visibility, {
       category,

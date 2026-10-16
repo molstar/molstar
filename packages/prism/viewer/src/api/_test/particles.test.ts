@@ -85,12 +85,10 @@ describe('particles', () => {
     const rep = v.plugin.managers.particles.hierarchy.current.lists[0].representations[0];
     const current = rep.cell.transform.params as any;
     const params = { type: { name: 'spacefill', params: { ...current.type.params, alpha: 0.4 } } };
-    expectOk(await v.api.particles.update({ representation: rep.cell.transform.ref, params }));
+    expectOk(await v.api.particles.update({ node: rep.cell.transform.ref, params }));
     expect((rep.cell.transform.params as any).type.params.alpha).toBe(0.4);
-    expect(((await v.api.particles.update({ representation: rep.cell.transform.ref, params })) as any).unchanged).toBe(
-      true,
-    );
-    expect(await v.api.particles.update({ representation: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
+    expect(((await v.api.particles.update({ node: rep.cell.transform.ref, params })) as any).unchanged).toBe(true);
+    expect(await v.api.particles.update({ node: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
   });
 
   it('shows, hides and removes the list or a representation, and undoes', async () => {

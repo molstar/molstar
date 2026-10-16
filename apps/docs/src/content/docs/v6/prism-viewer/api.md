@@ -105,7 +105,7 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                        |
 | `animation`           | `play`, `stop`, `wiggle`, `get`.                                                                                                                                 |
 | `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                    |
-| `state`               | `get`, `visibility`, `update`, `remove`, `action`: the raw state tree. Lazy.                                                                                     |
+| `state`               | `get`, `select`, `visibility`, `update`, `apply`, `remove`, `action`: the raw state tree, by node selector. Lazy.                                                |
 
 `packages/prism/viewer/_spec/operations.md` lists every operation with its parameters and flags, written from the code.
 
@@ -178,6 +178,29 @@ session record store.
 When several structures are loaded, say which with `structure: '1TQN'`, a label or a state ref. Without it a target
 applies to the structure you are working with: the focused one, else the selected one, else the one in view, else every
 loaded structure. The result says which it was.
+
+## Nodes
+
+Operations on cells of the state tree (`state.*`; a representation's `update`, `visibility` and `remove`; `volume.*` and
+`particles.*`) take a `node`: a selector in the shape of CSS, compiled to Mol\*'s `StateSelection`.
+
+```ts
+await api.representation.visibility({ node: 'component[type=ligand] > representation', visible: false });
+await api.state.select({ node: 'structure[label="1CBS"] representation:hidden' });
+await api.state.apply({ node: 'component[type=ligand]', transformer: 'structure-representation-3d' });
+```
+
+| Part        | Examples                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| Kinds       | `data`, `trajectory`, `model`, `structure`, `component`, `representation`, `volume`, `*`        |
+| Attributes  | `[label="1CBS"]`, `[type=cartoon]`, `[tag=mine]` or `.mine`, `[transformer$=component]`, `#ref` |
+| Operators   | `=`, `*=` (contains), `^=` (starts with), `$=` (ends with); text compares without case          |
+| States      | `:hidden`, `:visible`, `:error`, `:not(...)`                                                    |
+| Combinators | a space (anything below), `>` (a child), `,` (either)                                           |
+
+A ref alone works too. An operation acts on every match of its kind as one step; one that needs a single cell
+(`state.get`, `state.action`) lists the matches when there are several. In scripts, `node()` from
+`@molstar/prism-viewer/api` writes the same text: `node('component', { type: 'ligand' }).child('representation')`.
 
 ## Origins
 
