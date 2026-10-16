@@ -10,7 +10,14 @@ import type { Provider } from '@molstar/ai';
 import { listedModels } from '@molstar/ai/models';
 import { observableState } from '@molstar/prism-ui/core';
 import type { KeyStore } from '../keys.js';
-import type { AIProvider, AISettingsModel, AISetup, KeyScope } from '../model.js';
+import {
+  type AIProvider,
+  type AISettingsModel,
+  type AISetup,
+  checkLimits,
+  type KeyScope,
+  OwnLimits,
+} from '../model.js';
 
 // The assistant's model setup (agent.md §4): the providers, their keys (the person's, kept as they chose, always
 // scrambled: keys.ts), the model chosen, one's own OpenAI-compatible endpoints. It gives the agent its providers: a lookup,
@@ -30,6 +37,9 @@ interface OwnProvider {
   readonly models: readonly string[];
   /** Added with no key (a local server takes none): the scope chosen, since no key is kept to say it. */
   readonly keyless?: KeyScope;
+  /** Its models' context window and output maximum, in tokens, as the person gave them (else `OwnLimits`). */
+  readonly contextWindow?: number;
+  readonly maxOutputTokens?: number;
 }
 
 export interface ViewerAISettings extends AISettingsModel {
@@ -67,6 +77,8 @@ export function localPrefs(prefix = 'prism-assistant.'): SettingsPrefs {
 export interface AISettingsOptions {
   /** Says what went wrong in words (a key that could not be kept, an endpoint refused); the viewer's notifications. */
   readonly report?: (text: string) => void;
+  /** The providers' HTTP (default: the page's `fetch`; a test gives a recorded one). */
+  readonly fetch?: typeof globalThis.fetch;
   /** Models the host brings with their own providers (a story's scripted model): in effect without a key of the person's. */
   readonly provided?: readonly ProvidedModels[];
   /**
@@ -183,7 +195,8 @@ export function createAISettings(
   const keyed = (provider: string) => {
     const o = own.get(provider);
     if (!o?.keyless) return;
-    own.set(provider, { id: o.id, label: o.label, baseURL: o.baseURL, api: o.api, models: o.models });
+    const { keyless: _, ...rest } = o;
+    own.set(provider, rest);
     prefs.set('providers', JSON.stringify([...own.values()]));
   };
   const setKey = (provider: string, key: string, scope: KeyScope) => {
@@ -209,23 +222,35 @@ export function createAISettings(
       if (!found) {
         const o = own.get(provider);
         const key = resolveApiKey(provider);
+        const http = options.fetch ? { fetch: options.fetch } : {};
         found =
           provider === 'anthropic'
             ? lazyProvider(async () =>
                 (await import('@molstar/ai/providers/anthropic')).createAnthropicProvider({
                   resolveApiKey: key,
+                  ...http,
                 }),
               )
             : provider === 'google'
               ? lazyProvider(async () =>
                   (await import('@molstar/ai/providers/google')).createGoogleProvider({
                     resolveApiKey: key,
+                    ...http,
                   }),
                 )
               : lazyProvider(async () =>
                   (await import('@molstar/ai/providers/openai')).createOpenAIProvider({
                     resolveApiKey: key,
-                    ...(o ? { baseURL: o.baseURL, api: o.api, provider: o.id, label: o.label } : {}),
+                    ...http,
+                    ...(o
+                      ? {
+                          baseURL: o.baseURL,
+                          api: o.api,
+                          provider: o.id,
+                          label: o.label,
+                          modelLimits: ownModelLimits(o, chosen),
+                        }
+                      : {}),
                   }),
                 );
         made.set(provider, found);
@@ -245,6 +270,9 @@ export function createAISettings(
     },
     choose(next) {
       chosen = next;
+      // A model an own endpoint did not list: its provider is made again, with limits for it too.
+      const o = own.get(next.provider);
+      if (o && !o.models.includes(next.model)) made.delete(next.provider);
       prefs.set('setup', JSON.stringify(next));
       publish();
     },
@@ -257,7 +285,7 @@ export function createAISettings(
       return [];
     },
     addProvider(p) {
-      const problem = checkEndpoint(p.baseURL);
+      const problem = checkEndpoint(p.baseURL) ?? checkLimits(p);
       if (problem) {
         report(`${p.label || 'The endpoint'} was not added: ${problem}`);
         return;
@@ -275,6 +303,8 @@ export function createAISettings(
         api: p.api,
         models: p.models,
         ...(keyless ? { keyless: p.scope } : {}),
+        ...(p.contextWindow !== undefined ? { contextWindow: p.contextWindow } : {}),
+        ...(p.maxOutputTokens !== undefined ? { maxOutputTokens: p.maxOutputTokens } : {}),
       });
       prefs.set('providers', JSON.stringify([...own.values()]));
       if (!keyless) return setKey(id, p.key, p.scope);
@@ -291,6 +321,19 @@ export function createAISettings(
 }
 
 const KeylessPlaceholder = 'no-key';
+
+/**
+ * An own endpoint's `modelLimits`: the person's limits (else `OwnLimits`) for each model it lists and the one chosen
+ * on it (a foreign endpoint has no catalog: a model without limits cannot run a turn).
+ */
+function ownModelLimits(o: OwnProvider, chosen: AISetup | undefined) {
+  const limits = {
+    contextWindowTokens: o.contextWindow ?? OwnLimits.contextWindowTokens,
+    maxOutputTokens: o.maxOutputTokens ?? OwnLimits.maxOutputTokens,
+  };
+  const ids = new Set([...o.models, ...(chosen?.provider === o.id ? [chosen.model] : [])]);
+  return Object.fromEntries([...ids].map((id) => [id, limits]));
+}
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 

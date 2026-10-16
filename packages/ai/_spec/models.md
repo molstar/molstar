@@ -87,7 +87,10 @@ factories, each its own entry so a host imports only the SDKs it uses
   `openai/native.ts`).
 - **Any endpoint of a dialect**: `createOpenAIProvider({ api: 'chat', baseURL, provider: 'lab', modelLimits })` serves a
   compatible endpoint under its own provider id. A foreign `baseURL` uses no catalog: limits come only from
-  `modelLimits` (keyed by model id), and tools are never appended. Replay identity is the provider id, never a URL.
+  `modelLimits` (keyed by model id; a model without them fails the turn, "supply a modelLimits override"), and tools are
+  never appended. The assistant supplies them for one's own endpoint (`prism/assistant/src/viewer/settings-model.ts`:
+  the person's context window and max output, else 32,768 and 4,096 tokens, for each listed model and the chosen one).
+  Replay identity is the provider id, never a URL.
 - **Errors**: any HTTP error has `effect: 'none'`, and 408, 409, 429 and ≥500 are transient; a failure without a status
   (network, mid-stream) is transient with `effect: 'unknown'`; the SDK's `UnsupportedFunctionalityError` is not
   transient, effect `none`; a response's `retry-after-ms` or `retry-after` (seconds or a date) becomes `retryAfterMs`

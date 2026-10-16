@@ -96,6 +96,24 @@ export interface AIProvider {
   models: readonly string[];
 }
 
+/**
+ * An own endpoint's limits when the person gives none: conservative, as a model the catalog does not know may be
+ * small (a provider asks for limits for a foreign endpoint: `modelLimits`, which `settings-model.ts` gives).
+ */
+export const OwnLimits = { contextWindowTokens: 32_768, maxOutputTokens: 4_096 } as const;
+
+/** What is wrong with an own endpoint's limits (positive whole numbers, the output within the window), if anything. */
+export function checkLimits(limits: { contextWindow?: number; maxOutputTokens?: number }): string | undefined {
+  const { contextWindow, maxOutputTokens } = limits;
+  for (const value of [contextWindow, maxOutputTokens])
+    if (value !== undefined && (!Number.isSafeInteger(value) || value <= 0))
+      return 'The context window and the max output are whole numbers of tokens, above zero.';
+  const window = contextWindow ?? OwnLimits.contextWindowTokens;
+  const output = maxOutputTokens ?? OwnLimits.maxOutputTokens;
+  if (output >= window) return `The max output (${output}) must be less than the context window (${window}).`;
+  return undefined;
+}
+
 /** The model the assistant uses (from the next request on). */
 export interface AISetup {
   provider: string;
@@ -114,7 +132,10 @@ export interface AISettingsModel {
   refreshModels(provider?: string): Promise<void>;
   /** Asks an endpoint not added yet which models it offers (OpenAI-compatible `/models`). */
   listModels(endpoint: { baseURL: string; key: string }): Promise<readonly string[]>;
-  /** One's own OpenAI-compatible endpoint (name, URL, which API, key, its models). */
+  /**
+   * One's own OpenAI-compatible endpoint (name, URL, which API, key, its models, and optionally its models' limits in
+   * tokens: 32,768 of context and 4,096 of output when not given).
+   */
   addProvider(own: {
     label: string;
     baseURL: string;
@@ -122,6 +143,8 @@ export interface AISettingsModel {
     key: string;
     scope: KeyScope;
     models: readonly string[];
+    contextWindow?: number;
+    maxOutputTokens?: number;
   }): void;
 }
 

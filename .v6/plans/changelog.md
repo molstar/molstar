@@ -203,6 +203,8 @@ the [API change ledger](breaking-v6-changes.md).
   group; Home's Zenodo starts folded, among the actions.
 - Prism UI: switching from one card to another (Animation, Canvas) swaps its title and body in the one card, as a tab
   swaps a panel's content, instead of closing and opening a card again.
+- Prism assistant: your own OpenAI-compatible endpoint runs turns: its optional context window and max output fields
+  (32,768 and 4,096 tokens when left empty) become the provider's `modelLimits`
 - Prism assistant: a call waiting to reach an address offers Allow once and Allow <host> (Remember keeps it in this
   browser, else for the session); the next calls to that host go without asking; the Storage view lists the allowed
   domains, each with Forget.

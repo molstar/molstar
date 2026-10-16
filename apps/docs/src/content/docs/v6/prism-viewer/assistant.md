@@ -61,6 +61,11 @@ The assistant calls a model provider directly from your browser, with your own k
 Providers are Anthropic, Google and OpenAI. You can add your own OpenAI-compatible endpoint, such as OpenRouter, Ollama
 or vLLM. Its address must be https, or http on `localhost`, and must not contain a login. Add the key in its own field.
 
+An endpoint's models are not in the assistant's catalog, so it needs their limits: the optional **Context window** and
+**Max output** fields, in tokens. Left empty, they are 32,768 tokens of context and 4,096 of output, which most models
+take; give the real ones for a larger model, so the assistant condenses the conversation later and replies at more
+length. The limits apply to every model of the endpoint, and are kept with it.
+
 You choose how long a key is kept:
 
 | Scope            | Kept in                                      |
