@@ -33,7 +33,7 @@ import {
 } from './messages.js';
 import { modelError, type ReplayState, streamPayload } from './stream.js';
 
-// The provider every vendor shares (providers.md §2): `project` builds `streamText`'s own arguments as JSON, the
+// The provider every vendor shares (`_spec/models.md`, "The providers"): `project` builds `streamText`'s own arguments as JSON, the
 // retained payload, digested; `invoke` checks it is this provider's and streams it as it is.
 
 export interface PayloadTool {

@@ -12,4 +12,4 @@ export type * from './contracts/observe.js';
 export * from './contracts/records.js';
 export type * from './contracts/runner.js';
 export { defaultDrive, drive } from './drive/index.js';
-export { createHarness, emptyHead } from './loop/index.js';
+export { createHarness, emptyHead, wallClock } from './loop/index.js';

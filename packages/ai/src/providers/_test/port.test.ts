@@ -77,9 +77,9 @@ function promptText(value: Json, out: string[] = []): string[] {
 describe('tool-definition parts', () => {
   it.each(cases)('are never sent as text: $name', async ({ provider, model, create }) => {
     const recorded = recordingFetch(responses[provider]('ok'));
-    const adapter = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+    const instance = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
     const request = await project(
-      adapter,
+      instance,
       projectInput(provider, model, { messages: [guide, user], tools: [documented] }),
     );
     expect(promptText(request.payload)).toContain('Be brief.');
@@ -88,15 +88,15 @@ describe('tool-definition parts', () => {
       expect(text).not.toContain('Docs search');
     }
     // The definition is declared to the provider, not said to the model.
-    await collectFrames(adapter, request);
+    await collectFrames(instance, request);
     expect(recorded.requests[0]?.body).toContain(marker);
     expect(recorded.requests[0]?.body).toContain('docs_search');
   });
 
   it.each(cases)('alone in a system message add no text: $name', async ({ provider, model, create }) => {
-    const adapter = create({ resolveApiKey: () => 'fixture' });
+    const instance = create({ resolveApiKey: () => 'fixture' });
     const withMessage = await project(
-      adapter,
+      instance,
       projectInput(provider, model, { messages: [declares(documented), user], tools: [documented] }),
     );
     expect(payloadOf(withMessage).system).toBeUndefined();
@@ -111,12 +111,12 @@ describe('a tool loaded later', () => {
   it.each(cases.filter((test) => test.name.includes('native')))(
     'is appended where it loads, not hoisted: $name',
     async ({ provider, model, create }) => {
-      const adapter = create({ resolveApiKey: () => 'fixture' });
+      const instance = create({ resolveApiKey: () => 'fixture' });
       const first = payloadOf(
-        await project(adapter, projectInput(provider, model, { messages: head, tools: [documented] })),
+        await project(instance, projectInput(provider, model, { messages: head, tools: [documented] })),
       );
       const second = payloadOf(
-        await project(adapter, projectInput(provider, model, { messages: later, tools: [documented, lookupTool] })),
+        await project(instance, projectInput(provider, model, { messages: later, tools: [documented, lookupTool] })),
       );
       expect((second.messages as unknown[]).slice(0, (first.messages as unknown[]).length)).toEqual(first.messages);
       expect(second.messages as unknown[]).toHaveLength((first.messages as unknown[]).length + 1);
@@ -131,10 +131,10 @@ describe('a tool loaded later', () => {
   it.each(cases.filter((test) => test.name.includes('collected')))(
     'is collected from the available tools: $name',
     async ({ provider, model, create }) => {
-      const adapter = create({ resolveApiKey: () => 'fixture' });
+      const instance = create({ resolveApiKey: () => 'fixture' });
       const tools = async (messages: Message[], available: ToolDefinition[]) =>
         Object.values(
-          payloadOf(await project(adapter, projectInput(provider, model, { messages, tools: available })))
+          payloadOf(await project(instance, projectInput(provider, model, { messages, tools: available })))
             .toolIds as JsonObject,
         );
       expect(await tools(head, [documented])).toEqual(['docs.search']);
@@ -166,12 +166,12 @@ describe('cacheScopeId', () => {
     expect(new Set([none.digest, a.digest, b.digest]).size).toBe(3);
     const anthropic = createAnthropicProvider({ resolveApiKey: () => 'k' });
     const google = createGoogleProvider({ resolveApiKey: () => 'k' });
-    for (const [adapter, provider, model] of [
+    for (const [instance, provider, model] of [
       [anthropic, 'anthropic', 'claude-sonnet-5-5'],
       [google, 'google', 'gemini-3.8-flash'],
     ] as const) {
-      const plain = await project(adapter, scoped(provider, model));
-      const withScope = await project(adapter, scoped(provider, model, 'scope-a'));
+      const plain = await project(instance, scoped(provider, model));
+      const withScope = await project(instance, scoped(provider, model, 'scope-a'));
       expect(withScope.payload).toEqual(plain.payload);
       expect(withScope.digest).toBe(plain.digest);
     }
@@ -201,16 +201,16 @@ describe('unrepresentable input', () => {
   });
 
   it.each(cases)('is typed for an attachment the provider cannot take: $name', async ({ provider, model, create }) => {
-    const adapter = create({ resolveApiKey: () => 'k' });
+    const instance = create({ resolveApiKey: () => 'k' });
     await unrepresentable(
       project(
-        adapter,
+        instance,
         projectInput(provider, model, { messages: [{ role: 'user', parts: [file('application/x-unknown')] }] }),
       ),
     );
     await unrepresentable(
       project(
-        adapter,
+        instance,
         projectInput(provider, model, { messages: [{ role: 'system', parts: [file('image/png')] }, user] }),
       ),
     );
@@ -219,37 +219,39 @@ describe('unrepresentable input', () => {
   it('is typed for system text inside a conversation that collects it', async () => {
     const midway: Message = { role: 'system', parts: [{ kind: 'text', text: 'New rule.' }] };
     for (const test of cases.filter((candidate) => candidate.name.includes('collected'))) {
-      const adapter = test.create({ resolveApiKey: () => 'k' });
-      await unrepresentable(project(adapter, projectInput(test.provider, test.model, { messages: [user, midway] })));
+      const instance = test.create({ resolveApiKey: () => 'k' });
+      await unrepresentable(project(instance, projectInput(test.provider, test.model, { messages: [user, midway] })));
     }
   });
 
   it('is typed for OpenAI guidance or a load while a call is unanswered', async () => {
-    const adapter = createOpenAIProvider({ resolveApiKey: () => 'k' });
+    const instance = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const call: Message = {
       role: 'assistant',
       parts: [{ kind: 'tool-call', requestId: 'c', tool: lookupTool.tool, arguments: {} }],
     };
     const guidance: Message = { role: 'system', parts: [{ kind: 'text', text: 'Late.' }] };
-    await unrepresentable(project(adapter, projectInput('openai', 'gpt-6-luna', { messages: [user, call, guidance] })));
+    await unrepresentable(
+      project(instance, projectInput('openai', 'gpt-6-luna', { messages: [user, call, guidance] })),
+    );
     await unrepresentable(
       project(
-        adapter,
+        instance,
         projectInput('openai', 'gpt-6-luna', { messages: [user, call, declares(documented)], tools: [documented] }),
       ),
     );
   });
 
   it('leaves a bad parameter or a corrupt attachment a plain error', async () => {
-    const adapter = createOpenAIProvider({ resolveApiKey: () => 'k' });
+    const instance = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const input = projectInput('openai', 'gpt-6-luna');
-    const bad = await project(adapter, {
+    const bad = await project(instance, {
       ...input,
       configuration: { ...input.configuration, parameters: { temperature: 0.2 } },
     }).catch((error: unknown) => error);
     expect(bad).toBeInstanceOf(Error);
     expect(bad).not.toBeInstanceOf(UnrepresentableInput);
-    const corrupt = await project(adapter, {
+    const corrupt = await project(instance, {
       ...input,
       messages: [
         {
@@ -275,15 +277,15 @@ describe('pure projection', () => {
   });
 
   it('changes the digest when the configuration, a message or the tools change', async () => {
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'k' });
+    const instance = createAnthropicProvider({ resolveApiKey: () => 'k' });
     const input = projectInput('anthropic', 'claude-sonnet-5-5', { messages: [user], tools: [lookupTool] });
-    const base = (await project(adapter, input)).digest;
+    const base = (await project(instance, input)).digest;
     const changed = [
       { ...input, tools: [documented] },
       { ...input, messages: [{ role: 'user', parts: [{ kind: 'text', text: 'Other.' }] } satisfies Message] },
       { ...input, configuration: { ...input.configuration, parameters: { maxOutputTokens: 64 } } },
     ];
-    for (const next of changed) expect((await project(adapter, next)).digest).not.toBe(base);
+    for (const next of changed) expect((await project(instance, next)).digest).not.toBe(base);
   });
 });
 
@@ -292,15 +294,15 @@ describe('a retained request', () => {
     'is refused before any request with another digest, revision or provider: $name',
     async ({ provider, model, create }) => {
       const recorded = recordingFetch(responses[provider]('ok'));
-      const adapter = create({ resolveApiKey: () => 'k', fetch: recorded.fetch });
-      const request = await project(adapter, projectInput(provider, model));
+      const instance = create({ resolveApiKey: () => 'k', fetch: recorded.fetch });
+      const request = await project(instance, projectInput(provider, model));
       const foreign = { ...payloadOf(request), provider: 'elsewhere' };
       for (const [changed, message] of [
         [{ ...request, digest: 'tampered' }, /payload digest/],
         [{ ...request, revision: 'old' }, /incompatible revision/],
         [{ ...request, payload: foreign, digest: digest(foreign) }, /provider does not match/],
       ] as const) {
-        const failure = await collectFrames(adapter, changed).catch((error: unknown) => error);
+        const failure = await collectFrames(instance, changed).catch((error: unknown) => error);
         expect(failure).toBeInstanceOf(ModelError);
         expect(failure).toMatchObject({ transient: false, effect: 'none' });
         expect((failure as Error).message).toMatch(message);

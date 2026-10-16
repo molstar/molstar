@@ -35,7 +35,7 @@ it.each([
 ] as const)(
   'classifies unsupported $provider content separately from corrupt retained bytes',
   async ({ provider, model, create }) => {
-    const adapter = create({ resolveApiKey: () => 'fixture' });
+    const instance = create({ resolveApiKey: () => 'fixture' });
     for (const message of [
       { role: 'user', parts: [file('application/octet-stream')] },
       { role: 'system', parts: [file('image/png')] },
@@ -46,7 +46,7 @@ it.each([
         ],
       },
     ] satisfies readonly Message[]) {
-      await expect(project(adapter, projectInput(provider, model, { messages: [message] }))).rejects.toBeInstanceOf(
+      await expect(project(instance, projectInput(provider, model, { messages: [message] }))).rejects.toBeInstanceOf(
         UnrepresentableInput,
       );
     }
@@ -54,7 +54,7 @@ it.each([
       role: 'user',
       parts: [{ kind: 'reference', reference: { uri: 'data:image/png;base64,YQ==', digest: 'murmur3-128:bad' } }],
     };
-    await expect(project(adapter, projectInput(provider, model, { messages: [corrupt] }))).rejects.not.toBeInstanceOf(
+    await expect(project(instance, projectInput(provider, model, { messages: [corrupt] }))).rejects.not.toBeInstanceOf(
       UnrepresentableInput,
     );
   },
@@ -97,9 +97,9 @@ for (const provider of ['anthropic', 'google'] as const) {
   describe(`${provider} attachment SDK projection`, () => {
     it('retains files-only input and preserves ordered text, documents and ordinary references', async () => {
       const recorded = recordingFetch(response);
-      const adapter = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+      const instance = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
       const request = await project(
-        adapter,
+        instance,
         projectInput(provider, model, {
           messages: [
             {
@@ -117,7 +117,7 @@ for (const provider of ['anthropic', 'google'] as const) {
           ],
         }),
       );
-      await collectFrames(adapter, request);
+      await collectFrames(instance, request);
       const body = JSON.parse(recorded.requests[0]?.body ?? '{}');
       if (provider === 'anthropic') {
         expect(body.messages[0].content.map((part: { type: string }) => part.type)).toEqual([
@@ -150,7 +150,7 @@ for (const provider of ['anthropic', 'google'] as const) {
 
     it('keeps a mixed result group adjacent to its calls before visible text and files', async () => {
       const recorded = recordingFetch(response);
-      const adapter = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+      const instance = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
       const messages: Message[] = [
         { role: 'user', parts: [{ kind: 'text', text: 'start' }] },
         {
@@ -177,7 +177,7 @@ for (const provider of ['anthropic', 'google'] as const) {
           ],
         },
       ];
-      await collectFrames(adapter, await project(adapter, projectInput(provider, model, { messages })));
+      await collectFrames(instance, await project(instance, projectInput(provider, model, { messages })));
       const body = JSON.parse(recorded.requests[0]?.body ?? '{}');
       if (provider === 'anthropic') {
         const content = body.messages[2].content;
@@ -205,28 +205,28 @@ for (const provider of ['anthropic', 'google'] as const) {
 
     it('rejects unsupported MIME/role combinations and invalid text before invocation', async () => {
       const recorded = recordingFetch(response);
-      const adapter = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+      const instance = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
       for (const [role, part] of [
         ['user', file('application/octet-stream')],
         ['system', file('image/png')],
         ['user', { kind: 'reference', reference: { uri: 'data:text/plain;base64,/w==' } }],
       ] as const) {
         await expect(
-          project(adapter, projectInput(provider, model, { messages: [{ role, parts: [part] }] })),
+          project(instance, projectInput(provider, model, { messages: [{ role, parts: [part] }] })),
         ).rejects.toThrow(/attachment/);
       }
       expect(recorded.requests).toHaveLength(0);
     });
 
     it('rejects binary failed-result attachments rather than losing their error status', async () => {
-      const adapter = create({ resolveApiKey: () => 'fixture' });
+      const instance = create({ resolveApiKey: () => 'fixture' });
       const failed: Message = {
         role: 'user',
         parts: [
           { kind: 'tool-result', requestId: 'c', tool: lookupTool.tool, status: 'failed', parts: [file('image/png')] },
         ],
       };
-      const failure = await project(adapter, projectInput(provider, model, { messages: [failed] })).catch(
+      const failure = await project(instance, projectInput(provider, model, { messages: [failed] })).catch(
         (error: unknown) => error,
       );
       expect(failure).toBeInstanceOf(UnrepresentableInput);
@@ -234,27 +234,27 @@ for (const provider of ['anthropic', 'google'] as const) {
     });
 
     it('sizes decoded text and modality bytes rather than base64 prompt characters', async () => {
-      const adapter = create({ resolveApiKey: () => 'fixture' });
+      const instance = create({ resolveApiKey: () => 'fixture' });
       const inline = await project(
-        adapter,
+        instance,
         projectInput(provider, model, {
           messages: [{ role: 'user', parts: [file('text/plain', 'text '.repeat(1000))] }],
         }),
       );
       const text = await project(
-        adapter,
+        instance,
         projectInput(provider, model, {
           messages: [{ role: 'user', parts: [{ kind: 'text', text: 'text '.repeat(1000) }] }],
         }),
       );
       expect(Math.abs(inline.inputTokens - text.inputTokens)).toBeLessThan(128);
       const image = await project(
-        adapter,
+        instance,
         projectInput(provider, model, { messages: [{ role: 'user', parts: [file('image/png', 'a'.repeat(12000))] }] }),
       );
       expect(image.inputTokens).toBeGreaterThan(4000);
       const percent = await project(
-        adapter,
+        instance,
         projectInput(provider, model, {
           messages: [
             {
@@ -271,11 +271,11 @@ for (const provider of ['anthropic', 'google'] as const) {
 
 it('maps Google audio/video and assistant attachments and rejects Claude audio', async () => {
   const recorded = recordingFetch(googleSse('done'));
-  const adapter = createGoogleProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+  const instance = createGoogleProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
   await collectFrames(
-    adapter,
+    instance,
     await project(
-      adapter,
+      instance,
       projectInput('google', 'gemini-3-flash-preview', {
         messages: [
           { role: 'user', parts: [file('audio/wav'), file('video/mp4')] },
@@ -306,10 +306,10 @@ it('maps Google audio/video and assistant attachments and rejects Claude audio',
 });
 
 it('rejects binary Google result attachments on targets whose SDK relocates them', async () => {
-  const adapter = createGoogleProvider({ resolveApiKey: () => 'fixture' });
+  const instance = createGoogleProvider({ resolveApiKey: () => 'fixture' });
   await expect(
     project(
-      adapter,
+      instance,
       projectInput('google', 'gemini-2.5-flash', {
         messages: [
           {

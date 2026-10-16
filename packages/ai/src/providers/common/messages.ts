@@ -19,7 +19,7 @@ import type {
 import { canonicalJson, UnrepresentableInput } from '../../messages/index.js';
 import { type AttachmentPlacement, type AttachmentRule, visibleParts } from './attachments.js';
 
-// `Message` → the AI SDK's `ModelMessage`, once, at projection (providers.md §2). The result is JSON (the retained
+// `Message` → the AI SDK's `ModelMessage`, once, at projection (`_spec/models.md`, "The providers"). The result is JSON (the retained
 // payload) and goes to `streamText` as it is. A message's label is never read.
 
 /** Provider options as the SDK takes them: a record per provider. */

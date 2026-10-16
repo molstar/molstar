@@ -20,7 +20,7 @@ import {
 import type { Layout, Payload } from '../common/provider.js';
 
 // OpenAI's positional tool additions (`additional_tools` developer items), for the catalog's models with the
-// `appendsTools` quirk (providers.md §3, kept). The installed SDK has no `additional_tools` input: a load is a
+// `appendsTools` quirk (`_spec/models.md`, "Projection rules"). The installed SDK has no `additional_tools` input: a load is a
 // placeholder system message (its tools in `providerOptions.molstar`), which `additionsTransport` replaces in the
 // request body before it leaves.
 

@@ -58,7 +58,8 @@ import {
   ZERO,
 } from './state.js';
 
-const realClock: Clock = {
+/** The page's clock: `Date.now()` and timers (the harness's default, and the session's). */
+export const wallClock: Clock = {
   now: () => Date.now(),
   sleep: (ms, signal) =>
     new Promise<void>((resolve, reject) => {
@@ -98,7 +99,7 @@ interface Active {
  * one synchronous assignment, so a stop or a failure mid-step leaves the journal as it was.
  */
 export function createHarness(options: HarnessOptions): Harness {
-  const clock = options.clock ?? realClock;
+  const clock = options.clock ?? wallClock;
   const ids = options.ids ?? randomIds;
   const id = options.id ?? `harness-${randomIds.next('h')}`;
   const store = new Store();

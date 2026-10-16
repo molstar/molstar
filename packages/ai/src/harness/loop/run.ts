@@ -405,7 +405,7 @@ export async function sizeOf(run: Run, staged: Staged = run.context): Promise<Co
     : sizeFrom(inputTokens, model.capabilities, run.model);
 }
 
-/** A head edit (compaction's replace-selection); false if it would leave an unprojectable head (harness.md §7). */
+/** A head edit (compaction's replace-selection); false if it would leave an unprojectable head (harness.md §2). */
 export async function applyEdit(run: Run, staged: Staged, edit: HeadEdit): Promise<boolean> {
   const fresh = edit.entries.filter((entry): entry is Message => typeof entry !== 'string');
   const ids = add(run, fresh);

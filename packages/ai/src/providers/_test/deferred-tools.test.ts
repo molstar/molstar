@@ -56,7 +56,7 @@ const responses = { anthropic: anthropicSse, google: googleSse, openai: openaiSs
 
 function setup(test: (typeof cases)[number]) {
   const recorded = recordingFetch(responses[test.provider]('ok'));
-  const adapter = factories[test.provider]({
+  const provider = factories[test.provider]({
     resolveApiKey: () => 'fixture',
     fetch: recorded.fetch,
     modelLimits: limits,
@@ -64,7 +64,7 @@ function setup(test: (typeof cases)[number]) {
   const input = (messages: Message[], tools: ToolDefinition[]): Omit<ProjectInput, 'capabilities'> =>
     projectInput(test.provider, test.model, { messages, tools });
   const body = (index: number): JsonObject => JSON.parse(recorded.requests[index]?.body ?? '{}');
-  return { recorded, adapter, input, body };
+  return { recorded, provider, input, body };
 }
 const history: Message[] = [
   user,
@@ -90,17 +90,17 @@ describe('deferred tool definitions', () => {
   it.each(cases.flatMap((test) => [true, false].map((declared) => ({ ...test, declared }))))(
     'retains completed history with no loaded tools: $name, declared=$declared',
     async (test) => {
-      const { adapter, input, body } = setup(test);
+      const { provider, input, body } = setup(test);
       const declaration = test.declared ? [declares(deferred, true)] : [];
-      const compacted = await project(adapter, input([...declaration, ...history], []));
+      const compacted = await project(provider, input([...declaration, ...history], []));
       const kept = payloadOf(compacted).messages as JsonObject[];
       expect(kept.map((message) => message.role)).toEqual(['user', 'assistant', 'tool']);
       expect(kept[1]).toMatchObject({ content: [{ type: 'tool-call', toolCallId: 'historical-call' }] });
       expect(kept[2]).toMatchObject({ content: [{ type: 'tool-result', toolCallId: 'historical-call' }] });
-      const reloaded = await project(adapter, input([...declaration, ...history, declares(deferred)], [deferred]));
+      const reloaded = await project(provider, input([...declaration, ...history, declares(deferred)], [deferred]));
       expect(reloaded.inputTokens).toBeGreaterThan(compacted.inputTokens + 1000);
-      await collectFrames(adapter, compacted);
-      await collectFrames(adapter, reloaded);
+      await collectFrames(provider, compacted);
+      await collectFrames(provider, reloaded);
       if (test.provider === 'openai') {
         const wire = body(0).input as JsonObject[];
         expect(wire).toEqual(
@@ -123,19 +123,19 @@ describe('deferred tool definitions', () => {
   );
 
   it.each(cases)('projects $name replacement heads as declared-only, then loads again', async (test) => {
-    const { adapter, input, body, recorded } = setup(test);
+    const { provider, input, body, recorded } = setup(test);
     const summary: Message = {
       role: 'system',
       parts: [{ kind: 'text', text: 'Prior tool work has been summarized.' }],
     };
     const declaration = declares(deferred, true);
     const compactedMessages = [summary, declaration, user];
-    const loaded = await project(adapter, input([summary, declares(deferred), user], [deferred]));
-    const compacted = await project(adapter, input(compactedMessages, []));
-    const reloaded = await project(adapter, input([...compactedMessages, declares(deferred)], [deferred]));
+    const loaded = await project(provider, input([summary, declares(deferred), user], [deferred]));
+    const compacted = await project(provider, input(compactedMessages, []));
+    const reloaded = await project(provider, input([...compactedMessages, declares(deferred)], [deferred]));
     expect(loaded.inputTokens).toBeGreaterThan(compacted.inputTokens + 1000);
     expect(reloaded.inputTokens).toBeGreaterThan(compacted.inputTokens + 1000);
-    for (const request of [loaded, compacted, reloaded]) await collectFrames(adapter, request);
+    for (const request of [loaded, compacted, reloaded]) await collectFrames(provider, request);
     expect(recorded.requests).toHaveLength(3);
     if (test.provider === 'anthropic' && test.native) {
       expect((body(1).tools as JsonObject[])[0]).toMatchObject({ defer_loading: true });
@@ -152,14 +152,14 @@ describe('deferred tool definitions', () => {
 
   it('keeps new deferred declarations out of the active earlier prompt and sizing', async () => {
     const test = cases[0];
-    const { adapter, input, body } = setup(test);
+    const { provider, input, body } = setup(test);
     const head = [declares(lookupTool), user];
-    const first = await project(adapter, input(head, [lookupTool]));
-    const declared = await project(adapter, input([...head, declares(deferred, true)], [lookupTool]));
+    const first = await project(provider, input(head, [lookupTool]));
+    const declared = await project(provider, input([...head, declares(deferred, true)], [lookupTool]));
     expect(declared.inputTokens).toBe(first.inputTokens);
     expect(declared.digest).not.toBe(first.digest);
-    await collectFrames(adapter, first);
-    await collectFrames(adapter, declared);
+    await collectFrames(provider, first);
+    await collectFrames(provider, declared);
     expect(body(1).messages).toEqual(body(0).messages);
     expect(body(1).system).toEqual(body(0).system);
     expect((body(1).tools as JsonObject[])[0]).toEqual((body(0).tools as JsonObject[])[0]);
@@ -172,15 +172,15 @@ describe('deferred tool definitions', () => {
   });
 
   it('loads full schemas at their position and ignores identical repeat loads', async () => {
-    const { adapter, input, body } = setup(cases[0]);
+    const { provider, input, body } = setup(cases[0]);
     const head = [declares(lookupTool), user];
-    const declaredOnly = await project(adapter, input([...head, declares(deferred, true)], [lookupTool]));
+    const declaredOnly = await project(provider, input([...head, declares(deferred, true)], [lookupTool]));
     const loadedMessages = [...head, declares(deferred)];
-    const loaded = await project(adapter, input(loadedMessages, [lookupTool, deferred]));
-    const repeated = await project(adapter, input([...loadedMessages, declares(deferred)], [lookupTool, deferred]));
+    const loaded = await project(provider, input(loadedMessages, [lookupTool, deferred]));
+    const repeated = await project(provider, input([...loadedMessages, declares(deferred)], [lookupTool, deferred]));
     expect(loaded.inputTokens).toBeGreaterThan(declaredOnly.inputTokens + 1_000);
     expect(repeated).toEqual(loaded);
-    await collectFrames(adapter, loaded);
+    await collectFrames(provider, loaded);
     expect((body(0).messages as JsonObject[]).at(-1)).toEqual({
       role: 'system',
       content: [{ type: 'tool_addition', tool: { type: 'tool_reference', name: 'application_extra' } }],
@@ -188,8 +188,8 @@ describe('deferred tool definitions', () => {
   });
 
   it('loads a tool given without a loading part before the conversation starts', async () => {
-    const { adapter, input } = setup(cases[0]);
-    const request = await project(adapter, input([user], [lookupTool]));
+    const { provider, input } = setup(cases[0]);
+    const request = await project(provider, input([user], [lookupTool]));
     const tools = payloadOf(request).tools as JsonObject;
     expect(Object.keys(tools)).toEqual(['fixture_lookup']);
     expect((tools.fixture_lookup as JsonObject).providerOptions).toMatchObject({ anthropic: { cacheControl: {} } });
@@ -199,10 +199,10 @@ describe('deferred tool definitions', () => {
   it.each([cases[0], cases[3]])(
     'loads what the head loads, whatever the request may call (a nested run keeps the prefix): $name',
     async (test) => {
-      const { adapter, input } = setup(test);
+      const { provider, input } = setup(test);
       const head = [declares(lookupTool), user, declares(deferred)];
-      const parent = payloadOf(await project(adapter, input(head, [lookupTool, deferred])));
-      const nested = payloadOf(await project(adapter, input(head, [])));
+      const parent = payloadOf(await project(provider, input(head, [lookupTool, deferred])));
+      const nested = payloadOf(await project(provider, input(head, [])));
       expect(nested.tools).toEqual(parent.tools);
       expect(nested.messages).toEqual(parent.messages);
       expect(
@@ -214,15 +214,15 @@ describe('deferred tool definitions', () => {
   it('maps a call to a declared but unloaded tool to its exact declared id', async () => {
     const unloaded: ToolDefinition = { ...deferred, tool: { id: 'application.complex/id:extra' } };
     const recorded = recordingFetch(openaiSse('', { name: 'application_complex_id_extra', input: '{"id":"x"}' }));
-    const adapter = createOpenAIProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+    const provider = createOpenAIProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
     const request = await project(
-      adapter,
+      provider,
       projectInput('openai', 'gpt-6-luna', {
         messages: [declares(lookupTool), declares(unloaded, true), user],
         tools: [lookupTool],
       }),
     );
-    const frames = await collectFrames(adapter, request);
+    const frames = await collectFrames(provider, request);
     expect(frames.find((frame) => frame.kind === 'result')).toMatchObject({
       message: { parts: [{ kind: 'tool-call', tool: unloaded.tool }] },
     });
@@ -271,20 +271,20 @@ describe('the appended layout', () => {
 
   it('appends native full-schema disclosure without changing the cache-relevant earlier prompt', async () => {
     const recorded = recordingFetch(anthropicSse('ok'));
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
     const head: Message[] = [
       { role: 'system', parts: [...guide.parts, { kind: 'tool-definition', definition: lookupTool, deferred: false }] },
       declares(other, true),
       user,
     ];
-    const first = await project(adapter, { ...sonnet, messages: head, tools: [lookupTool] });
-    const second = await project(adapter, {
+    const first = await project(provider, { ...sonnet, messages: head, tools: [lookupTool] });
+    const second = await project(provider, {
       ...sonnet,
       messages: [...head, declares(other)],
       tools: [lookupTool, other],
     });
-    await collectFrames(adapter, first);
-    await collectFrames(adapter, second);
+    await collectFrames(provider, first);
+    await collectFrames(provider, second);
     const initial = wire(recorded, 0);
     const extended = wire(recorded, 1);
     expect(initial.tools).toEqual(extended.tools);
@@ -303,27 +303,27 @@ describe('the appended layout', () => {
 
   it('supports legal in-place system guidance and rejects unrepresentable placements', async () => {
     const recorded = recordingFetch(anthropicSse('ok'));
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
     const update: Message = { role: 'system', parts: [{ kind: 'text', text: 'New operator constraint.' }] };
     const input = { ...sonnet, tools: [] };
-    await collectFrames(adapter, await project(adapter, { ...input, messages: [guide, user, update] }));
+    await collectFrames(provider, await project(provider, { ...input, messages: [guide, user, update] }));
     expect((wire(recorded, 0).messages as JsonObject[]).at(-1)).toEqual({
       role: 'system',
       content: [{ type: 'text', text: 'New operator constraint.' }],
     });
-    const boundary = await project(adapter, { ...input, messages: [guide, user, update, user] }).catch(
+    const boundary = await project(provider, { ...input, messages: [guide, user, update, user] }).catch(
       (e: unknown) => e,
     );
     expect(boundary).toBeInstanceOf(UnrepresentableInput);
     expect((boundary as Error).message).toContain('boundary');
-    const noInitial = await project(adapter, { ...input, messages: [user, update] }).catch((e: unknown) => e);
+    const noInitial = await project(provider, { ...input, messages: [user, update] }).catch((e: unknown) => e);
     expect(noInitial).toBeInstanceOf(UnrepresentableInput);
     expect((noInitial as Error).message).toContain('initial system prompt');
   });
 
   it('keeps signed thinking and attachment results adjacent before an ordered load', async () => {
     const recorded = recordingFetch(anthropicSse('ok'));
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
     const response: Message = {
       role: 'assistant',
       parts: [
@@ -352,8 +352,8 @@ describe('the appended layout', () => {
       ],
     };
     await collectFrames(
-      adapter,
-      await project(adapter, {
+      provider,
+      await project(provider, {
         ...sonnet,
         messages: [guide, declares(lookupTool), user, response, result, declares(other)],
         tools: [lookupTool, other],
@@ -367,14 +367,14 @@ describe('the appended layout', () => {
   });
 
   it('rejects version histories that native reference loading cannot reproduce', async () => {
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'unused' });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'unused' });
     const updated = {
       ...lookupTool,
       description: 'New schema version',
       inputSchema: { type: 'object', properties: { id: { enum: ['new'] } } },
     };
     await expect(
-      project(adapter, {
+      project(provider, {
         ...sonnet,
         messages: [declares(lookupTool), guide, user, declares(updated)],
         tools: [updated],
@@ -398,12 +398,12 @@ describe('the appended layout', () => {
   });
 
   it('answers a call and loads a tool in the same history, in order', async () => {
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'unused' });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'unused' });
     const call: Message = {
       role: 'assistant',
       parts: [{ kind: 'tool-call', requestId: 'c1', tool: lookupTool.tool, arguments: {} }],
     };
-    const request = await project(adapter, {
+    const request = await project(provider, {
       ...sonnet,
       messages: [guide, declares(lookupTool), user, call, answer('c1'), declares(other)],
       tools: [lookupTool, other],

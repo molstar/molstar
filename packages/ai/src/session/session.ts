@@ -32,6 +32,7 @@ import {
   type TurnConfiguration,
   type TurnOutcome,
   type TurnSummary,
+  wallClock,
 } from '../harness/index.js';
 import {
   type AfterWrite,
@@ -137,23 +138,6 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   notesHeading?: string;
 }
 
-const wallClock: Clock = {
-  now: () => Date.now(),
-  sleep: (ms, signal) =>
-    new Promise<void>((resolve, reject) => {
-      if (signal?.aborted) return reject(signal.reason);
-      const timer = setTimeout(resolve, ms);
-      signal?.addEventListener(
-        'abort',
-        () => {
-          clearTimeout(timer);
-          reject(signal.reason);
-        },
-        { once: true },
-      );
-    }),
-};
-
 /** What `activeTurn` holds while a turn is being composed, before the harness gives its id. */
 const COMPOSING = 'composing';
 
@@ -164,7 +148,7 @@ const COMPOSING = 'composing';
 export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = ModelChoice> {
   private readonly options: AgentSessionOptions<Api, M>;
   private readonly clock: Clock;
-  /** Tools by id, as the toolkit is now (a dynamic toolkit: README decision 25). */
+  /** Tools by id, as the toolkit is now (a dynamic toolkit: decision 25 of the prism-ui spec, `.v6/prism-ui/spec/README.md`). */
   private registration(toolId: string): ToolRegistration<Api> | undefined {
     return this.options.toolkit.registration(toolId);
   }

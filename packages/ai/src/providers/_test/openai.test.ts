@@ -33,9 +33,9 @@ const file = (mediaType: string, text = 'fixture'): ModelVisiblePart => ({
 describe('OpenAI Responses provider', () => {
   it('streams text and usage through stateless Responses without credential evidence', async () => {
     const recorded = recordingFetch(openaiSse('PONG'));
-    const adapter = create(recorded.fetch);
-    const request = await project(adapter, input({ tools: [] }));
-    const frames = await collectFrames(adapter, request);
+    const provider = create(recorded.fetch);
+    const request = await project(provider, input({ tools: [] }));
+    const frames = await collectFrames(provider, request);
     expect(frames).toContainEqual({ kind: 'text-delta', text: 'PONG' });
     expect(resultOf(frames)).toMatchObject({
       finish: 'complete',
@@ -51,19 +51,19 @@ describe('OpenAI Responses provider', () => {
 
   it("maps an effort to reasoning.effort, and off to none (not the model's default)", async () => {
     const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
+    const provider = create(recorded.fetch);
     const efforts = ['none', 'low', 'xhigh', 'max'] as const;
     for (const effort of efforts) {
       const parameters = { maxOutputTokens: 128, reasoning: { mode: 'adaptive', effort } } as const;
       await collectFrames(
-        adapter,
-        await project(adapter, input({ configuration: { ...input().configuration, parameters } })),
+        provider,
+        await project(provider, input({ configuration: { ...input().configuration, parameters } })),
       );
     }
     const off = { maxOutputTokens: 128, reasoning: { mode: 'off' } } as const;
     await collectFrames(
-      adapter,
-      await project(adapter, input({ configuration: { ...input().configuration, parameters: off } })),
+      provider,
+      await project(provider, input({ configuration: { ...input().configuration, parameters: off } })),
     );
     const sent = recorded.requests.map((request) => JSON.parse(request.body).reasoning.effort);
     expect(sent).toEqual([...efforts, 'none']);
@@ -78,8 +78,8 @@ describe('OpenAI Responses provider', () => {
     'rejects unsupported settings as a plain error before fetch %#',
     async (parameters) => {
       const recorded = recordingFetch(openaiSse('done'));
-      const adapter = create(recorded.fetch);
-      const failure = await project(adapter, input({ configuration: { ...input().configuration, parameters } })).catch(
+      const provider = create(recorded.fetch);
+      const failure = await project(provider, input({ configuration: { ...input().configuration, parameters } })).catch(
         (error: unknown) => error,
       );
       expect((failure as Error).message).toMatch(/unsupported|not supported/);
@@ -96,8 +96,8 @@ describe('OpenAI Responses provider', () => {
         { text: 'look up', encryptedContent: 'encrypted-fixture' },
       ),
     );
-    const adapter = create(recorded.fetch);
-    const result = resultOf(await collectFrames(adapter, await project(adapter, input())));
+    const provider = create(recorded.fetch);
+    const result = resultOf(await collectFrames(provider, await project(provider, input())));
     expect(result.finish).toBe('tool-calls');
     expect(result.message.parts.find((part) => part.kind === 'tool-call')).toMatchObject({
       kind: 'tool-call',
@@ -112,8 +112,8 @@ describe('OpenAI Responses provider', () => {
       },
     });
     const messages: Message[] = [...input().messages, result.message, answer('call_fixture')];
-    const replay = await project(adapter, input({ messages }));
-    await collectFrames(adapter, JSON.parse(JSON.stringify(replay)));
+    const replay = await project(provider, input({ messages }));
+    await collectFrames(provider, JSON.parse(JSON.stringify(replay)));
     const body = JSON.parse(recorded.requests[1]?.body ?? '{}');
     const reasonIndex = body.input.findIndex((item: { type: string }) => item.type === 'reasoning');
     expect(body.input[reasonIndex]).toMatchObject({
@@ -136,7 +136,7 @@ describe('OpenAI Responses provider', () => {
 
   it('projects ordered user and tool-result images/documents and rejects unsupported media placements', async () => {
     const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
+    const provider = create(recorded.fetch);
     const messages: Message[] = [
       {
         role: 'user',
@@ -167,7 +167,7 @@ describe('OpenAI Responses provider', () => {
         ],
       },
     ];
-    await collectFrames(adapter, await project(adapter, input({ messages, tools: [] })));
+    await collectFrames(provider, await project(provider, input({ messages, tools: [] })));
     const body = JSON.parse(recorded.requests[0]?.body ?? '{}');
     const types = (parts: { type: string }[]) => parts.map((part) => part.type);
     expect(types(body.input[0].content)).toEqual([
@@ -188,7 +188,7 @@ describe('OpenAI Responses provider', () => {
       ['system', file('image/png')],
       ['assistant', file('image/png')],
     ] as const) {
-      await expect(project(adapter, input({ messages: [{ role, parts: [part] }] }))).rejects.toThrow(
+      await expect(project(provider, input({ messages: [{ role, parts: [part] }] }))).rejects.toThrow(
         /does not support inline/,
       );
     }
@@ -196,26 +196,26 @@ describe('OpenAI Responses provider', () => {
 
   it('maps cacheScopeId to promptCacheKey on the wire', async () => {
     const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
+    const provider = create(recorded.fetch);
     const scoped = input({ configuration: { ...input().configuration, cacheScopeId: 'story-7' } });
-    await collectFrames(adapter, await project(adapter, scoped));
-    await collectFrames(adapter, await project(adapter, input()));
+    await collectFrames(provider, await project(provider, scoped));
+    await collectFrames(provider, await project(provider, input()));
     expect(JSON.parse(recorded.requests[0]?.body ?? '{}').prompt_cache_key).toBe('story-7');
     expect(JSON.parse(recorded.requests[1]?.body ?? '{}')).not.toHaveProperty('prompt_cache_key');
   });
 
   it('declares a tool in a system message and calls it in a collected conversation', async () => {
     const recorded = recordingFetch(openaiSse('', { name: 'fixture_lookup', input: '{"id":"x"}' }));
-    const adapter = createOpenAIProvider({
+    const provider = createOpenAIProvider({
       resolveApiKey: () => secret,
       fetch: recorded.fetch,
       modelLimits: { 'gpt-6-custom': { contextWindowTokens: 10_000, maxOutputTokens: 1024 } },
     });
     const request = await project(
-      adapter,
+      provider,
       projectInput('openai', 'gpt-6-custom', { messages: [declares(lookupTool), ...input().messages] }),
     );
-    expect(resultOf(await collectFrames(adapter, request)).message.parts).toContainEqual(
+    expect(resultOf(await collectFrames(provider, request)).message.parts).toContainEqual(
       expect.objectContaining({ kind: 'tool-call', tool: lookupTool.tool }),
     );
     expect(JSON.parse(recorded.requests[0]?.body ?? '{}').tools[0]).toMatchObject({ name: 'fixture_lookup' });

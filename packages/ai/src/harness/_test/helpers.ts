@@ -56,8 +56,9 @@ export function lastStep(events: readonly HarnessEvent[]): StepEvent {
 type Expectation<T> = ReturnType<typeof expect<T>>;
 
 /**
- * `expect(actual, message)`: Jest's `expect` takes no message, so a failure of any matcher on the
- * returned expectation (`.not`, `.resolves` and `.rejects` included) is rethrown with `message` in front.
+ * `expect(actual, message)`: a failure of any matcher on the returned expectation (`.not`, `.resolves` and `.rejects`
+ * included) is rethrown with `message` in front (written for Jest, whose `expect` took no message; kept as the cases'
+ * one form).
  */
 export function expectWith<T>(actual: T, message: string): Expectation<T> {
   const annotate = (error: unknown): unknown => {

@@ -98,7 +98,7 @@ const CLAUDE_5: ModelLimits = { contextWindowTokens: 1_000_000, maxOutputTokens:
 const CLAUDE_5_REASONING: ModelReasoning = { modes: ['adaptive'], efforts: EFFORTS };
 
 export const MODEL_CATALOG: readonly CatalogEntry[] = [
-  // Google. Reasoning parameters from Gemini 3 (google/capabilities.ts). Low by default: in Stories' evals it did as
+  // Google. Reasoning parameters from Gemini 3 (`google/provider.ts`). Low by default: in Stories' evals it did as
   // well as more thinking, 2–5× faster (more made Gemini read and re-read).
   { provider: 'google', id: 'gemini-2.5', family: true, limits: GEMINI_WINDOW },
   {

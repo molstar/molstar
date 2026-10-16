@@ -100,7 +100,8 @@ one stage per call, retry transient failures up to 3 times, accept, proceed…),
 - **The handler** (`ToolBindings.resolve(definition) → invoke(context)`) yields `progress` and `usage` frames, then
   exactly one `result` (`succeeded` or `failed`, parts, optional contributions, `effect`, `transient`).
 - **Keys**: a call's `key` names its intended effect (the call id at top level; a digest in a nested run), and
-  `prior: "possible"` says an earlier attempt may have run (a retry, or a run before the step parked), so a tool that is not idempotent can look for its effect.
+  `prior: "possible"` says an earlier attempt may have run (a retry, or a run before the step parked), so a tool that
+  is not idempotent can look for its effect.
 - **A tool's own context**: `journal.read` any pointer; `append` and `edit` on one it holds (never `main`), staged until
   the step ends.
 

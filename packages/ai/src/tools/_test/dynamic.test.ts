@@ -10,8 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { createToolBindings, createToolkit, type ToolGroup, type ToolRegistration } from '../index.js';
 import { call, definedIn, type Toy, toy, tool } from './helpers.js';
 
-// A dynamic toolkit (README decision 25, plan track A6): parts added and removed after creation, lazy skills that bring
-// their tools when disclosed, the turn's tool set, and the eviction hint.
+// A dynamic toolkit (decision 25 of the prism-ui spec, `.v6/prism-ui/spec/README.md`; plan track A6): parts added and
+// removed after creation, lazy skills that bring their tools when disclosed, the turn's tool set, and the eviction
+// hint.
 
 const none = { kind: 'object', fields: {} } as const;
 const make = (id: string, approval = false): ToolRegistration<Toy> =>

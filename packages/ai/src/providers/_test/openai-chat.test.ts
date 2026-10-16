@@ -94,25 +94,25 @@ function chatSse(options: { reasoning?: string; text?: string; call?: { name: st
 
 describe('OpenAI provider, chat completions at another endpoint', () => {
   it('knows its models only by the limits given, has no tool additions or cache key, and checks the provider', async () => {
-    const adapter = create();
-    expect(await adapter.capabilities(input().configuration)).toMatchObject({
+    const provider = create();
+    expect(await provider.capabilities(input().configuration)).toMatchObject({
       contextWindowTokens: 262_144,
       appendsTools: false,
       cacheScope: false,
     });
     const luna = { target: { provider: 'lab', model: 'gpt-6-luna' }, parameters: {} };
-    await expect(adapter.capabilities(luna)).rejects.toThrow(/explicit token limits/);
+    await expect(provider.capabilities(luna)).rejects.toThrow(/explicit token limits/);
     const foreign = { target: { provider: 'openai', model: 'kimi-k3' }, parameters: {} };
-    await expect(adapter.capabilities(foreign)).rejects.toThrow(/cannot project provider openai/);
+    await expect(provider.capabilities(foreign)).rejects.toThrow(/cannot project provider openai/);
   });
 
   it("streams reasoning and a call, sends the server's fields, and sends the reasoning back with the call", async () => {
     const recorded = recordingFetch(
       chatSse({ reasoning: 'look it up', call: { name: 'fixture_lookup', input: '{"id":"x"}' } }),
     );
-    const adapter = create(recorded.fetch);
-    const request = await project(adapter, input());
-    const frames = await collectFrames(adapter, request);
+    const provider = create(recorded.fetch);
+    const request = await project(provider, input());
+    const frames = await collectFrames(provider, request);
     expect(frames).toContainEqual({ kind: 'reasoning-delta', text: 'look it up' });
     const result = resultOf(frames);
     expect(result.finish).toBe('tool-calls');
@@ -134,7 +134,7 @@ describe('OpenAI provider, chat completions at another endpoint', () => {
     expect(sent.reasoning_effort).toBeUndefined();
 
     const messages: Message[] = [...input().messages, result.message, answer('call_fixture')];
-    await collectFrames(adapter, JSON.parse(JSON.stringify(await project(adapter, input({ messages })))));
+    await collectFrames(provider, JSON.parse(JSON.stringify(await project(provider, input({ messages })))));
     const replay = JSON.parse(recorded.requests[1]?.body ?? '{}').messages;
     expect(replay.slice(1)).toMatchObject([
       {
@@ -148,32 +148,32 @@ describe('OpenAI provider, chat completions at another endpoint', () => {
 
   it('streams a text answer', async () => {
     const recorded = recordingFetch(chatSse({ text: 'PONG' }));
-    const adapter = create(recorded.fetch);
-    const result = resultOf(await collectFrames(adapter, await project(adapter, input())));
+    const provider = create(recorded.fetch);
+    const result = resultOf(await collectFrames(provider, await project(provider, input())));
     expect(result).toMatchObject({ finish: 'complete', message: { parts: [{ kind: 'text', text: 'PONG' }] } });
   });
 
   it('sends an effort as reasoning_effort and refuses a token budget', async () => {
     const recorded = recordingFetch(chatSse({ text: 'ok' }));
-    const adapter = create(recorded.fetch);
+    const provider = create(recorded.fetch);
     const effort = { reasoning: { mode: 'adaptive', effort: 'low' } };
-    await collectFrames(adapter, await project(adapter, input({ parameters: effort })));
+    await collectFrames(provider, await project(provider, input({ parameters: effort })));
     expect(JSON.parse(recorded.requests[0]?.body ?? '{}')).toMatchObject({
       reasoning_effort: 'low',
       cache: { 'no-cache': true },
     });
     const budget = { reasoning: { mode: 'budget', tokens: 1000 } };
-    await expect(project(adapter, input({ parameters: budget }))).rejects.toThrow(/not a token budget/);
+    await expect(project(provider, input({ parameters: budget }))).rejects.toThrow(/not a token budget/);
   });
 
   it('takes text files and images from the person, and refuses other attachments', async () => {
-    const adapter = create();
+    const provider = create();
     const user = (part: ModelVisiblePart): Message[] => [{ role: 'user', parts: [part] }];
-    const image = payloadOf(await project(adapter, input({ messages: user(file('image/png')) })));
+    const image = payloadOf(await project(provider, input({ messages: user(file('image/png')) })));
     expect(JSON.stringify(image.messages)).toContain('"mediaType":"image/png"');
-    const text = payloadOf(await project(adapter, input({ messages: user(file('text/plain')) })));
+    const text = payloadOf(await project(provider, input({ messages: user(file('text/plain')) })));
     expect(JSON.stringify(text.messages)).toContain('"text":"fixture"');
-    await expect(project(adapter, input({ messages: user(file('application/pdf')) }))).rejects.toThrow(
+    await expect(project(provider, input({ messages: user(file('application/pdf')) }))).rejects.toThrow(
       /does not support inline application\/pdf/,
     );
     const call: Message = {
@@ -193,18 +193,18 @@ describe('OpenAI provider, chat completions at another endpoint', () => {
       ],
     };
     await expect(
-      project(adapter, input({ messages: [...user(file('text/plain')), call, imageResult] })),
+      project(provider, input({ messages: [...user(file('text/plain')), call, imageResult] })),
     ).rejects.toThrow(/tool-result/);
   });
 
   it("speaks Responses at another endpoint when asked, without OpenAI's tool additions", async () => {
     const recorded = recordingFetch(openaiSse('PONG'));
-    const adapter = create(recorded.fetch, 'responses');
-    expect(await adapter.capabilities(input().configuration)).toMatchObject({
+    const provider = create(recorded.fetch, 'responses');
+    expect(await provider.capabilities(input().configuration)).toMatchObject({
       appendsTools: false,
       cacheScope: true,
     });
-    await collectFrames(adapter, await project(adapter, input()));
+    await collectFrames(provider, await project(provider, input()));
     expect(recorded.requests[0]?.url).toBe(`${baseURL}/responses`);
   });
 });

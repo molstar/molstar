@@ -26,14 +26,14 @@ const other: ToolDefinition = {
 // each message: harness.md §11) say so, so the trace can tell where a prefix broke.
 describe('an appended turn', () => {
   it.each([
-    ['anthropic', createAnthropicProvider, 'claude-sonnet-5-5'],
-    ['anthropic', createAnthropicProvider, 'claude-haiku-4-5'],
-    ['google', createGoogleProvider, 'gemini-3.8-flash'],
-    ['openai', createOpenAIProvider, 'gpt-6-luna'],
-  ] as const)('starts with the previous request: %s %s', async (provider, create, model) => {
-    const adapter = create({ resolveApiKey: () => 'fixture' });
+    ['anthropic', 'claude-sonnet-5-5', createAnthropicProvider],
+    ['anthropic', 'claude-haiku-4-5', createAnthropicProvider],
+    ['google', 'gemini-3.8-flash', createGoogleProvider],
+    ['openai', 'gpt-6-luna', createOpenAIProvider],
+  ] as const)('starts with the previous request: %s %s', async (vendor, model, create) => {
+    const provider = create({ resolveApiKey: () => 'fixture' });
     const at = (messages: Message[], tools: ToolDefinition[] = [lookupTool]) =>
-      project(adapter, projectInput(provider, model, { messages, tools }));
+      project(provider, projectInput(vendor, model, { messages, tools }));
     const base = [declares(lookupTool), guide, user];
     const first = await at(base);
     const second = await at([...base, reply, tail]);
@@ -47,6 +47,6 @@ describe('an appended turn', () => {
     const retooled = (await at([guide, user], [lookupTool, other])).prefix ?? [];
     const plain = (await at([guide, user])).prefix ?? [];
     expect(retooled[0]).not.toBe(plain[0]);
-    if (model === 'claude-haiku-4-5' || provider === 'google') expect(retooled.slice(1)).toEqual(plain.slice(1));
+    if (model === 'claude-haiku-4-5' || vendor === 'google') expect(retooled.slice(1)).toEqual(plain.slice(1));
   });
 });

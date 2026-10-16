@@ -8,7 +8,7 @@
 
 import type { Message, Provider } from '../../messages/index.js';
 import { type ModelStep, type ScriptedModel, type ScriptedModelOptions, scriptedModel } from '../../testing/index.js';
-import type { Clock } from '../../harness/index.js';
+import { type Clock, wallClock } from '../../harness/index.js';
 import { createToolkit, type DisclosureModule, type Toolkit, toolFor } from '../../tools/index.js';
 import { AgentSession, type AgentSessionOptions, type ModelSource } from '../index.js';
 
@@ -132,22 +132,7 @@ export function toyToolkit(extra: { tools?: Parameters<typeof createToolkit<Toy>
 }
 
 /** Real time, for the few tests that wait. */
-export const realClock: Clock = {
-  now: () => Date.now(),
-  sleep: (ms, signal) =>
-    new Promise<void>((resolve, reject) => {
-      if (signal?.aborted) return reject(signal.reason);
-      const timer = setTimeout(resolve, ms);
-      signal?.addEventListener(
-        'abort',
-        () => {
-          clearTimeout(timer);
-          reject(signal.reason);
-        },
-        { once: true },
-      );
-    }),
-};
+export const realClock: Clock = wallClock;
 
 export const DEFAULT_MODEL = { provider: 'scripted', model: 'scripted-1' } as const;
 

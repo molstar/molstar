@@ -12,9 +12,9 @@ import { anthropicSse, collectFrames, payloadOf, project, projectInput, recordin
 
 describe('effective model capabilities', () => {
   it('resolves limits for different models of one provider', async () => {
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'unused' });
-    const small = await adapter.capabilities(projectInput('anthropic', 'claude-haiku-4-5').configuration);
-    const large = await adapter.capabilities(projectInput('anthropic', 'claude-sonnet-5').configuration);
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'unused' });
+    const small = await provider.capabilities(projectInput('anthropic', 'claude-haiku-4-5').configuration);
+    const large = await provider.capabilities(projectInput('anthropic', 'claude-sonnet-5').configuration);
     expect(small.contextWindowTokens).toBe(200_000);
     expect(large.contextWindowTokens).toBe(1_000_000);
     expect(small.maxOutputTokens).toBe(64_000);
@@ -22,13 +22,13 @@ describe('effective model capabilities', () => {
   });
 
   it.each([
-    ['anthropic', createAnthropicProvider, 'claude-sonnet-5-5', { appendsTools: true, cacheScope: false }],
-    ['anthropic', createAnthropicProvider, 'claude-sonnet-5', { appendsTools: false, cacheScope: false }],
-    ['openai', createOpenAIProvider, 'gpt-6-luna', { appendsTools: true, cacheScope: true }],
-    ['google', createGoogleProvider, 'gemini-3.8-flash', { appendsTools: false, cacheScope: false }],
-  ] as const)('reports what %s %s can do', async (provider, create, model, expected) => {
-    const adapter = create({ resolveApiKey: () => 'unused' });
-    expect(await adapter.capabilities(projectInput(provider, model).configuration)).toMatchObject(expected);
+    ['anthropic', 'claude-sonnet-5-5', createAnthropicProvider, { appendsTools: true, cacheScope: false }],
+    ['anthropic', 'claude-sonnet-5', createAnthropicProvider, { appendsTools: false, cacheScope: false }],
+    ['openai', 'gpt-6-luna', createOpenAIProvider, { appendsTools: true, cacheScope: true }],
+    ['google', 'gemini-3.8-flash', createGoogleProvider, { appendsTools: false, cacheScope: false }],
+  ] as const)('reports what %s %s can do', async (vendor, model, create, expected) => {
+    const provider = create({ resolveApiKey: () => 'unused' });
+    expect(await provider.capabilities(projectInput(vendor, model).configuration)).toMatchObject(expected);
   });
 
   it('rejects unknown targets and allows explicit gateway limits', async () => {
@@ -71,10 +71,10 @@ describe('effective model capabilities', () => {
   });
 
   it('keeps prompt sizing independent of output and transport controls', async () => {
-    const adapter = createGoogleProvider({ resolveApiKey: () => 'unused' });
+    const provider = createGoogleProvider({ resolveApiKey: () => 'unused' });
     const input = projectInput('google', 'gemini-3.8-flash');
-    const first = await project(adapter, input);
-    const second = await project(adapter, {
+    const first = await project(provider, input);
+    const second = await project(provider, {
       ...input,
       configuration: { ...input.configuration, parameters: { maxOutputTokens: 32, temperature: 0.5 } },
     });
@@ -83,12 +83,12 @@ describe('effective model capabilities', () => {
   });
 
   it('rejects a default output limit above the model maximum', async () => {
-    const adapter = createGoogleProvider({
+    const provider = createGoogleProvider({
       resolveApiKey: () => 'unused',
       modelLimits: { odd: { contextWindowTokens: 1000, maxOutputTokens: 100, defaultMaxOutputTokens: 200 } },
     });
     await expect(
-      adapter.capabilities({ target: { provider: 'google', model: 'odd' }, parameters: {} }),
+      provider.capabilities({ target: { provider: 'google', model: 'odd' }, parameters: {} }),
     ).rejects.toThrow('Default output limit');
   });
 });
@@ -98,9 +98,9 @@ describe('effective model capabilities', () => {
 // These are calibration samples, not synthetic SSE usage or exact-tokenizer claims.
 describe('published token-count calibration', () => {
   it('stays within a broad error band for prose and a tool schema', async () => {
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'unused' });
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'unused' });
     const configuration = { target: { provider: 'anthropic', model: 'claude-sonnet-4-5' }, parameters: {} };
-    const prose = await project(adapter, {
+    const prose = await project(provider, {
       configuration,
       messages: [
         { role: 'system', parts: [{ kind: 'text', text: 'You are a scientist' }] },
@@ -108,7 +108,7 @@ describe('published token-count calibration', () => {
       ],
       tools: [],
     });
-    const schema = await project(adapter, {
+    const schema = await project(provider, {
       configuration,
       messages: [{ role: 'user', parts: [{ kind: 'text', text: "What's the weather like in San Francisco?" }] }],
       tools: [
@@ -135,9 +135,9 @@ describe('published token-count calibration', () => {
 
   it('is not needed by an invocation: a retained request runs on its own payload', async () => {
     const recorded = recordingFetch(anthropicSse('ok'));
-    const adapter = createAnthropicProvider({ resolveApiKey: () => 'k', fetch: recorded.fetch });
-    const request = await project(adapter, projectInput('anthropic', 'claude-haiku-4-5'));
-    await collectFrames(adapter, JSON.parse(JSON.stringify(request)));
+    const provider = createAnthropicProvider({ resolveApiKey: () => 'k', fetch: recorded.fetch });
+    const request = await project(provider, projectInput('anthropic', 'claude-haiku-4-5'));
+    await collectFrames(provider, JSON.parse(JSON.stringify(request)));
     expect(recorded.requests).toHaveLength(1);
   });
 });

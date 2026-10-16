@@ -12,25 +12,25 @@ import { createAnthropicProvider, createGoogleProvider, createOpenAIProvider } f
 import { answer, lookupTool, project } from './support.js';
 
 const key = { resolveApiKey: () => 'fixture' };
-const adapters: readonly { name: string; provider: string; model: string; adapter: Provider }[] = [
+const cases: readonly { name: string; provider: string; model: string; instance: Provider }[] = [
   {
     name: 'anthropic native',
     provider: 'anthropic',
     model: 'claude-sonnet-5-5',
-    adapter: createAnthropicProvider(key),
+    instance: createAnthropicProvider(key),
   },
   {
     name: 'anthropic collected',
     provider: 'anthropic',
     model: 'claude-haiku-4-5',
-    adapter: createAnthropicProvider(key),
+    instance: createAnthropicProvider(key),
   },
-  { name: 'openai responses', provider: 'openai', model: 'gpt-6-luna', adapter: createOpenAIProvider(key) },
+  { name: 'openai responses', provider: 'openai', model: 'gpt-6-luna', instance: createOpenAIProvider(key) },
   {
     name: 'openai chat',
     provider: 'lab',
     model: 'lab-model',
-    adapter: createOpenAIProvider({
+    instance: createOpenAIProvider({
       ...key,
       api: 'chat',
       baseURL: 'https://lab.example/v1',
@@ -38,7 +38,7 @@ const adapters: readonly { name: string; provider: string; model: string; adapte
       modelLimits: { 'lab-model': { contextWindowTokens: 100_000, maxOutputTokens: 4_096 } },
     }),
   },
-  { name: 'google', provider: 'google', model: 'gemini-3.8-flash', adapter: createGoogleProvider(key) },
+  { name: 'google', provider: 'google', model: 'gemini-3.8-flash', instance: createGoogleProvider(key) },
 ];
 
 /** A conversation with every kind of entry a session labels. */
@@ -69,14 +69,14 @@ const labelled: Message[] = [
 const unlabelled = labelled.map(({ role, parts }) => ({ role, parts }) as Message);
 
 describe('labels are never sent', () => {
-  it.each(adapters)('$name: a labelled conversation projects exactly as an unlabelled one', async (c) => {
+  it.each(cases)('$name: a labelled conversation projects exactly as an unlabelled one', async (c) => {
     const input = (messages: Message[]) => ({
       configuration: { target: { provider: c.provider, model: c.model }, parameters: { maxOutputTokens: 128 } },
       messages,
       tools: [lookupTool],
     });
-    const a = await project(c.adapter, input(labelled));
-    const b = await project(c.adapter, input(unlabelled));
+    const a = await project(c.instance, input(labelled));
+    const b = await project(c.instance, input(unlabelled));
     expect(a.payload).toEqual(b.payload);
     expect(a.digest).toBe(b.digest);
     expect(a.inputTokens).toBe(b.inputTokens);

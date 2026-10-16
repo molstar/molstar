@@ -18,7 +18,7 @@ import { ModelError } from '../../messages/index.js';
 import { jsonSchema, type LanguageModelUsage, streamText, type ToolSet, UnsupportedFunctionalityError } from 'ai';
 import type { Payload } from './provider.js';
 
-// The one stream mapper (providers.md §2): the retained payload goes to `streamText` as it is (its tools' schemas
+// The one stream mapper (`_spec/models.md`, "The providers"): the retained payload goes to `streamText` as it is (its tools' schemas
 // wrapped by `jsonSchema`), the stream's parts become frames, and failures `ModelError`s.
 
 /** What a provider keeps of a response for replay (signatures, encrypted reasoning, item ids): on the calls. */

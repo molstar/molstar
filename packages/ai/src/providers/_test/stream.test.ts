@@ -35,22 +35,22 @@ describe('stream mapping', () => {
   it.each(['anthropic', 'google'] as const)(
     'estimates the input of %s requests from active content',
     async (provider) => {
-      const adapter =
+      const instance =
         provider === 'anthropic'
           ? createAnthropicProvider({ resolveApiKey: () => 'fixture' })
           : createGoogleProvider({ resolveApiKey: () => 'fixture' });
       const model = provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-3.8-flash';
       const text = 'a \\"quoted\\" multilingual é 🙂 context';
       const base = projectInput(provider, model, { messages: [{ role: 'user', parts: [{ kind: 'text', text }] }] });
-      const projected = await project(adapter, base);
+      const projected = await project(instance, base);
       expect(projected.inputTokens).not.toBe(JSON.stringify(projected.payload).length);
-      const longer = await project(adapter, {
+      const longer = await project(instance, {
         ...base,
         messages: [...base.messages, { role: 'user', parts: [{ kind: 'text', text: 'append '.repeat(100) }] }],
       });
       expect(longer.inputTokens).toBeGreaterThan(projected.inputTokens + 100);
       // Output and transport controls do not size the prompt.
-      const capped = await project(adapter, {
+      const capped = await project(instance, {
         ...base,
         configuration: { ...base.configuration, parameters: { maxOutputTokens: 32, temperature: 0.5 } },
       });
@@ -62,12 +62,12 @@ describe('stream mapping', () => {
   it.each(['anthropic', 'google'] as const)(
     'passes the %s payload to streamText as it is, and keeps an empty tool-call finish for the caller',
     async (provider) => {
-      const adapter =
+      const instance =
         provider === 'anthropic'
           ? createAnthropicProvider({ resolveApiKey: () => 'fixture' })
           : createGoogleProvider({ resolveApiKey: () => 'fixture' });
       const request = await project(
-        adapter,
+        instance,
         projectInput(provider, provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-3.8-flash'),
       );
       const languageModel = new MockLanguageModelV4({
@@ -154,9 +154,9 @@ describe('stream mapping', () => {
   ] as const)(
     'reports %s input as the total with cache reads and writes included',
     async (provider, create, model, sse) => {
-      const adapter = create({ resolveApiKey: () => 'fixture', fetch: recordingFetch(sse('done')).fetch });
+      const instance = create({ resolveApiKey: () => 'fixture', fetch: recordingFetch(sse('done')).fetch });
       const { usage } = resultOf(
-        await collectFrames(adapter, await project(adapter, projectInput(provider, model, { tools: [] }))),
+        await collectFrames(instance, await project(instance, projectInput(provider, model, { tools: [] }))),
       );
       expect(usage.cacheReadInputTokens).toBe(4);
       expect(usage.inputTokens ?? 0).toBeGreaterThanOrEqual(
@@ -185,8 +185,8 @@ describe('failure mapping', () => {
       [500, true],
       [503, true],
     ] as const) {
-      const adapter = create({ resolveApiKey: () => 'fixture-key', fetch: fail(status) });
-      const failure = await collectFrames(adapter, await project(adapter, projectInput(provider, model))).catch(
+      const instance = create({ resolveApiKey: () => 'fixture-key', fetch: fail(status) });
+      const failure = await collectFrames(instance, await project(instance, projectInput(provider, model))).catch(
         (error: unknown) => error,
       );
       expect(failure).toBeInstanceOf(ModelError);
@@ -196,23 +196,23 @@ describe('failure mapping', () => {
   });
 
   it('treats a network failure as transient with an unknown effect', async () => {
-    const adapter = createAnthropicProvider({
+    const instance = createAnthropicProvider({
       resolveApiKey: () => 'fixture-key',
       fetch: async () => {
         throw new TypeError('fetch failed');
       },
     });
     const failure = await collectFrames(
-      adapter,
-      await project(adapter, projectInput('anthropic', 'claude-haiku-4-5')),
+      instance,
+      await project(instance, projectInput('anthropic', 'claude-haiku-4-5')),
     ).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ModelError);
     expect(failure).toMatchObject({ transient: true, effect: 'unknown' });
   });
 
   it('refuses a missing API key before any request, without retrying', async () => {
-    const adapter = createOpenAIProvider({ resolveApiKey: () => '' });
-    const failure = await collectFrames(adapter, await project(adapter, projectInput('openai', 'gpt-6-luna'))).catch(
+    const instance = createOpenAIProvider({ resolveApiKey: () => '' });
+    const failure = await collectFrames(instance, await project(instance, projectInput('openai', 'gpt-6-luna'))).catch(
       (error: unknown) => error,
     );
     expect(failure).toMatchObject({ transient: false, effect: 'none' });
@@ -220,13 +220,13 @@ describe('failure mapping', () => {
 
   it('sanitizes the API key out of every failure', async () => {
     const secret = 'sk-very-secret';
-    const adapter = createAnthropicProvider({
+    const instance = createAnthropicProvider({
       resolveApiKey: () => secret,
       fetch: fail(404, { type: 'error', error: { type: 'not_found_error', message: `model ${secret}` } }),
     });
     const failure = (await collectFrames(
-      adapter,
-      await project(adapter, projectInput('anthropic', 'claude-haiku-4-5')),
+      instance,
+      await project(instance, projectInput('anthropic', 'claude-haiku-4-5')),
     ).catch((error: unknown) => error)) as Error;
     expect(failure.message).toContain('[redacted]');
     expect(failure.message).not.toContain(secret);

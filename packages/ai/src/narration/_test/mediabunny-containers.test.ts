@@ -9,7 +9,7 @@
 // Node has no WebCodecs, so Mediabunny has no encoder here. Its own extension point (registerEncoder) takes a stand-in
 // that "encodes" by keeping the samples (as 16-bit bytes in the packets), which is enough to run the real sample feed
 // and the real MP4 and WebM muxers, and to check the output's container, type and size. The codecs are not tested: the
-// browser's are. The stand-ins stay registered for this file only (each Jest test file has its own modules).
+// browser's are. The stand-ins stay registered for this file only (each Vitest test file has its own modules).
 
 import { describe, expect, it } from 'vitest';
 import { CustomAudioEncoder, EncodedPacket, type AudioSample, registerEncoder } from 'mediabunny';
