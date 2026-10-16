@@ -194,4 +194,20 @@ describe('pages', () => {
     expect(seen.every((id) => id === 'tree')).toBe(true);
     expect(shell.dock('right').active.value?.title).toBe('State tree');
   });
+
+  it('closes the panel of a compact rail before it hides the rail (hidden UI is paused: no flash on showing it again)', () => {
+    const shell = new ShellModel({ compactRail: true });
+    shell.registerTabs([tab('home'), tab('structure')]);
+    shell.setRailOpen(true);
+    shell.show('structure');
+    const seen: string[] = [];
+    const a = shell.railShown.subscribe((shown) => seen.push(`rail:${shown}`));
+    const b = shell.dock('right').active.subscribe((t) => seen.push(`panel:${t ? t.id : 'none'}`));
+    seen.length = 0;
+    shell.setRailOpen(false);
+    a.unsubscribe();
+    b.unsubscribe();
+    expect(seen.indexOf('panel:none')).toBeGreaterThanOrEqual(0);
+    expect(seen.indexOf('panel:none')).toBeLessThan(seen.indexOf('rail:false'));
+  });
 });

@@ -360,11 +360,13 @@ export class ShellModel extends ReactiveModel {
    * is opened again).
    */
   setRailOpen(open: boolean): void {
-    this.#navigation.setRailOpen(open);
+    // What opened from it closes first, while the rail is still shown: hidden UI is paused (styling.md §5), so a panel
+    // closed after the rail hid would only see it when the rail came back, and flash open and shut then.
     if (this.#viewState.layout.value.compactRail && !open) {
       this.closeOverlay();
       this.#navigation.setDock('right', { collapsed: true });
     }
+    this.#navigation.setRailOpen(open);
   }
 
   toggleRail(): void {
