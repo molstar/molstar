@@ -13,7 +13,8 @@ extension UI) are placed.
 - **One home for persistent UI.** A tabbed panel on the right holds Home, Structure, Selection, Snapshots, State tree,
   Log, Settings, and extension tabs. Left, top, and bottom docks exist but are optional; the top one holds the sequence,
   the others are empty by default; apps can place tabs there.
-- **Appear when relevant.** Home shows when nothing is loaded; the camera and rendering tools only once something is;
+- **Appear when relevant.** Home shows when nothing is loaded, and a load started from it that brings something in
+  shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the camera and rendering tools only once something is;
   trajectory controls only for multi-model trajectories; snapshot controls only when there are snapshots; the selection
   bar only while something is selected; the Sequence button only while there is a sequence and its card is hidden; the
   log as one fading line.
