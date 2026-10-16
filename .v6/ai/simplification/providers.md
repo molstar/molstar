@@ -57,7 +57,7 @@ interface Provider {
   breakpoints (`cacheControl` in `providerOptions`), the OpenAI `promptCacheKey`, Google's Gemini 3 rules. Inferred size
   40–100 lines each.
 - **Keep the revision and the digest** (one string per provider): the harness's evidence and the retry check depend on
-  them, and they cost a line. The digest is the synchronous SHA-256 (harness.md §7), so `project` need not be async
+  them, and they cost a line. The digest is the synchronous hash (harness.md §7), so `project` need not be async
   for it.
 - **Segments**: computed by the shared code from the projected payload (tools, system, each message), as today in
   `common/adapter.ts:43–51`; ~10 lines.

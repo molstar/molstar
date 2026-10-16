@@ -144,7 +144,9 @@ if they can leave the serial Vitest project.
 8. **Folder rules**: the Biome per-package import rules become per-folder rules on relative paths (inferred to be
    expressible with `noRestrictedImports` patterns; not verified), or a check in `scripts/workspace/`?
 9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
-10. ~~Hashing~~: **decided 2026-10-16, synchronous** SHA-256 in plain TypeScript, same output as today
-    ([harness.md](harness.md) §7).
+10. **Hashing**: synchronous (decided 2026-10-16); no SHA-256 but the repository's 128-bit MurmurHash3 over UTF-8
+    bytes, as MolViewSpec uses it (proposed, [harness.md](harness.md) §7). To decide: depend on `@molstar/core` for that
+    one file (recommended, a narrow Biome exception) or copy it. Its 128-bit variant is not canonical (k4 rotated by 13,
+    not 18) and its string form truncates characters above U+00FF: a core follow-up either way.
 11. ~~Blobs~~: **decided 2026-10-16, keep references**: request and result bodies stay blob refs, the trace unchanged
     ([harness.md](harness.md) §4).
