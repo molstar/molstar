@@ -316,7 +316,8 @@ export class PrismField {
     if (!glass || !this.#options.interactive || this.#still) return false;
     const u = (x - this.#wordX) / this.#wordScale;
     const v = (y - this.#wordY) / this.#wordScale;
-    if (!glass.hits(u, v) || glass.phase === 'broken') return false;
+    // Whole, or already in pieces (shattered further from where they are).
+    if (!glass.hits(u, v)) return false;
     glass.shatter(u, v);
     const r2 = ShockRadius * ShockRadius;
     for (let i = 0; i < this.#alive; i++) {

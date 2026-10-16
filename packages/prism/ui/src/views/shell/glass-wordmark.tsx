@@ -154,7 +154,8 @@ export function GlassWordmark(props: {
     });
     root.addEventListener('pointerdown', (e) => {
       const p = at(e);
-      if (glass.phase !== 'broken') glass.shatter(p.u, p.v);
+      // Whole or already in pieces: it shatters (further).
+      glass.shatter(p.u, p.v);
       wake();
     });
   }

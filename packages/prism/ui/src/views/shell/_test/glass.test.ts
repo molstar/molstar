@@ -65,4 +65,27 @@ describe('the wordmark as glass', () => {
     expect(glass.whole).toBe(true);
     expect(whole).toEqual([false, true, false, true]);
   });
+
+  it('shatters further when pressed again in pieces, then snaps back from where they are', () => {
+    const glass = new Glass();
+    glass.scatter();
+    run(glass, 3.5);
+    glass.shatter(20, 10);
+    run(glass, 0.5);
+    // Pressed among the pieces (the far end, where they moved least): broken again, the wait anew. Where they flew
+    // from is empty now.
+    expect(glass.hits(20, 10)).toBe(false);
+    expect(glass.hits(53, 10)).toBe(true);
+    glass.shatter(53, 10);
+    expect(glass.phase).toBe('broken');
+    run(glass, 0.6);
+    expect(glass.phase).toBe('broken');
+    run(glass, 0.4);
+    expect(glass.phase).toBe('assembling');
+    // Snapping back, pressed again: broken again.
+    glass.shatter(30, 10);
+    expect(glass.phase).toBe('broken');
+    run(glass, 2);
+    expect(glass.whole).toBe(true);
+  });
 });

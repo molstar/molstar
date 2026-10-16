@@ -200,21 +200,35 @@ export class Glass {
 
   /** Pressed at (x, y) (drawing units): the pieces fly apart from there, faster the nearer, spinning. */
   shatter(x: number, y: number): void {
+    // Again while in pieces (or snapping back): from where they are, the kick added to how they move, the wait anew.
+    const moving = this.#phase === 'broken';
     for (let i = 0; i < Shards; i++) {
       const dx = this.#cx[i] + this.#ox[i] - x;
       const dy = this.#cy[i] + this.#oy[i] - y;
       const d = Math.hypot(dx, dy) || 1;
       const v = ((26 + this.#random() * 34) / (1 + d * 0.04)) * this.#travel;
-      this.#vx[i] = (dx / d) * v + (this.#random() - 0.5) * 6;
-      this.#vy[i] = (dy / d) * v + (this.#random() - 0.5) * 6;
-      this.#vr[i] = (this.#random() * 2 - 1) * 6;
+      const keep = moving ? 1 : 0;
+      this.#vx[i] = this.#vx[i] * keep + (dx / d) * v + (this.#random() - 0.5) * 6;
+      this.#vy[i] = this.#vy[i] * keep + (dy / d) * v + (this.#random() - 0.5) * 6;
+      this.#vr[i] = this.#vr[i] * keep + (this.#random() * 2 - 1) * 6;
     }
     this.#begin('broken');
   }
 
-  /** Whether (x, y) (drawing units) is on the word (its box, a little around). */
+  /**
+   * Whether (x, y) (drawing units) is on the glass: whole, the word's box (a little around); in pieces, near any of them
+   * (a press there shatters them further).
+   */
   hits(x: number, y: number): boolean {
-    return x >= -2 && x <= WordmarkGeometry.width + 1 && y >= -2 && y <= WordmarkGeometry.height + 1;
+    if (this.#phase === 'whole') {
+      return x >= -2 && x <= WordmarkGeometry.width + 1 && y >= -2 && y <= WordmarkGeometry.height + 1;
+    }
+    for (let i = 0; i < Shards; i++) {
+      const dx = this.#cx[i] + this.#ox[i] - x;
+      const dy = this.#cy[i] + this.#oy[i] - y;
+      if (dx * dx + dy * dy < 36) return true;
+    }
+    return false;
   }
 
   #begin(phase: GlassPhase): void {
