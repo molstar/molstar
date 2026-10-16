@@ -6,10 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransform } from '@molstar/core/state';
+import { StateSelection, StateTransform } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OpenFiles } from '@molstar/plugin/state/actions/file';
+import { ReadFile } from '@molstar/plugin/state/transforms/data/fetch';
 import { FilesParam, filesOf } from './files.js';
 import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
@@ -95,26 +96,28 @@ export class LoadApi extends ApiArea {
         );
       }
       const before = structureRefs(ctx);
-      const names = data.map((f) => f.name).join(', ');
+      const opened: string[] = [];
+      const warnings: string[] = [];
       if (data.length) {
         // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
         await ctx.extensions.ensureFor({ fileExtensions: data.map((f) => extensionOf(f.name)) });
-        const cellsBefore = ctx.plugin.state.data.cells.size;
-        await ctx.plugin.runTask(
-          ctx.plugin.state.data.applyAction(OpenFiles, {
-            files: data.map((f) => Asset.File(f)),
-            format: { name: 'auto', params: {} },
-            visuals,
-          }),
-        );
-        if (ctx.plugin.state.data.cells.size === cellsBefore) {
+        for (const f of data) {
+          const outcome = await openFile(ctx, f, visuals);
+          if (outcome === 'opened') opened.push(f.name);
+          else if (outcome === 'partly') {
+            opened.push(f.name);
+            warnings.push(`Some of ${f.name} could not be opened.`);
+          } else warnings.push(`Could not open ${f.name}.`);
+        }
+        if (!opened.length) {
           return ApiResult.fail(
             'failed',
-            `Could not open ${names}.`,
+            `Could not open ${data.map((f) => f.name).join(', ')}.`,
             'Check the format: the viewer reads it from the file name.',
           );
         }
       }
+      const names = opened.join(', ');
       for (const doc of documents) {
         // An archive (`.svsx`) as the file it is; a document as its text.
         const r = await ctx.api.run(
@@ -129,7 +132,11 @@ export class LoadApi extends ApiArea {
       const did = !names
         ? `The sequence shows ${shown}.`
         : `Opened ${names}${structures}${shown ? `; the sequence shows ${shown}` : ''}.`;
-      return ApiResult.ok(did, { nodes: added, ...(documents.length ? { sequence: true } : {}) });
+      return ApiResult.ok(
+        did,
+        { nodes: added, ...(documents.length ? { sequence: true } : {}) },
+        warnings.length ? { warnings } : {},
+      );
     },
   });
 }
@@ -143,6 +150,37 @@ export function actionName(action: { definition: { display: { name: string } } }
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+}
+
+/**
+ * Opens one file with `OpenFiles` and judges it by what it made: the plugin logs a file it cannot parse and keeps going,
+ * leaving the raw data it read (a `ReadFile` node with nothing under it, or a failed node under it). Those are deleted,
+ * so a failed file leaves no node behind; a zip's entries are judged one by one (`partly` when only some opened).
+ */
+async function openFile(ctx: ApiContext, file: File, visuals: boolean): Promise<'opened' | 'partly' | 'failed'> {
+  const state = ctx.plugin.state.data;
+  const rootChildren = () => state.tree.children.get(StateTransform.RootRef).toArray();
+  const before = new Set(rootChildren());
+  await ctx.plugin.runTask(
+    state.applyAction(OpenFiles, {
+      files: [Asset.File(file)],
+      format: { name: 'auto', params: {} },
+      visuals,
+    }),
+  );
+  const made = rootChildren().filter((r) => !before.has(r));
+  const failed = made.filter((ref) => {
+    if (state.cells.get(ref)?.transform.transformer !== ReadFile) return false;
+    const subtree = state.select(StateSelection.Generators.byRef(ref).subtree());
+    return subtree.length < 2 || subtree.some((c) => c.status === 'error');
+  });
+  if (failed.length) {
+    const b = state.build();
+    for (const ref of failed) b.delete(ref);
+    await ctx.plugin.runTask(state.updateTree(b));
+  }
+  if (failed.length === made.length) return 'failed';
+  return failed.length ? 'partly' : 'opened';
 }
 
 function structureRefs(ctx: ApiContext): string[] {
