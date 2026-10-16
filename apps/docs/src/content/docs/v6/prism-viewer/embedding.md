@@ -170,12 +170,12 @@ An override of an id that nothing registers is an error at creation, naming it.
 
 `spec.options` has four groups. Each is partial, and a missing value is the default.
 
-| Group      | Values                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `renderer` | `pixelScale`, `pickScale`, `transparency`, `resolutionMode`, `powerPreference`, `preferWebgl1`, `allowMajorPerformanceCaveat`, `disableAntialiasing`, `illumination`                 |
-| `canvas`   | `background` (a CSS color; empty for the default), `focusBehavior`                                                                                                                   |
-| `data`     | `pdbProvider`, `emdbProvider`, `volumeStreamingServer`, `volumeStreamingDisabled`, `stateServer`, `saccharideCompIdMapType`                                                          |
-| `ui`       | `showSequence`, `showHistory`, `showRemoteStates`, `collapsed`, and `buttons`: `reset`, `screenshot`, `expand`, `fullscreen`, `settings`, `selectionMode`, `animation`, `trajectory` |
+| Group      | Values                                                                                                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `renderer` | `pixelScale`, `pickScale`, `transparency`, `resolutionMode`, `powerPreference`, `preferWebgl1`, `allowMajorPerformanceCaveat`, `disableAntialiasing`, `illumination`                                                           |
+| `canvas`   | `background` (a CSS color; empty for the default), `focusBehavior`                                                                                                                                                             |
+| `data`     | `pdbProvider`, `emdbProvider`, `volumeStreamingServer`, `volumeStreamingDisabled`, `stateServer`, `saccharideCompIdMapType`                                                                                                    |
+| `ui`       | `showSequence`, `showHistory`, `showRemoteStates`, `collapsed`, `splash` (the empty canvas's splash; on), and `buttons`: `reset`, `screenshot`, `expand`, `fullscreen`, `settings`, `selectionMode`, `animation`, `trajectory` |
 
 ```ts
 const viewer = await createPrismViewer({

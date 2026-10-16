@@ -75,6 +75,10 @@ export interface ShellViewProps {
   onOpenLog?: () => void;
   /** Nothing loaded: a while after, the Mol* wordmark shows in the middle of the canvas. */
   empty?: Observable<boolean>;
+  /** The splash under the mark once the viewer has been idle on the empty canvas a while (on by default). */
+  splash?: boolean;
+  /** The viewer is working: the splash waits for it to be idle. */
+  busy?: Observable<boolean>;
   /**
    * Files dropped anywhere on the plugin (to the plugin's drag-and-drop manager). Given, dragging files in shows a drop
    * overlay over everything; the host leaves it out when the spec turns the overlay off.
@@ -221,7 +225,13 @@ export function ShellView(props: ShellViewProps) {
           <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => f && !e))}>
             {() => <FloatingDock shell={shell} dock={top} />}
           </Show>
-          {props.empty ? <EmptyCanvas empty={props.empty} /> : null}
+          {props.empty ? (
+            <EmptyCanvas
+              empty={props.empty}
+              splash={props.splash ?? true}
+              {...(props.busy ? { busy: props.busy } : {})}
+            />
+          ) : null}
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
           {/* The compact rail's button: in the rail's column, at the bottom, where the rail slides in around it. */}

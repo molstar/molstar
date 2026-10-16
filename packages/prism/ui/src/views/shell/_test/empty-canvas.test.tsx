@@ -48,4 +48,35 @@ describe('EmptyCanvas', () => {
     vi.advanceTimersByTime(1000);
     expect(mark()).toBeNull();
   });
+
+  it('shows the splash under the mark once the viewer has been idle on the empty canvas a while', () => {
+    const empty = observableState(true);
+    const busy = observableState(false);
+    const container = document.createElement('div');
+    render(() => <EmptyCanvas empty={empty.asReadonly} busy={busy.asReadonly} />, container);
+    const splash = () => container.querySelector('canvas');
+    vi.advanceTimersByTime(800);
+    expect(splash()).toBeNull();
+    // Working (a load starting): it waits.
+    busy.set(true);
+    vi.advanceTimersByTime(5000);
+    expect(splash()).toBeNull();
+    busy.set(false);
+    vi.advanceTimersByTime(2600);
+    expect(splash()).not.toBeNull();
+    // Something loaded: it goes with the mark.
+    empty.set(false);
+    expect(splash()).not.toBeNull();
+    vi.advanceTimersByTime(300);
+    expect(splash()).toBeNull();
+  });
+
+  it('shows no splash when the spec turns it off', () => {
+    const empty = observableState(true);
+    const container = document.createElement('div');
+    render(() => <EmptyCanvas empty={empty.asReadonly} splash={false} />, container);
+    vi.advanceTimersByTime(10_000);
+    expect(container.querySelector('[role=img]')).not.toBeNull();
+    expect(container.querySelector('canvas')).toBeNull();
+  });
 });

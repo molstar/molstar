@@ -19,6 +19,13 @@
   }
 }
 
+/* The splash under the mark: in slowly, once the canvas has been empty and the viewer idle a while. */
+.splash {
+  position: absolute;
+  inset: 0;
+  animation: fade-in 2400ms var(--msp-ease) both;
+}
+
 /* Quiet on the canvas: the canvas's own subtle text color. Centred to whole pixels (171 × 66 at 3×: plain centring
    would put it on a half pixel and blur its lines). */
 .mark {

@@ -90,6 +90,8 @@ export const PrismViewerOptions = {
      * page drives itself).
      */
     homeWhenEmpty: PD.Boolean(false),
+    /** The empty canvas's splash: light through Prism's mark, once the viewer has been idle on it a while. */
+    splash: PD.Boolean(true),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

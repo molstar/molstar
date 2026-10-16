@@ -39,7 +39,7 @@ function Shapes() {
       <rect x="19.5" y="6.5" width="11" height="13" rx="5" />
       <rect x="22.5" y="9.5" width="5" height="7" rx="2.5" />
       <path d={LStar} />
-      <path d={Prism} />
+      <path d={Prism} data-part="prism" />
       <path d={PrismCore} class={classes.core} />
     </>
   );

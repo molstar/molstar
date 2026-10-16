@@ -14,7 +14,9 @@ extension UI) are placed.
   Log, Settings, and extension tabs. Left, top, and bottom docks exist but are optional; the top one holds the sequence,
   the others are empty by default; apps can place tabs there.
 - **Appear when relevant.** Home shows when nothing is loaded, and a load started from it that brings something in
-  shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the camera and rendering tools only once something is;
+  shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the empty canvas
+  shows the wordmark, and once the viewer has been idle on it a while, a splash under it: light through Prism's mark
+  splitting into the logo's colors, barely there (`ui.splash` turns it off); the camera and rendering tools only once something is;
   trajectory controls only for multi-model trajectories; snapshot controls only when there are snapshots; the selection
   bar only while something is selected; the Sequence button only while there is a sequence and its card is hidden; the
   log as one fading line.
