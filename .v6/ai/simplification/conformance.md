@@ -116,7 +116,8 @@ max-concurrency.
   the supervisor test's 1.4 s goes too.
 - Estimated AI tail in CI: ~52 s → **~15 s** (the 46 other files' share stays, minus the files deleted with narration,
   `compatibility.test.ts`, the IndexedDB rows). Inferred, from the per-file timings above.
-- The `serial` project may then go: its reason was the P, S and IndexedDB cases losing races under load
+- The `serial` project may then go: its reason was the P, S and IndexedDB cases, and WebCrypto digests, losing races
+  under load (hashing becomes synchronous, harness.md §7)
   (`vitest.config.ts:14–16`; `.v6/ai/plan.md` "The suite waits on conditions"). If the remaining files pass in the
   parallel `unit` project under load (to verify: several full runs), the AI tests stop adding a serial tail at all.
   Inferred, not measured.

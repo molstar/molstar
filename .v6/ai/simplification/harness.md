@@ -90,9 +90,9 @@ harness.entries(ids); harness.heads(ids); harness.blobs(refs); harness.watch();
   `runner`, `inbox`, `schemaVersion`.
 - **Events**: `StepEvent` as today minus `commitKey` / `inputDigest`; control events `turn-started`, `stopped`,
   `resumed`, `reset` (`submitted`, `withdrawn`, `claimed`, `launched`, `released`, `blocked` go).
-- **Blobs** keep their refs, so `readTrace` and the Inspector stay unchanged. (Inlining request and result bodies in
-  `CallRecord` would remove the blob map and the digesting of every request body, at the cost of a change in
-  `trace/src/read.ts:478`; a choice for the slice.)
+- **Blobs** keep their refs (decided, David, 2026-10-16): request and result bodies stay in a blob map addressed by
+  `digest(body)`, so `readTrace` and the Inspector stay unchanged. Only `putBlobs` before a commit goes: the step puts
+  its blobs with the rest of its writes.
 
 ## 5. The session over it
 
@@ -126,10 +126,28 @@ Callers outside:
 - Session tests that reopen a harness on shared storage (`session/src/_test/drive.test.ts:176–200`,
   `resume.test.ts:36` "a new runtime reads the harness and finishes the interrupted turn") are dropped.
 
-## 7. One more question this raises
+## 7. Hashing: synchronous (decided)
 
-`hashMessage` and `digest` are WebCrypto SHA-256, so async (`_spec/harness.md` Gotchas). That is why the simulated
-clock counts in-flight digests (`testing/clock.ts`, 197 lines) and why tests must `settle()`. In memory an entry's id
-need not be cryptographic: a synchronous hash (a small JS FNV-1a or SHA-256) would make the step code and the test
-doubles simpler. Provider payload digests (`providers.md` §2) could use the same. Not decided; the owner's call (open
-question 10 in the README).
+**Decided** (David, 2026-10-16): hashing becomes synchronous. Today `hashMessage` and `digest` are WebCrypto SHA-256
+(`agent/src/hash.ts:96–121`), so async (`_spec/harness.md` Gotchas): every entry id, payload digest and blob ref is an
+`await`, the simulated clock patches `crypto.subtle.digest` to count digests in flight (`testing/clock.ts:21–54, 170–174`)
+and gives them real time before calling a deadlock, and tests must `settle()`. Those WebCrypto races are also why the
+suite retried cases and runs in the serial Vitest project (`.v6/ai/plan.md` "The suite waits on conditions",
+`vitest.config.ts:14–16`).
+
+- **The function**: SHA-256 in plain TypeScript in `messages/hash.ts` (~70 lines, inferred: a standard
+  implementation), with no dependency. The AI code may not import Mol\*'s own hashes (`packages/core/src/data/util/hash-functions.ts`
+  has FNV variants), and an entry id is content addressing that deduplicates, so a cryptographic-strength hash keeps
+  collisions out of the question. Same algorithm, same output: ids and digests do not change, the RFC 8785 vectors
+  (conformance C1 digest-jcs) still hold, and a test checks it against WebCrypto.
+- **Also**: it works outside a secure context (`crypto.subtle` needs one: a viewer served over plain http from a
+  non-localhost host has none).
+- **What changes**: `hashMessage`, `digest` and `encodeMessage` callers drop `await` (about 50 call sites in
+  `packages/ai`, `git grep "hashMessage(\|digest("`); the step code that hashes before applying gets simpler; the
+  attachments' byte digest (`model-adapters/src/common/attachments.ts:51`) uses the same function;
+  `testing/clock.ts` loses the digest tracking (~40 lines) and `settle()` its digest wait; the P11 hash-once case counts
+  calls through an injected counter instead of spying on `crypto.subtle.digest`
+  (`conformance/src/cases/performance.ts:480–482`).
+- **Cost**: a JS SHA-256 is slower than WebCrypto on large inputs (inferred); entries are messages of kilobytes and
+  payload digests are per model call, so it should not show. To check in the slice: hash a long conversation's
+  payload and time it.

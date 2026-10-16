@@ -144,7 +144,7 @@ if they can leave the serial Vitest project.
 8. **Folder rules**: the Biome per-package import rules become per-folder rules on relative paths (inferred to be
    expressible with `noRestrictedImports` patterns; not verified), or a check in `scripts/workspace/`?
 9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
-10. **Hashing** (harness.md §7): keep WebCrypto SHA-256 (async) for entry ids and payload digests, or a synchronous
-    hash now that nothing is stored (simpler step code, no `settle()` for digests in tests)?
-11. **Blobs** (harness.md §4): keep request and result bodies as blob refs (the trace unchanged), or inline them in
-    the call records?
+10. ~~Hashing~~: **decided 2026-10-16, synchronous** SHA-256 in plain TypeScript, same output as today
+    ([harness.md](harness.md) §7).
+11. ~~Blobs~~: **decided 2026-10-16, keep references**: request and result bodies stay blob refs, the trace unchanged
+    ([harness.md](harness.md) §4).
