@@ -15,6 +15,7 @@ import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';
+import type { PaeSize } from './operations.js';
 import { PaePlot } from './plot.js';
 
 // The PAE card (parity.md §6, "PAE plot"; v5's Predicted Aligned Error panel, anew): the predicted aligned error of a
@@ -28,12 +29,9 @@ export const PaeCard = 'model-archive.overlay.pae';
 /** The PAE's row in the Structure panel, under a structure that has one. */
 export const PaeRow = 'model-archive.row.pae';
 
-/** "149 residues · 2 chains": what the row says of a matrix. */
-const paeDescription = (m: PaeMatrix | undefined) => {
-  if (!m) return undefined;
-  const chains = new Set(m.residues.map((r) => r.chain)).size;
-  return `${m.size} residues${chains > 1 ? ` · ${chains} chains` : ''}`;
-};
+/** "149 residues · 2 chains": what the row says of a PAE (its size, not its matrix: the card reads that). */
+const paeDescription = (s: PaeSize | undefined) =>
+  s && `${s.residues} residues${s.chains > 1 ? ` · ${s.chains} chains` : ''}`;
 
 const Quiet = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-xs)';
 
@@ -104,7 +102,7 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
           return (
             <SceneRow
               label="Predicted aligned error"
-              description={of(paeDescription(area.paeMatrix(structure)))}
+              description={of(paeDescription(area.paeSize(structure)))}
               onOpen={() => {
                 chosen.set(structure);
                 void ctx.api.view.open({ card: PaeCard });

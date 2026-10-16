@@ -32,6 +32,7 @@ import {
 } from '../pae/data.js';
 import { paeUI } from '../pae/ui.js';
 import { PlddtBands, PlddtNoScore, plddtColor } from '../quality-assessment/plddt-bands.js';
+import { QualityAssessment } from '../quality-assessment/prop.js';
 import { ModelArchiveExtension } from '../prism-viewer.js';
 
 // The PAE (parity.md §6, "PAE plot"): no recorded fixture carries one (AlphaFold DB ships PAE apart from the model), so
@@ -220,6 +221,20 @@ describe('model-archive.pae', () => {
     expect([...m.plddt!].map(plddtColor)).toEqual(PlddtBands.map((b) => b.color));
     expect(plddtColor(Number.NaN)).toBe(PlddtNoScore);
     expect(v.api['model-archive']!.hasPae(refOf(v))).toBe(true);
+  });
+
+  it("says a PAE's size without reading its matrix, then the matrix's once read", async () => {
+    const v = await viewer([modelFile()]);
+    const area = v.api['model-archive']!;
+    const read = vi.spyOn(QualityAssessment, 'pairwiseMetricFromModelArchiveCIF');
+    // Before the card: the model's polymer residues and chains, no pairwise row read.
+    expect(area.paeSize(refOf(v))).toEqual({ residues: 4, chains: 2 });
+    expect(read).not.toHaveBeenCalled();
+    area.paeMatrix(refOf(v));
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(area.paeSize(refOf(v))).toEqual({ residues: 4, chains: 2 });
+    const cbsViewer = await viewer([cbs()]);
+    expect(cbsViewer.api['model-archive']!.paeSize(refOf(cbsViewer))).toBeUndefined();
   });
 
   it('says so when a structure has none, and fails when nothing is loaded', async () => {

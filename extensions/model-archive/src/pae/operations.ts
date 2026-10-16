@@ -7,7 +7,7 @@
  */
 
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
-import type { Model, ResidueIndex } from '@molstar/model/model/structure';
+import type { ChainIndex, Model, ResidueIndex } from '@molstar/model/model/structure';
 import { AtomicHierarchy } from '@molstar/model/model/structure/model/properties/atomic';
 import { ApiArea, ApiResult } from '@molstar/prism-viewer/api/area';
 import { StructureParam } from '@molstar/prism-viewer/api/params';
@@ -18,7 +18,8 @@ import { type PaeMatrix, type PaeResidue, paeChains } from './data.js';
 // The `model-archive` area (operations.md §2, an extension's own area): the predicted aligned error of a model, read
 // from the ModelCIF's `ma_qa_metric_local_pairwise` (Model Archive's models carry it; AlphaFold DB ships its PAE apart
 // from the model). `model-archive.pae` says whether a structure has it and how big it is; the PAE card reads the matrix
-// through `paeMatrix` (a read for views, as the animation area's `state`), and acts through `select.set`.
+// through `paeMatrix` (a read for views, as the animation area's `state`), and acts through `select.set`; the Structure
+// panel's row says its size through `paeSize`, which does not read the matrix.
 
 /** What `model-archive.pae` gives. */
 export interface PaeInfo {
@@ -30,6 +31,32 @@ export interface PaeInfo {
   /** The highest error, Å. */
   readonly max?: number;
   readonly chains?: readonly string[];
+}
+
+/** What the Structure panel's PAE row says of a matrix: its residues on each side and their chains. */
+export interface PaeSize {
+  readonly residues: number;
+  readonly chains: number;
+}
+
+/**
+ * The model's polymer residues and their chains (by author name): what a ModelCIF's pairwise metric covers (its rows
+ * name residues by `label_seq_id`), counted from the hierarchy without reading the N² pairwise rows.
+ */
+function polymerSizeOf(model: Model): PaeSize {
+  const h = model.atomicHierarchy;
+  const types = model.entities.data.type;
+  const chains = new Set<string>();
+  let residues = 0;
+  for (let c = 0 as ChainIndex, n = h.chains._rowCount; c < n; c++) {
+    const e = h.index.getEntityFromChain(c);
+    if (e < 0 || types.value(e) !== 'polymer') continue;
+    const count = AtomicHierarchy.chainEndResidueIndexExcl(h, c) - AtomicHierarchy.chainStartResidueIndex(h, c);
+    if (count <= 0) continue;
+    residues += count;
+    chains.add(h.chains.auth_asym_id.value(c));
+  }
+  return { residues, chains: chains.size };
 }
 
 /** The model's PAE metric as a dense matrix; undefined when it has none. */
@@ -101,13 +128,29 @@ export class ModelArchiveApi extends ApiArea {
     return s?.cell.obj?.data.model;
   }
 
-  /** Whether a structure (by state ref) has PAE, without reading the matrix: for the card's toolbar button. */
-  hasPae(ref: string): boolean {
-    const model = this.#modelOf(ref);
+  #hasPae(model: Model | undefined): model is Model {
     if (!model || !MmcifFormat.is(model.sourceData)) return false;
     const known = this.#matrices.get(model);
     if (known !== undefined) return !!known;
     return QualityAssessment.findModelArchiveCIFPAEMetrics(model.sourceData.data.frame).length > 0;
+  }
+
+  /** Whether a structure (by state ref) has PAE, without reading the matrix: for the card's toolbar button. */
+  hasPae(ref: string): boolean {
+    return this.#hasPae(this.#modelOf(ref));
+  }
+
+  /**
+   * A structure's PAE size (by state ref), for its row in the Structure panel; undefined when it has none. The matrix's
+   * once it has been read; before, the model's polymer residues, so a row does not read the N² pairwise rows of a
+   * metric nobody has opened.
+   */
+  paeSize(ref: string): PaeSize | undefined {
+    const model = this.#modelOf(ref);
+    if (!this.#hasPae(model)) return undefined;
+    const m = this.#matrices.get(model);
+    if (!m) return polymerSizeOf(model);
+    return { residues: m.size, chains: new Set(m.residues.map((r) => r.chain)).size };
   }
 
   /** A structure's PAE matrix (by state ref), for the card; undefined when it has none. */
