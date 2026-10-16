@@ -13,8 +13,8 @@ const N = 128;
 
 describe('the quantum splash’s FFT', () => {
   it('comes back to where it started (forward, then inverse over N²)', () => {
-    const re = new Float32Array(N * N);
-    const im = new Float32Array(N * N);
+    const re = new Float64Array(N * N);
+    const im = new Float64Array(N * N);
     let s = 7;
     for (let i = 0; i < re.length; i++) {
       s = (s * 16807) % 2147483647;
@@ -33,8 +33,8 @@ describe('the quantum splash’s FFT', () => {
   });
 
   it('puts a plane wave in one bin: its wavenumber', () => {
-    const re = new Float32Array(N * N);
-    const im = new Float32Array(N * N);
+    const re = new Float64Array(N * N);
+    const im = new Float64Array(N * N);
     const kx = 5;
     const ky = 3;
     for (let y = 0; y < N; y++) {

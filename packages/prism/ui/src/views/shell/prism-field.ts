@@ -181,6 +181,8 @@ const ColorVars = [
   '--msp-color-brand-3',
   '--msp-color-brand-4',
 ];
+/** The same as `var(…)` values, made once (the colors are read every 1.5 s). */
+const ColorRefs = ColorVars.map((v) => `var(${v})`);
 
 /** A small seeded generator (mulberry32): the same field for the same seed. */
 function generator(seed: number): () => number {
@@ -197,6 +199,8 @@ export class PrismField {
   #options: PrismFieldOptions;
   readonly #canvas: HTMLCanvasElement;
   readonly #ctx: CanvasRenderingContext2D | null;
+  /** The canvas's computed style, kept (it is live). */
+  #style: CSSStyleDeclaration | undefined;
   #random: () => number;
 
   // The specks: position (px, canvas CSS pixels), velocity (px/s), the speed they settle back to, where they split
@@ -335,14 +339,20 @@ export class PrismField {
     // Through the element's `color`, so a `color-mix()` token comes back as a color a canvas takes.
     const el = this.#canvas;
     const before = el.style.color;
+    // Read every 1.5 s: the gradient (and the glass's atlas made with it) is made again only when a color changed.
+    let changed = !this.#gradient;
     for (let i = 0; i < Colors; i++) {
-      el.style.color = `var(${ColorVars[i]})`;
-      const v = getComputedStyle(el).color;
-      if (v) this.#colors[i] = v;
+      el.style.color = ColorRefs[i];
+      this.#style ??= getComputedStyle(el);
+      const v = this.#style.color;
+      if (v && v !== this.#colors[i]) {
+        this.#colors[i] = v;
+        changed = true;
+      }
     }
     el.style.color = before;
     // The wordmark's gradient, as its outline has it (wordmark.tsx), in drawing units.
-    if (this.#ctx) {
+    if (this.#ctx && changed) {
       const g = this.#ctx.createLinearGradient(0, 0, WordmarkGeometry.width - 2, 0);
       g.addColorStop(0, this.#colors[1]);
       g.addColorStop(0.35, this.#colors[2]);
@@ -666,7 +676,7 @@ export class PrismField {
       // A stroke drives the air under it along.
       if (pointer && o.wake > 0 && (this.#pvx || this.#pvy)) {
         // A flick no harder than a brisk stroke.
-        const k = o.wake * Math.min(1, StrokeCap / (Math.hypot(this.#pvx, this.#pvy) || 1));
+        const k = o.wake * Math.min(1, StrokeCap / (Math.sqrt(this.#pvx * this.#pvx + this.#pvy * this.#pvy) || 1));
         air.drive(this.#px, this.#py, this.#pvx * k, this.#pvy * k, o.radius * 0.7, Math.min(1, dt * 12));
       }
       air.drag = AirDrag;
@@ -703,7 +713,7 @@ export class PrismField {
       }
 
       // The speed settles back to the speck's own (its direction stays where it was pushed).
-      const v = Math.hypot(vx, vy) || 1;
+      const v = Math.sqrt(vx * vx + vy * vy) || 1;
       const k = 1 + (this.#base[i] / v - 1) * settle;
       vx *= k;
       vy *= k;
@@ -862,6 +872,7 @@ export class PrismField {
       this.#gradient ?? this.#colors[1],
       this.#colors[0],
       1,
+      this.#dpr,
     );
   }
 }

@@ -203,7 +203,7 @@ export class Fluid {
       for (let i = 1, k = j * nx + 1; i < nx - 1; i++, k++) {
         const gx = mag[k + 1] - mag[k - 1];
         const gy = mag[k + nx] - mag[k - nx];
-        const len = Math.hypot(gx, gy) + 1e-5;
+        const len = Math.sqrt(gx * gx + gy * gy) + 1e-5;
         u[k] += eps * (gy / len) * w[k];
         v[k] -= eps * (gx / len) * w[k];
       }

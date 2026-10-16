@@ -95,13 +95,15 @@ export function GlassWordmark(props: {
     canvas.style.color = '';
   };
 
+  // The word's paths, made once (the still word is drawn with them).
+  let words: Path2D[] | undefined;
   const draw = () => {
     if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (glass) {
-      glass.draw(ctx, origin, origin, scale, gradient, edge, 1);
+      glass.draw(ctx, origin, origin, scale, gradient, edge, 1, dpr);
       return;
     }
     // Still: the word whole, as the glass draws it at rest.
@@ -110,7 +112,8 @@ export function GlassWordmark(props: {
     ctx.strokeStyle = gradient;
     ctx.lineWidth = WordmarkGeometry.stroke(scale);
     ctx.lineJoin = 'miter';
-    for (let i = 0; i < WordmarkGeometry.paths.length; i++) ctx.stroke(new Path2D(WordmarkGeometry.paths[i]));
+    words ??= WordmarkGeometry.paths.map((d) => new Path2D(d));
+    for (let i = 0; i < words.length; i++) ctx.stroke(words[i]);
   };
 
   // Frames only while something moves.

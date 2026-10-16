@@ -94,11 +94,11 @@ const Bits = 7;
 const Cell = 5;
 const Cells = N * N;
 /** The time step of the evolution (in the grid's units), and the most steps a frame. */
-const Dt = 0.1;
+const Dt = 0.15;
 const MaxSteps = 4;
 /** The absorbing edge: cells wide, and how much it takes a step at the very edge. */
 const Edge = 14;
-const Absorb = 0.12;
+const Absorb = 0.18;
 /**
  * What shows under the glass: the wave pools in its well (that is what refracts it), but in the picture the word stays
  * clear: no glow, no births, specks fading, where the glass covers a cell (its cover times this, at most 1).
@@ -179,6 +179,8 @@ const ColorVars = [
   '--msp-color-brand-3',
   '--msp-color-brand-4',
 ];
+/** The same as `var(…)` values, made once (the colors are read every 1.5 s). */
+const ColorRefs = ColorVars.map((v) => `var(${v})`);
 
 function generator(seed: number): () => number {
   let a = seed >>> 0 || 1;
@@ -197,97 +199,218 @@ for (let i = 0; i < N; i++) {
   for (let b = 0; b < Bits; b++) r |= ((i >> b) & 1) << (Bits - 1 - b);
   reversed[i] = r;
 }
-const twiddleRe = new Float32Array(N / 2);
-const twiddleIm = new Float32Array(N / 2);
+const twiddleRe = new Float64Array(N / 2);
+const twiddleIm = new Float64Array(N / 2);
 for (let j = 0; j < N / 2; j++) {
   twiddleRe[j] = Math.cos((-2 * Math.PI * j) / N);
   twiddleIm[j] = Math.sin((-2 * Math.PI * j) / N);
 }
 
-/** An in-place radix-2 FFT of N values at `offset`, `stride` apart (inverse: unscaled). */
-function fft(re: Float32Array, im: Float32Array, offset: number, stride: number, inverse: boolean): void {
-  for (let i = 0; i < N; i++) {
-    const j = reversed[i];
-    if (j <= i) continue;
-    const a = offset + i * stride;
-    const b = offset + j * stride;
-    let t = re[a];
-    re[a] = re[b];
-    re[b] = t;
-    t = im[a];
-    im[a] = im[b];
-    im[b] = t;
+// The split step needs no ordered spectrum: the forward transform is decimation in frequency (natural order in,
+// bit-reversed out), the inverse decimation in time (bit-reversed in, natural out), and the kinetic table is kept in
+// the bit-reversed order, so no permutation is ever done. Rows run along a row; columns run a whole row at a time
+// (contiguous, the butterfly's twiddle fixed across it).
+
+/** Forward 2D FFT, decimation in frequency: natural order in, bit-reversed out (both axes). */
+function forward2(re: Float64Array, im: Float64Array): void {
+  for (let o = 0; o < Cells; o += N) {
+    for (let size = N; size >= 2; size >>= 1) {
+      const half = size >> 1;
+      const step = N / size;
+      for (let start = 0; start < N; start += size) {
+        for (let k = 0; k < half; k++) {
+          const wr = twiddleRe[k * step];
+          const wi = twiddleIm[k * step];
+          const a = o + start + k;
+          const b = a + half;
+          const ar = re[a];
+          const ai = im[a];
+          const dr = ar - re[b];
+          const di = ai - im[b];
+          re[a] = ar + re[b];
+          im[a] = ai + im[b];
+          re[b] = dr * wr - di * wi;
+          im[b] = dr * wi + di * wr;
+        }
+      }
+    }
   }
-  const sign = inverse ? -1 : 1;
+  for (let size = N; size >= 2; size >>= 1) {
+    const half = size >> 1;
+    const step = N / size;
+    for (let start = 0; start < N; start += size) {
+      for (let k = 0; k < half; k++) {
+        const wr = twiddleRe[k * step];
+        const wi = twiddleIm[k * step];
+        const ra = (start + k) * N;
+        const rb = ra + half * N;
+        for (let x = 0; x < N; x++) {
+          const a = ra + x;
+          const b = rb + x;
+          const ar = re[a];
+          const ai = im[a];
+          const dr = ar - re[b];
+          const di = ai - im[b];
+          re[a] = ar + re[b];
+          im[a] = ai + im[b];
+          re[b] = dr * wr - di * wi;
+          im[b] = dr * wi + di * wr;
+        }
+      }
+    }
+  }
+}
+
+/** Inverse 2D FFT (unscaled), decimation in time: bit-reversed in (both axes), natural order out. */
+function inverse2(re: Float64Array, im: Float64Array): void {
   for (let size = 2; size <= N; size <<= 1) {
     const half = size >> 1;
     const step = N / size;
     for (let start = 0; start < N; start += size) {
       for (let k = 0; k < half; k++) {
         const wr = twiddleRe[k * step];
-        const wi = sign * twiddleIm[k * step];
-        const a = offset + (start + k) * stride;
-        const b = a + half * stride;
-        const xr = re[b] * wr - im[b] * wi;
-        const xi = re[b] * wi + im[b] * wr;
-        re[b] = re[a] - xr;
-        im[b] = im[a] - xi;
-        re[a] += xr;
-        im[a] += xi;
+        const wi = -twiddleIm[k * step];
+        const ra = (start + k) * N;
+        const rb = ra + half * N;
+        for (let x = 0; x < N; x++) {
+          const a = ra + x;
+          const b = rb + x;
+          const br = re[b] * wr - im[b] * wi;
+          const bi = re[b] * wi + im[b] * wr;
+          re[b] = re[a] - br;
+          im[b] = im[a] - bi;
+          re[a] += br;
+          im[a] += bi;
+        }
+      }
+    }
+  }
+  for (let o = 0; o < Cells; o += N) {
+    for (let size = 2; size <= N; size <<= 1) {
+      const half = size >> 1;
+      const step = N / size;
+      for (let start = 0; start < N; start += size) {
+        for (let k = 0; k < half; k++) {
+          const wr = twiddleRe[k * step];
+          const wi = -twiddleIm[k * step];
+          const a = o + start + k;
+          const b = a + half;
+          const br = re[b] * wr - im[b] * wi;
+          const bi = re[b] * wi + im[b] * wr;
+          re[b] = re[a] - br;
+          im[b] = im[a] - bi;
+          re[a] += br;
+          im[a] += bi;
+        }
       }
     }
   }
 }
 
-/** The 2D FFT of the N × N grid (rows, then columns; inverse: unscaled). Exported for its tests. */
-export function fft2(re: Float32Array, im: Float32Array, inverse: boolean): void {
-  for (let y = 0; y < N; y++) fft(re, im, y * N, 1, inverse);
-  for (let x = 0; x < N; x++) fft(re, im, x, N, inverse);
+/** Bit-reverses both axes in place (the tests' bridge to the natural order; the evolution never needs it). */
+function permute2(re: Float64Array, im: Float64Array): void {
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      const j = reversed[y] * N + reversed[x];
+      if (j <= i) continue;
+      let t = re[i];
+      re[i] = re[j];
+      re[j] = t;
+      t = im[i];
+      im[i] = im[j];
+      im[j] = t;
+    }
+  }
 }
 
-// The kinetic step in momentum space, e^{−i k² Dt / 2}, with the inverse FFT's 1 / N² folded in; and the absorbing
-// edge's share a step (1 inside).
-const kineticRe = new Float32Array(Cells);
-const kineticIm = new Float32Array(Cells);
+/** The 2D FFT of the N × N grid in natural order (inverse: unscaled). For the tests; the evolution skips the orders. */
+export function fft2(re: Float64Array, im: Float64Array, inverse: boolean): void {
+  if (inverse) {
+    permute2(re, im);
+    inverse2(re, im);
+  } else {
+    forward2(re, im);
+    permute2(re, im);
+  }
+}
+
+/** atan2 to about 1e-5 radians, much cheaper than `Math.atan2` (the current's phase differences, 4 a cell a frame). */
+function atan2(y: number, x: number): number {
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  const big = ax > ay ? ax : ay;
+  if (big === 0) return 0;
+  const a = (ax < ay ? ax : ay) / big;
+  const s = a * a;
+  let r = ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a;
+  if (ay > ax) r = 1.5707963267948966 - r;
+  if (x < 0) r = 3.141592653589793 - r;
+  return y < 0 ? -r : r;
+}
+
+// The kinetic step in momentum space, e^{−i k² Dt / 2}, with the inverse FFT's 1 / N² folded in, in the forward
+// transform's bit-reversed order; and the absorbing edge's share a step (1 inside), and its square root (a half step).
+const kineticRe = new Float64Array(Cells);
+const kineticIm = new Float64Array(Cells);
 const edgeKeep = new Float32Array(Cells);
+const edgeHalf = new Float32Array(Cells);
 /** How much of the wave shows (1 inside, easing to 0 across the absorbing edge): the grid's square never shows. */
 const edgeShow = new Float32Array(Cells);
 for (let y = 0; y < N; y++) {
-  const ky = (2 * Math.PI * (y < N / 2 ? y : y - N)) / N;
+  const fy = reversed[y];
+  const ky = (2 * Math.PI * (fy < N / 2 ? fy : fy - N)) / N;
   const ey = Math.max(0, Edge - Math.min(y, N - 1 - y)) / Edge;
   for (let x = 0; x < N; x++) {
-    const kx = (2 * Math.PI * (x < N / 2 ? x : x - N)) / N;
+    const fx = reversed[x];
+    const kx = (2 * Math.PI * (fx < N / 2 ? fx : fx - N)) / N;
     const phase = (-(kx * kx + ky * ky) * Dt) / 2;
     kineticRe[y * N + x] = Math.cos(phase) / Cells;
     kineticIm[y * N + x] = Math.sin(phase) / Cells;
     const ex = Math.max(0, Edge - Math.min(x, N - 1 - x)) / Edge;
     const e = Math.max(ex, ey);
     edgeKeep[y * N + x] = 1 - Absorb * e * e;
+    edgeHalf[y * N + x] = Math.sqrt(edgeKeep[y * N + x]);
     // A round vignette, clear of the square absorbing edge: the grid's shape never shows.
     const r = Math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N / 2 - Edge);
     const inside = Math.min(1, Math.max(0, (1 - r) / VignetteSoft));
     edgeShow[y * N + x] = inside * inside * (3 - 2 * inside);
   }
 }
+/** The cells inside the vignette (off the grid's border): the only ones the picture, the current and births need. */
+const inner = (() => {
+  const list: number[] = [];
+  for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) if (edgeShow[y * N + x] > 0) list.push(y * N + x);
+  return Int32Array.from(list);
+})();
 
 export class QuantumField {
   #options: QuantumFieldOptions;
   readonly #canvas: HTMLCanvasElement;
   readonly #ctx: CanvasRenderingContext2D | null;
+  /** The canvas's computed style, kept (it is live). */
+  #style: CSSStyleDeclaration | undefined;
   #random: () => number;
   readonly #still: boolean;
 
   // The wave, the potential and its half step (with the edge), the current's velocity (cells a time unit) and the density.
-  readonly #re = new Float32Array(Cells);
-  readonly #im = new Float32Array(Cells);
+  readonly #re = new Float64Array(Cells);
+  readonly #im = new Float64Array(Cells);
   readonly #v = new Float32Array(Cells);
-  readonly #halfRe = new Float32Array(Cells);
-  readonly #halfIm = new Float32Array(Cells);
+  readonly #halfRe = new Float64Array(Cells);
+  readonly #halfIm = new Float64Array(Cells);
+  readonly #fullRe = new Float64Array(Cells);
+  readonly #fullIm = new Float64Array(Cells);
+  // The emitters' separable sources (a row and a column factor each), reused.
+  readonly #rowRe = new Float32Array(N);
+  readonly #rowIm = new Float32Array(N);
+  readonly #colRe = new Float32Array(N);
+  readonly #colIm = new Float32Array(N);
   readonly #vx = new Float32Array(Cells);
   readonly #vy = new Float32Array(Cells);
   readonly #rho = new Float32Array(Cells);
   /** The density's running sum, to draw where a speck starts. */
-  readonly #cdf = new Float32Array(Cells);
+  readonly #cdf = new Float32Array(inner.length);
   #rhoMax = RhoFloor;
   /** How strong the flow from the left is now (0..1, the glass's assembly, eased). */
   #flow = 0;
@@ -438,10 +561,15 @@ export class QuantumField {
     if (typeof getComputedStyle !== 'function') return;
     const el = this.#canvas;
     const before = el.style.color;
+    // Read every 1.5 s: the gradient (and the glass's atlas made with it) is made again only when a color changed.
+    let changed = !this.#gradient;
     for (let i = 0; i < Colors; i++) {
-      el.style.color = `var(${ColorVars[i]})`;
-      const v = getComputedStyle(el).color;
-      if (v) this.#colors[i] = v;
+      el.style.color = ColorRefs[i];
+      this.#style ??= getComputedStyle(el);
+      const v = this.#style.color;
+      if (!v || v === this.#colors[i]) continue;
+      this.#colors[i] = v;
+      changed = true;
       const m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/.exec(v);
       if (m) {
         this.#rgb[i * 3] = +m[1];
@@ -451,7 +579,7 @@ export class QuantumField {
     }
     el.style.color = before;
     this.#dark = 0.299 * this.#rgb[0] + 0.587 * this.#rgb[1] + 0.114 * this.#rgb[2] > 128;
-    if (this.#ctx) {
+    if (this.#ctx && changed) {
       const g = this.#ctx.createLinearGradient(0, 0, WordmarkGeometry.width - 2, 0);
       g.addColorStop(0, this.#colors[1]);
       g.addColorStop(0.35, this.#colors[2]);
@@ -626,9 +754,6 @@ export class QuantumField {
   #radiate(): void {
     const re = this.#re;
     const im = this.#im;
-    const a2 = 2 * EmitAlong * EmitAlong;
-    const c2 = 2 * EmitAcross * EmitAcross;
-    const reach = 3 * Math.max(EmitAlong, EmitAcross);
     for (let e = 0; e < this.#emitters; e++) {
       const tau = (this.#sim - this.#emT0[e]) / EmitTime;
       if (tau >= 1) {
@@ -651,25 +776,44 @@ export class QuantumField {
       const sn = this.#emSin[e];
       const cx = this.#emX[e];
       const cy = this.#emY[e];
-      // Its phase now: e^{−iωt}, ω = k²/2.
+      // Separable: a Gaussian along the axes (long along the way for the front, which goes right; round for a burst
+      // along an arm) times the plane wave e^{i(kx·dx + ky·dy)}, so a row factor times a column factor.
+      const straight = Math.abs(sn) < 1e-3;
+      const sx = straight ? EmitAlong : (EmitAlong + EmitAcross) / 2;
+      const sy = straight ? EmitAcross : sx;
+      const kx = k * c;
+      const ky = k * sn;
+      const x0 = Math.max(1, Math.floor(cx - 3 * sx));
+      const x1 = Math.min(N - 2, Math.ceil(cx + 3 * sx));
+      const y0 = Math.max(1, Math.floor(cy - 3 * sy));
+      const y1 = Math.min(N - 2, Math.ceil(cy + 3 * sy));
+      const rowRe = this.#rowRe;
+      const rowIm = this.#rowIm;
+      for (let x = x0; x <= x1; x++) {
+        const dx = x - cx;
+        const g = Math.exp(-(dx * dx) / (2 * sx * sx));
+        rowRe[x] = g * Math.cos(kx * dx);
+        rowIm[x] = g * Math.sin(kx * dx);
+      }
+      // Its strength and phase now: e^{−iωt}, ω = k²/2, folded into the column factor.
       const t = this.#sim - this.#emT0[e];
       const wt = (-k * k * t) / 2;
-      const x0 = Math.max(1, Math.floor(cx - reach));
-      const x1 = Math.min(N - 2, Math.ceil(cx + reach));
-      const y0 = Math.max(1, Math.floor(cy - reach));
-      const y1 = Math.min(N - 2, Math.ceil(cy + reach));
+      const colRe = this.#colRe;
+      const colIm = this.#colIm;
       for (let y = y0; y <= y1; y++) {
         const dy = y - cy;
+        const g = strength * Math.exp(-(dy * dy) / (2 * sy * sy));
+        colRe[y] = g * Math.cos(ky * dy + wt);
+        colIm[y] = g * Math.sin(ky * dy + wt);
+      }
+      for (let y = y0; y <= y1; y++) {
+        const pr = colRe[y];
+        const pi = colIm[y];
+        if (Math.abs(pr) + Math.abs(pi) < 1e-7) continue;
+        const o = y * N;
         for (let x = x0; x <= x1; x++) {
-          const dx = x - cx;
-          const along = dx * c + dy * sn;
-          const across = -dx * sn + dy * c;
-          const g = strength * Math.exp(-(along * along) / a2 - (across * across) / c2);
-          if (g < 1e-6) continue;
-          const phase = k * along + wt;
-          const i = y * N + x;
-          re[i] += g * Math.cos(phase);
-          im[i] += g * Math.sin(phase);
+          re[o + x] += pr * rowRe[x] - pi * rowIm[x];
+          im[o + x] += pr * rowIm[x] + pi * rowRe[x];
         }
       }
     }
@@ -774,44 +918,70 @@ export class QuantumField {
         }
       }
     }
+    // Its half step and full step (two halves back to back, between the steps of a frame); most cells have none.
+    const hr = this.#halfRe;
+    const hi = this.#halfIm;
+    const fr = this.#fullRe;
+    const fi = this.#fullIm;
     for (let i = 0; i < Cells; i++) {
+      if (v[i] === 0) {
+        hr[i] = edgeHalf[i];
+        hi[i] = 0;
+        fr[i] = edgeKeep[i];
+        fi[i] = 0;
+        continue;
+      }
       const phase = (-v[i] * Dt) / 2;
-      const keep = Math.sqrt(edgeKeep[i]);
-      this.#halfRe[i] = Math.cos(phase) * keep;
-      this.#halfIm[i] = Math.sin(phase) * keep;
+      const keep = edgeHalf[i];
+      const c = Math.cos(phase);
+      const sn = Math.sin(phase);
+      hr[i] = c * keep;
+      hi[i] = sn * keep;
+      fr[i] = (c * c - sn * sn) * edgeKeep[i];
+      fi[i] = 2 * c * sn * edgeKeep[i];
     }
   }
 
-  /** ψ times a half step of the potential. */
-  #half(): void {
+  /** ψ times a potential step (`#halfRe`/`#halfIm` or `#fullRe`/`#fullIm`). */
+  #potentialStep(pr: Float64Array, pi: Float64Array): void {
     const re = this.#re;
     const im = this.#im;
-    const hr = this.#halfRe;
-    const hi = this.#halfIm;
     for (let i = 0; i < Cells; i++) {
       const a = re[i];
       const b = im[i];
-      re[i] = a * hr[i] - b * hi[i];
-      im[i] = a * hi[i] + b * hr[i];
+      re[i] = a * pr[i] - b * pi[i];
+      im[i] = a * pi[i] + b * pr[i];
     }
   }
 
-  /** One step of the evolution (split-step Fourier). */
-  #evolve(): void {
+  /**
+   * `steps` steps of the evolution (split-step Fourier, Strang): a half step of the potential, then for each step the
+   * kinetic step in momentum space and a full potential step (the two halves between steps at once), the last a half.
+   * The emitters radiate before each.
+   */
+  #evolve(steps: number): void {
     const re = this.#re;
     const im = this.#im;
     this.#radiate();
     this.#sim += Dt;
-    this.#half();
-    fft2(re, im, false);
-    for (let i = 0; i < Cells; i++) {
-      const a = re[i];
-      const b = im[i];
-      re[i] = a * kineticRe[i] - b * kineticIm[i];
-      im[i] = a * kineticIm[i] + b * kineticRe[i];
+    this.#potentialStep(this.#halfRe, this.#halfIm);
+    for (let n = 0; n < steps; n++) {
+      forward2(re, im);
+      for (let i = 0; i < Cells; i++) {
+        const a = re[i];
+        const b = im[i];
+        re[i] = a * kineticRe[i] - b * kineticIm[i];
+        im[i] = a * kineticIm[i] + b * kineticRe[i];
+      }
+      inverse2(re, im);
+      if (n === steps - 1) {
+        this.#potentialStep(this.#halfRe, this.#halfIm);
+      } else {
+        this.#potentialStep(this.#fullRe, this.#fullIm);
+        this.#radiate();
+        this.#sim += Dt;
+      }
     }
-    fft2(re, im, true);
-    this.#half();
   }
 
   /** The density and the current's velocity (∇ of the phase, clamped where the wave is thin), and their running max. */
@@ -825,44 +995,46 @@ export class QuantumField {
     const cap2 = cap * cap;
     let most = 0;
     let sum = 0;
-    for (let y = 0; y < N; y++) {
-      for (let x = 0; x < N; x++) {
-        const i = y * N + x;
-        const a = re[i];
-        const b = im[i];
-        const p = a * a + b * b;
-        rho[i] = p;
-        // What shows (none under the glass) sets the scale and the births (by |ψ|²).
-        const shown = p * (1 - Math.min(1, this.#cover[i] * CoverHide));
-        if (shown > most) most = shown;
-        sum += shown;
-        this.#cdf[i] = sum;
-        if (x === 0 || y === 0 || x === N - 1 || y === N - 1 || p < 1e-9) {
-          vx[i] = 0;
-          vy[i] = 0;
-          continue;
-        }
-        // ∇ of the phase from the phase differences to the neighbors (arg ψ(x+1)ψ*(x), and back), averaged: exact for a
-        // plane wave, where a central difference of ψ would give sin k (and the colors and speeds with it).
-        const r1 = re[i + 1];
-        const i1 = im[i + 1];
-        const r0 = re[i - 1];
-        const i0 = im[i - 1];
-        let u = (Math.atan2(i1 * a - r1 * b, r1 * a + i1 * b) + Math.atan2(b * r0 - a * i0, a * r0 + b * i0)) / 2;
-        const rd = re[i + N];
-        const id = im[i + N];
-        const ru = re[i - N];
-        const iu = im[i - N];
-        let w = (Math.atan2(id * a - rd * b, rd * a + id * b) + Math.atan2(b * ru - a * iu, a * ru + b * iu)) / 2;
-        const s2 = u * u + w * w;
-        if (s2 > cap2) {
-          const k = cap / Math.sqrt(s2);
-          u *= k;
-          w *= k;
-        }
-        vx[i] = u;
-        vy[i] = w;
+    const cdf = this.#cdf;
+    const cover = this.#cover;
+    // Only the vignette's cells: outside it nothing shows, nothing is born and the velocity stays 0.
+    for (let n = 0; n < inner.length; n++) {
+      const i = inner[n];
+      const a = re[i];
+      const b = im[i];
+      const p = a * a + b * b;
+      rho[i] = p;
+      // What shows (none under the glass) sets the scale and the births (by |ψ|²).
+      const c = cover[i] * CoverHide;
+      const shown = c >= 1 ? 0 : p * (1 - c);
+      if (shown > most) most = shown;
+      sum += shown;
+      cdf[n] = sum;
+      if (p < 1e-9) {
+        vx[i] = 0;
+        vy[i] = 0;
+        continue;
       }
+      // ∇ of the phase from the phase differences to the neighbors (arg ψ(x+1)ψ*(x), and back), averaged: exact for a
+      // plane wave, where a central difference of ψ would give sin k (and the colors and speeds with it).
+      const r1 = re[i + 1];
+      const i1 = im[i + 1];
+      const r0 = re[i - 1];
+      const i0 = im[i - 1];
+      let u = (atan2(i1 * a - r1 * b, r1 * a + i1 * b) + atan2(b * r0 - a * i0, a * r0 + b * i0)) / 2;
+      const rd = re[i + N];
+      const id = im[i + N];
+      const ru = re[i - N];
+      const iu = im[i - N];
+      let w = (atan2(id * a - rd * b, rd * a + id * b) + atan2(b * ru - a * iu, a * ru + b * iu)) / 2;
+      const s2 = u * u + w * w;
+      if (s2 > cap2) {
+        const k = cap / Math.sqrt(s2);
+        u *= k;
+        w *= k;
+      }
+      vx[i] = u;
+      vy[i] = w;
     }
     // The picture's scale eases toward the densest part, either way (a packet coming in never dims the rest at once).
     this.#rhoMax = Math.max(RhoFloor, this.#rhoMax + (most - this.#rhoMax) * Math.min(1, dt * ScaleEase));
@@ -888,7 +1060,7 @@ export class QuantumField {
   #colorFor(u: number, w: number): number {
     const o = this.#options;
     const s = Math.sqrt(u * u + w * w);
-    if (s < 1e-3 || Math.abs(Math.atan2(w, u)) < Straight) return 0;
+    if (s < 1e-3 || Math.abs(atan2(w, u)) < Straight) return 0;
     const lo = o.k * (1 - o.spectrum);
     const band = (s - lo) / Math.max(1e-3, 2 * o.k * o.spectrum);
     return 1 + Math.min(3, Math.max(0, Math.floor(band * 4)));
@@ -896,23 +1068,25 @@ export class QuantumField {
 
   /** A speck where the wave is (drawn from its density); false if there is next to none. */
   #spawn(i: number): boolean {
-    const total = this.#cdf[Cells - 1];
+    const cdf = this.#cdf;
+    const total = cdf[cdf.length - 1];
     if (total < 1e-3) return false;
     const pick = this.#random() * total;
     let lo = 0;
-    let hi = Cells - 1;
+    let hi = cdf.length - 1;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (this.#cdf[mid] < pick) lo = mid + 1;
+      if (cdf[mid] < pick) lo = mid + 1;
       else hi = mid;
     }
-    const gx = lo % N;
-    const gy = (lo / N) | 0;
+    const cell = inner[lo];
+    const gx = cell % N;
+    const gy = (cell / N) | 0;
     this.#x[i] = this.#gx + (gx + this.#random()) * Cell;
     this.#y[i] = this.#gy + (gy + this.#random()) * Cell;
     this.#age[i] = 0;
     this.#shimmer[i] = this.#random() * Math.PI * 2;
-    this.#color[i] = this.#colorFor(this.#vx[lo], this.#vy[lo]);
+    this.#color[i] = this.#colorFor(this.#vx[cell], this.#vy[cell]);
     return true;
   }
 
@@ -960,10 +1134,10 @@ export class QuantumField {
     let steps = 0;
     while (this.#clock >= Dt && steps < MaxSteps) {
       this.#clock -= Dt;
-      this.#evolve();
       steps++;
     }
     if (steps === MaxSteps) this.#clock = 0;
+    if (steps) this.#evolve(steps);
     this.#current(dt);
 
     // The specks ride the current (a midpoint step), fading as they go; gone when faded or off the grid.
@@ -988,14 +1162,22 @@ export class QuantumField {
       this.#y[i] = ny;
       this.#age[i] += dt;
       if (this.#color[i] === 0) this.#color[i] = this.#colorFor(u2, w2);
-      if (this.#age[i] > gone || nx < x0 || ny < y0 || nx >= x1 || ny >= y1) {
+      // Gone when faded, or out of the vignette (nothing shows there, and the current is not kept there).
+      if (
+        this.#age[i] > gone ||
+        nx < x0 ||
+        ny < y0 ||
+        nx >= x1 ||
+        ny >= y1 ||
+        edgeShow[((((ny - y0) / Cell) | 0) * N + (((nx - x0) / Cell) | 0)) | 0] === 0
+      ) {
         this.#kill(i);
         i--;
       }
     }
     // Births: |ψ|² is the chance of a speck. As many a second as asked at the wave's usual amount, more with more of it,
     // each drawn from its density.
-    const amount = this.#cdf[Cells - 1];
+    const amount = this.#cdf[this.#cdf.length - 1];
     // The usual amount is learned while the flow is full; until then (the first assembly) births follow the flow.
     if (this.#flow > 0.9) {
       this.#amount = this.#amount ? this.#amount + (amount - this.#amount) * Math.min(1, dt * AmountEase) : amount;
@@ -1042,7 +1224,9 @@ export class QuantumField {
     const ease = Math.min(1, this.#frameDt * TintEase);
     const lo = o.k * (1 - o.spectrum);
     const span = Math.max(1e-3, 2 * o.k * o.spectrum);
-    for (let i = 0; i < Cells; i++) {
+    // Only the vignette's cells (the rest of the image stays clear from the start).
+    for (let n = 0; n < inner.length; n++) {
+      const i = inner[n];
       const p = rho[i] * inv;
       const j = i * 4;
       if (p < 1e-4) {
@@ -1077,7 +1261,7 @@ export class QuantumField {
       data[j + 2] = tb[i];
       const front = 1 - o.ripples * 0.5 * (1 - this.#re[i] / Math.sqrt(rho[i]));
       const clear = 1 - Math.min(1, this.#cover[i] * CoverHide);
-      data[j + 3] = Math.min(255, glow * Math.min(1, p ** 0.5) * front * edgeShow[i] * clear);
+      data[j + 3] = Math.min(255, glow * Math.min(1, Math.sqrt(p)) * front * edgeShow[i] * clear);
     }
     this.#pictureCtx.putImageData(image, 0, 0);
   }
@@ -1103,14 +1287,15 @@ export class QuantumField {
     // The specks, bucketed by color and alpha level (counting sort): one path each.
     const counts = this.#counts;
     counts.fill(0);
-    const decay = Math.max(0.1, o.decay);
+    // Halving every `decay` seconds.
+    const fade = -Math.LN2 / Math.max(0.1, o.decay);
     for (let i = 0; i < this.#alive; i++) {
       const age = this.#age[i];
       // In over its birth, then halving every `decay` seconds (not the wave under it: it is a particle now).
       const x = this.#x[i];
       const y = this.#y[i];
       const clear = 1 - Math.min(1, this.#at(this.#cover, x, y) * CoverHide);
-      const a = Math.min(1, age / Birth) * 0.5 ** (age / decay) * this.#at(edgeShow, x, y) * clear;
+      const a = Math.min(1, age / Birth) * Math.exp(age * fade) * this.#at(edgeShow, x, y) * clear;
       const level = Math.max(0, Math.min(Levels - 1, Math.round(a * (Levels - 1))));
       const c = o.colors ? this.#color[i] : 0;
       const b = c * Levels + level;
@@ -1157,6 +1342,7 @@ export class QuantumField {
       this.#gradient ?? this.#colors[1],
       this.#colors[0],
       1,
+      this.#dpr,
     );
   }
 }

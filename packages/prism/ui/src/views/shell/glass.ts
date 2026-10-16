@@ -44,6 +44,9 @@ const HoverTilt = 0.1;
 const Stiffness = 140;
 const Damping = 11;
 
+/** Sprites a row in the pieces' atlas. */
+const AtlasCols = 11;
+
 /** The mean distance of the pieces from home (drawing units) at which `assembled` is 1/e. */
 const AssembledScale = 3;
 
@@ -115,6 +118,12 @@ export class Glass {
 
   /** The pieces there are. */
   readonly count = Shards;
+  // The pieces' atlas (`#atlasFor`): its canvas, the px a unit and the stroke it was made for, a sprite's size.
+  #atlas: HTMLCanvasElement | undefined;
+  #atlasU = 0;
+  #atlasStroke: CanvasGradient | string | undefined;
+  #spriteW = 0;
+  #spriteH = 0;
   /** Each piece's corners about its middle (drawing units; six a piece: x and y of each corner). */
   readonly corners = new Float32Array(Shards * 6);
 
@@ -186,7 +195,11 @@ export class Glass {
    */
   get assembled(): number {
     let away = 0;
-    for (let i = 0; i < Shards; i++) away += Math.hypot(this.#ox[i], this.#oy[i]) + Math.abs(this.#rot[i]) * 6;
+    for (let i = 0; i < Shards; i++) {
+      const ox = this.#ox[i];
+      const oy = this.#oy[i];
+      away += Math.sqrt(ox * ox + oy * oy) + Math.abs(this.#rot[i]) * 6;
+    }
     return Math.exp(-away / Shards / AssembledScale);
   }
 
@@ -317,7 +330,8 @@ export class Glass {
         const p = Math.min(1, Math.max(0, (since - this.#delay[i]) / this.#assembly.duration));
         if (p < 1) done = false;
         // Smooth: eased out (quintic), settling; a snap back: past home a little.
-        const k = this.#assembly === SnapBack ? 1 - snap(p) : (1 - p) ** 5;
+        const q = 1 - p;
+        const k = this.#assembly === SnapBack ? 1 - snap(p) : q * q * q * q * q;
         this.#ox[i] = this.#fx[i] * k;
         this.#oy[i] = this.#fy[i] * k;
         this.#rot[i] = this.#fr[i] * k;
@@ -347,9 +361,10 @@ export class Glass {
       if (this.#pointer) {
         const dx = this.#cx[i] + this.#ox[i] - this.#pu;
         const dy = this.#cy[i] + this.#oy[i] - this.#pv;
-        const d = Math.hypot(dx, dy);
+        const d = Math.sqrt(dx * dx + dy * dy);
         if (d < HoverReach) {
-          const f = (1 - d / HoverReach) ** 2;
+          const g = 1 - d / HoverReach;
+          const f = g * g;
           const inv = 1 / (d || 1);
           tx = dx * inv * HoverLean * f;
           ty = dy * inv * HoverLean * f;
@@ -375,9 +390,11 @@ export class Glass {
   }
 
   /**
-   * Draws the glass: the word whole in one go while at rest, else piece by piece: the word's line in `stroke` (the logo's gradient,
-   * made in drawing units), each piece its part of it, and the piece's edges in `edge`, glinting while it moves. The
-   * context is in canvas CSS pixels; the word's drawing origin is at (x, y), `scale` px a unit.
+   * Draws the glass: the word whole in one go while at rest, else piece by piece: the word's line in `stroke` (the
+   * logo's gradient, made in drawing units), each piece its part of it, and the piece's edges in `edge`, glinting while
+   * it moves. The context is in canvas CSS pixels (times `dpr`); the word's drawing origin is at (x, y), `scale` px a
+   * unit. The pieces come from an atlas, each drawn once at this scale, pixel ratio and stroke (one `drawImage` a
+   * piece a frame, not a clip and the word's strokes); without a canvas to make it on, each is clipped and stroked.
    */
   draw(
     ctx: CanvasRenderingContext2D,
@@ -387,9 +404,9 @@ export class Glass {
     stroke: CanvasGradient | string,
     edge: string,
     alpha: number,
+    dpr = 1,
   ): void {
     const since = this.#time - this.#since;
-    const line = WordmarkGeometry.stroke(scale);
     if (this.#still) {
       // Whole and at rest: the word in one go, as the wordmark draws it.
       ctx.save();
@@ -397,47 +414,106 @@ export class Glass {
       ctx.scale(scale, scale);
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = line;
+      ctx.lineWidth = WordmarkGeometry.stroke(scale);
       ctx.lineJoin = 'miter';
       for (let w = 0; w < this.#word.length; w++) ctx.stroke(this.#word[w]);
       ctx.restore();
       ctx.globalAlpha = 1;
       return;
     }
+    const atlas = this.#atlasFor(scale, dpr, stroke);
+    const u = scale * dpr;
+    ctx.save();
+    ctx.lineWidth = 0.35;
+    ctx.strokeStyle = edge;
     for (let i = 0; i < Shards; i++) {
       const ox = this.#ox[i] + this.#hx[i];
       const oy = this.#oy[i] + this.#hy[i];
       const rot = this.#rot[i] + this.#hr[i];
-      const off = Math.hypot(this.#ox[i], this.#oy[i]) + Math.abs(this.#rot[i]) * 6;
       // A shard flying in (the first assembly) fades in as it starts.
       const shown =
         this.#phase === 'assembling' && this.#fadeIn
           ? Math.min(1, Math.max(0, (since - this.#delay[i]) / (this.#assembly.duration * 0.35)))
           : 1;
       if (shown <= 0) continue;
-      ctx.save();
-      ctx.translate(x + (this.#cx[i] + ox) * scale, y + (this.#cy[i] + oy) * scale);
-      ctx.rotate(rot);
-      ctx.scale(scale, scale);
-      const shard = this.#shard[i];
+      // The piece's frame in device pixels: its middle where it is now, turned, a drawing unit `u` px.
+      const c = Math.cos(rot) * u;
+      const sn = Math.sin(rot) * u;
+      ctx.setTransform(c, sn, -sn, c, (x + (this.#cx[i] + ox) * scale) * dpr, (y + (this.#cy[i] + oy) * scale) * dpr);
       // Its edges: a glint while it is away from home.
-      const lean = Math.hypot(this.#hx[i], this.#hy[i]) + Math.abs(this.#hr[i]) * 6;
+      const off = Math.abs(this.#ox[i]) + Math.abs(this.#oy[i]) + Math.abs(this.#rot[i]) * 6;
+      const lean = Math.abs(this.#hx[i]) + Math.abs(this.#hy[i]) + Math.abs(this.#hr[i]) * 6;
       const glint = Math.min(1, off / 8 + lean / 3) * 0.22 * alpha * shown;
       if (glint > 0.01) {
         ctx.globalAlpha = glint;
-        ctx.strokeStyle = edge;
-        ctx.lineWidth = 0.35;
-        ctx.stroke(shard);
+        ctx.stroke(this.#shard[i]);
       }
-      ctx.clip(shard);
-      ctx.translate(-this.#cx[i], -this.#cy[i]);
       ctx.globalAlpha = alpha * shown;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = line;
-      ctx.lineJoin = 'miter';
-      for (let w = 0; w < this.#word.length; w++) ctx.stroke(this.#word[w]);
-      ctx.restore();
+      if (atlas) {
+        const w = this.#spriteW;
+        const h = this.#spriteH;
+        ctx.drawImage(
+          atlas,
+          (i % AtlasCols) * w,
+          ((i / AtlasCols) | 0) * h,
+          w,
+          h,
+          -w / (2 * u),
+          -h / (2 * u),
+          w / u,
+          h / u,
+        );
+      } else {
+        ctx.save();
+        ctx.clip(this.#shard[i]);
+        ctx.translate(-this.#cx[i], -this.#cy[i]);
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = WordmarkGeometry.stroke(scale);
+        ctx.lineJoin = 'miter';
+        for (let w = 0; w < this.#word.length; w++) ctx.stroke(this.#word[w]);
+        ctx.restore();
+      }
     }
+    ctx.restore();
     ctx.globalAlpha = 1;
+  }
+
+  /**
+   * The pieces' atlas for this scale, pixel ratio and stroke: each piece's part of the word, its middle in the middle of
+   * its sprite (`AtlasCols` a row), made again only when one of them changes; none where there is no canvas.
+   */
+  #atlasFor(scale: number, dpr: number, stroke: CanvasGradient | string): HTMLCanvasElement | undefined {
+    const u = scale * dpr;
+    if (this.#atlas && this.#atlasU === u && this.#atlasStroke === stroke) return this.#atlas;
+    if (typeof document === 'undefined') return undefined;
+    const canvas = this.#atlas ?? document.createElement('canvas');
+    const g = canvas.getContext('2d');
+    if (!g) return undefined;
+    // A sprite fits the largest piece about its middle, with room for the line.
+    let reach = 0;
+    for (let k = 0; k < this.corners.length; k++) reach = Math.max(reach, Math.abs(this.corners[k]));
+    const pad = WordmarkGeometry.stroke(scale) / 2 + 0.5;
+    const side = Math.ceil(2 * (reach + pad) * u);
+    this.#spriteW = side;
+    this.#spriteH = side;
+    canvas.width = side * AtlasCols;
+    canvas.height = side * Math.ceil(Shards / AtlasCols);
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.strokeStyle = stroke;
+    g.lineWidth = WordmarkGeometry.stroke(scale);
+    g.lineJoin = 'miter';
+    for (let i = 0; i < Shards; i++) {
+      g.setTransform(u, 0, 0, u, (i % AtlasCols) * side + side / 2, ((i / AtlasCols) | 0) * side + side / 2);
+      g.save();
+      g.clip(this.#shard[i]);
+      g.translate(-this.#cx[i], -this.#cy[i]);
+      for (let w = 0; w < this.#word.length; w++) g.stroke(this.#word[w]);
+      g.restore();
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    this.#atlas = canvas;
+    this.#atlasU = u;
+    this.#atlasStroke = stroke;
+    return canvas;
   }
 }
