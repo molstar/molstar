@@ -176,8 +176,8 @@ type ViewerApi = CoreApi & Partial<ExtensionApis> & {       // CoreApi: the area
   runner and the API's construction stay inside); the other subpaths are listed one by one in `package.json`'s exports
   (no `./*`): `/page`, `/headless`, `/spec`, `/default-spec`, `/features/<name>`, the views an extension draws with,
   and the test helpers other packages' tests use. `viewer.sources` is read-only: every source is a state, and the
-  marks' writers are the API's (`highlight.mark`, `unmark`). `/agent/*` stays a pattern while the agent's API is
-  reworked.
+  marks' writers are the API's (`highlight.mark`, `unmark`). The agent's: `/agent/session`, `/agent/skills` (the
+  default tools and skills, no dependencies), `/agent/policies`, `/agent/eval`, `/agent/account`.
 
 - **An extension's areas** come from `ViewerExtension.api`, a record of area factories by area id (viewer-spec.md §3),
   each made once: `viewer.api['geo-export'].export({ format: 'glb' })`, operation `geo-export.export`. An operation's id

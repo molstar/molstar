@@ -134,10 +134,30 @@
       "types": "./lib/testing/real-viewer.d.ts",
       "import": "./lib/testing/real-viewer.js"
     },
-    "./agent/*": {
-      "molstar-src": "./src/agent/*.ts",
-      "types": "./lib/agent/*.d.ts",
-      "import": "./lib/agent/*.js"
+    "./agent/account": {
+      "molstar-src": "./src/agent/account.ts",
+      "types": "./lib/agent/account.d.ts",
+      "import": "./lib/agent/account.js"
+    },
+    "./agent/eval": {
+      "molstar-src": "./src/agent/eval.ts",
+      "types": "./lib/agent/eval.d.ts",
+      "import": "./lib/agent/eval.js"
+    },
+    "./agent/policies": {
+      "molstar-src": "./src/agent/policies.ts",
+      "types": "./lib/agent/policies.d.ts",
+      "import": "./lib/agent/policies.js"
+    },
+    "./agent/session": {
+      "molstar-src": "./src/agent/session.ts",
+      "types": "./lib/agent/session.d.ts",
+      "import": "./lib/agent/session.js"
+    },
+    "./agent/skills": {
+      "molstar-src": "./src/agent/skills.ts",
+      "types": "./lib/agent/skills.d.ts",
+      "import": "./lib/agent/skills.js"
     },
     "./features/*": {
       "molstar-src": "./src/features/*/index.ts",

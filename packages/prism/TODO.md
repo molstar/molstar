@@ -16,17 +16,21 @@ What is missing, and what was considered and deferred. One entry each, with a po
   Alternatives: JSON Schema straight from `ParamDefinition` (operations already have it) or from the field shapes, with
   a small validator over that closed vocabulary; a smaller validator. The AI SDK's providers import zod too, so it
   leaves the page only with adapters of our own. The harness side: [../ai/TODO.md](../ai/TODO.md).
-- **What is public** (review B9): the package root as the embedder's entry, a curated export list instead of `./*`,
-  `viewer.sources` read-only, the unused ported targets code removed (`viewer/src/targets/index.ts`).
 - **Duplicates** (review B11): `StatusModel` and `NotificationsManager`; `ShellModel.layout` beside `viewState.save()`;
   `persist.key` that namespaces nothing; three ways to run Preset and Styles in `StructureTab`.
 - **The query languages' registry is page-wide** (review B12): two viewers on a page offer each other's languages.
   Recommended: page-wide until pages with several viewers matter (plan.md phase 6).
-- **Size** (review C13–C18): identifier minification off (~280 kB gzipped on the app); MolViewSpec in the startup bundle
-  (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk built from Seq\*'s whole default spec (a
-  Prism composition); eager extensions in the app (~190 kB, lazy stubs owning their formats); panels shown on demand as
-  static imports (command menu, History, Settings with the params form, volume inspectors); `sideEffects` declared
-  almost nowhere.
+- **Size** (review C14–C18; C13 was a no-op: esbuild minifies identifiers under `minify: true`): MolViewSpec in the
+  startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk built from Seq\*'s whole
+  default spec (a Prism composition); eager extensions in the app (~190 kB, lazy stubs owning their formats); panels
+  shown on demand as static imports (command menu, History, Settings with the params form, volume inspectors);
+  `sideEffects` declared almost nowhere.
+- **Build budgets** (2026-10-16, app.md §1): the `index.js` budget no longer bounds the start (the start code is in
+  shared chunks since `lib`'s lazy import): a budget over the start closure (65 files, 4.4 MB, 1.29 MB gzipped); lower
+  the 8 MB `prism-viewer.js` budget (6.2 MB today).
+- **`molstar.lib`** (`apps/prism-viewer/src/lib.ts`): also from the single file `prism-viewer.js` (+32 kB gzipped on
+  every page that imports it)? `StateTransforms` for full v5 parity (architecture.md §9.3 keeps it for the classic
+  Viewer)?
 - **The night's choices, keep or change** (review D): built-in areas typed as present and throwing when left out; panels
   keeping their tab ids; History and Settings in the core; the runner re-checking `exists` only for loads; the
   kept-records index growing (journal.md §1).

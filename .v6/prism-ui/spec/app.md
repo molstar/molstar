@@ -32,8 +32,8 @@ element, and the URL. Status: **accepted** (2026-10-15).
   manifest: `index.js` 3.2 MB, `prism-viewer.js` 8 MB, minified) fails a production build that outgrows it. Since
   `lib`'s import shares the start code, esbuild puts that code in shared chunks and `index.js` is a 6 kB list of
   imports: the start bundle is its static-import closure (65 files, 4.4 MB, 1.29 MB gzipped, 2026-10-16), which the
-  `index.js` budget no longer bounds. Not yet: a budget over that closure, hashed entry names, the assistant's chunk
-  loaded on first use rather than at start.
+  `index.js` budget no longer bounds. Not yet: a budget over that closure, hashed entry names. (The assistant's chunk
+  loads on first use: the Assistant tab, the Ask row, `?assistant`.)
 
 ## 2. The single-file viewer
 
