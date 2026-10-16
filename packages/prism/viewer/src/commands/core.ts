@@ -59,18 +59,21 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       icon: 'zoom-in',
       alias: ['zoom in', 'zoom out', 'closer', 'farther'],
       action: 'Zoom',
+      values: { animate: true },
     }),
     operationCommand(api, api.camera.orient, {
       category: 'View',
       icon: 'rotate-3d',
       alias: ['orient', 'principal axes', 'align view'],
       action: 'Orient',
+      values: { animate: true },
     }),
     operationCommand(api, api.camera.resetAxes, {
       category: 'View',
       icon: 'axis-3d',
       alias: ['reset axes', 'align axes', 'cartesian axes', 'xyz'],
       action: 'Align',
+      values: { animate: true },
     }),
     operationCommand(api, api.camera.set, {
       category: 'View',

@@ -85,6 +85,7 @@ export function selectionCommands(api: ViewerApi): CommandDefinition<ViewerComma
       title: 'Frame…',
       alias: ['frame', 'bring into view', 'center on'],
       action: 'Frame',
+      values: { animate: true },
     }),
   ];
 }

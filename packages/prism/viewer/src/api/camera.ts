@@ -47,15 +47,12 @@ export class CameraApi extends ApiArea {
   readonly reset = this.operation({
     id: 'camera.reset',
     title: 'Reset the camera',
-    params: {
-      animate: PD.Boolean(true, { description: 'A short transition instead of a cut' }),
-    },
+    params: { animate: AnimateParam() },
     history: false,
     modules: ['canvas'],
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
     async run({ animate }, ctx) {
-      const reduced = ctx.modules.has('page') && prefersReducedMotion();
-      ctx.plugin.managers.camera.reset(undefined, animate && !reduced ? 250 : 0);
+      ctx.plugin.managers.camera.reset(undefined, duration(ctx, animate));
       return ApiResult.ok('Camera reset.', { view: true });
     },
   });
@@ -67,10 +64,11 @@ export class CameraApi extends ApiArea {
       target: TargetParam('What to bring into view: ligand, A:120-130, resn HEM, …'),
       structure: StructureParam(),
       language: LanguageParam(),
+      animate: AnimateParam(),
     },
     history: false,
     modules: ['canvas'],
-    async run({ target, structure, language }, ctx) {
+    async run({ target, structure, language, animate }, ctx) {
       const resolved = await ctx.targets.resolve(target, {
         ...(structure ? { structure } : {}),
         ...(language ? { language } : {}),
@@ -78,7 +76,7 @@ export class CameraApi extends ApiArea {
       if (isFailure(resolved)) return resolved;
       if (resolved.empty) return ApiResult.fail('not-found', resolved.summary, 'Nothing was changed.');
       const loci = resolved.parts.filter((p) => p.selected.atoms > 0).map((p) => p.loci);
-      ctx.plugin.managers.camera.focusLoci(loci.length === 1 ? loci[0] : loci, { durationMs: duration(ctx) });
+      ctx.plugin.managers.camera.focusLoci(loci.length === 1 ? loci[0] : loci, { durationMs: duration(ctx, animate) });
       return ApiResult.ok(`Framed ${resolved.summary}.`, { view: true });
     },
   });
@@ -88,18 +86,19 @@ export class CameraApi extends ApiArea {
     title: 'Zoom',
     params: {
       factor: PD.Numeric(1.5, { min: 0.1, max: 10, step: 0.1 }, { description: 'Above 1 zooms in, below 1 out' }),
+      animate: AnimateParam(),
     },
     history: false,
     modules: ['canvas'],
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
-    async run({ factor }, ctx) {
+    async run({ factor, animate }, ctx) {
       const canvas = ctx.plugin.canvas3d;
       if (!canvas) return ApiResult.fail('unavailable', 'There is no canvas.');
       if (factor === 1) return ApiResult.already('The zoom is unchanged.');
       // The same view direction and target, the radius it shows scaled.
       const { target, radius } = canvas.camera.state;
       const snapshot = canvas.camera.getFocus(target, Math.max(radius, 0.01) / factor);
-      ctx.plugin.managers.camera.setSnapshot(snapshot, duration(ctx));
+      ctx.plugin.managers.camera.setSnapshot(snapshot, duration(ctx, animate));
       return ApiResult.ok(factor > 1 ? `Zoomed in ${factor}×.` : `Zoomed out ${round(1 / factor)}×.`, { view: true });
     },
   });
@@ -107,15 +106,15 @@ export class CameraApi extends ApiArea {
   readonly orient = this.operation({
     id: 'camera.orient',
     title: 'Orient along the principal axes',
-    params: { structure: EveryStructureParam() },
+    params: { structure: EveryStructureParam(), animate: AnimateParam() },
     history: false,
     modules: ['canvas'],
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
-    async run({ structure }, ctx) {
+    async run({ structure, animate }, ctx) {
       const named = structure ? someStructures(ctx, structure) : undefined;
       if (named && isFailure(named)) return named;
       const data = named?.flatMap((s) => (s.cell.obj ? [s.cell.obj.data] : []));
-      ctx.plugin.managers.camera.orientAxes(data, duration(ctx));
+      ctx.plugin.managers.camera.orientAxes(data, duration(ctx, animate));
       return ApiResult.ok(
         named?.length
           ? `Oriented the view along the axes of ${named.map((s) => labelOf(ctx, s)).join(', ')}.`
@@ -129,30 +128,36 @@ export class CameraApi extends ApiArea {
   readonly resetAxes = this.operation({
     id: 'camera.reset-axes',
     title: 'Align the view with the x, y and z axes',
-    params: {},
+    params: { animate: AnimateParam() },
     history: false,
     modules: ['canvas'],
     when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
-    async run(_, ctx) {
-      ctx.plugin.managers.camera.resetAxes(duration(ctx));
+    async run({ animate }, ctx) {
+      ctx.plugin.managers.camera.resetAxes(duration(ctx, animate));
       return ApiResult.ok('Aligned the view with the x, y and z axes.', { view: true });
     },
   });
 
-  // v5's camera info, settable: what `camera.get` gives, back (MolViewSpec's camera is position, target and up).
+  // v5's camera info, settable: what `camera.get` gives, back (MolViewSpec's camera is position, target and up). The
+  // vectors are numbers or "x, y, z" (a form's and a tool's text); what `get` only reads is taken and ignored, so
+  // `set((await get()).value)` restores a camera.
   readonly set = this.operation({
     id: 'camera.set',
     title: 'Set the camera',
     params: {
-      position: PD.Text('', { description: 'Where the camera is: "x, y, z" in Å (empty: keep)' }),
-      target: PD.Text('', { description: 'What it looks at: "x, y, z" in Å (empty: keep)' }),
-      up: PD.Text('', { description: 'Its up direction: "x, y, z" (empty: keep)' }),
+      position: VecParam('Where the camera is: "x, y, z" in Å (empty: keep)'),
+      target: VecParam('What it looks at: "x, y, z" in Å (empty: keep)'),
+      up: VecParam('Its up direction: "x, y, z" (empty: keep)'),
       fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees (0: keep)' }),
       mode: PD.Select<'keep' | 'perspective' | 'orthographic'>(
         'keep',
         PD.arrayToOptions(['keep', 'perspective', 'orthographic'] as const),
       ),
-      animate: PD.Boolean(true, { description: 'A short transition instead of a cut' }),
+      animate: AnimateParam(),
+      distance: ReadOnlyParam(),
+      radius: ReadOnlyParam(),
+      sceneRadius: ReadOnlyParam(),
+      showsAll: ReadOnlyParam(),
     },
     history: false,
     modules: ['canvas'],
@@ -165,7 +170,12 @@ export class CameraApi extends ApiArea {
         up: parseVec(v.up),
       };
       for (const [name, p] of Object.entries(parsed)) {
-        if (p === null) return ApiResult.fail('invalid', `'${v[name as keyof typeof parsed]}' is not "x, y, z".`);
+        if (p === null) {
+          return ApiResult.fail(
+            'invalid',
+            `'${name}' is not "x, y, z": ${JSON.stringify(v[name as keyof typeof parsed])}.`,
+          );
+        }
       }
       if (parsed.up && Vec3.magnitude(parsed.up) < 1e-6) return ApiResult.fail('invalid', 'The up direction is 0.');
       const current = canvas.camera.state;
@@ -215,7 +225,7 @@ export class CameraApi extends ApiArea {
         snapshot.radius = Vec3.distance(position, target) * ratio;
       }
       if (lens.mode || lens.fov) ctx.plugin.setCanvas3DProps({ camera: lens });
-      if (Object.keys(snapshot).length) ctx.plugin.managers.camera.setSnapshot(snapshot, v.animate ? duration(ctx) : 0);
+      if (Object.keys(snapshot).length) ctx.plugin.managers.camera.setSnapshot(snapshot, duration(ctx, v.animate));
       return ApiResult.ok(`Camera: ${said.join(', ')}.`, { view: true });
     },
   });
@@ -261,9 +271,40 @@ export function cameraValueOf(canvas: Pick<Canvas3D, 'camera' | 'boundingSphere'
   };
 }
 
-/** "x, y, z" (or "[x, y, z]", an array the agent gave as text) as a vector; undefined when empty, null when not one. */
-export function parseVec(text: string): Vec3 | undefined | null {
-  const t = text.trim().replace(/^\[|\]$/g, '');
+/** A vector `camera.set` takes: three numbers (what `camera.get` gives), or "x, y, z" text (a form's, a tool's). */
+export type VecValue = string | readonly number[];
+
+/** A vector param: a text field in a form and a string in a tool's schema; numbers from code. */
+function VecParam(description: string) {
+  return PD.Converted<VecValue, PD.Text>(
+    (v) => (typeof v === 'string' ? v : v.join(', ')),
+    (t) => t,
+    PD.Text('', { description }),
+  );
+}
+
+/** A field of `camera.get`'s value that `camera.set` cannot set: taken, so the value goes back as it is, and ignored. */
+function ReadOnlyParam() {
+  return PD.Value<unknown>(undefined, { isHidden: true, description: "camera.get's; ignored" });
+}
+
+function AnimateParam() {
+  return PD.Boolean(true, { description: 'A short transition instead of a cut' });
+}
+
+/**
+ * "x, y, z" (or "[x, y, z]", an array the agent gave as text), or three numbers, as a vector; undefined when empty, null
+ * when not one.
+ */
+export function parseVec(value: unknown): Vec3 | undefined | null {
+  if (Array.isArray(value)) {
+    return value.length === 3 && value.every((x) => typeof x === 'number' && Number.isFinite(x))
+      ? Vec3.create(value[0], value[1], value[2])
+      : null;
+  }
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string') return null;
+  const t = value.trim().replace(/^\[|\]$/g, '');
   if (!t) return undefined;
   const parts = t
     .split(/[\s,;]+/)
@@ -273,10 +314,9 @@ export function parseVec(text: string): Vec3 | undefined | null {
   return Vec3.create(parts[0], parts[1], parts[2]);
 }
 
-/** Milliseconds of the transition: none when the person asks for less motion. */
-/** The camera's animation, or a cut where the person prefers reduced motion (README §3.7). */
-export function duration(ctx: { modules: { has(key: 'page'): boolean } }): number {
-  return ctx.modules.has('page') && prefersReducedMotion() ? 0 : ZoomDurationMs;
+/** The camera's animation, or a cut when not asked for or where the person prefers reduced motion (README §3.7). */
+export function duration(ctx: { modules: { has(key: 'page'): boolean } }, animate = true): number {
+  return !animate || (ctx.modules.has('page') && prefersReducedMotion()) ? 0 : ZoomDurationMs;
 }
 
 function prefersReducedMotion(): boolean {

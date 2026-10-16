@@ -11,7 +11,7 @@ import { degToRad } from '@molstar/core/math/misc';
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { afterEach, describe, expect, it } from 'vitest';
-import { expectOk, headlessViewer } from '../../_test/harness.js';
+import { crambin, expectOk, headlessViewer } from '../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
@@ -27,9 +27,11 @@ afterEach(async () => {
 });
 
 /** A viewer with a stand-in canvas whose camera keeps what it is set to (as `requestCameraReset` would). */
-async function withCamera() {
+async function withCamera(files: File[] = []) {
   const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
   open = v;
+  // Loaded before the stand-in canvas, which draws nothing.
+  if (files.length) expectOk(await v.api.load.files({ files }));
   const state = {
     mode: 'perspective' as Camera.Mode,
     fov: degToRad(45),
@@ -101,6 +103,41 @@ describe('camera.get and camera.set', () => {
     expect(await v.api.camera.set({ position: '0, 0, 0' })).toMatchObject({ ok: false, code: 'invalid' });
   });
 
+  it('takes back what camera.get gives: vectors as numbers, the read-only fields ignored', async () => {
+    const { v, state } = await withCamera();
+    const got = await v.api.camera.get();
+    expectOk(got);
+    expect(await v.api.camera.set(got.value!)).toMatchObject({ ok: true, unchanged: true });
+
+    const r = await v.api.camera.set({ ...got.value!, position: [0, 20, 0], up: [0, 0, 1] });
+    expectOk(r);
+    expect(Array.from(state.position)).toEqual([0, 20, 0]);
+    expect(await v.api.camera.set({ position: [1, 2] })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.camera.set({ position: 5 as never })).toMatchObject({ ok: false, code: 'invalid' });
+  });
+
+  it('every camera move takes animate: false for a cut', async () => {
+    const { v, state } = await withCamera([crambin()]);
+    const durations: number[] = [];
+    const camera = v.plugin.managers.camera;
+    camera.setSnapshot = (s, ms) => {
+      durations.push(ms ?? -1);
+      Object.assign(state, s);
+    };
+    camera.focusLoci = (_, o) => void durations.push(o?.durationMs ?? -1);
+    camera.orientAxes = (_, ms) => void durations.push(ms ?? -1);
+    camera.resetAxes = (ms) => void durations.push(ms ?? -1);
+    camera.reset = (_, ms) => void durations.push(ms ?? -1);
+    (v.plugin.canvas3d!.camera as unknown as { getFocus: () => object }).getFocus = () => ({});
+    expectOk(await v.api.camera.reset({ animate: false }));
+    expectOk(await v.api.camera.frame({ target: 'all', animate: false }));
+    expectOk(await v.api.camera.zoom({ factor: 2, animate: false }));
+    expectOk(await v.api.camera.orient({ animate: false }));
+    expectOk(await v.api.camera.resetAxes({ animate: false }));
+    expectOk(await v.api.camera.set({ position: '0, 30, 0', animate: false }));
+    expect(durations).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
   it('says so without a canvas', async () => {
     const v = await headlessViewer();
     expect(await v.api.camera.set({ fov: 30 })).toMatchObject({ ok: false, code: 'unavailable' });
@@ -114,6 +151,8 @@ describe('camera.get and camera.set', () => {
     expect(Array.from(parseVec('1,2,3')!)).toEqual([1, 2, 3]);
     expect(Array.from(parseVec('[1; 2  3]')!)).toEqual([1, 2, 3]);
     expect(parseVec('1, x, 3')).toBeNull();
+    expect(Array.from(parseVec([1, 2, 3])!)).toEqual([1, 2, 3]);
+    expect(parseVec([1, Number.NaN, 3])).toBeNull();
   });
 });
 
