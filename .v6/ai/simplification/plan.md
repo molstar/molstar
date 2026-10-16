@@ -31,7 +31,8 @@ Never `pnpm test:live` (real models, money) unless the owner asks.
 | 9   | **Duplicates and legacy paths** (duplicates.md, persistence.md §5): markers, estimates, one `Clock`, one limits source, pre-label fallbacks | `packages/ai/src/{trace,session,tools,threads}` | ai, prism | 6 |
 | 10  | **The spec, rewritten for the simplified code**: `packages/ai/_spec/*` and `.v6/ai/*` (README packages table → one package and its folders; decisions 7–9; `harness.md` §1, §14, §18; `plan.md` "Where it comes from" gets a line on this simplification), `packages/ai/AGENTS.md`, `packages/ai/TODO.md` (its SQLite, data-migration and suite-waits entries no longer apply as written); this folder marked done | docs only                                                                                                   | `npx prettier --check` on them | 6–9 |
 | 11  | **Leave the serial Vitest project** if the AI tests pass in parallel under load (conformance.md §4) | `vitest.config.ts`                                                                                          | several full `pnpm test:unit` runs | 1, 6 |
-| 12  | **Tool schemas without zod** (tool-schemas.md): field shape → JSON Schema and the check in our code, an open enum for the disclosure tools, `zod.ts` and `./zod` gone; first a one-off test that today's schemas for every viewer tool equal the new generator's | `packages/ai/src/tools/`, `_spec/tools.md`, `.v6/ai/tools-and-session.md` §1–2, the Biome zod rule | ai, prism | 6 |
+| 12a | **zod isolated in `packages/ai`** (tool-schemas.md §0, the owner's goal): the `./zod` entry and `zod.ts` gone, one Biome override restricting zod everywhere but `packages/ai/**`, the folder rules inside | `biome.json`, `packages/ai/src/tools/`, `_spec/tools.md`, `.v6/ai/tools-and-session.md` §1 | ai, prism, repo (`pnpm lint` over the whole repository) | 6 (or before, on today's packages) |
+| 12b | **Tool schemas without zod** (tool-schemas.md §3, optional): field shape → JSON Schema and the check in our code, an open enum for the disclosure tools; first a one-off test that today's schemas for every viewer tool equal the new generator's | `packages/ai/src/tools/` | ai, prism | 12a |
 
 Slices 1–5 each also update the docs they touch; slice 10 is the pass that makes the spec read as one design rather
 than a list of edits.
@@ -52,7 +53,7 @@ than a list of edits.
 - **7 and 8** both follow 6 and touch different folders (`threads/` and prism-viewer's journal; `providers/` and
   prism-assistant's settings): they can run in parallel. **9** touches `trace/`, `session/`, `tools/`: parallel with 7
   and 8 except where 9 changes the session's model limits (with 8).
-- **12** follows 6 and touches only `src/tools/`: parallel with 7–9.
+- **12a** and **12b** follow 6 and touch only `src/tools/` and `biome.json`: parallel with 7–9.
 - **10** last; **11** whenever 1 and 6 are in.
 
 ## Who implements which slice
@@ -74,9 +75,10 @@ lands. The design-heavy ones stay with Opus.
 | 9   | duplicates and legacy paths   | **Sonnet**             | small, each item located (duplicates.md, persistence.md §5)                                                                              |
 | 10  | the spec rewritten            | **Opus**               | the design written as one coherent document in the repository's voice, not a list of edits                                               |
 | 11  | leave the serial project      | **Sonnet** (or Haiku)  | a config change and repeated full runs                                                                                                   |
-| 12  | tool schemas without zod      | **Sonnet**             | the behavior is pinned by `input.test.ts` and the one-off equivalence test (tool-schemas.md §3); the code is ~180 lines over a closed vocabulary |
+| 12a | zod isolated in `packages/ai` | **Sonnet** (or Haiku)  | an entry and a file removed, one lint override                                                                                           |
+| 12b | tool schemas without zod      | **Sonnet**             | the behavior is pinned by `input.test.ts` and the one-off equivalence test (tool-schemas.md §3); the code is ~180 lines over a closed vocabulary |
 
-So 9 of 12 slices can go to Sonnet (three of them with an Opus review), and Opus keeps 2, 8 and 10.
+So 10 of 13 slices can go to Sonnet (three of them with an Opus review), and Opus keeps 2, 8 and 10.
 
 ## Later (not in these slices)
 

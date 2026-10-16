@@ -1,8 +1,32 @@
-# Tool schemas without zod
+# Tool schemas: zod isolated in `packages/ai`
 
-Owner's question (2026-10-16): drop the zod import entirely and inline a simple tool schema layer? Short answer: yes for
-our code, which already has that layer (field shapes) and uses zod only as its back end. zod stays installed, because
-the AI SDK needs it, and stays in any bundle that calls a model.
+**The goal** (David, 2026-10-16): zod stays inside `packages/ai`; no zod schemas anywhere else in the app. Tools are
+declared outside `packages/ai` only as field shapes (or Mol\*'s `ParamDefinition`, through `paramsShape`).
+
+That is true of the code today (§1) but not enforced: nothing outside `packages/ai` imports zod, yet no rule stops it,
+and `@molstar/ai-tools/zod` (`zodInput`) invites a host to declare tools in zod. The isolation needs three small
+changes (§0); replacing zod inside `packages/ai` with our own schema code (§3) is a separate, optional simplification.
+
+## 0. The isolation
+
+1. **No zod in the public API**: drop the `./zod` entry (`zodInput`, `verbatim`; no importer, dead-code.md §1) and keep
+   no zod type in an exported signature. `ToolInput` (`tools/src/input.ts:19–25`) already names none ("zod is this
+   package's own business, so no type here names it").
+2. **One lint rule for the repository**: a Biome override on every source file except `packages/ai/**` that restricts
+   `zod` and `zod/**` ("zod is the AI package's own: declare tool inputs as field shapes"). Today zod is fenced only
+   inside five of the AI blocks (`biome.json:135, 185, 229, 319, 415`); outside `packages/ai` the only guard is
+   `pnpm check:workspace` refusing an undeclared import (`scripts/workspace/check.mjs:226`), which a package can lift by
+   adding zod to its `package.json`. Biome's negated `includes` (`"!packages/ai/**"`) already appear in this file, so
+   the override is expressible.
+3. **Inside `packages/ai`**, zod where it is needed: `providers/` (the AI SDK's peer) and `tools/` (as long as the
+   schema bridge uses it). The folder rules (packaging.md §5) forbid it in the other folders.
+
+Size: a few lines of `biome.json`, the `./zod` entry, and `zod.ts` (118) with its test (205). Sonnet can do it (plan.md
+slice 12a).
+
+The rest of this file is the optional step: our code could drop zod entirely, since it already has the schema layer
+(field shapes) and uses zod only as its back end. zod would still be installed, because the AI SDK needs it, and still
+be in any bundle that calls a model.
 
 ## 1. Where zod is today
 
@@ -83,5 +107,6 @@ Biome rule "zod is ai-tools' own" (it becomes "zod: providers only, as the SDK's
 
 ## 5. Where it goes in the plan
 
-A slice of its own, after the collapse (plan.md slice 6) and independent of the providers rewrite: it touches only
-`src/tools/` and the two disclosure tools. It can run in parallel with slices 7–9.
+- **12a, the isolation** (§0): after the collapse (slice 6), or before it on today's packages; tiny.
+- **12b, our own schema code** (§3), optional: after 12a, touching only `src/tools/` and the two disclosure tools;
+  parallel with slices 7–9.

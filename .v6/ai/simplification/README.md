@@ -24,7 +24,7 @@ one local run (`vitest run packages/ai --project serial`, Apple silicon) and one
 | [conformance.md](conformance.md)   | the suite: what it costs in CI, the essential cases, what goes                                |
 | [dead-code.md](dead-code.md)       | exports nobody imports, speculative features, legacy fallbacks                               |
 | [duplicates.md](duplicates.md)     | the same concept in two or three places                                                      |
-| [tool-schemas.md](tool-schemas.md) | tool schemas without zod: field shapes to JSON Schema and the check in our code             |
+| [tool-schemas.md](tool-schemas.md) | zod isolated in `packages/ai` (decided), and optionally out of our tool code too           |
 | [plan.md](plan.md)                 | the migration in slices that keep the build green, checks per slice, what runs in parallel   |
 
 ## Today's packages
@@ -90,7 +90,7 @@ No `./*` wildcard: every deep import that exists today is one of the entries abo
 | Remove: durability (decided) | host protocol, storage port, leases, launches, supervisor, schema version, crash re-runs, cache, segment heads, steering | ~3,050 / ~1,300 beyond the conformance cut (inferred) | the session's takeover path | persistence.md §4 |
 | Simplify: conformance      | 219 harness cases → 59; no second backend; no performance suite or storage meter        | ~5,950 of 8,914 (to ~2,950)      | the cases left become `harness/_test/` | conformance.md |
 | Dead or speculative        | narration, `runOnce`, session prices, `callTool`, fiber deltas, `./zod`, pre-label fallbacks | ~1,600 / ~1,250             | —                                  | dead-code.md    |
-| Replace: zod in tools      | field shapes to JSON Schema and the check in our code; `./zod` and the zod bridge go     | ~490 replaced by ~180 (inferred) | the two disclosure tools as field shapes | tool-schemas.md |
+| Isolate: zod               | no `./zod`, no zod in the API, a repository rule; optionally our own schema code in tools | 323 (`zod.ts` and its test); optionally ~490 replaced by ~180 | the two disclosure tools as field shapes (optional step) | tool-schemas.md |
 | Duplicates                 | markers, token estimates, prices, canonical JSON, two storage ports, three model-limit sources | ~150 (and two concepts fewer) | —                                | duplicates.md   |
 
 Totals, if every recommendation is taken (the durability machinery included, as decided), counting each line once:
@@ -141,9 +141,10 @@ if they can leave the serial Vitest project.
    user (the viewer settles whole payloads). Remove (recommended)?
 6. **Names**: `ModelAdapter` → `Provider`, `model-catalog` → `models`, `@molstar/ai/threads` or threads on the root
    entry? (packaging.md §2 proposes names.)
-7. **zod** ([tool-schemas.md](tool-schemas.md), the owner's suggestion 2026-10-16): our code already has the schema
-   layer (field shapes) and uses zod only to make JSON Schema and check arguments; replace that with ~180 lines of our
-   own and drop `./zod` (recommended). zod stays installed and in any bundle that calls a model: the AI SDK imports it.
+7. ~~zod~~: **decided 2026-10-16**: zod stays inside `packages/ai`, no zod schemas elsewhere: no `./zod` entry, no zod
+   type in the API, one Biome override restricting zod outside `packages/ai/**` ([tool-schemas.md](tool-schemas.md) §0).
+   Optional on top: replace zod inside the tools with ~180 lines of our own (§3); the AI SDK keeps it installed
+   either way.
 8. **Folder rules**: the Biome per-package import rules become per-folder rules on relative paths (inferred to be
    expressible with `noRestrictedImports` patterns; not verified), or a check in `scripts/workspace/`?
 9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
