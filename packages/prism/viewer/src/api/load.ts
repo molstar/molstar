@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OpenFiles } from '@molstar/plugin/state/actions/file';
 import { ReadFile } from '@molstar/plugin/state/transforms/data/fetch';
 import { FilesParam, filesOf } from './files.js';
+import { extensionOf } from './input.js';
 import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
 
@@ -119,11 +120,7 @@ export class LoadApi extends ApiArea {
       }
       const names = opened.join(', ');
       for (const doc of documents) {
-        // An archive (`.svsx`) as the file it is; a document as its text.
-        const r = await ctx.api.run(
-          'load.svs',
-          extensionOf(doc.name) === 'svsx' ? { file: doc } : { data: await doc.text() },
-        );
+        const r = await ctx.api.run('load.svs', { file: doc });
         if (!r.ok) return r;
       }
       const added = structureRefs(ctx).filter((r) => !before.includes(r));
@@ -187,9 +184,4 @@ function structureRefs(ctx: ApiContext): string[] {
   return ctx.plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref);
 }
 
-/** A file's extension, lowercase, without compression suffixes (`1abc.cif.gz` → `cif`). */
-export function extensionOf(name: string): string {
-  const parts = name.toLowerCase().split('.');
-  while (parts.length > 2 && (parts.at(-1) === 'gz' || parts.at(-1) === 'zip')) parts.pop();
-  return parts.length > 1 ? parts.at(-1)! : '';
-}
+export { extensionOf };

@@ -11,7 +11,7 @@ import { exampleFile, expectOk, headlessViewer } from '../../../_test/harness.js
 import type { PrismViewer } from '../../../viewer.js';
 import { LoadersFeature, loadsFromUrl } from '../index.js';
 
-// parity.md §1 (phase 6): `load.data` (a file's contents as text, base64 or bytes, with a format) and the structure
+// parity.md §1 (phase 6): `load.data` (a file's contents as text, base64 or bytes, its format told) and the structure
 // options of `load.url` and `load.data` (every model, an assembly; v5's `loadAllModelsOrAssemblyFromUrl`), with the
 // URL's `all-models` and `assembly`. No network: `load.url` reads a stubbed `fetch`.
 
@@ -51,9 +51,9 @@ describe('load.data', () => {
     const bcif = await bytes('1cbs_full.bcif');
     const base64 = `base64,${Buffer.from(bcif).toString('base64')}`;
     expectOk(await v.api.load.data!({ data: base64, format: 'mmcif' }));
-    expectOk(await v.api.load.data!({ bytes: bcif, format: 'mmcif' }));
+    expectOk(await v.api.load.data!({ data: bcif, format: 'mmcif' }));
     // BinaryCIF is also named as such.
-    expectOk(await v.api.load.data!({ bytes: bcif, format: 'bcif' }));
+    expectOk(await v.api.load.data!({ data: bcif.buffer as ArrayBuffer, format: 'bcif' }));
     expectOk(await v.api.load.data!({ data: await text('adrenalin.mol2'), format: 'auto', label: 'adrenalin.mol2' }));
     expect(structures(v)).toHaveLength(4);
     expect(steps(v)).toBe(4);
@@ -65,9 +65,10 @@ describe('load.data', () => {
     expect(await v.api.load.data!({ data: '' })).toMatchObject({ ok: false, code: 'invalid' });
     expect(await v.api.load.data!({ data: 'x', format: 'nonsense' })).toMatchObject({ ok: false, code: 'invalid' });
     expect(await v.api.load.data!({ data: 'x', format: 'auto' })).toMatchObject({ ok: false, code: 'invalid' });
-    expect(await v.api.load.data!({ data: 'x', bytes: new Uint8Array([1]) })).toMatchObject({
+    expect(await v.api.load.data!({ data: 'x', file: new File(['x'], 'x.pdb') })).toMatchObject({
       ok: false,
       code: 'invalid',
+      message: 'Give one of url, data or file.',
     });
     const bad = await v.api.load.data!({ data: 'not a structure', format: 'mmcif' });
     expect(bad).toMatchObject({ ok: false, code: 'failed' });
@@ -93,11 +94,14 @@ describe('load.data', () => {
     expect(volume).toMatchObject({ ok: false, code: 'invalid' });
   });
 
-  it('has a command', async () => {
+  it('has a command; asks for a url as load.url does, and for data or a file never', async () => {
     const v = await viewer();
     expect(v.managers.commands.get('load.data')).toBeDefined();
-    expect(v.api.load.data?.definition.approval).toBeUndefined();
-    expect(v.api.load.data?.definition.modules).toBeUndefined();
+    const def = v.api.load.data!.definition;
+    expect(def.approval).toBe('network');
+    expect(def.modules).toBeUndefined();
+    expect(def.addresses?.({ data: 'x' } as never)).toEqual([]);
+    expect(def.addresses?.({ url: 'https://x.org/a.cif' } as never)).toEqual(['https://x.org/a.cif']);
   });
 });
 

@@ -52,14 +52,15 @@ reported and does not stop the ones after it.
 
 | Parameter                                                                 | Loads                                                                          |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `snapshot-id`                                                             | A state from the state server (`load.snapshot`).                               |
-| `snapshot-url`, `snapshot-url-type`                                       | A `.molx` or `.molj` state. Without the type, the file extension decides.      |
+| `snapshot-id`                                                             | A state from the state server (`load.snapshot`, which is `session.open`).      |
+| `snapshot-url`, `snapshot-url-type`                                       | A `.molx` or `.molj` state. Without the type, the extension, else the content. |
 | `structure-url`, `structure-url-format`, `structure-url-is-binary`        | A structure file (`load.url`). The format defaults to `mmcif`.                 |
-| `mvs-url` or `mvs-data`, `mvs-format`                                     | A MolViewSpec file or inline data (`load.mvs`). The format defaults to `mvsj`. |
+| `mvs-url` or `mvs-data`, `mvs-format`                                     | A MolViewSpec file or inline data (`load.mvs`). Without a format, it is told.  |
 | `pdb`, `pdb-ihm` (`pdb-dev` is the same), `emdb`, `afdb`, `model-archive` | A database entry by id (`load.entry`).                                         |
 | `url`, `url-format`, `url-is-binary`                                      | Any file by address (`load.url`). Without a format, the address decides.       |
 
-The `*-is-binary` parameters are true for `1` or `true`.
+The `*-is-binary` parameters are true for `1` or `true`; left out, the format and the address decide (a `.bcif` address
+is binary).
 
 ### Options
 

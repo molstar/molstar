@@ -13,7 +13,7 @@ import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { LoadersFeature } from '../index.js';
-import { snapshotTypeOf } from '../operations.js';
+import { sessionTypeOf } from '../../../api/session.js';
 
 // The `loaders` feature (viewer-spec.md §3.1): its operations over a stubbed `fetch` that serves the repository's
 // example files by address (nothing reaches the network). The plugin downloads through `fetch` in Node.
@@ -84,13 +84,13 @@ const cells = (v: PrismViewer) => v.plugin.state.data.cells.size;
 describe('loaders: the feature', () => {
   it('adds the operations to the load area, and the commands', async () => {
     const v = await viewer();
-    for (const name of ['entry', 'url', 'mvs', 'svs', 'snapshot', 'trajectory', 'volume'] as const) {
+    for (const name of ['entry', 'url', 'data', 'mvs', 'svs', 'snapshot', 'trajectory', 'volume'] as const) {
       expect(v.api.load[name], name).toBeTypeOf('function');
       // Replacing the scene is destructive, which wins over network (api/area.ts).
       const replaces = name === 'mvs' || name === 'snapshot';
       expect(v.api.load[name]?.definition.approval, name).toBe(replaces ? 'destructive' : 'network');
-      // `load.mvs` and `load.svs` take data as well as an address: they check the network per call, not as a module.
-      const perCall = name === 'mvs' || name === 'svs';
+      // The loaders that take url, data or a file check the input's module per call, not as the operation's.
+      const perCall = ['data', 'mvs', 'svs', 'snapshot', 'volume'].includes(name);
       expect(v.api.load[name]?.definition.modules, name).toEqual(perCall ? undefined : ['network']);
     }
     for (const id of ['load.entry', 'load.url', 'load.mvs', 'load.svs', 'load.snapshot'])
@@ -430,9 +430,9 @@ describe('load.snapshot', () => {
   });
 
   it('reads the kind from an address’s path', () => {
-    expect(snapshotTypeOf('https://a.test/s.molx')).toBe('molx');
-    expect(snapshotTypeOf('https://a.test/S.MOLJ?x=1#y')).toBe('molj');
-    expect(snapshotTypeOf('https://a.test/download?name=s.molx')).toBeUndefined();
+    expect(sessionTypeOf('https://a.test/s.molx')).toBe('molx');
+    expect(sessionTypeOf('https://a.test/S.MOLJ?x=1#y')).toBe('molj');
+    expect(sessionTypeOf('https://a.test/download?name=s.molx')).toBeUndefined();
   });
 
   it('opens a remote state by id from the state server', async () => {

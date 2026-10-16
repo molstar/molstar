@@ -33,22 +33,26 @@ describe('loadsFromUrl', () => {
     expect(loadsFromUrl(`?${name}=${id}`)).toEqual([{ operation: 'load.entry', values: { source, id } }]);
   });
 
-  it('reads url with its format and binary flag; a missing format is read from the address', () => {
+  it('reads url with its format and binary flag; left out, the operation tells them from the address', () => {
     expect(loadsFromUrl('?url=https://x.org/a.cif&url-format=mmcif&url-is-binary=0')).toEqual([
       { operation: 'load.url', values: { url: 'https://x.org/a.cif', format: 'mmcif', binary: false } },
     ]);
     expect(loadsFromUrl('?url=https://x.org/a.bcif&url-format=mmcif&url-is-binary=1')[0].values).toMatchObject({
       binary: true,
     });
-    expect(loadsFromUrl('?url=https://x.org/a.bcif')[0].values).toMatchObject({ format: 'auto', binary: false });
+    expect(loadsFromUrl('?url=https://x.org/a.bcif')[0].values).toEqual({ url: 'https://x.org/a.bcif' });
     // The name is read as the other format parameters are: in any case.
     expect(loadsFromUrl('?url=https://x.org/a.pdb&url-format=PDB')[0].values).toMatchObject({ format: 'pdb' });
   });
 
-  it('reads structure-url with its format (default mmcif) and binary flag', () => {
+  it('reads structure-url with its format (default mmcif, as v5) and binary flag (default: told)', () => {
     expect(loadsFromUrl('?structure-url=https://x.org/a.pdb&structure-url-format=PDB')).toEqual([
-      { operation: 'load.url', values: { url: 'https://x.org/a.pdb', format: 'pdb', binary: false } },
+      { operation: 'load.url', values: { url: 'https://x.org/a.pdb', format: 'pdb' } },
     ]);
+    expect(loadsFromUrl('?structure-url=https://x.org/a.bcif')[0].values).toEqual({
+      url: 'https://x.org/a.bcif',
+      format: 'mmcif',
+    });
     expect(loadsFromUrl('?structure-url=https://x.org/a.bcif&structure-url-is-binary=1')[0].values).toEqual({
       url: 'https://x.org/a.bcif',
       format: 'mmcif',
@@ -56,12 +60,12 @@ describe('loadsFromUrl', () => {
     });
   });
 
-  it('reads mvs-url, mvs-data and mvs-format', () => {
+  it('reads mvs-url, mvs-data and mvs-format (left out: told from the address or the content)', () => {
     expect(loadsFromUrl('?mvs-url=https://x.org/a.mvsj')).toEqual([
-      { operation: 'load.mvs', values: { url: 'https://x.org/a.mvsj', format: 'mvsj' } },
+      { operation: 'load.mvs', values: { url: 'https://x.org/a.mvsj' } },
     ]);
     expect(loadsFromUrl('?mvs-url=https://x.org/a.mvsx&mvs-format=mvsx')[0].values).toMatchObject({ format: 'mvsx' });
-    expect(loadsFromUrl('?mvs-data=%7B%22a%22%3A1%7D')[0].values).toEqual({ data: '{"a":1}', format: 'mvsj' });
+    expect(loadsFromUrl('?mvs-data=%7B%22a%22%3A1%7D')[0].values).toEqual({ data: '{"a":1}' });
   });
 
   it('reads svs-url last, after the structures it may name', () => {
@@ -79,7 +83,7 @@ describe('loadsFromUrl', () => {
 
   it('passes mvs-url and mvs-data together on, for the operation to refuse', () => {
     expect(loadsFromUrl('?mvs-url=https://x.org/a.mvsj&mvs-data=%7B%7D')).toEqual([
-      { operation: 'load.mvs', values: { url: 'https://x.org/a.mvsj', data: '{}', format: 'mvsj' } },
+      { operation: 'load.mvs', values: { url: 'https://x.org/a.mvsj', data: '{}' } },
     ]);
   });
 

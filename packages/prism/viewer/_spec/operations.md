@@ -56,16 +56,16 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `history.undo` | Undo | view |  |
 | `history.undo-turn` | Undo the assistant's turn | view | turn, discardLater |
 | `load.action` | Run a loading action | network (asks); ui-only | action, params |
-| `load.data` | Load data |  | data, format, label, bytes, models, assembly |
+| `load.data` | Load data | network (addresses) | url, data, file, format, binary, label, models, assembly |
 | `load.entry` | Load an entry | network (addresses); needs network | source, id, assembly, representation |
 | `load.files` | Open files | needs files | files, visuals |
-| `load.mvs` | Load a MolViewSpec | destructive | url, data, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
-| `load.snapshot` | Load a session | destructive; needs network | url, type, id |
+| `load.mvs` | Load a MolViewSpec | destructive | url, data, file, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
+| `load.snapshot` | Load a session (as session.open) | destructive | url, data, file, id, type |
 | `load.svs` | Load a SeqViewSpec | network (asks) | url, data, file |
 | `load.trajectory` | Load a trajectory | network (addresses); needs network | model, modelFormat, modelBinary, coordinates, coordinatesFormat, coordinatesBinary, preset |
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
-| `load.volume` | Load a volume | network (addresses); needs network | url, format, binary, isovalues, entryId, lazy |
+| `load.volume` | Load a volume | network (addresses) | url, data, file, format, binary, isovalues, entryId, lazy |
 | `measure.angle` | Measure an angle |  | a, b, c, text, structure, language |
 | `measure.dihedral` | Measure a dihedral angle |  | a, b, c, d, text, structure, language |
 | `measure.distance` | Measure a distance |  | a, b, text, structure, language |
@@ -110,7 +110,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `sequence.rail` | Set the tracks' rail | agent-only | navigator, height |
 | `sequence.style` | Show the sequence as tracks or text | agent-only | style |
 | `session.clear` | Clear the session | destructive |  |
-| `session.open` | Open a session | destructive; needs files | file |
+| `session.open` | Open a session | destructive | url, data, file, id, type |
 | `session.remote.list` | List the remote states | read; network (addresses); needs network | server |
 | `session.remote.open` | Open a remote state | destructive; needs network | entry, server |
 | `session.remote.remove` | Remove a remote state | no undo; destructive; needs network | entry, server |

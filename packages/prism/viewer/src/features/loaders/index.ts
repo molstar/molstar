@@ -7,6 +7,7 @@
  */
 
 import type { OperationFn } from '../../api/area.js';
+import type { Opened, SessionOpenParams } from '../../api/session.js';
 import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
 import {
@@ -15,7 +16,6 @@ import {
   type Loaded,
   loadersOperations,
   type MvsParams,
-  type SnapshotParams,
   type SvsParams,
   type TrajectoryParams,
   type UrlParams,
@@ -30,7 +30,8 @@ declare module '../../api/load.js' {
     readonly data: OperationFn<typeof DataParams, Loaded>;
     readonly mvs: OperationFn<typeof MvsParams, Loaded>;
     readonly svs: OperationFn<typeof SvsParams, Loaded>;
-    readonly snapshot: OperationFn<typeof SnapshotParams, Loaded>;
+    /** `session.open` under the loaders' name (the app's `snapshot-url`, `snapshot-id`). */
+    readonly snapshot: OperationFn<typeof SessionOpenParams, Opened>;
     readonly trajectory: OperationFn<typeof TrajectoryParams, Loaded>;
     readonly volume: OperationFn<typeof VolumeParams, Loaded>;
   }

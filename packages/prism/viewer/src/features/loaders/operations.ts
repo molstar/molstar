@@ -9,28 +9,41 @@
 import { type StateObjectCell, StateObjectSelector } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
-import { getFileNameInfo } from '@molstar/core/util/file-info';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { StringLike } from '@molstar/core/util/string-like';
 import { Volume } from '@molstar/model/model/volume';
 import { loadMVSData } from '@molstar/mvs/components/formats';
 import { PluginConfig } from '@molstar/plugin/config';
 import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/actions/structure';
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
+import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
 import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
+import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
-import { FileParam, filesOf } from '../../api/files.js';
-import type { SequenceArchive } from '../../sequence/model.js';
+import {
+  asBytes,
+  asText,
+  contentOf,
+  extensionOf,
+  fileNameOf,
+  type Input,
+  InputParams,
+  inputModuleProblem,
+  inputOf,
+  isZip,
+} from '../../api/input.js';
+import { OptionalParam } from '../../api/params.js';
 import { messageOf } from '../../api/run.js';
 import { labelOf, loadedStructures } from '../../api/scope.js';
-import { currentStateServer, openStateFrom, stateAddress, transformersOf } from '../../api/state-open.js';
+import { type Opened, openSession, SessionOpenParams, sessionAddresses } from '../../api/session.js';
+import type { SequenceArchive } from '../../sequence/model.js';
+import { chooseFormat, type FormatChoice, type FormatScope, formatNameOf, providerFor } from '../../api/formats.js';
 
 // The `loaders` feature's operations (operations.md §2, the `load` row; README §3.2): Mol*'s own loaders
 // (`@molstar/plugin-extension/loaders`: the plugin's state actions and builders) as operations of the core's `load`
@@ -309,14 +322,23 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
   },
 };
 
-// --- load.url -----------------------------------------------------------------------------------------------------
+// --- load.url, load.data ------------------------------------------------------------------------------------------
+
+/** `binary`, absent: from the extension or the format (operations.md §1, "Inputs"). */
+const BinaryParam = () =>
+  OptionalParam(
+    PD.Boolean(false, {
+      description:
+        'Whether an address or a file is binary; absent: from its extension or the format (bcif, ccp4, dcd, … are)',
+    }),
+  );
 
 export const UrlParams = {
   url: PD.Text('', { description: 'The address of a structure, volume or other data file' }),
-  format: PD.Text('mmcif', {
-    description: "The data format by name (mmcif, pdb, gro, ccp4, …), or 'auto' to read it from the address",
+  format: PD.Text('auto', {
+    description: "The data format by name (mmcif, bcif, pdb, gro, ccp4, …); 'auto': from the address's extension",
   }),
-  binary: PD.Boolean(false, { description: 'The file is binary (bcif, ccp4, dcd, …)' }),
+  binary: BinaryParam(),
   ...StructureOptionParams(),
 };
 
@@ -386,44 +408,95 @@ function structureOptionsProblem(provider: DataFormatProvider | undefined, optio
   );
 }
 
-async function loadUrl(ctx: ApiContext, url: string, format: string, isBinary: boolean, options: StructureOptions) {
+/**
+ * The input as a data cell of the plugin's state (a ghost: the parsed nodes are what the scene shows): a download, a
+ * file read, or raw data. A download is what `load.url`'s identity reads (`liveDownloads`).
+ */
+async function dataCellOf(ctx: ApiContext, input: Input, binary: boolean, label: string) {
   const plugin = ctx.plugin;
-  await plugin.initialized;
-  await plugin.dataTransaction(
-    async () => {
-      // 'auto' reads the format from the address, and whether it is binary from the formats that are.
-      const info = getFileNameInfo(url);
-      const data = await plugin.builders.data.download(
-        { url, isBinary: isBinary || (format === 'auto' && plugin.dataFormats.binaryExtensions.has(info.ext)) },
-        { state: { isGhost: true } },
-      );
-      const provider =
-        format === 'auto' ? plugin.dataFormats.auto(info, data.cell!.obj!) : plugin.dataFormats.get(format);
-      if (!provider) throw new Error(`Could not tell the format of ${url}`);
-      const problem = structureOptionsProblem(provider, options);
-      if (problem) throw new Error(problem.message);
-      await parseAndShow(ctx, data, provider, options);
-    },
-    { rethrowErrors: true },
-  );
-}
-
-/** A format by name, its lazy extension loaded first; a failure names the formats. */
-async function formatProblem(ctx: ApiContext, format: string) {
-  if (format === 'auto') return undefined;
-  await ctx.extensions.ensureFor({ formats: [format] });
-  if (ctx.plugin.dataFormats.has(format)) return undefined;
-  return ApiResult.fail(
-    'invalid',
-    `Unknown data format '${format}'.`,
-    `Formats: auto, ${ctx.plugin.dataFormats.types.map(([n]) => n).join(', ')}.`,
-  );
+  const ghost = { state: { isGhost: true } };
+  const named = label ? { label } : {};
+  switch (input.kind) {
+    case 'url':
+      return plugin.builders.data.download({ url: input.url, isBinary: binary, ...named }, ghost);
+    case 'file':
+      return (await plugin.builders.data.readFile({ file: Asset.File(input.file), isBinary: binary, ...named }, ghost))
+        .data;
+    case 'data':
+      return plugin.builders.data.rawData({ data: input.data as string | Uint8Array<ArrayBuffer>, ...named }, ghost);
+  }
 }
 
 /** "<url> is already loaded.", or undefined. */
-function urlLoaded(url: string, ctx: ApiContext): string | undefined {
-  const u = url.trim();
+function urlLoaded(url: string | undefined, ctx: ApiContext): string | undefined {
+  const u = url?.trim();
   return u && liveDownloads(ctx).some((d) => d.url === u) ? `${u} is already loaded.` : undefined;
+}
+
+/** The addresses a call reaches (the agent's policy, agent.md §4): its url, if it has one. */
+const urlAddresses = ({ url }: { url?: string }): string[] => (url?.trim() ? [url.trim()] : []);
+
+/**
+ * `load.url` and `load.data`: the input as a structure (or any data format Mol* reads), its format and whether it is
+ * binary told when not given (operations.md §1, "Inputs"), with the structure options. One step; a failure leaves
+ * nothing.
+ */
+async function loadContent(
+  ctx: ApiContext,
+  title: string,
+  input: Input,
+  o: { format: string; binary: boolean | undefined; label: string; models: 'first' | 'all'; assembly: string },
+): Promise<ApiResult<Loaded>> {
+  const unavailable = inputModuleProblem(input, ctx, title);
+  if (unavailable) return unavailable;
+  // Asked again in its turn: one queued behind the same load finds it loaded (`load.entry`).
+  const loaded = input.kind === 'url' && !ctx.copy ? urlLoaded(input.url, ctx) : undefined;
+  if (loaded) return ApiResult.already(loaded);
+  // Data is binary when it is bytes (or base64); a label names it (its extension may tell the format).
+  const label = input.kind === 'url' ? '' : o.label.trim();
+  const name = label || input.name;
+  const choice = await chooseFormat(ctx, {
+    format: o.format,
+    name,
+    binary: input.kind === 'data' ? typeof input.data !== 'string' : o.binary,
+    ...(input.kind === 'data' ? { content: input.data } : {}),
+  });
+  if (ApiResult.isFailure(choice)) return choice;
+  const options = { models: o.models, assembly: o.assembly };
+  const known = structureOptionsProblem(choice.provider, options);
+  if (known) return known;
+  const plugin = ctx.plugin;
+  const what = input.kind === 'url' ? input.url : name || 'the data';
+  const before = refsOf(ctx);
+  const cellsBefore = plugin.state.data.cells.size;
+  try {
+    await plugin.initialized;
+    await guarded(ctx, () =>
+      plugin.dataTransaction(
+        async () => {
+          const cell = await dataCellOf(ctx, input, choice.binary, label);
+          const provider = providerFor(ctx, choice, name, cell.cell!.obj!);
+          if (!provider) throw new Error(`could not tell the format of ${what}`);
+          const problem = structureOptionsProblem(provider, options);
+          if (problem) throw new Error(problem.message);
+          await parseAndShow(ctx, cell, provider, options);
+        },
+        { rethrowErrors: true },
+      ),
+    );
+  } catch (e) {
+    if (input.kind === 'url') return pluginFailure(input.url, e);
+    return ApiResult.fail('failed', `Could not load ${what}: ${messageOf(e)}`, 'Check the data and its format.');
+  }
+  if (plugin.state.data.cells.size === cellsBefore) {
+    return ApiResult.fail('failed', `Loading ${what} made nothing.`, 'Check the format; the log says more.');
+  }
+  const names = addedNames(ctx, before);
+  return ApiResult.ok(
+    loadedLine(names, what),
+    { nodes: refsOf(ctx).filter((r) => !before.includes(r)) },
+    { value: { loaded: names.length ? names : [what] } },
+  );
 }
 
 const url: OperationDefinition<typeof UrlParams, Loaded> = {
@@ -436,143 +509,57 @@ const url: OperationDefinition<typeof UrlParams, Loaded> = {
   async run({ url, format, binary, models, assembly }, ctx) {
     const address = url.trim();
     if (!address) return ApiResult.fail('invalid', 'Which address?', 'Give the URL of a data file.');
-    // Asked again in its turn: one queued behind the same load finds it loaded (`load.entry`).
-    const loaded = ctx.copy ? undefined : urlLoaded(address, ctx);
-    if (loaded) return ApiResult.already(loaded);
-    format = format.trim() || 'mmcif';
-    // BinaryCIF is the mmCIF format read as binary.
-    if (format === 'bcif') [format, binary] = ['mmcif', true];
-    const unknown = await formatProblem(ctx, format);
-    if (unknown) return unknown;
-    const options = { models, assembly };
-    const known = structureOptionsProblem(format === 'auto' ? undefined : ctx.plugin.dataFormats.get(format), options);
-    if (known) return known;
-    const before = refsOf(ctx);
-    try {
-      await guarded(ctx, () => loadUrl(ctx, address, format, binary, options));
-    } catch (e) {
-      return pluginFailure(address, e);
-    }
-    const names = addedNames(ctx, before);
-    return ApiResult.ok(
-      loadedLine(names, address),
-      { nodes: refsOf(ctx).filter((r) => !before.includes(r)) },
-      { value: { loaded: names.length ? names : [address] } },
-    );
+    const input: Input = { kind: 'url', url: address, name: fileNameOf(address) };
+    return loadContent(ctx, 'Load from a URL', input, { format, binary, label: '', models, assembly });
   },
 };
 
-// --- load.data ----------------------------------------------------------------------------------------------------
-
 export const DataParams = {
-  data: PD.Text('', {
-    multiline: true,
-    description: "The file's contents: text (a PDB or mmCIF file, SDF, …), or 'base64,…' for a binary format",
+  ...InputParams({
+    url: 'The address of a data file',
+    data: "The file's contents: text (a PDB or mmCIF file, SDF, …), bytes, or 'base64,…' for a binary format",
+    file: 'A structure, volume or other data file',
+    accept: '',
   }),
-  format: PD.Text('mmcif', {
+  format: PD.Text('auto', {
     description:
-      "The data format by name (mmcif, pdb, sdf, bcif, ccp4, …), or 'auto' to read it from the label's extension",
+      "The data format by name (mmcif, bcif, pdb, sdf, ccp4, …); 'auto': from the name's extension, else the data",
   }),
-  label: PD.Text('', { description: "A name for the data (a file name: '1abc.pdb'); empty: the format's" }),
-  /** Scripts: the bytes of a binary file, instead of `data` (not for the command's form or the agent). */
-  bytes: PD.Value<Uint8Array | ArrayBuffer | number[] | undefined>(undefined, { isHidden: true }),
+  binary: BinaryParam(),
+  label: PD.Text('', {
+    description: "A name for the data (a file name: '1abc.pdb'); empty: the file's or the format's",
+  }),
   ...StructureOptionParams(),
 };
-
-const Base64 = /^base64,/i;
-
-/** The data as the plugin's raw data takes it: text, or bytes (given, or decoded from `base64,…`). */
-function rawOf(data: string, bytes: Uint8Array | ArrayBuffer | number[] | undefined): string | Uint8Array | undefined {
-  if (bytes !== undefined) {
-    if (bytes instanceof Uint8Array) return bytes;
-    return new Uint8Array(bytes as ArrayBuffer);
-  }
-  if (!data) return undefined;
-  if (!Base64.test(data)) return data;
-  const text = atob(data.replace(Base64, '').replace(/\s+/g, ''));
-  const out = new Uint8Array(text.length);
-  for (let i = 0; i < text.length; i++) out[i] = text.charCodeAt(i);
-  return out;
-}
 
 const rawData: OperationDefinition<typeof DataParams, Loaded> = {
   id: 'load.data',
   title: 'Load data',
   params: DataParams,
-  // Local: nothing is fetched. Each call loads (there is no identity to say "already loaded" by).
-  async run({ data, format, label, bytes, models, assembly }, ctx) {
-    if (data.trim() && bytes !== undefined) {
-      return ApiResult.fail('invalid', 'Give data or bytes, not both.', 'Neither is loaded: say which one is meant.');
-    }
-    let raw: string | Uint8Array | undefined;
-    try {
-      raw = rawOf(data.trim() ? data : '', bytes);
-    } catch {
-      return ApiResult.fail('invalid', 'The base64 data does not decode.', "Give 'base64,' and the file's bytes.");
-    }
-    if (raw === undefined || (typeof raw !== 'string' && raw.length === 0)) {
-      return ApiResult.fail('invalid', 'Which data?', "Give the file's contents as data.");
-    }
-    format = format.trim() || 'mmcif';
-    // BinaryCIF is the mmCIF format; whether the data is binary follows from the data.
-    if (format === 'bcif') format = 'mmcif';
-    if (format === 'auto' && !getFileNameInfo(label.trim()).ext) {
-      return ApiResult.fail('invalid', 'Which format?', "Give the format, or a label with the file's extension.");
-    }
-    const unknown = await formatProblem(ctx, format);
-    if (unknown) return unknown;
-    const options = { models, assembly };
-    const known = structureOptionsProblem(format === 'auto' ? undefined : ctx.plugin.dataFormats.get(format), options);
-    if (known) return known;
-    const plugin = ctx.plugin;
-    const name = label.trim();
-    const before = refsOf(ctx);
-    const cellsBefore = plugin.state.data.cells.size;
-    try {
-      await plugin.initialized;
-      await guarded(ctx, () =>
-        plugin.dataTransaction(
-          async () => {
-            const cell = await plugin.builders.data.rawData(
-              { data: raw as string | Uint8Array<ArrayBuffer>, ...(name ? { label: name } : {}) },
-              { state: { isGhost: true } },
-            );
-            const provider =
-              format === 'auto'
-                ? plugin.dataFormats.auto(getFileNameInfo(name), cell.cell!.obj!)
-                : plugin.dataFormats.get(format);
-            if (!provider) throw new Error(`could not tell the format of ${name}`);
-            const problem = structureOptionsProblem(provider, options);
-            if (problem) throw new Error(problem.message);
-            await parseAndShow(ctx, cell, provider, options);
-          },
-          { rethrowErrors: true },
-        ),
-      );
-    } catch (e) {
-      return ApiResult.fail('failed', `Could not load the data: ${messageOf(e)}`, 'Check the data and its format.');
-    }
-    if (plugin.state.data.cells.size === cellsBefore) {
-      return ApiResult.fail('failed', 'Loading the data made nothing.', 'Check the format; the log says more.');
-    }
-    const names = addedNames(ctx, before);
-    const what = name || 'the data';
-    return ApiResult.ok(
-      loadedLine(names, what),
-      { nodes: refsOf(ctx).filter((r) => !before.includes(r)) },
-      { value: { loaded: names.length ? names : [what] } },
-    );
+  // Data and a file are local (each call loads: no identity to say "already loaded" by); a url is a download, asked
+  // for as `load.url`'s is. The modules are the input's, checked per call.
+  approval: 'network',
+  addresses: urlAddresses,
+  exists: ({ url }, ctx) => urlLoaded(url, ctx),
+  async run(values, ctx) {
+    const input = inputOf(values, { label: values.label });
+    if (!input || ApiResult.isFailure(input)) return input ?? ApiResult.fail('invalid', 'Load what?');
+    return loadContent(ctx, 'Load data', input, values);
   },
 };
 
 // --- load.mvs -----------------------------------------------------------------------------------------------------
 
 export const MvsParams = {
-  url: PD.Text('', { description: 'The address of a MolViewSpec file (.mvsj, .mvsx); empty: use data' }),
-  data: PD.Text('', {
-    description: "The MolViewSpec itself: JSON for mvsj, 'base64,…' for mvsx; used when there is no url",
+  ...InputParams({
+    url: 'The address of a MolViewSpec file (.mvsj, .mvsx)',
+    data: "The MolViewSpec itself: its JSON (mvsj), or an archive's bytes (mvsx; 'base64,…' as text)",
+    file: 'A MolViewSpec file (.mvsj, .mvsx)',
+    accept: '.mvsj,.mvsx,.json',
   }),
-  format: PD.Select<'mvsj' | 'mvsx'>('mvsj', PD.arrayToOptions(['mvsj', 'mvsx'] as const)),
+  format: PD.Select<'auto' | 'mvsj' | 'mvsx'>('auto', PD.arrayToOptions(['auto', 'mvsj', 'mvsx'] as const), {
+    description: "'auto': from the name's extension (.mvsj, .mvsx), else the content (a zip is mvsx)",
+  }),
   keepCamera: PD.Boolean(false, { description: "Keep the camera as it is, ignoring the MolViewSpec's" }),
   // v5's `loadMvs*` options (`MVSLoadOptions`, parity review M6).
   append: PD.Boolean(false, {
@@ -585,26 +572,30 @@ export const MvsParams = {
   extensions: PD.Boolean(true, { description: "Apply Mol*'s MVS extensions (not part of the MolViewSpec standard)" }),
 };
 
+/** The kind of a MolViewSpec: given, else the name's extension, else the content (a zip is an archive). */
+function mvsFormatOf(format: 'auto' | 'mvsj' | 'mvsx', name: string, content: string | Uint8Array): 'mvsj' | 'mvsx' {
+  if (format !== 'auto') return format;
+  const ext = extensionOf(name);
+  if (ext === 'mvsx') return 'mvsx';
+  if (ext === 'mvsj' || ext === 'json') return 'mvsj';
+  return isZip(content) ? 'mvsx' : 'mvsj';
+}
+
 const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
   id: 'load.mvs',
   title: 'Load a MolViewSpec',
   params: MvsParams,
-  // No `modules: ['network']`: the module is checked per call, as only a url needs it (data is local).
+  // No `modules`: they are the input's, checked per call (a url needs the network; data nothing).
   // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
   approval: 'destructive',
-  async run({ url, data, format, keepCamera, append, keepCameraOrientation, snapshot, extensions }, ctx) {
-    const address = url.trim();
-    if (address && data.trim()) {
-      return ApiResult.fail('invalid', 'Give a url or data, not both.', 'Neither is loaded: say which one is meant.');
-    }
-    if (!address && !data.trim()) return ApiResult.fail('invalid', 'Which MolViewSpec?', 'Give a url or its data.');
-    if (address && !ctx.modules.has('network')) {
-      return ApiResult.fail(
-        'unavailable',
-        'Load a MolViewSpec needs the network, which this viewer does not have.',
-        'Give its data instead of a url.',
-      );
-    }
+  addresses: urlAddresses,
+  async run(values, ctx) {
+    const { format, keepCamera, append, keepCameraOrientation, snapshot, extensions } = values;
+    const input = inputOf(values);
+    if (!input || ApiResult.isFailure(input)) return input ?? ApiResult.fail('invalid', 'Load what?');
+    const unavailable = inputModuleProblem(input, ctx, 'Load a MolViewSpec');
+    if (unavailable) return unavailable;
+    const address = input.kind === 'url' ? input.url : '';
     const plugin = ctx.plugin;
     const before = refsOf(ctx);
     try {
@@ -616,20 +607,20 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
         appendSnapshots: append,
         defaultSnapshotIndex: Math.max(0, Math.floor(snapshot)),
         ...(extensions ? {} : { extensions: [] }),
+        ...(address ? { sourceUrl: address } : {}),
       };
       await guarded(ctx, async () => {
-        if (!address) {
-          await loadMVSData(plugin, data.trim(), format, options);
-        } else if (format === 'mvsj') {
-          const text = await plugin.runTask(plugin.fetch({ url: address, type: 'string' }));
-          await loadMVSData(plugin, StringLike.toString(text), 'mvsj', { ...options, sourceUrl: address });
-        } else {
-          const bytes = await plugin.runTask(plugin.fetch({ url: address, type: 'binary' }));
-          await loadMVSData(plugin, bytes, 'mvsx', { ...options, sourceUrl: address });
-        }
+        const content = await contentOf(ctx, input);
+        const kind = mvsFormatOf(format, input.name, content);
+        const data = kind === 'mvsj' ? asText(content) : (asBytes(content) as Uint8Array<ArrayBuffer>);
+        await loadMVSData(plugin, data, kind, options);
       });
     } catch (e) {
-      return pluginFailure(address || 'the MolViewSpec', e, 'Check the MolViewSpec and the network connection.');
+      return pluginFailure(
+        address || input.name || 'the MolViewSpec',
+        e,
+        'Check the MolViewSpec and the network connection.',
+      );
     }
     const names = addedNames(ctx, before);
     return ApiResult.ok(
@@ -642,32 +633,21 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
 
 // --- load.svs -----------------------------------------------------------------------------------------------------
 
-export const SvsParams = {
-  url: PD.Text('', {
-    description: 'The address of a SeqViewSpec document (.svsj, .svs; JSON or MessagePack); empty: use data',
-  }),
-  data: PD.Text('', {
-    multiline: true,
-    description: 'The SeqViewSpec document itself (JSON); used when there is no url',
-  }),
-  file: FileParam({ accept: '.svsx,.svsj,.svs', description: 'A SeqViewSpec file: an archive (.svsx) or a document' }),
-};
+export const SvsParams = InputParams({
+  url: 'The address of a SeqViewSpec document (.svsj, .svs; JSON or MessagePack) or archive (.svsx)',
+  data: "The SeqViewSpec document itself (JSON), or a document's or an archive's bytes ('base64,…' as text)",
+  file: 'A SeqViewSpec file: an archive (.svsx) or a document',
+  accept: '.svsx,.svsj,.svs',
+});
 
 /** An `.svsx` (seqspec:sources#archives): by its name, else a zip's signature. */
-const isArchive = (name: string, bytes: Uint8Array) =>
-  /\.svsx$/i.test(name.split(/[?#]/)[0]) || (bytes[0] === 0x50 && bytes[1] === 0x4b);
+const isArchive = (name: string, bytes: Uint8Array) => extensionOf(name) === 'svsx' || isZip(bytes);
 
 /** A file name from a path or address (its last part). */
 const baseName = (path: string) => path.split(/[?#]/)[0].split('/').pop() || path;
 
-/** SeqViewSpec structure formats as the plugin's loaders name them (BinaryCIF is mmCIF read as binary). */
-const SvsFormats: Readonly<Record<string, { format: string; binary: boolean }>> = {
-  mmcif: { format: 'mmcif', binary: false },
-  bcif: { format: 'mmcif', binary: true },
-  pdb: { format: 'pdb', binary: false },
-  sdf: { format: 'sdf', binary: false },
-  mol2: { format: 'mol2', binary: false },
-};
+/** SeqViewSpec structure formats, which the loaders take by these names (`bcif` too); others are read as `auto`. */
+const SvsFormats: readonly string[] = ['mmcif', 'bcif', 'pdb', 'sdf', 'mol2'];
 
 /** The entry-id services a document may name its structure by, as `load.entry`'s sources. */
 const SvsServices: Readonly<Record<string, EntrySource>> = { pdbe: 'pdb', afdb: 'afdb' };
@@ -744,31 +724,19 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
   params: SvsParams,
   // No `addresses`: the document names a structure that is fetched in the same run, which a check of the document's
   // address alone cannot see, so the agent always asks (agent.md §4).
-  // No `modules: ['network']`: data is local, and a structure that is loaded already needs nothing.
+  // No `modules`: they are the input's, checked per call (data is local, and a structure that is loaded already needs
+  // nothing).
   approval: 'network',
-  async run({ url, data, file }, ctx) {
-    const address = url.trim();
-    const picked = filesOf(file)[0];
-    const given = [address, data.trim(), picked].filter(Boolean).length;
-    if (given > 1) {
-      return ApiResult.fail(
-        'invalid',
-        'Give one of a url, a file or data.',
-        'Nothing is loaded: say which one is meant.',
-      );
-    }
-    if (!given) return ApiResult.fail('invalid', 'Which SeqViewSpec?', 'Give a url, a file or its data.');
+  async run(values, ctx) {
+    const input = inputOf(values);
+    if (!input || ApiResult.isFailure(input)) return input ?? ApiResult.fail('invalid', 'Load what?');
     const sequence = ctx.api.sequence;
     if (!sequence) {
       return ApiResult.fail('unavailable', 'This viewer has no sequence view to show a SeqViewSpec in.');
     }
-    if (address && !ctx.modules.has('network')) {
-      return ApiResult.fail(
-        'unavailable',
-        'Load a SeqViewSpec needs the network, which this viewer does not have.',
-        'Give its data instead of a url.',
-      );
-    }
+    const unavailable = inputModuleProblem(input, ctx, 'Load a SeqViewSpec');
+    if (unavailable) return unavailable;
+    const address = input.kind === 'url' ? input.url : '';
     // The document: JSON or MessagePack from an address or a file, JSON as data, or an archive's (`.svsx`: the document
     // and the files it reads); its envelope checked (Seq* checks the rest). Seq*'s readers come with the sequence's
     // runtime (its own chunk).
@@ -776,12 +744,10 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
     let read: ReturnType<typeof readDocument>;
     let archive: SequenceArchive | undefined;
     try {
-      if (!address && !picked) read = fromJSON(data.trim());
+      if (input.kind === 'data' && typeof input.data === 'string') read = fromJSON(input.data.trim());
       else {
-        const bytes = picked
-          ? new Uint8Array(await picked.arrayBuffer())
-          : await ctx.plugin.runTask(ctx.plugin.fetch({ url: address, type: 'binary' }));
-        if (isArchive(picked?.name ?? address, bytes)) {
+        const bytes = asBytes(await contentOf(ctx, input));
+        if (isArchive(input.name, bytes)) {
           const x = await readSvsx(bytes);
           if (!x.doc) {
             return ApiResult.fail(
@@ -795,7 +761,7 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
         } else read = readDocument(bytes);
       }
     } catch (e) {
-      return pluginFailure(address || (picked?.name ?? ''), e);
+      return pluginFailure(address || input.name || 'the SeqViewSpec', e);
     }
     const doc = read.doc;
     if (!doc) {
@@ -822,7 +788,8 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
     const before = refsOf(ctx);
     let structure = matchStructure(ctx, src, uri);
     if (!structure) {
-      const format = SvsFormats[String(src.format ?? '')] ?? { format: 'auto', binary: false };
+      // Its format by name, else told from the address, the name or the data (`auto`).
+      const format = SvsFormats.includes(String(src.format)) ? { format: String(src.format) } : {};
       let loaded: ApiResult<Loaded>;
       if (archived) {
         loaded = (await ctx.api.run('load.files', { files: [archived] })) as ApiResult<Loaded>;
@@ -831,8 +798,7 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
       } else if (uri) {
         loaded = (await ctx.api.run('load.url', { url: uri, ...format })) as ApiResult<Loaded>;
       } else if (typeof src.value === 'string') {
-        const text = format.format === 'auto' ? 'mmcif' : format.format;
-        loaded = (await ctx.api.run('load.data', { data: src.value, format: text })) as ApiResult<Loaded>;
+        loaded = (await ctx.api.run('load.data', { data: src.value, ...format })) as ApiResult<Loaded>;
       } else {
         const name = typeof src.host_file === 'string' ? src.host_file : 'its structure';
         return ApiResult.fail(
@@ -861,7 +827,7 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
       );
     }
     const names = addedNames(ctx, before);
-    const title = doc.metadata?.title ?? (address || picked?.name || 'the SeqViewSpec');
+    const title = doc.metadata?.title ?? (address || input.name || 'the SeqViewSpec');
     return ApiResult.ok(
       `${names.length ? `Loaded ${names.join(', ')}; the` : 'The'} sequence shows ${title} over ${labelOf(ctx, structure)}.`,
       { nodes: refsOf(ctx).filter((r) => !before.includes(r)), sequence: true },
@@ -872,130 +838,75 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
 
 // --- load.snapshot ------------------------------------------------------------------------------------------------
 
-export const SnapshotParams = {
-  url: PD.Text('', { description: 'The address of a session (.molx) or a state (.molj); empty: use id' }),
-  type: PD.Select<'auto' | 'molj' | 'molx'>(
-    'auto',
-    [
-      ['auto', "From the address's extension"],
-      ['molj', 'State (.molj)'],
-      ['molx', 'Session (.molx)'],
-    ],
-    { description: "The file's kind; by default the address's extension says (.molx, else .molj)" },
-  ),
-  id: PD.Text('', { description: "A state on the state server (the viewer's `state-server` option) by id" }),
-};
-
-/** The kind a url's extension says (`.molx`, `.molj`; a query or fragment is ignored). */
-export function snapshotTypeOf(url: string): 'molj' | 'molx' | undefined {
-  const path = url.split(/[?#]/)[0];
-  const m = /\.(molx|molj)$/i.exec(path);
-  return m ? (m[1].toLowerCase() as 'molj' | 'molx') : undefined;
-}
-
-const snapshot: OperationDefinition<typeof SnapshotParams, Loaded> = {
+/**
+ * `session.open` under the loaders' name (the branch review's A6): the same params and the same run (`openSession`), for
+ * the app's `snapshot-url` and `snapshot-id` URL options and v5's scripts. New code opens sessions with `session.open`.
+ */
+const snapshot: OperationDefinition<typeof SessionOpenParams, Opened> = {
   id: 'load.snapshot',
-  title: 'Load a session',
-  params: SnapshotParams,
-  // An id is the configured state server's.
-  addresses: ({ url }) => (url ? [url] : []),
-  ...network,
-  // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
+  title: 'Load a session (as session.open)',
+  params: SessionOpenParams,
+  // As `session.open`: the modules are the input's, checked per call; it replaces the scene (destructive).
   approval: 'destructive',
-  async run({ url, type, id }, ctx) {
-    const address = url.trim();
-    if (address && id.trim()) return ApiResult.fail('invalid', 'Give a url or an id, not both.');
-    if (!address && !id.trim()) return ApiResult.fail('invalid', 'Which session?', 'Give a url or an id.');
-    const plugin = ctx.plugin;
-    try {
-      await plugin.initialized;
-      await guarded(ctx, async () => {
-        if (address) {
-          const kind = type === 'auto' ? (snapshotTypeOf(address) ?? 'molj') : type;
-          const data = await plugin.runTask(plugin.fetch({ url: address, type: 'binary' }));
-          // A lazy extension whose transformers the session uses loads first, as `session.open` does for a file.
-          if (kind === 'molj') {
-            await ctx.extensions.ensureFor({ transformers: transformersOf(new TextDecoder().decode(data)) });
-          }
-          await plugin.managers.snapshot.open(new File([data], `state.${kind}`));
-        } else {
-          const server = currentStateServer(ctx);
-          if (!server) throw new Error('the viewer has no state server');
-          const key = id.trim();
-          await openStateFrom(ctx, stateAddress(server, key), key);
-        }
-      });
-    } catch (e) {
-      return pluginFailure(address || `state ${id}`, e, 'Check the address, the id and the network connection.');
-    }
-    const names = loadedStructures(ctx).map((s) => labelOf(ctx, s));
-    return ApiResult.ok(
-      address ? 'Loaded the session.' : `Loaded state ${id.trim()}.`,
-      { view: true, sequence: true },
-      { value: { loaded: names } },
-    );
-  },
+  addresses: sessionAddresses,
+  run: openSession,
 };
 
 // --- load.trajectory ----------------------------------------------------------------------------------------------
 
 export const TrajectoryParams = {
   model: PD.Text('', { description: 'The address of the model (or topology) file' }),
-  modelFormat: PD.Text('mmcif', { description: 'Its format: mmcif, pdb, gro, …, or a topology (psf, prmtop, top)' }),
-  modelBinary: PD.Boolean(false),
+  modelFormat: PD.Text('auto', {
+    description: "Its format: mmcif, pdb, gro, …, or a topology (psf, prmtop, top); 'auto': from its extension",
+  }),
+  modelBinary: BinaryParam(),
   coordinates: PD.Text('', { description: 'The address of the coordinates file' }),
-  coordinatesFormat: PD.Text('xtc', { description: 'Its format: xtc, dcd, trr, nctraj, lammpstrj' }),
-  coordinatesBinary: PD.Boolean(true),
+  coordinatesFormat: PD.Text('auto', {
+    description: "Its format: xtc, dcd, trr, nctraj, lammpstrj; 'auto': from its extension",
+  }),
+  coordinatesBinary: BinaryParam(),
   preset: PD.Text('default', { description: "The structure preset: 'default' or 'all-models'" }),
 };
 
-/** A file's name from its address (the last part of its path); the address when it has none. */
-function fileNameOf(url: string): string {
-  try {
-    return decodeURIComponent(new URL(url, 'http://x/').pathname.split('/').filter(Boolean).pop() ?? url);
-  } catch {
-    return url;
-  }
-}
+const ModelFormats: FormatScope = {
+  categories: [TrajectoryFormatCategory, TopologyFormatCategory],
+  what: 'a model or topology',
+};
+const CoordinatesFormats: FormatScope = { categories: [CoordinatesFormatCategory], what: 'a coordinates' };
 
 async function loadTrajectory(
   ctx: ApiContext,
-  p: {
-    model: string;
-    modelFormat: string;
-    modelBinary: boolean;
-    coordinates: string;
-    coordinatesFormat: string;
-    coordinatesBinary: boolean;
-    preset: string;
-  },
+  p: { model: string; modelFormat: FormatChoice; coordinates: string; coordinatesFormat: FormatChoice; preset: string },
 ) {
   const plugin = ctx.plugin;
   await plugin.initialized;
   await plugin.dataTransaction(
     async () => {
       // Named by their files (not their whole addresses): the structure's row says protein.pdb.
+      const modelName = fileNameOf(p.model) || p.model;
       const modelData = await plugin.builders.data.download({
         url: p.model,
-        isBinary: p.modelBinary,
-        label: fileNameOf(p.model),
+        isBinary: p.modelFormat.binary,
+        label: modelName,
       });
-      const isTopology = plugin.dataFormats.options.some(
-        ([n, , c]) => n === p.modelFormat && c === TopologyFormatCategory,
-      );
+      const modelProvider = providerFor(ctx, p.modelFormat, modelName, modelData.cell!.obj!);
+      if (!modelProvider) throw new Error(`could not tell the format of ${modelName}`);
       let model: StateObjectSelector;
-      if (isTopology) {
-        model = (await plugin.dataFormats.get(p.modelFormat)!.parse(plugin, modelData)).topology;
+      if (modelProvider.category === TopologyFormatCategory) {
+        model = (await modelProvider.parse(plugin, modelData)).topology;
       } else {
-        const trajectory = await plugin.builders.structure.parseTrajectory(modelData, p.modelFormat as 'mmcif');
+        const trajectory = await plugin.builders.structure.parseTrajectory(modelData, modelProvider as never);
         model = await plugin.builders.structure.createModel(trajectory);
       }
+      const coordinatesName = fileNameOf(p.coordinates) || p.coordinates;
       const coordData = await plugin.builders.data.download({
         url: p.coordinates,
-        isBinary: p.coordinatesBinary,
-        label: fileNameOf(p.coordinates),
+        isBinary: p.coordinatesFormat.binary,
+        label: coordinatesName,
       });
-      const coords = await plugin.dataFormats.get(p.coordinatesFormat)!.parse(plugin, coordData);
+      const coordinatesProvider = providerFor(ctx, p.coordinatesFormat, coordinatesName, coordData.cell!.obj!);
+      if (!coordinatesProvider) throw new Error(`could not tell the format of ${coordinatesName}`);
+      const coords = await coordinatesProvider.parse(plugin, coordData);
       const trajectory = await plugin
         .build()
         .toRoot()
@@ -1018,24 +929,29 @@ const trajectory: OperationDefinition<typeof TrajectoryParams, Loaded> = {
   addresses: ({ model, coordinates }) => [model, coordinates],
   ...network,
   async run(values, ctx) {
-    const { model, coordinates } = values;
-    if (!model.trim() || !coordinates.trim()) {
+    const model = values.model.trim();
+    const coordinates = values.coordinates.trim();
+    if (!model || !coordinates) {
       return ApiResult.fail('invalid', 'A trajectory is a model and coordinates.', 'Give both addresses.');
     }
-    await ctx.extensions.ensureFor({ formats: [values.modelFormat, values.coordinatesFormat] });
-    for (const f of [values.modelFormat, values.coordinatesFormat]) {
-      if (!ctx.plugin.dataFormats.has(f)) {
-        return ApiResult.fail(
-          'invalid',
-          `Unknown data format '${f}'.`,
-          `Formats: ${ctx.plugin.dataFormats.types.map(([n]) => n).join(', ')}.`,
-        );
-      }
-    }
+    const modelFormat = await chooseFormat(ctx, {
+      format: values.modelFormat,
+      name: fileNameOf(model),
+      binary: values.modelBinary,
+      scope: ModelFormats,
+    });
+    if (ApiResult.isFailure(modelFormat)) return modelFormat;
+    const coordinatesFormat = await chooseFormat(ctx, {
+      format: values.coordinatesFormat,
+      name: fileNameOf(coordinates),
+      binary: values.coordinatesBinary,
+      scope: CoordinatesFormats,
+    });
+    if (ApiResult.isFailure(coordinatesFormat)) return coordinatesFormat;
     const before = refsOf(ctx);
     try {
       await guarded(ctx, () =>
-        loadTrajectory(ctx, { ...values, model: model.trim(), coordinates: coordinates.trim() }),
+        loadTrajectory(ctx, { model, modelFormat, coordinates, coordinatesFormat, preset: values.preset }),
       );
     } catch (e) {
       return pluginFailure(`${model} with ${coordinates}`, e);
@@ -1060,9 +976,17 @@ export interface VolumeIsovalueInfo {
 }
 
 export const VolumeParams = {
-  url: PD.Text('', { description: 'The address of a volume file, or of a density server cell' }),
-  format: PD.Text('ccp4', { description: 'Its format: ccp4, dsn6, cube, dx, dscif, …' }),
-  binary: PD.Boolean(true),
+  ...InputParams({
+    url: 'The address of a volume file, or of a density server cell',
+    data: "The volume file's contents: bytes, 'base64,…' for a binary format, or text (cube, dx)",
+    file: 'A volume file (.ccp4, .mrc, .map, .dsn6, .cube, .dx, …)',
+    accept: '.ccp4,.mrc,.map,.dsn6,.brix,.cube,.cub,.dx,.dxbin,.bcif,.cif',
+  }),
+  format: PD.Text('auto', {
+    description:
+      "Its format: ccp4 (mrc, map), dsn6, cube, dx, dscif, …; 'auto': from the name's extension, else the data",
+  }),
+  binary: BinaryParam(),
   isovalues: PD.ObjectList(
     {
       type: PD.Select<'absolute' | 'relative'>('relative', PD.arrayToOptions(['absolute', 'relative'] as const)),
@@ -1083,23 +1007,29 @@ export const VolumeParams = {
     },
   ),
   entryId: PD.Text('', { description: 'The entry the volume belongs to (its label)' }),
-  lazy: PD.Boolean(false, { description: 'Read only what the view needs (density servers)' }),
+  lazy: PD.Boolean(false, { description: 'Read only what the view needs (density servers; an address only)' }),
 };
+
+const VolumeFormats: FormatScope = { categories: [VolumeFormatCategory], what: 'a volume' };
 
 async function loadVolume(
   ctx: ApiContext,
-  p: { url: string; format: string; binary: boolean; isovalues: VolumeIsovalueInfo[]; entryId: string; lazy: boolean },
+  input: Input,
+  choice: FormatChoice,
+  p: { isovalues: VolumeIsovalueInfo[]; entryId: string; lazy: boolean },
 ) {
   const plugin = ctx.plugin;
   await plugin.initialized;
   const entryId = p.entryId || undefined;
-  if (p.lazy) {
+  if (p.lazy && input.kind === 'url') {
+    // The format by name: the one given, else the extension's.
+    const format = formatNameOf(choice);
     const update = plugin.build();
     update.toRoot().apply(LazyVolume, {
-      url: p.url,
-      format: p.format,
+      url: input.url,
+      format,
       entryId,
-      isBinary: p.binary,
+      isBinary: choice.binary,
       isovalues: p.isovalues.map((v) => ({ ...v })),
     });
     await update.commit();
@@ -1107,11 +1037,10 @@ async function loadVolume(
   }
   await plugin.dataTransaction(
     async () => {
-      const data = await plugin.builders.data.download(
-        { url: p.url, isBinary: p.binary },
-        { state: { isGhost: true } },
-      );
-      const parsed = await plugin.dataFormats.get(p.format)!.parse(plugin, data, { entryId });
+      const data = await dataCellOf(ctx, input, choice.binary, '');
+      const provider = providerFor(ctx, choice, input.name, data.cell!.obj!);
+      if (!provider) throw new Error(`could not tell the format of ${input.name || 'the data'}`);
+      const parsed = await provider.parse(plugin, data, { entryId });
       const first = (parsed.volume || parsed.volumes?.[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
       if (!first?.isOk) throw new Error('Failed to parse any volume.');
       const repr = plugin.build();
@@ -1141,32 +1070,39 @@ const volume: OperationDefinition<typeof VolumeParams, Loaded> = {
   id: 'load.volume',
   title: 'Load a volume',
   params: VolumeParams,
-  addresses: ({ url }) => [url],
-  ...network,
+  // Data and a file are local; a url is a download. The modules are the input's, checked per call.
+  approval: 'network',
+  addresses: urlAddresses,
   exists: ({ url }, ctx) => urlLoaded(url, ctx),
   async run(values, ctx) {
-    const address = values.url.trim();
-    if (!address) return ApiResult.fail('invalid', 'Which address?', 'Give the URL of a volume file.');
-    const loaded = ctx.copy ? undefined : urlLoaded(address, ctx);
-    if (loaded) return ApiResult.already(loaded);
-    await ctx.extensions.ensureFor({ formats: [values.format] });
-    if (!ctx.plugin.dataFormats.has(values.format)) {
-      return ApiResult.fail(
-        'invalid',
-        `Unknown density format '${values.format}'.`,
-        `Formats: ${ctx.plugin.dataFormats.types.map(([n]) => n).join(', ')}.`,
-      );
+    const input = inputOf(values);
+    if (!input || ApiResult.isFailure(input)) return input ?? ApiResult.fail('invalid', 'Load what?');
+    const unavailable = inputModuleProblem(input, ctx, 'Load a volume');
+    if (unavailable) return unavailable;
+    if (values.lazy && input.kind !== 'url') {
+      return ApiResult.fail('invalid', 'A lazy volume is read from an address.', "Give its url, or leave out 'lazy'.");
     }
+    const loaded = input.kind === 'url' && !ctx.copy ? urlLoaded(input.url, ctx) : undefined;
+    if (loaded) return ApiResult.already(loaded);
+    const choice = await chooseFormat(ctx, {
+      format: values.format,
+      name: input.name,
+      binary: input.kind === 'data' ? typeof input.data !== 'string' : values.binary,
+      ...(input.kind === 'data' ? { content: input.data } : {}),
+      scope: VolumeFormats,
+    });
+    if (ApiResult.isFailure(choice)) return choice;
+    const what = input.kind === 'url' ? input.url : input.name || 'the data';
     const cellsBefore = ctx.plugin.state.data.cells.size;
     try {
-      await guarded(ctx, () => loadVolume(ctx, { ...values, url: address }));
+      await guarded(ctx, () => loadVolume(ctx, input, choice, values));
     } catch (e) {
-      return pluginFailure(address, e);
+      return pluginFailure(what, e, input.kind === 'url' ? undefined : 'Check the data and its format.');
     }
     if (ctx.plugin.state.data.cells.size === cellsBefore) {
-      return ApiResult.fail('failed', `Loading ${address} made nothing.`, 'Check the format; the log says more.');
+      return ApiResult.fail('failed', `Loading ${what} made nothing.`, 'Check the format; the log says more.');
     }
-    const label = values.entryId || address;
+    const label = values.entryId || what;
     return ApiResult.ok(`Loaded the volume ${label}.`, { nodes: [] }, { value: { loaded: [label] } });
   },
 };

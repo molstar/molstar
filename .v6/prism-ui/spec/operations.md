@@ -49,6 +49,19 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   boolean `on` (`canvas.xr`, `view.expand`, `view.fullscreen`, `select.mode`, `volume.streaming`); visibility is
   `visible`. A choice with its own settings is a union too (`export.image`'s and `video.export`'s `size`: `{ name: 'hd'
   }` or `{ name: 'custom', params: { width, height } }`). `checkValues` checks a union's name and its settings.
+- **Inputs** (2026-10-16, the branch review's A6): one loading vocabulary. An operation that reads content
+  (`load.data`, `load.volume`, `load.mvs`, `load.svs`, `session.open`) takes exactly one of `url`, `data` (text,
+  `'base64,…'`, or bytes: `Uint8Array | ArrayBuffer`) and `file` (a `File`), each optional; none fails `invalid`
+  ("Load what? Give url, data or file."), several too ("Give one of url, data or file."). `load.url` takes a url only
+  (the URL parameter's operation), `load.files` several files. `format` is `'auto'` by default: Mol\*'s format
+  registry (`plugin.dataFormats`: each format's extensions, `autoOrder`, `isApplicable`) tells it from the address's or
+  the file's extension (`.bcif`, `.cif.gz`, `.mrc`, `.map`, `.ccp4`, `.dsn6`, `.mvsx`, …), else from the data (data
+  without a name: mmCIF, PDB, BinaryCIF, a CCP4 header); one it cannot tell fails `invalid`, naming the formats the
+  operation takes. `binary` is optional: absent, the extension's kind, else the format's (one that reads only binary,
+  as CCP4, DSN6, DCD, XTC, TRR, is binary); data is binary when it is bytes. A loader's modules are its input's,
+  checked per call (a url needs the network, a file access to files), and one that may fetch a url asks as `load.url`
+  does (`network` with its `addresses`, unless it is `destructive`). `api/input.ts` (`inputOf`, `InputParams`) and
+  `api/formats.ts` (`chooseFormat`).
 - **Nodes** (2026-10-16, [nodes.md](nodes.md)): an operation on cells of the state tree takes `node`, a CSS-like
   selector compiled to Mol*'s `StateSelection` (`component[type=ligand] > representation`, `#ref`, a ref alone); one
   that acts on several acts on every match as one step, one that acts on one fails `ambiguous` with the matches.
@@ -89,8 +102,8 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 
 | Area           | Operations (first pass)                                                                                                     | Reads                         | From                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
-| `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary; `models`, `assembly`), `data` (text, base64 or bytes, a format), `mvs` (url or data; v5's `append`, camera and snapshot options), `svs` (a SeqViewSpec in the sequence, url or data; sequence.md §6), `snapshot` (url or remote id), `trajectory`, `volume` | — | core; loaders |
-| `session`      | `open` (`.molx`, `.molj`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove`                  | `remote.list`                 | core; remote feature |
+| `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature (§1 "Inputs": url, data or file; format `auto`, binary told): `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url only, format, binary; `models`, `assembly`), `data` (url, data or file, format, label; `models`, `assembly`), `mvs` (url, data or file, `mvsj`/`mvsx` told; v5's `append`, camera and snapshot options), `svs` (a SeqViewSpec in the sequence, url, data or file; sequence.md §6), `snapshot` (`session.open` under the name the app's `snapshot-url`, `snapshot-id` use), `trajectory` (two addresses, their formats told), `volume` (url, data or file, format, binary; isovalues, `lazy` from a url) | — | core; loaders |
+| `session`      | `open` (url, data or file, `.molx` or `.molj` by `type`, the name, else the content; or a state server's `id`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove` | `remote.list` | core; remote feature |
 | `structure`    | `preset` (hierarchy and representation presets by id), `assembly`, `symmetry`, `unit-cell`, `transform`, `transform-reset`, `visibility`, `remove` (the whole entry) | `list` (the scene outline)    | core                |
 | `contents`     | `visibility` (entity or chain: left out of every component, below)                                                          | `get` (entities, chains)      | core                |
 | `component`    | `add` (target, label), `modify` (target, mode `union`/`subtract`/`intersect`), `remove`, `rename`, `visibility`, `options` (hydrogens, quality, lighting, …) | — | core |

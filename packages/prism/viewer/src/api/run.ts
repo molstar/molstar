@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isBytes, takesBytes } from './input.js';
 import { isNodeQuery } from './nodes.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -478,7 +479,9 @@ function checkParam(name: string, p: PD.Any, value: unknown): ApiFailure | undef
     case 'boolean':
       return typeof value === 'boolean' ? undefined : ApiResult.fail('invalid', `'${name}' takes true or false.`);
     case 'text':
-      return typeof value === 'string' ? undefined : ApiResult.fail('invalid', `'${name}' takes text.`);
+      // `data` (api/input.ts) takes bytes as well.
+      if (typeof value === 'string' || (takesBytes(p) && isBytes(value))) return undefined;
+      return ApiResult.fail('invalid', `'${name}' takes text${takesBytes(p) ? ' or bytes' : ''}.`);
     case 'select': {
       const options = p.options.map((o) => o[0]);
       return options.includes(value as never)

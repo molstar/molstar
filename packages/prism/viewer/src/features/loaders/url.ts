@@ -74,6 +74,9 @@ export function loadsFromUrl(search: string): UrlLoad[] {
   const q = parseSearch(search);
   const get = (name: string) => q.get(name)?.trim() || undefined;
   const flag = (name: string) => ['1', 'true'].includes(get(name)?.toLowerCase() ?? '');
+  // A binary flag left out is told from the format and the address (operations.md §1, "Inputs").
+  const binary = (name: string) => (get(name) === undefined ? {} : { binary: flag(name) });
+  const format = (name: string) => (get(name) ? { format: get(name)!.toLowerCase() } : {});
   const loads: UrlLoad[] = [];
   const assembly = get('assembly');
   const structureOptions = {
@@ -86,25 +89,28 @@ export function loadsFromUrl(search: string): UrlLoad[] {
 
   const snapshotUrl = get('snapshot-url');
   if (snapshotUrl) {
-    // Without `snapshot-url-type` the operation follows the address's extension (.molx or .molj).
+    // `load.snapshot` is `session.open`. Without `snapshot-url-type` the operation follows the address's extension (.molx
+    // or .molj), else the content.
     const type = get('snapshot-url-type')?.toLowerCase();
     loads.push({ operation: 'load.snapshot', values: { url: snapshotUrl, ...(type ? { type } : {}) } });
   }
 
   const structureUrl = get('structure-url');
   if (structureUrl) {
+    // v5's default format is mmCIF (text, or binary at a .bcif address).
     loads.push({
       operation: 'load.url',
       values: {
         url: structureUrl,
         format: get('structure-url-format')?.toLowerCase() ?? 'mmcif',
-        binary: flag('structure-url-is-binary'),
+        ...binary('structure-url-is-binary'),
         ...structureOptions,
       },
     });
   }
 
-  // Both is an error, not a guess: the operation says so (v5 logs it and ignores both).
+  // Both is an error, not a guess: the operation says so (v5 logs it and ignores both). Without `mvs-format` the kind is
+  // read from the address, else the content (base64 data is an archive's).
   const mvsUrl = get('mvs-url');
   const mvsData = get('mvs-data');
   if (mvsUrl || mvsData) {
@@ -113,7 +119,7 @@ export function loadsFromUrl(search: string): UrlLoad[] {
       values: {
         ...(mvsUrl ? { url: mvsUrl } : {}),
         ...(mvsData ? { data: mvsData } : {}),
-        format: get('mvs-format')?.toLowerCase() ?? 'mvsj',
+        ...format('mvs-format'),
       },
     });
   }
@@ -135,15 +141,10 @@ export function loadsFromUrl(search: string): UrlLoad[] {
 
   const url = get('url');
   if (url) {
-    // v5 needs `url-format`; without it the format is read from the address.
+    // v5 needs `url-format`; without it the format is read from the address (`auto`, the operation's default).
     loads.push({
       operation: 'load.url',
-      values: {
-        url,
-        format: get('url-format')?.toLowerCase() ?? 'auto',
-        binary: flag('url-is-binary'),
-        ...structureOptions,
-      },
+      values: { url, ...format('url-format'), ...binary('url-is-binary'), ...structureOptions },
     });
   }
 

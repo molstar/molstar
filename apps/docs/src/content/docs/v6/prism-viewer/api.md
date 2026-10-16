@@ -107,6 +107,15 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                    |
 | `state`               | `get`, `select`, `visibility`, `update`, `apply`, `remove`, `action`: the raw state tree, by node selector. Lazy.                                                |
 
+The loaders share one vocabulary. Each that reads content (`load.data`, `load.volume`, `load.mvs`, `load.svs`,
+`session.open`) takes exactly one of `url`, `data` (text, `'base64,…'`, or bytes: a `Uint8Array` or an `ArrayBuffer`)
+and `file` (a `File`); none or several is `invalid`. `load.url` takes a `url` only, `load.files` several files. `format`
+is `'auto'` by default: Mol\*'s format registry reads it from the extension of the address or the file (`.bcif`,
+`.cif.gz`, `.mrc`, `.map`, `.ccp4`, `.dsn6`, `.mvsx`, …), else from the data itself, and an operation that cannot tell
+fails `invalid`, naming the formats it takes. `binary` is optional: left out, it follows from the extension or the
+format (BinaryCIF, CCP4 maps, DSN6, DCD, XTC, TRR are binary). `session.open` also takes a state server's `id`;
+`load.snapshot` is the same operation under the name the `snapshot-url` and `snapshot-id` URL parameters use.
+
 `packages/prism/viewer/_spec/operations.md` lists every operation with its parameters and flags, written from the code.
 
 Extensions add areas of their own, under their id. A script that imports an extension gets its area typed. See
@@ -117,8 +126,11 @@ Extensions add areas of their own, under their id. A script that imports an exte
 ```ts
 // Load, then show a ligand.
 await api.run('load.entry', { source: 'afdb', id: 'Q8W3K0' });
-await api.run('load.url', { url: 'https://example.org/model.cif', format: 'mmcif' });
-await api.run('load.mvs', { url: 'https://example.org/story.mvsj' });
+await api.run('load.url', { url: 'https://example.org/model.bcif' });   // format and binary from the extension
+await api.load.data({ data: bytes, format: 'bcif' });                    // or text, or a file: { file }
+await api.load.volume({ file: mapFile });                                // .ccp4, .mrc, .map, .dsn6, …
+await api.run('load.mvs', { url: 'https://example.org/story.mvsx' });
+await api.session.open({ url: 'https://example.org/scene.molx' });       // or data, a file, or a state server's id
 
 // Select and focus. Neither is a history step.
 await api.select.set({ target: 'A:248-256' });
