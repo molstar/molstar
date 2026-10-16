@@ -30,6 +30,7 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
 } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 import { headerLegend } from '../src/legend.js';
 import { StarsFormat, StarsRenderer } from '../src/testing/index.js';
 import { SizeUnit } from '../src/themes.js';
@@ -244,7 +245,7 @@ describe('legend groups', () => {
     const t = await opened(case9(), K);
     expect(listed(t.ctx).every((g) => g.items.length + g.ramps.length + g.sizes.length > 0)).toBe(true);
     t.ctx.dispose();
-    expect(legendGroups(createSeqViewer())).toEqual([]);
+    expect(legendGroups(createSeqViewer(DefaultSeqViewerSpec()))).toEqual([]);
   });
 });
 

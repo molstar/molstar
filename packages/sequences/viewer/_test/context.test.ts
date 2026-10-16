@@ -56,7 +56,7 @@ describe('construction and disposal', () => {
 
   it('dispose completes every state and event, clears every timer and frame, and is idempotent', () => {
     const scheduler = manualScheduler();
-    const ctx = createSeqViewer(undefined, { scheduler });
+    const ctx = createSeqViewer(DefaultSeqViewerSpec(), { scheduler });
     const completed: string[] = [];
     const watch = (name: string, s: { subscribe(o: { complete(): void }): unknown }) =>
       s.subscribe({ complete: () => completed.push(name) });
@@ -86,7 +86,7 @@ describe('construction and disposal', () => {
 
   it('a timer loop that reschedules after dispose is refused: nothing stays pending', () => {
     const scheduler = manualScheduler();
-    const ctx = createSeqViewer(undefined, { scheduler });
+    const ctx = createSeqViewer(DefaultSeqViewerSpec(), { scheduler });
     let fired = 0;
     const dwell = () => {
       fired++;
@@ -134,7 +134,7 @@ const fanoutOf = (ctx: object) => (ctx as { fanout: Fanout }).fanout;
 
 describe("the context's own subscriptions", () => {
   it('sync every manager, then emit; a throw is seqv.state.error and the rest still run', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const issues: SeqIssue[] = [];
     ctx.events.issue.subscribe((i) => i.code.startsWith('seqv.') && issues.push(i));
     const order: string[] = [];

@@ -20,6 +20,7 @@ import { case3 } from '../../core/_test/format/cases.js';
 import { trackPositions } from '../src/actions.js';
 import { GlyphShape, NO_COLOR } from '../src/draw/backend.js';
 import { createSeqViewer, type Theme, ThemeLocation } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 import {
   CellInk,
   cellInk,
@@ -461,7 +462,9 @@ describe('rules', () => {
   });
 
   it("EN1: a string field provider's name in an `in` clause; the rule found for a value serves its alpha", () => {
-    const registry = createSeqViewer().registry as ReturnType<typeof createSeqViewer>['registry'] & {
+    const registry = createSeqViewer(DefaultSeqViewerSpec()).registry as ReturnType<
+      typeof createSeqViewer
+    >['registry'] & {
       register(e: unknown): () => void;
     };
     registry.register({

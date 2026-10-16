@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { SectionAxisView } from '../src/axis.js';
 import { AxisGeometry, band, CHARS, DrawView, mark, placeRun, RectBatch, type ShownIndex } from '../src/draw/api.js';
 import { createSeqViewer, KernelRenderers } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 import { RangesRenderer } from '../src/renderers/ranges.js';
 
 import { layoutRuns, lineTable, prepareRun } from '../src/runs.js';
@@ -43,7 +44,7 @@ const MORE = ['pairs', 'rows', 'logo', 'matrix', 'map'];
 
 describe('renderer modules', () => {
   it('one module per kernel type and seqv:map, each its own /renderers/* subpath, all in DefaultRegistry', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     for (const name of [...MODULES, ...MORE]) {
       const m = (await LOADERS[name]()) as Record<string, unknown>;
       const entries = Object.values(m);

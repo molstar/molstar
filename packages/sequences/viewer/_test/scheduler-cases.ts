@@ -16,6 +16,7 @@
 // 2026-10-14; a browser's rAF hands its own new double each frame).
 
 import { createSeqViewer, type Scheduler } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 
 /** One frame and one timer at a time, fired by `tick`. */
 function fieldPort() {
@@ -55,7 +56,7 @@ function fieldPort() {
 /** A context over the fake port, and its step: a frame and a timer requested, then fired (`frames` stays 0). */
 export function looping() {
   const { port, tick } = fieldPort();
-  const ctx = createSeqViewer(undefined, { scheduler: port });
+  const ctx = createSeqViewer(DefaultSeqViewerSpec(), { scheduler: port });
   const out = { ctx, frames: 0, step: () => {} };
   const onFrame = () => {
     out.frames++;

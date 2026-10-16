@@ -63,12 +63,12 @@ const commandsOf = (ctx: SeqViewerContext) => ctx.commands as Commands;
 
 describe('dispatch (ported)', () => {
   it('a dispatch with no subscriber resolves', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     await expect(ctx.commands.dispatch(SeqCommands.SetView, { ref: 'v' })).resolves.toBeUndefined();
   });
 
   it('subscribers run in subscription order, awaited; the command is callable', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const Pulse = SeqCommand<{ n: number }>('lab:pulse', SimpleParamsSchema({}));
     const order: string[] = [];
     ctx.commands.subscribe(Pulse, async ({ n }) => {
@@ -81,7 +81,7 @@ describe('dispatch (ported)', () => {
   });
 
   it('the first rejection rejects the dispatch, later subscribers do not run, seqv.command.error once', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const issues = issuesOf(ctx);
     const later: string[] = [];
     const sub = ctx.commands.subscribe(SeqCommands.Focus, () => Promise.reject(new Error('no such ref')));
@@ -96,7 +96,7 @@ describe('dispatch (ported)', () => {
   });
 
   it('dispose rejects pending dispatches and every later one, run included', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     ctx.commands.subscribe(SeqCommands.SetView, () => new Promise(() => {}));
     const pending = ctx.commands.dispatch(SeqCommands.SetView, { ref: 'v' });
     ctx.dispose();

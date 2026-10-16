@@ -25,6 +25,7 @@ import {
   type SeqViewerContext,
   type Theme,
 } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 import type { PairsState } from '../src/prepare.js';
 import { Arcs } from '../src/renderer-helpers.js';
 import type { MatrixState } from '../src/rows.js';
@@ -50,7 +51,7 @@ const byName = (name: string) => KernelRenderers.find((r) => r.name === name) as
 
 describe('the entries', () => {
   it('DefaultRegistry registers one per kernel type and seqv:map, each paired with its format entry', () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const types = ctx.registry.svs.list('layerTypes').map((e) => e.name);
     expect(ctx.registry.list('renderers').map((r) => r.name)).toEqual(KernelRenderers.map((r) => r.name));
     expect(types.filter((t) => !ctx.registry.get('renderers', t))).toEqual([]);

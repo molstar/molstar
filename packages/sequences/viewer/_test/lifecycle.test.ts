@@ -19,6 +19,7 @@ import {
   type NodeKind,
   type SeqViewerContext,
 } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 import { Issues } from '../src/ui.js';
 import { domMoved, manualLoaders, patch, smallDoc } from './graph-fixtures.js';
 
@@ -134,7 +135,7 @@ describe('superseded work', () => {
 
   it('a preview cleared before its run settles loads nothing more', async () => {
     const io = manualLoaders();
-    const ctx = createSeqViewer(undefined, { loaders: io.loaders });
+    const ctx = createSeqViewer(DefaultSeqViewerSpec(), { loaders: io.loaders });
     const b = createSeqViewSpec();
     b.data.sequence({ ref: 's', source: { uri: 'https://x.test/a.fa', format: 'fasta' } });
     b.view({ ref: 'v', label: 'V' }).track().letters();

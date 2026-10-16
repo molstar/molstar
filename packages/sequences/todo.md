@@ -286,17 +286,23 @@ source's `coordinate_system` and a layer's `of` are not covered. _Trigger:_ a ch
 
 Known, measured, unowned: whoever next touches the code takes one, and its commit says so.
 
-- **No slim build: everything is reachable from the default spec** (measured 2026-10-15, the Prism viewer's sequence
-  chunk, minified): Seq\* is about 1.2 MB there, core ~530 kB (format 229 kB: `load/compile` 25 kB, `tables/svs-tree` 22
-  kB, palettes ~26 kB, validate 10 kB; model 165 kB; algorithms 57 kB; query ~60 kB with its runtime) and viewer ~650 kB
-  (draw 139 kB, renderers 66 kB, layout 30 kB, streams and the stream layer 35 kB, gestures 21 kB). Both packages
-  declare `sideEffects`, but `DefaultSeqViewerSpec` registers every node kind, renderer, column, theme, navigator and
-  SVS table (`DefaultRegistry`), and the format compiles every layer kind, so a bundler keeps all of it. A slim build
-  needs explicit composition, as Mol\*'s plugin in v6: an empty base registry and parts a host adds (a
-  letters-and-tracks set for Prism: no streaming sources, no alignments or dot plots, no SeqQL runtime unless asked),
-  with the compile, validate and resolve steps reaching a kind only through its registration. Measure with the Prism
-  app's metafile (`node scripts/esbuild/app.mjs apps/prism-viewer --prd --metafile`). _Trigger:_ a host that embeds
-  Seq\* for a narrow use (the Prism viewer's band) and wants its chunk smaller.
+- **No slim build yet: a partial spec bundles most of Seq\* anyway** (measured 2026-10-16 with esbuild, minified, a
+  probe that calls `createSeqViewer` alone). The default spec is 1,040 kB of Seq\* (viewer 533, core 507); the Prism
+  viewer's sequence chunk 1,183 kB. Done (2026-10-16): `createSeqViewer` takes its spec (no default that imported
+  `DefaultSeqViewerSpec`), `defineBehavior` and the viewer's `own` are `@__NO_SIDE_EFFECTS__` and `DefaultRegistry` is
+  built in a pure call, so a behavior or entry no spec lists is left out: an empty spec went from 992 to 721 kB (viewer
+  283, core 438). What is left is the floor every viewer pays, and two steps remain:
+  - **Parts** (small): `DefaultRegistry` and the core's `KernelRegistry` as named parts a host composes (the layer types
+    with their renderers by family: letters and tracks; alignments, pairs, logos, matrices, dot plots; the streaming
+    sources), and the default behaviors split the same way (dot-plot select, the ring window). A Prism-like set (every
+    node kind, five renderers, every behavior) measured 977 kB: about 60 kB from the viewer's parts, ~70 kB more once
+    the core's splits. A document needing a part not registered loads it (a host's loader for the rest).
+  - **The floor** (larger): the format's compile reaches the aligners (`algorithms/`: biomsa, myers; ~57 kB) and SeqQL
+    (`query/` and `model/query/`; ~100 kB) directly, the viewer's context always makes the stream manager (`streams.ts`,
+    `stream-layer.ts`, `stream-patches.ts`; ~40 kB), and the palettes come whole (~41 kB): each through registration
+    instead, ~240 kB of the 721. Measure with `node scripts/esbuild/app.mjs apps/prism-viewer --prd --metafile` and a
+    probe entry (`createSeqViewer({ registry: [], behaviors: [] })`). _Trigger:_ the Prism viewer's band (David asked,
+    2026-10-16).
 
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates

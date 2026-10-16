@@ -12,10 +12,11 @@
 import { SimpleParamsSchema } from '@molstar/seq-core/format';
 import { describe, expect, it, vi } from 'vitest';
 import { createSeqViewer, SeqRegistrationError, ViewerIssueCodes, ViewerLayerTypes } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/spec.js';
 
 describe('seqv', () => {
   it("DefaultRegistry registers the viewer's issue codes and seqv:map", () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     expect(ctx.registry.svs.get('layerTypes', 'seqv:map')).toBe(ViewerLayerTypes.layerTypes?.[0]);
     expect(ctx.registry.svs.get('issueCodes', 'seqv.patch.skipped')?.severity).toBe('warning');
     expect(ctx.registry.svs.list('issueCodes').filter((c) => c.code.startsWith('seqv.')).length).toBe(
@@ -24,7 +25,7 @@ describe('seqv', () => {
   });
 
   it('an extension under seqv is refused, nothing registered', () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const version = ctx.registry.svs.version;
     const ext = {
       svs: {
@@ -47,7 +48,7 @@ describe('seqv', () => {
     expect(ctx.registry.svs.get('layerTypes', 'seqv:map')?.name).toBe('seqv:map');
     ctx.dispose();
     // A copy of its entries is not: the brand does not spread.
-    const other = createSeqViewer();
+    const other = createSeqViewer(DefaultSeqViewerSpec());
     const copy = { ...ViewerIssueCodes, issueCodes: [{ code: 'seqv.copied', severity: 'error' as const }] };
     expect(() => other.register({ svs: copy })).toThrow(SeqRegistrationError);
     other.dispose();

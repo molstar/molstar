@@ -85,7 +85,9 @@ export const SeqViewerSpec = {
  * spec with one and its context with the other. Not enumerable, so a spread copy (an extension's) is not the viewer's.
  */
 const OWN = Symbol.for('seqstar.viewer.seqv');
-const own = (e: SvsRegistryEntry): SvsRegistryEntry => Object.defineProperty(e, OWN, { value: true });
+// Pure (it marks the entry it is given): entries no spec registers are left out of a bundle.
+const own = /* @__NO_SIDE_EFFECTS__ */ (e: SvsRegistryEntry): SvsRegistryEntry =>
+  Object.defineProperty(e, OWN, { value: true });
 /** Whether `e` is one of the viewer's own format entries, from any copy of the viewer. */
 export const isViewerOwn = (e: SvsRegistryEntry): boolean => (e as { [OWN]?: boolean })[OWN] === true;
 
@@ -123,7 +125,8 @@ export const ViewerLayerTypes: SvsRegistryEntry = own({
  * Every built-in, both halves; the phases that build renderers, themes and the rest add theirs. The viewer owns `seqv`:
  * its registry passes `ViewerIssueCodes` and `ViewerLayerTypes` to the format's `register` as its own (registry.ts).
  */
-export const DefaultRegistry: SeqViewerRegistryEntry = {
+// Built in a pure call, so a host that does not register it (a partial spec) bundles none of it.
+export const DefaultRegistry: SeqViewerRegistryEntry = /* @__PURE__ */ (() => ({
   svs: [KernelRegistry, MvsRegistry, ViewerIssueCodes, ViewerLayerTypes],
   nodeKinds: DefaultNodeKinds,
   navigators: DefaultNavigators,
@@ -134,7 +137,7 @@ export const DefaultRegistry: SeqViewerRegistryEntry = {
   labels: DefaultLabelProviders,
   commands: Object.values(SeqCommands),
   actions: [...DefaultActions, ...BookmarkActions],
-};
+}))();
 
 /** The default behaviors, in `DefaultSeqViewerSpec` order (seqspec:viewer#behaviors). */
 export const SeqViewerBehaviors = {
