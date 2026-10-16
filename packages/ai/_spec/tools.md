@@ -7,7 +7,7 @@ How a host declares tools, what the model reads back, and how they become the ha
 
 | File          | What                                                                                      |
 | ------------- | ----------------------------------------------------------------------------------------- |
-| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`, `definitionOf`                               |
+| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`                                               |
 | `shape.ts`    | `FieldShape`, `ObjectShape`, `ArgsOf`, `normalize` (argument repair)                      |
 | `input.ts`    | `ToolInput` (shape, JSON Schema, `parse`), `shapeInput`; `zod.ts`: `zodInput`, `verbatim` |
 | `result.ts`   | `ToolResult`, `render`, `failed`, `toFrame`, `Effect`                                     |

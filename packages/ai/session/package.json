@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* AI: An agent session over the harness: turns, resume, stop; the default drive (approval, schedules, retries, budgets, repair); message composition; compaction (./compaction); one-off runs",
+  "description": "Mol* AI: An agent session over the harness: turns, resume, stop; the default drive (approval, schedules, retries, budgets, repair); message composition; compaction (./compaction)",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"

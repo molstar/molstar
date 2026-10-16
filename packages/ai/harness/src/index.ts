@@ -17,4 +17,3 @@ export { defaultDrive, drive } from './drive/index.js';
 export { buildMove, emptyHead } from './head/index.js';
 export { createHarnessHost, type HostOptions } from './host/index.js';
 export { createRunner } from './runner/index.js';
-export { callTool } from './tools/call.js';

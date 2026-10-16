@@ -99,8 +99,7 @@ Defaults over `defaultDrive`, each replaceable (`drive` option):
 
 **Budget**: tokens by kind, the same for every model, scaled with the compaction trigger (80% of the window): tool calls
 60 → 200, uncached input max(500k, 4×trigger) → max(2M, 20×), cache reads max(5M, 40×) → max(25M, 200×), output 200k →
-1M. **Prices** are the app's (a table per model); credits are a display unit (1 credit = 1,000 uncached input tokens on
-a reference model), never a limit.
+1M.
 
 ## 6. Compaction (`@molstar/ai-session/compaction`)
 
@@ -114,7 +113,4 @@ writes (`session:guidance`, `tools:definitions`, `session:carry-over`, `session:
 
 ## 7. One-off runs
 
-`runOnce({ models, model, guidance, toolkit, api, settlement, prompt, signal, timeoutMs })`: a throw-away session with
-terminal tools (`terminalToolFor<Api>()(settlement, { id, input, modules, run })`) whose first call settles the run with
-its value and stops the session (the command menu's assistant proposing a filled command). It returns
-`{ status: settled | completed | failed | timeout | aborted, value?, text, error? }` and never throws.
+One-off runs were removed on 2026-10-16.

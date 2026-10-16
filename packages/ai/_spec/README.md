@@ -6,16 +6,16 @@ working on or with the code without reading all of it: what each package is, how
 on, and where the code is. Why the design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its
 sections (`harness.md §6`, `tools-and-session.md §5`), and those numbers are fixed. The code is the truth for how.
 
-| File                         | What it covers                                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- |
-| [harness.md](harness.md)     | the engine: journal, event log, Execution, runner, steps, decisions, the tool handler, storage      |
-| [models.md](models.md)       | `Message`, the `ModelAdapter` port, the adapters, the model catalog                                 |
-| [tools.md](tools.md)         | `@molstar/ai-tools`: defining tools, field shapes, results, the toolkit (skills), bindings          |
-| [session.md](session.md)     | `@molstar/ai-session`: `AgentSession`, the drive's policies, budgets, compaction, `runOnce`, prices |
-| [trace.md](trace.md)         | `@molstar/ai-trace`: the trace read from a harness, for the Inspector                               |
-| [fibers.md](fibers.md)       | `@molstar/ai-fibers`: durable append-only streams (transcripts), separate from the harness          |
-| [narration.md](narration.md) | `@molstar/ai-narration`: text to speech and audio encoding                                          |
-| [testing.md](testing.md)     | the conformance suite, the test doubles, how to test a change                                       |
+| File                         | What it covers                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| [harness.md](harness.md)     | the engine: journal, event log, Execution, runner, steps, decisions, the tool handler, storage |
+| [models.md](models.md)       | `Message`, the `ModelAdapter` port, the adapters, the model catalog                            |
+| [tools.md](tools.md)         | `@molstar/ai-tools`: defining tools, field shapes, results, the toolkit (skills), bindings     |
+| [session.md](session.md)     | `@molstar/ai-session`: `AgentSession`, the drive's policies, budgets, compaction               |
+| [trace.md](trace.md)         | `@molstar/ai-trace`: the trace read from a harness, for the Inspector                          |
+| [fibers.md](fibers.md)       | `@molstar/ai-fibers`: durable append-only streams (transcripts), separate from the harness     |
+| [narration.md](narration.md) | `@molstar/ai-narration`: text to speech and audio encoding                                     |
+| [testing.md](testing.md)     | the conformance suite, the test doubles, how to test a change                                  |
 
 ## Packages and layers
 
@@ -32,11 +32,11 @@ ai-narration (nothing of the workspace)
 | Package                      | Holds                                                                                                             | Imports of the workspace                                |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `@molstar/ai-agent`          | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage` | none                                                    |
-| `@molstar/ai-harness`        | the contracts (`src/contracts/`), the host protocol, the runner, `defaultDrive`/`drive`, `callTool`               | `ai-agent`                                              |
+| `@molstar/ai-harness`        | the contracts (`src/contracts/`), the host protocol, the runner, `defaultDrive`/`drive`                           | `ai-agent`                                              |
 | `@molstar/ai-components`     | storage (memory; IndexedDB on a durable core); the in-process supervisor; the fibers' IndexedDB rows              | `ai-agent`, `ai-harness`, `ai-fibers`; `node:*` allowed |
 | `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `./model-catalog` (no dependencies)       | `ai-agent`                                              |
 | `@molstar/ai-tools`          | `defineTool`, field shapes (`./zod` for zod input), results, bindings, repeated reads, nested tools, the toolkit  | `ai-agent`, `ai-harness`; zod only here                 |
-| `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`, `runOnce`, prices                      | `ai-agent`, `ai-harness`, `ai-components`, `ai-tools`   |
+| `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`                                         | `ai-agent`, `ai-harness`, `ai-components`, `ai-tools`   |
 | `@molstar/ai-trace`          | `readTrace` and the views the Inspector draws; `./format`                                                         | `ai-agent`, `ai-harness`                                |
 | `@molstar/ai-fibers`         | the fiber kernel and host, its own storage port                                                                   | none                                                    |
 | `@molstar/ai-conformance`    | `runHarnessConformance`; `./testing` (clock, ids, scripted model and tools); `./fibers`                           | `ai-agent`, `ai-harness`, `ai-fibers`                   |

@@ -24,7 +24,6 @@ export {
 export type { CatchUp, TurnInput } from './compose.js';
 export {
   type BudgetPolicy,
-  ceilingsOf,
   DEFAULT_PROVIDER_NAMES,
   DENIED,
   type DriveHost,
@@ -34,16 +33,6 @@ export {
   plainFailure,
   turnBudget,
 } from './drive.js';
-export {
-  type OnceResult,
-  type RunOnceOptions,
-  runOnce,
-  Settlement,
-  type TerminalResult,
-  type TerminalSpec,
-  terminalToolFor,
-} from './once.js';
-export { creditsOf, dollarsOf, type ModelPrice, type PriceTable } from './prices.js';
 export { AgentSession, type AgentSessionOptions, type ModelSource, type SessionThinking } from './session.js';
 export type {
   ApprovalDecision,

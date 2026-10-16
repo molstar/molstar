@@ -14,8 +14,6 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 | `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                           |
 | `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`          |
 | `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`) |
-| `once.ts`     | `runOnce`, `Settlement`, `terminalToolFor`                                                               |
-| `prices.ts`   | `PriceTable`, `dollarsOf`, `creditsOf`                                                                   |
 
 ## Making one
 
@@ -97,8 +95,7 @@ the session's.
 
 **Budget** (`turnBudget(trigger, maxToolCalls)`): tokens by kind, the same for every model, scaled with the compaction
 trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached input max(500k, 4×trigger) → max(2M,
-20×trigger), cache reads max(5M, 40×trigger) → max(25M, 200×trigger), output 200k → 1M. `ceilingsOf` gives the ceilings
-for display.
+20×trigger), cache reads max(5M, 40×trigger) → max(25M, 200×trigger), output 200k → 1M.
 
 ## Compaction (`@molstar/ai-session/compaction`)
 
@@ -116,21 +113,6 @@ for display.
 - **What it keeps is the host's**: `CompactionDomain` (`isRequest`, `requestText?`, `coreToolIds`, `groups`, `groupsIn`,
   `groupEntry`, `memory?`, `pins?`, `wishSources?`); the session builds it from the toolkit (`toolkitDomain`) and merges
   `compactionDomain`.
-
-## One-off runs (`once.ts`)
-
-`runOnce({ models, model?, guidance, toolkit, api, prompt, settlement?, signal?, timeoutMs = 45_000, maxToolCalls = 8, retries = 1, thinking? })`
-→ `{ status: settled | completed | failed | timeout | aborted, value?, text, error? }`; never throws for model or tool
-failures. A throw-away in-memory session with every tool loaded; a **terminal tool**
-(`terminalToolFor<Api>()(settlement, { id, input, modules, run })`, `run` returning `{ ok: true, value }`) settles the
-run with its value and stops it (the command menu's assistant proposing a filled command).
-
-## Prices (`prices.ts`)
-
-`PriceTable` (the app's, by model id: dollars per million tokens for input, cached input, cache writes, output);
-`dollarsOf(table, model, usage)`, `creditsOf(table, reference, model, usage)` (1 credit = 1,000 uncached input tokens on
-the reference model). Credits are a display unit, never a limit. The model catalog has its own `dollarsOf(price, usage)`
-for one entry.
 
 ## Gotchas
 

@@ -31,7 +31,7 @@ export { toolSchedule } from './schedule.js';
 export type { ArgsOf, FieldShape, ObjectShape, ValueOf } from './shape.js';
 export { normalize } from './shape.js';
 export type { DirectRun, RunInput, ToolSpec } from './tool.js';
-export { defineTool, definitionOf, directRun, toolFor } from './tool.js';
+export { defineTool, directRun, toolFor } from './tool.js';
 export type {
   DisclosableEntry,
   DisclosureApi,

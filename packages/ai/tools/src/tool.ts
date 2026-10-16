@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, ToolDefinition } from '@molstar/ai-agent';
+import type { Json } from '@molstar/ai-agent';
 import { type ArgsFrom, type InputSpec, inputOf } from './input.js';
 import type { Nest } from './nest.js';
 import { type CallIdentity, type Projection, registered, type ToolRegistration } from './registry.js';
@@ -127,9 +127,4 @@ const DIRECT = new WeakMap<object, DirectRun<never>>();
  */
 export function directRun<Api>(registration: ToolRegistration<Api>): DirectRun<Api> | undefined {
   return DIRECT.get(registration) as DirectRun<Api> | undefined;
-}
-
-/** A tool's definition, its input schema made once, at definition time: the JSON Schema the model sees. */
-export function definitionOf(id: string, description: string, input: InputSpec): ToolDefinition {
-  return { tool: { id }, name: id, description, inputSchema: inputOf(input).jsonSchema };
 }

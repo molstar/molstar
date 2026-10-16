@@ -34,16 +34,6 @@ export interface BudgetPolicy {
   readonly ceiling: Limits;
 }
 
-/** A turn's budget ceilings by kind of token, as the trace shows them (also read with no session: headless). */
-export function ceilingsOf(budget: BudgetPolicy): Partial<Record<'uncachedInput' | 'cacheRead' | 'output', number>> {
-  const { uncachedInput, cacheRead, output } = budget.ceiling;
-  return {
-    ...(uncachedInput !== undefined ? { uncachedInput } : {}),
-    ...(cacheRead !== undefined ? { cacheRead } : {}),
-    ...(output !== undefined ? { output } : {}),
-  };
-}
-
 /**
  * A turn's budget, in tokens by kind (the same for every model; credits are shown, never a limit): backstops against
  * a runaway turn, scaled with the compaction trigger (`trigger`, from the model's window), as a turn resends its

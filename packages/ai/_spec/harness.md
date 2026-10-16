@@ -6,21 +6,21 @@ surviving reloads, crashes and runners that move. Mechanism only; every choice i
 
 ## Files
 
-| Path (`harness/src/`)     | What                                                                                                                       |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `contracts/records.ts`    | every stored record: `Execution`, `ActiveTurn`, `Head`/`HeadRecord`/`Segment`, events, `Usage`, `Limits`                   |
-| `contracts/ports.ts`      | `HarnessHost`, `HarnessReader`, `HarnessClient`, `RunnerPort`, `Move`, `HeadEdit`, `HarnessError`                          |
-| `contracts/drive.ts`      | `Decisions` (each kind's payload and answers), `Drive`, `DriveContext`, `DriveHandlers`                                    |
-| `contracts/runner.ts`     | `RunnerOptions`, `Runner`, `ToolBindings`/`ToolHandler`/`ToolFrame`, `RunContext`, `RunSpec`, `Clock`, `IdSource`          |
-| `contracts/storage.ts`    | `HarnessStorage`, `StorageTx`, `EventLog`, `RecordStore`                                                                   |
-| `contracts/observe.ts`    | `HarnessObservable`, `Observation`                                                                                         |
-| `contracts/supervisor.ts` | `Supervisor`, `LaunchReport`, `SupervisorPolicy`                                                                           |
-| `host/`                   | `createHarnessHost`: the protocol operations over storage (`client.ts`, `runner.ts`, `writer.ts`)                          |
-| `runner/`                 | `createRunner` (`index.ts`: claim, serve, commit), `model.ts` (model step), `run.ts` (shared step ops), `state.ts`         |
-| `tools/`                  | `plan.ts` (bind calls to definitions), `step.ts` (the tools step), `journal.ts` (a tool's journal), `call.ts` (`callTool`) |
-| `nested/`                 | `nest`: nested runs inside a call                                                                                          |
-| `drive/`                  | `defaultDrive`, `drive(handlers, fallback)`, `legal`                                                                       |
-| `head/`                   | `buildMove`, `emptyHead`: the segment scheme                                                                               |
+| Path (`harness/src/`)     | What                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `contracts/records.ts`    | every stored record: `Execution`, `ActiveTurn`, `Head`/`HeadRecord`/`Segment`, events, `Usage`, `Limits`           |
+| `contracts/ports.ts`      | `HarnessHost`, `HarnessReader`, `HarnessClient`, `RunnerPort`, `Move`, `HeadEdit`, `HarnessError`                  |
+| `contracts/drive.ts`      | `Decisions` (each kind's payload and answers), `Drive`, `DriveContext`, `DriveHandlers`                            |
+| `contracts/runner.ts`     | `RunnerOptions`, `Runner`, `ToolBindings`/`ToolHandler`/`ToolFrame`, `RunContext`, `RunSpec`, `Clock`, `IdSource`  |
+| `contracts/storage.ts`    | `HarnessStorage`, `StorageTx`, `EventLog`, `RecordStore`                                                           |
+| `contracts/observe.ts`    | `HarnessObservable`, `Observation`                                                                                 |
+| `contracts/supervisor.ts` | `Supervisor`, `LaunchReport`, `SupervisorPolicy`                                                                   |
+| `host/`                   | `createHarnessHost`: the protocol operations over storage (`client.ts`, `runner.ts`, `writer.ts`)                  |
+| `runner/`                 | `createRunner` (`index.ts`: claim, serve, commit), `model.ts` (model step), `run.ts` (shared step ops), `state.ts` |
+| `tools/`                  | `plan.ts` (bind calls to definitions), `step.ts` (the tools step), `journal.ts` (a tool's journal)                 |
+| `nested/`                 | `nest`: nested runs inside a call                                                                                  |
+| `drive/`                  | `defaultDrive`, `drive(handlers, fallback)`, `legal`                                                               |
+| `head/`                   | `buildMove`, `emptyHead`: the segment scheme                                                                       |
 
 ## The data
 
@@ -148,8 +148,6 @@ how a drive compacts with a model).
   never `main` (`pointer-busy`); staged until the step commits.
 - **Contributions**: messages a result adds after the results message (a skill's guidance, tool definitions); one
   identical to an entry already in the head is not appended again.
-- **`callTool(handler, { definition, arguments, key, signal })`** runs a handler without a harness (no journal, no
-  nested runs), same frame protocol.
 
 ## Nested runs (`nested/index.ts`)
 
