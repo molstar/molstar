@@ -179,4 +179,19 @@ describe('pages', () => {
     plain.toggleRail();
     expect(plain.railShown.value).toBe(true);
   });
+
+  it('keeps a tab open when it is registered again before the old one goes (a lazy stub replaced by the real tab)', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('home')]);
+    const removeStub = shell.registerTabs([tab('tree')]);
+    shell.show('tree');
+    const seen: (string | undefined)[] = [];
+    const sub = shell.dock('right').active.subscribe((t) => seen.push(t?.id));
+    // The real tab comes first, then the stub goes: the panel never closes or falls back to another tab.
+    shell.registerTabs([tab('tree', { title: 'State tree' })]);
+    removeStub();
+    sub.unsubscribe();
+    expect(seen.every((id) => id === 'tree')).toBe(true);
+    expect(shell.dock('right').active.value?.title).toBe('State tree');
+  });
 });

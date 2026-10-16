@@ -355,16 +355,21 @@ export class ExtensionHost {
       // Checked before anything changes (its commands once its operations exist, in `#activate`).
       checkAgainstStub(lazy, ext);
       checkContributes(ext);
-      // The stub's parts go and the real ones come; a failure puts the stub back.
-      entry.ui?.();
+      // The stub's parts go and the real ones come; a failure puts the stub back. Its views stay until the real ones are
+      // in: a tab the real one replaces keeps its place and stays open (the panel does not close and open again).
+      const stubUI = entry.ui;
       entry.ui = undefined;
       await runAll(entry.stub);
-      if (this.#disposed) return false;
+      if (this.#disposed) {
+        stubUI?.();
+        return false;
+      }
       let parts: Disposer[];
       try {
         parts = await this.#activate(ext, lazy);
         // Disposed while it activated: its parts are undone here, as `dispose` no longer holds this entry.
         if (this.#disposed) {
+          stubUI?.();
           await runAll(parts);
           return false;
         }
@@ -383,14 +388,19 @@ export class ExtensionHost {
           throw new Error(`${lazy.title}'s stub declares other flags than it has: ${differing.join(', ')}`);
         }
       } catch (error) {
-        if (this.#disposed) return false;
+        if (this.#disposed) {
+          stubUI?.();
+          return false;
+        }
+        // The stub back: its operations and commands again; its views never went.
         this.#installStub(entry);
-        this.#mountUI(entry);
+        if (stubUI) entry.ui = stubUI;
+        else this.#mountUI(entry);
         throw error;
       }
       entry.disposers.push(...parts);
       entry.ext = ext;
-      this.#mountUI(entry);
+      this.#mountUI(entry, stubUI);
       entry.status.set('loaded');
       this.#loaded.set([...this.#loaded.value, ext.id]);
       this.#activated.next(ext.id);
@@ -405,9 +415,13 @@ export class ExtensionHost {
     }
   }
 
-  #mountUI(entry: Entry): void {
+  /** Registers an entry's views; `replaces` (a stub's views) goes once they are in (or if they fail). */
+  #mountUI(entry: Entry, replaces?: () => void): void {
     const port = this.#port;
-    if (!port || entry.ui) return;
+    if (!port || entry.ui) {
+      replaces?.();
+      return;
+    }
     const { overrides } = this.#deps;
     if (entry.ext?.ui) {
       const ui = entry.ext.ui;
@@ -427,8 +441,10 @@ export class ExtensionHost {
             rows: overrides.parts(checked.rows),
             toolbar: overrides.parts(checked.toolbar),
           });
+          replaces?.();
         })
         .catch((e) => {
+          replaces?.();
           if (!removed) this.#failed.next({ id: entry.id, message: `Its views did not load: ${messageOf(e)}` });
         });
       entry.ui = () => {
@@ -438,7 +454,8 @@ export class ExtensionHost {
     } else if (entry.lazy && !entry.ext) {
       const stub = { ...entry.lazy.stub, parts: entry.lazy.stub.parts.filter((p) => !overrides.removes(p.id)) };
       entry.ui = port.registerStub(entry.id, stub, () => this.load(entry.id));
-    }
+      replaces?.();
+    } else replaces?.();
   }
 }
 
