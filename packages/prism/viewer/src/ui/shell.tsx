@@ -425,8 +425,13 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'xr',
             place: 'canvas',
             group: 'rendering',
+            // `options.ui.xr` (viewer-spec.md §2.2): auto, only where WebXR is; always, with a note where it is not.
             visible: combineLatest([stackData, xr.state]).pipe(
-              map(([data, x]) => data && x.supported && person.describe('canvas.xr') !== undefined),
+              map(([data, x]) => {
+                const mode = core.options.ui.xr;
+                if (!data || mode === 'never') return false;
+                return mode === 'always' ? true : x.supported && person.describe('canvas.xr') !== undefined;
+              }),
               distinctUntilChanged(),
             ),
             icon: 'glasses',
@@ -435,7 +440,16 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               map((x) => x.presenting),
               distinctUntilChanged(),
             ),
-            run: () => void person.canvas.xr({ on: !xr.state.value.presenting }),
+            run: () => {
+              if (!xr.state.value.supported) {
+                managers.notifications.post(
+                  'XR is not available: this browser or device does not support WebXR.',
+                  'warning',
+                );
+                return;
+              }
+              void person.canvas.xr({ on: !xr.state.value.presenting });
+            },
           },
         ]),
       ),

@@ -24,6 +24,7 @@ const Sections: readonly { id: CanvasSection; title: string; icon: IconName }[] 
   { id: 'lighting', title: 'Lighting & effects', icon: 'lightbulb' },
   { id: 'camera', title: 'Camera', icon: 'camera' },
   { id: 'clipping', title: 'Clipping', icon: 'scan' },
+  { id: 'xr', title: 'XR', icon: 'glasses' },
   { id: 'advanced', title: 'Advanced', icon: 'sliders-horizontal' },
 ];
 

@@ -45,19 +45,19 @@ state behind a row: [state.md](state.md). The code is the truth for how.
 
 ## 4. The canvas
 
-| v5                                                    | Prism                                                                         | API                                                  |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
-| camera reset, zoom, orient, reset axes                | toolbar Reset menu                                                            | `camera.*`                                           |
-| screenshot                                            | Export › Image                                                                | `export.image`                                       |
-| camera info, state import/export                      | Export › Camera, Export › Session & state                                     | `camera.get/set`, `export.viewport`, `load.viewport` |
-| canvas settings                                       | Canvas settings card                                                          | `canvas.*`                                           |
-| illumination, XR                                      | Canvas card; toolbar Rendering items (XR only where WebXR is)                 | `canvas.illumination`, `.xr`                         |
-| expand, fullscreen                                    | toolbar `expand`                                                              | `view.expand`, `.fullscreen`                         |
-| toggle controls                                       | the rail; `ui.collapsed`                                                      | options                                              |
-| animation, snapshot stepper, description, transitions | Animation card; playback card (opens by itself for a story)                   | `animation.*`, `snapshot.*`, `trajectory.*`          |
-| snapshot markdown (`markdownExtensions`), audio       | the playback card's `Markdown` with a host; audio bar                         | `snapshot.link`                                      |
-| hover labels                                          | hover label at the cursor                                                     | —                                                    |
-| toasts, task progress, log                            | status column (`sources/toasts.ts`), status pill, busy overlay, History's Log | —                                                    |
+| v5                                                    | Prism                                                                                                                                           | API                                                  |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| camera reset, zoom, orient, reset axes                | toolbar Reset menu                                                                                                                              | `camera.*`                                           |
+| screenshot                                            | Export › Image                                                                                                                                  | `export.image`                                       |
+| camera info, state import/export                      | Export › Camera, Export › Session & state                                                                                                       | `camera.get/set`, `export.viewport`, `load.viewport` |
+| canvas settings                                       | Canvas settings card                                                                                                                            | `canvas.*`                                           |
+| illumination, XR                                      | Canvas card (XR section: the XRManager params); toolbar Rendering items (XR per `ui.xr`: `auto`, `always`, `never`); not yet tried on a headset | `canvas.illumination`, `.xr`                         |
+| expand, fullscreen                                    | toolbar `expand`                                                                                                                                | `view.expand`, `.fullscreen`                         |
+| toggle controls                                       | the rail; `ui.collapsed`                                                                                                                        | options                                              |
+| animation, snapshot stepper, description, transitions | Animation card; playback card (opens by itself for a story)                                                                                     | `animation.*`, `snapshot.*`, `trajectory.*`          |
+| snapshot markdown (`markdownExtensions`), audio       | the playback card's `Markdown` with a host; audio bar                                                                                           | `snapshot.link`                                      |
+| hover labels                                          | hover label at the cursor                                                                                                                       | —                                                    |
+| toasts, task progress, log                            | status column (`sources/toasts.ts`), status pill, busy overlay, History's Log                                                                   | —                                                    |
 
 ## 5. Panels and settings
 

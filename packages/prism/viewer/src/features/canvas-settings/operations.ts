@@ -33,6 +33,8 @@ export const CanvasSections = {
   }),
   camera: Canvas3DParams.camera,
   clipping: PD.Group({ ...Canvas3DParams.cameraClipping.params }),
+  // WebXR's settings (Canvas3D's `xr`, the classic XRManager's params): used the next time the headset view is entered.
+  xr: Canvas3DParams.xr,
   advanced: PD.Group({
     illumination: Canvas3DParams.illumination,
     multiSample: Canvas3DParams.multiSample,
@@ -76,6 +78,8 @@ export function sectionValues(section: CanvasSection, p: Canvas3DProps): Record<
       return p.camera as unknown as Record<string, unknown>;
     case 'clipping':
       return p.cameraClipping as unknown as Record<string, unknown>;
+    case 'xr':
+      return p.xr as unknown as Record<string, unknown>;
     case 'advanced':
       return {
         illumination: p.illumination,
@@ -104,6 +108,8 @@ export function sectionProps(section: CanvasSection, v: Record<string, any>): Pa
       return { camera: v as never };
     case 'clipping':
       return { cameraClipping: v as never };
+    case 'xr':
+      return { xr: v as never };
     case 'advanced':
       return {
         illumination: v.illumination,

@@ -110,6 +110,15 @@ export const PrismViewerOptions = {
       ],
       { description: 'The light behind the empty canvas’s mark' },
     ),
+    /**
+     * The toolbar's XR button (classic `PluginConfig.Viewport.ShowXR`): `auto` only where WebXR is supported, `always`
+     * shows it everywhere (where it is not supported, it says so), `never` leaves it out.
+     */
+    xr: PD.Select<'auto' | 'always' | 'never'>('auto', [
+      ['auto', 'Where supported'],
+      ['always', 'Always'],
+      ['never', 'Never'],
+    ]),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

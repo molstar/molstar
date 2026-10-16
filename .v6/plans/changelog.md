@@ -376,3 +376,8 @@ the [API change ledger](breaking-v6-changes.md).
 
 - Duplicate command ids throw when registered, naming the id (they replaced the earlier command silently).
 - `ReactiveModel` has a `mountSignal`: an `AbortSignal` that aborts when the mount ends.
+
+## Prism XR
+
+- The Canvas card has an XR section (the headset view's resolution scale, scene size, post-processing and minimum target distance).
+- `options.ui.xr` (`auto`, `always`, `never`; classic `ShowXR`) decides the toolbar's XR button: with `always` it shows where WebXR is not too, and clicking says so.
