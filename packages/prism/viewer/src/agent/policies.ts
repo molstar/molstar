@@ -103,7 +103,7 @@ export function mayAsk(def: OperationDefinition<any, any>): boolean {
 export interface AgentPolicy {
   /** Whether a call of this operation with these values (as it will run) goes without asking now. */
   approves(def: OperationDefinition<any, any>, values: Readonly<Record<string, unknown>>): boolean;
-  /** The person allowed a call this turn: changing calls go for the rest of it, undo off or not. */
+  /** The person allowed a call while undo was off: changing calls go for the rest of the turn. */
   allowedForTurn(): void;
   /** A turn begins: what was allowed for the last one is not for this one; the hosts its request names are. */
   beginTurn(requestHosts?: readonly string[]): void;
@@ -166,7 +166,8 @@ export function createAgentPolicy(o: { checkpointing: ReadonlyState<boolean>; ru
       return true;
     },
     allowedForTurn: () => {
-      turnAllowed = true;
+      // Only the person's allow given while the turn cannot be undone waives that ask (an allowed fetch does not).
+      if (!o.checkpointing.value) turnAllowed = true;
     },
     beginTurn: (requestHosts = []) => {
       turnAllowed = false;

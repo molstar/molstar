@@ -133,9 +133,10 @@ export interface SessionRecord {
   /**
    * Copies the record into these rows and goes on there; it is listed in the index (journal.md §1). In the write order:
    * what is appended meanwhile waits for the copy and goes to the kept record. One keep at a time (a second call gets the
-   * first's promise).
+   * first's promise). `release`: the rows are the record's to let go (a connection to close): called when the keep
+   * fails or is not needed, and when the kept copy is forgotten or the record ends.
    */
-  keep(rows: FiberRows, index: RecordIndex, title: string): Promise<void>;
+  keep(rows: FiberRows, index: RecordIndex, title: string, release?: () => void): Promise<void>;
   /**
    * Forgets the kept copy (its rows and its index entry: the Storage view's Forget, journal.md §7) and goes on in memory
    * with what it holds, so History still shows it and it can be kept again. In the write order; nothing when not kept.
@@ -151,12 +152,18 @@ export interface SessionRecord {
 const isQuiet = (r: RunRecord, read: boolean) =>
   read || r.operation.startsWith('highlight.') || r.operation.startsWith('view.') || r.operation === 'export.preview';
 
-/** Looks like a URL: a scheme and `//`. */
-const UrlLike = /^[a-z][a-z0-9+.-]*:\/\//i;
+/** A URL anywhere in a text: a scheme, `//` and what follows up to a space or a quote. */
+const UrlIn = /(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]*/gi;
+
+/** A URL without its credentials (`user:token@`), query and fragment. */
+const bareUrl = (url: string) =>
+  url
+    .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i, '$1')
+    .replace(/[?#][\s\S]*$/, (q) => (q.length > 1 ? `${q[0]}…` : ''));
 
 /**
  * A run's values as strict JSON, small: what JSON cannot carry (a loci, a file, a function) said in words; long text
- * cut; a URL without its query and fragment (signed URLs and tokens stay out of kept records and `.molx`).
+ * cut; a URL (anywhere in a text) without its credentials, query and fragment (signed URLs and tokens stay out of kept records and `.molx`).
  */
 export function summarizeValues(values: Readonly<Record<string, unknown>>, max = 2000): Json {
   const seen = new WeakSet<object>();
@@ -164,7 +171,7 @@ export function summarizeValues(values: Readonly<Record<string, unknown>>, max =
     if (v === null || typeof v === 'boolean') return v;
     if (typeof v === 'number') return Number.isFinite(v) ? v : String(v);
     if (typeof v === 'string') {
-      const s = UrlLike.test(v) ? v.replace(/[?#][\s\S]*$/, (q) => (q.length > 1 ? `${q[0]}…` : '')) : v;
+      const s = v.includes('://') ? v.replace(UrlIn, bareUrl) : v;
       return s.length > 200 ? `${s.slice(0, 199)}…` : s;
     }
     if (typeof v === 'function') return '(function)';
@@ -219,6 +226,13 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
   let disposed = false;
   let seq = 0;
   let keptIndex: { index: RecordIndex; title: string } | undefined;
+  /** Lets go of the kept rows (closes their connection) once, when the kept copy is forgotten or the record ends. */
+  let keptRelease: (() => void) | undefined;
+  const letGo = () => {
+    const release = keptRelease;
+    keptRelease = undefined;
+    release?.();
+  };
   /** The index's last touch, and whether entries were appended since. */
   let touched = 0;
   let dirty = false;
@@ -421,32 +435,35 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       beating();
       return { settle };
     },
-    keep(rows, index, title) {
+    keep(rows, index, title, release) {
+      if (kept || disposed) release?.();
       if (kept) return Promise.resolve();
       if (disposed) return Promise.reject(new Error('The record has ended.'));
       keeping ??= write(async () => {
-        if (kept) return;
+        if (kept) return release?.();
         // Copied in order, the same entry ids and positions; a turn under way is copied as begun and settles there.
         const target = createFiberHost({ rows, clock });
-        ok(
-          await target.create({
-            commandId: fiberCommandId(`${id}:create`),
-            fiberId: fid,
-            ownerId: Owner,
-            limits: limits(),
-          }),
-          'be kept',
-        );
         try {
+          ok(
+            await target.create({
+              commandId: fiberCommandId(`${id}:create`),
+              fiberId: fid,
+              ownerId: Owner,
+              limits: limits(),
+            }),
+            'be kept',
+          );
           await copyFiber(host, target, fid, id, ok);
         } catch (e) {
           // Nothing half-kept: the copy goes, and the record goes on in memory.
           await target.forget(fid).catch(() => undefined);
+          release?.();
           throw e;
         }
         host = target;
         kept = true;
         keptIndex = { index, title };
+        keptRelease = release;
         dirty = true;
         try {
           await touch(true);
@@ -482,6 +499,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         dirty = false;
         await from.forget(fid);
         await index.forget(id);
+        letGo();
       });
     },
     flush: () => chain,
@@ -497,6 +515,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         void quiet(write(() => touch(true), false));
       }
       await chain;
+      letGo();
       listeners.clear();
     },
   };

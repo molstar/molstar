@@ -86,12 +86,22 @@ async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>
   const { record, sources, managers } = viewer;
   try {
     // Loaded when asked: the viewer without a kept record never pays for it.
-    const rows =
-      record.keepIn ??
-      (await import('@molstar/ai-components')).createIndexedDbRows<import('@molstar/ai-fibers').FiberTable>(
-        RecordsDatabase,
-      );
-    await record.keep(rows, await createRecordIndex(rows), recordTitle(sources.structures.value));
+    // The spec's rows are the host's; the ones made here are the record's to close (when it is forgotten or ends).
+    const made = record.keepIn
+      ? undefined
+      : (await import('@molstar/ai-components')).createIndexedDbRows<import('@molstar/ai-fibers').FiberTable>(
+          RecordsDatabase,
+        );
+    const rows = record.keepIn ?? made!;
+    let handed = false;
+    try {
+      const index = await createRecordIndex(rows);
+      const title = recordTitle(sources.structures.value);
+      handed = true;
+      await record.keep(rows, index, title, made && (() => made.close()));
+    } finally {
+      if (!handed) made?.close();
+    }
     managers.notifications.post("This session's record is kept in this browser.", 'info');
     return true;
   } catch (e) {

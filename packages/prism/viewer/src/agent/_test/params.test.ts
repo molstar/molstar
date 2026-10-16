@@ -139,6 +139,25 @@ describe('paramsShape', () => {
     expect(args.file).toBeUndefined();
     expect(ps.toValues(args)).toEqual({ ...PD.getDefaultValues(Params) });
   });
+  it('takes a vector, an interval or a matrix only of its length, finite: a short one fails and keeps the default', () => {
+    const shape = paramsShape({
+      range: PD.Interval([0, 1]),
+      center: PD.Vec3([0, 0, 0] as any),
+      style: PD.Group({ offset: PD.Vec3([0, 0, 0] as any) }),
+    });
+    expect(shape.check({ center: [1, 2, 3], range: [0, 2], style: { offset: [1, 2, 3] } })).toBeUndefined();
+    expect(shape.check({ center: [5] })).toBe('Bad center: expected [x, y, z].');
+    expect(shape.check({ center: [1, 2, Number.NaN] })).toBe('Bad center: expected [x, y, z].');
+    expect(shape.check({ range: [1] })).toBe('Bad range: expected [min, max].');
+    expect(shape.check({ style: { offset: [1, 2] } })).toMatch(/\[x, y, z\] for offset/);
+    expect(shape.toValues({ center: [5] })).toMatchObject({ center: [0, 0, 0] });
+    expect(shape.toValues({ center: [1, 2, 3] })).toMatchObject({ center: [1, 2, 3] });
+    const mat = paramsShape({ matrix: PD.Mat4(Array.from({ length: 16 }, () => 0) as any) });
+    expect(mat.check({ matrix: Array.from({ length: 9 }, () => 1) })).toBe(
+      'Bad matrix: expected 16 numbers, column-major.',
+    );
+    expect(mat.check({ matrix: Array.from({ length: 16 }, () => 1) })).toBeUndefined();
+  });
   it('gives a long select no enum: a few names said, a wrong one answered with all of them', () => {
     const many = Array.from({ length: 20 }, (_, i) => [`t${i}`, `Theme ${i}`] as [string, string]);
     const shape = paramsShape({

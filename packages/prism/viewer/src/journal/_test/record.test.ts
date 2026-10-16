@@ -91,6 +91,33 @@ describe('the session record', () => {
     record.dispose();
   });
 
+  it('lets go of the rows it was given to own: when the keep fails, is not needed, is forgotten, or the record ends', async () => {
+    const { api } = fakeApi();
+    const release = vi.fn();
+    const record = await createSessionRecord({ api });
+    // A keep that fails.
+    await expect(record.keep({} as never, {} as never, 'x', release)).rejects.toThrow();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(record.kept).toBe(false);
+    // Kept, then forgotten.
+    const rows = createMemoryRows<FiberTable>();
+    await record.keep(rows, await createRecordIndex(rows), '1CBS', release);
+    expect(release).toHaveBeenCalledTimes(1);
+    // Kept already: the rows of a second keep are not needed.
+    const second = vi.fn();
+    await record.keep(rows, await createRecordIndex(rows), '1CBS', second);
+    expect(second).toHaveBeenCalledTimes(1);
+    await record.unkeep();
+    expect(release).toHaveBeenCalledTimes(2);
+    // Kept again, then the record ends.
+    const again = vi.fn();
+    const more = createMemoryRows<FiberTable>();
+    await record.keep(more, await createRecordIndex(more), '1CBS', again);
+    expect(again).not.toHaveBeenCalled();
+    await record.dispose();
+    expect(again).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps values as small strict JSON', () => {
     expect(summarizeValues({ target: { loci: {} }, n: Number.NaN, s: 'x'.repeat(300) })).toEqual({
       target: '(atoms picked in the view)',
@@ -106,12 +133,18 @@ describe('the session record', () => {
         url: 'https://data.example/1cbs.cif?X-Amz-Signature=abc&token=t',
         frag: 'https://data.example/a#key=1',
         plain: 'a?b',
+        auth: 'https://user:s3cret@data.example/a.cif',
+        spaced: '  https://u:t@data.example/a.cif?sig=1',
+        text: 'load("https://u:t@data.example/a.cif?sig=1") then fetch http://h.example/x#k and mailto:me@x.org',
       }),
     ).toEqual({
       f: '(function)',
       url: 'https://data.example/1cbs.cif?…',
       frag: 'https://data.example/a#…',
       plain: 'a?b',
+      auth: 'https://data.example/a.cif',
+      spaced: '  https://data.example/a.cif?…',
+      text: 'load("https://data.example/a.cif?…") then fetch http://h.example/x#… and mailto:me@x.org',
     });
   });
 });

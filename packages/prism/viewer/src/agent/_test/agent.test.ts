@@ -151,6 +151,22 @@ describe('the viewer agent at G6', () => {
     agent.dispose();
   });
 
+  it('leaves a running turn open when a resume or a dispose comes meanwhile (its calls stay in its group)', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const { agent } = agentOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
+    const running = agent.turn('surface');
+    // Nothing is parked: the resume goes on with nothing, and does not settle the turn that runs.
+    expect(await agent.resume({ nope: 'allow' })).toBeUndefined();
+    const r = await running;
+    expect(r.status).toBe('completed');
+    await v.record.flush();
+    const turn = (await v.record.read(20)).items.find((i) => i.entry.kind === 'turn');
+    expect(turn?.entry).toMatchObject({ outcome: 'done' });
+    // The turn's call joined its history group.
+    expect(v.managers.history.steps.value[0].origin).toMatchObject({ kind: 'agent', turn: agent.lastTurn });
+    agent.dispose();
+  });
+
   it('asks before loading from an address it cannot check, whatever its form', async () => {
     const v = await headlessViewer();
     for (const url of [' https://evil.example/x.cif', '//evil.example/x.cif', 'evil.example/x.cif']) {

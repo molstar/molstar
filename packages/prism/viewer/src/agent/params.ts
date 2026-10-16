@@ -73,6 +73,9 @@ export function paramsShape(params: PD.Params, options: ParamsShapeOptions = {})
     check: (args) => {
       for (const [name, param] of Object.entries(params)) {
         const arg = args[name];
+        // A vector or matrix of another length, or with a value that is no number, would give NaN transforms.
+        const form = arg === undefined ? undefined : numbersForm(param, arg);
+        if (form) return `Bad ${camelCaseToWords(name).toLowerCase()}: expected ${form}.`;
         if (arg === undefined || !isLong(param) || param.options.some(([v]) => String(v) === String(arg))) continue;
         const all = param.options.map(([v]) => String(v)).filter(Boolean);
         return `Unknown ${camelCaseToWords(name).toLowerCase()} '${String(arg)}'. One of: ${all.join(', ')}.`;
@@ -269,6 +272,35 @@ function optionsText(options: PD.Select<unknown>['options'], max: number): strin
 
 // ------------------------------------------------------------------ arguments → values
 
+/** The length a numbers param takes (an interval, a vector, a matrix), and how the model is told it. */
+const NumbersForms: Readonly<Record<string, readonly [length: number, form: string]>> = {
+  interval: [2, '[min, max]'],
+  vec3: [3, '[x, y, z]'],
+  mat4: [16, '16 numbers, column-major'],
+};
+
+/** What the param expects, when the argument is not that many finite numbers; undefined where it is (or any other). */
+function numbersForm(param: PD.Any, arg: unknown): string | undefined {
+  const form = NumbersForms[param.type];
+  if (!form) return param.type === 'group' && isRecord(arg) ? groupForm(param.params, arg) : undefined;
+  return numbersOf(arg, form[0]) ? undefined : form[1];
+}
+
+function groupForm(params: PD.Params, args: Record<string, unknown>): string | undefined {
+  for (const [name, param] of Object.entries(params)) {
+    const form = args[name] === undefined ? undefined : numbersForm(param, args[name]);
+    if (form) return `${form} for ${camelCaseToWords(name).toLowerCase()}`;
+  }
+  return undefined;
+}
+
+/** The numbers of an array of exactly this length and only finite numbers; else undefined. */
+function numbersOf(arg: unknown, length: number): number[] | undefined {
+  if (!Array.isArray(arg) || arg.length !== length) return undefined;
+  const numbers = arg.map(Number);
+  return numbers.every(Number.isFinite) && arg.every((v) => v !== null && v !== '') ? numbers : undefined;
+}
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 function valuesOf(params: PD.Params, args: Readonly<Record<string, unknown>>): PD.Values {
@@ -296,7 +328,8 @@ function valueOf(param: PD.Any, arg: unknown): unknown {
     case 'interval':
     case 'vec3':
     case 'mat4':
-      return Array.isArray(arg) ? arg.map(Number) : param.defaultValue;
+      // Another length or a non-number (`check` says so to the model) keeps the default, never a NaN transform.
+      return numbersOf(arg, NumbersForms[param.type][0]) ?? param.defaultValue;
     case 'group':
       return { ...param.defaultValue, ...valuesOf(param.params, isRecord(arg) ? arg : {}) };
     case 'mapped': {

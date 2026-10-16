@@ -44,7 +44,7 @@ export interface ViewerAgent<M extends ModelChoice = ModelChoice> {
   turn(prompt: string, hooks?: TurnHooks, model?: M): Promise<TurnResult>;
   /**
    * Goes on with a parked turn (an approval) with the person's decisions. Undefined: there was none to go on with (it
-   * was stopped); a turn still open is then settled as stopped.
+   * was stopped; a turn still open is then settled as stopped), or a turn is running already (left as it is).
    */
   resume(decisions: Readonly<Record<string, 'allow' | 'deny'>>, hooks?: TurnHooks): Promise<TurnResult | undefined>;
   /** Stops the running turn, or ends a parked one: either is settled as stopped (its record entry, its history group). */
@@ -211,6 +211,9 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       return settle(r);
     },
     async resume(decisions, hooks) {
+      // A turn runs (or is being resumed) already: there is nothing parked to go on with, and its record entry and
+      // history group stay open until it ends.
+      if (session.busy) return undefined;
       // The person allowed a call: the turn's changes go for the rest of it (undo off asks once).
       if (Object.values(decisions).includes('allow')) policy.allowedForTurn();
       parked = false;
@@ -226,6 +229,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
     },
     dispose() {
       sub.unsubscribe();
+      // A turn still running ends as stopped, not as a loose one whose calls leave its group.
+      if (session.busy) void session.stop();
       if (writer || endGroup) close('stopped');
       session.dispose();
     },

@@ -35,6 +35,17 @@ describe('the agent policy', () => {
     expect(p.approves(op({}), {})).toBe(false);
   });
 
+  it('waives the undo-off ask only for an allow given while undo is off', () => {
+    const checkpointing = observableState(true);
+    const p = createAgentPolicy({ checkpointing: checkpointing.asReadonly });
+    // An allow for a fetch while undo was on; the large structure it loads then turns undo off.
+    p.allowedForTurn();
+    checkpointing.set(false);
+    expect(p.approves(op({}), {})).toBe(false);
+    p.allowedForTurn();
+    expect(p.approves(op({}), {})).toBe(true);
+  });
+
   it('reaches the known services and allowed domains by https; others ask', () => {
     const rules = createDomainRules();
     const p = createAgentPolicy({ checkpointing: observableState(true).asReadonly, rules });
