@@ -26,7 +26,7 @@ import {
 } from '../../dom/focus.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
-import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
+import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
@@ -504,7 +504,7 @@ export function RailMenu(props: { shell: ShellModel }) {
  * A task in overlay mode (rendering an animation) holds the plugin: a scrim over everything and a card with what is
  * running, its progress, and Cancel.
  */
-export function BusyOverlay(props: { status: StatusModel }) {
+export function BusyOverlay(props: { status: NotificationsManager }) {
   const task = props.status.tasks.pipe(
     map((tasks) => tasks.find((t) => t.overlay)),
     distinctUntilChanged((a, b) => a?.id === b?.id),
@@ -665,7 +665,7 @@ export const KindIcons: Record<MessageKind, IconName> = {
 };
 
 /** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
-export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void; after?: Child }) {
+export function StatusLine(props: { status: NotificationsManager; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
   // One polite live region for results (accessibility.md): the latest message only, not the tasks' progress or the
   // assistant's streamed words (its card says when a turn is done).
@@ -818,7 +818,7 @@ export function StatusPill(props: {
 }
 
 /** The bottom centre of the canvas: what the person works on now (selection, focus) as chips. */
-export function ContextChips(props: { status: StatusModel; lead?: Child }) {
+export function ContextChips(props: { status: NotificationsManager; lead?: Child }) {
   return (
     <div class={classes.context}>
       {props.lead}

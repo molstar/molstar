@@ -14,9 +14,8 @@ to the app, and its package rules. The code is the truth for how.
   reaches none (`viewer/src/_test/headless-graph.test.ts`), so no separate core package is needed.
 - **`managers/`**: the generic managers an app composes: `history` (`HistoryManager`: steps and groups, checkpoints
   through the app's `HistoryPort`, undo, redo, undo turn), `navigation` (what is open), `viewState` (the layout,
-  serializable), `notifications` (`StatusModel`: messages, tasks, chips; `announce` for screen readers only).
-  `shell/status.ts` re-exports `notifications`. The app also composes a `CommandManager` and the transaction coordinator
-  ([view-models.md](view-models.md) §5).
+  serializable), `notifications` (`NotificationsManager`: messages, tasks, chips; `announce` for screen readers only).
+  The app also composes a `CommandManager` and the transaction coordinator ([view-models.md](view-models.md) §5).
 - **`model/`**: DOM-free models views share: the canvas ink (`canvasInk`, `fixedInk`), playback contracts
   (`SnapshotStepperModel`, `TrajectoryControlsModel`, `HoverLabelModel`), `SettingsModel`.
 

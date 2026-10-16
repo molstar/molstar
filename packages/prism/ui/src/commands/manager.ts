@@ -145,13 +145,18 @@ export class CommandManager<Ctx> {
   /**
    * Adds commands (a screen, while it is mounted); the returned function takes them away again,
    * cancelling a run of theirs and closing their form. A run that settles after that reports to
-   * no one: its screen is gone.
+   * no one: its screen is gone. An id that is already registered (or repeats in `defs`) throws, naming it, and
+   * nothing is added: an override is made before registering (the viewer's `overrides`), not by a later command.
    */
   register(defs: readonly CommandDefinition<Ctx>[]): () => void {
     const owner = {};
-    const ids = new Set(defs.map((d) => d.id));
+    const taken = new Set(this.#commands.asReadonly.value.map((c) => c.id));
+    for (const d of defs) {
+      if (taken.has(d.id)) throw new Error(`Command '${d.id}' is already registered.`);
+      taken.add(d.id);
+    }
     for (const d of defs) this.#owners.set(d, owner);
-    this.#commands.set([...this.#commands.asReadonly.value.filter((c) => !ids.has(c.id)), ...defs]);
+    this.#commands.set([...this.#commands.asReadonly.value, ...defs]);
     return () => {
       const mine = (c: CommandDefinition<Ctx>) => defs.includes(c) && this.#owners.get(c) === owner;
       const run = this.#run;
@@ -174,10 +179,17 @@ export class CommandManager<Ctx> {
     return this.#groups.asReadonly;
   }
 
-  /** Adds groups to the command tree (a contribution's, while active); the returned function takes them away. */
+  /**
+   * Adds groups to the command tree (a contribution's, while active); the returned function takes them away. An id
+   * that is already registered (or repeats in `groups`) throws, naming it, and nothing is added.
+   */
   registerGroups(groups: readonly CommandGroup[]): () => void {
-    const ids = new Set(groups.map((g) => g.id));
-    this.#groups.set([...this.#groups.asReadonly.value.filter((g) => !ids.has(g.id)), ...groups]);
+    const taken = new Set(this.#groups.asReadonly.value.map((g) => g.id));
+    for (const g of groups) {
+      if (taken.has(g.id)) throw new Error(`Command group '${g.id}' is already registered.`);
+      taken.add(g.id);
+    }
+    this.#groups.set([...this.#groups.asReadonly.value, ...groups]);
     return () => this.#groups.set(this.#groups.asReadonly.value.filter((g) => !groups.includes(g)));
   }
 

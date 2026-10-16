@@ -10,12 +10,11 @@
 
 import { debounceTime, distinctUntilChanged, filter, map, type Observable, of } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
-import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
+import type { SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
@@ -34,15 +33,9 @@ import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 export interface StructureTabProps {
   shell: ShellModel;
   scene: SceneModel;
-  /** The header's actions without a model here (presets, styles, adding components): commands. */
-  onAction?: (action: 'preset' | 'styles') => void;
-  /** The representation presets: the Preset button opens them under the header. */
-  presets?: PresetsModel;
-  /** Quick styles: the Styles button opens them under the header. */
-  quickStyles?: QuickStylesModel;
   /**
-   * Opens the command menu inside a group: given, Preset and Styles open theirs there (teaching the command menu as they
-   * go) instead of their inline lists.
+   * Opens the command menu inside a group: Preset and Styles open theirs there (teaching the command menu as they go).
+   * Given, the buttons show; the tab has no inline preset or style lists.
    */
   openCommands?: (group: 'preset' | 'styles') => void;
   /**
@@ -60,9 +53,9 @@ export interface StructureTabProps {
  */
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
-  // One inline block at a time under the header: the preset menu or the quick styles.
-  const open = observableState<'preset' | 'styles' | 'options' | undefined>(undefined);
-  const toggle = (block: 'preset' | 'styles' | 'options') => open.set(open.value === block ? undefined : block);
+  // The component options, an inline block under the header while open.
+  const open = observableState<'options' | undefined>(undefined);
+  const toggle = (block: 'options') => open.set(open.value === block ? undefined : block);
   // The tree's search: a field over the tree while open; closed, no filter.
   // An extension's row picked (its controls in the inspector); a node picked takes its place.
   const pickedRow = observableState<SceneRowPick | undefined>(undefined);
@@ -87,36 +80,26 @@ export function StructureTab(props: StructureTabProps) {
   return (
     <div class={classes.tab}>
       <div class={classes.actions}>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="shapes" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'preset'))}
-          onClick={() =>
-            props.openCommands
-              ? props.openCommands('preset')
-              : props.presets
-                ? toggle('preset')
-                : props.onAction?.('preset')
-          }
-        >
-          <span class={classes.actionLabel}>Preset</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="paintbrush" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'styles'))}
-          onClick={() =>
-            props.openCommands
-              ? props.openCommands('styles')
-              : props.quickStyles
-                ? toggle('styles')
-                : props.onAction?.('styles')
-          }
-        >
-          <span class={classes.actionLabel}>Styles</span>
-        </Button>
+        {props.openCommands ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="shapes" />}
+            onClick={() => props.openCommands?.('preset')}
+          >
+            <span class={classes.actionLabel}>Preset</span>
+          </Button>
+        ) : null}
+        {props.openCommands ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="paintbrush" />}
+            onClick={() => props.openCommands?.('styles')}
+          >
+            <span class={classes.actionLabel}>Styles</span>
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="ghost"
@@ -140,11 +123,7 @@ export function StructureTab(props: StructureTabProps) {
       </div>
       <Show when={open} reveal>
         {(block) =>
-          block === 'preset' && props.presets ? (
-            <PresetMenu model={props.presets} onApplied={() => open.set(undefined)} />
-          ) : block === 'styles' && props.quickStyles ? (
-            <QuickStyles model={props.quickStyles} />
-          ) : block === 'options' && props.options ? (
+          block === 'options' && props.options ? (
             <ScrollArea
               class={classes.options}
               contentClass={classes.optionsContent}
@@ -461,47 +440,4 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
 /** Whether any contributed section shows for a node (`inspector:<kind>` sections with their `when`). */
 function sectionsFor(shell: ShellModel, slot: string, subject: unknown) {
   return shell.sections(slot).pipe(map((all) => all.some((s) => !s.when || s.when({ shell, subject }))));
-}
-
-/** One click restyles everything: a representation preset, or a visual style. */
-function QuickStyles(props: { model: QuickStylesModel }) {
-  const { model } = props;
-  return (
-    <section class={classes.quickStyles} aria-label="Quick styles">
-      <Choices label="Representation" choices={model.representations} onPick={(id) => model.applyRepresentation(id)} />
-      <Choices label="Style" choices={model.styles} onPick={(id) => model.applyStyle(id)} />
-    </section>
-  );
-}
-
-/**
- * The preset menu: every representation preset, grouped as the registry groups them, the one in effect marked; a click
- * applies it.
- */
-function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
-  const { model } = props;
-  return (
-    <ScrollArea class={classes.presets} contentClass={classes.presetsContent} role="region" aria-label="Presets">
-      {model.groups.map((group) => (
-        <div class={classes.presetGroup} role="group" aria-label={group.label ?? 'Presets'}>
-          {group.label ? <span class={classes.presetCaption}>{group.label}</span> : null}
-          {group.presets.map((p) => (
-            <button
-              type="button"
-              class={classes.preset}
-              aria-pressed={model.current.pipe(map((c) => c === p.id))}
-              title={p.description}
-              onClick={() => {
-                model.apply(p.id);
-                props.onApplied();
-              }}
-            >
-              <span>{p.label}</span>
-              <Icon name="check" size={14} class={classes.presetCheck} />
-            </button>
-          ))}
-        </div>
-      ))}
-    </ScrollArea>
-  );
 }

@@ -43,8 +43,9 @@ before-words and formats by param), `action?` (the run button's label), `reshape
 `preview` (a `PreviewSink`), `assistant` (`CommandAssistant`), `recents` (`RecentsStore`), `maxRecents`, `previewDeps`.
 
 - **`register(defs)` returns its undo**, which cancels a run of theirs and closes their open form; an outcome that
-  settles after it reports to no one. Registering an id again replaces the earlier command. `registerGroups` likewise;
-  `groupPath`, `children`, `inGroup` serve browsing.
+  settles after it reports to no one. An id already registered (or repeated in `defs`) throws, naming it, and nothing is
+  added: an override is made before registering (the viewer's `overrides`). `registerGroups` likewise; `groupPath`,
+  `children`, `inGroup` serve browsing.
 - **`query(text)`**: `recent` (empty text), `matches` (fuzzy subsequence over title, then aliases a little lower; equal
   scores keep categories together), `direct` (an alias followed by more text: that command with the rest as its tail). A
   preset is listed only when the text says more than the command alone.

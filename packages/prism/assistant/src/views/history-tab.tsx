@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon, ScrollArea, For, Show, observableState, type StatusModel, LogView } from '@molstar/prism-ui';
+import { Icon, ScrollArea, For, Show, observableState, type NotificationsManager, LogView } from '@molstar/prism-ui';
 import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, HistoryItem } from '../model.js';
 import { isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.js';
@@ -28,7 +28,7 @@ function ago(time: Date) {
  * and an agent's grouped under its request, with the checkpoint before it (Undo turn); the status messages under
  * Messages.
  */
-export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
+export function HistoryTab(props: { agent: AgentModel; status: NotificationsManager }) {
   const { agent } = props;
   const view = observableState<'commands' | 'messages'>('commands');
   // By id, newest first: an item's record is replaced as its turn runs, and an item made anew would lose its fold.

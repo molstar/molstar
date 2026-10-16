@@ -21,7 +21,7 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
 import { ShellModel, type ShellTab } from '../shell/shell.js';
-import { StatusModel } from '../shell/status.js';
+import { NotificationsManager } from '../managers/notifications.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { CommandMenu, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
 import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
@@ -39,7 +39,7 @@ import { mockSettings } from './settings.js';
 /** What the frame gives its mode. */
 export interface MockFrameContext {
   shell: ShellModel;
-  status: StatusModel;
+  status: NotificationsManager;
   loaded: boolean;
   /** The canvas background (a CSS color). */
   background?: string;
@@ -114,7 +114,7 @@ export interface ShellStoryProps {
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** Tabs of the story's own (a React panel), with the shell and the status column to work with. */
-  tabs?: (ctx: { shell: ShellModel; status: StatusModel }) => readonly ShellTab[];
+  tabs?: (ctx: { shell: ShellModel; status: NotificationsManager }) => readonly ShellTab[];
 }
 
 /** The mock frame running a mode (`mockBlankMode`). */
@@ -124,7 +124,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
     compactRail: !!props.compact,
     docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
   });
-  const status = new StatusModel();
+  const status = new NotificationsManager();
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
   const commandMenuGroup = observableState<string | undefined>(undefined);

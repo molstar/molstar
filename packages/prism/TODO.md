@@ -19,9 +19,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
   gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
   Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
   JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
-- **Duplicates**: `StatusModel` kept as an alias of `NotificationsManager` (`ui/src/managers/notifications.ts`);
-  `ShellModel.layout` beside `viewState.save()` (`ui/src/shell/shell.ts`, `ui/src/managers/view-state.ts`); three ways
-  to run Preset and Styles in the Structure tab (`viewer/src/views/structure/structure-tab.tsx`).
 - **The query languages' registry is page-wide** (`viewer/src/targets/languages.ts`): two viewers on a page offer each
   other's languages. Recommended: page-wide until pages with several viewers matter.
 - **Size**: MolViewSpec in the startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk
@@ -116,13 +113,12 @@ section); an entry leaves when it is done (its spec section says so then). The s
 ## Missing: prism-ui
 
 - Commands: a `select` group with a shared mode, generated selection-query commands, previews while browsing, counts on
-  the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6); a
-  duplicate command id replaces the earlier one silently (`ui/src/commands/manager.ts`, §4); contextual commands, menus
-  and buttons by command id.
+  the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6);
+  contextual commands, menus and buttons by command id.
 - The shell's layout: restore and reset, `hideTab`, a layout of its own for `embedded`
   ([shell.md §3](ui/_spec/shell.md)).
-- `ReactiveModel` has no mount-scope `AbortSignal` ([view-models.md §2](ui/_spec/view-models.md)); no lint rule against
-  `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views (§5).
+- No lint rule against `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views
+  (§5).
 - The viewer's scene and state trees are not virtualized (`VirtualList` only in
   `viewer/src/_stories/performance.stories.tsx`; [view-models.md §3](ui/_spec/view-models.md)).
 - The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.

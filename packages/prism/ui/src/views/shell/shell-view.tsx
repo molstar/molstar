@@ -16,7 +16,7 @@ import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { BandDissolvePx, BandFadePx, type ShellModel } from '../../shell/shell.js';
-import type { StatusModel } from '../../shell/status.js';
+import type { NotificationsManager } from '../../managers/notifications.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
 import { installTooltips } from '../../components/tooltip/tooltip.js';
@@ -47,7 +47,7 @@ const CornerRoom = 34 + Edge;
 
 export interface ShellViewProps {
   shell: ShellModel;
-  status: StatusModel;
+  status: NotificationsManager;
   /** The canvas (the Mol* viewport, or a placeholder in stories). */
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */

@@ -738,3 +738,14 @@ through the indices of the model instead of a MolScript query on every atom for 
   `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON annotations are
   converted to the type of the field.
 - The annotation color theme and the annotation tooltips already used these semantics for missing values before.
+
+## Prism UI: duplicates removed, strict command ids
+
+- `@molstar/prism-ui`: `StatusModel` is gone (use `NotificationsManager`, same class); `shell/status.ts` is removed.
+- `ShellModel.layout` and the `ShellLayout` type are gone; read `viewState.layout` (a `ViewLayout`) or save it with
+  `viewState.save()`/`restore()`, and `navigation.save()` for what is open. `ShellOptions.mode` and `setMode` take
+  `ViewLayout['mode']`.
+- `CommandManager.register` and `registerGroups` throw on an id that is already registered (or repeated in the call),
+  naming it, where the later command used to replace the earlier one silently. Override before registering.
+- The viewer's Structure tab has no inline preset or style lists: `StructureTab` loses `presets`, `quickStyles` and
+  `onAction`; Preset and Styles open the command menu through `openCommands`.

@@ -11,7 +11,14 @@ import type { IconName } from '../components/icon/icon.js';
 import type { Child } from '../dom/jsx-types.js';
 import type { ViewRenderer } from '../dom/view.js';
 import { NavigationManager } from '../managers/navigation.js';
-import { type DockId, DockIds, type DockLayout, type ShellMode, ViewStateManager } from '../managers/view-state.js';
+import {
+  type DockId,
+  DockIds,
+  type DockLayout,
+  type ShellMode,
+  type ViewLayout,
+  ViewStateManager,
+} from '../managers/view-state.js';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -106,11 +113,6 @@ export type DockState = {
   pinned: boolean;
 };
 
-export interface ShellLayout {
-  docks: Record<DockId, DockState>;
-  mode: 'auto' | ShellMode;
-}
-
 export interface ShellOptions {
   /**
    * The layout's state (api.md §11): docks, sizes, mode, rail, buttons. Given, the shell reads and writes it and
@@ -119,7 +121,7 @@ export interface ShellOptions {
   viewState?: ViewStateManager;
   /** What is open: each dock's tab, the card, the page. Given or made, as `viewState`. */
   navigation?: NavigationManager;
-  mode?: ShellLayout['mode'];
+  mode?: ViewLayout['mode'];
   docks?: Partial<Record<DockId, Partial<DockState>>>;
   /** Below this width (px) an `auto` shell is compact. */
   compactWidth?: number;
@@ -470,13 +472,6 @@ export class ShellModel extends ReactiveModel {
     this.#viewState.setButtons(buttons);
   }
 
-  /** The layout as it can be persisted. */
-  get layout(): ShellLayout {
-    const docks = {} as Record<DockId, DockState>;
-    for (const id of DockIds) docks[id] = this.#dockState(id);
-    return { docks, mode: this.#viewState.layout.value.mode };
-  }
-
   /** Adds tabs (to their dock, after the tabs there); returns a function that removes them. */
   registerTabs(tabs: readonly ShellTab[]): () => void {
     const added = [...tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -596,7 +591,7 @@ export class ShellModel extends ReactiveModel {
     this.#viewState.setDock(dock, { pinned });
   }
 
-  setMode(mode: ShellLayout['mode']): void {
+  setMode(mode: ViewLayout['mode']): void {
     this.#viewState.setMode(mode);
   }
 

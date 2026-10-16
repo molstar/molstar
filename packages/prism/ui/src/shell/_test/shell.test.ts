@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { ViewStateManager } from '../../managers/view-state.js';
 import type { ViewRenderer } from '../../dom/view.js';
 import { ShellModel, type ShellPage, type ShellTab, type ShellViewContext } from '../shell.js';
 
@@ -115,14 +116,16 @@ describe('ShellModel', () => {
     expect(shell.dock('top').state.value.floating).toBe(true);
     expect(shell.dock('left').state.value.floating).toBe(false);
     shell.setFloating('right', false);
-    expect(shell.layout.docks.right.floating).toBe(false);
+    expect(shell.dock('right').state.value.floating).toBe(false);
   });
 
-  it('clamps dock sizes and reports the layout', () => {
-    const shell = new ShellModel();
+  it('clamps dock sizes and keeps the layout in the view state', () => {
+    const viewState = new ViewStateManager();
+    const shell = new ShellModel({ viewState });
     shell.setSize('right', 20);
-    expect(shell.layout.docks.right.size).toBe(180);
-    expect(shell.layout.mode).toBe('auto');
+    expect(shell.dock('right').state.value.size).toBe(180);
+    expect(viewState.layout.value.docks.right.size).toBe(180);
+    expect(viewState.layout.value.mode).toBe('auto');
   });
 
   it('shows toolbar buttons as the spec says, and changes them at runtime', () => {

@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domView } from '../../../dom/view.js';
 import { render } from '../../../dom/render.js';
 import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
-import { StatusModel } from '../../../shell/status.js';
+import { NotificationsManager } from '../../../managers/notifications.js';
 import { ShellView } from '../shell-view.js';
 
 // The keyboard in the shell (accessibility.md): the rail's tabs are a tab list, a closed panel gives the focus to its
@@ -36,7 +36,7 @@ function mount() {
   shell.registerOverlays([
     { id: 'card', title: 'Card', render: domView<ShellViewContext>(() => <input aria-label="Width" />) },
   ]);
-  const status = new StatusModel();
+  const status = new NotificationsManager();
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(

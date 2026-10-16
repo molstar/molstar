@@ -198,69 +198,6 @@
   }
 }
 
-.quickStyles {
-  flex: none;
-  display: grid;
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-}
-
-/* The preset menu: groups of presets, the one in effect checked; options fold out below. */
-.presets {
-  flex: none;
-  max-height: 50%;
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-}
-
-.presetsContent {
-  display: grid;
-  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2);
-}
-
-.presetGroup {
-  display: grid;
-}
-
-.presetCaption {
-  padding: var(--msp-space-1) var(--msp-space-2);
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-}
-
-.preset {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: max(28px, var(--msp-touch-target, 0px));
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text);
-  text-align: left;
-
-  &:hover {
-    background: var(--msp-color-hover);
-  }
-
-  &[aria-pressed="true"] {
-    color: var(--msp-color-accent);
-    font-weight: 600;
-  }
-}
-
-.presetCheck {
-  visibility: hidden;
-
-  [aria-pressed="true"] > & {
-    visibility: visible;
-  }
-}
-
 .chevron {
   margin-left: auto;
   transition: transform var(--msp-motion-fast) var(--msp-ease);

@@ -14,7 +14,7 @@ import { domView } from '../../../dom/view.js';
 import { render } from '../../../dom/render.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
-import { StatusModel } from '../../../shell/status.js';
+import { NotificationsManager } from '../../../managers/notifications.js';
 import { SectionList } from '../section-list.js';
 import { ShellView } from '../shell-view.js';
 
@@ -76,7 +76,7 @@ describe('hidden shell content', () => {
     shell.registerOverlays([{ id: 'card', title: 'Card', render: domView<ShellViewContext>(() => <b>card</b>) }]);
     const container = document.createElement('div');
     document.body.append(container);
-    render(() => <ShellView shell={shell} status={new StatusModel()} canvas={<canvas />} />, container);
+    render(() => <ShellView shell={shell} status={new NotificationsManager()} canvas={<canvas />} />, container);
     const panel = () => container.querySelector('[role="tabpanel"]') as HTMLElement;
     const i = container.querySelector('i') as HTMLElement;
     expect(i.textContent).toBe('a');

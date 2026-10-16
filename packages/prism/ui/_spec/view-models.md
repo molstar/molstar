@@ -11,7 +11,9 @@ app's sources and models follow (the viewer's are in its `sources/` and `model/`
   `ReadonlyState<T>` is `Observable<T> & { value }`. Also `mapState`, `combineBehaviors`, `keyedSelector`, `batch`,
   `createDisposableGroup`, the transaction coordinator (§5).
 - **`ReactiveModel`**: `mount`/`unmount`/`retire` with `onMount`/`onUnmount`/`onRetire` hooks; mount-scoped and
-  permanent subscriptions; one owner.
+  permanent subscriptions; one owner. `mountSignal` (protected) is an `AbortSignal` for this mount, made on first read
+  and aborted when the mount ends (`unmount`, `retire`, a throwing `onMount`); a remount gets a fresh one; outside a
+  mount it is already aborted.
 - **`ParamsFormModel`** (`forms/params-form.ts`) is the form for PD params everywhere: `values`, `field(name)` (cached,
   distinct), `visible(name)`, `set`, `load(values)` (authoritative, not reported as a change), `reset`, `layout`
   (essentials, then advanced), `onChange`. Its owner decides what a change does (apply at once, or keep until a button);

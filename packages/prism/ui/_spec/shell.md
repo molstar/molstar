@@ -92,10 +92,10 @@ buttons) is the app's. The code is the truth for how.
 - **Bottom of the canvas**: the status column on the left; the corner on the right: `context` (the selection bar) and
   the status chips left of the toolbar on its row. A narrow bar (container query, under 560px) puts the corner on a row
   of its own.
-- **Status column** (`StatusModel`, `managers/notifications.ts`; `StatusLine`, `StatusPill`): one line per item, growing
-  upward, frameless ink with a halo: the latest message (fades after 4 s, held while hovered; an error stays until its
-  ✕; a click opens the log, `onOpenLog`), then each running task (spinner, progress, ✕ to cancel), then the `agent`
-  slot. The model keeps 200 messages.
+- **Status column** (`NotificationsManager`, `managers/notifications.ts`; `StatusLine`, `StatusPill`): one line per
+  item, growing upward, frameless ink with a halo: the latest message (fades after 4 s, held while hovered; an error
+  stays until its ✕; a click opens the log, `onOpenLog`), then each running task (spinner, progress, ✕ to cancel), then
+  the `agent` slot. The model keeps 200 messages.
 - **Busy overlay**: a task with `overlay` holds the app: a scrim and one card with its progress and Cancel.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.
@@ -111,8 +111,8 @@ buttons) is the app's. The code is the truth for how.
 
 ## 3. The shell model
 
-`ShellModel` (`shell/shell.ts`), DOM-free: `dock(id)` (`DockModel`: `state`, `tabs`, `active`), `mode`, `layout`,
-`overlay`, `page`, `toolbar`, `tabFocus`, `sections(slot)`; `registerTabs`, `registerOverlays`, `registerPages`,
+`ShellModel` (`shell/shell.ts`), DOM-free: `dock(id)` (`DockModel`: `state`, `tabs`, `active`), `mode`, `overlay`,
+`page`, `toolbar`, `tabFocus`, `sections(slot)`; `registerTabs`, `registerOverlays`, `registerPages`,
 `registerSections`, `registerToolbar` (each returns its undo); `show`, `select`, `toggle`, `move`, `setSize`,
 `setFloating`, `setPinned`, `setMode`, `setWidth`, `openOverlay`, `toggleOverlay`, `closeOverlay`, `openPage`,
 `closePage`, `setButtons`, compact rail and `expanded`.
@@ -120,7 +120,7 @@ buttons) is the app's. The code is the truth for how.
 - **Two managers hold its state**, given or made: `viewState` (`ViewStateManager`: the layout, serializable: docks'
   tabs, sizes, float, pin, mode, compact rail, buttons) and `navigation` (`NavigationManager`: what is open: each dock's
   tab and collapse, the card, the page, a tab's section, `expanded`). An app keeps and restores the layout through
-  `viewState`.
+  `viewState.save()`/`restore()` (the shell has no layout getter of its own).
 - **Modes**: `desktop`, `compact` (chosen by `auto` from the shell's width), `embedded` (a value, no layout of its own).
 - **Default sizes** (`DefaultDockSizes`): left 300, right 340, top 88, bottom 220 px; minimums in `MinDockSizes`.
 - **Prism's own layout**: the plugin's `PluginLayout` and `leftPanelTabName` are neither read nor written.
