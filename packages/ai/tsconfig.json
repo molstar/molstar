@@ -7,10 +7,10 @@
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
   },
   "files": [
-    "src/fibers/_test/conformance.ts",
-    "src/fibers/_test/fixtures.ts",
-    "src/fibers/_test/generators.ts",
-    "src/fibers/_test/index.ts"
+    "src/threads/_test/conformance.ts",
+    "src/threads/_test/fixtures.ts",
+    "src/threads/_test/generators.ts",
+    "src/threads/_test/index.ts"
   ],
   "include": ["src/**/*"],
   "exclude": ["src/**/_test/**"],

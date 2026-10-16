@@ -16,7 +16,7 @@ import type { RecordEntry, RecordItem, RecordReader, RunEntry, TurnEntry } from 
 // hidden tab holds no subscription and reads nothing.
 // The rows: a person's (script's, link's) run is one row; an agent's turn is one row holding its runs; an `undo` entry is
 // no row, it marks the step it undid; a `session` entry is a small separator. What is loaded is a run of positions from
-// the newest down to `floor`; the record reads in windows of at most the fiber's limit (256), however many are asked.
+// the newest down to `floor`; the record reads in windows of at most the thread's limit (256), however many are asked.
 
 /** Entries read at first, and by each "Show earlier". */
 export const HistoryWindow = 200;

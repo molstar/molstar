@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createMemoryRows, type FiberTable } from '@molstar/ai';
+import { createMemoryRows, type ThreadTable } from '@molstar/ai';
 import { describe, expect, it } from 'vitest';
 import { createHistoryModel } from '../history-model.js';
 import { createKeptRecordsModel } from '../kept-records.js';
@@ -17,7 +17,7 @@ import { fakeApi } from './runs.js';
 // History, forgotten, and at most `max` of them.
 
 /** A record of an earlier session, kept in `rows`, with `n` changes. */
-async function earlier(rows: ReturnType<typeof createMemoryRows<FiberTable>>, title: string, n: number) {
+async function earlier(rows: ReturnType<typeof createMemoryRows<ThreadTable>>, title: string, n: number) {
   const { api, run } = fakeApi();
   const record = await createSessionRecord({ api });
   for (let i = 0; i < n; i++) run(`${title} change ${i + 1}`);
@@ -28,7 +28,7 @@ async function earlier(rows: ReturnType<typeof createMemoryRows<FiberTable>>, ti
 
 describe('the kept records', () => {
   it("lists the earlier ones, not this session's own, and opens one read-only", async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const a = await earlier(rows, '1CBS', 2);
     await earlier(rows, '1TQN', 1);
     const { api } = fakeApi();
@@ -61,7 +61,7 @@ describe('the kept records', () => {
   });
 
   it('forgets one (closing it when open), and forgets this session’s kept copy by unkeeping it', async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const a = await earlier(rows, '1CBS', 1);
     const { api } = fakeApi();
     const record = await createSessionRecord({ api });
@@ -79,7 +79,7 @@ describe('the kept records', () => {
   });
 
   it('names the oldest kept record when keeping one more passes the bound', async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const first = await earlier(rows, 'First', 1);
     await new Promise((r) => setTimeout(r, 5));
     await earlier(rows, 'Second', 1);

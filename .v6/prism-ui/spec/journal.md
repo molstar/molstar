@@ -1,7 +1,7 @@
 # The session record: what happened, kept and shown back
 
 Yes to both (David, 2026-10-15): the viewer runs the agent on an `AgentSession` (`@molstar/ai`), and it keeps a
-record of the session in a fiber (`@molstar/ai`): what the person did, what the agent did, in order, shown back
+record of the session in a thread (`@molstar/ai`): what the person did, what the agent did, in order, shown back
 in History. **In memory by default**; the person keeps a record on purpose, and a kept record is only a record (§1).
 The record is the viewer's composition of the AI packages' building blocks, not something the library does (packages/ai/\_spec/session.md, "The session keeps no person-facing history").
 Status: **accepted** (2026-10-15).
@@ -9,7 +9,7 @@ Status: **accepted** (2026-10-15).
 ## 1. One record per viewer session
 
 - **A viewer session** starts when the viewer opens empty or with a URL, and ends when the person clears it or opens
-  another session file. Its id is the record's fiber id; the owner is the viewer (one owner id per browser profile).
+  another session file. Its id is the record's thread id; the owner is the viewer (one owner id per browser profile).
 - **Who writes**: the history manager (README §3.3) appends a `run` entry for every API call it records, whoever made
   it; the agent's composition appends a `turn` entry per turn from the session's hooks and `TurnResult`. Both go through
   one small writer in the viewer (`packages/prism/viewer/src/journal/`), so the order in the record is the order things
@@ -26,11 +26,11 @@ Status: **accepted** (2026-10-15).
 - **The copy is in the write order**: "Keep" runs in the record's one chain of writes, so what is appended while it copies
   waits and goes to the kept record; one keep runs at a time (the button is off while it does). A copy that fails is
   removed, and the record goes on in memory.
-- **Listing kept records** (review F19): fibers have no listing by owner, so the viewer keeps a small index of kept
+- **Listing kept records** (review F19): threads have no listing by owner, so the viewer keeps a small index of kept
   records (id, title, first and last time; size not yet) in the same IndexedDB rows, written when a record is kept,
   forgotten, and while it is appended to at most once a minute and at the end of each turn (and when the viewer goes);
-  each write is an entry, folded when listed (folding the index fiber itself as it grows: not yet). A fiber listing in
-  `@molstar/ai` fibers would replace it (README §4). Copying the memory record into IndexedDB reads its windows and
+  each write is an entry, folded when listed (folding the index thread itself as it grows: not yet). A thread listing in
+  `@molstar/ai` threads would replace it (README §4). Copying the memory record into IndexedDB reads its windows and
   writes them in order with the same entry ids and positions: settled entries settled, a turn under way begun, an aborted
   one aborted.
 
@@ -55,10 +55,10 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 
 - **Append-only**: an undo is a new entry that names the step; the History view shows the step as undone. Nothing is
   edited in place.
-- **Bounded** by the fiber's limits (entry 1 MB, windows of at most 256); a run's values over a size are kept as a
+- **Bounded** by the thread's limits (entry 1 MB, windows of at most 256); a run's values over a size are kept as a
   summary, and a target's "what it selected" is kept as counts and chains past a few hundred residues (critic, scale).
 - **A turn waiting** for an approval or an `ask` keeps its streaming entry alive (a heartbeat every five minutes while it
-  is open, against the fiber's hour), so the fiber's inactivity timeout never aborts it (review F52). A turn the fiber
+  is open, against the thread's hour), so the thread's inactivity timeout never aborts it (review F52). A turn the thread
   aborts anyway (the page went away mid-turn) reads as stopped, from what it was begun with. A record that ends (the
   viewer disposed) settles a turn still open as stopped.
 - **Reads** are windows (newest first), so the History view is a `VirtualList` over windows, however long the session.
@@ -68,7 +68,7 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
   While it shows, a window stays loaded (and what "Show earlier" added): new entries push the oldest out, which come
   back by "Show earlier", so a step costs the same however long the session (G8). A plain list, its rows bounded so,
   contained, its rows `content-visibility: auto`. A read
-  longer than the fiber's window (256) goes in windows.
+  longer than the thread's window (256) goes in windows.
 
 ## 3. Shown back
 
@@ -112,7 +112,7 @@ at the bound names the oldest and asks before forgetting it.
   replies are in it, so the option is off by default and says so.
 - **A bound on kept records** (David, 2026-10-15): at most a number of kept records (a setting, 20 by default); keeping
   one more offers to forget the oldest. Each kept record has "Forget" (Home's list, History's menu), which removes its
-  fiber.
+  thread.
 
 ## 6. Light state in the browser's storage
 

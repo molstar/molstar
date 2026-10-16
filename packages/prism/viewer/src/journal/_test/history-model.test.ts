@@ -230,7 +230,7 @@ describe('the History model', () => {
     record.dispose();
   });
 
-  it("shows earlier past the fiber's window with a turn under way, and its settling", async () => {
+  it("shows earlier past the thread's window with a turn under way, and its settling", async () => {
     const { api, run } = fakeApi();
     const record = await createSessionRecord({ api });
     const model = createHistoryModel(record, { window: 200, schedule: queueMicrotask });
@@ -278,7 +278,7 @@ describe('the History model', () => {
     await record.dispose();
   });
 
-  it('shows a turn the fiber aborted as stopped, its runs under it', async () => {
+  it('shows a turn the thread aborted as stopped, its runs under it', async () => {
     const { api, run } = fakeApi();
     let now = 1_000_000;
     const record = await createSessionRecord({ api, clock: () => now, every: () => () => undefined });

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { FiberRows } from '@molstar/ai';
+import type { ThreadRows } from '@molstar/ai';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import {
   createRecordIndex,
@@ -56,7 +56,7 @@ export interface KeptRecordsModel {
 export interface KeptRecordsOptions {
   readonly record: SessionRecord;
   /** The spec's `persist.rows`; the browser's IndexedDB when absent. */
-  readonly rows?: FiberRows;
+  readonly rows?: ThreadRows;
   readonly max?: number;
 }
 
@@ -64,7 +64,7 @@ export function createKeptRecordsModel(o: KeptRecordsOptions): KeptRecordsModel 
   const max = Math.max(1, o.max ?? KeptRecordsMax);
   const list = observableState<readonly KeptRecord[]>([]);
   const opened = observableState<OpenedRecord | undefined>(undefined);
-  type Opened = { rows: FiberRows & { close?(): void }; index: RecordIndex };
+  type Opened = { rows: ThreadRows & { close?(): void }; index: RecordIndex };
   let opening: Promise<Opened | undefined> | undefined;
   let watchers = 0;
   let disposed = false;

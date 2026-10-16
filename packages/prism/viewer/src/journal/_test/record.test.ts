@@ -8,7 +8,7 @@
 
 import 'fake-indexeddb/auto';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
-import { createFiberHost, createMemoryRows, type FiberTable, fiberId } from '@molstar/ai';
+import { createThreadHost, createMemoryRows, type ThreadTable, threadId } from '@molstar/ai';
 import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import {
@@ -100,7 +100,7 @@ describe('the session record', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api });
     expectOk(await v.api.styles.apply({ style: 'surface' }));
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const index = await createRecordIndex(rows);
     await record.keep(rows, index, '1CBS');
     expect(record.kept).toBe(true);
@@ -123,7 +123,7 @@ describe('the session record', () => {
     expect(release).toHaveBeenCalledTimes(1);
     expect(record.kept).toBe(false);
     // Kept, then forgotten.
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     await record.keep(rows, await createRecordIndex(rows), '1CBS', release);
     expect(release).toHaveBeenCalledTimes(1);
     // Kept already: the rows of a second keep are not needed.
@@ -134,7 +134,7 @@ describe('the session record', () => {
     expect(release).toHaveBeenCalledTimes(2);
     // Kept again, then the record ends.
     const again = vi.fn();
-    const more = createMemoryRows<FiberTable>();
+    const more = createMemoryRows<ThreadTable>();
     await record.keep(more, await createRecordIndex(more), '1CBS', again);
     expect(again).not.toHaveBeenCalled();
     await record.dispose();
@@ -215,7 +215,7 @@ describe('the session record at G6', () => {
     const turn = record.beginTurn('t1', 'remove the ligand');
     await record.flush();
     expect(c.beating).toBe(1);
-    // Parked for three hours (the fiber aborts after one hour without activity), alive by the heartbeat.
+    // Parked for three hours (the thread aborts after one hour without activity), alive by the heartbeat.
     for (let i = 0; i < 6; i++) {
       c.advance(minutes(30));
       c.tick();
@@ -228,7 +228,7 @@ describe('the session record at G6', () => {
     await record.dispose();
   });
 
-  it('reads a turn the fiber aborted as stopped, not as gone', async () => {
+  it('reads a turn the thread aborted as stopped, not as gone', async () => {
     const { api, run } = fakeApi();
     const c = controlled();
     const record = await createSessionRecord({ api, clock: c.clock, every: c.every });
@@ -279,7 +279,7 @@ describe('the session record at G6', () => {
     error.mockRestore();
   });
 
-  it('reads more than the fiber gives in one window, in windows', async () => {
+  it('reads more than the thread gives in one window, in windows', async () => {
     const { api, run } = fakeApi();
     const record = await createSessionRecord({ api });
     for (let i = 0; i < 600; i++) run();
@@ -315,7 +315,7 @@ describe('the session record at G6', () => {
     const record = await createSessionRecord({ api, clock: c.clock, every: c.every });
     for (let i = 0; i < 300; i++) run();
     const open = record.beginTurn('t1', 'under way at the keep');
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const index = await createRecordIndex(rows);
     const touches = vi.spyOn(index, 'touch');
     const keeping = record.keep(rows, index, '1CBS');
@@ -351,7 +351,7 @@ describe('the session record at G6', () => {
     const { api, run } = fakeApi();
     const record = await createSessionRecord({ api });
     run('Before the keep');
-    const rows = createIndexedDbRows<FiberTable>(name);
+    const rows = createIndexedDbRows<ThreadTable>(name);
     const index: RecordIndex = await createRecordIndex(rows);
     await record.keep(rows, index, '1CBS');
     run('After the keep');
@@ -362,11 +362,11 @@ describe('the session record at G6', () => {
     rows.close();
 
     // A new page: the same database, opened again, read with no record of its own (as Home would).
-    const reopened = createIndexedDbRows<FiberTable>(name);
+    const reopened = createIndexedDbRows<ThreadTable>(name);
     const listed = await (await createRecordIndex(reopened)).list();
     expect(listed.map((r) => [r.id, r.title])).toEqual([[record.id, '1CBS']]);
-    const host = createFiberHost({ rows: reopened, clock: { now: () => Date.now() + minutes(61) } });
-    const page = await host.window({ fiberId: fiberId(record.id), limit: 50, direction: 'forward' });
+    const host = createThreadHost({ rows: reopened, clock: { now: () => Date.now() + minutes(61) } });
+    const page = await host.window({ threadId: threadId(record.id), limit: 50, direction: 'forward' });
     if ('status' in page) throw new Error(page.reason);
     const values = page.entries.map((e) =>
       e.state.kind === 'settled'
@@ -376,7 +376,7 @@ describe('the session record at G6', () => {
     expect(values.map((v) => (v as { kind: string }).kind)).toEqual(['run', 'run', 'turn', 'turn']);
     expect(values[1]).toMatchObject({ kind: 'run', result: { did: 'After the keep' } });
     expect(values[2]).toMatchObject({ turn: 't1', outcome: 'done', reply: 'Removed.' });
-    // The page that wrote it went away mid-turn: past the inactivity timeout, the fiber has aborted it.
+    // The page that wrote it went away mid-turn: past the inactivity timeout, the thread has aborted it.
     expect(values[3]).toMatchObject({ turn: 't2', state: 'aborted' });
     reopened.close();
     await record.dispose();

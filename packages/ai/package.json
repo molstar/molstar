@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "description": "Mol* AI: the agent harness and what runs on it: messages, the in-memory harness, model providers, tools, the session, the trace, fibers, narration and test doubles",
+  "description": "Mol* AI: the agent harness and what runs on it: messages, the in-memory harness, model providers, tools, the session, the trace, threads, narration and test doubles",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
@@ -55,10 +55,10 @@
       "types": "./lib/testing/index.d.ts",
       "import": "./lib/testing/index.js"
     },
-    "./testing/fibers": {
-      "molstar-src": "./src/fibers/_test/index.ts",
-      "types": "./lib/fibers/_test/index.d.ts",
-      "import": "./lib/fibers/_test/index.js"
+    "./testing/threads": {
+      "molstar-src": "./src/threads/_test/index.ts",
+      "types": "./lib/threads/_test/index.d.ts",
+      "import": "./lib/threads/_test/index.js"
     },
     "./narration": {
       "molstar-src": "./src/narration/index.ts",

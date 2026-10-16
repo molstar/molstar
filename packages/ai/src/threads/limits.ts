@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type FiberLimits = Readonly<{
+export type ThreadLimits = Readonly<{
   readonly maxEntryBytes: number;
   readonly maxBatchBytes: number;
   readonly deltaFlushBytes: number;
@@ -24,7 +24,7 @@ export type FiberLimits = Readonly<{
 }>;
 
 /** Default ceiling used when a runtime does not pass its own bounds. */
-export const FIBER_LIMIT_HARD_BOUNDS: FiberLimits = Object.freeze({
+export const THREAD_LIMIT_HARD_BOUNDS: ThreadLimits = Object.freeze({
   maxEntryBytes: 1_000_000,
   maxBatchBytes: 256_000,
   deltaFlushBytes: 256_000,
@@ -42,7 +42,7 @@ export const FIBER_LIMIT_HARD_BOUNDS: FiberLimits = Object.freeze({
 });
 
 /** Small portable profile for conformance. Not a production default. */
-export const FIBER_CONFORMANCE_LIMITS: FiberLimits = Object.freeze({
+export const THREAD_CONFORMANCE_LIMITS: ThreadLimits = Object.freeze({
   maxEntryBytes: 4_096,
   maxBatchBytes: 512,
   deltaFlushBytes: 256,
@@ -73,33 +73,33 @@ const POSITIVE_LIMIT_KEYS = [
   'maxDeltaPageBytes',
   'heartbeatIntervalMs',
   'inactivityTimeoutMs',
-] as const satisfies readonly (keyof FiberLimits)[];
+] as const satisfies readonly (keyof ThreadLimits)[];
 
 function assertIntegerInRange(label: string, value: number, min: number, max: number): void {
   if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`Fiber limit ${label} must be an integer in ${min}..${max}`);
+    throw new Error(`Thread limit ${label} must be an integer in ${min}..${max}`);
   }
 }
 
-function assertFiberLimitRelations(limits: FiberLimits): void {
+function assertThreadLimitRelations(limits: ThreadLimits): void {
   if (limits.heartbeatIntervalMs >= limits.inactivityTimeoutMs) {
-    throw new Error('Fiber heartbeatIntervalMs must be strictly less than inactivityTimeoutMs');
+    throw new Error('Thread heartbeatIntervalMs must be strictly less than inactivityTimeoutMs');
   }
   if (limits.maxBatchBytes > limits.maxEntryBytes) {
-    throw new Error('Fiber maxBatchBytes must not exceed maxEntryBytes');
+    throw new Error('Thread maxBatchBytes must not exceed maxEntryBytes');
   }
   if (limits.maxWindowBytes < 2 * limits.maxEntryBytes) {
-    throw new Error('Fiber maxWindowBytes must be at least twice maxEntryBytes');
+    throw new Error('Thread maxWindowBytes must be at least twice maxEntryBytes');
   }
   if (limits.maxDeltaPageBytes < limits.maxBatchBytes) {
-    throw new Error('Fiber maxDeltaPageBytes must be at least maxBatchBytes');
+    throw new Error('Thread maxDeltaPageBytes must be at least maxBatchBytes');
   }
   if (limits.maxActiveStreamBytes < limits.maxBatchBytes) {
-    throw new Error('Fiber maxActiveStreamBytes must be at least maxBatchBytes');
+    throw new Error('Thread maxActiveStreamBytes must be at least maxBatchBytes');
   }
 }
 
-function assertFiberLimitShape(limits: FiberLimits, ceiling: FiberLimits): void {
+function assertThreadLimitShape(limits: ThreadLimits, ceiling: ThreadLimits): void {
   for (const key of POSITIVE_LIMIT_KEYS) {
     assertIntegerInRange(key, limits[key], 1, ceiling[key]);
   }
@@ -109,11 +109,14 @@ function assertFiberLimitShape(limits: FiberLimits, ceiling: FiberLimits): void 
     0,
     ceiling.abortedPreviewRetentionMs,
   );
-  assertFiberLimitRelations(limits);
+  assertThreadLimitRelations(limits);
 }
 
-export function createFiberLimits(limits: FiberLimits, bounds: FiberLimits = FIBER_LIMIT_HARD_BOUNDS): FiberLimits {
-  assertFiberLimitShape(bounds, bounds);
-  assertFiberLimitShape(limits, bounds);
+export function createThreadLimits(
+  limits: ThreadLimits,
+  bounds: ThreadLimits = THREAD_LIMIT_HARD_BOUNDS,
+): ThreadLimits {
+  assertThreadLimitShape(bounds, bounds);
+  assertThreadLimitShape(limits, bounds);
   return Object.freeze({ ...limits });
 }

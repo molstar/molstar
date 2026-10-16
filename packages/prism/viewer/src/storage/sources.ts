@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { FiberRows } from '@molstar/ai';
+import type { ThreadRows } from '@molstar/ai';
 import {
   createRecordIndex,
   forgetKept,
@@ -28,7 +28,7 @@ const DayMs = 24 * 60 * 60_000;
 
 export interface KeptRecordsSourceOptions {
   /** Where kept records are: the spec's `persist.rows`; else the browser's IndexedDB, opened only when it exists. */
-  readonly rows?: FiberRows;
+  readonly rows?: ThreadRows;
   /** This session's record: forgetting it while it is kept takes it back into memory (`unkeep`). */
   readonly record?: SessionRecord;
   readonly now?: () => number;
@@ -44,7 +44,7 @@ export interface KeptRecordsSource extends StorageSource {
 export function keptRecordsSource(o: KeptRecordsSourceOptions = {}): KeptRecordsSource {
   const now = o.now ?? Date.now;
   const maxAge = (o.maxAgeDays ?? KeptRecordMaxAgeDays) * DayMs;
-  type Opened = { rows: FiberRows & { close?(): void }; index: Promise<RecordIndex> };
+  type Opened = { rows: ThreadRows & { close?(): void }; index: Promise<RecordIndex> };
   // One opening at a time; none (no database yet) is tried again on the next listing.
   let opening: Promise<Opened | undefined> | undefined;
   let disposed = false;
@@ -162,7 +162,7 @@ export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?:
   readonly sources: readonly StorageSource[];
   dispose(): void;
 } {
-  const rows = o.persist?.rows as FiberRows | undefined;
+  const rows = o.persist?.rows as ThreadRows | undefined;
   const records = keptRecordsSource({ ...(rows ? { rows } : {}), ...(o.record ? { record: o.record } : {}) });
   const sources: StorageSource[] = [records];
   const preferences = o.persist?.preferences;

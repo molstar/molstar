@@ -22,8 +22,8 @@ export interface RowWrite<T extends string = string> {
 }
 
 /**
- * Where a scope's rows are kept between runs: the fibers' storage port (analysis/viewer-mode.md §6). A scope is
- * one fiber. The host keeps a loaded scope in memory and writes every command through as one write set, applied
+ * Where a scope's rows are kept between runs: the threads' storage port (analysis/viewer-mode.md §6). A scope is
+ * one thread. The host keeps a loaded scope in memory and writes every command through as one write set, applied
  * only if the scope's generation is still the one it read.
  */
 export interface RowStore<T extends string = string> {
@@ -57,7 +57,7 @@ export class RowConflict extends Error {
   }
 }
 
-/** The tables of a fiber's scope; every row is its value as JSON (`json`). */
-export type FiberTable = 'fiber' | 'entry' | 'stream' | 'deltas' | 'receipt';
+/** The tables of a thread's scope; every row is its value as JSON (`json`). */
+export type ThreadTable = 'thread' | 'entry' | 'stream' | 'deltas' | 'receipt';
 
-export type FiberRows = RowStore<FiberTable>;
+export type ThreadRows = RowStore<ThreadTable>;

@@ -15,16 +15,16 @@ One package, `@molstar/ai`, in folders under `src/` ([simplification/packaging.m
 | `tools/`     | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure               |
 | `session/`   | an agent session: turns, resume, stop; the default drive; message composition; compaction (`session/compaction/`)                                          |
 | `trace/`     | the Inspector's trace, a projection of the harness records (with `format.ts`)                                                                              |
-| `fibers/`    | transcripts: the kernel, the host, the memory rows; the fibers' conformance suite is `fibers/_test/`                                                       |
+| `threads/`   | transcripts: the kernel, the host, the memory rows; the threads' conformance suite is `threads/_test/`                                                     |
 | `narration/` | text-to-speech providers behind one port, the audio encoders (WAV; Mediabunny at its own entry)                                                            |
 | `testing/`   | the `createSession` fixture and test doubles (clock, ids, scripted model and tools)                                                                        |
 
 The entries (`package.json` `exports`; explicit, no `./*`): `.` (messages, the harness's types, tools, the session with
-its compaction, fibers: what a host names, and nothing that pulls the AI SDK), `./harness`, `./providers`,
+its compaction, threads: what a host names, and nothing that pulls the AI SDK), `./harness`, `./providers`,
 `./providers/{anthropic,openai,google}` (one SDK per lazy import), `./models` (the catalog, dependency-free), `./trace`,
-`./testing`, `./testing/fibers` (the fibers' conformance suite), `./narration` and `./narration/mediabunny`. The package
+`./testing`, `./testing/threads` (the threads' conformance suite), `./narration` and `./narration/mediabunny`. The package
 is `"sideEffects": false`. The folders keep the layering `messages → harness → {tools, trace} → session`, with
-`providers`, `fibers`, `narration` and `testing` beside it; Biome enforces it as per-folder import rules (`biome.json`).
+`providers`, `threads`, `narration` and `testing` beside it; Biome enforces it as per-folder import rules (`biome.json`).
 
 `@molstar/ai-components` (storage backends, the supervisor) is gone (2026-10-16): the harness keeps nothing outside the
 page's memory ([simplification/harness.md](simplification/harness.md)).
@@ -40,7 +40,7 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports it, and it imp
 | [packages/ai/\_spec](../../packages/ai/_spec/README.md) | the spec for working with the code: packages, contracts, how they bind, where things are |
 | [tools-and-session.md](tools-and-session.md)       | `tools/` and `session/` of `@molstar/ai`: tools, field shapes, groups, the session, the drive, compaction |
 | [plan.md](plan.md)                                 | where it comes from, the move, what is next                                                                    |
-| [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11)                                |
+| [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, threads (2026-10-11)                                |
 
 ## Decisions
 

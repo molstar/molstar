@@ -8,7 +8,7 @@
 
 import { afterAll, describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
-import { createMemoryRows, type FiberRows, type FiberTable, RowConflict } from '@molstar/ai';
+import { createMemoryRows, type ThreadRows, type ThreadTable, RowConflict } from '@molstar/ai';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
 
 // The row store contract, directly, on each backend: what the host relies on (analysis/viewer-mode.md §6).
@@ -25,14 +25,14 @@ const closing = <S extends { close(): void }>(store: S): S => {
 interface Backend {
   readonly name: string;
   /** Two handles to one fresh storage. */
-  open(): [FiberRows, FiberRows];
+  open(): [ThreadRows, ThreadRows];
   readonly watches: boolean;
 }
 const BACKENDS: Backend[] = [
   {
     name: 'memory',
     open: () => {
-      const rows = createMemoryRows<FiberTable>();
+      const rows = createMemoryRows<ThreadTable>();
       return [rows, rows];
     },
     watches: false,
@@ -41,7 +41,7 @@ const BACKENDS: Backend[] = [
     name: 'indexeddb',
     open: () => {
       const name = `rows-${++n}`;
-      return [closing(createIndexedDbRows<FiberTable>(name)), closing(createIndexedDbRows<FiberTable>(name))];
+      return [closing(createIndexedDbRows<ThreadTable>(name)), closing(createIndexedDbRows<ThreadTable>(name))];
     },
     watches: true,
   },
@@ -51,7 +51,7 @@ const put = (key: string, json: string) => ({ table: 'entry' as const, key, row:
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 for (const backend of BACKENDS)
-  describe(`fiber rows: ${backend.name}`, () => {
+  describe(`thread rows: ${backend.name}`, () => {
     it('has no rows and generation 0 for a scope never written', async () => {
       const [rows] = backend.open();
       expect(await rows.load('s')).toBeUndefined();
@@ -60,14 +60,14 @@ for (const backend of BACKENDS)
 
     it('applies a write set and moves the generation by one, deleting what is written without a row', async () => {
       const [rows] = backend.open();
-      await rows.apply('s', 0, [put('a', '1'), put('b', '2'), { table: 'fiber', key: 'fiber', row: { json: '{}' } }]);
+      await rows.apply('s', 0, [put('a', '1'), put('b', '2'), { table: 'thread', key: 'thread', row: { json: '{}' } }]);
       await rows.apply('s', 1, [put('a', '3'), { table: 'entry', key: 'b', row: undefined }]);
       const loaded = await rows.load('s');
       expect(loaded?.generation).toBe(2);
       expect(await rows.generation('s')).toBe(2);
       expect([...(loaded?.rows ?? [])].sort((a, b) => (a.table + a.key).localeCompare(b.table + b.key))).toEqual([
         put('a', '3'),
-        { table: 'fiber', key: 'fiber', row: { json: '{}' } },
+        { table: 'thread', key: 'thread', row: { json: '{}' } },
       ]);
     });
 
@@ -120,10 +120,10 @@ for (const backend of BACKENDS)
   });
 
 it('indexeddb refuses a database of the same name and version made by something else', async () => {
-  const other = indexedDB.open('not-fibers', 1);
+  const other = indexedDB.open('not-threads', 1);
   other.onupgradeneeded = () => other.result.createObjectStore('agent');
   await new Promise((resolve) => (other.onsuccess = resolve));
   other.result.close();
-  const rows = closing(createIndexedDbRows<FiberTable>('not-fibers'));
-  await expect(rows.generation('s')).rejects.toThrow('IndexedDB database "not-fibers" holds something else');
+  const rows = closing(createIndexedDbRows<ThreadTable>('not-threads'));
+  await expect(rows.generation('s')).rejects.toThrow('IndexedDB database "not-threads" holds something else');
 });

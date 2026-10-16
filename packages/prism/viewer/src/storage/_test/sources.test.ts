@@ -8,7 +8,7 @@
 
 import 'fake-indexeddb/auto';
 import { createIndexedDbRows } from '../../journal/indexeddb-rows.js';
-import { createMemoryRows, type FiberTable } from '@molstar/ai';
+import { createMemoryRows, type ThreadTable } from '@molstar/ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeApi } from '../../journal/_test/runs.js';
 import { createRecordIndex, createSessionRecord, keptSize, RecordsDatabase } from '../../journal/record.js';
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 /** A record kept in these rows at `at`, with a change or two. */
-async function keptRecord(rows: ReturnType<typeof createMemoryRows<FiberTable>>, title: string, at: number) {
+async function keptRecord(rows: ReturnType<typeof createMemoryRows<ThreadTable>>, title: string, at: number) {
   const { api, run } = fakeApi();
   const record = await createSessionRecord({ api, clock: () => at });
   run();
@@ -56,7 +56,7 @@ async function keptRecord(rows: ReturnType<typeof createMemoryRows<FiberTable>>,
 
 describe('kept records', () => {
   it('lists each with its title, size and age; marks this session and those older than 90 days', async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const t0 = 1_000_000_000_000;
     const old = await keptRecord(rows, '1CBS', t0);
     await old.dispose();
@@ -74,7 +74,7 @@ describe('kept records', () => {
   });
 
   it('forgets another record: its rows and its index entry', async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const old = await keptRecord(rows, '1CBS', Date.now());
     await old.dispose();
     const source = keptRecordsSource({ rows });
@@ -85,7 +85,7 @@ describe('kept records', () => {
   });
 
   it("forgets this session's kept record: it goes on in memory with what it holds, and can be kept again", async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     const record = await keptRecord(rows, '1CBS', Date.now());
     const before = (await record.read(10)).items.map((i) => i.id);
     expect(before).toHaveLength(2);
@@ -108,7 +108,7 @@ describe('kept records', () => {
     // Listing made no empty database.
     expect((await indexedDB.databases()).map((d) => d.name)).not.toContain(RecordsDatabase);
 
-    const rows = createIndexedDbRows<FiberTable>(RecordsDatabase);
+    const rows = createIndexedDbRows<ThreadTable>(RecordsDatabase);
     const record = await keptRecord(rows, '1CBS', Date.now());
     await record.dispose();
     rows.close();

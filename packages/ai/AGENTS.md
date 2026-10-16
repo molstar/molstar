@@ -8,7 +8,7 @@ The agent harness and what runs on it, the one package `@molstar/ai`. The reposi
   start for a task). Read it before the code; a change that moves what it says updates it in the same commit.
 - **What is missing** and what was deferred: [TODO.md](TODO.md) (an entry leaves when it is done).
 - `src/` has the folders `messages`, `harness` (its cases are `harness/_test/`), `providers`, `tools`, `session`,
-  `trace`, `fibers`, `testing` (the `createSession` fixture and test doubles) and `narration`. The entries are the
+  `trace`, `threads`, `testing` (the `createSession` fixture and test doubles) and `narration`. The entries are the
   explicit `exports` of `package.json`; the root entry names what a host needs and nothing that pulls the AI SDK.
 - Generic: nothing imports Prism or rxjs, nor Mol\* but `@molstar/core`'s hash file (in `messages/`); no `node:*`; zod
   only in `tools/` and `providers/`, and nowhere outside `packages/ai`; the AI SDK only in `providers/`. Biome enforces

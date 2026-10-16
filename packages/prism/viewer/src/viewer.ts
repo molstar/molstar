@@ -8,7 +8,7 @@
 
 import type { AnnotationsApi } from './api/annotations.js';
 import { registerQueryLanguages } from './targets/languages.js';
-import type { FiberRows } from '@molstar/ai';
+import type { ThreadRows } from '@molstar/ai';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import {
@@ -320,8 +320,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(() => extensions.dispose());
     // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it, in the spec's
-    // rows when it gives them (`persist.rows`, viewer-spec.md §2.6; typed loosely there, a `FiberRows` here).
-    const keepIn = spec.persist?.rows as FiberRows | undefined;
+    // rows when it gives them (`persist.rows`, viewer-spec.md §2.6; typed loosely there, a `ThreadRows` here).
+    const keepIn = spec.persist?.rows as ThreadRows | undefined;
     const record = await createSessionRecord({
       api: host.api,
       undone: history.undone,

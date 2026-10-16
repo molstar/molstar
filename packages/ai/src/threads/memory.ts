@@ -8,7 +8,7 @@
 
 import { RowConflict, type RowStore, type RowWrite } from './storage.js';
 
-/** Rows kept in this process only: tests, and fibers that should not outlive the page. */
+/** Rows kept in this process only: tests, and threads that should not outlive the page. */
 export function createMemoryRows<T extends string = string>(): RowStore<T> {
   const scopes = new Map<string, { generation: number; rows: Map<string, RowWrite<T>> }>();
   const id = (w: RowWrite<T>) => `${w.table}\u0000${w.key}`;

@@ -14,7 +14,7 @@ design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its s
 | [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, the toolkit (skills), bindings                   |
 | [session.md](session.md)     | `session/`: `AgentSession`, the drive's policies, budgets, compaction                             |
 | [trace.md](trace.md)         | `trace/`: the trace read from a harness, for the Inspector                                        |
-| [fibers.md](fibers.md)       | `fibers/`: durable append-only streams (transcripts), separate from the harness                   |
+| [threads.md](threads.md)     | `threads/`: durable append-only streams (transcripts), separate from the harness                  |
 | [narration.md](narration.md) | `narration/`: text to speech and audio encoding                                                   |
 | [testing.md](testing.md)     | the harness cases, the test doubles (`testing/`), how to test a change                            |
 
@@ -25,7 +25,7 @@ messages ─┬─ harness ─┬─ tools ──── session
           │           ├─ trace
           │           └─ testing
           └─ providers          (host passes adapters in)
-fibers (nothing) ── fibers/_test (the suite; testing/fibers)
+threads (nothing) ── threads/_test (the suite; testing/threads)
 narration (nothing of the other folders)
 ```
 
@@ -37,14 +37,14 @@ narration (nothing of the other folders)
 | `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
 | `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`              |
 | `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts` |
-| `fibers/`       | the fiber kernel and host, its own storage port, the memory rows; the suite is `_test/`                            | none                                        |
+| `threads/`      | the thread kernel and host, its own storage port, the memory rows; the suite is `_test/`                           | none                                        |
 | `testing/`      | `createSession`; the clock, ids, scripted model and tools                                                          | `messages`, `harness`                       |
 | `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                        |
 
 The entries (`package.json` `exports`, explicit, no deep imports): `.` re-exports what a host names (messages, the
-harness's types, tools, the session with `compaction/`, fibers) and nothing that pulls the AI SDK; `./harness`,
+harness's types, tools, the session with `compaction/`, threads) and nothing that pulls the AI SDK; `./harness`,
 `./providers` and `./providers/{anthropic,openai,google}` (one SDK per lazy import), `./models`, `./trace` (with
-`format`), `./testing`, `./testing/fibers` (the fibers' conformance suite, which imports Vitest), `./narration`,
+`format`), `./testing`, `./testing/threads` (the threads' conformance suite, which imports Vitest), `./narration`,
 `./narration/mediabunny`. The package is `"sideEffects": false`.
 
 The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports); they
@@ -81,7 +81,7 @@ surface.
 | change the loop or a record                | [harness.md](harness.md), then [testing.md](testing.md) (a contract change needs a conformance case) |
 | add a provider or a model                  | [models.md](models.md)                                                                               |
 | show what happened in a turn               | [trace.md](trace.md)                                                                                 |
-| keep a durable, windowed transcript or log | [fibers.md](fibers.md)                                                                               |
+| keep a durable, windowed transcript or log | [threads.md](threads.md)                                                                             |
 
 ## State of the code (2026-10-16)
 

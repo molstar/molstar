@@ -51,7 +51,7 @@ function open(name: string): Promise<IDBDatabase> {
 }
 
 /**
- * The fibers' rows in IndexedDB, the browser's backend (analysis/viewer-mode.md §6): one database, one record per
+ * The threads' rows in IndexedDB, the browser's backend (analysis/viewer-mode.md §6): one database, one record per
  * row keyed [scope, table, key], and one generation per scope. `apply` is one `readwrite` transaction that reads the
  * generation and then only issues puts and deletes from that request's callback, so the transaction never waits on
  * anything but itself (IndexedDB commits a transaction with nothing left to do), and the check and the writes are
@@ -63,7 +63,7 @@ export function createIndexedDbRows<T extends string = string>(
   name: string,
 ): RowStore<T> & { clear(): Promise<void>; close(): void } {
   const db = open(name);
-  const channel = typeof BroadcastChannel === 'undefined' ? undefined : new BroadcastChannel(`fibers:${name}`);
+  const channel = typeof BroadcastChannel === 'undefined' ? undefined : new BroadcastChannel(`threads:${name}`);
   const changed = (scope: string) => channel?.postMessage({ scope });
   return {
     async load(scope) {

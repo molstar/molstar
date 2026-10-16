@@ -329,7 +329,7 @@ Evidence: journal.md §6; app.md §4; viewer-spec §5/§6; `core/src/util/assets
   - README §4 note: the catalog is the viewer's.
 
 **F52 · minor · confirmed** A turn parked for approval keeps an idle fiber stream. Inactivity (hard bound 1 h) aborts it, and the later `settle` fails.
-- Evidence: `ai/_spec/fibers.md` inactivity and heartbeat; `ai/fibers/src/host.ts:573`.
+- Evidence: `ai/_spec/threads.md` (then `fibers.md`) inactivity and heartbeat; `ai/fibers/src/host.ts:573`.
 - Edit, journal.md §2:
   - Settle at park with outcome `awaiting-approval` and begin a continuation entry on resume, or heartbeat open turns.
   - State `inactivityTimeoutMs`.

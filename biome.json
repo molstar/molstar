@@ -145,8 +145,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -203,8 +203,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -258,8 +258,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -303,8 +303,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -350,8 +350,8 @@
                       "**/providers/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -404,8 +404,8 @@
                       "**/session",
                       "**/session/**",
                       "!**/session/compose.js",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**",
                       "**/narration",
@@ -433,7 +433,7 @@
       }
     },
     {
-      "includes": ["packages/ai/src/fibers/**", "!packages/ai/src/fibers/**/_test/**"],
+      "includes": ["packages/ai/src/threads/**", "!packages/ai/src/threads/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -468,7 +468,7 @@
                       "**/narration",
                       "**/narration/**"
                     ],
-                    "message": "Fibers import nothing of the other folders: they need no harness."
+                    "message": "Threads import nothing of the other folders: they need no harness."
                   },
                   {
                     "group": ["node:*"],
@@ -516,8 +516,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/narration",
                       "**/narration/**"
                     ],
@@ -573,8 +573,8 @@
                       "**/session/**",
                       "**/trace",
                       "**/trace/**",
-                      "**/fibers",
-                      "**/fibers/**",
+                      "**/threads",
+                      "**/threads/**",
                       "**/testing",
                       "**/testing/**"
                     ],

@@ -126,4 +126,4 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
 - Prompts during a running turn are not steered in; the host queues them (Stories kept one follow-up).
 - `TurnResult` and hooks cover top-level calls; a helper's calls (nested runs, compaction) are only in the trace.
 - The session keeps no person-facing history: a durable transcript is the application's to compose (from the hooks and
-  `TurnResult`, into a fiber, [fibers.md](fibers.md)).
+  `TurnResult`, into a thread, [threads.md](threads.md)).

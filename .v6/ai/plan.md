@@ -37,7 +37,7 @@ In this order (reordered 2026-10-12; [analysis/viewer-mode.md](analysis/viewer-m
    with its story cut out ([tools-and-session.md](tools-and-session.md)).
 2. **`@molstar/ai-trace` (done) and the Inspector** (Trace, Tools, Limits; a page over the whole app, `ShellPage`), on
    mock data until a session feeds them.
-3. **`@molstar/ai-fibers`** (done): the kernel, the host, the backends in `ai-components`, the conformance.
+3. **`@molstar/ai-fibers`** (done; now `threads/` in `@molstar/ai`): the kernel, the host, the backends in `ai-components`, the conformance.
 4. **PD → field shape** (done: `paramsShape`, `@molstar/prism-assistant/tools/params`), for commands as tools.
 5. **A model catalog** (done) in `@molstar/ai-model-adapters/model-catalog`: entries by provider, families matched by
    prefix at a boundary and models as themselves and their dated snapshots, a model's fields over its families' (a new
@@ -70,5 +70,5 @@ Later:
   (`settle` and `runUntil` wait for them) and gives idle work up to 5 s of real time before it reports a deadlock; CI
   had false ones. With every hash slowed by 4 ms the whole memory conformance suite passes. Waiting on what each case
   needs (as S3 now waits for its tool to start) removes the retries.
-- **SQLite storage** for the harness and fibers (servers, headless), removed 2026-10-12 until a host needs it; the
+- **SQLite storage** for the harness and threads (servers, headless), removed 2026-10-12 until a host needs it; the
   IndexedDB and memory backends and the conformance suites are the pattern.

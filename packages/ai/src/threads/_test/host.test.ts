@@ -8,73 +8,73 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  createFiberHost,
+  createThreadHost,
   createMemoryRows,
-  FIBER_LIMIT_HARD_BOUNDS,
-  type FiberFailure,
-  type FiberHost,
-  type FiberPayloadEnvelope,
-  type FiberRows,
-  type FiberTable,
-  fiberCommandId,
-  fiberEntryId,
-  fiberId,
-  fiberOwnerId,
+  THREAD_LIMIT_HARD_BOUNDS,
+  type ThreadFailure,
+  type ThreadHost,
+  type ThreadPayloadEnvelope,
+  type ThreadRows,
+  type ThreadTable,
+  threadCommandId,
+  threadEntryId,
+  threadId,
+  threadOwnerId,
 } from '../index.js';
 
 /** A read's page; a failure fails the case, naming why. */
-function read<T extends object>(result: T | FiberFailure): T {
+function read<T extends object>(result: T | ThreadFailure): T {
   if ('status' in result && 'reason' in result) throw new Error(`read failed: ${result.status} ${result.reason}`);
   return result as T;
 }
 
-const id = fiberId('story-1');
-const json = (value: unknown): FiberPayloadEnvelope => ({ codec: 'json', version: 1, value });
-const create = (host: FiberHost) =>
+const id = threadId('story-1');
+const json = (value: unknown): ThreadPayloadEnvelope => ({ codec: 'json', version: 1, value });
+const create = (host: ThreadHost) =>
   host.create({
-    commandId: fiberCommandId('create'),
-    fiberId: id,
-    ownerId: fiberOwnerId('me'),
-    limits: FIBER_LIMIT_HARD_BOUNDS,
+    commandId: threadCommandId('create'),
+    threadId: id,
+    ownerId: threadOwnerId('me'),
+    limits: THREAD_LIMIT_HARD_BOUNDS,
   });
 
-async function turn(host: FiberHost, n: number, settle = true) {
-  const entryId = fiberEntryId(`turn-${n}`);
+async function turn(host: ThreadHost, n: number, settle = true) {
+  const entryId = threadEntryId(`turn-${n}`);
   await host.begin({
-    commandId: fiberCommandId(`begin:${n}`),
-    fiberId: id,
+    commandId: threadCommandId(`begin:${n}`),
+    threadId: id,
     entryId,
     descriptor: json({ prompt: `p${n}` }),
   });
   if (settle)
     await host.settle({
-      commandId: fiberCommandId(`settle:${n}`),
-      fiberId: id,
+      commandId: threadCommandId(`settle:${n}`),
+      threadId: id,
       entryId,
       payload: json({ reply: `r${n}` }),
     });
 }
 
-// The host's own tests (from Stories' stories-fibers), over the memory rows; the backends run the conformance.
-describe('fiber host: durable', () => {
-  it('keeps a fiber across hosts on the same rows, loading it only when used', async () => {
-    const memory = createMemoryRows<FiberTable>();
-    const first = createFiberHost({ rows: memory });
+// The host's own tests (from Stories' stories-threads), over the memory rows; the backends run the conformance.
+describe('thread host: durable', () => {
+  it('keeps a thread across hosts on the same rows, loading it only when used', async () => {
+    const memory = createMemoryRows<ThreadTable>();
+    const first = createThreadHost({ rows: memory });
     await create(first);
     for (let n = 0; n < 5; n++) await turn(first, n);
     await turn(first, 5, false); // interrupted: begun, never settled
 
     let loads = 0;
-    const counting: FiberRows = {
+    const counting: ThreadRows = {
       ...memory,
       load: (scope) => {
         loads++;
         return memory.load(scope);
       },
     };
-    const second = createFiberHost({ rows: counting });
+    const second = createThreadHost({ rows: counting });
     expect(loads).toBe(0);
-    const window = read(await second.window({ fiberId: id, limit: 3, direction: 'backward' }));
+    const window = read(await second.window({ threadId: id, limit: 3, direction: 'backward' }));
     expect(loads).toBe(1);
     expect(window?.entries.map((e) => [e.position, e.descriptor.value, e.state.kind])).toEqual([
       [3, { prompt: 'p3' }, 'settled'],
@@ -83,58 +83,58 @@ describe('fiber host: durable', () => {
     ]);
     // The interrupted turn settles in the new host, and a replayed command is recognized.
     const settle = {
-      commandId: fiberCommandId('settle:5'),
-      fiberId: id,
-      entryId: fiberEntryId('turn-5'),
+      commandId: threadCommandId('settle:5'),
+      threadId: id,
+      entryId: threadEntryId('turn-5'),
       payload: json({ reply: 'r5' }),
     };
     const settled = await second.settle(settle);
     expect(settled.status).toBe('accepted');
     expect(await second.settle(settle)).toEqual(settled);
-    const again = createFiberHost({ rows: memory });
-    const last = read(await again.window({ fiberId: id, limit: 1, direction: 'backward' }));
+    const again = createThreadHost({ rows: memory });
+    const last = read(await again.window({ threadId: id, limit: 1, direction: 'backward' }));
     expect(last?.entries[0]?.state).toMatchObject({ kind: 'settled', payload: { value: { reply: 'r5' } } });
   });
 
   it('changes nothing when the write fails', async () => {
-    const rows = createMemoryRows<FiberTable>();
+    const rows = createMemoryRows<ThreadTable>();
     let fail = false;
-    const flaky: FiberRows = {
+    const flaky: ThreadRows = {
       ...rows,
       apply: (...a) => (fail ? Promise.reject(new Error('disk full')) : rows.apply(...a)),
     };
-    const host = createFiberHost({ rows: flaky });
+    const host = createThreadHost({ rows: flaky });
     await create(host);
     await turn(host, 0);
     fail = true;
     await expect(turn(host, 1)).rejects.toThrow('disk full');
     fail = false;
-    const window = read(await host.window({ fiberId: id, limit: 8, direction: 'backward' }));
+    const window = read(await host.window({ threadId: id, limit: 8, direction: 'backward' }));
     expect(window?.entries.map((e) => e.entryId)).toEqual(['turn-0']);
     await turn(host, 1);
-    expect(read(await host.window({ fiberId: id, limit: 8, direction: 'backward' }))?.entries).toHaveLength(2);
+    expect(read(await host.window({ threadId: id, limit: 8, direction: 'backward' }))?.entries).toHaveLength(2);
   });
 
-  it('forgets a fiber with its rows', async () => {
-    const rows = createMemoryRows<FiberTable>();
-    const host = createFiberHost({ rows });
+  it('forgets a thread with its rows', async () => {
+    const rows = createMemoryRows<ThreadTable>();
+    const host = createThreadHost({ rows });
     await create(host);
     await turn(host, 0);
     await host.forget(id);
-    expect(await rows.load('fiber:story-1')).toBeUndefined();
-    expect(await host.window({ fiberId: id, limit: 8, direction: 'backward' })).toEqual({
+    expect(await rows.load('thread:story-1')).toBeUndefined();
+    expect(await host.window({ threadId: id, limit: 8, direction: 'backward' })).toEqual({
       status: 'not-found',
-      reason: 'fiber-missing',
+      reason: 'thread-missing',
     });
   });
 
-  it('tells a subscriber which fiber a command changed, and a watcher which one another handle changed', async () => {
+  it('tells a subscriber which thread a command changed, and a watcher which one another handle changed', async () => {
     const changed: string[] = [];
     const heard: string[] = [];
     let announce: ((scope: string) => void) | undefined;
     let watching = 0;
-    const rows: FiberRows = {
-      ...createMemoryRows<FiberTable>(),
+    const rows: ThreadRows = {
+      ...createMemoryRows<ThreadTable>(),
       watch(listener) {
         watching++;
         announce = listener;
@@ -144,15 +144,15 @@ describe('fiber host: durable', () => {
         };
       },
     };
-    const host = createFiberHost({ rows });
-    const stop = host.subscribe((fiber) => changed.push(fiber));
+    const host = createThreadHost({ rows });
+    const stop = host.subscribe((thread) => changed.push(thread));
     expect(watching).toBe(0); // nothing is watched until someone watches
     await create(host);
-    const unwatch = host.watch((fiber) => heard.push(fiber));
+    const unwatch = host.watch((thread) => heard.push(thread));
     await Promise.resolve();
     await Promise.resolve();
     expect(watching).toBe(1);
-    announce?.('fiber:story-1');
+    announce?.('thread:story-1');
     announce?.('somebody-else');
     unwatch();
     expect(watching).toBe(0);

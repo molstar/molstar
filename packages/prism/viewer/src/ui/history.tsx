@@ -89,7 +89,7 @@ async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>
     // The spec's rows are the host's; the ones made here are the record's to close (when it is forgotten or ends).
     const made = record.keepIn
       ? undefined
-      : (await import('../journal/indexeddb-rows.js')).createIndexedDbRows<import('@molstar/ai').FiberTable>(
+      : (await import('../journal/indexeddb-rows.js')).createIndexedDbRows<import('@molstar/ai').ThreadTable>(
           RecordsDatabase,
         );
     const rows = record.keepIn ?? made!;

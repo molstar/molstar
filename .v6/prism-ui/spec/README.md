@@ -83,7 +83,7 @@ apps/prism-stories         later: the stories app (an improved Stories Untold), 
 20. **Theming, to start: tokens.** A host restyles the viewer through the `--msp-*` tokens (they cross the shadow root);
     named parts and component tokens wait until asked for.
 21. **A session record** (David, 2026-10-15): the agent runs on an `AgentSession`, and the viewer keeps what happened
-    (the person's runs, the agent's turns, undos) in a fiber, shown back in History; in memory by default, kept in
+    (the person's runs, the agent's turns, undos) in a thread, shown back in History; in memory by default, kept in
     IndexedDB only when the person asks, and then only as a record (no state, no undo after a reload; at most 20, each
     forgettable), and in a saved `.molx` when the person opts in; the viewer composes the AI packages' blocks, the
     library keeps no transcript ([journal.md](journal.md)).
@@ -374,7 +374,7 @@ What the spec asks of other packages, collected from the sections above; each is
 | `@molstar/plugin`            | Prism's plugin resizes once a frame instead of after a debounce (no GL change); the rest after the WebGPU work | §3.5 |
 | `@molstar/core` (assets)     | a URL-keyed, ref-counted, read-through byte cache in `AssetManager`                                | sequence.md §2   |
 | `@molstar/ai` (`tools/`, `session/`) | a dynamic toolkit: add and remove tools and skills between turns; removed definitions as eviction hints for compaction (a mechanism; the viewer decides) | decision 25 |
-| `@molstar/ai` (`fibers/`)    | a listing of fibers by owner (kept records are listed from it), or the viewer keeps its own index | journal.md §1 |
+| `@molstar/ai` (`threads/`)    | a listing of threads by owner (kept records are listed from it), or the viewer keeps its own index | journal.md §1 |
 | `@molstar/prism-ui`          | the style registry adopts sheets into shadow roots as well as documents; keyboard handling scoped to a viewer's root | app.md §3, decision 29 |
 | `@molstar/plugin-extension`  | the loaders split from the React parts (the package declares `@molstar/plugin-ui`), so the viewer depends on no classic UI (review F43) | §3.2 |
 | Seq\* (`@molstar/seq-*`)     | none for data (its `Loaders` port suffices); `history: false` on the viewer's document port        | sequence.md §2, §7 |
@@ -393,7 +393,7 @@ What the spec asks of other packages, collected from the sections above; each is
 | [operations.md](operations.md)       | the API by area: operations, targets, results, undo; the commands over them                | written |
 | [agent.md](agent.md)                 | tools and skills, the core, the account, policies, headless                                | written |
 | [library.md](library.md)             | prism-ui's public surface and what it leaves to apps                                       | written |
-| [journal.md](journal.md)             | the session record: a fiber of runs and turns, History, the agent's session                | written |
+| [journal.md](journal.md)             | the session record: a thread of runs and turns, History, the agent's session                | written |
 | [review.md](review.md)               | the multi-agent review of 2026-10-15 and how each finding was folded in                    | written |
 | [api.md](api.md)                     | the viewer's API: one object per area (the managers and builders done again), operations as their methods, the types around them, grouping, extensions, the code skill | accepted |
 | [app.md](app.md)                     | `apps/prism-viewer` and the single-file viewer: builds, chunks, deployment, embedding, URL | written |

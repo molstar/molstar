@@ -23,8 +23,8 @@ and the code. Prism's (the viewer's agent, the assistant): [../prism/TODO.md](..
   (`src/session/drive.ts`, the failure decision).
 - More than one active turn per conversation ([harness.md §5](../../.v6/ai/harness.md);
   [\_spec/README.md](_spec/README.md), "State of the code").
-- SQLite storage for the harness and fibers, for servers and headless hosts (harness.md §14,
-  [plan.md](../../.v6/ai/plan.md) "Later", [\_spec/fibers.md](_spec/fibers.md)).
+- SQLite storage for the harness and threads, for servers and headless hosts (harness.md §14,
+  [plan.md](../../.v6/ai/plan.md) "Later", [\_spec/threads.md](_spec/threads.md)).
 - `@molstar/ai-evals`: Stories' scenarios against real models, metering, baselines, the trace of each run (plan.md
   "Later"; the viewer's first evals are its own, `prism/viewer/src/agent/eval.ts`).
 - `toolscript` and `mvs-code` (code against the viewer, MVS scripting), and an MCP server over the same tools (plan.md

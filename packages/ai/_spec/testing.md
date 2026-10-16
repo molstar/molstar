@@ -36,9 +36,9 @@ gone (what was cut, and why: `.v6/ai/simplification/conformance.md`).
 
 Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 
-`@molstar/ai/testing/fibers`: `runFiberConformance({ name, create, durable? })`, the fibers' suite (`src/fibers/_test/`,
-its own entry because it imports Vitest), run on memory (`src/fibers/_test/memory.test.ts`) and on the viewer's
-IndexedDB rows (`prism/viewer/src/journal/_test/`).
+`@molstar/ai/testing/threads`: `runThreadConformance({ name, create, durable? })`, the threads' suite
+(`src/threads/_test/`, its own entry because it imports Vitest), run on memory (`src/threads/_test/memory.test.ts`) and
+on the viewer's IndexedDB rows (`prism/viewer/src/journal/_test/`).
 
 ## Test doubles (`@molstar/ai/testing`, `src/testing/`)
 

@@ -33,10 +33,10 @@ built yet.
 - **Ported from Stories Untold**:
   - `agent`, `harness`, `components` (memory and IndexedDB storage, the in-process supervisor; SQLite removed for now);
   - `model-adapters`;
-  - `conformance` (the harness suite and `./fibers`);
+  - `conformance` (the harness suite and `./threads`);
   - `tools` and `session` ([../ai/tools-and-session.md](../ai/tools-and-session.md));
   - `trace` (feeds the Inspector);
-  - `fibers` (durable transcripts);
+  - `threads` (transcripts);
   - `narration` (TTS providers; audio through Mediabunny with the browser's AAC, then Opus, then WAV; no MP3 encoding,
     because every MP3 encoder is LGPL).
 - **Not wired to Prism yet**: no real session feeds the Assistant; everything there is mock data.

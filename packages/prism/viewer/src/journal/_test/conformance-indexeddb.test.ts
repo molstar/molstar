@@ -8,11 +8,11 @@
 
 import { afterAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { runFiberConformance } from '@molstar/ai/testing/fibers';
-import { createFiberHost, type FiberTable } from '@molstar/ai';
+import { runThreadConformance } from '@molstar/ai/testing/threads';
+import { createThreadHost, type ThreadTable } from '@molstar/ai';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
 
-// The fibers conformance against IndexedDB (fake-indexeddb in Node), one fresh database per case. A restart is a
+// The threads conformance against IndexedDB (fake-indexeddb in Node), one fresh database per case. A restart is a
 // second handle to the same database, as a second tab is.
 vi.setConfig({ testTimeout: 30_000 });
 let n = 0;
@@ -20,19 +20,19 @@ const opened: { close(): void }[] = [];
 afterAll(() => {
   for (const rows of opened) rows.close();
 });
-runFiberConformance({
+runThreadConformance({
   name: 'indexeddb',
   durable: true,
   create: ({ clock }) => {
-    const name = `fibers-case-${++n}`;
+    const name = `threads-case-${++n}`;
     const open = () => {
-      const rows = createIndexedDbRows<FiberTable>(name);
+      const rows = createIndexedDbRows<ThreadTable>(name);
       opened.push(rows);
       return rows;
     };
     return {
-      fibers: createFiberHost({ rows: open(), clock }),
-      reopen: () => createFiberHost({ rows: open(), clock }),
+      threads: createThreadHost({ rows: open(), clock }),
+      reopen: () => createThreadHost({ rows: open(), clock }),
     };
   },
 });

@@ -8,99 +8,99 @@
 
 import { cloneData } from './data.js';
 import type {
-  FiberClock,
-  FiberCommandResult,
-  FiberDeltaBatch,
-  FiberEntry,
-  FiberFailure,
-  FiberPort,
-  FiberRemoveResult,
+  ThreadClock,
+  ThreadCommandResult,
+  ThreadDeltaBatch,
+  ThreadEntry,
+  ThreadFailure,
+  ThreadPort,
+  ThreadRemoveResult,
 } from './domain.js';
-import { type FiberId, fiberId } from './ids.js';
+import { type ThreadId, threadId } from './ids.js';
 import {
-  type FiberKernelFiber,
-  type FiberKernelReceipt,
-  type FiberKernelStream,
-  fiberCommandFingerprint,
-  fiberPageTakeBound,
-  fiberStoredEnvelopeBytes,
-  fiberWindowRangeStart,
-  prepareFiberAbort,
-  prepareFiberAppendDelta,
-  prepareFiberAppendSettled,
-  prepareFiberBegin,
-  prepareFiberCreate,
-  prepareFiberHeartbeat,
-  prepareFiberInactivityAbort,
-  prepareFiberRemove,
-  prepareFiberSettle,
-  projectFiberDeltas,
-  projectFiberWindow,
+  type ThreadKernelThread,
+  type ThreadKernelReceipt,
+  type ThreadKernelStream,
+  threadCommandFingerprint,
+  threadPageTakeBound,
+  threadStoredEnvelopeBytes,
+  threadWindowRangeStart,
+  prepareThreadAbort,
+  prepareThreadAppendDelta,
+  prepareThreadAppendSettled,
+  prepareThreadBegin,
+  prepareThreadCreate,
+  prepareThreadHeartbeat,
+  prepareThreadInactivityAbort,
+  prepareThreadRemove,
+  prepareThreadSettle,
+  projectThreadDeltas,
+  projectThreadWindow,
 } from './kernel.js';
-import { createFiberLimits } from './limits.js';
-import { draftOf, type FiberState, type Stream, stateOf, writesOf } from './state.js';
-import { type FiberRows, RowConflict, type Unsubscribe } from './storage.js';
+import { createThreadLimits } from './limits.js';
+import { draftOf, type ThreadState, type Stream, stateOf, writesOf } from './state.js';
+import { type ThreadRows, RowConflict, type Unsubscribe } from './storage.js';
 
 /**
- * The fibers' host (analysis/viewer-mode.md §6), written from anyfold's in-memory host and its Convex host as
- * Stories ported it: the kernel decides every command; the host keeps each fiber's state and writes what a command
+ * The threads' host (analysis/viewer-mode.md §6), written from anyfold's in-memory host and its Convex host as
+ * Stories ported it: the kernel decides every command; the host keeps each thread's state and writes what a command
  * changed through to its rows before the command returns (so an accepted command is durable). Unlike the in-memory
- * host, a fiber is its own scope of rows, loaded when first used and kept in memory after.
+ * host, a thread is its own scope of rows, loaded when first used and kept in memory after.
  *
- * Commands run one at a time. A replayed command id is found in its fiber's receipts, and in the receipts of the
- * other fibers loaded here (a command id reused for another fiber is a conflict); callers name commands after
- * their fiber, so ids never meet across fibers.
+ * Commands run one at a time. A replayed command id is found in its thread's receipts, and in the receipts of the
+ * other threads loaded here (a command id reused for another thread is a conflict); callers name commands after
+ * their thread, so ids never meet across threads.
  */
-export interface FiberHost extends FiberPort {
-  /** Hears which fiber a command of this host changed. */
-  subscribe(listener: (fiberId: FiberId) => void): Unsubscribe;
+export interface ThreadHost extends ThreadPort {
+  /** Hears which thread a command of this host changed. */
+  subscribe(listener: (threadId: ThreadId) => void): Unsubscribe;
   /**
-   * Hears which fiber was changed through another handle to the same rows (another tab, another process), when
-   * the rows can tell (`RowStore.watch`); otherwise never. The next command or read on that fiber sees the change
+   * Hears which thread was changed through another handle to the same rows (another tab, another process), when
+   * the rows can tell (`RowStore.watch`); otherwise never. The next command or read on that thread sees the change
    * with or without this.
    */
-  watch(listener: (fiberId: FiberId) => void): Unsubscribe;
-  /** Forgets a fiber entirely: its rows and what is loaded (its owner was removed). */
-  forget(fiberId: FiberId): Promise<void>;
+  watch(listener: (threadId: ThreadId) => void): Unsubscribe;
+  /** Forgets a thread entirely: its rows and what is loaded (its owner was removed). */
+  forget(threadId: ThreadId): Promise<void>;
 }
 
-export interface FiberHostOptions {
-  rows: FiberRows | Promise<FiberRows>;
-  clock?: FiberClock;
-  /** A fiber's scope in the rows; default `fiber:<id>`. */
-  scopeOf?: (fiberId: FiberId) => string;
+export interface ThreadHostOptions {
+  rows: ThreadRows | Promise<ThreadRows>;
+  clock?: ThreadClock;
+  /** A thread's scope in the rows; default `thread:<id>`. */
+  scopeOf?: (threadId: ThreadId) => string;
   /**
-   * The fiber of a scope the rows report as changed (`watch`); default: the fibers this host has used, and with
-   * the default `scopeOf` any `fiber:<id>`.
+   * The thread of a scope the rows report as changed (`watch`); default: the threads this host has used, and with
+   * the default `scopeOf` any `thread:<id>`.
    */
-  fiberOf?: (scope: string) => FiberId | undefined;
+  threadOf?: (scope: string) => ThreadId | undefined;
 }
 
 const MAX_CONFLICTS = 8;
-/** A read of a fiber this store does not hold. */
-const MISSING: FiberFailure = { status: 'not-found', reason: 'fiber-missing' };
-const DEFAULT_SCOPE_PREFIX = 'fiber:';
+/** A read of a thread this store does not hold. */
+const MISSING: ThreadFailure = { status: 'not-found', reason: 'thread-missing' };
+const DEFAULT_SCOPE_PREFIX = 'thread:';
 
-export function createFiberHost(options: FiberHostOptions): FiberHost {
+export function createThreadHost(options: ThreadHostOptions): ThreadHost {
   const clock = options.clock ?? { now: () => Date.now() };
   const defaultScope = options.scopeOf === undefined;
-  const known = new Map<string, FiberId>();
-  const scopeOf = (id: FiberId): string => {
+  const known = new Map<string, ThreadId>();
+  const scopeOf = (id: ThreadId): string => {
     const scope = options.scopeOf?.(id) ?? `${DEFAULT_SCOPE_PREFIX}${id}`;
     known.set(scope, id);
     return scope;
   };
-  const fiberOf =
-    options.fiberOf ??
-    ((scope: string): FiberId | undefined =>
+  const threadOf =
+    options.threadOf ??
+    ((scope: string): ThreadId | undefined =>
       known.get(scope) ??
       (defaultScope && scope.startsWith(DEFAULT_SCOPE_PREFIX)
-        ? fiberId(scope.slice(DEFAULT_SCOPE_PREFIX.length))
+        ? threadId(scope.slice(DEFAULT_SCOPE_PREFIX.length))
         : undefined));
   const rows = Promise.resolve(options.rows);
-  const loaded = new Map<string, FiberState>();
-  const listeners = new Set<(fiberId: FiberId) => void>();
-  const remote = new Set<(fiberId: FiberId) => void>();
+  const loaded = new Map<string, ThreadState>();
+  const listeners = new Set<(threadId: ThreadId) => void>();
+  const remote = new Set<(threadId: ThreadId) => void>();
   let unwatch: Unsubscribe | undefined;
   let attaching = 0;
 
@@ -110,7 +110,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       (store) => {
         if (attempt !== attaching || remote.size === 0) return;
         unwatch = store.watch?.((scope) => {
-          const id = fiberOf(scope);
+          const id = threadOf(scope);
           if (id === undefined) return;
           for (const listener of [...remote]) {
             try {
@@ -132,9 +132,9 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
     return run;
   };
 
-  // A cached fiber is used only while its rows are as it read them: another host on the same rows
+  // A cached thread is used only while its rows are as it read them: another host on the same rows
   // (a second tab, another process) may have written since (cursor review F5, as the harness host).
-  const load = async (id: FiberId): Promise<FiberState> => {
+  const load = async (id: ThreadId): Promise<ThreadState> => {
     const known = loaded.get(id);
     if (known && known.generation === (await (await rows).generation(scopeOf(id)))) return known;
     const state = stateOf(await (await rows).load(scopeOf(id)));
@@ -142,8 +142,8 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
     return state;
   };
 
-  /** A receipt for the command, in this fiber or another one loaded. */
-  const receiptIn = (draft: FiberState, commandId: string): FiberKernelReceipt | undefined => {
+  /** A receipt for the command, in this thread or another one loaded. */
+  const receiptIn = (draft: ThreadState, commandId: string): ThreadKernelReceipt | undefined => {
     const own = draft.receipts.get(commandId);
     if (own) return own;
     for (const state of loaded.values()) {
@@ -154,10 +154,10 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
   };
 
   /**
-   * Runs one command on a draft of its fiber; when the command says its fiber changed, writes the
+   * Runs one command on a draft of its thread; when the command says its thread changed, writes the
    * difference through and only then keeps the draft.
    */
-  const run = <T>(id: FiberId, command: (draft: FiberState, changed: () => void) => T): Promise<T> =>
+  const run = <T>(id: ThreadId, command: (draft: ThreadState, changed: () => void) => T): Promise<T> =>
     exclusive(async () => {
       // Written elsewhere since it was read: read again and run the command on that (bounded).
       for (let conflicts = 0; ; conflicts++) {
@@ -195,26 +195,26 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
 
   return {
     create: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
-        const decision = prepareFiberCreate({
+        const decision = prepareThreadCreate({
           command: input,
-          ...defined('existingFiber', s.fiber),
+          ...defined('existingThread', s.thread),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          s.fiber = {
+          s.thread = {
             ...decision.result.value,
-            limits: createFiberLimits(input.limits),
+            limits: createThreadLimits(input.limits),
             activeStreamCount: 0,
           };
           remember(
             s,
             input.commandId,
             'create',
-            { fiberId: input.fiberId, ownerId: input.ownerId, limits: input.limits },
+            { threadId: input.threadId, ownerId: input.ownerId, limits: input.limits },
             decision.result,
           );
           changed();
@@ -223,26 +223,26 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     append: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
-        const decision = prepareFiberAppendSettled({
+        const decision = prepareThreadAppendSettled({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('existingEntry', s.entries.get(input.entryId)),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          const { fiber, entry } = decision.result.value;
-          if (s.fiber) s.fiber = { ...s.fiber, nextPosition: fiber.nextPosition, lifecycle: fiber.lifecycle };
+          const { thread, entry } = decision.result.value;
+          if (s.thread) s.thread = { ...s.thread, nextPosition: thread.nextPosition, lifecycle: thread.lifecycle };
           addEntry(s, entry);
           remember(
             s,
             input.commandId,
             'append',
-            { fiberId: input.fiberId, entryId: input.entryId, descriptor: input.descriptor, payload: input.payload },
+            { threadId: input.threadId, entryId: input.entryId, descriptor: input.descriptor, payload: input.payload },
             decision.result,
           );
           changed();
@@ -251,30 +251,30 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     begin: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
-        const decision = prepareFiberBegin({
+        const decision = prepareThreadBegin({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('existingEntry', s.entries.get(input.entryId)),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          const { fiber, entry } = decision.result.value;
-          if (s.fiber)
-            s.fiber = {
-              ...s.fiber,
-              nextPosition: fiber.nextPosition,
-              lifecycle: fiber.lifecycle,
-              activeStreamCount: s.fiber.activeStreamCount + 1,
+          const { thread, entry } = decision.result.value;
+          if (s.thread)
+            s.thread = {
+              ...s.thread,
+              nextPosition: thread.nextPosition,
+              lifecycle: thread.lifecycle,
+              activeStreamCount: s.thread.activeStreamCount + 1,
             };
           addEntry(s, entry);
           s.streams.set(input.entryId, {
             entryId: input.entryId,
-            streamId: `fiber:${input.fiberId}:entry:${input.entryId}`,
+            streamId: `thread:${input.threadId}:entry:${input.entryId}`,
             nextOffset: 0,
             lastActivityAt: now,
             retainedBytes: 0,
@@ -285,7 +285,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
             s,
             input.commandId,
             'begin',
-            { fiberId: input.fiberId, entryId: input.entryId, descriptor: input.descriptor },
+            { threadId: input.threadId, entryId: input.entryId, descriptor: input.descriptor },
             decision.result,
           );
           changed();
@@ -294,14 +294,14 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     appendDelta: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const stored = s.streams.get(input.entryId);
-        const decision = prepareFiberAppendDelta({
+        const decision = prepareThreadAppendDelta({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('entry', s.entries.get(input.entryId)),
           ...defined('stream', stored && kernelStream(stored)),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
@@ -315,7 +315,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
               ...stored,
               nextOffset: value.nextOffset,
               lastActivityAt: now,
-              retainedBytes: stored.retainedBytes + fiberStoredEnvelopeBytes(input.payload),
+              retainedBytes: stored.retainedBytes + threadStoredEnvelopeBytes(input.payload),
               retainedBatches: stored.retainedBatches + 1,
             });
             s.deltas.set(stored.streamId, [
@@ -327,15 +327,15 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
                 payload: input.payload,
               }),
             ]);
-          } else if (value.kind === 'aborted' && stored && s.fiber) {
-            s.fiber = { ...s.fiber, activeStreamCount: Math.max(0, s.fiber.activeStreamCount - 1) };
-            retire(s, s.fiber, stored, now);
+          } else if (value.kind === 'aborted' && stored && s.thread) {
+            s.thread = { ...s.thread, activeStreamCount: Math.max(0, s.thread.activeStreamCount - 1) };
+            retire(s, s.thread, stored, now);
           }
           remember(
             s,
             input.commandId,
             'append-delta',
-            { fiberId: input.fiberId, entryId: input.entryId, start: input.start, payload: input.payload },
+            { threadId: input.threadId, entryId: input.entryId, start: input.start, payload: input.payload },
             decision.result,
           );
           changed();
@@ -344,14 +344,14 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     heartbeat: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const stored = s.streams.get(input.entryId);
-        const decision = prepareFiberHeartbeat({
+        const decision = prepareThreadHeartbeat({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('entry', s.entries.get(input.entryId)),
           ...defined('stream', stored && kernelStream(stored)),
         });
@@ -365,21 +365,21 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     settle: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const stored = s.streams.get(input.entryId);
-        const decision = prepareFiberSettle({
+        const decision = prepareThreadSettle({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('entry', s.entries.get(input.entryId)),
           ...defined('stream', stored && kernelStream(stored)),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          if (s.fiber) s.fiber = { ...s.fiber, activeStreamCount: Math.max(0, s.fiber.activeStreamCount - 1) };
+          if (s.thread) s.thread = { ...s.thread, activeStreamCount: Math.max(0, s.thread.activeStreamCount - 1) };
           s.entries.set(input.entryId, decision.result.value.entry);
           if (stored) {
             s.streams.delete(input.entryId);
@@ -389,7 +389,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
             s,
             input.commandId,
             'settle',
-            { fiberId: input.fiberId, entryId: input.entryId, payload: input.payload },
+            { threadId: input.threadId, entryId: input.entryId, payload: input.payload },
             decision.result,
           );
           changed();
@@ -398,30 +398,30 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     abort: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const stored = s.streams.get(input.entryId);
-        const decision = prepareFiberAbort({
+        const decision = prepareThreadAbort({
           command: input,
           now,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('entry', s.entries.get(input.entryId)),
           ...defined('stream', stored && kernelStream(stored)),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          if (s.fiber) {
-            s.fiber = { ...s.fiber, activeStreamCount: Math.max(0, s.fiber.activeStreamCount - 1) };
-            if (stored) retire(s, s.fiber, stored, now);
+          if (s.thread) {
+            s.thread = { ...s.thread, activeStreamCount: Math.max(0, s.thread.activeStreamCount - 1) };
+            if (stored) retire(s, s.thread, stored, now);
           }
           s.entries.set(input.entryId, decision.result.value.entry);
           remember(
             s,
             input.commandId,
             'abort',
-            { fiberId: input.fiberId, entryId: input.entryId, reason: input.reason },
+            { threadId: input.threadId, entryId: input.entryId, reason: input.reason },
             decision.result,
           );
           changed();
@@ -430,43 +430,43 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     window: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
-        const fiber = s.fiber;
-        if (!fiber) return MISSING;
-        const start = fiberWindowRangeStart(input, fiber.nextPosition);
-        const take = fiberPageTakeBound(input.limit, fiber.limits.maxWindowEntries);
+        const thread = s.thread;
+        if (!thread) return MISSING;
+        const start = threadWindowRangeStart(input, thread.nextPosition);
+        const take = threadPageTakeBound(input.limit, thread.limits.maxWindowEntries);
         const ids =
           input.direction === 'forward'
             ? s.order.slice(start, start + take)
             : s.order.slice(Math.max(0, start - take), start);
-        const entries = ids.map((id) => s.entries.get(id)).filter((e): e is FiberEntry => e !== undefined);
-        const streams = new Map<string, FiberKernelStream>();
+        const entries = ids.map((id) => s.entries.get(id)).filter((e): e is ThreadEntry => e !== undefined);
+        const streams = new Map<string, ThreadKernelStream>();
         for (const e of entries) {
           const stored = s.streams.get(e.entryId);
           if (stored) streams.set(e.entryId, kernelStream(stored));
         }
-        const projected = projectFiberWindow({ fiber, entries, streams, request: input, now });
+        const projected = projectThreadWindow({ thread, entries, streams, request: input, now });
         return cloneData(projected);
       }),
 
     deltas: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
-        const fiber = s.fiber;
-        if (!fiber) return MISSING;
+        const thread = s.thread;
+        if (!thread) return MISSING;
         const stored = s.streams.get(input.entryId);
-        const projected = projectFiberDeltas({
-          fiber,
+        const projected = projectThreadDeltas({
+          thread,
           ...defined('entry', s.entries.get(input.entryId)),
           ...defined('stream', stored && kernelStream(stored)),
           deltas: deltaPage(
             s,
             stored,
             input.afterOffset,
-            fiberPageTakeBound(input.limit, fiber.limits.maxDeltaPageBatches),
+            threadPageTakeBound(input.limit, thread.limits.maxDeltaPageBatches),
           ),
           request: input,
         });
@@ -474,27 +474,27 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
       }),
 
     remove: (input) =>
-      run(input.fiberId, (s, changed) => {
+      run(input.threadId, (s, changed) => {
         if (applyInactivity(s, clock.now())) changed();
-        const decision = prepareFiberRemove({
+        const decision = prepareThreadRemove({
           command: input,
-          ...defined('fiber', s.fiber),
+          ...defined('thread', s.thread),
           ...defined('existingReceipt', receiptIn(s, input.commandId)),
         });
         if (decision.kind === 'failure') return decision.failure;
         if (decision.persist && decision.result.status === 'accepted') {
-          // The fiber is fenced (removed) and everything else of it goes, its receipts too.
+          // The thread is fenced (removed) and everything else of it goes, its receipts too.
           s.entries.clear();
           s.order = [];
           s.streams.clear();
           s.deltas.clear();
           s.receipts.clear();
-          if (s.fiber) s.fiber = { ...s.fiber, lifecycle: 'removed', activeStreamCount: 0 };
+          if (s.thread) s.thread = { ...s.thread, lifecycle: 'removed', activeStreamCount: 0 };
           changed();
-          const removed: FiberCommandResult<FiberRemoveResult> = {
+          const removed: ThreadCommandResult<ThreadRemoveResult> = {
             status: 'accepted',
             commandId: input.commandId,
-            value: { fiberId: input.fiberId, lifecycle: 'removed' },
+            value: { threadId: input.threadId, lifecycle: 'removed' },
           };
           return cloneData(removed);
         }
@@ -531,33 +531,33 @@ function defined<K extends string, T>(key: K, value: T | undefined): { readonly 
   return value === undefined ? {} : ({ [key]: value } as { readonly [P in K]: T });
 }
 
-function kernelStream(stream: Stream): FiberKernelStream {
+function kernelStream(stream: Stream): ThreadKernelStream {
   const { entryId, nextOffset, lastActivityAt, retainedBytes, retainedBatches, status } = stream;
   return { entryId, nextOffset, lastActivityAt, retainedBytes, retainedBatches, status };
 }
 
-function addEntry(s: FiberState, entry: FiberEntry): void {
+function addEntry(s: ThreadState, entry: ThreadEntry): void {
   s.entries.set(entry.entryId, entry);
   s.order.push(entry.entryId);
 }
 
 function remember(
-  s: FiberState,
-  commandId: FiberKernelReceipt['commandId'],
-  kind: Parameters<typeof fiberCommandFingerprint>[0],
+  s: ThreadState,
+  commandId: ThreadKernelReceipt['commandId'],
+  kind: Parameters<typeof threadCommandFingerprint>[0],
   input: Readonly<Record<string, unknown>>,
-  result: FiberCommandResult<unknown>,
+  result: ThreadCommandResult<unknown>,
 ): void {
   s.receipts.set(commandId, {
     commandId,
-    fingerprint: fiberCommandFingerprint(kind, input),
+    fingerprint: threadCommandFingerprint(kind, input),
     result: cloneData(result),
   });
 }
 
 /** A stream that ended without settling: kept a while as an aborted preview, or gone at once. */
-function retire(s: FiberState, fiber: FiberKernelFiber, stored: Stream, now: number): void {
-  if (fiber.limits.abortedPreviewRetentionMs === 0) {
+function retire(s: ThreadState, thread: ThreadKernelThread, stored: Stream, now: number): void {
+  if (thread.limits.abortedPreviewRetentionMs === 0) {
     s.streams.delete(stored.entryId);
     s.deltas.delete(stored.streamId);
     return;
@@ -565,12 +565,12 @@ function retire(s: FiberState, fiber: FiberKernelFiber, stored: Stream, now: num
   s.streams.set(stored.entryId, {
     ...stored,
     status: 'aborted-preview',
-    expiresAt: now + fiber.limits.abortedPreviewRetentionMs,
+    expiresAt: now + thread.limits.abortedPreviewRetentionMs,
   });
 }
 
 /** Drops expired previews and aborts streams idle past the timeout; true when anything changed. */
-function applyInactivity(s: FiberState, now: number): boolean {
+function applyInactivity(s: ThreadState, now: number): boolean {
   let changed = false;
   for (const stream of [...s.streams.values()]) {
     if (stream.status !== 'aborted-preview' || stream.expiresAt === undefined || stream.expiresAt > now) continue;
@@ -578,27 +578,27 @@ function applyInactivity(s: FiberState, now: number): boolean {
     s.deltas.delete(stream.streamId);
     changed = true;
   }
-  if (!s.fiber) return changed;
+  if (!s.thread) return changed;
   for (const stream of [...s.streams.values()]) {
     if (stream.status !== 'active') continue;
     const entry = s.entries.get(stream.entryId);
     if (!entry) continue;
-    const decision = prepareFiberInactivityAbort({ now, fiber: s.fiber, entry, stream: kernelStream(stream) });
+    const decision = prepareThreadInactivityAbort({ now, thread: s.thread, entry, stream: kernelStream(stream) });
     if (decision.kind !== 'abort') continue;
     s.entries.set(stream.entryId, decision.entry);
-    retire(s, s.fiber, stream, now);
-    s.fiber = { ...s.fiber, activeStreamCount: Math.max(0, s.fiber.activeStreamCount - 1) };
+    retire(s, s.thread, stream, now);
+    s.thread = { ...s.thread, activeStreamCount: Math.max(0, s.thread.activeStreamCount - 1) };
     changed = true;
   }
   return changed;
 }
 
 /** The delta batches from `afterOffset`: the one covering it, then up to `take` after. */
-function deltaPage(s: FiberState, stored: Stream | undefined, afterOffset: number, take: number): FiberDeltaBatch[] {
+function deltaPage(s: ThreadState, stored: Stream | undefined, afterOffset: number, take: number): ThreadDeltaBatch[] {
   if (!stored) return [];
   const all = s.deltas.get(stored.streamId) ?? [];
   let index = 0;
-  while (index < all.length && (all[index] as FiberDeltaBatch).start < afterOffset) index++;
+  while (index < all.length && (all[index] as ThreadDeltaBatch).start < afterOffset) index++;
   const covering = index > 0 ? all[index - 1] : undefined;
   const following = all.slice(index, index + take);
   return covering && covering.endExclusive > afterOffset ? [covering, ...following] : following;

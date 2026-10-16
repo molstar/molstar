@@ -7,21 +7,21 @@
  */
 
 import {
-  createFiberHost,
-  createFiberLimits,
+  createThreadHost,
+  createThreadLimits,
   createMemoryRows,
-  FIBER_LIMIT_HARD_BOUNDS,
-  FIBER_PAYLOAD_VERSION,
-  fiberCommandId,
-  type FiberEntry,
-  type FiberEntryId,
-  fiberEntryId,
-  type FiberHost,
-  type FiberId,
-  fiberId,
-  fiberOwnerId,
-  type FiberRows,
-  type FiberTable,
+  THREAD_LIMIT_HARD_BOUNDS,
+  THREAD_PAYLOAD_VERSION,
+  threadCommandId,
+  type ThreadEntry,
+  type ThreadEntryId,
+  threadEntryId,
+  type ThreadHost,
+  type ThreadId,
+  threadId,
+  threadOwnerId,
+  type ThreadRows,
+  type ThreadTable,
   type Json,
 } from '@molstar/ai';
 import type { HistoryStep } from '@molstar/prism-ui/core';
@@ -29,20 +29,20 @@ import type { Observable } from 'rxjs';
 import type { RunOrigin, ViewerApi, OperationDefinition } from '../api/area.js';
 import type { RunRecord } from '../api/run.js';
 
-// The session's record (journal.md): what the person did and what the agent did, in order, in a fiber
+// The session's record (journal.md): what the person did and what the agent did, in order, in a thread
 // (`@molstar/ai`). One record per viewer session, in memory by default; kept on purpose (IndexedDB rows) with a
-// small index of kept records (journal.md §1; fibers have no listing by owner). One writer: every change the API runs
+// small index of kept records (journal.md §1; threads have no listing by owner). One writer: every change the API runs
 // (a `run` entry; an undo is an `undo` entry naming its step; a session opened, cleared or saved a `session` entry), and
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.
 
 export const RecordCodec = 'prism-viewer.record.v1';
 /** The IndexedDB database kept records go to when the spec gives no rows (journal.md §1; History's Keep). */
 export const RecordsDatabase = 'prism-viewer-records';
-const Owner = fiberOwnerId('prism-viewer');
+const Owner = threadOwnerId('prism-viewer');
 
-/** The fiber's largest window (`maxWindowEntries`): longer reads go in pages of it. */
-export const RecordWindowMax = FIBER_LIMIT_HARD_BOUNDS.maxWindowEntries;
-/** A turn under way says it is alive this often, well inside the fiber's inactivity timeout (journal.md §2, F52). */
+/** The thread's largest window (`maxWindowEntries`): longer reads go in pages of it. */
+export const RecordWindowMax = THREAD_LIMIT_HARD_BOUNDS.maxWindowEntries;
+/** A turn under way says it is alive this often, well inside the thread's inactivity timeout (journal.md §2, F52). */
 const HeartbeatMs = 5 * 60_000;
 /** A kept record's index entry is touched at most this often while it is appended to (and at a turn's end). */
 const TouchMs = 60_000;
@@ -127,7 +127,7 @@ export interface SessionRecord {
   /** Kept in IndexedDB (or the rows given to `keep`): it outlives the page. */
   readonly kept: boolean;
   /** Where "Keep" puts it: the spec's `persist.rows` (journal.md §1), when it gives them. */
-  readonly keepIn?: FiberRows;
+  readonly keepIn?: ThreadRows;
   /** Entries newest first: `limit` of them before `before` (a position), read in windows of at most `RecordWindowMax`. */
   read(limit: number, before?: number): Promise<RecordPage>;
   /**
@@ -145,7 +145,7 @@ export interface SessionRecord {
    * first's promise). `release`: the rows are the record's to let go (a connection to close): called when the keep
    * fails or is not needed, and when the kept copy is forgotten or the record ends.
    */
-  keep(rows: FiberRows, index: RecordIndex, title: string, release?: () => void): Promise<void>;
+  keep(rows: ThreadRows, index: RecordIndex, title: string, release?: () => void): Promise<void>;
   /**
    * Forgets the kept copy (its rows and its index entry: the Storage view's Forget, journal.md §7) and goes on in memory
    * with what it holds, so History still shows it and it can be kept again. In the write order; nothing when not kept.
@@ -204,8 +204,8 @@ export function summarizeValues(values: Readonly<Record<string, unknown>>, max =
   return JSON.stringify(out).length > max ? '(values too large to keep)' : out;
 }
 
-const envelope = (value: Json) => ({ codec: RecordCodec, version: FIBER_PAYLOAD_VERSION as 1, value });
-const limits = () => createFiberLimits({ ...FIBER_LIMIT_HARD_BOUNDS, maxActiveStreams: 8 });
+const envelope = (value: Json) => ({ codec: RecordCodec, version: THREAD_PAYLOAD_VERSION as 1, value });
+const limits = () => createThreadLimits({ ...THREAD_LIMIT_HARD_BOUNDS, maxActiveStreams: 8 });
 
 export interface SessionRecordOptions {
   readonly api: ViewerApi;
@@ -214,12 +214,12 @@ export interface SessionRecordOptions {
   /** The steps Redo puts back (a `redo` entry each). */
   readonly redone?: Observable<HistoryStep>;
   /** Where it is written (memory by default). */
-  readonly rows?: FiberRows;
+  readonly rows?: ThreadRows;
   /** Where "Keep" puts it (the spec's `persist.rows`); the browser's IndexedDB when absent. */
-  readonly keepIn?: FiberRows;
+  readonly keepIn?: ThreadRows;
   /** Its id (one per viewer session); new by default. */
   readonly id?: string;
-  /** The clock of the entries and of the fiber (its inactivity timeout); `Date.now` by default. */
+  /** The clock of the entries and of the thread (its inactivity timeout); `Date.now` by default. */
   readonly clock?: () => number;
   /** Runs `fn` every `ms` until the returned function is called (`setInterval` by default): the turns' heartbeat. */
   readonly every?: (fn: () => void, ms: number) => () => void;
@@ -235,8 +235,8 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
   const clock = { now };
   const every = o.every ?? everyInterval;
   const id = o.id ?? `session-${now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  const fid = fiberId(id);
-  let host: FiberHost = createFiberHost({ rows: o.rows ?? createMemoryRows(), clock });
+  const fid = threadId(id);
+  let host: ThreadHost = createThreadHost({ rows: o.rows ?? createMemoryRows(), clock });
   let kept = false;
   let disposed = false;
   let seq = 0;
@@ -266,7 +266,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     return r;
   };
   ok(
-    await host.create({ commandId: fiberCommandId(`${id}:create`), fiberId: fid, ownerId: Owner, limits: limits() }),
+    await host.create({ commandId: threadCommandId(`${id}:create`), threadId: fid, ownerId: Owner, limits: limits() }),
     'start',
   );
 
@@ -304,9 +304,9 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       write(async () => {
         ok(
           await host.append({
-            commandId: fiberCommandId(`${id}:${n}`),
-            fiberId: fid,
-            entryId: fiberEntryId(`${entry.kind}-${n}`),
+            commandId: threadCommandId(`${id}:${n}`),
+            threadId: fid,
+            entryId: threadEntryId(`${entry.kind}-${n}`),
             descriptor: envelope({ kind: entry.kind }),
             payload: envelope(entry as unknown as Json),
           }),
@@ -319,14 +319,14 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
   };
 
   // The turns under way, each alive by a heartbeat while open (a turn parked for an approval waits as long as the
-  // person does; the fiber would abort it after its inactivity timeout otherwise).
-  const open = new Map<number, { readonly entryId: FiberEntryId; readonly stop: () => Promise<void> }>();
+  // person does; the thread would abort it after its inactivity timeout otherwise).
+  const open = new Map<number, { readonly entryId: ThreadEntryId; readonly stop: () => Promise<void> }>();
   let stopBeat: (() => void) | undefined;
   const beat = () =>
     void quiet(
       write(async () => {
         for (const t of open.values()) {
-          const r = await host.heartbeat({ fiberId: fid, entryId: t.entryId });
+          const r = await host.heartbeat({ threadId: fid, entryId: t.entryId });
           if ('status' in r) console.warn('[prism-viewer] record: a turn could not be kept alive', r.status);
         }
       }, false),
@@ -414,14 +414,14 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     beginTurn(turn, prompt, focus) {
       if (disposed) return { settle: async () => {} };
       const n = ++seq;
-      const entryId = fiberEntryId(`turn-${n}`);
+      const entryId = threadEntryId(`turn-${n}`);
       const begun: TurnEntry = { kind: 'turn', turn, prompt, ...(focus ? { focus } : {}), at: now() };
       void quiet(
         write(async () => {
           ok(
             await host.begin({
-              commandId: fiberCommandId(`${id}:${n}`),
-              fiberId: fid,
+              commandId: threadCommandId(`${id}:${n}`),
+              threadId: fid,
               entryId,
               descriptor: envelope(begun as unknown as Json),
             }),
@@ -444,8 +444,8 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
             };
             ok(
               await host.settle({
-                commandId: fiberCommandId(`${id}:${n}:settle`),
-                fiberId: fid,
+                commandId: threadCommandId(`${id}:${n}:settle`),
+                threadId: fid,
                 entryId,
                 payload: envelope(done as unknown as Json),
               }),
@@ -467,18 +467,18 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       keeping ??= write(async () => {
         if (kept) return release?.();
         // Copied in order, the same entry ids and positions; a turn under way is copied as begun and settles there.
-        const target = createFiberHost({ rows, clock });
+        const target = createThreadHost({ rows, clock });
         try {
           ok(
             await target.create({
-              commandId: fiberCommandId(`${id}:create`),
-              fiberId: fid,
+              commandId: threadCommandId(`${id}:create`),
+              threadId: fid,
               ownerId: Owner,
               limits: limits(),
             }),
             'be kept',
           );
-          await copyFiber(host, target, fid, id, ok);
+          await copyThread(host, target, fid, id, ok);
         } catch (e) {
           // Nothing half-kept: the copy goes, and the record goes on in memory.
           await target.forget(fid).catch(() => undefined);
@@ -505,17 +505,17 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       return write(async () => {
         if (!kept || !keptIndex) return;
         // Back into memory first, in order (as keep copies out); then the kept copy and its index entry go.
-        const target = createFiberHost({ rows: createMemoryRows(), clock });
+        const target = createThreadHost({ rows: createMemoryRows(), clock });
         ok(
           await target.create({
-            commandId: fiberCommandId(`${id}:create`),
-            fiberId: fid,
+            commandId: threadCommandId(`${id}:create`),
+            threadId: fid,
             ownerId: Owner,
             limits: limits(),
           }),
           'go on in memory',
         );
-        await copyFiber(host, target, fid, id, ok);
+        await copyThread(host, target, fid, id, ok);
         const from = host;
         const { index } = keptIndex;
         host = target;
@@ -550,18 +550,18 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
 
 /**
  * An entry as History reads it (settled or under way). An aborted turn (its turn never settled: the page went away while
- * it ran, the fiber's inactivity timeout) reads as stopped, from what it was begun with; other aborted entries are left
+ * it ran, the thread's inactivity timeout) reads as stopped, from what it was begun with; other aborted entries are left
  * out (only turns stream).
  */
-/** Entries newest first: `limit` of them before `before`, in backward windows of at most the fiber's limit. */
-async function readBackward(host: FiberHost, fid: FiberId, limit: number, before?: number): Promise<RecordPage> {
+/** Entries newest first: `limit` of them before `before`, in backward windows of at most the thread's limit. */
+async function readBackward(host: ThreadHost, fid: ThreadId, limit: number, before?: number): Promise<RecordPage> {
   const items: RecordItem[] = [];
   let start = before;
   let end: number | undefined;
   let more = false;
   for (let left = Math.max(1, limit); left > 0; ) {
     const page = await host.window({
-      fiberId: fid,
+      threadId: fid,
       limit: Math.min(left, RecordWindowMax),
       direction: 'backward',
       ...(start !== undefined ? { start } : {}),
@@ -584,13 +584,13 @@ async function readBackward(host: FiberHost, fid: FiberId, limit: number, before
 }
 
 /** Entries at `from` and after, newest first: the oldest `limit` of them, in forward windows. */
-async function readForward(host: FiberHost, fid: FiberId, from: number, limit: number): Promise<RecordPage> {
-  const entries: FiberEntry[] = [];
+async function readForward(host: ThreadHost, fid: ThreadId, from: number, limit: number): Promise<RecordPage> {
+  const entries: ThreadEntry[] = [];
   let start = from;
   let more = false;
   for (let left = Math.max(1, limit); left > 0; ) {
     const page = await host.window({
-      fiberId: fid,
+      threadId: fid,
       start,
       limit: Math.min(left, RecordWindowMax),
       direction: 'forward',
@@ -626,9 +626,9 @@ export interface RecordReader {
 }
 
 /** A kept record, read-only: what Home opens (journal.md §3, "After a reload"); nothing in it is undone or replayed. */
-export function openKeptRecord(rows: FiberRows, id: string): RecordReader {
-  const host = createFiberHost({ rows });
-  const fid = fiberId(id);
+export function openKeptRecord(rows: ThreadRows, id: string): RecordReader {
+  const host = createThreadHost({ rows });
+  const fid = threadId(id);
   return {
     kept: true,
     read: (limit, before) => readBackward(host, fid, limit, before),
@@ -692,7 +692,7 @@ export function recordFromLines(text: string): FileRecord | undefined {
   return { reader, count: n, first: entries[0].at, last: entries[n - 1].at };
 }
 
-function itemOf(e: FiberEntry): RecordItem | undefined {
+function itemOf(e: ThreadEntry): RecordItem | undefined {
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;
     if (!begun || typeof begun !== 'object' || begun.kind !== 'turn') return undefined;
@@ -703,17 +703,17 @@ function itemOf(e: FiberEntry): RecordItem | undefined {
   return { id: e.entryId, position: e.position, entry: value, open: e.state.kind !== 'settled' };
 }
 
-/** Every entry of a fiber into another, in order, at the same positions (keep, and unkeep back into memory). */
-async function copyFiber(
-  from: FiberHost,
-  to: FiberHost,
-  fid: FiberId,
+/** Every entry of a thread into another, in order, at the same positions (keep, and unkeep back into memory). */
+async function copyThread(
+  from: ThreadHost,
+  to: ThreadHost,
+  fid: ThreadId,
   id: string,
   ok: <T extends { status: string }>(r: T, what: string) => T,
 ): Promise<void> {
   let start = 0;
   for (;;) {
-    const page = await from.window({ fiberId: fid, start, limit: RecordWindowMax, direction: 'forward' });
+    const page = await from.window({ threadId: fid, start, limit: RecordWindowMax, direction: 'forward' });
     if ('status' in page) throw new Error(`The record could not be read (${page.reason}).`);
     for (const e of page.entries) await copyEntry(to, fid, e, id, ok);
     if (!page.hasMore) break;
@@ -723,18 +723,18 @@ async function copyFiber(
 
 /** One entry into the kept record, at the same position: settled as settled, under way as begun, aborted as aborted. */
 async function copyEntry(
-  target: FiberHost,
-  fid: FiberId,
-  e: FiberEntry,
+  target: ThreadHost,
+  fid: ThreadId,
+  e: ThreadEntry,
   id: string,
   ok: <T extends { status: string }>(r: T, what: string) => T,
 ): Promise<void> {
-  const commandId = fiberCommandId(`${id}:copy:${e.entryId}`);
+  const commandId = threadCommandId(`${id}:copy:${e.entryId}`);
   if (e.state.kind === 'settled') {
     ok(
       await target.append({
         commandId,
-        fiberId: fid,
+        threadId: fid,
         entryId: e.entryId,
         descriptor: e.descriptor,
         payload: e.state.payload,
@@ -743,12 +743,12 @@ async function copyEntry(
     );
     return;
   }
-  ok(await target.begin({ commandId, fiberId: fid, entryId: e.entryId, descriptor: e.descriptor }), 'be kept');
+  ok(await target.begin({ commandId, threadId: fid, entryId: e.entryId, descriptor: e.descriptor }), 'be kept');
   if (e.state.kind === 'aborted') {
     ok(
       await target.abort({
-        commandId: fiberCommandId(`${id}:copy:${e.entryId}:abort`),
-        fiberId: fid,
+        commandId: threadCommandId(`${id}:copy:${e.entryId}:abort`),
+        threadId: fid,
         entryId: e.entryId,
         reason: e.state.reason,
       }),
@@ -758,7 +758,7 @@ async function copyEntry(
 }
 
 /** The browser's kept records' rows, only when the database exists (listing never makes an empty one). */
-export async function openRecordsRows(): Promise<(FiberRows & { close?(): void }) | undefined> {
+export async function openRecordsRows(): Promise<(ThreadRows & { close?(): void }) | undefined> {
   let idb: IDBFactory | undefined;
   try {
     idb = globalThis.indexedDB;
@@ -772,7 +772,7 @@ export async function openRecordsRows(): Promise<(FiberRows & { close?(): void }
   }
   // Loaded when asked, as History's Keep does: a viewer that never lists them never pays for it.
   const { createIndexedDbRows } = await import('./indexeddb-rows.js');
-  return createIndexedDbRows<FiberTable>(RecordsDatabase);
+  return createIndexedDbRows<ThreadTable>(RecordsDatabase);
 }
 
 // ---- The index of kept records (journal.md §1) ----
@@ -793,13 +793,13 @@ export interface RecordIndex {
   forget(id: string): Promise<void>;
 }
 
-/** The index as a fiber of its own in the same rows: append-only changes, folded when listed. */
-export async function createRecordIndex(rows: FiberRows): Promise<RecordIndex> {
-  const host = createFiberHost({ rows });
-  const fid = fiberId('prism-viewer-records');
+/** The index as a thread of its own in the same rows: append-only changes, folded when listed. */
+export async function createRecordIndex(rows: ThreadRows): Promise<RecordIndex> {
+  const host = createThreadHost({ rows });
+  const fid = threadId('prism-viewer-records');
   const created = await host.create({
-    commandId: fiberCommandId('records:create'),
-    fiberId: fid,
+    commandId: threadCommandId('records:create'),
+    threadId: fid,
     ownerId: Owner,
     limits: limits(),
   });
@@ -808,21 +808,21 @@ export async function createRecordIndex(rows: FiberRows): Promise<RecordIndex> {
   let n = 0;
   const put = async (value: Json) => {
     const r = await host.append({
-      commandId: fiberCommandId(`records:${Date.now().toString(36)}:${++n}:${Math.random().toString(36).slice(2, 8)}`),
-      fiberId: fid,
-      entryId: fiberEntryId(`r-${Date.now().toString(36)}-${n}-${Math.random().toString(36).slice(2, 6)}`),
+      commandId: threadCommandId(`records:${Date.now().toString(36)}:${++n}:${Math.random().toString(36).slice(2, 8)}`),
+      threadId: fid,
+      entryId: threadEntryId(`r-${Date.now().toString(36)}-${n}-${Math.random().toString(36).slice(2, 6)}`),
       descriptor: envelope({ kind: 'index' }),
       payload: envelope(value),
     });
     if (r.status !== 'accepted') throw new Error(`The records index could not be written (${r.status}).`);
   };
-  // Every touch is an entry, folded here; folding the fiber into one entry per record when it grows is for later.
+  // Every touch is an entry, folded here; folding the thread into one entry per record when it grows is for later.
   return {
     async list() {
       const out = new Map<string, KeptRecord>();
       let start = 0;
       for (;;) {
-        const page = await host.window({ fiberId: fid, start, limit: RecordWindowMax, direction: 'forward' });
+        const page = await host.window({ threadId: fid, start, limit: RecordWindowMax, direction: 'forward' });
         if ('status' in page) break;
         for (const e of page.entries) {
           if (e.state.kind !== 'settled') continue;
@@ -856,17 +856,17 @@ export async function createRecordIndex(rows: FiberRows): Promise<RecordIndex> {
  * Forgets a kept record (the Storage view's Forget, journal.md §7): its rows, then its index entry. Not the current
  * session's record while it is kept: that one is `unkeep`'s.
  */
-export async function forgetKept(rows: FiberRows, index: RecordIndex, id: string): Promise<void> {
-  await createFiberHost({ rows }).forget(fiberId(id));
+export async function forgetKept(rows: ThreadRows, index: RecordIndex, id: string): Promise<void> {
+  await createThreadHost({ rows }).forget(threadId(id));
   await index.forget(id);
 }
 
 /**
- * A kept record's size, about: the characters of its rows as JSON (the fibers' default scope, `fiber:<id>`).
+ * A kept record's size, about: the characters of its rows as JSON (the threads' default scope, `thread:<id>`).
  * Undefined when its rows are not there.
  */
-export async function keptSize(rows: FiberRows, id: string): Promise<number | undefined> {
-  const loaded = await rows.load(`fiber:${id}`);
+export async function keptSize(rows: ThreadRows, id: string): Promise<number | undefined> {
+  const loaded = await rows.load(`thread:${id}`);
   if (!loaded) return undefined;
   let size = 0;
   for (const r of loaded.rows) size += r.key.length + JSON.stringify(r.row).length;

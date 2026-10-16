@@ -7,10 +7,10 @@
  */
 
 // What a host that runs an agent names: messages and the model port, the harness's types, tools, the session (with
-// compaction) and the fibers. Not here: `./providers` and `./models` (they pull the AI SDK or are separate entries),
+// compaction) and the threads. Not here: `./providers` and `./models` (they pull the AI SDK or are separate entries),
 // `./harness` (the loop itself), `./trace`, `./testing`, `./narration`.
 
-export * from './fibers/index.js';
+export * from './threads/index.js';
 export type * from './harness/index.js';
 export * from './messages/index.js';
 export * from './session/compaction/index.js';

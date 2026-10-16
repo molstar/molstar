@@ -42,7 +42,7 @@ mechanical:
 | A4. Loaders split from `@molstar/plugin-extension`'s React parts (README §4)                | phase 3     |
 | A5. A URL-keyed, ref-counted, read-through byte cache in `AssetManager` (sequence.md §2)    | phase 2     |
 | A6. A dynamic toolkit in `@molstar/ai` (`tools/`, `session/`): add and remove tools and skills between and during turns, eviction hints (README decision 25) | phase 4 |
-| A7. A fiber listing by owner in `@molstar/ai` (`fibers/`), or the viewer's own index (journal.md §1) | phase 4     |
+| A7. A thread listing by owner in `@molstar/ai` (`threads/`), or the viewer's own index (journal.md §1) | phase 4     |
 | A8. Port `any-molql` from Stories Untold into `packages/prism/viewer/src/targets/` (targets.md §4) | phase 2 |
 
 No track touches Canvas3D or the GL layer (README decision 28).

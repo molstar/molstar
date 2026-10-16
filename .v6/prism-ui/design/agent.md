@@ -199,4 +199,4 @@ apps with the assistant; an extension brings its skills the same way
 ## 7. Skills
 
 The viewer mode's tools and skills (selections first), the generic tool layer and session, the Inspector (trace, tools,
-limits) and fibers are analysed in [../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md).
+limits) and threads are analysed in [../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md).
