@@ -74,8 +74,9 @@ export function SceneRow(props: SceneRowProps) {
     gone.complete();
   });
   // A click picks it, as the tree's other rows: its controls go to the inspector (the tree's host takes the event);
-  // with no host to take it (a row on its own), they open under it.
-  const pick = () => {
+  // with no host to take it (a row on its own), they open under it (a click on the row toggles them; the eye only opens
+  // them: `reveal`).
+  const pick = (reveal = false) => {
     if (props.onOpen) {
       props.onOpen();
       return;
@@ -90,7 +91,10 @@ export function SceneRow(props: SceneRowProps) {
       gone,
     };
     const event = new CustomEvent(SceneRowPickEvent, { bubbles: true, composed: true, cancelable: true, detail });
-    if (rowEl?.dispatchEvent(event) !== false) toggleOpen();
+    if (rowEl?.dispatchEvent(event) !== false) {
+      if (reveal) open.set(true);
+      else toggleOpen();
+    }
   };
   const toggleOpen = () => props.body && open.set(!open.value);
   return (
@@ -109,7 +113,7 @@ export function SceneRow(props: SceneRowProps) {
         ref={(el) => {
           rowEl = el;
         }}
-        onClick={pick}
+        onClick={() => pick()}
       >
         <button
           type="button"
@@ -143,7 +147,7 @@ export function SceneRow(props: SceneRowProps) {
                 e.stopPropagation();
                 props.onToggle?.();
                 // Turned on, a row with controls is picked: they are in the inspector at once.
-                if (isHidden && props.body) pick();
+                if (isHidden && props.body) pick(true);
               }}
             >
               <Show when={hidden} fallback={() => <Icon name="eye" size={14} />}>
