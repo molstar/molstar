@@ -21,7 +21,6 @@ export type FiberLimits = Readonly<{
   readonly heartbeatIntervalMs: number;
   readonly inactivityTimeoutMs: number;
   readonly abortedPreviewRetentionMs: number;
-  readonly cleanupPageSize: number;
 }>;
 
 /** Default ceiling used when a runtime does not pass its own bounds. */
@@ -40,7 +39,6 @@ export const FIBER_LIMIT_HARD_BOUNDS: FiberLimits = Object.freeze({
   heartbeatIntervalMs: 60_000,
   inactivityTimeoutMs: 3_600_000,
   abortedPreviewRetentionMs: 3_600_000,
-  cleanupPageSize: 256,
 });
 
 /** Small portable profile for conformance. Not a production default. */
@@ -59,7 +57,6 @@ export const FIBER_CONFORMANCE_LIMITS: FiberLimits = Object.freeze({
   heartbeatIntervalMs: 50,
   inactivityTimeoutMs: 200,
   abortedPreviewRetentionMs: 0,
-  cleanupPageSize: 4,
 });
 
 const POSITIVE_LIMIT_KEYS = [
@@ -76,7 +73,6 @@ const POSITIVE_LIMIT_KEYS = [
   'maxDeltaPageBytes',
   'heartbeatIntervalMs',
   'inactivityTimeoutMs',
-  'cleanupPageSize',
 ] as const satisfies readonly (keyof FiberLimits)[];
 
 function assertIntegerInRange(label: string, value: number, min: number, max: number): void {

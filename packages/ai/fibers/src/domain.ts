@@ -99,19 +99,6 @@ export type FiberDeltaPage = Readonly<{
   readonly gap?: Readonly<{ readonly afterOffset: number }>;
 }>;
 
-export type FiberCleanupKind = 'deltas' | 'entries' | 'streams' | 'receipts' | 'fiber';
-
-export type FiberCleanupCursor = Readonly<{
-  readonly kind: FiberCleanupKind;
-  readonly after?: string;
-}>;
-
-export type FiberCleanupPage = Readonly<{
-  readonly kind: FiberCleanupKind;
-  readonly ids: readonly string[];
-  readonly next?: FiberCleanupCursor;
-}>;
-
 export type FiberFailure = Readonly<{
   readonly status: 'conflict' | 'invalid' | 'not-found' | 'closed';
   readonly reason: string;

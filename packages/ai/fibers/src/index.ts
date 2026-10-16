@@ -15,9 +15,6 @@ export type {
   CreateFiberCommand,
   FiberAbortReason,
   FiberAppendDeltaResult,
-  FiberCleanupCursor,
-  FiberCleanupKind,
-  FiberCleanupPage,
   FiberClock,
   FiberCommandResult,
   FiberDeltaBatch,
@@ -61,7 +58,6 @@ export {
   fiberPageTakeBound,
   fiberStoredEnvelopeBytes,
   fiberWindowRangeStart,
-  nextFiberCleanupPage,
   prepareFiberAbort,
   prepareFiberAppendDelta,
   prepareFiberAppendSettled,
@@ -83,7 +79,6 @@ export {
 } from './limits.js';
 export { createMemoryRows } from './memory.js';
 export {
-  FIBER_TABLES,
   type Field,
   type FiberRows,
   type FiberTable,

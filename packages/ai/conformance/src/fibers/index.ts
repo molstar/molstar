@@ -16,9 +16,6 @@ export {
   FiberManualClock,
 } from './fixtures.js';
 export {
-  FIBER_INVALID_ENVELOPES,
-  fiberCleanupCursorPages,
   fiberConformanceEnvelope,
   fiberConformanceLimits,
-  fiberEnvelopeIsValid,
 } from './generators.js';

@@ -17,7 +17,7 @@ example an app writing an entry per turn from the session's hooks, and its Histo
 | `kernel.ts`  | pure decisions: `prepareFiber*` per command against the state given, `projectFiberWindow`/`Deltas` |
 | `host.ts`    | `createFiberHost`: loads state from rows, runs the kernel, persists, retries conflicts, notifies   |
 | `state.ts`   | `FiberState` (one fiber as loaded), copy-on-write drafts, the diff to row writes                   |
-| `storage.ts` | the row-store port `RowStore`, `RowConflict`, `FIBER_TABLES`; `memory.ts`: `createMemoryRows`      |
+| `storage.ts` | the row-store port `RowStore`, `RowConflict`; `memory.ts`: `createMemoryRows`                      |
 | `limits.ts`  | `FiberLimits`, `createFiberLimits`, `FIBER_LIMIT_HARD_BOUNDS`, `FIBER_CONFORMANCE_LIMITS`          |
 | `ids.ts`     | branded ids (`FiberId`, `FiberEntryId`, `FiberOwnerId`, `FiberCommandId`) and their constructors   |
 | `data.ts`    | strict JSON checks, `cloneData`, canonical JSON (fingerprints and byte sizes)                      |
@@ -63,10 +63,10 @@ const page = await fibers.window({ fiberId, start, limit: 20, direction: 'backwa
 
 ## Limits
 
-`FiberLimits` has no defaults: all 15 fields are given (start from `FIBER_LIMIT_HARD_BOUNDS`). It has entry, batch,
+`FiberLimits` has no defaults: all 14 fields are given (start from `FIBER_LIMIT_HARD_BOUNDS`). It has entry, batch,
 window and delta-page sizes, active streams (count, bytes, batches), heartbeat, inactivity and aborted-preview
-retention, cleanup page size. `FIBER_LIMIT_HARD_BOUNDS` are the ceilings (e.g. entry 1 MB, 32 active streams, window 256
-entries, inactivity 1 h); relations are checked (heartbeat < inactivity, batch ≤ entry, window ≥ 2 × entry …).
+retention. `FIBER_LIMIT_HARD_BOUNDS` are the ceilings (e.g. entry 1 MB, 32 active streams, window 256 entries,
+inactivity 1 h); relations are checked (heartbeat < inactivity, batch ≤ entry, window ≥ 2 × entry …).
 
 ## Gotchas
 
@@ -74,6 +74,6 @@ entries, inactivity 1 h); relations are checked (heartbeat < inactivity, batch �
   `createFiberLimits(limits)` to find out early.
 - Reads can write (an inactivity abort).
 - A removed fiber stays fenced (`removed`); creating the same id again conflicts. `forget` drops it.
-- Receipts are kept until `remove`; `cleanupPageSize`, `deltaFlush*` and `heartbeatIntervalMs` are validated but the
-  host does not use them (batching and heartbeat pacing are the caller's).
+- Receipts are kept until `remove`; `deltaFlush*` and `heartbeatIntervalMs` are validated but the host does not use them
+  (batching and heartbeat pacing are the caller's).
 - Cross-fiber `commandId` reuse is caught only for fibers loaded in this host: derive command ids from the fiber.

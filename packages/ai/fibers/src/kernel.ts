@@ -14,8 +14,6 @@ import type {
   BeginStreamingFiberEntryCommand,
   CreateFiberCommand,
   FiberAppendDeltaResult,
-  FiberCleanupCursor,
-  FiberCleanupPage,
   FiberCommandResult,
   FiberDeltaBatch,
   FiberDeltaPage,
@@ -646,18 +644,4 @@ export function projectFiberDeltas(input: {
     nextOffset: offset,
     hasMore: ordered.some((batch) => batch.start >= offset),
   };
-}
-
-export function nextFiberCleanupPage(input: {
-  readonly cursor: FiberCleanupCursor;
-  readonly ids: readonly string[];
-  readonly pageSize: number;
-}): FiberCleanupPage {
-  const remaining = [...input.ids].filter((id) => input.cursor.after === undefined || id > input.cursor.after).sort();
-  const ids = remaining.slice(0, input.pageSize);
-  const last = ids[ids.length - 1];
-  if (last !== undefined && remaining.length > ids.length) {
-    return { kind: input.cursor.kind, ids, next: { kind: input.cursor.kind, after: last } };
-  }
-  return { kind: input.cursor.kind, ids };
 }

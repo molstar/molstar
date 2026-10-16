@@ -60,6 +60,4 @@ export class RowConflict extends Error {
 /** The tables of a fiber's scope; every row is its value as JSON (`json`). */
 export type FiberTable = 'fiber' | 'entry' | 'stream' | 'deltas' | 'receipt';
 
-export const FIBER_TABLES: readonly FiberTable[] = ['fiber', 'entry', 'stream', 'deltas', 'receipt'];
-
 export type FiberRows = RowStore<FiberTable>;

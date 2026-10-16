@@ -26,7 +26,6 @@ import {
   fiberPageTakeBound,
   fiberStoredEnvelopeBytes,
   fiberWindowRangeStart,
-  nextFiberCleanupPage,
   prepareFiberAbort,
   prepareFiberAppendDelta,
   prepareFiberAppendSettled,
@@ -317,7 +316,7 @@ describe('Fiber kernel', () => {
     expect(late).toMatchObject({ kind: 'failure' });
   });
 
-  it('pages windows, cleanup cursors, and fences remove', () => {
+  it('pages windows and fences remove', () => {
     const fiber: FiberKernelFiber = {
       fiberId: id,
       ownerId: owner,
@@ -368,13 +367,6 @@ describe('Fiber kernel', () => {
       now: 3,
     });
     expect(bounded).toMatchObject({ hasMore: true, entries: [{ position: 0 }] });
-    const page = nextFiberCleanupPage({
-      cursor: { kind: 'entries' },
-      ids: ['e1', 'e2', 'e3'],
-      pageSize: 2,
-    });
-    expect(page.ids).toEqual(['e1', 'e2']);
-    expect(page.next).toEqual({ kind: 'entries', after: 'e2' });
     const closed = prepareFiberRemove({ command: { commandId: fiberCommandId('r1'), fiberId: id }, fiber });
     expect(accepted(closed).lifecycle).toBe('closing');
     const fenced = prepareFiberAppendSettled({
