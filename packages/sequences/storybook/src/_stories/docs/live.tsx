@@ -133,7 +133,8 @@ function previewPath() {
  */
 export function ExamplePlugin() {
   const theme = useTheme();
-  const id = 'prism-viewer-with-extensions--predicted';
+  // The embedded layout: the rail hidden behind its button in the canvas's corner.
+  const id = 'prism-viewer-with-extensions--embedded';
   return (
     <Unstyled>
       <div className={s.stack}>

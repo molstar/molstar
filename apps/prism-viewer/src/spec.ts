@@ -21,6 +21,8 @@ export function createAppSpec(search: string): PrismViewerSpec {
   const params = parseSearch(search);
   // `?assistant`: the Assistant tab open at start, which loads it (otherwise it loads on first use: the tab, the Ask row).
   const openAssistant = params.has('assistant');
+  // `?hide-rail`: the embedded layout, the rail hidden behind a button in the canvas's corner (`ui.layout.compactRail`).
+  const hideRail = params.has('hide-rail');
   // `?restore`: this tab's scene comes back after a reload (journal.md §6). Off by default: a session lives in memory.
   const restore = params.has('restore');
   // Opened with nothing to load: Home, where loading starts (a page that drives the viewer itself keeps it closed).
@@ -30,7 +32,18 @@ export function createAppSpec(search: string): PrismViewerSpec {
     ...base,
     // The app is on the web: remote states (the state server's Save and Open) are on.
     options: { ...options, ui: { homeWhenEmpty: !loads, showRemoteStates: true, ...options.ui } },
-    ...(openAssistant ? { ui: { ...base.ui, layout: { ...base.ui?.layout, start: 'assistant.tab.assistant' } } } : {}),
+    ...(openAssistant || hideRail
+      ? {
+          ui: {
+            ...base.ui,
+            layout: {
+              ...base.ui?.layout,
+              ...(openAssistant ? { start: 'assistant.tab.assistant' } : {}),
+              ...(hideRail ? { compactRail: true } : {}),
+            },
+          },
+        }
+      : {}),
     // Light state in the browser (journal.md §6): preferences in localStorage; with `?restore`, this tab's light
     // restore in sessionStorage; both stamped with the app's version.
     persist: {

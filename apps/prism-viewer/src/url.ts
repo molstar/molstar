@@ -102,6 +102,8 @@ export const KnownUrlParameters: readonly string[] = [
   'palette',
   // Opens the assistant at start (loads it then).
   'assistant',
+  // The embedded layout: the rail hidden behind a button in the canvas's corner.
+  'hide-rail',
   // This tab's scene comes back after a reload (the journal's light restore).
   'restore',
   'pdb-provider',

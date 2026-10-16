@@ -61,8 +61,13 @@ import of the plugin.
 
 ### 2.5 `ui`: the shell
 
-`layout` (docks, mode, compact width, `tabs` placement, `start` tab), `theme`, `keybindings` (replace the named
-commands' shortcuts). What shows is decided by parts and `overrides` (§4), one way to hide anything. Ignored headless.
+`layout` (docks, mode, compact width, `tabs` placement, `start` tab, `compactRail`), `theme`, `keybindings` (replace the
+named commands' shortcuts). What shows is decided by parts and `overrides` (§4), one way to hide anything. Ignored
+headless.
+
+- **The embedded layout** (`layout.compactRail: true`; the app's `?hide-rail`): the rail is hidden behind a button in
+  the canvas's corner and the canvas goes edge to edge; the button slides the rail in over the canvas, a panel opens
+  beside it. For a viewer inside a page (Storybook: Viewer / With extensions, Embedded; the Seq\* introduction).
 
 ### 2.6 `persist`
 

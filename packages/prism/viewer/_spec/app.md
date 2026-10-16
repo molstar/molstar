@@ -56,7 +56,7 @@ in this order (`features/loaders/url.ts`; names without case); the app reads the
   `volume-streaming-disabled`, `state-server` → `options.data`
 - `collapse-left-panel` (`hide-controls`) → `options.ui.collapsed`; `show-toggle-fullscreen` → the button, only when
   given (shown by default)
-- `assistant` → the Assistant tab open at start; `restore` → this tab's light restore on reload when nothing loads
-  (journal.md §6)
+- `hide-rail` → the embedded layout (`ui.layout.compactRail`, [viewer-spec.md](viewer-spec.md) §2.5); `assistant` → the
+  Assistant tab open at start; `restore` → this tab's light restore on reload when nothing loads (journal.md §6)
 - `debug-mode=1`, `timing-mode=1` → page-wide, before the viewer is made
 - `pick-padding` → dropped

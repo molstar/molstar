@@ -13,6 +13,7 @@ import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { unzip } from '@molstar/core/util/zip/zip';
 import { story } from '@molstar/prism-ui/testing/index';
 import { RealViewerStory } from '@molstar/prism-viewer/testing/real-viewer';
+import type { PrismViewer } from '@molstar/prism-viewer';
 import { FullPrismViewerSpec } from '../full-spec.js';
 
 // The viewer as the app composes it (the viewer's defaults and Mol*'s extensions: `FullPrismViewerSpec`), for what
@@ -27,18 +28,33 @@ export default meta;
  * in the same bands, linked to the 3D view. Network.
  */
 export const Predicted: StoryObj = {
+  render: () => story(() => <RealViewerStory spec={() => FullPrismViewerSpec()} setup={loadPredicted} />),
+};
+
+/**
+ * The embedded layout (`ui.layout.compactRail`, the app's `?hide-rail`): the rail hidden behind its button in the
+ * canvas's corner, the canvas edge to edge; the button slides the rail in over the canvas, and a panel opens beside it.
+ * For a viewer inside a page (the Seq* introduction's). The same structure as Predicted. Network.
+ */
+export const Embedded: StoryObj = {
   render: () =>
     story(() => (
       <RealViewerStory
-        spec={() => FullPrismViewerSpec()}
-        setup={async (v) => {
-          const loaded = await v.api.load.url!({ url: 'https://alphafill.eu/v1/aff/P08684', format: 'mmcif' });
-          if (!loaded.ok) throw new Error(loaded.message);
-          await v.api.annotations.apply({ annotation: 'plddt' });
+        spec={() => {
+          const spec = FullPrismViewerSpec();
+          return { ...spec, ui: { ...spec.ui, layout: { ...spec.ui?.layout, compactRail: true } } };
         }}
+        setup={loadPredicted}
       />
     )),
 };
+
+/** AlphaFill's CYP3A4 with ligands, colored by pLDDT. */
+async function loadPredicted(v: PrismViewer) {
+  const loaded = await v.api.load.url!({ url: 'https://alphafill.eu/v1/aff/P08684', format: 'mmcif' });
+  if (!loaded.ok) throw new Error(loaded.message);
+  await v.api.annotations.apply({ annotation: 'plddt' });
+}
 
 /**
  * The predicted aligned error of a model (the model-archive extension's PAE card): AlphaFold DB's model of calmodulin
