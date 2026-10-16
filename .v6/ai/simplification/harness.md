@@ -126,58 +126,37 @@ Callers outside:
 - Session tests that reopen a harness on shared storage (`session/src/_test/drive.test.ts:176–200`,
   `resume.test.ts:36` "a new runtime reads the harness and finishes the interrupted turn") are dropped.
 
-## 7. Hashing: synchronous, with the repository's MurmurHash3 (proposed)
+## 7. Hashing: synchronous, with `@molstar/core`'s MurmurHash3 (decided)
 
-**Decided** (David, 2026-10-16): hashing becomes synchronous. Today `hashMessage` and `digest` are WebCrypto SHA-256
-(`agent/src/hash.ts:96–121`), so async (`_spec/harness.md` Gotchas): every entry id, payload digest and blob ref is an
-`await`, the simulated clock patches `crypto.subtle.digest` to count digests in flight (`testing/clock.ts:21–54,
-170–174`) and gives them real time before calling a deadlock, and tests must `settle()`. Those WebCrypto races are also
-why the suite retried cases and runs in the serial Vitest project (`.v6/ai/plan.md` "The suite waits on conditions",
-`vitest.config.ts:14–16`).
+**Decided** (David, 2026-10-16): hashing becomes synchronous, with the hash MolViewSpec uses, imported from
+`@molstar/core` rather than a SHA-256. Today `hashMessage` and `digest` are WebCrypto SHA-256 (`agent/src/hash.ts:96–121`),
+so async (`_spec/harness.md` Gotchas): every entry id, payload digest and blob ref is an `await`, the simulated clock
+patches `crypto.subtle.digest` to count digests in flight (`testing/clock.ts:21–54, 170–174`) and gives them real time
+before calling a deadlock, and tests must `settle()`. Those WebCrypto races are also why the suite retried cases and
+runs in the serial Vitest project (`.v6/ai/plan.md` "The suite waits on conditions", `vitest.config.ts:14–16`).
 
-**Proposed** (David's suggestion, same day): no SHA-256 at all; use the hash MolViewSpec uses,
-`murmurHash3_128_fromBytes` (`packages/core/src/data/util/hash-functions.ts:383`, used by
-`packages/mvs/runtime/src/components/formats.ts:150` for archive ids). Assessment:
-
-- **Fit**: yes. Entry ids, payload digests and blob refs need a deterministic, well-mixed 128-bit id within one
-  page's memory, not a cryptographic one. 128 bits keeps accidental collisions out of the question (about 10⁻²⁷ for a
-  million entries). It is synchronous, a few hundred lines of integer arithmetic, and faster than any JS SHA-256
-  (inferred). It needs no secure context.
-- **Hash the bytes, never the string.** `murmurHash3_128(key: string)` reads `charCodeAt(i) & 0xff`, so in a full
-  block two texts that differ only in a character above U+00FF collide: `'Ałpha helix, 16c'` and `'ABpha helix, 16c'`
-  get the same hash (checked with a script; `ł` is U+0142, whose low byte is `B`). The bytes version over UTF-8
-  (`encodeMessage` already produces bytes; `digest` hashes `TextEncoder` output of `canonicalJson`) does not have this
-  problem. The same truncation affects `hashMurmur128o` (`JSON.stringify` then the string version), which
-  `packages/core/src/state/transform.ts:280,285` uses for transform versions: that is a core issue outside this
-  analysis (follow-up below).
-- **It is not canonical MurmurHash3.** The 128-bit function rotates `k4` by 13 where MurmurHash3_x86_128 rotates it by
-  18 (`hash-functions.ts:462` in the block loop, `:484` in the tail). Checked against an independent implementation:
-  with rotation 18 it reproduces SMHasher's verification value `0xB3ECE62A`; the repository's variant gives
-  `0xD0AA8667`, and agrees with the 13/13 variant on 73 random inputs. For in-memory ids that is harmless (it is
-  deterministic and the other lanes are canonical), but its output does not match other MurmurHash3 implementations,
-  so the MVS archive id `ni,MurmurHash3_128;…` would not match one computed elsewhere (inferred: nothing in this
-  repository compares them). Fixing it in core changes every MVSX archive id and transform version: a follow-up of its
-  own.
+- **The function**: `murmurHash3_128_fromBytes(bytes, seed)` (`packages/core/src/data/util/hash-functions.ts`) over the
+  UTF-8 bytes `encodeMessage` and `TextEncoder(canonicalJson(…))` produce. Entry ids, payload digests and blob refs need
+  a deterministic, well-mixed 128-bit id within one page's memory, not a cryptographic one; 128 bits keeps accidental
+  collisions out of the question (about 10⁻²⁷ for a million entries). It is synchronous, needs no secure context, and
+  hashes 1 MB in about 0.3 ms (measured: 50 MB in 17 ms).
+- **Fixed first** (commit `1fd60f0af`, "v6 core: MurmurHash3 fixed"): the 128-bit variant was not MurmurHash3_x86_128
+  (`k4` rotated by 13, not 18; SMHasher's verification value `0xB3ECE62A` now holds) and the string forms hashed each
+  UTF-16 code unit's low byte (`'Ałpha helix, 16c'` and `'ABpha helix, 16c'` collided); strings are now hashed as UTF-8.
+  Tests in `packages/core/src/data/util/_test/hash-functions.test.ts`.
+- **The import**: `@molstar/ai` depends on `@molstar/core` and imports only `@molstar/core/data/util/hash-functions` (a
+  file with no imports; core's `./*` export allows the subpath). The AI folder rules (packaging.md §5) forbid Mol\* except
+  that one path, a narrow Biome exception in place of today's `"!@molstar/ai-*"` (`biome.json:108`). Core's own
+  dependencies (`rxjs`, `immutable`, `mutative`) join the install graph, not the bundle. `.v6/ai/README.md` "Opt-in"
+  ("they import nothing of either") is reworded in slice 10: nothing of Prism or the plugin, one file of core.
 - **Not collision-resistant against crafted input** (MurmurHash3 has known seed-independent collision attacks; general
   knowledge, not checked here). Impact in memory: a crafted message (a tool result carrying text from a file) that
-  collides with an earlier entry would be taken as that entry (deduplicated, or resolved to the other message). Low for
-  a single person's viewer session; worth a line in the spec.
+  collides with an earlier entry would be taken as that entry. Low for a single person's viewer session; a line in the
+  spec says so.
 - **What changes in tests**: conformance C1 digest-jcs checks `canonicalJson` against RFC 8785's vectors and no longer
   the SHA-256 on top (`conformance/src/cases/projection.ts:23`); `agent/src/_test/hash.test.ts` (16 hash call sites)
   gets the new expected ids; P11 hash-once counts calls through an injected counter instead of spying on
-  `crypto.subtle.digest` (`performance.ts:480–482`).
+  `crypto.subtle.digest` (`performance.ts:480–482`); `testing/clock.ts` loses the digest tracking (~40 lines).
 - **Attachments**: `Reference.digest` is `sha256:<hex>` and the adapters check inline bytes against it
-  (`model-adapters/src/common/attachments.ts:49–52`). Nothing in Prism sets a digest (`git grep digest` in
-  `packages/prism`, `values.ts:23` is optional), so the check can use the same hash under its own prefix
-  (`murmur3-128:`) or go.
-
-**The import, a decision**: `@molstar/ai` imports nothing of Mol\* today, and Biome enforces it in every AI block
-(`biome.json:108`: "The AI packages import nothing of Mol\* or Prism"). Two ways:
-
-| Option                                                                | For                                         | Against                                                                                         |
-| --------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **A. Depend on `@molstar/core`**, import `@molstar/core/data/util/hash-functions` only (a file with no imports; core's `./*` export allows the subpath) | one hash in the repository, the one MVS uses; a fix in core reaches both | a narrow Biome exception for that path; core's `rxjs`, `immutable`, `mutative` join `@molstar/ai`'s install graph (not its bundle: the subpath imports nothing); the AI layer is no longer "imports nothing of Mol\*" (`.v6/ai/README.md` "Opt-in") |
-| **B. Copy the 128-bit function** into `messages/hash.ts` (~190 lines, `hash-functions.ts:383–577`) | the boundary stays as it is                 | two copies of a non-canonical hash to keep in step                                              |
-
-Recommendation: A, with the Biome exception naming the one file, so the repository has one hash and the core fix
-(k4, the string truncation) is made once. Open question 10 in the README.
+  (`model-adapters/src/common/attachments.ts:49–52`). Nothing in Prism sets a digest (`values.ts:23` is optional), so the
+  check uses the same hash under its own prefix (`murmur3-128:`) or goes; the providers slice decides.

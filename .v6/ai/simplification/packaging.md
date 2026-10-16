@@ -61,7 +61,7 @@ Proposed `package.json` `exports` (explicit; no `./*`):
   bundle today carries `@molstar/ai-fibers` although `agent: false` (`examples/minimal-prism-viewer/README.md:107`); one
   package must not make that worse.
 
-Dependencies of `@molstar/ai`: `ai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`,
+Dependencies of `@molstar/ai`: `@molstar/core` (only `data/util/hash-functions`, harness.md §7), `ai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`,
 `@ai-sdk/openai-compatible`, `zod`, `tslib` (+ `mediabunny` only if narration stays). Dev: `vitest` (root already has it); `fast-check`
 leaves with `head.test.ts` and the S1 case (harness.md §6). `fake-indexeddb` leaves the AI
 package (it stays in the catalog: prism-viewer and prism-assistant tests use it, `pnpm-workspace.yaml:110`).
@@ -129,7 +129,8 @@ collapse the same architecture is folder to folder over relative imports:
 | `session/`    | `messages/`, `harness/`, `tools/`            |
 | `testing/`    | `messages/`, `harness/`, `providers/port.ts` |
 
-All folders: no Mol\*, Prism, rxjs, `node:*`. Expressing "may import" with Biome's `noRestrictedImports` on relative
+All folders: no Mol\*, Prism, rxjs, `node:*`, except `messages/` importing `@molstar/core/data/util/hash-functions`
+(harness.md §7). Expressing "may import" with Biome's `noRestrictedImports` on relative
 paths (`../providers/**` and the like) is **inferred, not verified**; the fallback is a small check in
 `scripts/workspace/` (it already checks package boundaries, `pnpm check:workspace`). Open question 8.
 
