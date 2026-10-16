@@ -19,7 +19,7 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 
 ```ts
 const session = new AgentSession<MyApi>({
-  models: { adapterFor: (provider) => adapters[provider], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } },
+  models: { providerFor: (id) => providers[id], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } },
   toolkit,                       // createToolkit(...) from tools/
   api,                           // the host's modules; the session adds `disclosure` if absent
   guidance,                      // the system text of the first turn
@@ -34,8 +34,8 @@ Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` defa
 (1500), `toolRetries` (2), `toolRetryDelayMs` (1000), `providerNames`. Also `notesHeading` (heads the notes; default
 `NOTES_HEADING`).
 
-The harness (made on first use) is `createHarness({ models, tools, drive, clock, price })`: `ModelBindings` over
-`adapterFor`, `createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time)
+The harness (made on first use) is `createHarness({ models, tools, drive, clock, price })`: `ProviderBindings` over
+`providerFor`, `createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time)
 wrapped to observe calls, and `createDrive(...)`; the session subscribes to its observations. It lives in memory, as
 long as the session (a reload ends the conversation).
 
@@ -116,10 +116,10 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
 
 - A session is one conversation: one harness, in memory.
 - Model choices are the host's: the session knows no models; context windows and output limits come from the choice, the
-  adapter's capabilities, or `contextWindow`/`maxOutput` given for custom models.
+  provider's capabilities, or `contextWindow`/`maxOutput` given for custom models.
 - `onText` streams one model call at a time (it restarts with each top-level call); `TurnResult.text` is the last
   non-empty text, else the last assistant message; `turnText` is the whole turn's.
-- Only "a turn is already running" throws from `turn()`; a missing adapter or unknown model is `status: 'failed'`.
+- Only "a turn is already running" throws from `turn()`; a missing provider or unknown model is `status: 'failed'`.
   `resume()` returns `undefined` when busy or with nothing to resume; `forget()` throws while a turn runs.
 - Approval decisions passed to `resume` are kept for the conversation (a parked turn resumed without one for a call
   parks again). The pending calls are in `TurnResult.approval`.

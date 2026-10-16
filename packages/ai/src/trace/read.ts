@@ -291,7 +291,7 @@ function budgetView(
   };
 }
 
-/** A request as the cache sees it: its parts (adapter-given digests) and its model. */
+/** A request as the cache sees it: its parts (provider-given digests) and its model. */
 interface RequestShape {
   readonly segments: readonly string[];
   readonly model: string;

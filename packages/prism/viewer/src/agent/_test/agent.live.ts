@@ -26,11 +26,11 @@ for (const m of LiveModels) {
   describe.skipIf(!env[m.key])(`the agent on ${m.model}`, () => {
     it('loads an entry, styles it, selects and focuses the ligand; one undoable turn each', async () => {
       const v = await headlessViewer();
-      const adapter = m.adapter();
+      const provider = m.create();
       const agent = createViewerAgent({
         viewer: v,
         models: {
-          adapterFor: (p) => (p === m.provider ? adapter : undefined),
+          providerFor: (p) => (p === m.provider ? provider : undefined),
           default: { provider: m.provider, model: m.model },
         },
       });

@@ -31,7 +31,7 @@ export function resolveProviderCapabilities(
   catalog: string | false = provider,
 ): ModelCapabilities {
   if (configuration.target.provider !== provider) {
-    throw new Error(`${provider} adapter cannot project provider ${configuration.target.provider}.`);
+    throw new Error(`The ${provider} provider cannot project provider ${configuration.target.provider}.`);
   }
   const model = configuration.target.model;
   const selected = overrides[model] ?? (catalog ? modelInfo(catalog, model)?.limits : undefined);

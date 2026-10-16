@@ -6,10 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelAdapter, ModelFrame } from '@molstar/ai';
+import type { Provider, ModelFrame } from '@molstar/ai';
 import { describe, expect, it, vi } from 'vitest';
 import type { KeyScope, KeyStore } from '../../keys.js';
-import { checkEndpoint, createAISettings, lazyAdapter, type SettingsPrefs } from '../settings-model.js';
+import { checkEndpoint, createAISettings, lazyProvider, type SettingsPrefs } from '../settings-model.js';
 
 // The assistant's model setup (agent.md §4): the choice kept apart from the one in effect, failures said in words.
 
@@ -121,48 +121,48 @@ describe('the assistant setup', () => {
     expect(checkEndpoint('http://[::1]:8080/v1')).toBeUndefined();
   });
 
-  it("takes a host's models with their adapter, in effect with no key of the person's (a story's scripted model)", async () => {
-    const adapter = {} as never;
+  it("takes a host's models with their provider, in effect with no key of the person's (a story's scripted model)", async () => {
+    const given = {} as never;
     const settings = createAISettings(memoryKeys(), memoryPrefs(), {
-      provided: [{ id: 'scripted', label: 'Scripted', models: ['scripted'], adapter }],
+      provided: [{ id: 'scripted', label: 'Scripted', models: ['scripted'], provider: given }],
     });
     await settings.load();
     expect(settings.providers.value[0]).toMatchObject({ id: 'scripted', key: { from: 'server' } });
     expect(settings.setup.value).toEqual({ provider: 'scripted', model: 'scripted' });
-    expect(settings.adapterFor('scripted')).toBe(adapter);
-    expect(settings.adapterFor('anthropic')).toBeUndefined();
+    expect(settings.providerFor('scripted')).toBe(given);
+    expect(settings.providerFor('anthropic')).toBeUndefined();
   });
 
-  it("gives a provider's adapter without importing its SDK until it is used", async () => {
+  it('gives a provider without importing its SDK until it is used', async () => {
     const settings = createAISettings(memoryKeys({ anthropic: 'browser' }), memoryPrefs());
     await settings.load();
-    const adapter = settings.adapterFor('anthropic')!;
-    expect(settings.adapterFor('anthropic')).toBe(adapter);
-    const capabilities = await adapter.capabilitiesFor({
+    const found = settings.providerFor('anthropic')!;
+    expect(settings.providerFor('anthropic')).toBe(found);
+    const capabilities = await found.capabilities({
       target: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
       parameters: {},
     } as never);
     expect(capabilities.contextWindowTokens).toBeGreaterThan(0);
   });
 
-  it('loads a lazy adapter once, on its first use, and again after a failed load', async () => {
+  it('loads a lazy provider once, on its first use, and again after a failed load', async () => {
     const frame = { kind: 'text-delta', text: 'hi' } as ModelFrame;
-    const inner: ModelAdapter = {
-      capabilitiesFor: async () => ({ contextWindowTokens: 1000 }) as never,
+    const inner: Provider = {
+      capabilities: async () => ({ contextWindowTokens: 1000 }) as never,
       project: async () => ({ payload: {} }) as never,
       async *invoke() {
         yield frame;
       },
     };
-    const load = vi.fn<() => Promise<ModelAdapter>>().mockRejectedValueOnce(new Error('chunk failed'));
+    const load = vi.fn<() => Promise<Provider>>().mockRejectedValueOnce(new Error('chunk failed'));
     load.mockResolvedValue(inner);
-    const adapter = lazyAdapter(load);
+    const lazy = lazyProvider(load);
     expect(load).not.toHaveBeenCalled();
-    await expect(adapter.capabilitiesFor({} as never)).rejects.toThrow('chunk failed');
-    expect((await adapter.capabilitiesFor({} as never)).contextWindowTokens).toBe(1000);
-    await adapter.project({} as never);
+    await expect(lazy.capabilities({} as never)).rejects.toThrow('chunk failed');
+    expect((await lazy.capabilities({} as never)).contextWindowTokens).toBe(1000);
+    await lazy.project({} as never);
     const frames: ModelFrame[] = [];
-    for await (const f of adapter.invoke({} as never)) frames.push(f);
+    for await (const f of lazy.invoke({} as never)) frames.push(f);
     expect(frames).toEqual([frame]);
     expect(load).toHaveBeenCalledTimes(2);
   });

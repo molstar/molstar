@@ -30,7 +30,7 @@ import { isLazyExtension, type PrismViewerSpec } from '../spec.js';
 
 export interface ViewerAgentOptions<M extends ModelChoice = ModelChoice> {
   readonly viewer: PrismViewer;
-  /** The model adapters by provider, and the default model (the app's: keys are the person's, agent.md §4). */
+  /** The model providers by id, and the default model (the app's: keys are the person's, agent.md §4). */
   readonly models: ModelSource<M>;
   /** More guidance after the viewer's (an app's words). */
   readonly guidance?: string;

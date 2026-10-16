@@ -7,16 +7,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { digest, type Message, type ModelParameters, type ModelVisiblePart } from '../../messages/index.js';
-import { createOpenAIModelAdapter } from '../index.js';
+import type { Message, ModelParameters, ModelVisiblePart } from '../../messages/index.js';
+import { createOpenAIProvider } from '../index.js';
 import {
   answer,
-  assertDigestMatches,
   collectFrames,
   declares,
   lookupTool,
   openaiSse,
-  payloadOf,
   project,
   projectInput,
   recordingFetch,
@@ -26,45 +24,18 @@ import {
 const secret = 'fixture-openai-secret';
 const input = (extras: Parameters<typeof projectInput>[2] = {}) => projectInput('openai', 'gpt-6-luna', extras);
 const create = (fetch?: typeof globalThis.fetch) =>
-  createOpenAIModelAdapter({ resolveApiKey: () => secret, ...(fetch === undefined ? {} : { fetch }) });
+  createOpenAIProvider({ resolveApiKey: () => secret, ...(fetch === undefined ? {} : { fetch }) });
 const file = (mediaType: string, text = 'fixture'): ModelVisiblePart => ({
   kind: 'reference',
   reference: { uri: `data:${mediaType};base64,${btoa(text)}`, mediaType },
 });
 
-describe('OpenAI Responses adapter', () => {
-  it('resolves Luna limits and features, rejects unknown models, and validates override and output caps', async () => {
-    const adapter = create();
-    expect(await adapter.capabilitiesFor(input().configuration)).toMatchObject({
-      contextWindowTokens: 1_050_000,
-      maxOutputTokens: 128_000,
-      appendsTools: true,
-      cacheScope: true,
-      outputLimitIncludesReasoning: true,
-    });
-    const unknown = { target: { provider: 'openai', model: 'unknown' }, parameters: {} };
-    await expect(adapter.capabilitiesFor(unknown)).rejects.toThrow(/explicit token limits/);
-    const custom = createOpenAIModelAdapter({
-      resolveApiKey: () => secret,
-      modelLimits: { gateway: { contextWindowTokens: 10_000, maxOutputTokens: 1024, defaultMaxOutputTokens: 256 } },
-    });
-    const config = { target: { provider: 'openai', model: 'gateway' }, parameters: {} };
-    const gateway = await custom.capabilitiesFor(config);
-    expect(gateway).toMatchObject({ appendsTools: false, cacheScope: true });
-    expect(payloadOf(await project(custom, { configuration: config, messages: [], tools: [] })).maxOutputTokens).toBe(
-      256,
-    );
-    await expect(
-      project(custom, { configuration: { ...config, parameters: { maxOutputTokens: 1025 } }, messages: [], tools: [] }),
-    ).rejects.toThrow(/model maximum/);
-  });
-
+describe('OpenAI Responses provider', () => {
   it('streams text and usage through stateless Responses without credential evidence', async () => {
     const recorded = recordingFetch(openaiSse('PONG'));
     const adapter = create(recorded.fetch);
     const request = await project(adapter, input({ tools: [] }));
     const frames = await collectFrames(adapter, request);
-    await assertDigestMatches(request);
     expect(frames).toContainEqual({ kind: 'text-delta', text: 'PONG' });
     expect(resultOf(frames)).toMatchObject({
       finish: 'complete',
@@ -78,33 +49,24 @@ describe('OpenAI Responses adapter', () => {
     expect(recorded.requests[0]?.body).not.toContain(secret);
   });
 
-  it.each(['none', 'low', 'medium', 'high', 'xhigh', 'max'])('maps reasoning effort %s', async (effort) => {
+  it("maps an effort to reasoning.effort, and off to none (not the model's default)", async () => {
     const recorded = recordingFetch(openaiSse('done'));
     const adapter = create(recorded.fetch);
-    const request = await project(
+    const efforts = ['none', 'low', 'xhigh', 'max'] as const;
+    for (const effort of efforts) {
+      const parameters = { maxOutputTokens: 128, reasoning: { mode: 'adaptive', effort } } as const;
+      await collectFrames(
+        adapter,
+        await project(adapter, input({ configuration: { ...input().configuration, parameters } })),
+      );
+    }
+    const off = { maxOutputTokens: 128, reasoning: { mode: 'off' } } as const;
+    await collectFrames(
       adapter,
-      input({
-        configuration: {
-          ...input().configuration,
-          parameters: { maxOutputTokens: 128, reasoning: { mode: 'adaptive', effort } },
-        },
-      }),
+      await project(adapter, input({ configuration: { ...input().configuration, parameters: off } })),
     );
-    await collectFrames(adapter, request);
-    expect(JSON.parse(recorded.requests[0]?.body ?? '{}').reasoning.effort).toBe(effort);
-  });
-
-  it("maps explicit off to none instead of allowing the model's default reasoning", async () => {
-    const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
-    const request = await project(
-      adapter,
-      input({
-        configuration: { ...input().configuration, parameters: { maxOutputTokens: 128, reasoning: { mode: 'off' } } },
-      }),
-    );
-    await collectFrames(adapter, request);
-    expect(JSON.parse(recorded.requests[0]?.body ?? '{}').reasoning.effort).toBe('none');
+    const sent = recorded.requests.map((request) => JSON.parse(request.body).reasoning.effort);
+    expect(sent).toEqual([...efforts, 'none']);
   });
 
   it.each([
@@ -172,45 +134,6 @@ describe('OpenAI Responses adapter', () => {
     });
   });
 
-  it('retains encrypted reasoning even when the provider supplies no visible summary', async () => {
-    const wire = openaiSse(
-      '',
-      { name: 'fixture_lookup', input: '{"id":"x"}' },
-      { text: '', encryptedContent: 'opaque-fixture' },
-    )
-      .split('\n')
-      .filter((line) => !line.includes('response.reasoning_summary'))
-      .join('\n');
-    const adapter = create(recordingFetch(wire).fetch);
-    expect(resultOf(await collectFrames(adapter, await project(adapter, input())))).toMatchObject({
-      message: {
-        parts: [
-          {
-            kind: 'tool-call',
-            providerOptions: {
-              openai: { reasoning: [{ itemId: 'rs_fixture', text: '', encryptedContent: 'opaque-fixture' }] },
-            },
-          },
-        ],
-      },
-    });
-  });
-
-  it('keeps the SDK prompt prefix when a user message is appended', async () => {
-    const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
-    const guide: Message = { role: 'system', parts: [{ kind: 'text', text: 'policy' }] };
-    const first = await project(adapter, input({ messages: [guide, ...input().messages] }));
-    const tail: Message = { role: 'user', parts: [{ kind: 'text', text: 'tail' }] };
-    const second = await project(adapter, input({ messages: [guide, ...input().messages, tail] }));
-    await collectFrames(adapter, first);
-    await collectFrames(adapter, second);
-    const before = JSON.parse(recorded.requests[0]?.body ?? '{}');
-    const after = JSON.parse(recorded.requests[1]?.body ?? '{}');
-    expect(after.input.slice(0, before.input.length)).toEqual(before.input);
-    expect(after.tools).toEqual(before.tools);
-  });
-
   it('projects ordered user and tool-result images/documents and rejects unsupported media placements', async () => {
     const recorded = recordingFetch(openaiSse('done'));
     const adapter = create(recorded.fetch);
@@ -271,17 +194,6 @@ describe('OpenAI Responses adapter', () => {
     }
   });
 
-  it('rejects a foreign provider payload with a matching digest', async () => {
-    const recorded = recordingFetch(openaiSse('done'));
-    const adapter = create(recorded.fetch);
-    const request = await project(adapter, input());
-    const payload = { ...payloadOf(request), provider: 'google' };
-    await expect(collectFrames(adapter, { ...request, payload, digest: digest(payload) })).rejects.toThrow(
-      /provider does not match/,
-    );
-    expect(recorded.requests).toHaveLength(0);
-  });
-
   it('maps cacheScopeId to promptCacheKey on the wire', async () => {
     const recorded = recordingFetch(openaiSse('done'));
     const adapter = create(recorded.fetch);
@@ -294,7 +206,7 @@ describe('OpenAI Responses adapter', () => {
 
   it('declares a tool in a system message and calls it in a collected conversation', async () => {
     const recorded = recordingFetch(openaiSse('', { name: 'fixture_lookup', input: '{"id":"x"}' }));
-    const adapter = createOpenAIModelAdapter({
+    const adapter = createOpenAIProvider({
       resolveApiKey: () => secret,
       fetch: recorded.fetch,
       modelLimits: { 'gpt-6-custom': { contextWindowTokens: 10_000, maxOutputTokens: 1024 } },

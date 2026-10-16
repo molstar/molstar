@@ -72,7 +72,7 @@ describe('Projection', () => {
     expect((await s.turns())[0]?.status).toBe('completed');
   });
 
-  it('C2 unrepresentable: a role the adapter cannot place yields unrepresentable, never a plain error (defect 15c)', async () => {
+  it('C2 unrepresentable: a role the provider cannot place yields unrepresentable, never a plain error (defect 15c)', async () => {
     const codes: string[] = [];
     const s = createSession({
       modelOptions: {

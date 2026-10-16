@@ -54,7 +54,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       model = await run.core.model(configuration);
       const capabilities = model.capabilities;
       input = { messages: messagesOf(run, run.context.entries), tools: available(run), configuration, capabilities };
-      request = await model.adapter.project(input);
+      request = await model.provider.project(input);
       const size = sizeFrom(request.inputTokens, capabilities, configuration);
       if (size.inputTokens + size.reservedOutput > size.window)
         refused = failure(
@@ -72,13 +72,13 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       else if ('compact' in answer) await compact(run, answer.compact);
       continue;
     }
-    const adapter = model.adapter;
+    const provider = model.provider;
     const evidence: Json = {
       head: run.context.from ?? null,
       entries: digest(run.context.entries),
       configuration: configuration as unknown as Json,
       tools: input.tools.map((tool) => tool.tool.id),
-      adapterRevision: request.adapterRevision,
+      revision: request.revision,
       digest: request.digest,
       inputTokens: request.inputTokens,
       ...(request.segments !== undefined ? { segments: [...request.segments] } : {}),
@@ -87,8 +87,8 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
     for (let attempt = 1; ; attempt += 1) {
       let fault: AttemptFailure | undefined;
       if (attempt > 1) {
-        const again = await adapter.project(input).catch(() => undefined);
-        if (again?.digest !== request.digest || again.adapterRevision !== request.adapterRevision)
+        const again = await provider.project(input).catch(() => undefined);
+        if (again?.digest !== request.digest || again.revision !== request.revision)
           fault = failure('integrity', 'a retry projected another request');
       }
       const first = attempt === 1;
@@ -111,7 +111,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       if (invoked) {
         observations.next({ kind: 'attempt.started', ...scope });
         try {
-          for await (const frame of adapter.invoke({ request, signal })) {
+          for await (const frame of provider.invoke({ request, signal })) {
             if (result !== undefined) {
               fault = failure('stream-protocol', 'a frame after the result', false, 'unknown');
               break;

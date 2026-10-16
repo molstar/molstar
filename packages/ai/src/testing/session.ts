@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Message, ModelBindings } from '../messages/index.js';
+import type { Message, ProviderBindings } from '../messages/index.js';
 import {
   createHarness,
   type Drive,
@@ -40,7 +40,7 @@ export interface SessionSetup {
   readonly drive?: Drive;
   readonly limits?: HarnessOptions['limits'];
   /** The model bindings, from the scripted model's (default: those). */
-  models?(model: ScriptedModel): ModelBindings;
+  models?(model: ScriptedModel): ProviderBindings;
   /** The tool bindings (default: the scripted tools'; their definitions are declared either way). */
   readonly toolBindings?: ToolBindings;
 }

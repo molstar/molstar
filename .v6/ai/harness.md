@@ -12,11 +12,11 @@ supervisor, a host protocol); that went, "just basic in memory harness for now f
 | --------------------------- | ------------------------------------------------------------------------- | ---------------------------- |
 | Harness (`createHarness`)   | the state in memory; runs steps, binds and runs tools, asks the drive     | `harness/`                   |
 | Drive                       | every choice                                                              | the app; defaults in harness |
-| Model adapter               | projection and streaming for one provider                                 | `providers/`                 |
+| Provider                    | projection and streaming for one provider, over the AI SDK                | `providers/`                 |
 | Tool handler                | one tool's effects                                                        | the app                      |
 
 `messages/` (of `@molstar/ai`) holds the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the
-`ModelAdapter` port, `hashMessage`, `digest`.
+`Provider` port, `hashMessage`, `digest`.
 
 Each concern has one home and is kept nowhere else: what a model sees is the **journal** (§2); evidence (requests,
 attempts, results, usage) is the **event log** (§3); what runs next is read from the last step event, never from a head;
@@ -44,7 +44,7 @@ The only evidence store, numbered by `seq`. A **step event** records how a step 
 (times, outcomes, usage; nested calls by `parentCallId`), its moves, the items it consumed, its compactions, and its
 `next` step or the turn's `end`. **Control events** record what ends or goes on outside a step: a parked turn
 `stopped` or `resumed`, a `reset`. Turns have no records: the event that ends one carries its summary. Large bodies are blobs; a model call's
-evidence is what reproduces it (head, configuration, tools, adapter revision, payload digest), not its payload.
+evidence is what reproduces it (head, configuration, tools, provider revision, payload digest), not its payload.
 
 ## 4. The Execution, runners and the supervisor
 
@@ -110,7 +110,7 @@ Gone (2026-10-16): no inbox, steering, interrupts or `withdraw`; each prompt is 
 ## 11. Projection, caching and budgets
 
 - Projection is pure (head, configuration, available tools), and appending keeps the projected prefix byte-stable, so
-  provider caches hold. Adapters report the request's segments so a trace can say where a cache broke.
+  provider caches hold. Providers report the request's segments so a trace can say where a cache broke.
 - A request is admitted only if its estimate plus the reserved output fits the window (else `capacity`).
 - **Budgets** are limits plus consumption per turn and per nested run, over calls, tokens by kind, `cost` (with an app
   price) and `endBy`. Every ended attempt is charged once; estimates where usage is missing.

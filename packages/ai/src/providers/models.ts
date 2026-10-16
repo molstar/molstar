@@ -10,7 +10,7 @@ import type { ReasoningParameters } from '../messages/index.js';
 
 /**
  * The model catalog (plan.md §2.5): what the providers' own models are, as data, with no dependencies, so a host's
- * model list reads it without loading an adapter. The adapters take their limits and quirks from it; a host takes the
+ * model list reads it without loading a provider. The providers take their limits and quirks from it; a host takes the
  * labels, the reasoning default and the prices. Endpoints of the host's own (a gateway, a plan) are the host's.
  */
 
@@ -83,7 +83,7 @@ export interface ModelInfo {
   readonly price?: ModelPrice;
 }
 
-// The efforts Stories' evals ran (2026-10); the APIs may take more (the adapters check what the wire takes).
+// The efforts Stories' evals ran (2026-10); the APIs may take more (the providers check what the wire takes).
 const EFFORTS = ['low', 'medium', 'high'] as const;
 const LOW: ReasoningParameters = { mode: 'adaptive', effort: 'low' };
 

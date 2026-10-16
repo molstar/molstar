@@ -11,8 +11,8 @@ import {
   hashMessage,
   type Json,
   type Message,
-  type ModelAdapter,
-  type ModelBindings,
+  type Provider,
+  type ProviderBindings,
   type ModelCapabilities,
   type ModelConfiguration,
   type ProviderUsage,
@@ -77,7 +77,7 @@ export interface Writer {
 /** What every run of one harness shares. */
 export interface Core {
   readonly harnessId: HarnessId;
-  readonly models: ModelBindings;
+  readonly models: ProviderBindings;
   readonly tools: ToolBindings;
   readonly clock: Clock;
   readonly ids: IdSource;
@@ -85,7 +85,7 @@ export interface Core {
   readonly observations: Subject<Observation>;
   readonly maxDepth: number;
   price?(configuration: ModelConfiguration, usage: Usage): number;
-  model(configuration: ModelConfiguration): Promise<{ adapter: ModelAdapter; capabilities: ModelCapabilities }>;
+  model(configuration: ModelConfiguration): Promise<{ provider: Provider; capabilities: ModelCapabilities }>;
   nest(parent: Run, spec: RunSpec, via: Via): Promise<RunResult>;
   /** A journal for a drive's nested runs (never dropped). */
   driveJournal(run: Run): Writer;
@@ -344,7 +344,7 @@ export function sizeFrom(inputTokens: number, capabilities: ModelCapabilities, m
 export async function sizeOf(run: Run, staged: Staged = run.context): Promise<ContextSize> {
   const inputTokens = run.core.store.tokensOf(staged.entries, (id) => messageOf(run, id));
   const model = await run.core.model(run.model).catch(() => undefined);
-  // Without an adapter the window is unknown; the model step reports that failure.
+  // Without a provider the window is unknown; the model step reports that failure.
   return model === undefined
     ? { inputTokens, reservedOutput: 0, window: 0 }
     : sizeFrom(inputTokens, model.capabilities, run.model);

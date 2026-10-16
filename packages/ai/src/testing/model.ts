@@ -11,8 +11,8 @@ import {
   canonicalJson,
   digest,
   type Json,
-  type ModelAdapter,
-  type ModelBindings,
+  type Provider,
+  type ProviderBindings,
   type ModelCapabilities,
   ModelError,
   type ModelFinish,
@@ -52,8 +52,8 @@ export interface ScriptedModelOptions {
 }
 
 export interface ScriptedModel {
-  readonly bindings: ModelBindings;
-  readonly adapter: ModelAdapter;
+  readonly bindings: ProviderBindings;
+  readonly provider: Provider;
   /** Every projection, in order. */
   readonly projections: ProjectInput[];
   /** Every invocation's request, in order. */
@@ -87,7 +87,7 @@ function messageOf(step: ModelStep, index: number): AssistantMessage {
   return { role: 'assistant', parts };
 }
 
-/** A model adapter that plays a script, deterministic and instant in virtual time. */
+/** A model provider that plays a script, deterministic and instant in virtual time. */
 export function scriptedModel(script: readonly ModelStep[] = [], options: ScriptedModelOptions = {}): ScriptedModel {
   const steps = [...script];
   const projections: ProjectInput[] = [];
@@ -95,8 +95,8 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
   let played = 0;
   const capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
 
-  const adapter: ModelAdapter = {
-    capabilitiesFor: async () => capabilities,
+  const provider: Provider = {
+    capabilities: async () => capabilities,
     async project(input) {
       const reason = options.unrepresentable?.(input);
       if (reason !== undefined) throw new UnrepresentableInput(reason);
@@ -104,7 +104,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
       const payload =
         options.payload?.(input, projections.length) ??
         ({
-          // As an adapter sends them: a message's label is never sent.
+          // As a provider sends them: a message's label is never sent.
           messages: input.messages.map(({ role, parts }) => ({ role, parts })) as unknown as Json,
           tools: input.tools.map((tool) => tool.tool.id),
           configuration: input.configuration as unknown as Json,
@@ -112,7 +112,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
       return {
         payload,
         digest: digest(payload),
-        adapterRevision: 'scripted-1',
+        revision: 'scripted-1',
         inputTokens: Math.ceil(canonicalJson(payload).length / 4),
       };
     },
@@ -151,8 +151,8 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
   };
 
   return {
-    adapter,
-    bindings: { resolve: async () => adapter },
+    provider,
+    bindings: { resolve: async () => provider },
     projections,
     invocations,
     remaining: () => steps.length,

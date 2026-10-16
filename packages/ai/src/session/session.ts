@@ -7,8 +7,8 @@
  */
 
 import type {
-  ModelAdapter,
-  ModelBindings,
+  Provider,
+  ProviderBindings,
   ModelCapabilities,
   ModelConfiguration,
   ReasoningParameters,
@@ -82,10 +82,10 @@ function reasoningFor(choice: ModelChoice, thinking: SessionThinking): { reasoni
   return chosen === undefined || chosen === 'model' ? {} : { reasoning: chosen };
 }
 
-/** Where the session finds models: an adapter per provider (a lookup), and the model it runs by default. */
+/** Where the session finds models: a provider by its id (a lookup), and the model it runs by default. */
 export interface ModelSource<M extends ModelChoice = ModelChoice> {
-  /** The adapter for a provider; a lookup, so providers a person adds while the conversation is open are found. */
-  adapterFor(provider: string): ModelAdapter | undefined;
+  /** The provider of an id (a target's `provider`); a lookup, so providers a person adds while the conversation is open are found. */
+  providerFor(provider: string): Provider | undefined;
   default: M;
 }
 
@@ -104,7 +104,7 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   /** System guidance (the first message of a conversation). */
   guidance: string;
   clock?: Clock;
-  /** The default model's context window in tokens; default: what its adapter reports. */
+  /** The default model's context window in tokens; default: what its provider reports. */
   contextWindow?: number;
   /**
    * Compaction (tools-and-session.md §6): sizes to override, or false for none. Default: from each turn's model's
@@ -192,13 +192,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
 
   /** Context windows by model ("provider:model"), as the turns' choices gave them. */
   private readonly windows = new Map<string, number>();
-  /** Limits the adapters gave, by model. */
+  /** Limits the providers gave, by model. */
   private readonly known = new Map<string, ModelCapabilities>();
   /** The conversation's size after the last model call, in tokens, as the provider counted it. */
   private contextTokens: number | undefined;
   /** The running turn's model's output maximum (a widened retry stays within it). */
   private outputCap: number | undefined;
-  /** Output limits by model ("provider:model"), for models the adapters do not know. */
+  /** Output limits by model ("provider:model"), for models the providers do not know. */
   private readonly outputs = new Map<string, number>();
 
   constructor(options: AgentSessionOptions<Api, M>) {
@@ -223,8 +223,8 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     if (choice.maxOutput) this.outputs.set(key, choice.maxOutput);
   }
 
-  private adapterFor(provider: string): ModelAdapter | undefined {
-    return this.options.models.adapterFor(provider);
+  private providerFor(provider: string): Provider | undefined {
+    return this.options.models.providerFor(provider);
   }
 
   /** A model's context window as the application gives it (its catalog, a custom model's), if it does. */
@@ -235,7 +235,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     return this.windows.get(`${provider}:${model}`);
   }
 
-  /** The default model's context window in tokens (the application's, else the adapter's last word). */
+  /** The default model's context window in tokens (the application's, else the provider's last word). */
   contextWindow(): number {
     const { provider, model } = this.options.models.default;
     return this.windowOf(provider, model);
@@ -246,20 +246,20 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   }
 
   /**
-   * A model's limits: the adapter's for a model it knows, with the application's window when it gives one; for a
-   * model the adapter does not know (a custom one), the application's window and output limit.
+   * A model's limits: the provider's for a model it knows, with the application's window when it gives one; for a
+   * model the provider does not know (a custom one), the application's window and output limit.
    */
-  private async capabilitiesOf(adapter: ModelAdapter, configuration: ModelConfiguration): Promise<ModelCapabilities> {
+  private async capabilitiesOf(found: Provider, configuration: ModelConfiguration): Promise<ModelCapabilities> {
     const { provider, model } = configuration.target;
     const window = this.givenWindow(provider, model);
     let known: ModelCapabilities | undefined;
     try {
-      known = await adapter.capabilitiesFor(configuration);
+      known = await found.capabilities(configuration);
       this.known.set(`${provider}:${model}`, known);
     } catch (e) {
       if (window === undefined)
         throw new Error(
-          `The adapter does not know ${provider} model "${model}": give its context window in the model options. (${e instanceof Error ? e.message : String(e)})`,
+          `The provider does not know ${provider} model "${model}": give its context window in the model options. (${e instanceof Error ? e.message : String(e)})`,
         );
     }
     if (known && window === undefined) return known;
@@ -387,11 +387,11 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         ...(this.options.afterWrite ? { afterWrite: this.options.afterWrite } : {}),
       }),
     );
-    const models: ModelBindings = {
+    const models: ProviderBindings = {
       resolve: async (target) => {
-        const found = this.adapterFor(target.provider);
-        if (!found) throw new Error(`No adapter for ${target.provider}.`);
-        return { ...found, capabilitiesFor: (configuration) => this.capabilitiesOf(found, configuration) };
+        const found = this.providerFor(target.provider);
+        if (!found) throw new Error(`No provider for ${target.provider}.`);
+        return { ...found, capabilities: (configuration) => this.capabilitiesOf(found, configuration) };
       },
     };
     const harness = createHarness({
@@ -777,11 +777,11 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
    */
   private async configurationFor(choice: M | undefined): Promise<TurnConfiguration> {
     const chosen = choice ?? this.options.models.default;
-    const adapter = this.adapterFor(chosen.provider);
-    if (!adapter) throw new Error(`No adapter for ${chosen.provider}.`);
+    const found = this.providerFor(chosen.provider);
+    if (!found) throw new Error(`No provider for ${chosen.provider}.`);
     this.remember(chosen);
     const model = this.modelConfiguration(choice);
-    const capabilities = await this.capabilitiesOf(adapter, model);
+    const capabilities = await this.capabilitiesOf(found, model);
     this.outputCap = capabilities.maxOutputTokens;
     const wanted = this.options.maxOutputTokens ?? 16_384;
     const maxOutputTokens =

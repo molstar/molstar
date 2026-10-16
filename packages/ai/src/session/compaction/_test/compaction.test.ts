@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Message, ModelAdapter } from '../../../messages/index.js';
+import type { Message, Provider } from '../../../messages/index.js';
 import { type ModelStep, scriptedModel } from '../../../testing/index.js';
 import type { HeadEdit } from '../../../harness/index.js';
 import { createToolkit } from '../../../tools/index.js';
@@ -336,7 +336,7 @@ describe('declared tools in the new head', () => {
 
 /**
  * A model whose requests grow with the conversation: the main script answers the turns, and a compaction call (the
- * carry-over instruction last) is answered by `carryOver`. Stories' scripted adapter chose the answer by the request;
+ * carry-over instruction last) is answered by `carryOver`. Stories' scripted model chose the answer by the request;
  * the conformance one plays a sequence, so two of them are told apart here by that instruction.
  */
 function growingModel(script: ModelStep[], carryOver: string) {
@@ -347,16 +347,16 @@ function growingModel(script: ModelStep[], carryOver: string) {
   const requests: string[] = [];
   const asks = (messages: Message[]) =>
     messages.at(-1)?.parts.some((p) => p.kind === 'text' && p.text.startsWith('The conversation is being condensed'));
-  const adapter: ModelAdapter = {
-    ...main.adapter,
+  const provider: Provider = {
+    ...main.provider,
     invoke(input) {
       const messages = (input.request.payload as unknown as { messages: Message[] }).messages;
       const compaction = asks(messages);
       requests.push(`${compaction ? 'COMPACTION ' : ''}${JSON.stringify(messages)}`);
-      return (compaction ? carry : main).adapter.invoke(input);
+      return (compaction ? carry : main).provider.invoke(input);
     },
   };
-  return { adapter, requests, main, carry };
+  return { provider, requests, main, carry };
 }
 
 const pad = (label: string) => `${label} ${'lorem ipsum dolor sit amet '.repeat(400)}`;
@@ -371,7 +371,7 @@ const settingsFor = (s: { trigger: number; soft?: number; target: number; summar
 
 function sessionOver(model: ReturnType<typeof growingModel>, compaction: ReturnType<typeof settingsFor>, extra = {}) {
   return new AgentSession<Toy>({
-    models: modelsOf(model.adapter),
+    models: modelsOf(model.provider),
     toolkit: kit(),
     api: toy(),
     guidance,
@@ -529,7 +529,7 @@ Reading the state again and again; five reads done, the last next.
   it('follows each turn’s model: its window sets the turn’s budget', async () => {
     const m = growingModel([{ calls: [callOf('get_state')] }, { text: 'Done.' }], '');
     const session = new AgentSession<Toy>({
-      models: modelsOf(m.adapter),
+      models: modelsOf(m.provider),
       toolkit: kit(),
       api: toy(),
       guidance,

@@ -8,10 +8,9 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Message, ModelVisiblePart } from '../../messages/index.js';
-import { createOpenAIModelAdapter } from '../index.js';
+import { createOpenAIProvider } from '../index.js';
 import {
   answer,
-  assertDigestMatches,
   collectFrames,
   lookupTool,
   openaiSse,
@@ -25,7 +24,7 @@ const secret = 'fixture-endpoint-secret';
 const baseURL = 'https://llm.example.test/v1';
 const limits = { 'kimi-k3': { contextWindowTokens: 262_144, maxOutputTokens: 16_384 } };
 const create = (fetch?: typeof globalThis.fetch, api: 'chat' | 'responses' = 'chat') =>
-  createOpenAIModelAdapter({
+  createOpenAIProvider({
     resolveApiKey: () => secret,
     baseURL,
     api,
@@ -93,18 +92,18 @@ function chatSse(options: { reasoning?: string; text?: string; call?: { name: st
   return `${events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')}data: [DONE]\n\n`;
 }
 
-describe('OpenAI adapter, chat completions at another endpoint', () => {
+describe('OpenAI provider, chat completions at another endpoint', () => {
   it('knows its models only by the limits given, has no tool additions or cache key, and checks the provider', async () => {
     const adapter = create();
-    expect(await adapter.capabilitiesFor(input().configuration)).toMatchObject({
+    expect(await adapter.capabilities(input().configuration)).toMatchObject({
       contextWindowTokens: 262_144,
       appendsTools: false,
       cacheScope: false,
     });
     const luna = { target: { provider: 'lab', model: 'gpt-6-luna' }, parameters: {} };
-    await expect(adapter.capabilitiesFor(luna)).rejects.toThrow(/explicit token limits/);
+    await expect(adapter.capabilities(luna)).rejects.toThrow(/explicit token limits/);
     const foreign = { target: { provider: 'openai', model: 'kimi-k3' }, parameters: {} };
-    await expect(adapter.capabilitiesFor(foreign)).rejects.toThrow(/cannot project provider openai/);
+    await expect(adapter.capabilities(foreign)).rejects.toThrow(/cannot project provider openai/);
   });
 
   it("streams reasoning and a call, sends the server's fields, and sends the reasoning back with the call", async () => {
@@ -113,7 +112,6 @@ describe('OpenAI adapter, chat completions at another endpoint', () => {
     );
     const adapter = create(recorded.fetch);
     const request = await project(adapter, input());
-    await assertDigestMatches(request);
     const frames = await collectFrames(adapter, request);
     expect(frames).toContainEqual({ kind: 'reasoning-delta', text: 'look it up' });
     const result = resultOf(frames);
@@ -202,7 +200,7 @@ describe('OpenAI adapter, chat completions at another endpoint', () => {
   it("speaks Responses at another endpoint when asked, without OpenAI's tool additions", async () => {
     const recorded = recordingFetch(openaiSse('PONG'));
     const adapter = create(recorded.fetch, 'responses');
-    expect(await adapter.capabilitiesFor(input().configuration)).toMatchObject({
+    expect(await adapter.capabilities(input().configuration)).toMatchObject({
       appendsTools: false,
       cacheScope: true,
     });

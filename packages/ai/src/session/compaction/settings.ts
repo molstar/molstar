@@ -15,7 +15,7 @@
  */
 
 /**
- * Sizes are in tokens, as the model adapters estimate a request and the harness compares them; `maxOutputTokens` is
+ * Sizes are in tokens, as the model providers estimate a request and the harness compares them; `maxOutputTokens` is
  * the provider's own limit for the compaction call.
  */
 export interface CompactionSettings {

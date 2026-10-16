@@ -16,7 +16,7 @@ import type { AssistantOptions, ProvidedModels } from './viewer.js';
 /** The assistant's options as a spec gives them. */
 export interface AssistantSpecOptions extends Omit<AssistantOptions, 'provided'> {
   /**
-   * Models the host brings with their adapters; as a function, made when the assistant loads, so the adapter's code is
+   * Models the host brings with their providers; as a function, made when the assistant loads, so the provider's code is
    * not in the page's startup bundle either.
    */
   readonly provided?: readonly ProvidedModels[] | (() => Promise<readonly ProvidedModels[]>);

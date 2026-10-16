@@ -299,13 +299,13 @@ describe('readTrace: what each model call saw (harness.md §2)', () => {
 describe('readTrace: where the provider’s cache breaks (harness.md §11)', () => {
   const breaks = (t: TurnView) => models(t).map((m) => m.prefixBreak?.reason);
 
-  it('says nothing for requests that extend each other, whatever the adapter reports', async () => {
+  it('says nothing for requests that extend each other, whatever the provider reports', async () => {
     const s = await basic();
     s.model.push({ text: 'Again.' });
     await turn(s, 'Request: again');
     const trace = await readTrace(s.harness);
     expect(trace.turns.flatMap(breaks)).toEqual([undefined, undefined, undefined]);
-    // Without segments from the adapter there is nothing to compare.
+    // Without segments from the provider there is nothing to compare.
     const t = createSession({ declare: [], model: [{ text: 'a' }, { text: 'b' }] });
     await t.send(first(t, request('one')));
     await t.send('Request: two');

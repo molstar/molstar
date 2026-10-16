@@ -8,17 +8,18 @@
 
 import { describe, expect, it } from 'vitest';
 import { ModelError } from '../../messages/index.js';
+import { UnsupportedFunctionalityError } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
-import { streamPolicy as anthropicPolicy } from '../anthropic/stream.js';
+import type { Payload } from '../common/provider.js';
 import {
-  invokeProjectedRequest,
   mapFinishReason,
   modelError,
+  noReplay,
   providerUsageFromSdk,
   retryAfterOf,
+  streamPayload,
 } from '../common/stream.js';
-import { streamPolicy as googlePolicy } from '../google/stream.js';
-import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';
+import { createAnthropicProvider, createGoogleProvider, createOpenAIProvider } from '../index.js';
 import {
   anthropicSse,
   collectFrames,
@@ -36,8 +37,8 @@ describe('stream mapping', () => {
     async (provider) => {
       const adapter =
         provider === 'anthropic'
-          ? createAnthropicModelAdapter({ resolveApiKey: () => 'fixture' })
-          : createGoogleModelAdapter({ resolveApiKey: () => 'fixture' });
+          ? createAnthropicProvider({ resolveApiKey: () => 'fixture' })
+          : createGoogleProvider({ resolveApiKey: () => 'fixture' });
       const model = provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-3.8-flash';
       const text = 'a \\"quoted\\" multilingual é 🙂 context';
       const base = projectInput(provider, model, { messages: [{ role: 'user', parts: [{ kind: 'text', text }] }] });
@@ -59,12 +60,12 @@ describe('stream mapping', () => {
   );
 
   it.each(['anthropic', 'google'] as const)(
-    'preserves an empty %s tool-call finish for consumer validation',
+    'passes the %s payload to streamText as it is, and keeps an empty tool-call finish for the caller',
     async (provider) => {
       const adapter =
         provider === 'anthropic'
-          ? createAnthropicModelAdapter({ resolveApiKey: () => 'fixture' })
-          : createGoogleModelAdapter({ resolveApiKey: () => 'fixture' });
+          ? createAnthropicProvider({ resolveApiKey: () => 'fixture' })
+          : createGoogleProvider({ resolveApiKey: () => 'fixture' });
       const request = await project(
         adapter,
         projectInput(provider, provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-3.8-flash'),
@@ -87,18 +88,26 @@ describe('stream mapping', () => {
         },
       });
       const frames = [];
-      for await (const frame of invokeProjectedRequest({
-        request,
+      for await (const frame of streamPayload({
+        payload: request.payload as unknown as Payload,
         signal: new AbortController().signal,
-        expectedRevision: request.adapterRevision,
-        expectedProvider: provider,
-        policy: provider === 'anthropic' ? anthropicPolicy : googlePolicy,
         languageModel,
+        replay: noReplay(),
       }))
         frames.push(frame);
       expect(resultOf(frames)).toMatchObject({ finish: 'tool-calls', message: { parts: [] } });
+      // The SDK got the payload's messages and tools, nothing converted again.
+      const call = languageModel.doStreamCalls[0];
+      expect(call?.maxOutputTokens).toBe(128);
+      expect(call?.tools?.map((tool) => tool.name)).toEqual(['fixture_lookup']);
+      expect(call?.prompt.at(-1)).toMatchObject({ role: 'user', content: [{ type: 'text', text: 'Look up 1abc.' }] });
     },
   );
+
+  it('refuses what the SDK cannot send, before any request, without retrying', () => {
+    const refused = modelError(new UnsupportedFunctionalityError({ functionality: 'media type: audio/x' }), '');
+    expect(refused).toMatchObject({ transient: false, effect: 'none' });
+  });
 
   it('requires a recognized successful finish', () => {
     expect(mapFinishReason('stop')).toBe('complete');
@@ -139,9 +148,9 @@ describe('stream mapping', () => {
   });
 
   it.each([
-    ['anthropic', createAnthropicModelAdapter, 'claude-sonnet-4-5', anthropicSse],
-    ['google', createGoogleModelAdapter, 'gemini-2.5-flash', googleSse],
-    ['openai', createOpenAIModelAdapter, 'gpt-6-luna', openaiSse],
+    ['anthropic', createAnthropicProvider, 'claude-sonnet-4-5', anthropicSse],
+    ['google', createGoogleProvider, 'gemini-2.5-flash', googleSse],
+    ['openai', createOpenAIProvider, 'gpt-6-luna', openaiSse],
   ] as const)(
     'reports %s input as the total with cache reads and writes included',
     async (provider, create, model, sse) => {
@@ -163,9 +172,9 @@ describe('failure mapping', () => {
       new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })) as typeof fetch;
 
   it.each([
-    ['anthropic', createAnthropicModelAdapter, 'claude-sonnet-4-5'],
-    ['google', createGoogleModelAdapter, 'gemini-2.5-flash'],
-    ['openai', createOpenAIModelAdapter, 'gpt-6-luna'],
+    ['anthropic', createAnthropicProvider, 'claude-sonnet-4-5'],
+    ['google', createGoogleProvider, 'gemini-2.5-flash'],
+    ['openai', createOpenAIProvider, 'gpt-6-luna'],
   ] as const)('maps %s HTTP statuses to transient and effect', async (provider, create, model) => {
     for (const [status, transient] of [
       [400, false],
@@ -187,7 +196,7 @@ describe('failure mapping', () => {
   });
 
   it('treats a network failure as transient with an unknown effect', async () => {
-    const adapter = createAnthropicModelAdapter({
+    const adapter = createAnthropicProvider({
       resolveApiKey: () => 'fixture-key',
       fetch: async () => {
         throw new TypeError('fetch failed');
@@ -202,7 +211,7 @@ describe('failure mapping', () => {
   });
 
   it('refuses a missing API key before any request, without retrying', async () => {
-    const adapter = createOpenAIModelAdapter({ resolveApiKey: () => '' });
+    const adapter = createOpenAIProvider({ resolveApiKey: () => '' });
     const failure = await collectFrames(adapter, await project(adapter, projectInput('openai', 'gpt-6-luna'))).catch(
       (error: unknown) => error,
     );
@@ -211,7 +220,7 @@ describe('failure mapping', () => {
 
   it('sanitizes the API key out of every failure', async () => {
     const secret = 'sk-very-secret';
-    const adapter = createAnthropicModelAdapter({
+    const adapter = createAnthropicProvider({
       resolveApiKey: () => secret,
       fetch: fail(404, { type: 'error', error: { type: 'not_found_error', message: `model ${secret}` } }),
     });
@@ -238,7 +247,7 @@ describe('failure mapping', () => {
       retryAfterOf({ 'retry-after': 'Wed, 14 Oct 2026 10:00:30 GMT' }, Date.parse('Wed, 14 Oct 2026 10:00:00 GMT')),
     ).toBe(30_000);
     expect(retryAfterOf({ 'retry-after': 'soon' })).toBeUndefined();
-    // Kept through the detail a body adds, and through an adapter's own ModelError.
+    // Kept through the detail a body adds, and through a provider's own ModelError.
     const body = JSON.stringify({ error: { message: 'Slow down.' } });
     const detailed = modelError(
       Object.assign(new Error('Too many requests'), {

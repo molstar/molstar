@@ -60,13 +60,13 @@ describe('Regressions', () => {
     expect(last?.calls.flatMap((c) => c.attempts)).toHaveLength(1);
   });
 
-  it('R12 no-adapter: a model that cannot be resolved opens failure; the turn fails (harness.md §6)', async () => {
+  it('R12 no-provider: a model that cannot be resolved opens failure; the turn fails (harness.md §6)', async () => {
     const failures: string[] = [];
     const s = createSession({
       model: [{ text: 'ok' }],
       models: () => ({
         resolve: async () => {
-          throw new Error('no adapter for scripted-1');
+          throw new Error('no provider for scripted-1');
         },
       }),
       drive: with_({

@@ -45,7 +45,7 @@ durable (storage port, host protocol, leases, a supervisor); that went
 ## The harness
 
 `createHarness({ models, tools, drive, configure?, price?, clock?, ids?, limits: { depth = 4 }?, id? })` → `Harness`:
-`models: ModelBindings` (`resolve(target) → adapter`), `tools: ToolBindings` (`resolve(definition) → handler`), the
+`models: ProviderBindings` (`resolve(target) → provider`), `tools: ToolBindings` (`resolve(definition) → handler`), the
 `drive`, `configure(messages)` (a turn's configuration when `turn` gives none), `price(configuration, usage)`.
 
 | Operation                            | What                                                                                                                                                                               |
@@ -68,7 +68,7 @@ evidence, and it opens a `failure` decision.
 
 1. **Begin step**: ask `turn-start` (payload: context size, last compaction); a `compact` edit applies first, then the
    turn's messages are appended to `main`. One step event (`stepKind: 'begin'`, `begun.configuration`).
-2. **Model step** (`loop/model.ts`): project the `main` head through the adapter with the available tools, admit
+2. **Model step** (`loop/model.ts`): project the `main` head through the provider with the available tools, admit
    (estimate + reserved output within the window, else `capacity`; budget, else `budget`), stream. With tool calls it
    settles as evidence only and names a tools step carrying the **plan** (each call bound to the definition it was
    planned against). Without calls the reply is appended to `main` and the turn completes at the boundary.
@@ -99,7 +99,7 @@ then outward. A `Drive.decide` returns an answer or `'pass'`; `drive(handlers, f
 | `turn-start`   | `size`, `lastCompaction?`                        | `'proceed'`, `{ compact: HeadEdit }`                                                                   | proceed                                                                                |
 
 `failure` without `call` and with `attempt` is a model attempt; without `attempt` it is a projection failure
-(`capacity`, `unrepresentable`, or `provider`: no adapter, or `project` threw). `skip { text, calls? }` names only
+(`capacity`, `unrepresentable`, or `provider`: no provider, or `project` threw). `skip { text, calls? }` names only
 `unstarted` calls (default: all). The `DriveContext` gives `harnessId`, `turnId`, `depth`, `budget`, `head`,
 `configuration`, `signal`, `journal.read(scope)` and `run(spec)` (a nested run inside the open step; how a drive
 compacts with a model).
@@ -137,7 +137,7 @@ ends the whole step.
 - `Limits` over `modelCalls`, `toolCalls`, `uncachedInput`, `cacheRead`, `cacheWrite`, `output`, `reasoning`, `cost`
   (with the harness's `price`), `endBy` (a time). Consumption per turn and per nested run; each ended attempt is charged
   once, estimated where usage is missing. A short dimension opens `budget`.
-- Projection is pure (`adapter.project({ messages, tools, configuration, capabilities })`); appending keeps the
+- Projection is pure (`provider.project({ messages, tools, configuration, capabilities })`); appending keeps the
   projected prefix byte-stable so provider caches hold (see [models.md](models.md)).
 
 ## Observation

@@ -90,6 +90,10 @@ the [API change ledger](breaking-v6-changes.md).
 - The AI packages are one package, `@molstar/ai` (`packages/ai`), with explicit entries (`.`, `./harness`, `./providers`,
   `./providers/{anthropic,openai,google}`, `./models`, `./trace`, `./testing`, `./narration`): the nine
   `@molstar/ai-*` packages are folders of it, and Biome enforces the layering between them
+- The AI model adapters are providers, a thin layer over the AI SDK (`createAnthropicProvider`, `createOpenAIProvider`,
+  `createGoogleProvider`; the port `Provider`, `ProviderBindings`; a session's `models.providerFor(id)`): a request is
+  `streamText`'s own arguments, retained as JSON and sent as it is; an inline attachment's `digest` is
+  `murmur3-128:<hex>`
 - The AI transcripts are called threads, not fibers (`createThreadHost`, `ThreadId`, `@molstar/ai/testing/threads`); records
   a developer kept in the browser under the old stored names (table `fiber`, scope `fiber:`) are unreadable
 - New `examples/minimal-prism-viewer`: the smallest Prism viewer composition (an mmCIF structure as cartoon or

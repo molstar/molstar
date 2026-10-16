@@ -84,7 +84,9 @@ function AssistantStory(props: AssistantStoryProps) {
           prefs: memoryPrefs(),
           ...(model
             ? {
-                provided: [{ id: 'scripted', label: 'Scripted (story)', models: ['scripted'], adapter: model.adapter }],
+                provided: [
+                  { id: 'scripted', label: 'Scripted (story)', models: ['scripted'], provider: model.provider },
+                ],
                 provider: 'scripted',
               }
             : {}),

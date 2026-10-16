@@ -6,20 +6,72 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { JsonObject, ModelVisiblePart, Reference } from '../../messages/index.js';
-import { UnrepresentableInput } from '../../messages/index.js';
+import type { ModelVisiblePart, Reference } from '../../messages/index.js';
+import { hashing, UnrepresentableInput } from '../../messages/index.js';
 
-const strictUtf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+// Inline attachments (`data:` URIs) as the AI SDK's file parts. Which media a provider takes where is its rule
+// (`AttachmentRule`); what it cannot take is `UnrepresentableInput` at projection, so the harness can say so before any
+// request. Corrupt bytes (length, digest, encoding) are plain errors: the input is wrong, not unrepresentable.
 
 export type AttachmentPlacement = 'system' | 'user' | 'assistant' | 'tool-result';
 
-/** Retained, JSON-compatible immutable inline bytes. Never a fetchable URL. */
+/** Where a provider takes binary media, and in what form. */
+export interface AttachmentRule {
+  /** The name in the error ("openai-chat"). */
+  readonly name: string;
+  accepts(mediaType: string, placement: AttachmentPlacement, model: string): boolean;
+  /** Text attachments as a text document (Anthropic's, in user content); else as text. */
+  textAsFile?(placement: AttachmentPlacement): boolean;
+  /** A file name for a type the provider needs one for (OpenAI's documents). */
+  filename?(mediaType: string): string | undefined;
+}
+
+/** The parts a provider takes: text, or a file (base64 bytes or a text document). JSON, as the payload retains it. */
+export type VisiblePart =
+  | { readonly type: 'text'; readonly text: string }
+  | {
+      readonly type: 'file';
+      readonly data:
+        | { readonly type: 'data'; readonly data: string }
+        | { readonly type: 'text'; readonly text: string };
+      readonly mediaType: string;
+      readonly filename?: string;
+    };
+
+export interface Visible {
+  readonly parts: readonly VisiblePart[];
+  /** Whether an attachment is among them: the parts then stay parts, else they are one text. */
+  readonly rich: boolean;
+  readonly text: string;
+}
+
+/** An inline attachment's bytes, decoded and checked. */
 export interface InlineAttachment {
   readonly mediaType: string;
   readonly data: string;
   readonly byteLength: number;
-  readonly digest: string;
   readonly name?: string;
+}
+
+const strictUtf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+
+const textTypes = new Set([
+  'text/plain',
+  'text/markdown',
+  'text/md',
+  'text/html',
+  'text/css',
+  'text/xml',
+  'text/csv',
+  'text/rtf',
+  'text/javascript',
+  'application/json',
+  'application/xml',
+]);
+
+/** `murmur3-128:<32 hex>` of inline bytes, the form a reference's `digest` takes (the messages' own hash). */
+export function bytesDigest(bytes: Uint8Array): string {
+  return `murmur3-128:${hashing.bytes(bytes)}`;
 }
 
 function mediaType(value: string): string {
@@ -46,12 +98,6 @@ function encodeBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-/** `sha256:<lowercase hex>` of inline bytes, the form a reference's `digest` takes. */
-export async function bytesDigest(bytes: Uint8Array): Promise<string> {
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes)));
-  return `sha256:${Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
-}
-
 function decodePercent(body: string): Uint8Array {
   const decoded: number[] = [];
   for (let index = 0; index < body.length; index++) {
@@ -72,9 +118,8 @@ function decodePercent(body: string): Uint8Array {
   return Uint8Array.from(decoded);
 }
 
-/** Recognize all data URIs before consulting provider support, including unsupported MIME types.
- * Malformed or mismatched retained bytes are plain errors: the input is corrupt, not unrepresentable. */
-export async function inlineAttachment(reference: Reference): Promise<InlineAttachment | undefined> {
+/** A `data:` URI's bytes, checked against what the reference says of them; undefined for any other URI. */
+export function inlineAttachment(reference: Reference): InlineAttachment | undefined {
   if (!/^data:/i.test(reference.uri)) return undefined;
   const comma = reference.uri.indexOf(',');
   if (comma < 0) throw new Error('Inline attachment data URI is missing its comma separator.');
@@ -119,89 +164,81 @@ export async function inlineAttachment(reference: Reference): Promise<InlineAtta
   if (reference.byteLength !== undefined && reference.byteLength !== bytes.length) {
     throw new Error('Inline attachment byteLength does not match its decoded bytes.');
   }
-  const digest = await bytesDigest(bytes);
-  if (reference.digest !== undefined && reference.digest !== digest) {
-    throw new Error('Inline attachment digest does not match its decoded bytes (expected sha256:<hex>).');
+  if (reference.digest !== undefined && reference.digest !== bytesDigest(bytes)) {
+    throw new Error('Inline attachment digest does not match its decoded bytes (expected murmur3-128:<hex>).');
   }
   return {
     mediaType: embeddedType,
     data: encodeBase64(bytes),
     byteLength: bytes.length,
-    digest,
     ...(reference.name === undefined ? {} : { name: reference.name }),
   };
 }
 
-const textTypes = new Set([
-  'text/plain',
-  'text/markdown',
-  'text/md',
-  'text/html',
-  'text/css',
-  'text/xml',
-  'text/csv',
-  'text/rtf',
-  'text/javascript',
-  'application/json',
-  'application/xml',
-]);
-
-export type VisibleProjector = (
+/** Text and inline attachments as the provider takes them where they stand; other references as `[ref <uri>]`. */
+export function visibleParts(
   parts: readonly ModelVisiblePart[],
-  model: string,
   placement: AttachmentPlacement,
-) => Promise<readonly JsonObject[]>;
-
-/** The `UnrepresentableInput` every provider's attachment projection throws. */
-export function unsupportedAttachment(
-  provider: string,
   model: string,
-  type: string,
-  placement: string,
-): UnrepresentableInput {
-  return new UnrepresentableInput(
-    `${provider} model ${model} does not support inline ${type} attachments in ${placement} content.`,
-  );
-}
-
-/** Text attachments have an explicit lossless UTF-8 mapping; binary types never fall back to text. */
-export async function projectVisibleContent(
-  parts: readonly ModelVisiblePart[],
-  model: string,
-  placement: AttachmentPlacement,
-  project: (attachment: InlineAttachment, model: string, placement: AttachmentPlacement, text?: string) => JsonObject,
-): Promise<readonly JsonObject[]> {
-  const out: JsonObject[] = [];
+  rule: AttachmentRule,
+): Visible {
+  const out: VisiblePart[] = [];
+  let rich = false;
   for (const part of parts) {
     if (part.kind === 'text') {
       out.push({ type: 'text', text: part.text });
       continue;
     }
-    const attachment = await inlineAttachment(part.reference);
+    const attachment = inlineAttachment(part.reference);
     if (attachment === undefined) {
       out.push({ type: 'text', text: `[ref ${part.reference.uri}]` });
       continue;
     }
-    let text: string | undefined;
+    rich = true;
+    const filename = attachment.name ?? rule.filename?.(attachment.mediaType);
     if (textTypes.has(attachment.mediaType)) {
+      let text: string;
       try {
         text = strictUtf8.decode(decodeBase64(attachment.data));
       } catch {
         throw new Error('Inline text attachment must contain valid UTF-8 bytes.');
       }
+      out.push(
+        rule.textAsFile?.(placement)
+          ? {
+              type: 'file',
+              data: { type: 'text', text },
+              mediaType: 'text/plain',
+              ...(attachment.name === undefined ? {} : { filename: attachment.name }),
+            }
+          : { type: 'text', text },
+      );
+      continue;
     }
-    out.push(project(attachment, model, placement, text));
+    if (!rule.accepts(attachment.mediaType, placement, model)) {
+      throw new UnrepresentableInput(
+        `${rule.name} model ${model} does not support inline ${attachment.mediaType} attachments in ${placement} content.`,
+      );
+    }
+    out.push({
+      type: 'file',
+      data: { type: 'data', data: attachment.data },
+      mediaType: attachment.mediaType,
+      ...(filename === undefined ? {} : { filename }),
+    });
   }
-  return out;
+  return { parts: out, rich, text: out.map((part) => (part.type === 'text' ? part.text : '')).join('') };
 }
 
 /** Offline modality heuristics with a fixed margin and a transport-byte reserve. These rates
  * avoid charging encoded prompt characters; bytes cannot bound page/pixel/duration cost. */
-export function estimateAttachmentTokens(part: JsonObject): number {
-  if (typeof part.text === 'string') return 0; // Text is measured by the shared estimator.
-  const bytes = typeof part.byteLength === 'number' ? part.byteLength : 0;
-  const mime = typeof part.mediaType === 'string' ? part.mediaType : '';
-  if (mime.startsWith('image/')) return 4096 + Math.ceil(bytes / 1024);
-  if (mime === 'application/pdf') return 8192 + Math.ceil(bytes / 4);
+export function estimateAttachmentTokens(mediaType: string, bytes: number): number {
+  if (mediaType.startsWith('image/')) return 4096 + Math.ceil(bytes / 1024);
+  if (mediaType === 'application/pdf') return 8192 + Math.ceil(bytes / 4);
   return 16384 + Math.ceil(bytes / 32);
+}
+
+/** The byte length of canonical base64. */
+export function base64Bytes(data: string): number {
+  return Math.floor((data.length * 3) / 4) - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
 }

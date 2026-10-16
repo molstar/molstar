@@ -34,7 +34,7 @@ const Fallback = { provider: 'anthropic', model: 'claude-sonnet-5-5' } as const;
 
 /** What a host may give the assistant besides the viewer: models of its own, and where the setup is kept. */
 export interface AssistantOptions {
-  /** Models the host brings with their adapters (a story's scripted model), in effect with no key of the person's. */
+  /** Models the host brings with their providers (a story's scripted model), in effect with no key of the person's. */
   readonly provided?: readonly ProvidedModels[];
   /** Where the person's keys are kept; default the browser's (`createKeyStore`). */
   readonly keys?: KeyStore;
@@ -85,7 +85,7 @@ async function makeAssistant(host: AssistantHost, options: AssistantOptions): Pr
   await settings.load();
   const agent = host.createAgent(
     {
-      adapterFor: (provider) => settings.adapterFor(provider),
+      providerFor: (provider) => settings.providerFor(provider),
       default: settings.setup.value ?? preferred,
     },
     { rules },

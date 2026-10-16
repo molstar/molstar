@@ -19,6 +19,6 @@ export interface Reference {
   readonly mediaType?: string;
   readonly name?: string;
   readonly byteLength?: number;
-  /** `sha256:<lowercase hex>` for inline bytes; resolvers may use their own schemes. */
+  /** `murmur3-128:<32 hex>` (the messages' hash of the bytes) for inline bytes, checked by the providers; resolvers may use their own schemes. */
   readonly digest?: string;
 }

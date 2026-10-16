@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { digest, hashMessage, type Json, type Message, type ModelAdapter } from '../../messages/index.js';
+import { digest, hashMessage, type Json, type Message, type Provider } from '../../messages/index.js';
 import { createHarness, defaultDrive, emptyHead, MAIN, type TurnConfiguration } from '../index.js';
 
 // The harness's state in memory (harness.md §2–§4): what the trace and the Inspector read of it.
@@ -15,9 +15,9 @@ import { createHarness, defaultDrive, emptyHead, MAIN, type TurnConfiguration } 
 const user = (text: string): Message => ({ role: 'user', parts: [{ kind: 'text', text }] });
 
 /** A model that answers each request with the next of `replies`. */
-function replying(replies: string[]): ModelAdapter {
+function replying(replies: string[]): Provider {
   return {
-    capabilitiesFor: async () => ({
+    capabilities: async () => ({
       contextWindowTokens: 100_000,
       maxOutputTokens: 1_000,
       outputLimitIncludesReasoning: false,
@@ -26,7 +26,7 @@ function replying(replies: string[]): ModelAdapter {
     }),
     async project(input) {
       const payload = input.messages.map(({ role, parts }) => ({ role, parts })) as unknown as Json;
-      return { payload, digest: digest(payload), adapterRevision: 'test-1', inputTokens: 10 };
+      return { payload, digest: digest(payload), revision: 'test-1', inputTokens: 10 };
     },
     async *invoke() {
       const text = replies.shift() ?? 'nothing left';
@@ -47,10 +47,10 @@ const configuration: TurnConfiguration = {
 };
 
 function harness(replies: string[]) {
-  const adapter = replying(replies);
+  const provider = replying(replies);
   return createHarness({
     id: 'h-state',
-    models: { resolve: async () => adapter },
+    models: { resolve: async () => provider },
     tools: { resolve: () => undefined },
     drive: defaultDrive(),
     configure: () => configuration,
@@ -99,7 +99,7 @@ describe('the harness state', () => {
     const [ending] = await h.steps([turns[0]?.lastStep ?? '']);
     expect(ending?.end).toEqual({ status: 'completed' });
     const [request] = await h.blobs([ending?.calls[0]?.request ?? '']);
-    expect(request).toMatchObject({ adapterRevision: 'test-1' });
+    expect(request).toMatchObject({ revision: 'test-1' });
   });
 
   it('watch gives the current seq first, then each change', async () => {

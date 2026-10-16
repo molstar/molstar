@@ -39,7 +39,7 @@ async function mount() {
     createAgent: (models) =>
       createViewerAgent({
         viewer,
-        models: { ...models, adapterFor: (p) => (p === 'scripted' ? model.adapter : models.adapterFor(p)) },
+        models: { ...models, providerFor: (p) => (p === 'scripted' ? model.provider : models.providerFor(p)) },
       }),
   });
   created.push(assistant);

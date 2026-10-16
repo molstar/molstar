@@ -80,13 +80,13 @@ export type HistoryItem = { kind: 'run'; run: CommandRun } | { kind: 'turn'; tur
 export type KeyScope = 'reload' | 'session' | 'browser';
 
 /**
- * A model provider (any-model-adapters: Anthropic, Google, OpenAI, or an OpenAI-compatible endpoint of one's own, e.g.
+ * A model provider (Anthropic, Google, OpenAI, or an OpenAI-compatible endpoint of one's own, e.g.
  * OpenRouter, Ollama, vLLM). Keys go only to their provider.
  */
 export interface AIProvider {
   id: string;
   label: string;
-  /** The adapter family: how it is called. */
+  /** The provider family: how it is called. */
   family: 'anthropic' | 'google' | 'openai';
   /** One's own: an OpenAI-compatible endpoint (https, or http on localhost). */
   baseURL?: string;

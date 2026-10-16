@@ -14,7 +14,7 @@ and the code. Prism's (the viewer's agent, the assistant): [../prism/TODO.md](..
   page's startup bundle. Alternatives: JSON Schema straight from the field shapes, with a small validator over their
   closed vocabulary (string, enum, number with bounds, boolean, array, object, tagged union); JSON Schema from Mol\*'s
   `ParamDefinition`, which the viewer's operations already have (`paramsShape` maps it to field shapes today); a smaller
-  validator. zod leaves the bundle only if the adapters do not use the AI SDK
+  validator. zod leaves the bundle only if the providers do not use the AI SDK
   ([tools-and-session.md §1–2](../../.v6/ai/tools-and-session.md)).
 
 ## Missing

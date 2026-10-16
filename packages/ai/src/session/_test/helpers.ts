@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Message, ModelAdapter } from '../../messages/index.js';
+import type { Message, Provider } from '../../messages/index.js';
 import { type ModelStep, type ScriptedModel, type ScriptedModelOptions, scriptedModel } from '../../testing/index.js';
 import type { Clock } from '../../harness/index.js';
 import { createToolkit, type DisclosureModule, type Toolkit, toolFor } from '../../tools/index.js';
@@ -151,10 +151,10 @@ export const realClock: Clock = {
 
 export const DEFAULT_MODEL = { provider: 'scripted', model: 'scripted-1' } as const;
 
-/** Models for a session: the adapters by provider, the scripted one under `scripted`. */
-export function modelsOf(adapter: ModelAdapter, others: Record<string, ModelAdapter> = {}): ModelSource {
+/** Models for a session: the providers by id, the scripted one under `scripted`. */
+export function modelsOf(scripted: Provider, others: Record<string, Provider> = {}): ModelSource {
   return {
-    adapterFor: (provider) => (provider === 'scripted' ? adapter : others[provider]),
+    providerFor: (provider) => (provider === 'scripted' ? scripted : others[provider]),
     default: { ...DEFAULT_MODEL },
   };
 }
@@ -176,7 +176,7 @@ export function fixture(
   const scripted = scriptedModel(script, model);
   const toolkit = options.toolkit ?? toyToolkit();
   const session = new AgentSession<Toy>({
-    models: modelsOf(scripted.adapter),
+    models: modelsOf(scripted.provider),
     toolkit,
     api,
     guidance,

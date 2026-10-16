@@ -9,76 +9,69 @@
 import type {
   AssistantMessage,
   Json,
-  JsonObject,
   ModelFinish,
   ModelFrame,
-  ProjectedRequest,
   ProviderUsage,
   ToolCallPart,
 } from '../../messages/index.js';
-import { digest, ModelError } from '../../messages/index.js';
-import { jsonSchema, type LanguageModelUsage, type ModelMessage, streamText, type TextPart, type ToolSet } from 'ai';
-import { decodeProjectedPayload, type ProjectedPayload, type WireTool } from './payload.js';
+import { ModelError } from '../../messages/index.js';
+import { jsonSchema, type LanguageModelUsage, streamText, type ToolSet, UnsupportedFunctionalityError } from 'ai';
+import type { Payload } from './provider.js';
 
+// The one stream mapper (providers.md §2): the retained payload goes to `streamText` as it is (its tools' schemas
+// wrapped by `jsonSchema`), the stream's parts become frames, and failures `ModelError`s.
+
+/** What a provider keeps of a response for replay (signatures, encrypted reasoning, item ids): on the calls. */
 export interface ReplayState {
   reasoning(part: StreamPart): void;
   toolCall(call: ToolCallPart, part: StreamPart, index: number): ToolCallPart;
   finish(calls: readonly ToolCallPart[]): readonly ToolCallPart[];
 }
-export interface StreamPolicy {
-  options(payload: ProjectedPayload): Pick<Parameters<typeof streamText>[0], 'system' | 'providerOptions'>;
-  toolOptions?(tool: WireTool, index: number, payload: ProjectedPayload): Record<string, JsonObject> | undefined;
-  inlineMessage(message: JsonObject, index: number, digest: string): ModelMessage | undefined;
-  reasoning?(value: Json | undefined): ReasoningPart[];
-  replayOptions?(value: Json | undefined): Record<string, JsonObject> | undefined;
-  createReplay(): ReplayState;
+
+export const noReplay = (): ReplayState => ({ reasoning() {}, toolCall: (call) => call, finish: (calls) => calls });
+
+type Model = Parameters<typeof streamText>[0]['model'];
+
+/** The payload's call arguments: the identity, the model id and the tool ids are the provider's, not the SDK's. */
+function callArguments(payload: Payload, model: Model, signal: AbortSignal, onError: (error: unknown) => void) {
+  const { provider: _p, revision: _r, model: _m, toolIds: _i, appended: _a, tools, ...rest } = payload;
+  const sdkTools: ToolSet = {};
+  for (const [name, tool] of Object.entries(tools ?? {})) {
+    sdkTools[name] = {
+      description: tool.description,
+      inputSchema: jsonSchema(tool.inputSchema as Parameters<typeof jsonSchema>[0]),
+      ...(tool.providerOptions === undefined ? {} : { providerOptions: tool.providerOptions }),
+    };
+  }
+  return {
+    ...(rest as unknown as Omit<Parameters<typeof streamText>[0], 'model'>),
+    ...(tools === undefined ? {} : { tools: sdkTools }),
+    model,
+    abortSignal: signal,
+    maxRetries: 0,
+    onError({ error }: { error: unknown }) {
+      onError(error);
+    },
+  } as Parameters<typeof streamText>[0];
 }
 
-/** A failure before any request: the request is refused or malformed, and nothing was generated. */
-const refused = (message: string) => new ModelError(message, { transient: false, effect: 'none' });
-
-export async function* invokeProjectedRequest(input: {
-  readonly request: ProjectedRequest;
+export async function* streamPayload(input: {
+  readonly payload: Payload;
   readonly signal: AbortSignal;
-  readonly expectedRevision: string;
-  readonly expectedProvider: string;
-  readonly policy: StreamPolicy;
-  readonly languageModel: Parameters<typeof streamText>[0]['model'];
+  readonly languageModel: Model;
+  readonly replay: ReplayState;
 }): AsyncIterable<ModelFrame> {
-  if (input.request.adapterRevision !== input.expectedRevision) {
-    throw refused('Projected request belongs to an incompatible adapter revision.');
-  }
-  if (input.request.digest !== digest(input.request.payload)) {
-    throw refused('Projected request payload digest does not match the payload.');
-  }
-  const payload = decodeProjectedPayload(input.request.payload);
-  if (payload.provider !== input.expectedProvider || payload.adapterRevision !== input.expectedRevision) {
-    throw refused('Projected request provider does not match this adapter.');
-  }
-  const tools = sdkTools(payload, input.policy);
-  const messages = sdkMessages(payload, input.request.digest, input.policy);
+  const { payload, replay } = input;
   let streamError: unknown;
-  const streamOptions: Parameters<typeof streamText>[0] = {
-    model: input.languageModel,
-    abortSignal: input.signal,
-    maxRetries: 0,
-    maxOutputTokens: payload.maxOutputTokens,
-    messages,
-    ...(messages.some((message) => message.role === 'system') ? { allowSystemInMessages: true } : {}),
-    onError({ error }) {
+  const result = streamText(
+    callArguments(payload, input.languageModel, input.signal, (error) => {
       streamError = error;
-    },
-    ...input.policy.options(payload),
-    ...(payload.tools.length > 0 ? { tools } : {}),
-    ...(payload.temperature !== undefined ? { temperature: payload.temperature } : {}),
-    ...(payload.topP !== undefined ? { topP: payload.topP } : {}),
-  };
-  const result = streamText(streamOptions);
+    }),
+  );
   const text: string[] = [];
   const toolCalls: ToolCallPart[] = [];
   let finish: ModelFinish | undefined;
   let usage: ProviderUsage = {};
-  const replay = input.policy.createReplay();
   const parts = result.fullStream[Symbol.asyncIterator]();
   const aborted = waitForAbort(input.signal);
   try {
@@ -103,7 +96,7 @@ export async function* invokeProjectedRequest(input: {
         continue;
       }
       if (typed.type === 'tool-call') {
-        toolCalls.push(replay.toolCall(streamToolCall(typed, payload.tools), typed, toolCalls.length));
+        toolCalls.push(replay.toolCall(streamToolCall(typed, payload.toolIds), typed, toolCalls.length));
         continue;
       }
       if (typed.type === 'finish') {
@@ -137,117 +130,6 @@ export async function* invokeProjectedRequest(input: {
   yield { kind: 'result', message, finish, usage };
 }
 
-function sdkTools(payload: ProjectedPayload, policy: StreamPolicy): ToolSet {
-  const projected: ToolSet = {};
-  for (const [index, tool] of payload.tools.entries()) {
-    const providerOptions = policy.toolOptions?.(tool, index, payload);
-    projected[tool.wireName] = {
-      description: tool.description,
-      inputSchema: jsonSchema(tool.inputSchema),
-      ...(providerOptions === undefined ? {} : { providerOptions }),
-    };
-  }
-  return projected;
-}
-
-function sdkMessages(payload: ProjectedPayload, requestDigest: string, policy: StreamPolicy): ModelMessage[] {
-  const messages: ModelMessage[] = [];
-  for (const [messageIndex, message] of payload.messages.entries()) {
-    const role = message.role;
-    const text = typeof message.text === 'string' ? message.text : '';
-    const visible = sdkVisibleContent(message);
-    const inline = policy.inlineMessage(message, messageIndex, requestDigest);
-    if (inline !== undefined) {
-      messages.push(inline);
-      continue;
-    }
-    if (role === 'assistant') {
-      const toolCalls = Array.isArray(message.toolCalls) ? message.toolCalls : [];
-      if (toolCalls.length === 0) {
-        messages.push({ role: 'assistant', content: Array.isArray(message.content) ? visible : text });
-        continue;
-      }
-      // Provider reasoning must precede the function call it accompanied.
-      const reasoning = (call: Json): ReasoningPart[] => policy.reasoning?.((call as JsonObject).providerOptions) ?? [];
-      messages.push({
-        role: 'assistant',
-        content: [
-          ...reasoning(toolCalls[0] ?? {}),
-          ...visible,
-          ...toolCalls.flatMap((call, i) => {
-            const record = call as JsonObject;
-            const providerOptions = policy.replayOptions?.(record.providerOptions);
-            return [
-              ...(i > 0 ? reasoning(call) : []),
-              {
-                type: 'tool-call' as const,
-                toolCallId: String(record.requestId ?? ''),
-                toolName: String(record.wireName ?? ''),
-                input: record.arguments,
-                ...(providerOptions === undefined ? {} : { providerOptions }),
-              },
-            ];
-          }),
-        ],
-      });
-      continue;
-    }
-    if (role === 'tool') {
-      const results = Array.isArray(message.toolResults) ? message.toolResults : [];
-      messages.push({
-        role: 'tool',
-        content: results.map((item) => {
-          const record = item as JsonObject;
-          const value = typeof record.text === 'string' ? record.text : '';
-          return {
-            type: 'tool-result' as const,
-            toolCallId: String(record.requestId ?? ''),
-            toolName: String(record.wireName ?? ''),
-            output:
-              record.status === 'failed'
-                ? { type: 'error-text' as const, value }
-                : Array.isArray(record.content)
-                  ? { type: 'content' as const, value: sdkVisibleContent(record) }
-                  : { type: 'text' as const, value },
-          };
-        }),
-      });
-      if (text.length > 0) messages.push({ role: 'user', content: text });
-      continue;
-    }
-    messages.push({ role: 'user', content: Array.isArray(message.content) ? visible : text });
-  }
-  return messages;
-}
-
-type SdkVisiblePart =
-  | TextPart
-  | {
-      type: 'file';
-      data: { type: 'data'; data: string } | { type: 'text'; text: string };
-      mediaType: string;
-      filename?: string;
-    };
-
-function sdkVisibleContent(message: JsonObject): SdkVisiblePart[] {
-  if (!Array.isArray(message.content)) {
-    return typeof message.text === 'string' && message.text.length > 0 ? [{ type: 'text', text: message.text }] : [];
-  }
-  return message.content.map((item): SdkVisiblePart => {
-    const part = item as JsonObject;
-    if (part.type === 'text' && typeof part.text === 'string') return { type: 'text', text: part.text };
-    if (part.type !== 'file' || typeof part.data !== 'string' || typeof part.mediaType !== 'string') {
-      throw new Error('Invalid projected attachment part.');
-    }
-    return {
-      type: 'file',
-      data: typeof part.text === 'string' ? { type: 'text', text: part.text } : { type: 'data', data: part.data },
-      mediaType: part.mediaType,
-      ...(typeof part.name === 'string' ? { filename: part.name } : {}),
-    };
-  });
-}
-
 export interface StreamPart {
   readonly type: string;
   readonly text?: string;
@@ -262,13 +144,6 @@ export interface StreamPart {
   readonly id?: string;
   readonly providerMetadata?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
-
-/** An assistant message's reasoning part, as the SDK takes it. */
-export type ReasoningPart = {
-  type: 'reasoning';
-  text: string;
-  providerOptions: Record<string, Record<string, string>>;
-};
 
 function streamFailure(error: unknown): Error {
   if (error instanceof Error) return error;
@@ -291,13 +166,12 @@ export function streamTextDelta(part: StreamPart): string {
 }
 
 /** The call keeps the name the model gave unless it names a known tool, which maps back to its id. */
-function streamToolCall(part: StreamPart, tools: readonly WireTool[]): ToolCallPart {
+function streamToolCall(part: StreamPart, toolIds: Readonly<Record<string, string>>): ToolCallPart {
   const wire = part.toolName ?? '';
-  const tool = tools.find((item) => item.wireName === wire || item.id === wire);
   return {
     kind: 'tool-call',
     requestId: part.toolCallId ?? wire,
-    tool: { id: tool?.id ?? wire },
+    tool: { id: Object.hasOwn(toolIds, wire) ? (toolIds[wire] as string) : wire },
     arguments: (part.input ?? {}) as Json,
   };
 }
@@ -349,6 +223,9 @@ export function modelError(error: unknown, apiKey: string): ModelError {
   const message = error instanceof Error ? error.message : String(error);
   const safe = apiKey.length > 0 ? message.split(apiKey).join('[redacted]') : message;
   if (error instanceof ModelError) return new ModelError(safe, error);
+  // The SDK refuses what the provider cannot take before any request: retrying cannot help.
+  if (UnsupportedFunctionalityError.isInstance(error))
+    return new ModelError(safe, { transient: false, effect: 'none' });
   const source = error as {
     statusCode?: unknown;
     isRetryable?: unknown;

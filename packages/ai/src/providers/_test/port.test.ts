@@ -6,10 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { ModelVisiblePart, ToolDefinition } from '../../messages/index.js';
-import { type Json, type JsonObject, type Message, ModelError, UnrepresentableInput } from '../../messages/index.js';
-import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';
+import {
+  digest,
+  type Json,
+  type JsonObject,
+  type Message,
+  ModelError,
+  UnrepresentableInput,
+} from '../../messages/index.js';
+import { createAnthropicProvider, createGoogleProvider, createOpenAIProvider } from '../index.js';
 import {
   anthropicSse,
   collectFrames,
@@ -41,25 +48,27 @@ const guide: Message = {
 };
 
 const cases = [
-  { name: 'anthropic native', provider: 'anthropic', model: 'claude-sonnet-5-5', create: createAnthropicModelAdapter },
+  { name: 'anthropic native', provider: 'anthropic', model: 'claude-sonnet-5-5', create: createAnthropicProvider },
   {
     name: 'anthropic collected',
     provider: 'anthropic',
     model: 'claude-haiku-4-5',
-    create: createAnthropicModelAdapter,
+    create: createAnthropicProvider,
   },
-  { name: 'openai native', provider: 'openai', model: 'gpt-6-luna', create: createOpenAIModelAdapter },
-  { name: 'google collected', provider: 'google', model: 'gemini-3.8-flash', create: createGoogleModelAdapter },
+  { name: 'openai native', provider: 'openai', model: 'gpt-6-luna', create: createOpenAIProvider },
+  { name: 'google collected', provider: 'google', model: 'gemini-3.8-flash', create: createGoogleProvider },
 ] as const;
 const responses = { anthropic: anthropicSse, google: googleSse, openai: openaiSse };
 
-/** Every string under a `text` or `system` key: the prompt text of a payload. */
+/** Every string under a `text`, `content` or `system` key: the prompt text of a payload (OpenAI's addition
+ * placeholders aside). */
 function promptText(value: Json, out: string[] = []): string[] {
   if (Array.isArray(value)) for (const item of value) promptText(item, out);
   else if (value !== null && typeof value === 'object') {
     for (const [key, item] of Object.entries(value)) {
-      if ((key === 'text' || key === 'system') && typeof item === 'string') out.push(item);
-      else promptText(item, out);
+      if ((key === 'text' || key === 'system' || key === 'content') && typeof item === 'string') {
+        if (!item.startsWith('molstar-ai:')) out.push(item);
+      } else promptText(item, out);
     }
   }
   return out;
@@ -73,10 +82,7 @@ describe('tool-definition parts', () => {
       adapter,
       projectInput(provider, model, { messages: [guide, user], tools: [documented] }),
     );
-    const payload = payloadOf(request);
-    expect(
-      payload.system === 'Be brief.' || (payload.messages as JsonObject[]).some((m) => m.text === 'Be brief.'),
-    ).toBe(true);
+    expect(promptText(request.payload)).toContain('Be brief.');
     for (const text of promptText(request.payload)) {
       expect(text).not.toContain(marker);
       expect(text).not.toContain('Docs search');
@@ -93,7 +99,7 @@ describe('tool-definition parts', () => {
       adapter,
       projectInput(provider, model, { messages: [declares(documented), user], tools: [documented] }),
     );
-    expect(payloadOf(withMessage).system ?? '').toBe('');
+    expect(payloadOf(withMessage).system).toBeUndefined();
     expect(promptText(withMessage.payload).join('')).toBe('Find it.');
   });
 });
@@ -115,9 +121,10 @@ describe('a tool loaded later', () => {
       expect((second.messages as unknown[]).slice(0, (first.messages as unknown[]).length)).toEqual(first.messages);
       expect(second.messages as unknown[]).toHaveLength((first.messages as unknown[]).length + 1);
       const added = (second.messages as JsonObject[])[(first.messages as unknown[]).length];
-      expect(JSON.stringify(added)).toMatch(provider === 'openai' ? /additional_tools/ : /tool_addition/);
+      expect(JSON.stringify(added)).toMatch(provider === 'openai' ? /additionalTools/ : /tool_addition/);
       // The tools the SDK gets for the first request are a prefix of the second's.
-      expect((second.tools as unknown[]).slice(0, (first.tools as unknown[]).length)).toEqual(first.tools);
+      const tools = (payload: JsonObject) => Object.entries(payload.tools as JsonObject);
+      expect(tools(second).slice(0, tools(first).length)).toEqual(tools(first));
     },
   );
 
@@ -126,10 +133,10 @@ describe('a tool loaded later', () => {
     async ({ provider, model, create }) => {
       const adapter = create({ resolveApiKey: () => 'fixture' });
       const tools = async (messages: Message[], available: ToolDefinition[]) =>
-        (
+        Object.values(
           payloadOf(await project(adapter, projectInput(provider, model, { messages, tools: available })))
-            .tools as JsonObject[]
-        ).map((tool) => tool.id);
+            .toolIds as JsonObject,
+        );
       expect(await tools(head, [documented])).toEqual(['docs.search']);
       expect(await tools(later, [documented, lookupTool])).toEqual(['docs.search', 'fixture.lookup']);
       // Messages alone do not make a tool available.
@@ -148,14 +155,17 @@ describe('cacheScopeId', () => {
   };
 
   it("changes OpenAI's payload and digest, and only OpenAI's", async () => {
-    const openai = createOpenAIModelAdapter({ resolveApiKey: () => 'k' });
+    const openai = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const none = await project(openai, scoped('openai', 'gpt-6-luna'));
     const a = await project(openai, scoped('openai', 'gpt-6-luna', 'scope-a'));
     const b = await project(openai, scoped('openai', 'gpt-6-luna', 'scope-b'));
-    expect(payloadOf(a).cacheScopeId).toBe('scope-a');
+    const key = (request: typeof a) =>
+      ((payloadOf(request).providerOptions as JsonObject).openai as JsonObject).promptCacheKey;
+    expect(key(a)).toBe('scope-a');
+    expect(key(none)).toBeUndefined();
     expect(new Set([none.digest, a.digest, b.digest]).size).toBe(3);
-    const anthropic = createAnthropicModelAdapter({ resolveApiKey: () => 'k' });
-    const google = createGoogleModelAdapter({ resolveApiKey: () => 'k' });
+    const anthropic = createAnthropicProvider({ resolveApiKey: () => 'k' });
+    const google = createGoogleProvider({ resolveApiKey: () => 'k' });
     for (const [adapter, provider, model] of [
       [anthropic, 'anthropic', 'claude-sonnet-5-5'],
       [google, 'google', 'gemini-3.8-flash'],
@@ -168,10 +178,11 @@ describe('cacheScopeId', () => {
   });
 
   it('is ignored when the capabilities say the model has no cache scope', async () => {
-    const openai = createOpenAIModelAdapter({ resolveApiKey: () => 'k' });
+    const openai = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const input = scoped('openai', 'gpt-6-luna', 'scope-a');
-    const capabilities = { ...(await openai.capabilitiesFor(input.configuration)), cacheScope: false };
-    expect(payloadOf(await openai.project({ ...input, capabilities })).cacheScopeId).toBeUndefined();
+    const capabilities = { ...(await openai.capabilities(input.configuration)), cacheScope: false };
+    const request = await openai.project({ ...input, capabilities });
+    expect(((payloadOf(request).providerOptions as JsonObject).openai as JsonObject).promptCacheKey).toBeUndefined();
   });
 });
 
@@ -214,7 +225,7 @@ describe('unrepresentable input', () => {
   });
 
   it('is typed for OpenAI guidance or a load while a call is unanswered', async () => {
-    const adapter = createOpenAIModelAdapter({ resolveApiKey: () => 'k' });
+    const adapter = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const call: Message = {
       role: 'assistant',
       parts: [{ kind: 'tool-call', requestId: 'c', tool: lookupTool.tool, arguments: {} }],
@@ -230,7 +241,7 @@ describe('unrepresentable input', () => {
   });
 
   it('leaves a bad parameter or a corrupt attachment a plain error', async () => {
-    const adapter = createOpenAIModelAdapter({ resolveApiKey: () => 'k' });
+    const adapter = createOpenAIProvider({ resolveApiKey: () => 'k' });
     const input = projectInput('openai', 'gpt-6-luna');
     const bad = await project(adapter, {
       ...input,
@@ -243,7 +254,7 @@ describe('unrepresentable input', () => {
       messages: [
         {
           role: 'user',
-          parts: [{ kind: 'reference', reference: { uri: 'data:image/png;base64,YQ==', digest: 'sha256:bad' } }],
+          parts: [{ kind: 'reference', reference: { uri: 'data:image/png;base64,YQ==', digest: 'murmur3-128:bad' } }],
         },
       ],
     }).catch((error: unknown) => error);
@@ -264,7 +275,7 @@ describe('pure projection', () => {
   });
 
   it('changes the digest when the configuration, a message or the tools change', async () => {
-    const adapter = createAnthropicModelAdapter({ resolveApiKey: () => 'k' });
+    const adapter = createAnthropicProvider({ resolveApiKey: () => 'k' });
     const input = projectInput('anthropic', 'claude-sonnet-5-5', { messages: [user], tools: [lookupTool] });
     const base = (await project(adapter, input)).digest;
     const changed = [
@@ -274,4 +285,27 @@ describe('pure projection', () => {
     ];
     for (const next of changed) expect((await project(adapter, next)).digest).not.toBe(base);
   });
+});
+
+describe('a retained request', () => {
+  it.each(cases)(
+    'is refused before any request with another digest, revision or provider: $name',
+    async ({ provider, model, create }) => {
+      const recorded = recordingFetch(responses[provider]('ok'));
+      const adapter = create({ resolveApiKey: () => 'k', fetch: recorded.fetch });
+      const request = await project(adapter, projectInput(provider, model));
+      const foreign = { ...payloadOf(request), provider: 'elsewhere' };
+      for (const [changed, message] of [
+        [{ ...request, digest: 'tampered' }, /payload digest/],
+        [{ ...request, revision: 'old' }, /incompatible revision/],
+        [{ ...request, payload: foreign, digest: digest(foreign) }, /provider does not match/],
+      ] as const) {
+        const failure = await collectFrames(adapter, changed).catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(ModelError);
+        expect(failure).toMatchObject({ transient: false, effect: 'none' });
+        expect((failure as Error).message).toMatch(message);
+      }
+      expect(recorded.requests).toHaveLength(0);
+    },
+  );
 });

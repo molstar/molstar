@@ -8,7 +8,7 @@
 
 import type { Json, JsonObject, Reference } from './values.js';
 
-/** What a model sees of content: text, or a reference the adapter resolves. */
+/** What a model sees of content: text, or a reference the provider resolves. */
 export type ModelVisiblePart =
   | { readonly kind: 'text'; readonly text: string }
   | { readonly kind: 'reference'; readonly reference: Reference };
@@ -38,7 +38,7 @@ export interface ToolResultPart {
   readonly parts: readonly ModelVisiblePart[];
 }
 
-/** Declares a tool; with `deferred: false` it also loads it. Adapters never send it as text. */
+/** Declares a tool; with `deferred: false` it also loads it. Providers never send it as text. */
 export interface ToolDefinitionPart {
   readonly kind: 'tool-definition';
   readonly definition: ToolDefinition;

@@ -9,14 +9,13 @@
 import type {
   JsonObject,
   Message,
-  ModelAdapter,
+  Provider,
   ModelFrame,
   ProjectedRequest,
   ProjectInput,
   ToolDefinition,
   ToolResultPart,
 } from '../../messages/index.js';
-import { digest } from '../../messages/index.js';
 
 // The fixtures replay history without provider signatures on purpose; the SDK warns about it.
 (globalThis as { AI_SDK_LOG_WARNINGS?: boolean }).AI_SDK_LOG_WARNINGS = false;
@@ -32,12 +31,12 @@ export const lookupTool: ToolDefinition = {
   },
 };
 
-export type Provider = 'anthropic' | 'google' | 'openai';
+export type Vendor = 'anthropic' | 'google' | 'openai';
 export type InputOptions = Partial<Omit<ProjectInput, 'capabilities'>>;
 
-/** A project input without its capabilities, which `project` resolves from the adapter. */
+/** A project input without its capabilities, which `project` resolves from the provider. */
 export function projectInput(
-  provider: Provider,
+  provider: Vendor,
   model: string,
   extras: InputOptions = {},
 ): Omit<ProjectInput, 'capabilities'> {
@@ -49,23 +48,19 @@ export function projectInput(
   };
 }
 
-/** Project with the capabilities the adapter reports for the input's configuration, as the harness does. */
+/** Project with the capabilities the provider reports for the input's configuration, as the harness does. */
 export async function project(
-  adapter: ModelAdapter,
+  provider: Provider,
   input: Omit<ProjectInput, 'capabilities'>,
   capabilities?: ProjectInput['capabilities'],
 ): Promise<ProjectedRequest> {
-  return await adapter.project({
+  return await provider.project({
     ...input,
-    capabilities: capabilities ?? (await adapter.capabilitiesFor(input.configuration)),
+    capabilities: capabilities ?? (await provider.capabilities(input.configuration)),
   });
 }
 
 export const payloadOf = (request: ProjectedRequest): JsonObject => request.payload as JsonObject;
-
-export async function assertDigestMatches(request: ProjectedRequest): Promise<void> {
-  if (request.digest !== digest(request.payload)) throw new Error('digest does not match the payload.');
-}
 
 export function resultOf(frames: readonly ModelFrame[]): Extract<ModelFrame, { kind: 'result' }> {
   const result = frames.find((frame) => frame.kind === 'result');
@@ -95,12 +90,12 @@ export const declares = (definition: ToolDefinition, deferred = false): Message 
 });
 
 export async function collectFrames(
-  adapter: ModelAdapter,
+  provider: Provider,
   request: ProjectedRequest,
   signal: AbortSignal = new AbortController().signal,
 ): Promise<readonly ModelFrame[]> {
   const frames: ModelFrame[] = [];
-  for await (const frame of adapter.invoke({ request, signal })) {
+  for await (const frame of provider.invoke({ request, signal })) {
     frames.push(frame);
   }
   return frames;

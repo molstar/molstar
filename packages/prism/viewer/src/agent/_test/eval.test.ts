@@ -23,7 +23,7 @@ async function run(t: EvalTask, script: ModelStep[]) {
   const model = scriptedModel(script);
   return runEval(v, t, {
     models: {
-      adapterFor: (p) => (p === 'scripted' ? model.adapter : undefined),
+      providerFor: (p) => (p === 'scripted' ? model.provider : undefined),
       default: { provider: 'scripted', model: 'scripted' },
     },
     file: (name) => exampleFile(name),

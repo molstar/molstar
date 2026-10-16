@@ -26,7 +26,7 @@ const scopeText: Record<KeyScope, string> = {
 };
 
 /**
- * Setting up the assistant's model (as Stories untold does, over any-model-adapters): every provider with its key (one
+ * Setting up the assistant's model (as Stories untold does): every provider with its key (one
  * for each, as many as one likes), how long a key is kept, the model in use, and one's own OpenAI-compatible endpoint
  * (OpenRouter, Ollama, vLLM, …). With no key yet, a word on what it is first, and the first provider's key open.
  */

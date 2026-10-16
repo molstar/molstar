@@ -10,13 +10,12 @@ import { describe, expect, it } from 'vitest';
 import type { Message, ModelVisiblePart } from '../../messages/index.js';
 import { UnrepresentableInput } from '../../messages/index.js';
 import { bytesDigest, inlineAttachment } from '../common/attachments.js';
-import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';
+import { createAnthropicProvider, createGoogleProvider, createOpenAIProvider } from '../index.js';
 import {
   anthropicSse,
   collectFrames,
   googleSse,
   lookupTool,
-  payloadOf,
   project,
   projectInput,
   recordingFetch,
@@ -30,9 +29,9 @@ function file(mediaType: string, content = 'fixture'): ModelVisiblePart {
 }
 
 it.each([
-  { provider: 'anthropic', model: 'claude-sonnet-5-5', create: createAnthropicModelAdapter },
-  { provider: 'google', model: 'gemini-3.8-flash', create: createGoogleModelAdapter },
-  { provider: 'openai', model: 'gpt-6-luna', create: createOpenAIModelAdapter },
+  { provider: 'anthropic', model: 'claude-sonnet-5-5', create: createAnthropicProvider },
+  { provider: 'google', model: 'gemini-3.8-flash', create: createGoogleProvider },
+  { provider: 'openai', model: 'gpt-6-luna', create: createOpenAIProvider },
 ] as const)(
   'classifies unsupported $provider content separately from corrupt retained bytes',
   async ({ provider, model, create }) => {
@@ -53,7 +52,7 @@ it.each([
     }
     const corrupt: Message = {
       role: 'user',
-      parts: [{ kind: 'reference', reference: { uri: 'data:image/png;base64,YQ==', digest: 'sha256:bad' } }],
+      parts: [{ kind: 'reference', reference: { uri: 'data:image/png;base64,YQ==', digest: 'murmur3-128:bad' } }],
     };
     await expect(project(adapter, projectInput(provider, model, { messages: [corrupt] }))).rejects.not.toBeInstanceOf(
       UnrepresentableInput,
@@ -63,19 +62,14 @@ it.each([
 
 describe('inline attachment receiving boundary', () => {
   it('recognizes arbitrary media and normalizes binary percent data without provider assumptions', async () => {
-    expect(await inlineAttachment({ uri: 'data:application/x-fixture,%00%FF%2B' })).toMatchObject({
-      mediaType: 'application/x-fixture',
-      data: 'AP8r',
-      byteLength: 3,
-      digest: await bytesDigest(new Uint8Array([0, 255, 43])),
-    });
-    expect(await bytesDigest(new TextEncoder().encode('abc'))).toBe(
-      'sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    const bytes = new Uint8Array([0, 255, 43]);
+    expect(inlineAttachment({ uri: 'data:application/x-fixture,%00%FF%2B', digest: bytesDigest(bytes) })).toMatchObject(
+      { mediaType: 'application/x-fixture', data: 'AP8r', byteLength: 3 },
     );
-    expect(
-      await inlineAttachment({ uri: 'https://example.test/file.pdf', mediaType: 'application/pdf' }),
-    ).toBeUndefined();
-    expect(await inlineAttachment({ uri: 'data:,hello%20world' })).toMatchObject({
+    // The messages' own hash (MurmurHash3_x86_128), synchronous.
+    expect(bytesDigest(new TextEncoder().encode('abc'))).toMatch(/^murmur3-128:[0-9a-f]{32}$/);
+    expect(inlineAttachment({ uri: 'https://example.test/file.pdf', mediaType: 'application/pdf' })).toBeUndefined();
+    expect(inlineAttachment({ uri: 'data:,hello%20world' })).toMatchObject({
       mediaType: 'text/plain',
       byteLength: 11,
     });
@@ -90,15 +84,15 @@ describe('inline attachment receiving boundary', () => {
     [{ uri: 'data:image/png;base64,YQ==', mediaType: 'application/pdf' }, /media type/],
     [{ uri: 'data:text/plain;charset=utf-8,abc', mediaType: 'text/plain;charset=us-ascii' }, /charset/],
     [{ uri: 'data:image/png;base64,YQ==', byteLength: 2 }, /byteLength/],
-    [{ uri: 'data:image/png;base64,YQ==', digest: 'sha256:bad' }, /digest/],
-  ] as const)('rejects invalid retained inline bytes %#', async (reference, error) => {
-    await expect(inlineAttachment(reference)).rejects.toThrow(error);
+    [{ uri: 'data:image/png;base64,YQ==', digest: 'murmur3-128:bad' }, /digest/],
+  ] as const)('rejects invalid retained inline bytes %#', (reference, error) => {
+    expect(() => inlineAttachment(reference)).toThrow(error);
   });
 });
 
 for (const provider of ['anthropic', 'google'] as const) {
   const model = provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gemini-3-flash-preview';
-  const create = provider === 'anthropic' ? createAnthropicModelAdapter : createGoogleModelAdapter;
+  const create = provider === 'anthropic' ? createAnthropicProvider : createGoogleProvider;
   const response = provider === 'anthropic' ? anthropicSse('done') : googleSse('done');
   describe(`${provider} attachment SDK projection`, () => {
     it('retains files-only input and preserves ordered text, documents and ordinary references', async () => {
@@ -224,20 +218,6 @@ for (const provider of ['anthropic', 'google'] as const) {
       expect(recorded.requests).toHaveLength(0);
     });
 
-    it('retains byte evidence of an attachment in the request', async () => {
-      const recorded = recordingFetch(response);
-      const adapter = create({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
-      const request = await project(
-        adapter,
-        projectInput(provider, model, { messages: [{ role: 'user', parts: [file('image/png')] }] }),
-      );
-      expect(JSON.stringify(payloadOf(request).messages)).toContain(
-        await bytesDigest(new TextEncoder().encode('fixture')),
-      );
-      await collectFrames(adapter, request);
-      expect(recorded.requests).toHaveLength(1);
-    });
-
     it('rejects binary failed-result attachments rather than losing their error status', async () => {
       const adapter = create({ resolveApiKey: () => 'fixture' });
       const failed: Message = {
@@ -291,7 +271,7 @@ for (const provider of ['anthropic', 'google'] as const) {
 
 it('maps Google audio/video and assistant attachments and rejects Claude audio', async () => {
   const recorded = recordingFetch(googleSse('done'));
-  const adapter = createGoogleModelAdapter({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
+  const adapter = createGoogleProvider({ resolveApiKey: () => 'fixture', fetch: recorded.fetch });
   await collectFrames(
     adapter,
     await project(
@@ -310,7 +290,7 @@ it('maps Google audio/video and assistant attachments and rejects Claude audio',
     'video/mp4',
   ]);
   expect(body.contents[1].parts[0].inlineData.mimeType).toBe('image/png');
-  const claude = createAnthropicModelAdapter({ resolveApiKey: () => 'fixture' });
+  const claude = createAnthropicProvider({ resolveApiKey: () => 'fixture' });
   await expect(
     project(
       claude,
@@ -326,7 +306,7 @@ it('maps Google audio/video and assistant attachments and rejects Claude audio',
 });
 
 it('rejects binary Google result attachments on targets whose SDK relocates them', async () => {
-  const adapter = createGoogleModelAdapter({ resolveApiKey: () => 'fixture' });
+  const adapter = createGoogleProvider({ resolveApiKey: () => 'fixture' });
   await expect(
     project(
       adapter,

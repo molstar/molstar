@@ -21,7 +21,7 @@ function agentOn(v: PrismViewer, script: ModelStep[]) {
   const agent = createViewerAgent({
     viewer: v,
     models: {
-      adapterFor: (p) => (p === 'scripted' ? model.adapter : undefined),
+      providerFor: (p) => (p === 'scripted' ? model.provider : undefined),
       default: { provider: 'scripted', model: 'scripted' },
     },
   });

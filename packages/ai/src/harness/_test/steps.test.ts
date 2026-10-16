@@ -171,7 +171,7 @@ describe('Steps', () => {
     expect(s.model.invocations).toHaveLength(2);
     const [first, second] = s.model.invocations;
     expect(second?.digest).toBe(first?.digest);
-    expect(second?.adapterRevision).toBe(first?.adapterRevision);
+    expect(second?.revision).toBe(first?.revision);
   });
 
   it('E4 retry-after: the wait a provider asks for is in the failure, its evidence, and the default retry', async () => {

@@ -156,11 +156,11 @@ const spec = {
 `assistant(options)` returns a loader: the assistant, the agent and the AI SDK are a chunk of their own, loaded when the
 assistant is first used, never in the page's startup bundle. Its options are all optional:
 
-| Option              | What it is                                                                                                                             |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`, `model` | The model until the person chooses one, when its provider has a key. By default Anthropic's `claude-sonnet-5-5`.                       |
-| `provided`          | Models the page brings with their adapters (a server's), used without a key of the person's. A function loads them with the assistant. |
-| `keys`, `prefs`     | Where the person's keys and their choice of model are kept (by default the browser's storage).                                         |
+| Option              | What it is                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`, `model` | The model until the person chooses one, when its provider has a key. By default Anthropic's `claude-sonnet-5-5`.                        |
+| `provided`          | Models the page brings with their providers (a server's), used without a key of the person's. A function loads them with the assistant. |
+| `keys`, `prefs`     | Where the person's keys and their choice of model are kept (by default the browser's storage).                                          |
 
 The keys are always the person's, typed into the Assistant tab: a page never passes a key.
 
@@ -184,7 +184,7 @@ The agent, its tools and its policies do not need the assistant or a DOM. `creat
 headless included:
 
 ```ts
-import { createAnthropicModelAdapter } from '@molstar/ai/providers/anthropic';
+import { createAnthropicProvider } from '@molstar/ai/providers/anthropic';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import { createViewerAgent } from '@molstar/prism-viewer/agent/session';
@@ -192,11 +192,11 @@ import { createViewerAgent } from '@molstar/prism-viewer/agent/session';
 const viewer = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec() });
 await viewer.api.load.files({ files: [new File([bytes], '1cbs.cif')] });
 
-const adapter = createAnthropicModelAdapter({ resolveApiKey: async () => process.env.ANTHROPIC_API_KEY! });
+const anthropic = createAnthropicProvider({ resolveApiKey: async () => process.env.ANTHROPIC_API_KEY! });
 const agent = createViewerAgent({
   viewer,
   models: {
-    adapterFor: (provider) => (provider === 'anthropic' ? adapter : undefined),
+    providerFor: (id) => (id === 'anthropic' ? anthropic : undefined),
     default: { provider: 'anthropic', model: 'claude-sonnet-5-5' },
   },
 });
@@ -213,7 +213,7 @@ console.log(result.status, result.text);
 agent.dispose();
 ```
 
-The options are `viewer`, `models` (an adapter per provider and a default model), and optionally `storage` for the
+The options are `viewer`, `models` (a provider per provider id and a default model), and optionally `storage` for the
 conversation (memory by default), `guidance` (more instructions after the viewer's) and `rules` (the domains a person
 allowed). A key is the host's to provide: `resolveApiKey` here reads it from the environment.
 

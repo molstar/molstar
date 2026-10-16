@@ -79,8 +79,8 @@ also set up a host, a runner per launch under a supervisor, and storage; that we
 - **Hooks**: `onText`, `onTool` (started, progress, succeeded, failed, skipped; with `read` and times), `onStatus`
   (`{ kind: model | tools | permission | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
   (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).
-- **Models**: an adapter per provider (a lookup), the default model, windows and output limits the app gives for models
-  an adapter does not know, thinking (one for every model, or per model: the host passes the model catalog's default).
+- **Models**: a provider per provider id (a lookup, `providerFor`), the default model, windows and output limits the app
+  gives for models a provider does not know, thinking (one for every model, or per model: the host passes the model catalog's default).
 
 ## 5. The drive
 

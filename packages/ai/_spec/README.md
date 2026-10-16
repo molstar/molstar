@@ -7,16 +7,16 @@ reading all of it: what each folder is, how they bind, the contracts a host reli
 design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its sections (`harness.md §6`,
 `tools-and-session.md §5`), and those numbers are fixed. The code is the truth for how.
 
-| File                         | What it covers                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| [harness.md](harness.md)     | the engine: journal, event log, Execution, the loop, steps, decisions, the tool handler           |
-| [models.md](models.md)       | `messages/` and `providers/`: `Message`, the `ModelAdapter` port, the adapters, the model catalog |
-| [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, the toolkit (skills), bindings                   |
-| [session.md](session.md)     | `session/`: `AgentSession`, the drive's policies, budgets, compaction                             |
-| [trace.md](trace.md)         | `trace/`: the trace read from a harness, for the Inspector                                        |
-| [threads.md](threads.md)     | `threads/`: durable append-only streams (transcripts), separate from the harness                  |
-| [narration.md](narration.md) | `narration/`: text to speech and audio encoding                                                   |
-| [testing.md](testing.md)     | the harness cases, the test doubles (`testing/`), how to test a change                            |
+| File                         | What it covers                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| [harness.md](harness.md)     | the engine: journal, event log, Execution, the loop, steps, decisions, the tool handler        |
+| [models.md](models.md)       | `messages/` and `providers/`: `Message`, the `Provider` port, the providers, the model catalog |
+| [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, the toolkit (skills), bindings                |
+| [session.md](session.md)     | `session/`: `AgentSession`, the drive's policies, budgets, compaction                          |
+| [trace.md](trace.md)         | `trace/`: the trace read from a harness, for the Inspector                                     |
+| [threads.md](threads.md)     | `threads/`: durable append-only streams (transcripts), separate from the harness               |
+| [narration.md](narration.md) | `narration/`: text to speech and audio encoding                                                |
+| [testing.md](testing.md)     | the harness cases, the test doubles (`testing/`), how to test a change                         |
 
 ## Folders and layers
 
@@ -24,14 +24,14 @@ design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its s
 messages ─┬─ harness ─┬─ tools ──── session
           │           ├─ trace
           │           └─ testing
-          └─ providers          (host passes adapters in)
+          └─ providers          (host passes providers in)
 threads (nothing) ── threads/_test (the suite; testing/threads)
 narration (nothing of the other folders)
 ```
 
 | Folder (`src/`) | Holds                                                                                                              | Imports of the other folders                |
 | --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage`  | none (`@molstar/core`'s hash file only)     |
+| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`      | none (`@molstar/core`'s hash file only)     |
 | `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                  |
 | `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK and zod only here    |
 | `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
@@ -53,13 +53,13 @@ surface.
 
 ## How it binds: one turn, end to end
 
-1. **The host** makes an `AgentSession` (`session/`) with a model source (adapters from `providers/`, looked up by
+1. **The host** makes an `AgentSession` (`session/`) with a model source (providers from `providers/`, looked up by
    provider), a toolkit (`tools/`), its API object and guidance.
 2. **`session.turn(request, hooks)`** composes the user message (`[preamble][state] Focus: … notes Request: …`), plus
    guidance and tool definitions on the first turn, and begins a turn of its **harness** (`createHarness`, `harness/`,
    in memory) with the `TurnConfiguration` (model, tool set, budget limits).
 3. **The harness** runs the turn's **begin step** (the drive's `turn-start`: compact first or not; then the messages are
-   appended), then **rounds**: a model step (project through the adapter, admit against window and budget, stream) and,
+   appended), then **rounds**: a model step (project through the provider, admit against window and budget, stream) and,
    if the model called tools, a tools step (repair, permission, schedule, run handlers, append the assistant message and
    every result in one move). Each step's writes apply at its end. Every choice on the way is a **decision** the drive
    answers (`createDrive` in the session, over `defaultDrive`).

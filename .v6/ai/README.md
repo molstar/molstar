@@ -1,6 +1,6 @@
 # Mol\* AI
 
-The agent harness and what it needs: agent turns in memory, model adapters, tools, a session. Generic and UI-free; Prism hosts it
+The agent harness and what it needs: agent turns in memory, model providers, tools, a session. Generic and UI-free; Prism hosts it
 (`@molstar/prism-assistant` is the Assistant's UI, [../prism-ui/](../prism-ui/)).
 
 ## The package (`packages/ai/`)
@@ -9,9 +9,9 @@ One package, `@molstar/ai`, in folders under `src/` ([simplification/packaging.m
 
 | Folder       | Holds                                                                                                                                                      |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messages/`  | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` (core's MurmurHash3) |
+| `messages/`  | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `Provider` port, `hashMessage`, `digest` (core's MurmurHash3) |
 | `harness/`   | `createHarness`: an in-memory loop (journal, event log, steps, tools, nested runs, drives, observation) and its reader; its cases are `harness/_test/`      |
-| `providers/` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`models.ts`, no dependencies)         |
+| `providers/` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google: a thin layer over the AI SDK (a request is `streamText`'s own arguments); the model catalog (`models.ts`, no dependencies) |
 | `tools/`     | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure               |
 | `session/`   | an agent session: turns, resume, stop; the default drive; message composition; compaction (`session/compaction/`)                                          |
 | `trace/`     | the Inspector's trace, a projection of the harness records (with `format.ts`)                                                                              |
@@ -54,7 +54,10 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports it, and it imp
    in-memory loop that applies each step's writes at its end.
 5. **Nested runs are not durable**: they live in their parent's step, and nothing of them is written before it ends.
 6. **The watch is level-triggered**: a reader re-reads on each seq it hears and misses nothing.
-7. **Adapters serve any endpoint of their dialect** under that endpoint's id; replay identity is never a URL.
+7. **Providers are a thin layer over the AI SDK and serve any endpoint of their dialect** under that endpoint's id;
+   replay identity is never a URL. A request is projected once, to `streamText`'s own arguments as JSON (retained,
+   digested, sent as it is); the native mid-conversation tool additions stay for the catalog's `appendsTools` models
+   (2026-10-16, [simplification/providers.md](simplification/providers.md)).
 8. **Platform-free.** Nothing touches the platform: no storage, no `node:*`; it runs in browsers and Node alike.
 9. ~~No data migration~~: nothing is stored (2026-10-16), so there is nothing to migrate.
 10. **In memory only** (2026-10-16): no durability, leases, supervisor or storage port; a reload ends the conversation.

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, Message, ModelAdapter, ModelCapabilities } from '../../messages/index.js';
+import type { Json, Message, Provider, ModelCapabilities } from '../../messages/index.js';
 import { canonicalJson } from '../../messages/index.js';
 import {
   type Harness,
@@ -103,7 +103,7 @@ export function createHarness(options: HarnessOptions): Harness {
   const store = new Store();
   const observations = new Subject<Observation>();
   const seqs = new Subject<number>();
-  const models = new Map<string, Promise<{ adapter: ModelAdapter; capabilities: ModelCapabilities }>>();
+  const models = new Map<string, Promise<{ provider: Provider; capabilities: ModelCapabilities }>>();
   let active: Active | undefined;
 
   const core: Core = {
@@ -120,9 +120,9 @@ export function createHarness(options: HarnessOptions): Harness {
       const key = canonicalJson(configuration as unknown as Json);
       let found = models.get(key);
       if (found === undefined) {
-        found = options.models.resolve(configuration.target).then(async (adapter) => ({
-          adapter,
-          capabilities: await adapter.capabilitiesFor(configuration),
+        found = options.models.resolve(configuration.target).then(async (provider) => ({
+          provider,
+          capabilities: await provider.capabilities(configuration),
         }));
         models.set(key, found);
         found.catch(() => models.delete(key));

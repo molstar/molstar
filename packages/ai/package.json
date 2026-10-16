@@ -26,19 +26,19 @@
       "import": "./lib/providers/index.js"
     },
     "./providers/anthropic": {
-      "molstar-src": "./src/providers/anthropic/adapter.ts",
-      "types": "./lib/providers/anthropic/adapter.d.ts",
-      "import": "./lib/providers/anthropic/adapter.js"
+      "molstar-src": "./src/providers/anthropic/provider.ts",
+      "types": "./lib/providers/anthropic/provider.d.ts",
+      "import": "./lib/providers/anthropic/provider.js"
     },
     "./providers/openai": {
-      "molstar-src": "./src/providers/openai/adapter.ts",
-      "types": "./lib/providers/openai/adapter.d.ts",
-      "import": "./lib/providers/openai/adapter.js"
+      "molstar-src": "./src/providers/openai/provider.ts",
+      "types": "./lib/providers/openai/provider.d.ts",
+      "import": "./lib/providers/openai/provider.js"
     },
     "./providers/google": {
-      "molstar-src": "./src/providers/google/adapter.ts",
-      "types": "./lib/providers/google/adapter.d.ts",
-      "import": "./lib/providers/google/adapter.js"
+      "molstar-src": "./src/providers/google/provider.ts",
+      "types": "./lib/providers/google/provider.d.ts",
+      "import": "./lib/providers/google/provider.js"
     },
     "./models": {
       "molstar-src": "./src/providers/models.ts",

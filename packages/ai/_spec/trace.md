@@ -39,7 +39,7 @@ latest turn), `preamble` (guidance and tool definitions with token estimates), `
   `under?` (the parent call: a nested run, a compaction). Every call of the turn, nested included, in start order.
 - `WindowView`: the messages the model saw, each with its part, a token estimate (chars/4) and `fresh` (new since the
   run's previous call).
-- `PrefixBreak { reason, kept, of }`: where a request stopped extending the previous one (by adapter `segments`): model
+- `PrefixBreak { reason, kept, of }`: where a request stopped extending the previous one (by provider `segments`): model
   or configuration changed, tools changed, system text changed, or the conversation changed at message N.
 - `TokensView`: `input` (uncached + cache read + cache write), `output`, `cached`, `written`, `reasoning`, `estimated`,
   `credits` (display only).

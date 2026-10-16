@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, Message, ModelBindings, ModelConfiguration } from '../../messages/index.js';
+import type { Json, Message, ProviderBindings, ModelConfiguration } from '../../messages/index.js';
 import type { Drive } from './drive.js';
 import type { HarnessObservable, Observation } from './observe.js';
 import type {
@@ -65,7 +65,7 @@ export interface TurnHandle {
 export interface HarnessOptions {
   /** The reader's id (default: a fresh one). */
   readonly id?: HarnessId;
-  readonly models: ModelBindings;
+  readonly models: ProviderBindings;
   readonly tools: ToolBindings;
   readonly drive: Drive;
   /** A turn's configuration when `turn` is given none. */

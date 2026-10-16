@@ -20,7 +20,7 @@ export type ReasoningParameters =
   | { readonly mode: 'adaptive'; readonly effort?: string }
   | { readonly mode: 'budget'; readonly tokens: number };
 
-/** Requests, not promises: an adapter rejects what its model cannot do. */
+/** Requests, not promises: a provider rejects what its model cannot do. */
 export interface ModelParameters {
   readonly temperature?: number;
   readonly topP?: number;
@@ -31,7 +31,7 @@ export interface ModelParameters {
 export interface ModelConfiguration {
   readonly target: ModelTarget;
   readonly parameters: ModelParameters;
-  /** A prompt-cache hint; adapters whose capabilities support it map it, others ignore it. */
+  /** A prompt-cache hint; providers whose capabilities support it map it, others ignore it. */
   readonly cacheScopeId?: string;
 }
 
@@ -72,13 +72,14 @@ export interface ProjectInput {
 export interface ProjectedRequest {
   readonly payload: Json;
   readonly digest: string;
-  readonly adapterRevision: string;
+  /** The provider's projection and replay rules: a retry refuses a request of another (harness.md §6). */
+  readonly revision: string;
   /** An estimate of the payload's input tokens, for admission. */
   readonly inputTokens: number;
   /**
    * The payload's parts as the provider caches them (tools, system, then each message), a short
    * digest each: a request extends an earlier one, and can reuse its cache, when the earlier one's
-   * segments are a prefix of its own. Where an adapter gives them.
+   * segments are a prefix of its own. Where a provider gives them.
    */
   readonly segments?: readonly string[];
 }
@@ -98,15 +99,18 @@ export type ModelFrame =
       readonly usage: ProviderUsage;
     };
 
-export interface ModelAdapter {
-  capabilitiesFor(configuration: ModelConfiguration): Promise<ModelCapabilities>;
+/** A model provider (Anthropic, OpenAI, Google, an endpoint of one's own): its models' capabilities, a request
+ * projected to its wire, and the call. */
+export interface Provider {
+  capabilities(configuration: ModelConfiguration): Promise<ModelCapabilities>;
   /** Pure: the same input gives the same payload and digest. */
   project(input: ProjectInput): Promise<ProjectedRequest>;
   invoke(input: { readonly request: ProjectedRequest; readonly signal: AbortSignal }): AsyncIterable<ModelFrame>;
 }
 
-export interface ModelBindings {
-  resolve(target: ModelTarget): Promise<ModelAdapter>;
+/** The harness's way to its providers: one for a target. */
+export interface ProviderBindings {
+  resolve(target: ModelTarget): Promise<Provider>;
 }
 
 /** Input a provider cannot represent (a role where it may not stand, for example). */
@@ -115,7 +119,7 @@ export class UnrepresentableInput extends Error {
 }
 
 /**
- * A failed model call, as an adapter reports it. By default not transient, with an unknown effect: an adapter says
+ * A failed model call, as a provider reports it. By default not transient, with an unknown effect: a provider says
  * `effect: 'none'` when the request surely did nothing (so a retry is safe), and `retryAfterMs` when the provider said
  * how long to wait (`retry-after`).
  */

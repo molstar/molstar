@@ -192,7 +192,7 @@ describe('what the host hooks into', () => {
     expect((await client.turns({ limit: 1 }))[0]?.usage.cost).toBe(0.5);
   });
 
-  it('knows the default model’s window: the host’s, else what its adapter reported', async () => {
+  it('knows the default model’s window: the host’s, else what its provider reported', async () => {
     const given = fixture([{ text: 'Done.' }], { contextWindow: 500_000 });
     expect(given.session.contextWindow()).toBe(500_000);
     const reported = fixture([{ text: 'Done.' }], {}, { capabilities: { contextWindowTokens: 300_000 } });

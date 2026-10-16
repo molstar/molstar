@@ -112,3 +112,36 @@ locally), so this is about code to maintain, not CI time.
 `ModelBindings` → `Providers`, `AnthropicModelAdapterOptions` → `AnthropicProviderOptions`, the session's
 `models.adapterFor(provider)` → `providers.get(id)` or `providerFor(id)` (`packages/prism/viewer/src/spec.ts:12`
 `ModelSource`, the assistant's `settings-model.ts:196`). The harness's `ModelTarget.provider` already says "provider".
+
+## As done (2026-10-16, slice 8)
+
+- **Names**: `Provider` (port, `capabilities(configuration)`, `project`, `invoke`), `ProviderBindings` (the harness's
+  `models`; the field keeps its name), `ProjectedRequest.revision` (was `adapterRevision`; the model call's evidence key
+  too), `createAnthropicProvider`/`createOpenAIProvider`/`createGoogleProvider` with `*ProviderOptions`, the session's
+  `ModelSource.providerFor(id)`; the scripted model's `.provider`, the assistant's `providerFor`, `lazyProvider` and
+  `ProvidedModels.provider`. The entries stay `@molstar/ai/providers/{anthropic,openai,google}`
+  (`{anthropic,openai,google}/provider.ts`), each a chunk of its own in the Prism viewer app.
+- **The payload** is `{ provider, revision, model, toolIds, appended?, ...streamText's arguments }`: three identity
+  fields, `toolIds` (wire name → tool id, to map calls back; a wire name is not invertible) and `appended` (OpenAI's
+  transport runs only for the appended layout) are stripped in `invoke`; each tool's schema is wrapped in `jsonSchema`
+  there, as JSON cannot hold it. Everything else goes to `streamText` unchanged.
+- **The `id` member of §2's interface is not there**: nothing reads it (the bindings and `providerFor` know the id).
+- **OpenAI's placeholder** no longer carries the request digest (the digest is of the payload that holds it): it is
+  `molstar-ai:openai:additional-tools:<n>`, its tools in the system message's `providerOptions.molstar`.
+- **Attachments**: unsupported media stay `UnrepresentableInput` at projection, by one small rule per provider
+  (`AttachmentRule`), not the SDK's `UnsupportedFunctionalityError`: the SDK raises it inside `invoke`, where the
+  harness would see a provider failure, not an unrepresentable request. The SDK's error is mapped (not transient,
+  effect `none`) for what slips through.
+- **`Reference.digest`**: checked, with the messages' own synchronous hash: `murmur3-128:<32 hex>` of the decoded bytes
+  (`hashing.bytes`); the WebCrypto `sha256:` check (async) is gone, so projection is synchronous inside. Nothing in Prism
+  sets one.
+- **Parameter checks** stay per provider (reasoning modes and efforts, OpenAI Responses refusing `temperature`/`topP`),
+  a few lines each: the catalog's reasoning lists what is known to work, not what the wire takes, and a custom model
+  has no entry.
+- **The input estimate** is computed over the SDK payload (text, replayed reasoning text, files by modality and decoded
+  size, tool calls and results, tools but deferred ones, Claude's tool overhead, additions where they load).
+- **Lines** (`wc -l`, `src/providers`): source 2,630 → 2,256 (catalog 252 included); tests 3,488 → 2,863
+  (`retained-wire.json` and `compatibility.test.ts` gone; the appended-layout cases of `prefix.test.ts` moved into
+  `deferred-tools.test.ts`). More than §2–§4 inferred (~1,200 and ~1,000): the strict `data:` URI checks (244 with the
+  rules), the stream and error mapping kept as they were (294), and each provider's replay (reading reasoning off the
+  stream onto its call, and back) moved over rather than rewritten.

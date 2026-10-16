@@ -384,14 +384,14 @@ describe('a failing model call', () => {
 describe('the model per turn', () => {
   it('sizes each model by its own limits: the application’s window, the model’s output maximum', async () => {
     const f = fixture([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }], {}, {});
-    // An adapter that knows one model and refuses the others.
-    const inner = f.model.adapter;
+    // A provider that knows one model and refuses the others.
+    const inner = f.model.provider;
     const seen: { model: string; window: number; output: number | undefined; reasoning: unknown }[] = [];
-    const adapter = {
+    const narrow = {
       ...inner,
-      capabilitiesFor: async (c: { target: { model: string } }) => {
+      capabilities: async (c: { target: { model: string } }) => {
         if (c.target.model !== 'scripted-1') throw new Error(`Unknown model ${c.target.model}.`);
-        return { ...(await inner.capabilitiesFor(c as never)), contextWindowTokens: 1_114_112, maxOutputTokens: 8192 };
+        return { ...(await inner.capabilities(c as never)), contextWindowTokens: 1_114_112, maxOutputTokens: 8192 };
       },
       project: async (input: Parameters<typeof inner.project>[0]) => {
         seen.push({
@@ -405,7 +405,7 @@ describe('the model per turn', () => {
     };
     const session = new AgentSession<Toy>({
       models: {
-        adapterFor: () => adapter,
+        providerFor: () => narrow,
         default: { provider: 'google', model: 'scripted-1', contextWindow: 1_000_000 },
       },
       toolkit: toyToolkit(),
@@ -413,7 +413,7 @@ describe('the model per turn', () => {
       guidance,
     });
     await session.turn({ prompt: 'One.' });
-    // A model the adapter does not know runs with the window the application gives it.
+    // A model the provider does not know runs with the window the application gives it.
     const custom = await session.turn({
       prompt: 'Two.',
       model: { provider: 'google', model: 'gemini-2.5-pro-custom', contextWindow: 200_000, maxOutput: 4096 },
@@ -425,7 +425,7 @@ describe('the model per turn', () => {
     expect(unknown.error).toContain('give its context window');
     expect(session.contextWindow()).toBe(1_000_000);
     expect(seen).toEqual([
-      // The asked-for 16k clamped to the model's 8k; the application's window over the adapter's.
+      // The asked-for 16k clamped to the model's 8k; the application's window over the provider's.
       { model: 'scripted-1', window: 1_000_000, output: 8192, reasoning: undefined },
       // No thinking asked for, none sent.
       { model: 'gemini-2.5-pro-custom', window: 200_000, output: 4096, reasoning: undefined },
@@ -441,7 +441,7 @@ describe('the model per turn', () => {
     const main = fixture([{ text: 'from main' }, { text: 'from main' }]);
     const session = new AgentSession<Toy>({
       models: {
-        adapterFor: (p) => (p === 'scripted' ? main.model.adapter : p === 'anthropic' ? other.adapter : undefined),
+        providerFor: (p) => (p === 'scripted' ? main.model.provider : p === 'anthropic' ? other.provider : undefined),
         default: { provider: 'scripted', model: 'scripted-1' },
       },
       toolkit: toyToolkit(),
@@ -459,12 +459,12 @@ describe('the model per turn', () => {
       { mode: 'adaptive', effort: 'high' },
     ]);
     const unknown = await session.turn({ prompt: 'Four.', model: { provider: 'openai', model: 'x' } });
-    expect(unknown).toMatchObject({ status: 'failed', error: 'No adapter for openai.' });
+    expect(unknown).toMatchObject({ status: 'failed', error: 'No provider for openai.' });
   });
   it('thinks per model as the host says, under the turn’s own choice', async () => {
     const main = fixture([{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }]);
     const session = new AgentSession<Toy>({
-      models: { adapterFor: () => main.model.adapter, default: { provider: 'scripted', model: 'fast' } },
+      models: { providerFor: () => main.model.provider, default: { provider: 'scripted', model: 'fast' } },
       toolkit: toyToolkit(),
       api: toy(),
       guidance,

@@ -39,7 +39,7 @@ describe('the assistant in a spec', () => {
     expect(
       preferredModel({
         provider: 'scripted',
-        provided: [{ id: 'scripted', label: 'S', models: ['s1'], adapter: {} as never }],
+        provided: [{ id: 'scripted', label: 'S', models: ['s1'], provider: {} as never }],
       }),
     ).toEqual({ provider: 'scripted', model: 's1' });
   });

@@ -65,7 +65,7 @@ function modelOn(v: PrismViewer, script: ModelStep[], chosen = true, rules?: Dom
     viewer: v,
     ...(rules ? { rules } : {}),
     models: {
-      adapterFor: (p) => (p === 'scripted' ? model.adapter : undefined),
+      providerFor: (p) => (p === 'scripted' ? model.provider : undefined),
       default: { provider: 'scripted', model: 'scripted' },
     },
   });

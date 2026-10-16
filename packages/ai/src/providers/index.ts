@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { type AnthropicModelAdapterOptions, createAnthropicModelAdapter } from './anthropic/adapter.js';
+export { type AnthropicProviderOptions, createAnthropicProvider } from './anthropic/provider.js';
 export type { ModelLimitOverride } from './common/capabilities.js';
 export type { TokenEstimate } from './common/estimate.js';
-export { createGoogleModelAdapter, type GoogleModelAdapterOptions } from './google/adapter.js';
-export { createOpenAIModelAdapter, type OpenAIModelAdapterOptions } from './openai/adapter.js';
+export { createGoogleProvider, type GoogleProviderOptions } from './google/provider.js';
+export { createOpenAIProvider, type OpenAIProviderOptions } from './openai/provider.js';

@@ -42,13 +42,13 @@ on the viewer's IndexedDB rows (`prism/viewer/src/journal/_test/`).
 
 ## Test doubles (`@molstar/ai/testing`, `src/testing/`)
 
-| Export                                                                    | What                                                                                                                                                                        |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scriptedModel(steps, options?)`                                          | a `ModelAdapter` playing `ModelStep`s (`text`, `calls`, `reasoning`, `finish`, `usage`, `fail`, `waitMs`, `deltas`); `.bindings`, `.projections`, `.invocations`, `.push()` |
-| `scriptedTools(specs)`                                                    | `ToolBindings` from functions or specs; records calls                                                                                                                       |
-| `SimulatedClock`, `settle()`                                              | virtual time (`advance`, `runUntil`); `settle` lets pending promises run                                                                                                    |
-| `simulatedIds()`                                                          | deterministic ids                                                                                                                                                           |
-| `user`, `system`, `assistant`, `toolDefinition`, `declareTools`, `textOf` | message builders                                                                                                                                                            |
+| Export                                                                    | What                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scriptedModel(steps, options?)`                                          | a `Provider` playing `ModelStep`s (`text`, `calls`, `reasoning`, `finish`, `usage`, `fail`, `waitMs`, `deltas`); `.provider`, `.bindings`, `.projections`, `.invocations`, `.push()` |
+| `scriptedTools(specs)`                                                    | `ToolBindings` from functions or specs; records calls                                                                                                                                |
+| `SimulatedClock`, `settle()`                                              | virtual time (`advance`, `runUntil`); `settle` lets pending promises run                                                                                                             |
+| `simulatedIds()`                                                          | deterministic ids                                                                                                                                                                    |
+| `user`, `system`, `assistant`, `toolDefinition`, `declareTools`, `textOf` | message builders                                                                                                                                                                     |
 
 `createSession(setup)` (from the same entry) makes a harness over a scripted model and tools on a simulated clock for
 harness-level tests: `harness`, `observations`, `send(prompt, { configuration?, wait? })` (a turn, run to its outcome
@@ -63,9 +63,9 @@ unless `wait: false`), `run(handle)`, `resume()`, `events()`, `main()`, `turns()
   in harness turns (`createSession`).
 - **Session and drive**: `src/session/_test/helpers.ts` has a toy host (a counter with a version), its toolkit and an
   `AgentSession` over `scriptedModel`; tests drive `turn`, `resume`, `stop` and check `TurnResult` and hooks.
-- **Adapters**: SSE fixtures and a recording `fetch` (`src/providers/_test/support.ts`); `compatibility.test.ts` pins
-  request bodies by hash, so a change to wire bytes must be deliberate: update `retained-wire.json` and raise the
-  adapter's `revision`.
+- **Providers**: SSE fixtures and a recording `fetch` (`src/providers/_test/support.ts`); the tests record the HTTP
+  bodies and check what they say (models.md § Tests). A change to projection or replay rules raises the provider's
+  `revision`.
 - **Trace**: `src/trace/_test/helpers.ts` runs turns on `createSession` (with segmenting model bindings) and reads them
   back with `readTrace`.
 

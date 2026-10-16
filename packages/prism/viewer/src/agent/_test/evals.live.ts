@@ -20,10 +20,10 @@ for (const m of LiveModels) {
     for (const task of FirstScope) {
       it(task.title, async () => {
         const v = await headlessViewer();
-        const adapter = m.adapter();
+        const provider = m.create();
         const r = await runEval(v, task, {
           models: {
-            adapterFor: (p) => (p === m.provider ? adapter : undefined),
+            providerFor: (p) => (p === m.provider ? provider : undefined),
             default: { provider: m.provider, model: m.model },
           },
           file: (name) => exampleFile(name),

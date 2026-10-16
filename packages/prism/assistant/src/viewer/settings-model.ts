@@ -6,15 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelAdapter } from '@molstar/ai';
+import type { Provider } from '@molstar/ai';
 import { listedModels } from '@molstar/ai/models';
 import { observableState } from '@molstar/prism-ui/core';
 import type { KeyStore } from '../keys.js';
 import type { AIProvider, AISettingsModel, AISetup, KeyScope } from '../model.js';
 
 // The assistant's model setup (agent.md §4): the providers, their keys (the person's, kept as they chose, always
-// scrambled: keys.ts), the model chosen, one's own OpenAI-compatible endpoints. It gives the agent its adapters: a lookup,
-// so a key added while the conversation is open is found (`ModelSource.adapterFor`).
+// scrambled: keys.ts), the model chosen, one's own OpenAI-compatible endpoints. It gives the agent its providers: a lookup,
+// so a key added while the conversation is open is found (`ModelSource.providerFor`).
 
 const Builtin: readonly Omit<AIProvider, 'models' | 'key'>[] = [
   { id: 'anthropic', label: 'Anthropic', family: 'anthropic' },
@@ -33,8 +33,8 @@ interface OwnProvider {
 }
 
 export interface ViewerAISettings extends AISettingsModel {
-  /** The adapter for a provider with a key (the agent's model source). */
-  adapterFor(provider: string): ModelAdapter | undefined;
+  /** The provider of an id with a key (the agent's model source). */
+  providerFor(provider: string): Provider | undefined;
   /** Reads the stored keys (once, at start: which providers have one). */
   load(): Promise<void>;
 }
@@ -67,7 +67,7 @@ export function localPrefs(prefix = 'prism-assistant.'): SettingsPrefs {
 export interface AISettingsOptions {
   /** Says what went wrong in words (a key that could not be kept, an endpoint refused); the viewer's notifications. */
   readonly report?: (text: string) => void;
-  /** Models the host brings with their own adapters (a story's scripted model): in effect without a key of the person's. */
+  /** Models the host brings with their own providers (a story's scripted model): in effect without a key of the person's. */
   readonly provided?: readonly ProvidedModels[];
   /**
    * The host's choice of model until the person makes theirs: in effect when its provider has a key (or is the
@@ -76,13 +76,13 @@ export interface AISettingsOptions {
   readonly preferred?: AISetup;
 }
 
-/** A provider the host brings, its adapter made already (no key asked for: its key is the host's). */
+/** A provider the host brings, made already (no key asked for: its key is the host's). */
 export interface ProvidedModels {
   readonly id: string;
   readonly label: string;
   /** Its models, the default first. */
   readonly models: readonly string[];
-  readonly adapter: ModelAdapter;
+  readonly provider: Provider;
 }
 
 /** An own endpoint's URL is https, or http on this machine (model.ts, `AIProvider.baseURL`); never with a login in it. */
@@ -168,11 +168,11 @@ export function createAISettings(
     publish();
   };
 
-  const adapters = new Map<string, ModelAdapter>();
+  const made = new Map<string, Provider>();
   const resolveApiKey = (provider: string) => async () => {
     const key = await keys.get(provider);
     if (key) return key;
-    // The adapters refuse an empty key; a local server given none ignores what is sent.
+    // The providers refuse an empty key; a local server given none ignores what is sent.
     if (own.get(provider)?.keyless) return KeylessPlaceholder;
     throw new Error(`No key for ${provider}.`);
   };
@@ -189,7 +189,7 @@ export function createAISettings(
   const setKey = (provider: string, key: string, scope: KeyScope) => {
     keyed(provider);
     scopes.set(provider, scope);
-    adapters.delete(provider);
+    made.delete(provider);
     publish();
     keys.set(provider, key, scope).catch((e) => {
       report(`The key for ${labelOf(provider)} could not be kept: ${messageOf(e)}`);
@@ -201,42 +201,42 @@ export function createAISettings(
     providers: providers.asReadonly,
     setup: setup.asReadonly,
     load: resync,
-    adapterFor(provider) {
+    providerFor(provider) {
       const given = provided.get(provider);
-      if (given) return given.adapter;
+      if (given) return given.provider;
       if (!scopes.has(provider)) return undefined;
-      let adapter = adapters.get(provider);
-      if (!adapter) {
+      let found = made.get(provider);
+      if (!found) {
         const o = own.get(provider);
         const key = resolveApiKey(provider);
-        adapter =
+        found =
           provider === 'anthropic'
-            ? lazyAdapter(async () =>
-                (await import('@molstar/ai/providers/anthropic')).createAnthropicModelAdapter({
+            ? lazyProvider(async () =>
+                (await import('@molstar/ai/providers/anthropic')).createAnthropicProvider({
                   resolveApiKey: key,
                 }),
               )
             : provider === 'google'
-              ? lazyAdapter(async () =>
-                  (await import('@molstar/ai/providers/google')).createGoogleModelAdapter({
+              ? lazyProvider(async () =>
+                  (await import('@molstar/ai/providers/google')).createGoogleProvider({
                     resolveApiKey: key,
                   }),
                 )
-              : lazyAdapter(async () =>
-                  (await import('@molstar/ai/providers/openai')).createOpenAIModelAdapter({
+              : lazyProvider(async () =>
+                  (await import('@molstar/ai/providers/openai')).createOpenAIProvider({
                     resolveApiKey: key,
                     ...(o ? { baseURL: o.baseURL, api: o.api, provider: o.id, label: o.label } : {}),
                   }),
                 );
-        adapters.set(provider, adapter);
+        made.set(provider, found);
       }
-      return adapter;
+      return found;
     },
     setKey,
     removeKey(provider) {
       keyed(provider);
       scopes.delete(provider);
-      adapters.delete(provider);
+      made.delete(provider);
       publish();
       keys.remove(provider).catch((e) => {
         report(`The key for ${labelOf(provider)} could not be removed: ${messageOf(e)}`);
@@ -249,7 +249,7 @@ export function createAISettings(
       publish();
     },
     async refreshModels() {
-      // Not built yet: the catalog's models stand (asking each provider's `/models` comes with their adapters).
+      // Not built yet: the catalog's models stand (asking each provider's `/models` comes with their providers).
       publish();
     },
     async listModels() {
@@ -279,7 +279,7 @@ export function createAISettings(
       prefs.set('providers', JSON.stringify([...own.values()]));
       if (!keyless) return setKey(id, p.key, p.scope);
       scopes.set(id, p.scope);
-      adapters.delete(id);
+      made.delete(id);
       publish();
       // A key this endpoint had before is dropped.
       keys.remove(id).catch((e) => {
@@ -304,12 +304,12 @@ function parse<T>(text: string | undefined): T | undefined {
 }
 
 /**
- * A provider's adapter whose SDK is imported on its first use: a person with one provider's key does not download the
+ * A provider whose SDK is imported on its first use: a person with one provider's key does not download the
  * others' (each its own chunk). A failed import is tried again on the next use.
  */
-export function lazyAdapter(load: () => Promise<ModelAdapter>): ModelAdapter {
-  let loading: Promise<ModelAdapter> | undefined;
-  const adapter = () => {
+export function lazyProvider(load: () => Promise<Provider>): Provider {
+  let loading: Promise<Provider> | undefined;
+  const loaded = () => {
     loading ??= load().catch((e) => {
       loading = undefined;
       throw e;
@@ -317,10 +317,10 @@ export function lazyAdapter(load: () => Promise<ModelAdapter>): ModelAdapter {
     return loading;
   };
   return {
-    capabilitiesFor: async (configuration) => (await adapter()).capabilitiesFor(configuration),
-    project: async (input) => (await adapter()).project(input),
+    capabilities: async (configuration) => (await loaded()).capabilities(configuration),
+    project: async (input) => (await loaded()).project(input),
     async *invoke(input) {
-      yield* (await adapter()).invoke(input);
+      yield* (await loaded()).invoke(input);
     },
   };
 }

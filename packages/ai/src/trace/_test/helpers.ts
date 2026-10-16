@@ -6,7 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { canonicalJson, type Json, type Message, type ModelBindings, type ProjectInput } from '../../messages/index.js';
+import {
+  canonicalJson,
+  type Json,
+  type Message,
+  type ProviderBindings,
+  type ProjectInput,
+} from '../../messages/index.js';
 import { createSession as session, type Session, type SessionSetup } from '../../testing/index.js';
 import { declareTools, type ScriptedModel, settle, system, user } from '../../testing/index.js';
 import { defaultDrive, drive, type DriveHandlers, type TurnConfiguration } from '../../harness/index.js';
@@ -18,11 +24,11 @@ function short(value: Json): string {
   return h.toString(16);
 }
 
-/** What a test varies between turns, and an adapter would report as the request's parts. */
+/** What a test varies between turns, and a provider would report as the request's parts. */
 export const adapterState = { systemVersion: 0 };
 
 /**
- * A request's parts as a provider caches them: the tools, the system text, then each message (what a real adapter
+ * A request's parts as a provider caches them: the tools, the system text, then each message (what a real provider
  * reports as `segments`; the scripted model reports none).
  */
 export function segmentsOf(input: ProjectInput): string[] {
@@ -37,17 +43,17 @@ export function segmentsOf(input: ProjectInput): string[] {
 }
 
 /** The session's scripted model, reporting segments. */
-export function segmenting(model: ScriptedModel): ModelBindings {
-  const adapter: ModelBindings = {
+export function segmenting(model: ScriptedModel): ProviderBindings {
+  const bindings: ProviderBindings = {
     resolve: async () => ({
-      ...model.adapter,
+      ...model.provider,
       project: async (input: ProjectInput) => ({
-        ...(await model.adapter.project(input)),
+        ...(await model.provider.project(input)),
         segments: segmentsOf(input),
       }),
     }),
   };
-  return adapter;
+  return bindings;
 }
 
 export const with_ = (handlers: DriveHandlers) => drive(handlers, defaultDrive());

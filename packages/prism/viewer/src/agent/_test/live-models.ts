@@ -8,8 +8,8 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { ModelAdapter } from '@molstar/ai';
-import { createAnthropicModelAdapter, createGoogleModelAdapter } from '@molstar/ai/providers';
+import type { Provider } from '@molstar/ai';
+import { createAnthropicProvider, createGoogleProvider } from '@molstar/ai/providers';
 
 // The models live runs use (`*.live.ts`, `pnpm test:live`): Haiku and Gemini Flash. The keys come from the repository's
 // `.env.local` and are never printed; a run skips a model without its key.
@@ -31,7 +31,7 @@ export interface LiveModel {
   readonly provider: string;
   readonly model: string;
   readonly key: string;
-  readonly adapter: () => ModelAdapter;
+  readonly create: () => Provider;
 }
 
 export const LiveModels: readonly LiveModel[] = [
@@ -39,12 +39,12 @@ export const LiveModels: readonly LiveModel[] = [
     provider: 'anthropic',
     model: 'claude-haiku-5-5',
     key: 'ANTHROPIC_API_KEY',
-    adapter: () => createAnthropicModelAdapter({ resolveApiKey: () => env.ANTHROPIC_API_KEY }),
+    create: () => createAnthropicProvider({ resolveApiKey: () => env.ANTHROPIC_API_KEY }),
   },
   {
     provider: 'google',
     model: 'gemini-3.8-flash',
     key: 'GEMINI_API_KEY',
-    adapter: () => createGoogleModelAdapter({ resolveApiKey: () => env.GEMINI_API_KEY }),
+    create: () => createGoogleProvider({ resolveApiKey: () => env.GEMINI_API_KEY }),
   },
 ];

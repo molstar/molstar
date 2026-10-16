@@ -7,30 +7,30 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Message, ModelAdapter } from '../../messages/index.js';
-import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';
+import type { Message, Provider } from '../../messages/index.js';
+import { createAnthropicProvider, createGoogleProvider, createOpenAIProvider } from '../index.js';
 import { answer, lookupTool, project } from './support.js';
 
 const key = { resolveApiKey: () => 'fixture' };
-const adapters: readonly { name: string; provider: string; model: string; adapter: ModelAdapter }[] = [
+const adapters: readonly { name: string; provider: string; model: string; adapter: Provider }[] = [
   {
     name: 'anthropic native',
     provider: 'anthropic',
     model: 'claude-sonnet-5-5',
-    adapter: createAnthropicModelAdapter(key),
+    adapter: createAnthropicProvider(key),
   },
   {
     name: 'anthropic collected',
     provider: 'anthropic',
     model: 'claude-haiku-4-5',
-    adapter: createAnthropicModelAdapter(key),
+    adapter: createAnthropicProvider(key),
   },
-  { name: 'openai responses', provider: 'openai', model: 'gpt-6-luna', adapter: createOpenAIModelAdapter(key) },
+  { name: 'openai responses', provider: 'openai', model: 'gpt-6-luna', adapter: createOpenAIProvider(key) },
   {
     name: 'openai chat',
     provider: 'lab',
     model: 'lab-model',
-    adapter: createOpenAIModelAdapter({
+    adapter: createOpenAIProvider({
       ...key,
       api: 'chat',
       baseURL: 'https://lab.example/v1',
@@ -38,7 +38,7 @@ const adapters: readonly { name: string; provider: string; model: string; adapte
       modelLimits: { 'lab-model': { contextWindowTokens: 100_000, maxOutputTokens: 4_096 } },
     }),
   },
-  { name: 'google', provider: 'google', model: 'gemini-3.8-flash', adapter: createGoogleModelAdapter(key) },
+  { name: 'google', provider: 'google', model: 'gemini-3.8-flash', adapter: createGoogleProvider(key) },
 ];
 
 /** A conversation with every kind of entry a session labels. */
