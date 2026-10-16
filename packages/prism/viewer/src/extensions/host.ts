@@ -99,6 +99,8 @@ export class ExtensionHost {
   readonly #activated = new Subject<string>();
   readonly #failed = new Subject<{ id: string; message: string }>();
   #port: ExtensionUIPort | undefined;
+  /** Set by `dispose`: a load in flight then stops at its next step and undoes what it did. */
+  #disposed = false;
 
   constructor(deps: ExtensionHostDeps) {
     this.#deps = deps;
@@ -140,7 +142,7 @@ export class ExtensionHost {
   /** Loads a lazy extension (once); true when it is loaded. A failure leaves its stub and says why. */
   load(id: string): Promise<boolean> {
     const entry = this.#entries.get(id);
-    if (!entry) return Promise.resolve(false);
+    if (!entry || this.#disposed) return Promise.resolve(false);
     if (entry.ext) return Promise.resolve(true);
     if (!entry.loading) entry.loading = this.#load(entry);
     return entry.loading;
@@ -180,6 +182,7 @@ export class ExtensionHost {
   }
 
   async dispose(): Promise<void> {
+    this.#disposed = true;
     for (const entry of [...this.#entries.values()].reverse()) {
       entry.ui?.();
       await runAll(entry.disposers);
@@ -288,6 +291,8 @@ export class ExtensionHost {
     const done = this.#deps.task(`Loading ${lazy.title}`);
     try {
       const ext = await lazy.load();
+      // The viewer went while the chunk loaded: nothing of it goes on the disposed viewer.
+      if (this.#disposed) return false;
       // Checked before anything changes (its commands once its operations exist, in `#activate`).
       checkAgainstStub(lazy, ext);
       checkContributes(ext);
@@ -295,9 +300,15 @@ export class ExtensionHost {
       entry.ui?.();
       entry.ui = undefined;
       await runAll(entry.stub);
+      if (this.#disposed) return false;
       let parts: Disposer[];
       try {
         parts = await this.#activate(ext, lazy);
+        // Disposed while it activated: its parts are undone here, as `dispose` no longer holds this entry.
+        if (this.#disposed) {
+          await runAll(parts);
+          return false;
+        }
         const definitions = this.#deps.host.runner.definitions.value;
         const missing = (lazy.stub.operations ?? []).filter((o) => !definitions.has(o.id)).map((o) => o.id);
         if (missing.length) {
@@ -313,6 +324,7 @@ export class ExtensionHost {
           throw new Error(`${lazy.title}'s stub declares other flags than it has: ${differing.join(', ')}`);
         }
       } catch (error) {
+        if (this.#disposed) return false;
         this.#installStub(entry);
         this.#mountUI(entry);
         throw error;

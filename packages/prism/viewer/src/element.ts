@@ -36,7 +36,10 @@ export interface PrismViewerElement extends HTMLElement {
   spec: PrismViewerSpec | undefined;
   /** The viewer, while connected and made. */
   readonly viewer: PrismViewer | undefined;
-  /** The viewer once it is made (the current one; a new promise after the element comes back). */
+  /**
+   * The viewer once it is made (the current one; a new promise after the element comes back or the spec changes);
+   * rejects when making it fails (as the `error` event).
+   */
   readonly ready: Promise<PrismViewer>;
 }
 
@@ -70,10 +73,19 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
 
     #spec: PrismViewerSpec | undefined;
     #viewer: PrismViewer | undefined;
-    /** Bumped on each make and on leaving: a viewer made for an older one is disposed as it arrives. */
+    /** Bumped when the spec changes and on leaving: a viewer made for an older one is disposed as it arrives. */
     #generation = 0;
+    /** The generation the current viewer was made for. */
+    #made = 0;
+    /**
+     * Makes and disposals, one at a time and a microtask after the change that asked for them: a spec set in the same
+     * task as connecting is the one made, and a viewer is disposed (its persist key freed) before the next is made.
+     */
+    #queue: Promise<void> = Promise.resolve();
     #ready!: Promise<PrismViewer>;
     #resolve!: (v: PrismViewer) => void;
+    #reject!: (e: unknown) => void;
+    #settled = false;
     #loaded: string | undefined;
 
     constructor() {
@@ -86,7 +98,9 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
     }
     set spec(spec: PrismViewerSpec | undefined) {
       this.#spec = spec;
-      if (this.isConnected) void this.#remake();
+      this.#generation++;
+      this.#renewReady();
+      if (this.isConnected) this.#sync();
     }
 
     get viewer(): PrismViewer | undefined {
@@ -98,13 +112,15 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
     }
 
     connectedCallback(): void {
-      if (!this.#viewer) void this.#make();
+      this.#sync();
     }
 
     disconnectedCallback(): void {
       // Moved within the page (disconnected and connected in one task): keep the viewer.
       queueMicrotask(() => {
-        if (!this.isConnected) void this.#dispose();
+        if (this.isConnected) return;
+        this.#generation++;
+        this.#sync();
       });
     }
 
@@ -112,14 +128,35 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
       if (name === 'pdb' && old !== value && this.#viewer) void this.#load(this.#viewer);
     }
 
+    /** A pending `ready` for the viewer to come (one read before stays with the viewer it was for). */
+    #renewReady() {
+      if (this.#settled) this.#newReady();
+    }
+
     #newReady() {
-      this.#ready = new Promise((resolve) => {
+      this.#settled = false;
+      this.#ready = new Promise((resolve, reject) => {
         this.#resolve = resolve;
+        this.#reject = reject;
       });
+      // Handled here too: a page that never reads `ready` gets the `error` event, not an unhandled rejection.
+      this.#ready.catch(() => {});
+    }
+
+    /** Brings the viewer in line with the element: none while it is off the page, one made for the current spec. */
+    #sync(): void {
+      this.#queue = this.#queue
+        .then(async () => {
+          const want = this.isConnected;
+          if (this.#viewer && (!want || this.#made !== this.#generation)) await this.#dispose();
+          if (want && !this.#viewer) await this.#make();
+        })
+        .catch((e) => console.error(e));
     }
 
     async #make(): Promise<void> {
-      const generation = ++this.#generation;
+      const generation = this.#generation;
+      this.#renewReady();
       const shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
       // The shell fills its host (`position: absolute; inset: 0`): the element is a block that holds it.
       if (!shadow.querySelector('style[data-prism-viewer]')) {
@@ -137,6 +174,8 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
         viewer = await create({ target: this, spec });
       } catch (error) {
         if (generation === this.#generation) {
+          this.#settled = true;
+          this.#reject(error);
           this.dispatchEvent(new CustomEvent('error', { detail: { error } }));
           console.error(error);
         }
@@ -147,24 +186,20 @@ export function createPrismViewerElementClass(options: PrismViewerElementOptions
         return;
       }
       this.#viewer = viewer;
+      this.#made = generation;
       this.#loaded = undefined;
+      this.#settled = true;
       this.#resolve(viewer);
       this.dispatchEvent(new CustomEvent('ready', { detail: { viewer } }));
-      await this.#load(viewer);
+      void this.#load(viewer);
     }
 
     async #dispose(): Promise<void> {
-      this.#generation++;
       const viewer = this.#viewer;
       this.#viewer = undefined;
       if (!viewer) return;
-      this.#newReady();
+      this.#renewReady();
       await viewer.dispose();
-    }
-
-    async #remake(): Promise<void> {
-      await this.#dispose();
-      if (this.isConnected) await this.#make();
     }
 
     /** The `pdb` attribute's entry, through the loaders feature when the spec has it. */

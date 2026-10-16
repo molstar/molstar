@@ -179,6 +179,37 @@ describe('extensions', () => {
     expect(v.extensions.status('shout')?.value).toBe('failed');
   });
 
+  it('puts nothing of a lazy extension on a viewer disposed while its chunk loads', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let areas = 0;
+    const counted: ViewerExtension = {
+      ...shout,
+      api: {
+        shout: (ctx: ApiAreaContext) => {
+          areas++;
+          return new ShoutApi(ctx);
+        },
+      },
+    };
+    const lazy = lazyShout({
+      load: async () => {
+        await gate;
+        return counted;
+      },
+    });
+    const v = await headlessViewer({ extensions: [lazy.extension] });
+    const loading = v.extensions.load('shout');
+    await v.dispose();
+    release();
+    expect(await loading).toBe(false);
+    expect(areas).toBe(0);
+    expect(v.extensions.loaded.value).not.toContain('shout');
+    expect(await v.extensions.load('shout')).toBe(false);
+  });
+
   it('removes or replaces a command by id', async () => {
     const v = await headlessViewer({ extensions: [shout], spec: { overrides: { 'shout.say': null } } });
     expect(v.managers.commands.get('shout.say')).toBeUndefined();

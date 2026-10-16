@@ -152,11 +152,70 @@ describe('<prism-viewer>', () => {
     const create = vi.fn(() => new Promise<PrismViewer>((r) => (finish = r)));
     const el = define(create)();
     document.body.append(el);
+    await vi.waitFor(() => expect(create).toHaveBeenCalledOnce());
     el.remove();
     await settle();
     finish(stub.viewer);
     await vi.waitFor(() => expect(stub.dispose).toHaveBeenCalledOnce());
     expect(el.viewer).toBeUndefined();
+  });
+
+  it('makes nothing for an element that leaves in the task it came', async () => {
+    const create = vi.fn(async () => stubViewer().viewer);
+    const el = define(create)();
+    document.body.append(el);
+    el.remove();
+    await settle();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('makes one viewer, from the spec set in the task it connected', async () => {
+    const stub = stubViewer();
+    const create = vi.fn(async (_: CreatePrismViewerOptions) => stub.viewer);
+    const el = define(create)();
+    document.body.append(el);
+    const own = { ...BaseSpec, overrides: {} } as PrismViewerSpec;
+    el.spec = own;
+    expect(await el.ready).toBe(stub.viewer);
+    await settle();
+    expect(create).toHaveBeenCalledOnce();
+    expect(create.mock.calls[0][0].spec).toEqual(own);
+  });
+
+  it('disposes a viewer still being made before it makes the next (one at a time, so a persist key is free)', async () => {
+    const first = stubViewer();
+    const second = stubViewer();
+    const finish: ((v: PrismViewer) => void)[] = [];
+    const create = vi.fn((_: CreatePrismViewerOptions) => new Promise<PrismViewer>((r) => finish.push(r)));
+    const el = define(create)();
+    document.body.append(el);
+    await vi.waitFor(() => expect(create).toHaveBeenCalledOnce());
+    el.spec = { ...BaseSpec, ui: { theme: 'blue' } } as PrismViewerSpec;
+    await settle();
+    // The second waits for the first.
+    expect(create).toHaveBeenCalledOnce();
+    finish[0](first.viewer);
+    await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+    expect(first.dispose).toHaveBeenCalledOnce();
+    expect(create.mock.calls[1][0].spec.ui?.theme).toBe('blue');
+    finish[1](second.viewer);
+    expect(await el.ready).toBe(second.viewer);
+    expect(el.viewer).toBe(second.viewer);
+  });
+
+  it('rejects `ready` and says why when making the viewer fails, and makes one again when the spec changes', async () => {
+    const stub = stubViewer();
+    const create = vi.fn().mockRejectedValueOnce(new Error('No WebGL.')).mockResolvedValueOnce(stub.viewer);
+    const el = define(create)();
+    const failed = vi.fn();
+    el.addEventListener('error', failed);
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    document.body.append(el);
+    await expect(el.ready).rejects.toThrow('No WebGL.');
+    expect(failed).toHaveBeenCalledOnce();
+    quiet.mockRestore();
+    el.spec = { ...BaseSpec };
+    expect(await el.ready).toBe(stub.viewer);
   });
 
   it('several on a page each own their viewer', async () => {
