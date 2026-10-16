@@ -110,6 +110,11 @@ export class Glass {
   /** How far the pieces travel (a factor: 1 for the empty canvas's, less for a small wordmark). */
   readonly #travel: number;
 
+  /** The pieces there are. */
+  readonly count = Shards;
+  /** Each piece's corners about its middle (drawing units; six a piece: x and y of each corner). */
+  readonly corners = new Float32Array(Shards * 6);
+
   constructor(seed = 11, travel = 1) {
     this.#random = generator(seed);
     this.#travel = travel;
@@ -139,6 +144,7 @@ export class Glass {
       p.lineTo(px[c] - cx, py[c] - cy);
       p.closePath();
       this.#shard.push(p);
+      this.corners.set([px[a] - cx, py[a] - cy, px[b] - cx, py[b] - cy, px[c] - cx, py[c] - cy], k * 6);
       this.#cx[k] = cx;
       this.#cy[k] = cy;
       k++;
@@ -156,6 +162,19 @@ export class Glass {
         }
       }
     }
+  }
+
+  /**
+   * Writes piece `i`'s place now into `out` (five values): its middle (drawing units, the lean under the pointer
+   * included), its rotation (radians), and its middle at home; for a host that follows the pieces (the quantum
+   * splash's potential).
+   */
+  place(i: number, out: Float32Array): void {
+    out[0] = this.#cx[i] + this.#ox[i] + this.#hx[i];
+    out[1] = this.#cy[i] + this.#oy[i] + this.#hy[i];
+    out[2] = this.#rot[i] + this.#hr[i];
+    out[3] = this.#cx[i];
+    out[4] = this.#cy[i];
   }
 
   /**

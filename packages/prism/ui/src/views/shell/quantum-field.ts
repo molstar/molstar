@@ -9,13 +9,15 @@
 // The empty canvas's splash as a quantum system (beside prism-field.ts, the same surface; design/shell.md): the light is
 // a wave, ψ on a 128 × 128 grid round the star, moved on by the Schrödinger equation (ħ = m = 1, H = −∇²/2 + V) with the
 // split-step Fourier method: half a step of the potential, the kinetic step in momentum space (an FFT there and back),
-// the other half. Wave packets come in from the left, each of its own wavenumber (its color); the Mol* star is a
-// potential well, glass: a packet's refraction through it depends on its energy, so the star splits the light by
-// wavenumber the way a prism does. The specks ride the wave (Bohmian trajectories: each moves with the probability
-// current, ∇ of ψ's phase, a midpoint Runge–Kutta step) and take their color from the wavenumber they carry once they
-// leave the straight way; under them the wave itself, |ψ|², faintly, its wavefronts in it. The pointer is a barrier the
-// wave goes round, a press kicks it outward, a shatter takes the prism away until the glass is back (and its snap back
-// is a well that draws the light in for a moment). The grid's edges absorb (no wrapping round).
+// the other half. Emitters at the left radiate wave packets, each of its own wavenumber (its color). The wordmark is
+// glass, a potential well carried by its pieces (`Glass`: the filled word, piece by piece where each is now): a packet's
+// refraction through it depends on its energy, so the star splits the light by wavenumber as a prism does; a shatter
+// scatters the well with the pieces and the snap back puts it together (drawing the light in for a moment). The specks
+// are the wave's particles: |ψ|² is the chance of one being born there (as many a second as the wave's amount says);
+// each then rides the wave (a Bohmian trajectory: it moves with the probability current, ∇ of ψ's phase, a midpoint
+// Runge–Kutta step), fading with a half-life, colored by the wavenumber it carries once it leaves the straight way.
+// Under them the wave itself, |ψ|², faintly, its wavefronts in it (added light on a dark canvas). The pointer is a
+// barrier the wave goes round, a press kicks it outward. The grid's edges absorb (no wrapping round).
 //
 // Allocation-free per frame (memory: render paths); it draws nothing while hidden or stopped, one still frame under
 // reduced motion.
@@ -32,14 +34,22 @@ export interface QuantumFieldOptions {
   spectrum: number;
   /** Their speed at the mean wavenumber (px/s): how fast time runs. */
   speed: number;
-  /** The prism: the star's well's depth, in a mean packet's energies. */
+  /**
+   * The glass: the word's well's depth, in a mean packet's energies. Its pieces carry it (a shatter scatters it, the
+   * snap back puts it together); the star is the prism.
+   */
   prism: number;
   /** The wave itself shows (|ψ|², 0: only the specks). */
   glow: number;
   /** The wavefronts show in it (0: the density alone). */
   ripples: number;
-  /** Specks riding the wave. */
-  specks: number;
+  /**
+   * Specks born a second, at the wave's usual amount (more while there is more of it): each where the wave is, as
+   * likely as it is dense there (|ψ|² is the chance of a speck), then riding it.
+   */
+  spawn: number;
+  /** A speck's half-life (s): it fades as it rides, whatever the wave under it. */
+  decay: number;
   /** The most a speck shows (0..1). */
   alpha: number;
   /** A speck's radius (px). */
@@ -64,7 +74,8 @@ export const QuantumFieldDefaults: QuantumFieldOptions = {
   prism: 1.2,
   glow: 0.35,
   ripples: 0.45,
-  specks: 650,
+  spawn: 160,
+  decay: 1.6,
   alpha: 0.6,
   size: 1.3,
   colors: true,
@@ -86,22 +97,43 @@ const MaxSteps = 4;
 /** The absorbing edge: cells wide, and how much it takes a step at the very edge. */
 const Edge = 14;
 const Absorb = 0.12;
-/** The prism's radius (px), its arms' share of it, and how soft its edge is (cells). */
+/**
+ * The word as glass, sampled once: samples a drawing unit, and how much it is softened (units): the well follows the
+ * letters and the star, filled, a little rounded.
+ */
+const MaskRes = 4;
+const MaskSoft = 0.8;
+/** Without the glass (reduced motion, no Path2D): the star alone, a well with eight arms of this radius (px). */
 const PrismRadius = 34;
 const PrismArms = 0.45;
 const PrismSoft = 1.5;
-/** A packet's half size (cells, along and across its way), and where the light comes in (cells from the left edge). */
-const PacketAlong = 8;
-const PacketAcross = 6;
+/**
+ * The light comes in from emitters, not all at once: each radiates one packet over `EmitTime` (the grid's time units),
+ * its strength easing in and out, at the packet's own frequency (ω = k²/2) from a source `EmitAlong` × `EmitAcross`
+ * cells (half sizes) whose phase runs along its way, so it radiates forward only. `EmitStrength` makes a packet about
+ * as dense as a unit one. At most `Emitters` at once; the light comes in `Source` cells from the left edge, and shows
+ * gradually over the next `BeamFade`.
+ */
+const Emitters = 12;
+const EmitTime = 20;
+const EmitAlong = 6;
+const EmitAcross = 4;
+const EmitStrength = 0.07;
 const Source = Edge + 6;
+const BeamFade = 26;
+/** How much stronger the wave shows on a dark canvas. */
+const DarkGlow = 3;
+/** How fast the picture's scale follows the wave's densest part (1/s): no jump when a packet comes in. */
+const ScaleEase = 1.2;
 /** The snap back's well: how far it reaches (px) and how deep it is (in a mean packet's energies, at full pull). */
 const GravityRadius = 320;
 const GravityDepth = 1.6;
-/** Specks at most; how long one lives (s); below this share of the densest, a speck lets go. */
+/** Specks at most; half-lives a speck lasts (it is gone at 1/32); seconds it takes to come in. */
 const Capacity = 1500;
-const LifeMin = 2.2;
-const LifeMax = 5;
-const Thin = 0.004;
+const Lifetimes = 5;
+const Birth = 0.3;
+/** How fast the wave's usual amount follows its amount now (1/s): the births' measure. */
+const AmountEase = 0.25;
 /** A speck going within this of straight on (radians) is light not yet split: the stream's color. */
 const Straight = 0.22;
 /** Alpha levels a frame batches specks into (per color). */
@@ -202,7 +234,9 @@ for (let y = 0; y < N; y++) {
     const e = Math.max(ex, ey);
     edgeKeep[y * N + x] = 1 - Absorb * e * e;
     const inside = 1 - e;
-    edgeShow[y * N + x] = inside * inside * (3 - 2 * inside);
+    // The beam shows gradually from where it comes in, as the light's stream does.
+    const beam = Math.min(1, Math.max(0, (x - Source + 4) / BeamFade));
+    edgeShow[y * N + x] = inside * inside * (3 - 2 * inside) * beam * beam * (3 - 2 * beam);
   }
 }
 
@@ -228,12 +262,25 @@ export class QuantumField {
   #potential = true;
   #clock = 0;
   #emit = 0;
+  /** The evolution's own time (the grid's units). */
+  #sim = 0;
+  // The emitters: where (cells), which way, the wavenumber, the strength, when each started (`#sim`).
+  readonly #emX = new Float32Array(Emitters);
+  readonly #emY = new Float32Array(Emitters);
+  readonly #emCos = new Float32Array(Emitters);
+  readonly #emSin = new Float32Array(Emitters);
+  readonly #emK = new Float32Array(Emitters);
+  readonly #emAmp = new Float32Array(Emitters);
+  readonly #emT0 = new Float32Array(Emitters);
+  #emitters = 0;
 
-  // The specks: position (canvas px), age and life (s), color (0: the stream's; 1–4: the logo's), a phase for their size.
+  // The specks: position (canvas px), age (s), color (0: the stream's; 1–4: the logo's), a phase for their size; the
+  // births owed, and the wave's usual amount (Σ|ψ|²).
   readonly #x = new Float32Array(Capacity);
   readonly #y = new Float32Array(Capacity);
   readonly #age = new Float32Array(Capacity);
-  readonly #life = new Float32Array(Capacity);
+  #births = 0;
+  #amount = 0;
   readonly #shimmer = new Float32Array(Capacity);
   readonly #color = new Uint8Array(Capacity);
   #alive = 0;
@@ -249,6 +296,8 @@ export class QuantumField {
 
   readonly #colors: string[] = ['#888', '#7a4f2f', '#e0ae2c', '#6f9a80', '#3f86ad'];
   readonly #rgb = new Uint8Array(Colors * 3);
+  /** On a dark canvas (its stream color light): the wave is light added to it, stronger. */
+  #dark = false;
   #gradient: CanvasGradient | undefined;
   #width = 0;
   #height = 0;
@@ -274,6 +323,11 @@ export class QuantumField {
   #wordY = 0;
   #wordScale = 1;
   #wasWhole = true;
+  /** The filled word (0..1, `MaskRes` samples a unit from (−1, −1)), and a piece's place (`Glass.place`). */
+  #mask: Float32Array | undefined;
+  #maskWidth = 0;
+  #maskHeight = 0;
+  readonly #pose = new Float32Array(5);
   #wasPull = 0;
   #bursts = 0;
 
@@ -304,6 +358,9 @@ export class QuantumField {
       this.#re.fill(0);
       this.#im.fill(0);
       this.#alive = 0;
+      this.#emitters = 0;
+      this.#births = 0;
+      this.#amount = 0;
     }
     this.#potential = true;
     if (this.#still) this.#drawStill();
@@ -349,6 +406,7 @@ export class QuantumField {
       }
     }
     el.style.color = before;
+    this.#dark = 0.299 * this.#rgb[0] + 0.587 * this.#rgb[1] + 0.114 * this.#rgb[2] > 128;
     if (this.#ctx) {
       const g = this.#ctx.createLinearGradient(0, 0, WordmarkGeometry.width - 2, 0);
       g.addColorStop(0, this.#colors[1]);
@@ -371,6 +429,7 @@ export class QuantumField {
       this.#bursts += 4;
     };
     this.#glass = glass;
+    this.#makeMask();
     glass.scatter();
     return true;
   }
@@ -454,6 +513,9 @@ export class QuantumField {
     this.#re.fill(0);
     this.#im.fill(0);
     this.#alive = 0;
+    this.#emitters = 0;
+    this.#births = 0;
+    this.#amount = 0;
     this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < 6; t += 1 / 20) this.#step(1 / 20);
@@ -466,33 +528,68 @@ export class QuantumField {
     return o.speed / (Math.max(0.2, o.k) * Cell);
   }
 
-  /** Adds a wave packet at grid (cx, cy) going `angle` with wavenumber `k`. */
-  #packet(cx: number, cy: number, angle: number, k: number, amplitude: number): void {
+  /** An emitter at grid (cx, cy) radiating a packet going `angle` with wavenumber `k` (none if all are busy). */
+  #launch(cx: number, cy: number, angle: number, k: number, amplitude: number): void {
+    const e = this.#emitters;
+    if (e >= Emitters) return;
+    this.#emX[e] = cx;
+    this.#emY[e] = cy;
+    this.#emCos[e] = Math.cos(angle);
+    this.#emSin[e] = Math.sin(angle);
+    this.#emK[e] = k;
+    this.#emAmp[e] = amplitude;
+    this.#emT0[e] = this.#sim;
+    this.#emitters = e + 1;
+  }
+
+  /** A step of the emitters' radiation: each adds its source, easing in and out over its time, then is done. */
+  #radiate(): void {
     const re = this.#re;
     const im = this.#im;
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
-    const kx = k * c;
-    const ky = k * s;
-    const reach = 3 * Math.max(PacketAlong, PacketAcross);
-    const x0 = Math.max(1, Math.floor(cx - reach));
-    const x1 = Math.min(N - 2, Math.ceil(cx + reach));
-    const y0 = Math.max(1, Math.floor(cy - reach));
-    const y1 = Math.min(N - 2, Math.ceil(cy + reach));
-    const a2 = 2 * PacketAlong * PacketAlong;
-    const c2 = 2 * PacketAcross * PacketAcross;
-    for (let y = y0; y <= y1; y++) {
-      const dy = y - cy;
-      for (let x = x0; x <= x1; x++) {
-        const dx = x - cx;
-        const along = dx * c + dy * s;
-        const across = -dx * s + dy * c;
-        const g = amplitude * Math.exp(-(along * along) / a2 - (across * across) / c2);
-        if (g < 1e-4) continue;
-        const phase = kx * dx + ky * dy;
-        const i = y * N + x;
-        re[i] += g * Math.cos(phase);
-        im[i] += g * Math.sin(phase);
+    const a2 = 2 * EmitAlong * EmitAlong;
+    const c2 = 2 * EmitAcross * EmitAcross;
+    const reach = 3 * Math.max(EmitAlong, EmitAcross);
+    for (let e = 0; e < this.#emitters; e++) {
+      const tau = (this.#sim - this.#emT0[e]) / EmitTime;
+      if (tau >= 1) {
+        const last = --this.#emitters;
+        this.#emX[e] = this.#emX[last];
+        this.#emY[e] = this.#emY[last];
+        this.#emCos[e] = this.#emCos[last];
+        this.#emSin[e] = this.#emSin[last];
+        this.#emK[e] = this.#emK[last];
+        this.#emAmp[e] = this.#emAmp[last];
+        this.#emT0[e] = this.#emT0[last];
+        e--;
+        continue;
+      }
+      const ease = Math.sin(Math.PI * tau);
+      const strength = this.#emAmp[e] * EmitStrength * ease * ease * Dt;
+      const k = this.#emK[e];
+      const c = this.#emCos[e];
+      const sn = this.#emSin[e];
+      const cx = this.#emX[e];
+      const cy = this.#emY[e];
+      // Its phase now: e^{−iωt}, ω = k²/2.
+      const t = this.#sim - this.#emT0[e];
+      const wt = (-k * k * t) / 2;
+      const x0 = Math.max(1, Math.floor(cx - reach));
+      const x1 = Math.min(N - 2, Math.ceil(cx + reach));
+      const y0 = Math.max(1, Math.floor(cy - reach));
+      const y1 = Math.min(N - 2, Math.ceil(cy + reach));
+      for (let y = y0; y <= y1; y++) {
+        const dy = y - cy;
+        for (let x = x0; x <= x1; x++) {
+          const dx = x - cx;
+          const along = dx * c + dy * sn;
+          const across = -dx * sn + dy * c;
+          const g = strength * Math.exp(-(along * along) / a2 - (across * across) / c2);
+          if (g < 1e-6) continue;
+          const phase = k * along + wt;
+          const i = y * N + x;
+          re[i] += g * Math.cos(phase);
+          im[i] += g * Math.sin(phase);
+        }
       }
     }
   }
@@ -525,7 +622,106 @@ export class QuantumField {
     }
   }
 
-  /** The potential (the prism while the glass is whole, the pointer's barrier, the snap back's well) and its half step. */
+  /** The word filled (its letters and star as solid glass), softened a little, as a mask in drawing units. */
+  #makeMask(): void {
+    if (typeof document === 'undefined') return;
+    const w = (WordmarkGeometry.width + 2) * MaskRes;
+    const h = (WordmarkGeometry.height + 2) * MaskRes;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    if (!g) return;
+    g.filter = `blur(${MaskSoft * MaskRes}px)`;
+    g.setTransform(MaskRes, 0, 0, MaskRes, MaskRes, MaskRes);
+    g.fillStyle = '#000';
+    g.strokeStyle = '#000';
+    g.lineWidth = WordmarkGeometry.stroke(3);
+    g.lineJoin = 'miter';
+    for (const d of WordmarkGeometry.paths) {
+      const path = new Path2D(d);
+      g.fill(path);
+      g.stroke(path);
+    }
+    const data = g.getImageData(0, 0, w, h).data;
+    const mask = new Float32Array(w * h);
+    for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] / 255;
+    this.#mask = mask;
+    this.#maskWidth = w;
+    this.#maskHeight = h;
+  }
+
+  /** The glass's well: each grid cell (2 × 2 samples) inside a piece takes the word where that piece came from. */
+  #glassPotential(depth: number): void {
+    const glass = this.#glass;
+    const mask = this.#mask;
+    if (!glass || !mask) return;
+    const v = this.#v;
+    const pose = this.#pose;
+    const corners = glass.corners;
+    const scale = this.#wordScale;
+    const mw = this.#maskWidth;
+    const mh = this.#maskHeight;
+    for (let i = 0; i < glass.count; i++) {
+      glass.place(i, pose);
+      const mx = pose[0];
+      const my = pose[1];
+      const c = Math.cos(pose[2]);
+      const sn = Math.sin(pose[2]);
+      const hx = pose[3];
+      const hy = pose[4];
+      const ax = corners[i * 6];
+      const ay = corners[i * 6 + 1];
+      const bx = corners[i * 6 + 2];
+      const by = corners[i * 6 + 3];
+      const qx = corners[i * 6 + 4];
+      const qy = corners[i * 6 + 5];
+      // The piece's box on the grid, from its corners where they are now.
+      let x0 = N;
+      let x1 = -1;
+      let y0 = N;
+      let y1 = -1;
+      for (let k = 0; k < 3; k++) {
+        const lx = corners[i * 6 + 2 * k];
+        const ly = corners[i * 6 + 2 * k + 1];
+        const gx = (this.#wordX + (mx + lx * c - ly * sn) * scale - this.#gx) / Cell;
+        const gy = (this.#wordY + (my + lx * sn + ly * c) * scale - this.#gy) / Cell;
+        if (gx < x0) x0 = gx;
+        if (gx > x1) x1 = gx;
+        if (gy < y0) y0 = gy;
+        if (gy > y1) y1 = gy;
+      }
+      const cx0 = Math.max(0, Math.floor(x0));
+      const cx1 = Math.min(N - 1, Math.ceil(x1));
+      const cy0 = Math.max(0, Math.floor(y0));
+      const cy1 = Math.min(N - 1, Math.ceil(y1));
+      for (let y = cy0; y <= cy1; y++) {
+        for (let x = cx0; x <= cx1; x++) {
+          let sum = 0;
+          for (let sy = 0; sy < 2; sy++) {
+            for (let sx = 0; sx < 2; sx++) {
+              // The sample in the piece's own frame (drawing units about its middle).
+              const du = (this.#gx + (x + 0.25 + 0.5 * sx) * Cell - this.#wordX) / scale - mx;
+              const dv = (this.#gy + (y + 0.25 + 0.5 * sy) * Cell - this.#wordY) / scale - my;
+              const lx = du * c + dv * sn;
+              const ly = -du * sn + dv * c;
+              const e1 = (bx - ax) * (ly - ay) - (by - ay) * (lx - ax);
+              const e2 = (qx - bx) * (ly - by) - (qy - by) * (lx - bx);
+              const e3 = (ax - qx) * (ly - qy) - (ay - qy) * (lx - qx);
+              if (!((e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 <= 0 && e2 <= 0 && e3 <= 0))) continue;
+              // Where in the word it came from.
+              const mi = Math.round((hx + lx + 1) * MaskRes);
+              const mj = Math.round((hy + ly + 1) * MaskRes);
+              if (mi >= 0 && mj >= 0 && mi < mw && mj < mh) sum += mask[mj * mw + mi];
+            }
+          }
+          if (sum > 0) v[y * N + x] -= (depth * sum) / 4;
+        }
+      }
+    }
+  }
+
+  /** The potential (the glass, or the star alone without it; the pointer's barrier, the snap back's well) and its half step. */
   #buildPotential(pull: number): void {
     const o = this.#options;
     const v = this.#v;
@@ -533,7 +729,8 @@ export class QuantumField {
     const e0 = (o.k * o.k) / 2;
     const sx = (this.#ox - this.#gx) / Cell;
     const sy = (this.#oy - this.#gy) / Cell;
-    if (!this.#glass || this.#glass.whole) {
+    if (this.#glass && this.#mask) this.#glassPotential(o.prism * e0);
+    else {
       // The star: a well with eight arms.
       const r = PrismRadius / Cell;
       const depth = o.prism * e0;
@@ -605,6 +802,8 @@ export class QuantumField {
   #evolve(): void {
     const re = this.#re;
     const im = this.#im;
+    this.#radiate();
+    this.#sim += Dt;
     this.#half();
     fft2(re, im, false);
     for (let i = 0; i < Cells; i++) {
@@ -618,7 +817,7 @@ export class QuantumField {
   }
 
   /** The density and the current's velocity (∇ of the phase, clamped where the wave is thin), and their running max. */
-  #current(): void {
+  #current(dt: number): void {
     const re = this.#re;
     const im = this.#im;
     const rho = this.#rho;
@@ -659,8 +858,8 @@ export class QuantumField {
         vy[i] = w;
       }
     }
-    // The picture's scale follows the densest part, falling slowly.
-    this.#rhoMax = Math.max(most, this.#rhoMax * 0.985, 1e-6);
+    // The picture's scale eases toward the densest part, either way (a packet coming in never dims the rest at once).
+    this.#rhoMax = Math.max(1e-6, this.#rhoMax + (most - this.#rhoMax) * Math.min(1, dt * ScaleEase));
   }
 
   /** Bilinear lookup of a grid field at canvas px (x, y). */
@@ -706,7 +905,6 @@ export class QuantumField {
     this.#x[i] = this.#gx + (gx + this.#random()) * Cell;
     this.#y[i] = this.#gy + (gy + this.#random()) * Cell;
     this.#age[i] = 0;
-    this.#life[i] = LifeMin + this.#random() * (LifeMax - LifeMin);
     this.#shimmer[i] = this.#random() * Math.PI * 2;
     this.#color[i] = this.#colorFor(this.#vx[lo], this.#vy[lo]);
     return true;
@@ -719,7 +917,8 @@ export class QuantumField {
     const glass = this.#glass;
     const pull = glass ? glass.pull : 0;
     const whole = !glass || glass.whole;
-    if (whole !== this.#wasWhole || pull > 0 || this.#wasPull > 0) this.#potential = true;
+    // The pieces moving (or leaning) move the glass's well with them.
+    if (whole !== this.#wasWhole || pull > 0 || this.#wasPull > 0 || (glass && !glass.resting)) this.#potential = true;
     this.#wasWhole = whole;
     this.#wasPull = pull;
     if (this.#potential) {
@@ -736,14 +935,14 @@ export class QuantumField {
       this.#emit -= 1;
       const y = sy + (this.#random() * 2 - 1) * 2;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#packet(Source, y, Math.atan2(sy - y, sx - Source), k, 1);
+      this.#launch(Source, y, Math.atan2(sy - y, sx - Source), k, 1);
     }
     // The glass back together: a little of the light it held, out along its arms.
     while (this.#bursts >= 1) {
       this.#bursts -= 1;
       const arm = (Math.floor(this.#random() * 8) * Math.PI) / 4;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#packet(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, 0.8);
+      this.#launch(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, 0.8);
     }
 
     // The evolution: as many steps as the time that passed takes.
@@ -755,12 +954,11 @@ export class QuantumField {
       steps++;
     }
     if (steps === MaxSteps) this.#clock = 0;
-    this.#current();
+    this.#current(dt);
 
-    // The specks ride the current (a midpoint step), and let go where the wave thins.
+    // The specks ride the current (a midpoint step), fading as they go; gone when faded or off the grid.
     const toPx = this.#rate() * Cell;
-    const target = Math.min(Capacity, Math.max(0, Math.round(o.specks)));
-    const thin = this.#rhoMax * Thin;
+    const gone = Lifetimes * Math.max(0.1, o.decay);
     const x0 = this.#gx;
     const y0 = this.#gy;
     const x1 = this.#gx + N * Cell;
@@ -780,23 +978,19 @@ export class QuantumField {
       this.#y[i] = ny;
       this.#age[i] += dt;
       if (this.#color[i] === 0) this.#color[i] = this.#colorFor(u2, w2);
-      if (
-        this.#age[i] > this.#life[i] ||
-        nx < x0 ||
-        ny < y0 ||
-        nx >= x1 ||
-        ny >= y1 ||
-        this.#at(this.#rho, nx, ny) < thin
-      ) {
-        if (this.#alive > target || !this.#spawn(i)) {
-          this.#kill(i);
-          i--;
-        }
+      if (this.#age[i] > gone || nx < x0 || ny < y0 || nx >= x1 || ny >= y1) {
+        this.#kill(i);
+        i--;
       }
     }
-    // More where there are fewer than asked for (a few a frame, so they come in gradually).
-    for (let n = 0; n < 24 && this.#alive < target; n++) {
-      if (!this.#spawn(this.#alive)) break;
+    // Births: |ψ|² is the chance of a speck. As many a second as asked at the wave's usual amount, more with more of it,
+    // each drawn from its density.
+    const amount = this.#cdf[Cells - 1];
+    this.#amount = this.#amount ? this.#amount + (amount - this.#amount) * Math.min(1, dt * AmountEase) : amount;
+    if (this.#amount > 1e-6) this.#births += dt * o.spawn * (amount / this.#amount);
+    while (this.#births >= 1) {
+      this.#births -= 1;
+      if (this.#alive >= Capacity || !this.#spawn(this.#alive)) continue;
       this.#alive++;
     }
   }
@@ -806,7 +1000,6 @@ export class QuantumField {
     this.#x[i] = this.#x[last];
     this.#y[i] = this.#y[last];
     this.#age[i] = this.#age[last];
-    this.#life[i] = this.#life[last];
     this.#shimmer[i] = this.#shimmer[last];
     this.#color[i] = this.#color[last];
   }
@@ -819,7 +1012,7 @@ export class QuantumField {
     const data = image.data;
     const rho = this.#rho;
     const inv = 1 / this.#rhoMax;
-    const glow = Math.min(1, o.glow) * 255;
+    const glow = Math.min(1, o.glow) * (this.#dark ? DarkGlow : 1) * 255;
     for (let i = 0; i < Cells; i++) {
       const p = rho[i] * inv;
       const j = i * 4;
@@ -832,7 +1025,7 @@ export class QuantumField {
       data[j + 1] = this.#rgb[c + 1];
       data[j + 2] = this.#rgb[c + 2];
       const front = 1 - o.ripples * 0.5 * (1 - this.#re[i] / Math.sqrt(rho[i]));
-      data[j + 3] = glow * Math.min(1, p ** 0.7) * front * edgeShow[i];
+      data[j + 3] = Math.min(255, glow * Math.min(1, p ** 0.5) * front * edgeShow[i]);
     }
     this.#pictureCtx.putImageData(image, 0, 0);
   }
@@ -849,18 +1042,20 @@ export class QuantumField {
     if (o.glow > 0 && this.#picture) {
       this.#paint();
       ctx.imageSmoothingEnabled = true;
+      // On a dark canvas the wave is light added to it (a veil of grey would sink into the black).
+      if (this.#dark) ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(this.#picture, this.#gx, this.#gy, N * Cell, N * Cell);
+      ctx.globalCompositeOperation = 'source-over';
     }
 
     // The specks, bucketed by color and alpha level (counting sort): one path each.
     const counts = this.#counts;
     counts.fill(0);
-    const inv = 1 / this.#rhoMax;
+    const decay = Math.max(0.1, o.decay);
     for (let i = 0; i < this.#alive; i++) {
-      const p = this.#at(this.#rho, this.#x[i], this.#y[i]) * inv;
       const age = this.#age[i];
-      const fade = Math.min(1, age / 0.4, Math.max(0, (this.#life[i] - age) / 0.6));
-      const a = Math.min(1, Math.max(0, p) ** 0.6 * 1.6) * fade * this.#at(edgeShow, this.#x[i], this.#y[i]);
+      // In over its birth, then halving every `decay` seconds (not the wave under it: it is a particle now).
+      const a = Math.min(1, age / Birth) * 0.5 ** (age / decay) * this.#at(edgeShow, this.#x[i], this.#y[i]);
       const level = Math.max(0, Math.min(Levels - 1, Math.round(a * (Levels - 1))));
       const c = o.colors ? this.#color[i] : 0;
       const b = c * Levels + level;
