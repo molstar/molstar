@@ -42,6 +42,26 @@ export function playClose(el: Element, kind: RevealKind): Animation | undefined 
   return (el as HTMLElement).animate(frames, { duration, easing, fill: 'forwards' });
 }
 
+/**
+ * Runs `update` (a change of what `scope` shows: one panel replacing another) as a view transition scoped to `scope`
+ * where the browser has them (`Element.startViewTransition`): the old content cross-fades into the new. Elsewhere, and
+ * under reduced motion, it runs at once. Never the document's view transition: it snapshots the whole page and the 3D
+ * canvas would stand still while it runs.
+ */
+export function swapIn(scope: Element | null | undefined, update: () => void): void {
+  const start = (scope as (Element & { startViewTransition?: (cb: () => void) => unknown }) | null | undefined)
+    ?.startViewTransition;
+  if (
+    !scope?.isConnected ||
+    typeof start !== 'function' ||
+    globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  ) {
+    update();
+    return;
+  }
+  start.call(scope, update);
+}
+
 /** A CSS time (`180ms`, `.18s`: the CSS build writes seconds) in milliseconds. */
 function toMs(value: string): number {
   const v = value.trim();

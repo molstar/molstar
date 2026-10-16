@@ -271,3 +271,45 @@ describe('Dynamic and Switch', () => {
     expect(second.html()).toBe('<i>ready</i>');
   });
 });
+
+describe('Show swap', () => {
+  it('swaps one shown value for another as a view transition on the scope; opening and closing do not', () => {
+    const scope = document.createElement('div');
+    document.body.append(scope);
+    const updates: (() => void)[] = [];
+    // A stand-in for `Element.startViewTransition`: it runs the update when the transition has the old state.
+    (scope as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition = (cb) => {
+      updates.push(cb);
+    };
+    const tab = observableState<string | undefined>(undefined);
+    render(
+      () => (
+        <Show when={tab} swap={() => scope}>
+          {(t) => <span>{t}</span>}
+        </Show>
+      ),
+      scope,
+    );
+    // Opening: at once.
+    tab.set('home');
+    expect(scope.textContent).toBe('home');
+    expect(updates).toHaveLength(0);
+    // Replacing: through the transition, the old content until it runs.
+    tab.set('structure');
+    expect(updates).toHaveLength(1);
+    expect(scope.textContent).toBe('home');
+    updates[0]();
+    expect(scope.textContent).toBe('structure');
+    // Replaced again before a transition ran: only the newest shows.
+    tab.set('selection');
+    tab.set('snapshots');
+    for (const u of updates.slice(1)) u();
+    expect(scope.textContent).toBe('snapshots');
+    // Closing: at once.
+    const before = updates.length;
+    tab.set(undefined);
+    expect(scope.textContent).toBe('');
+    expect(updates).toHaveLength(before);
+    scope.remove();
+  });
+});

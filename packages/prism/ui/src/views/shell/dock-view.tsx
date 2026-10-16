@@ -44,6 +44,7 @@ export function DockView(props: {
     ? combineLatest([dock.tabs, dock.active]).pipe(map(([tabs, active]) => tabs.length > 1 && !!active))
     : of(true);
   const panelId = uniqueId('msp-panel');
+  let pinned: HTMLElement | undefined;
   return (
     <Show when={hasTabs}>
       {() => (
@@ -51,10 +52,15 @@ export function DockView(props: {
           class={`${classes.dock} ${classes[dock.id]}`}
           classList={{ [classes.compact]: compact }}
           style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
+          ref={(el) => {
+            pinned = el;
+          }}
         >
           <Show
             when={dock.active}
             reveal
+            // One tab's panel replacing another's: a view transition in the dock (motion.ts `swapIn`).
+            swap={() => pinned}
             fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
           >
             {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
@@ -179,7 +185,8 @@ export function FloatingDock(props: {
           {props.railFoot?.(rail)}
         </div>
       </div>
-      <Show when={dock.active} reveal="side">
+      {/* Opening slides in; one tab's panel replacing another's is a view transition in the dock (motion.ts `swapIn`). */}
+      <Show when={dock.active} reveal="side" swap={() => root}>
         {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} pinnable coveredBy={shell.overlay} />}
       </Show>
       <RailMoreMenu shell={shell} dock={dock} rail={rail} />

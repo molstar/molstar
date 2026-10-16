@@ -19,12 +19,14 @@ buttons) is the app's. The code is the truth for how.
   glass (`glass.ts`, `GlassWordmark`) that assembles, leans under the pointer and shatters on a press; the light stays
   out of where the glass covers it (`glass-footprint.ts`). Which splash: random each time it shows, the wave 4 in 5
   (`EmptyCanvas` `field`). The wave: colored by wavenumber in the logo's colors; enters as a broad front, already
-  flowing at the start, as strong as the glass is assembled. While the mark is up the canvas is quiet (transparent, its
-  axes too), and a load brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s, over the canvas's own
-  color; same guards as the mark). `ShellView`'s `splash` turns it off.
+  flowing at the start, as strong as the glass is assembled. The canvas starts quiet (transparent, its axes too) and is
+  quiet while the mark is up; whatever is in it brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s,
+  over the canvas's own color; same guards as the mark). `ShellView`'s `splash` turns it off.
 - **Motion.** Open and close by `Show`'s `reveal`: grow (`data-reveal`) for lists and sections, `'side'` for panels,
   `'fade'` (opacity only) for what must not change size, like the sequence band drawn on a canvas (re-laid out every
-  frame if it grew).
+  frame if it grew). One value replacing another (a right panel by another) can swap as a view transition scoped to the
+  dock (`swap`, motion.ts `swapIn`), where the browser has scoped ones; never the document's (it would stop the 3D
+  canvas while it runs).
 - **Lean views.** Commands carry the operations ([commands.md](commands.md)); views show state and the common actions.
 
 ## 2. Structure
