@@ -33,9 +33,13 @@ export interface InputBindingGroup {
   bindings: readonly InputBinding[];
 }
 
-/** The keys that work everywhere, whatever the mode. */
-const GlobalKeys: InputBinding[] = [
-  { action: 'Command menu', input: ['⌘', 'K'], or: ['⇧', '⌘', 'P'] },
+/** The keys that work everywhere, whatever the mode: in this platform's keys (⌘ on macOS, Ctrl elsewhere). */
+const globalKeys = (): InputBinding[] => [
+  {
+    action: 'Command menu',
+    input: chordKeys({ key: 'k', mod: true }),
+    or: chordKeys({ key: 'p', mod: true, shift: true }),
+  },
   { action: 'Help (this card)', input: ['?'] },
   { action: 'Close a menu, a card or the command menu', input: ['Esc'] },
 ];
@@ -71,7 +75,7 @@ export function HelpPanel(props: {
         )}
       </Show>
       <For each={props.bindings}>{(group) => <Group title={group.title} bindings={group.bindings} />}</For>
-      <Group title="Everywhere" bindings={GlobalKeys} />
+      <Group title="Everywhere" bindings={globalKeys()} />
       <Show when={shortcuts.pipe(map((s) => (s.length ? s : undefined)))}>
         {(list) => (
           <Group title="Commands" bindings={list.map((c) => ({ action: c.title, input: chordKeys(c.shortcut!) }))} />
