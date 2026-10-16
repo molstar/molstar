@@ -240,6 +240,10 @@ async function loadEntry(
   await plugin.runTask(plugin.state.data.applyAction(DownloadStructure, { source: src }));
 }
 
+/** "1TQN is already loaded." */
+const entriesLoaded = (source: EntrySource, ids: readonly string[]) =>
+  `${ids.map((i) => displayId(source, i)).join(', ')} ${ids.length === 1 ? 'is' : 'are'} already loaded.`;
+
 const entry: OperationDefinition<typeof EntryParams, Loaded> = {
   id: 'load.entry',
   title: 'Load an entry',
@@ -252,9 +256,7 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
     if (!ids.length) return undefined;
     const have = liveDownloads(ctx);
     const loaded = ids.every((i) => entryLabels(source, i).some((l) => have.some((d) => d.label === l)));
-    return loaded
-      ? `${ids.map((i) => displayId(source, i)).join(', ')} ${ids.length === 1 ? 'is' : 'are'} already loaded.`
-      : undefined;
+    return loaded ? entriesLoaded(source, ids) : undefined;
   },
   async run({ source, id, assembly, representation }, ctx) {
     let ids = idsOf(id, source);
@@ -282,7 +284,10 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
     // Those already loaded are left alone (a partial list loads the rest); `copy` loads them all again.
     if (!ctx.copy) {
       const have = liveDownloads(ctx);
+      const asked = ids;
       ids = ids.filter((i) => !entryLabels(source, i).some((l) => have.some((d) => d.label === l)));
+      // `exists` is asked before the run waits its turn (`api/run.ts`): a load queued behind the same one finds it here.
+      if (!ids.length) return ApiResult.already(entriesLoaded(source, asked));
     }
     const what = ids.map((i) => displayId(source, i)).join(', ');
     const before = refsOf(ctx);
@@ -415,19 +420,25 @@ async function formatProblem(ctx: ApiContext, format: string) {
   );
 }
 
+/** "<url> is already loaded.", or undefined. */
+function urlLoaded(url: string, ctx: ApiContext): string | undefined {
+  const u = url.trim();
+  return u && liveDownloads(ctx).some((d) => d.url === u) ? `${u} is already loaded.` : undefined;
+}
+
 const url: OperationDefinition<typeof UrlParams, Loaded> = {
   id: 'load.url',
   title: 'Load from a URL',
   params: UrlParams,
   addresses: ({ url }) => [url],
   ...network,
-  exists({ url }, ctx) {
-    const u = url.trim();
-    return u && liveDownloads(ctx).some((d) => d.url === u) ? `${u} is already loaded.` : undefined;
-  },
+  exists: ({ url }, ctx) => urlLoaded(url, ctx),
   async run({ url, format, binary, models, assembly }, ctx) {
     const address = url.trim();
     if (!address) return ApiResult.fail('invalid', 'Which address?', 'Give the URL of a data file.');
+    // Asked again in its turn: one queued behind the same load finds it loaded (`load.entry`).
+    const loaded = ctx.copy ? undefined : urlLoaded(address, ctx);
+    if (loaded) return ApiResult.already(loaded);
     format = format.trim() || 'mmcif';
     const unknown = await formatProblem(ctx, format);
     if (unknown) return unknown;
@@ -670,19 +681,31 @@ function dataAncestors(ctx: ApiContext, ref: string): StateObjectCell[] {
   return out;
 }
 
-/** The loaded structure a document's source names (sequence.md §6): by its address, entry id, or file name. */
+/** An AlphaFold DB model's entry id (`AF-Q8W3K0-F1`): its accession (lowercase), as a document names it. */
+const afdbAccession = (entryId: string | undefined) => (entryId ? /^af-(.+)-f\d+$/.exec(entryId)?.[1] : undefined);
+
+/**
+ * The loaded structure a document's source names (sequence.md §6): by its address, entry id (an AlphaFold DB model's
+ * by its accession), the label of the entry's download (`load.entry`'s identity), or file name.
+ */
 function matchStructure(ctx: ApiContext, source: Readonly<Record<string, unknown>>, uri: string | undefined) {
   const entryId = typeof source.id === 'string' ? source.id.toLowerCase() : undefined;
+  const service = typeof source.service === 'string' ? SvsServices[source.service] : undefined;
+  const labels = service && typeof source.id === 'string' ? entryLabels(service, source.id) : [];
   const hostFile = typeof source.host_file === 'string' ? source.host_file : undefined;
   const fileId = hostFile?.split('/').pop()?.split('.')[0]?.toLowerCase();
   return loadedStructures(ctx).find((s) => {
     const entry = s.cell.obj?.data.model.entryId?.toLowerCase();
-    if (entryId && entry === entryId) return true;
+    if (entryId && (entry === entryId || afdbAccession(entry) === entryId)) return true;
     if (hostFile && fileId && entry === fileId) return true;
     return dataAncestors(ctx, s.cell.transform.ref).some((cell) => {
-      const params = cell.transform.params as { url?: string | Asset.Url; file?: Asset.File } | undefined;
-      if (uri && cell.transform.transformer === Download && params?.url && Asset.getUrl(params.url) === uri)
-        return true;
+      const params = cell.transform.params as
+        | { url?: string | Asset.Url; file?: Asset.File; label?: string }
+        | undefined;
+      if (cell.transform.transformer === Download) {
+        if (uri && params?.url && Asset.getUrl(params.url) === uri) return true;
+        if (labels.includes((params?.label ?? '').toLowerCase())) return true;
+      }
       return !!hostFile && (params?.file?.name === hostFile || cell.obj?.label === hostFile);
     });
   });
@@ -815,7 +838,10 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
         );
       }
       if (!loaded.ok) return loaded;
-      structure = loadedStructures(ctx).find((s) => !before.includes(s.cell.transform.ref));
+      // Already loaded (the nested load said so, by its own identity): the structure is the one that matches it.
+      structure =
+        loadedStructures(ctx).find((s) => !before.includes(s.cell.transform.ref)) ??
+        (loaded.unchanged ? matchStructure(ctx, src, uri) : undefined);
       if (!structure) return ApiResult.fail('failed', "Loading the SeqViewSpec's structure made none.");
     }
     const shown = await sequence.showDocument(
@@ -1113,13 +1139,12 @@ const volume: OperationDefinition<typeof VolumeParams, Loaded> = {
   params: VolumeParams,
   addresses: ({ url }) => [url],
   ...network,
-  exists({ url }, ctx) {
-    const u = url.trim();
-    return u && liveDownloads(ctx).some((d) => d.url === u) ? `${u} is already loaded.` : undefined;
-  },
+  exists: ({ url }, ctx) => urlLoaded(url, ctx),
   async run(values, ctx) {
     const address = values.url.trim();
     if (!address) return ApiResult.fail('invalid', 'Which address?', 'Give the URL of a volume file.');
+    const loaded = ctx.copy ? undefined : urlLoaded(address, ctx);
+    if (loaded) return ApiResult.already(loaded);
     await ctx.extensions.ensureFor({ formats: [values.format] });
     if (!ctx.plugin.dataFormats.has(values.format)) {
       return ApiResult.fail(

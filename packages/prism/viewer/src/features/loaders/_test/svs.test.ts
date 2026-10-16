@@ -9,7 +9,7 @@
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { toJSON, zipFiles } from '@molstar/seq-core/format';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cbs, crambin, expectOk, headlessViewer, until } from '../../../_test/harness.js';
+import { cbs, crambin, exampleFile, expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { LoadersFeature } from '../index.js';
 
@@ -163,6 +163,34 @@ describe('load.svs', () => {
     );
     expect(structures(v)).toHaveLength(1);
     await until(() => seqOf(v).override.value?.document.metadata?.title === 'Again');
+  });
+
+  it('matches an AlphaFold DB entry it names by accession: loaded by load.entry, or a file of its model', async () => {
+    const stub = vi.fn(async (input: string | URL | Request) => {
+      const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+      if (url.includes('alphafold.ebi.ac.uk/api/prediction/Q8W3K0'))
+        return new Response(JSON.stringify([{ bcifUrl: 'https://af.test/AF-Q8W3K0-F1.bcif' }]), { status: 200 });
+      if (url.includes('af.test/'))
+        return new Response(await exampleFile('1cbs_full.bcif').arrayBuffer(), { status: 200 });
+      return new Response('not found', { status: 404 });
+    });
+    vi.stubGlobal('fetch', stub);
+    const v = await viewer([]);
+    expectOk(await v.api.load.entry!({ source: 'afdb', id: 'Q8W3K0' }));
+    const requests = stub.mock.calls.length;
+    // The download's label is load.entry's identity: the structure is that one, not loaded again.
+    const r = await v.api.load.svs!({ data: svsOver({ service: 'afdb', id: 'Q8W3K0' }) });
+    expectOk(r);
+    expect(structures(v)).toHaveLength(1);
+    expect(stub.mock.calls.length).toBe(requests);
+    await until(() => showsSvs(v));
+
+    // A model's file, whose entry id is AF-<accession>-F1.
+    const text = (await cbs().text()).replace(/1CBS/g, 'AF-Q8W3K0-F1');
+    const w = await viewer([new File([text], 'AF-Q8W3K0-F1.cif')]);
+    expectOk(await w.api.load.svs!({ data: svsOver({ service: 'afdb', id: 'Q8W3K0' }) }));
+    expect(structures(w)).toHaveLength(1);
+    expect(stub.mock.calls.length).toBe(requests);
   });
 
   it('opens .svsj files with the structure they name, dropped together', async () => {

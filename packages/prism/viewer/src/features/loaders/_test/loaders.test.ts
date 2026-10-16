@@ -133,6 +133,20 @@ describe('load.entry', () => {
     expect(stub).toHaveBeenCalledTimes(1);
   });
 
+  it('is already so when asked twice at once: the second, queued behind the first, finds it loaded', async () => {
+    const stub = serve({ '1cbs.bcif': await bytes('1cbs_full.bcif') });
+    const v = await viewer();
+    const [a, b] = await Promise.all([
+      v.api.load.entry!({ source: 'pdb', id: '1cbs' }),
+      v.api.load.entry!({ source: 'pdb', id: '1cbs' }),
+    ]);
+    expectOk(a);
+    expect(b).toMatchObject({ ok: true, unchanged: true, did: '1CBS is already loaded.' });
+    expect(structures(v)).toHaveLength(1);
+    expect(steps(v)).toBe(1);
+    expect(stub).toHaveBeenCalledTimes(1);
+  });
+
   it('loads another with copy', async () => {
     serve({ '1cbs.bcif': await bytes('1cbs_full.bcif') });
     const v = await viewer();
@@ -260,6 +274,19 @@ describe('load.url', () => {
     expect(steps(v)).toBe(1);
     expectOk(await v.api.load.url!({ url: 'https://files.test/1cbs.cif', format: 'mmcif' }, { copy: true }));
     expect(structures(v)).toHaveLength(2);
+  });
+
+  it('is already so when asked twice at once', async () => {
+    serve({ 'files.test/1cbs.cif': await bytes('1cbs_updated.cif') });
+    const v = await viewer();
+    const url = 'https://files.test/1cbs.cif';
+    const [a, b] = await Promise.all([
+      v.api.load.url!({ url, format: 'mmcif' }),
+      v.api.load.url!({ url, format: 'mmcif' }),
+    ]);
+    expectOk(a);
+    expect(b).toMatchObject({ ok: true, unchanged: true, did: `${url} is already loaded.` });
+    expect(structures(v)).toHaveLength(1);
   });
 
   it('reads the format and whether it is binary from the address with auto', async () => {
@@ -499,6 +526,16 @@ describe('load.volume', () => {
     ).toMatchObject({
       unchanged: true,
     });
+  });
+
+  it('is already so when asked twice at once', async () => {
+    serve({ 'files.test/map.ccp4': new Uint8Array(await mapFile().arrayBuffer()) });
+    const v = await viewer();
+    const params = { url: 'https://files.test/map.ccp4', format: 'ccp4', binary: true };
+    const [a, b] = await Promise.all([v.api.load.volume!(params), v.api.load.volume!(params)]);
+    expectOk(a);
+    expect(b).toMatchObject({ ok: true, unchanged: true });
+    expect(v.plugin.managers.volume.hierarchy.current.volumes).toHaveLength(1);
   });
 
   it('fails on a 404 and on a format that is unknown', async () => {
