@@ -400,3 +400,11 @@ the [API change ledger](breaking-v6-changes.md).
   opening a hidden tab by name brings it back.
 - `ui.layout.mode: 'embedded'` is the layout for a viewer inside a page: the rail behind its corner button, the panel
   floating and never pinned, compact where narrow, no panel open at start.
+
+## PAE from AlphaFold DB
+
+- A structure that is an AlphaFold DB entry (an `AF-<UniProt>-F<n>` id in its entry id, name or address) can fetch its
+  predicted aligned error from AlphaFold DB: "Fetch PAE from AlphaFold DB" in the structure row's menu, the
+  `model-archive.fetch-pae` command and operation, and a button in the PAE card. The PAE is a download and a parse in
+  the state tree, so it is undone with Undo and saved in a session.
+- The Structure panel's PAE row says the right size for a partial ModelCIF metric (a domain's PAE of a bigger model).

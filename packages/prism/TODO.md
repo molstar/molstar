@@ -46,8 +46,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
 - The drop overlay and Home read `sources.formats` once, when the shell mounts (`viewer/src/ui/shell.tsx`,
   `viewer/src/features/home/shell.tsx`).
-- The PAE row's size before the matrix is read assumes a full ModelCIF PAE: the model's polymer residues, wrong for a
-  partial metric (`extensions/model-archive/src/prism-viewer.ts`).
 - Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`), kinds for shapes and particle lists; `node` on the
   structure-scoped operations ([nodes.md §5](viewer/_spec/nodes.md)).
 - Themes and presets that fetch as they apply carry no addresses (only known services today;

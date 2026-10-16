@@ -7,6 +7,7 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { HistoryContext, ReadonlyState } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
@@ -14,6 +15,7 @@ import type { ApiSources } from '../sources/viewer-sources.js';
 import type { ViewerManagers } from './managers.js';
 import type { RunRecord } from './run.js';
 import type { TargetResolver } from './targets.js';
+import type { QueryLanguages } from '../targets/languages.js';
 import type { ExtensionApis } from '../api.js';
 
 // The viewer's API (api.md, api.md §1): one object per area, its operations as fields, every change through
@@ -116,6 +118,8 @@ export interface ApiAreaContext {
   readonly plugin: PluginContext;
   readonly sources: ApiSources;
   readonly targets: TargetResolver;
+  /** The query languages this viewer reads (its own set: README decision 29). */
+  readonly languages: QueryLanguages;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
   /** Declares and runs operations: the run path, as an area sees it. */
@@ -230,6 +234,15 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
    * the known data services and the servers the viewer is configured with. Absent: the agent always asks.
    */
   addresses?(values: PD.Values<P>): readonly string[];
+  /**
+   * Offered in a structure row's "…" menu (operations.md): an entry that runs it for that structure, where `applies`
+   * holds (an extension's action on the structures it knows, as model-archive's PAE fetch for an AlphaFold DB entry).
+   */
+  readonly structureMenu?: {
+    readonly label: string;
+    readonly icon?: IconName;
+    applies(plugin: PluginContext, structure: string): boolean;
+  };
   /** What it needs of the host; where one is missing it says why instead of running. */
   readonly modules?: readonly ApiModuleKey[];
   /** Whether it can run now; the string is the reason. Commands and tools read it too, so no origin. */

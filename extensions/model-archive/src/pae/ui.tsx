@@ -8,12 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, Select, Show } from '@molstar/prism-ui';
+import { Button, domView, Select, Show } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { SceneNode } from '@molstar/prism-viewer/model/scene';
 import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
-import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, of, startWith } from 'rxjs';
 import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';
 import type { PaeSize } from './operations.js';
 import { PaePlot } from './plot.js';
@@ -43,9 +43,22 @@ interface Shown {
 export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api['model-archive'];
   if (!area) return {};
-  // The structures that have a PAE (by the file's metric list: no matrix is read for this).
-  const withPae = ctx.sources.structures.pipe(
+  // The structures that have a PAE (by the file's metric list: no matrix is read for this), and those AlphaFold DB
+  // has one for (an entry without it yet): asked again when the state changes (a fetched PAE is a state cell).
+  const structures = combineLatest([ctx.sources.structures, area.changes.pipe(startWith(undefined))]).pipe(
+    map(([list]) => list),
+  );
+  const withPae = structures.pipe(
     map((list) => list.filter((s) => area.hasPae(s.ref)).map((s): Shown => ({ ref: s.ref, label: s.label }))),
+  );
+  const fetchable = structures.pipe(
+    map((list) => list.filter((s) => area.canFetchPae(s.ref)).map((s): Shown => ({ ref: s.ref, label: s.label }))),
+  );
+  const fetchPae = (structure: string) => void ctx.api['model-archive']?.fetchPae({ structure });
+  const FetchButton = (props: { shown: Shown }) => (
+    <Button size="sm" onClick={() => fetchPae(props.shown.ref)}>
+      Fetch PAE from AlphaFold DB{props.shown.label ? ` (${props.shown.label})` : ''}
+    </Button>
   );
   // The structure the card shows (by ref; none: the first with a PAE): its picker's, or the Structure panel row's.
   const chosen = observableState<string | undefined>(undefined);
@@ -76,14 +89,31 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
               <Show
                 when={shown}
                 fallback={() => (
-                  <p style={`margin: 0; ${Quiet}`}>
-                    No loaded model has a PAE. Model Archive's ModelCIF files carry one; AlphaFold DB ships it apart.
-                  </p>
+                  <div style="display: grid; gap: var(--msp-space-2); justify-items: start">
+                    <p style={`margin: 0; ${Quiet}`}>
+                      No loaded model has a PAE. Model Archive's ModelCIF files carry one; AlphaFold DB ships it apart.
+                    </p>
+                    <Show when={fetchable}>
+                      {(list) => (
+                        <>
+                          {list.map((s) => (
+                            <FetchButton shown={s} />
+                          ))}
+                        </>
+                      )}
+                    </Show>
+                  </div>
                 )}
               >
                 {(s) => {
                   const m = area.paeMatrix(s.ref);
-                  if (!m) return <p style={`margin: 0; ${Quiet}`}>{s.label} has no PAE.</p>;
+                  if (!m)
+                    return (
+                      <div style="display: grid; gap: var(--msp-space-2); justify-items: start">
+                        <p style={`margin: 0; ${Quiet}`}>{s.label} has no PAE.</p>
+                        <FetchButton shown={s} />
+                      </div>
+                    );
                   return <PaeView ctx={ctx} structure={s.ref} matrix={m} />;
                 }}
               </Show>
@@ -120,8 +150,8 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Predicted aligned error',
         group: 'scene',
         overlay: PaeCard,
-        visible: withPae.pipe(
-          map((l) => l.length > 0),
+        visible: combineLatest([withPae, fetchable]).pipe(
+          map(([a, b]) => a.length + b.length > 0),
           distinctUntilChanged(),
         ),
       },

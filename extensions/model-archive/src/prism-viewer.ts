@@ -175,6 +175,12 @@ function paeCommands(api: ViewerApi, area: ModelArchiveApi): CommandDefinition<a
       alias: ['pae', 'predicted aligned error', 'alphafold', 'model quality'],
       action: 'Read',
     }),
+    operationCommand(api, area.fetchPae, {
+      category: 'Structure',
+      icon: 'download',
+      alias: ['pae', 'predicted aligned error', 'alphafold', 'download pae', 'afdb'],
+      action: 'Fetch',
+    }),
     {
       id: 'model-archive.show-pae',
       title: 'Show the PAE plot',

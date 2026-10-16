@@ -217,6 +217,16 @@ namespace QualityAssessment {
     return result;
   }
 
+  /** How many rows the pairwise table has and how many pairwise metrics share them (no row is read). */
+  export function pairwiseSize(frame: CifFrame): { rows: number; metrics: number } {
+    const { ma_qa_metric, ma_qa_metric_local_pairwise } = toDatabase(PairwiseSchema, frame);
+    let metrics = 0;
+    for (let i = 0, il = ma_qa_metric._rowCount; i < il; i++) {
+      if (ma_qa_metric.mode.value(i) === 'local-pairwise') metrics++;
+    }
+    return { rows: ma_qa_metric_local_pairwise._rowCount, metrics };
+  }
+
   export function pairwiseMetricFromModelArchiveCIF(
     model: Model,
     frame: CifFrame,

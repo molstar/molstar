@@ -1612,6 +1612,17 @@ function structureMenu(plugin: PluginContext, api: ViewerApi, s: StructureRef): 
       run: () => void api.run('volume.streaming', { structure, on: true }),
     });
   }
+  // What an operation offers for a structure (its `structureMenu`: model-archive's PAE fetch for an AlphaFold DB entry).
+  for (const def of api.definitions.value.values()) {
+    const offer = def.structureMenu;
+    if (!offer || api.describe(def.id)?.supported !== true || !offer.applies(plugin, structure)) continue;
+    items.push({
+      id: def.id,
+      label: offer.label,
+      ...(offer.icon ? { icon: offer.icon } : {}),
+      run: () => void api.run(def.id, { structure }),
+    });
+  }
   // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).
   items.push({
     id: 'reset-transform',

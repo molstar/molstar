@@ -10,7 +10,8 @@ with its flags and params: [operations.md](operations.md) (generated). The code 
 registry-driven ones), flags `read`, `history: false` (view state), `undoable: false`, `quiet`, `record: false`,
 `approval` (`network` | `upload` | `destructive`; destructive wins), `addresses(values)` (what a network call reaches;
 absent: the agent asks), `modules`, `when` (true or the reason), `exists` (identity), `project` (optimistic edit),
-`surface` (§10), `aliases`, `run(values, ctx)`.
+`surface` (§10), `structureMenu` (an entry in a structure row's "…" menu that runs it for that structure where `applies`
+holds: model-archive's PAE fetch for an AlphaFold DB entry), `aliases`, `run(values, ctx)`.
 
 - **Params are PD.** One definition gives the command's form, the tool's flat input and validation (`checkValues`,
   `api/run.ts`). Targets are text fields with the `target` format ([targets.md](targets.md)).
@@ -152,7 +153,10 @@ nothing; the typings the model reads are generated from the API's definitions, a
 - **One command per operation by default** (`commands/operations.ts`, `operationCommand`): its id, title and params;
   form from the params, inline sentence from the flat fields ([commands.md](../../ui/_spec/commands.md)).
 - **Generated commands** where a list reads better: one per preset, quick style, selection query, applicable state
-  action, each the same operation with that argument fixed.
+  action, each the same operation with that argument fixed. The Select group (`commands/select.ts`, its queries from
+  `sources/select-queries.ts`): `select.set` per query of the plugin's registry (by category) and per entity, chain,
+  non-standard residue and element of the loaded structures (made again when they change), with the group's shared mode;
+  a highlighted row lights its atoms (`lociPreviewSink`) and is counted (ui's commands.md §5).
 - **Opening commands** (`<feature>.open`, `panel.<tab>`) run `view.open`: the way into a custom UI, whose actions are
   the area's operations.
 - **Keybindings and toolbar buttons name commands**, never operations, so hiding a command hides them.

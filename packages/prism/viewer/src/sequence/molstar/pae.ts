@@ -60,7 +60,7 @@ export const PaeScale: ThemeRef = {
 };
 
 /** The matrix of AlphaFold DB's JSON (a list of one object, or the object); a message when it is not one. */
-function readPae(json: unknown): PaeMatrix | string {
+export function readPae(json: unknown): PaeMatrix | string {
   const o = (Array.isArray(json) ? json[0] : json) as Record<string, unknown> | null;
   if (!o || typeof o !== 'object') return 'not an object or a list of one';
   const rows = o.predicted_aligned_error;
