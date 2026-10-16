@@ -12,16 +12,22 @@ import { bind, type MaybeReactive, onActive, onCleanup } from '../../dom/scope.j
 import { classes } from './_generated/prism-splash.module.css.js';
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { PrismField, type PrismFieldOptions } from './prism-field.js';
+import { QuantumField, type QuantumFieldOptions } from './quantum-field.js';
 
 export type { PrismFieldOptions } from './prism-field.js';
 export { PrismFieldDefaults } from './prism-field.js';
+export type { QuantumFieldOptions } from './quantum-field.js';
+export { QuantumFieldDefaults } from './quantum-field.js';
+
+/** What the splash runs: the light (`prism-field.ts`) or the light as a wave (`quantum-field.ts`). */
+export type SplashKind = 'light' | 'quantum';
 
 function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
- * Light through the Mol* star (`prism-field.ts`): a canvas filling what holds it, the light splitting at the star of the
+ * Light through the Mol* star (`prism-field.ts`; or as a wave, `quantum-field.ts`): a canvas filling what holds it, the light splitting at the star of the
  * wordmark `mark` finds (its `[data-part="star"]`), else at the middle. The canvas draws the wordmark, as glass
  * (`glass.ts`): it assembles from pieces as the splash starts, its pieces lean under the pointer, and a press on it
  * shatters it for a moment; the page's wordmark only places it. It answers the pointer over `pointer` (the
@@ -29,7 +35,9 @@ function prefersReducedMotion(): boolean {
  * is on the screen, the page is visible and its view active; under reduced motion it is one still frame.
  */
 export function PrismSplash(props: {
-  options?: MaybeReactive<Partial<PrismFieldOptions>>;
+  /** The light (default) or the light as a wave; `options` are that field's. */
+  field?: SplashKind;
+  options?: MaybeReactive<Partial<PrismFieldOptions> | Partial<QuantumFieldOptions>>;
   /** The element holding the wordmark the light goes through. */
   mark?: () => Element | null | undefined;
   /** Where the pointer is listened to (passively); none: the splash does not answer it. */
@@ -39,8 +47,9 @@ export function PrismSplash(props: {
   const canvas = (
     <canvas class={props.class ? `${classes.splash} ${props.class}` : classes.splash} aria-hidden="true" />
   ) as HTMLCanvasElement;
-  const field = new PrismField(canvas, {}, { still: prefersReducedMotion() });
-  if (props.options) bind(props.options, (o) => field.setOptions(o));
+  const still = { still: prefersReducedMotion() };
+  const field = props.field === 'quantum' ? new QuantumField(canvas, {}, still) : new PrismField(canvas, {}, still);
+  if (props.options) bind(props.options, (o) => field.setOptions(o as never));
 
   // The canvas's place on the page, read when it resizes or the page scrolls (not per pointer event: no layout reads at
   // pointer rate).
