@@ -30,6 +30,14 @@ run = "pnpm dev:apps --"
 description = "Examples in watch mode"
 run = "pnpm dev:examples --"
 
+[tasks."deploy:local"]
+description = "Build and fill the git-ignored deploy/data folder (the apps, prism/, ui-storybook/); publishes nothing"
+run = "pnpm deploy:local"
+
+[tasks."deploy:remote"]
+description = "Build and push the deploy to molstar.github.io (GitHub Pages; needs push rights to it)"
+run = "pnpm deploy:remote"
+
 [tasks.storybook]
 description = "Storybook on port 6006 (the packages registered in storybook/packages.ts)"
 run = "pnpm -C storybook storybook"
