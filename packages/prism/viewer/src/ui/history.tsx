@@ -244,7 +244,6 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
               variant="ghost"
               icon={<Icon name="save" />}
               title="Keep this session's record in this browser (the record only: no scene, no files)"
-              aria-label="Keep this record"
               disabled={keepBusy.asReadonly}
               onClick={() => {
                 keepBusy.set(true);
@@ -263,7 +262,6 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
               icon={<Icon name="save" />}
               pressed={true}
               title="Kept in this browser. Forget the kept copy: it goes on in memory, and can be kept again"
-              aria-label="Forget the kept record"
               onClick={() => void viewer.keptRecords.forget(viewer.record.id)}
             />
           )}

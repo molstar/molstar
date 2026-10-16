@@ -50,15 +50,20 @@ export const PrismViewerOptions = {
       ['secondary-zoom', 'Zoom only, secondary button'],
       ['disabled', 'Off'],
     ]),
-    /** accessibility.md: the categorical themes' colors (`canvas.palette`). */
-    palette: PD.Select<'prism' | 'classic' | 'colorblind'>(
+  }),
+  representation: PD.Group({
+    /**
+     * accessibility.md, viewer-spec.md §2.8: the colors the categorical themes (chains, entities, …) give by default
+     * (`representation.defaultPalette`).
+     */
+    defaultPalette: PD.Select<'prism' | 'classic' | 'colorblind'>(
       'prism',
       [
         ['prism', 'Prism'],
         ['classic', 'Classic (Mol*)'],
         ['colorblind', 'Colorblind-safe'],
       ],
-      { description: 'The colors of chains, entities and other categories' },
+      { description: 'The default colors of chains, entities and other categories' },
     ),
   }),
   data: PD.Group({

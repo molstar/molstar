@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// The data palette (accessibility.md): Prism's own list by default; `canvas.palette` swaps the categorical themes'
+// The data palette (accessibility.md): Prism's own list by default; `representation.defaultPalette` swaps the categorical themes'
 // default (Prism's, Mol*'s classic, colorblind-safe) and recolors what used the old default, as one step that Undo
 // takes back, registry included; the spec gives the lists (viewer-spec.md §2.8).
 
@@ -40,10 +40,12 @@ describe('the data palette', () => {
     // Prism's own at start.
     expect(chainColored(v).every((p) => JSON.stringify(p.colors) === JSON.stringify(Prism))).toBe(true);
 
-    const r = await v.api.canvas.palette({ palette: 'colorblind' });
+    const r = await v.api.representation.defaultPalette({ palette: 'colorblind' });
     expectOk(r);
     expect(chainColored(v).every((p) => JSON.stringify(p.colors) === JSON.stringify(Okabe))).toBe(true);
-    expect((await v.api.canvas.palette({ palette: 'colorblind' })) as { unchanged?: boolean }).toMatchObject({
+    expect(
+      (await v.api.representation.defaultPalette({ palette: 'colorblind' })) as { unchanged?: boolean },
+    ).toMatchObject({
       unchanged: true,
     });
 
@@ -66,7 +68,7 @@ describe('the data palette', () => {
   it('classic is the themes’ own (Mol*’s many-distinct): no palette of ours on what it colors', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     expectOk(await v.api.representation.color({ target: 'polymer', theme: 'chain-id' }));
-    expectOk(await v.api.canvas.palette({ palette: 'classic' }));
+    expectOk(await v.api.representation.defaultPalette({ palette: 'classic' }));
     const classic = chainColored(v);
     expect(classic.length).toBeGreaterThan(0);
     expect(classic.every((p) => JSON.stringify(p.colors) !== JSON.stringify(Prism))).toBe(true);
@@ -83,7 +85,10 @@ describe('the data palette', () => {
 
     const blind = await headlessViewer({
       files: [cbs()],
-      spec: { options: { canvas: { palette: 'colorblind' } }, palettes: { colorblind: [0x000000, 0xffffff] } },
+      spec: {
+        options: { representation: { defaultPalette: 'colorblind' } },
+        palettes: { colorblind: [0x000000, 0xffffff] },
+      },
     });
     expectOk(await blind.api.representation.color({ target: 'polymer', theme: 'chain-id' }));
     expect(chainColored(blind).every((p) => JSON.stringify(p.colors) === JSON.stringify([0, 0xffffff]))).toBe(true);

@@ -62,7 +62,7 @@ export interface PrismViewerSpec {
   readonly ui?: PrismViewerUISpec;
   /** Light state in localStorage and sessionStorage, kept records (§2.6). */
   readonly persist?: PrismViewerPersist;
-  /** The lists the data palettes take (§2.8); `options.canvas.palette` picks one. */
+  /** The lists the data palettes take (§2.8); `options.representation.defaultPalette` picks one. */
   readonly palettes?: PrismViewerPalettes;
   /** The app's last word on the composed plugin spec (§2.1). */
   readonly finalize?: (spec: PluginSpec) => PluginSpec;
@@ -89,7 +89,7 @@ export interface PrismViewerPluginParts {
 
 /**
  * §2.8: the lists the data palettes take (accessibility.md), the categorical themes' colors (chains, entities, …), in
- * the order categories take them: each color `0xRRGGBB` or `'#rrggbb'`. `options.canvas.palette` picks among them
+ * the order categories take them: each color `0xRRGGBB` or `'#rrggbb'`. `options.representation.defaultPalette` picks among them
  * (`prism` by default; `classic` is Mol*'s own many-distinct).
  */
 export interface PrismViewerPalettes {

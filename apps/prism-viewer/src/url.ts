@@ -46,8 +46,10 @@ export function optionsFromUrl(search: string): PartialOptions {
     canvas: {
       background: q.get('bg-color') ?? q.get('viewport-background-color') ?? undefined,
       focusBehavior: pick('viewport-focus-behavior', ['default', 'secondary-zoom', 'disabled'] as const),
-      // Prism's own (accessibility.md): `?palette=colorblind` (or `classic`, `prism`).
-      palette: pick('palette', ['prism', 'classic', 'colorblind'] as const),
+    },
+    representation: {
+      // The default palette (accessibility.md): `?palette=colorblind` (or `classic`, `prism`).
+      defaultPalette: pick('palette', ['prism', 'classic', 'colorblind'] as const),
     },
     data: {
       pdbProvider: pick('pdb-provider', ['pdbe', 'rcsb', 'pdbj'] as const),

@@ -86,9 +86,9 @@ of the bundle (`examples/minimal-prism-viewer`). Registered page-wide when a vie
 ### 2.8 `palettes`: the data palettes' lists
 
 `{ prism?, colorblind? }`: the colors the categorical themes take (chains, entities, polymers, operators, models), in
-order. `options.canvas.palette` picks `prism` (default), `classic` (Mol\*'s own) or `colorblind` (Okabe–Ito); also
-Settings, `?palette=`, `canvas.palette`. Kept in sessions (custom state `prism-viewer.palette`); a session without it
-opens on `classic` (`sources/palette.ts`).
+order. `options.representation.defaultPalette` picks `prism` (default), `classic` (Mol\*'s own) or `colorblind`
+(Okabe–Ito); also Settings, `?palette=`, the `representation.defaultPalette` operation. Kept in sessions (custom state
+`prism-viewer.palette`); a session without it opens on `classic` (`sources/palette.ts`).
 
 ## 3. Extensions
 

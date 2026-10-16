@@ -35,7 +35,7 @@ import { type PrismFieldOptions, PrismSplash, type SplashKind } from './prism-sp
  */
 const Delay = 700;
 /** How often the random splash is the wave (`quantum-field.ts`); the rest, the light's particles. */
-const QuantumShare = 0.8;
+const QuantumShare = 2 / 3;
 /** How long it takes to fade out when something loads (faster than it came). */
 const FadeOut = 250;
 
@@ -54,7 +54,7 @@ export function EmptyCanvas(props: {
   splash?: boolean | Partial<PrismFieldOptions>;
   /**
    * Which splash: the light (`prism-field.ts`), the light as a wave (`quantum-field.ts`), or either, picked at random
-   * each time it shows (the default: the wave four times in five, `QuantumShare`).
+   * each time it shows (the default: the wave two times in three, `QuantumShare`).
    */
   field?: SplashKind | 'random';
   /** The viewer is working (a load, a task): the wait for the mark starts over while it is. */

@@ -33,6 +33,7 @@ import {
   OptionalParam,
   NodeParam,
 } from './params.js';
+import { type DataPalette, dataPaletteOf, setDataPalette } from '../sources/palette.js';
 import { nodesFor, updateEach } from './nodes.js';
 import {
   componentName,
@@ -75,6 +76,36 @@ const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Name
 
 export class RepresentationApi extends ApiArea {
   readonly id = 'representation';
+
+  // accessibility.md: the colors the categorical themes (chains, entities, …) give by default: Prism's, Mol*'s classic
+  // or colorblind-safe; the representations on the old default follow (viewer-spec.md §2.8).
+  readonly defaultPalette = this.operation({
+    id: 'representation.defaultPalette',
+    title: 'Set the default palette',
+    params: {
+      palette: PD.Select<DataPalette>(
+        'colorblind',
+        [
+          ['prism', 'Prism'],
+          ['classic', 'Classic (Mol*)'],
+          ['colorblind', 'Colorblind-safe'],
+        ],
+        { description: 'The default colors of chains, entities, polymers and other categories' },
+      ),
+    },
+    async run({ palette }, ctx) {
+      if (dataPaletteOf(ctx.plugin) === palette) return ApiResult.already(`The default palette is already ${palette}.`);
+      const nodes = (await setDataPalette(ctx.plugin, palette)) ?? [];
+      return ApiResult.ok(
+        palette === 'colorblind'
+          ? 'Chains and entities now use colorblind-safe colors.'
+          : palette === 'classic'
+            ? 'Chains and entities now use Mol*’s classic colors.'
+            : 'Chains and entities now use Prism’s colors.',
+        { nodes },
+      );
+    },
+  });
 
   // The inspector's form: the whole params of the representations a node selector matches (`#ref` for a
   // row's); equal params: already.

@@ -42,12 +42,6 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       alias: ['background', 'bg'],
       action: 'Set',
     }),
-    operationCommand(api, api.canvas.palette, {
-      title: 'Use colorblind-safe colors',
-      category: 'Canvas',
-      icon: 'eye',
-      alias: ['colorblind', 'color blind', 'okabe ito', 'palette', 'accessible colors'],
-    }),
     operationCommand(api, api.camera.reset, {
       category: 'View',
       icon: 'focus',

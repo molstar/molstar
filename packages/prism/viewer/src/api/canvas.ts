@@ -11,7 +11,6 @@ import { decodeColor } from '@molstar/core/util/color/utils';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { CanvasState } from '../sources/viewer-sources.js';
-import { type DataPalette, dataPaletteOf, setDataPalette } from '../sources/palette.js';
 import { ApiArea, ApiResult } from './area.js';
 
 // `canvas` (api.md §2): the background in the core; illumination, lighting, clipping and XR come with
@@ -44,36 +43,6 @@ export class CanvasApi extends ApiArea {
       if (ctx.sources.canvas.value?.background === hex) return ApiResult.already(`The background is already ${color}.`);
       ctx.plugin.setCanvas3DProps({ renderer: { backgroundColor: value } });
       return ApiResult.ok(`Background set to ${color}.`, { view: true });
-    },
-  });
-
-  // accessibility.md: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations
-  // on the old default follow.
-  readonly palette = this.operation({
-    id: 'canvas.palette',
-    title: 'Set the data palette',
-    params: {
-      palette: PD.Select<DataPalette>(
-        'colorblind',
-        [
-          ['prism', 'Prism'],
-          ['classic', 'Classic (Mol*)'],
-          ['colorblind', 'Colorblind-safe'],
-        ],
-        { description: 'The colors of chains, entities, polymers and other categories' },
-      ),
-    },
-    async run({ palette }, ctx) {
-      if (dataPaletteOf(ctx.plugin) === palette) return ApiResult.already(`The data palette is already ${palette}.`);
-      const nodes = (await setDataPalette(ctx.plugin, palette)) ?? [];
-      return ApiResult.ok(
-        palette === 'colorblind'
-          ? 'Chains and entities now use colorblind-safe colors.'
-          : palette === 'classic'
-            ? 'Chains and entities now use Mol*’s classic colors.'
-            : 'Chains and entities now use Prism’s colors.',
-        { nodes },
-      );
     },
   });
 

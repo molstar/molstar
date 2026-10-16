@@ -26,7 +26,6 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `canvas.clipping` | Clip the scene | needs canvas | clip, far |
 | `canvas.get` | Describe the canvas | read |  |
 | `canvas.lighting` | Change the lighting | needs canvas | occlusion, shadow, outline, fog, illumination |
-| `canvas.palette` | Set the data palette |  | palette |
 | `canvas.settings` | Change canvas settings | needs canvas; ui-only | section, values |
 | `canvas.xr` | Enter or leave XR | view; needs canvas | on |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
@@ -83,6 +82,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `particles.visibility` | Show or hide particles |  | visible, particles, representation, node |
 | `representation.clipping` | Exclude from clipping |  | target, groups, structure, language |
 | `representation.color` | Color |  | target, color, theme, structure, language |
+| `representation.defaultPalette` | Set the default palette |  | palette |
 | `representation.emissive` | Set emissive strength |  | target, strength, structure, language |
 | `representation.layer-remove` | Remove a style layer |  | layer |
 | `representation.layer-update` | Change a style layer |  | layer, value |

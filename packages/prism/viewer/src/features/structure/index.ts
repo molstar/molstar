@@ -39,6 +39,13 @@ export const StructureFeature: ViewerExtension = {
 
 function structureFeatureCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
   return [
+    // The default palette (the representation area's, this feature's): with the representations it colors.
+    operationCommand(api, api.representation.defaultPalette, {
+      title: 'Use colorblind-safe colors',
+      category: 'Canvas',
+      icon: 'eye',
+      alias: ['colorblind', 'color blind', 'okabe ito', 'palette', 'accessible colors'],
+    }),
     operationCommand(api, api.structure.get, {
       category: 'Data',
       icon: 'list',

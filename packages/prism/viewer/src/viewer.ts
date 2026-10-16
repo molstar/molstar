@@ -356,7 +356,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // The data palette the options ask for (accessibility.md): before anything is loaded, so no step. Its state is
     // registered either way, so a session's palette comes back.
     initDataPalette(plugin, paletteLists(spec.palettes));
-    if (options.canvas.palette !== 'classic') await setDataPalette(plugin, options.canvas.palette);
+    const palette = options.representation.defaultPalette;
+    if (palette !== 'classic') await setDataPalette(plugin, palette);
     // The light restore (journal.md §6), written after each step when the spec gives it a store.
     const restore = spec.persist?.restore
       ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {

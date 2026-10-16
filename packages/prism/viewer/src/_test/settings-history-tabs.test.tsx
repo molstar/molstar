@@ -90,8 +90,9 @@ describe('the History tab', () => {
   it('keeps the record on a button, and says so', async () => {
     const v = await headlessViewer();
     const host = mount(historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications));
-    expect(host.textContent).toContain('Keep this record');
-    expect(host.textContent).not.toContain('Kept in this browser');
+    // An icon in the bar: its name says what it does, and that nothing is kept yet.
+    expect(host.querySelector('button[aria-label^="Keep this session"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label^="Kept in this browser"]')).toBeNull();
   });
 });
 

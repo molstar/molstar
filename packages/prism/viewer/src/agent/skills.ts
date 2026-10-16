@@ -181,7 +181,7 @@ export const Skills: readonly SkillDeclaration[] = [
       },
       {
         id: 'set_palette',
-        operation: 'canvas.palette',
+        operation: 'representation.defaultPalette',
         description:
           'Colorblind-safe colors (Okabe–Ito) for chains, entities and other categories, or the default ones.',
       },
