@@ -79,6 +79,28 @@ describe('shell focus', () => {
     t.done();
   });
 
+  it('a panel switched with the focus on the page leaves the focus there', () => {
+    const t = mount();
+    t.shell.show('structure');
+    expect(document.activeElement).toBe(document.body);
+    t.shell.show('home');
+    expect(t.container.querySelector('[role=tabpanel] h2')?.textContent).toBe('Home');
+    expect(document.activeElement).toBe(document.body);
+    t.done();
+  });
+
+  it('a panel the focus left for the page (a click on the canvas) leaves it there when switched', async () => {
+    const t = mount();
+    t.shell.show('structure');
+    const input = t.container.querySelector<HTMLElement>('[role=tabpanel] input')!;
+    input.focus();
+    input.blur();
+    await Promise.resolve();
+    t.shell.show('home');
+    expect(document.activeElement).toBe(document.body);
+    t.done();
+  });
+
   it('an overlay card opened from the keyboard takes the focus, keeps Tab, and gives it back', async () => {
     const t = mount();
     const anchor = document.createElement('button');

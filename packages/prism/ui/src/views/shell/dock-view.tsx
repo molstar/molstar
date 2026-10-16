@@ -402,8 +402,27 @@ function DockContent(props: {
   const { shell, dock, tab } = props;
   const shown = props.coveredBy ? props.coveredBy.pipe(map((o) => !o)) : true;
   let section: HTMLElement | undefined;
-  // Closed (✕, its shortcut) with the focus in it: the focus goes to its tab, not to the page (README §3.7).
+  // Whether the focus is in it. A focus lost with its nodes (a view's, removed before this content's cleanup) or with
+  // its closing (made inert) still counts; one moved out, to another element or to the page (a click on the canvas),
+  // does not.
+  let focusIn = false;
+  const onFocusOut = (e: FocusEvent) => {
+    const to = e.relatedTarget as Node | null;
+    if (to) {
+      focusIn = !!section?.contains(to);
+      return;
+    }
+    const from = eventTarget(e) as Element;
+    queueMicrotask(() => {
+      const now = deepActiveElement();
+      if (now && section?.contains(now)) return;
+      if (from.isConnected && !from.closest('[inert]')) focusIn = false;
+    });
+  };
+  // Closed (✕, its shortcut) with the focus in it: the focus goes to its tab, not to the page (README §3.7). A switch
+  // with the focus elsewhere (a script's, the agent's, with the focus on the page) leaves it there.
   onCleanup(() => {
+    if (!focusIn) return;
     const now = deepActiveElement();
     if (now && !section?.contains(now)) return;
     const root = (section?.closest('.msp-root') ?? section?.getRootNode()) as ParentNode | undefined;
@@ -419,6 +438,10 @@ function DockContent(props: {
       ref={(el) => {
         section = el;
       }}
+      onFocusIn={() => {
+        focusIn = true;
+      }}
+      onFocusOut={onFocusOut}
     >
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
