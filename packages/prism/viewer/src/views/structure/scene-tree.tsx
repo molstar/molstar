@@ -225,7 +225,9 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
   };
   const watch = (node: SceneNode) => {
     if (watched.has(node)) return;
-    watched.set(node, merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow));
+    // Kept in `watched`: unsubscribed when the node leaves the shown rows, and all of them when the tree is hidden.
+    const sub = merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow);
+    watched.set(node, sub);
   };
   bind(search, (s) => {
     current = s;
