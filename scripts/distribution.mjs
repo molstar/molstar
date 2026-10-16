@@ -225,7 +225,6 @@ await esbuild.build({
   assetNames: 'assets/[name]-[hash]',
   tsconfig: path.join(root, 'tsconfig.base.json'),
   minify: true,
-  minifyIdentifiers: false,
   sourcemap: false,
   external: ['crypto', 'fs', 'path', 'stream'],
   loader: {

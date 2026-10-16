@@ -112,7 +112,9 @@ Each is confirmed, but a public API shape, a recorded design decision or a packa
 
 13. **Identifier minification is off** in the app, distribution and slim builds (`minifyIdentifiers: false`, from
     #1542): about a third more bytes, ~280 kB gzipped on the full app. **Recommend**: on, unless something reads
-    function or class names.
+    function or class names. **Resolved**: the override was a no-op (esbuild ignores it beside `minify: true`), so
+    identifiers were minified all along and the estimate above was wrong; the override is removed (the output is
+    byte-identical), and nothing reads names at runtime but diagnostics (architecture.md §8.1).
 14. **MolViewSpec in the startup bundle** (~197 kB with io-ts and fflate; viewer-spec §2.1 lists it among the default
     behaviors): a lazy MVS feature with stub format providers.
 15. **The Seq\* chunk** (1.23 MB, 446 kB gzipped, loaded with the first structure) is built from Seq\*'s default spec

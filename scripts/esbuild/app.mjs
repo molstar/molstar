@@ -221,7 +221,6 @@ async function buildPackage(rawPkg) {
       ? path.join(dir, 'tsconfig.json')
       : path.join(root, 'tsconfig.json'),
     minify: production,
-    minifyIdentifiers: false,
     sourcemap: !production,
     conditions: ['molstar-src', 'import', 'default'],
     external: ['crypto', 'fs', 'path', 'stream'],
