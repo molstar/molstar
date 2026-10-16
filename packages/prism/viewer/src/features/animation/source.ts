@@ -11,7 +11,7 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import type { PluginContext } from '@molstar/plugin/context';
 import { WiggleStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/wiggle';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { merge } from 'rxjs';
+import { filter, merge } from 'rxjs';
 import { sameItems } from '../../sources/state.js';
 import { watchedState } from '../../sources/watched.js';
 
@@ -116,7 +116,10 @@ const sameInfo = (a: AnimationInfo, b: AnimationInfo) =>
 
 /**
  * The animation state, followed only while it is watched (a view bound to it, or a caller subscribed): the plugin is not
- * listened to otherwise, and `value` reads it fresh. Bursts of events are read once per animation frame.
+ * listened to otherwise, and `value` reads it fresh. Bursts of events are read once per animation frame. While an
+ * animation plays, the state tree changes on each of its frames (a trajectory's model, a snapshot transition), and a read
+ * asks every animation whether it can play (some search the tree): then only the tree's cells made or removed re-read,
+ * and the manager's update when it stops reads the rest.
  */
 export function createAnimationSource(plugin: PluginContext): AnimationSource {
   const manager = plugin.managers.animation;
@@ -130,7 +133,9 @@ export function createAnimationSource(plugin: PluginContext): AnimationSource {
     () =>
       merge(
         manager.events.updated,
-        plugin.state.data.events.changed,
+        plugin.state.data.events.changed.pipe(filter(() => !manager.isAnimating)),
+        plugin.state.data.events.cell.created,
+        plugin.state.data.events.cell.removed,
         plugin.managers.structure.component.events.optionsUpdated,
       ),
     {

@@ -38,6 +38,30 @@ describe('the animation model', () => {
     expect(model.blocked.value).toBeUndefined();
   });
 
+  it('builds the form again when a structure to unwind loads, keeping the choice and the values that still apply', async () => {
+    const v = await headlessViewer({ extensions: [AnimationFeature] });
+    const model = createAnimationModel(v.api.as({ kind: 'person' }), v.api.animation!);
+    const unwind = 'built-in.animate-assembly-unwind';
+    const targets = () =>
+      ((model.form!.params.animation as any).map(unwind).params.target.options as string[][]).map((o) => o[1]);
+    expect(targets()).toEqual(['All']);
+    const defaults = (model.form!.params.animation as any).map(unwind).defaultValue;
+    model.form!.set('animation', { name: unwind, params: { ...defaults, durationInMs: 1200 } } as never);
+    const before = model.form;
+    // Nothing changed: the same form.
+    model.refresh();
+    expect(model.form).toBe(before);
+
+    expectOk(await v.api.load.files({ files: [cbs()] }));
+    model.refresh();
+    expect(model.form).not.toBe(before);
+    expect(targets()).toHaveLength(2);
+    expect(model.form!.values.value.animation).toMatchObject({
+      name: unwind,
+      params: { durationInMs: 1200, target: 'all' },
+    });
+  });
+
   it('plays and stops through the API, and applies and clears the wiggle', async () => {
     const v = await createPrismViewerHeadless({
       spec: {

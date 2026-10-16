@@ -179,6 +179,38 @@ describe('animation', () => {
       await v.dispose();
     }
   });
+
+  it('does not ask the animations whether they can play on each frame of one playing, while it is watched', async () => {
+    const v = await withCanvas([ensemble()]);
+    try {
+      expectOk(await v.api.structure.visibility({ visible: false }));
+      const models = v.plugin.managers.animation.animations.find((a) => a.name === names.models)!;
+      const canApply = vi.spyOn(models, 'canApply');
+      const watching = v.api.animation!.state.subscribe();
+      const frames = () => new Promise((r) => setTimeout(r, 40));
+      expectOk(
+        await v.api.animation!.play({
+          name: names.models,
+          params: { mode: { name: 'once', params: {} }, duration: { name: 'fixed', params: { durationInS: 3 } } },
+        }),
+      );
+      await frames();
+      expect(v.api.animation!.state.value.playing).toBe(names.models);
+      canApply.mockClear();
+      for (let t = 0; t <= 1500; t += 250) await v.plugin.managers.animation.tick(t, true);
+      await frames();
+      expect(modelIndex(v)).toBeGreaterThan(0);
+      expect(canApply).not.toHaveBeenCalled();
+      // Stopped, it reads again.
+      expectOk(await v.api.animation!.stop());
+      await frames();
+      expect(canApply).toHaveBeenCalled();
+      expect(v.api.animation!.state.value.playing).toBeUndefined();
+      watching.unsubscribe();
+    } finally {
+      await v.dispose();
+    }
+  });
 });
 
 describe('wiggle', () => {

@@ -38,6 +38,8 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
         icon: 'play',
         order: 0,
         render: domView(() => {
+          // Built again if the animations or their params changed since it last showed (a structure to unwind).
+          model.refresh();
           const { form } = model;
           if (!form) return <p style="margin: 0">No animations are registered.</p>;
           return (

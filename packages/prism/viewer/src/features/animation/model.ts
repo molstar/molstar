@@ -7,9 +7,9 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { type ReadonlyState, mapState } from '@molstar/prism-ui/core';
+import { type ReadonlyState, mapState, observableState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { AnimationApi } from './operations.js';
 import type { WiggleState } from './source.js';
@@ -21,6 +21,12 @@ import type { WiggleState } from './source.js';
 export interface AnimationModel {
   /** The choice of animation and its params, as one mapped param (`animation: { name, params }`); none registered: none. */
   readonly form: ParamsFormModel<any> | undefined;
+  /**
+   * Builds `form` again when the animations or their params changed since (one registered later, a structure loaded
+   * that Unwind can target), keeping the choice and the values whose param is the same; the Play section calls it when
+   * it shows.
+   */
+  refresh(): void;
   /** Why the chosen animation cannot play now ("No trajectory to animate"); undefined: it can. */
   readonly blocked: ReadonlyState<string | undefined>;
   /** Any animation plays (the Play button is Stop). */
@@ -81,26 +87,58 @@ function joinVectors(params: PD.Params, values: Record<string, unknown>): Record
   return out;
 }
 
+/** A param's definition as text, to compare (undefined when it cannot be written: then it never compares equal). */
+function json(value: unknown): string | undefined {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export function createAnimationModel(api: ViewerApi, area: AnimationApi): AnimationModel {
-  const animations = area.state.value.animations;
-  // The first that can play now is the choice to start with.
-  const first = animations.find((a) => a.available === true) ?? animations[0];
-  const form = first
-    ? new ParamsFormModel({
-        animation: PD.MappedStatic(
-          first.name,
-          Object.fromEntries(
-            animations.map((a) => [a.name, PD.Group(splitVectors(area.paramsOf(a.name) ?? {}), { isFlat: true })]),
-          ),
-          {
-            label: 'Animation',
-            isEssential: true,
-            options: animations.map((a) => [a.name, a.title] as [string, string]),
-          },
-        ),
-      })
-    : undefined;
-  const chosen = () => (form?.values.value as { animation?: { name: string } } | undefined)?.animation?.name;
+  const current = observableState<ParamsFormModel<any> | undefined>(undefined, { compare: Object.is });
+  // What the form was built from: each animation's params (as the form has them) and their key, so a refresh with
+  // nothing changed keeps the form, its folds and values.
+  let built: { key: string | undefined; groups: Record<string, PD.Params> } | undefined;
+  const refresh = () => {
+    const animations = area.state.value.animations;
+    const groups: Record<string, PD.Params> = {};
+    for (const a of animations) groups[a.name] = splitVectors(area.paramsOf(a.name) ?? {});
+    const key = json(animations.map((a) => [a.name, a.title, groups[a.name]]));
+    if (key !== undefined && built?.key === key) return;
+    const previous = current.value?.values.value.animation as
+      | { name: string; params: Record<string, unknown> }
+      | undefined;
+    const before = built?.groups;
+    built = { key, groups };
+    // The first that can play now is the choice to start with.
+    const first = animations.find((a) => a.available === true) ?? animations[0];
+    if (!first) return current.set(undefined);
+    const animation = PD.MappedStatic(
+      first.name,
+      Object.fromEntries(animations.map((a) => [a.name, PD.Group(groups[a.name], { isFlat: true })])),
+      {
+        label: 'Animation',
+        isEssential: true,
+        options: animations.map((a) => [a.name, a.title] as [string, string]),
+      },
+    );
+    let values: { animation: { name: string; params: Record<string, unknown> } } | undefined;
+    if (previous && groups[previous.name] && before?.[previous.name]) {
+      // A value goes on where its param is as it was (a Select whose options changed starts again from its default).
+      const was = before[previous.name];
+      const params = { ...PD.getDefaultValues(groups[previous.name]) } as Record<string, unknown>;
+      for (const [k, p] of Object.entries(groups[previous.name])) {
+        const same = was[k] && json(was[k]) !== undefined && json(was[k]) === json(p);
+        if (same && k in previous.params) params[k] = previous.params[k];
+      }
+      values = { animation: { name: previous.name, params } };
+    }
+    current.set(new ParamsFormModel({ animation }, values as never));
+  };
+  refresh();
+  const chosen = () => (current.value?.values.value as { animation?: { name: string } } | undefined)?.animation?.name;
 
   const reason = () => {
     const name = chosen();
@@ -108,20 +146,24 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
     return info && info.available !== true ? info.available : undefined;
   };
   // Both what is available and the choice change it; as `mapState`, nothing is held until someone subscribes.
-  const blocked = (
-    form
-      ? combineLatest([area.state, form.values]).pipe(map(reason), distinctUntilChanged())
-      : area.state.pipe(map(reason), distinctUntilChanged())
-  ) as ReadonlyState<string | undefined>;
+  const blocked = combineLatest([
+    area.state,
+    current.asReadonly.pipe(switchMap((form) => (form ? form.values : of(undefined)))),
+  ]).pipe(map(reason), distinctUntilChanged()) as ReadonlyState<string | undefined>;
   Object.defineProperty(blocked, 'value', { get: reason, enumerable: true });
 
   const wiggleForm = new ParamsFormModel(WiggleFormParams);
   return {
-    form,
+    get form() {
+      return current.value;
+    },
+    refresh,
     blocked,
     isPlaying: mapState(area.state, (s) => s.playing !== undefined, Object.is),
     play() {
-      const v = form?.values.value as { animation?: { name: string; params: Record<string, unknown> } } | undefined;
+      const v = current.value?.values.value as
+        | { animation?: { name: string; params: Record<string, unknown> } }
+        | undefined;
       if (!v?.animation) return;
       void api.animation?.play({
         name: v.animation.name,
