@@ -102,6 +102,7 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 
 .msp-viewer-snapshots-panel-blockContent {
   padding: var(--msp-space-2) var(--msp-space-3);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -342,6 +343,7 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 }
 
 .msp-viewer-snapshots-panel-inspectorContent {
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
   display: grid;
 }

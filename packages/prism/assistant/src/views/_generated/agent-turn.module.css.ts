@@ -144,6 +144,7 @@ defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
 .msp-assistant-agent-turn-bodyContent {
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-3) var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

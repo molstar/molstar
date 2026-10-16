@@ -237,6 +237,7 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 
 .msp-viewer-history-turnBody {
   gap: var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

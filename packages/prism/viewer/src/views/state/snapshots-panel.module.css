@@ -64,6 +64,8 @@
 
 .blockContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--msp-space-2) var(--msp-space-3);
 }
 
@@ -322,6 +324,8 @@
 /* At least the inspector's height: the hint (stretched) centers in it. */
 .inspectorContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
 }
 

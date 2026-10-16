@@ -67,6 +67,7 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
   align-content: start;
   gap: var(--msp-space-1);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

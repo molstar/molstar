@@ -24,6 +24,9 @@
 
 .contentInner {
   display: grid;
+  /* One column no wider than the panel: a long line (an offer, a description) fades out in its row instead of widening
+     the column, and every section with it, past the panel's edge. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--msp-space-4);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
@@ -116,6 +119,8 @@
 
 .actionBody {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
 }

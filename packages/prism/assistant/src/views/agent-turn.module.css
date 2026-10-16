@@ -106,6 +106,8 @@
 
 .bodyContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-3) var(--msp-space-2);
 }

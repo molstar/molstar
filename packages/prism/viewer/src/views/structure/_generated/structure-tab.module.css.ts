@@ -248,6 +248,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 .msp-viewer-structure-tab-presetsContent {
   gap: var(--msp-space-2);
   padding: var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

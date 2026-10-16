@@ -65,6 +65,7 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   align-content: start;
   gap: var(--msp-space-4);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -152,6 +153,7 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 .msp-viewer-home-tab-actionBody {
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

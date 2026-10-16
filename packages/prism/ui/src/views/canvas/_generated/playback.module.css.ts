@@ -338,6 +338,7 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-listRowsContent {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

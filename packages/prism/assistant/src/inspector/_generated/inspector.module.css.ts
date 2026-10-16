@@ -87,6 +87,7 @@ defineStyles('assistant/inspector/inspector.module.css', `@layer msp.components 
   gap: var(--msp-space-4);
   min-width: 0;
   padding: var(--msp-space-5) var(--msp-space-5) var(--msp-space-6);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
