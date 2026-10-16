@@ -72,7 +72,7 @@ export interface ViewerSources {
   readonly pointer: PointerSources;
   /** The selection mode, the picking level, the selection and the focus. */
   readonly interaction: InteractionSources;
-  /** The file formats the plugin reads, by label (the drop area's hint). */
+  /** The file formats the plugin reads, by label (the drop area's hint): read when asked, so a lazy extension's are in. */
   readonly formats: readonly string[];
   /** The Settings tab's groups with their current values. */
   readonly settings: SettingsSources;
@@ -135,7 +135,6 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   );
   const pointer = createPointerSources(scope, plugin);
   const interaction = createInteractionSources(scope, plugin);
-  const formats = plugin.dataFormats.options.map(([, label]) => label);
   const settings = createSettingsSources(plugin);
   const memo = {};
   const layers = watchedState(
@@ -152,7 +151,9 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
       tasks,
       pointer,
       interaction,
-      formats,
+      get formats() {
+        return plugin.dataFormats.options.map(([, label]) => label);
+      },
       settings,
       layers,
       marks: createMarksSource(scope, plugin),
