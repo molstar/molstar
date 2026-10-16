@@ -110,10 +110,21 @@ export function createRepresentationQuick(
   const registry = plugin.representation.structure.registry;
   const themes = plugin.representation.structure.themes;
 
+  // A type's defaults on a structure, once each: a size or opacity drag reads them at pointer rate.
+  const defaultsOf = new WeakMap<Structure, Map<string, Params['type']['params'] | undefined>>();
   const typeDefaults = (name: string) => {
     const s = structure();
-    const provider = registry.get(name);
-    return s && provider ? (PD.getDefaultValues(provider.getParams(themes, s)) as Params['type']['params']) : undefined;
+    if (!s) return undefined;
+    let known = defaultsOf.get(s);
+    if (!known) defaultsOf.set(s, (known = new Map()));
+    if (!known.has(name)) {
+      const provider = registry.get(name);
+      known.set(
+        name,
+        provider ? (PD.getDefaultValues(provider.getParams(themes, s)) as Params['type']['params']) : undefined,
+      );
+    }
+    return known.get(name);
   };
   const themeDefaults = (name: string) => {
     const s = structure();
@@ -177,7 +188,10 @@ export function createRepresentationQuick(
   const opacity = observableState<number | undefined>(undefined);
   const size = observableState<number | undefined>(undefined);
 
-  const publish = () => {
+  // The choices are listed for these (and the structure), again when they change or on a refresh (the hierarchy changed),
+  // not for each step of a drag, which changes neither.
+  let listed: { type: string; theme: string; structure: Structure | undefined } | undefined;
+  const publish = (refreshed = false) => {
     const p = params();
     if (!p) return;
     const o = steps.overlay('rep');
@@ -185,19 +199,26 @@ export function createRepresentationQuick(
     const th = o?.color !== undefined ? 'uniform' : (o?.theme ?? p.colorTheme.name);
     type.set(t);
     theme.set(th);
-    const typeList = choices(CommonTypes, t, typeOk, (id) => registry.get(id)?.label ?? id, iconOf);
-    if (!sameChoices(types.value, typeList)) types.set(typeList);
-    const themeList = choices(
-      CommonThemes,
-      th,
-      themeOk,
-      (id) => themes.colorThemeRegistry.get(id)?.label ?? id,
-      swatchOf,
-    );
-    if (!sameChoices(themeChoices.value, themeList)) themeChoices.set(themeList);
+    const s = structure();
+    if (refreshed || listed?.type !== t || listed.theme !== th || listed.structure !== s) {
+      listed = { type: t, theme: th, structure: s };
+      const typeList = choices(CommonTypes, t, typeOk, (id) => registry.get(id)?.label ?? id, iconOf);
+      if (!sameChoices(types.value, typeList)) types.set(typeList);
+      const themeList = choices(
+        CommonThemes,
+        th,
+        themeOk,
+        (id) => themes.colorThemeRegistry.get(id)?.label ?? id,
+        swatchOf,
+      );
+      if (!sameChoices(themeChoices.value, themeList)) themeChoices.set(themeList);
+    }
     color.set(o?.color ?? (p.colorTheme.name === 'uniform' ? (p.colorTheme.params.value as number) : undefined));
     opacity.set(o?.opacity ?? p.type.params.alpha);
-    const base = typeDefaults(p.type.name)?.sizeFactor;
+    const base =
+      o?.size === undefined && p.type.params.sizeFactor !== undefined
+        ? typeDefaults(p.type.name)?.sizeFactor
+        : undefined;
     size.set(
       o?.size ?? (p.type.params.sizeFactor !== undefined && base ? round(p.type.params.sizeFactor / base) : undefined),
     );
@@ -238,7 +259,7 @@ export function createRepresentationQuick(
     ...(options.throttleMs !== undefined ? { throttleMs: options.throttleMs } : {}),
   });
 
-  publish();
+  publish(true);
   return {
     types: types.asReadonly,
     themes: themeChoices.asReadonly,
@@ -249,6 +270,6 @@ export function createRepresentationQuick(
     size: size.asReadonly,
     change: (c) => steps.change('rep', c),
     settle: () => steps.settle(),
-    refresh: publish,
+    refresh: () => publish(true),
   };
 }

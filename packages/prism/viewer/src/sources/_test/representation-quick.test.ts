@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cbs, crambin, headlessViewer, until } from '../../_test/harness.js';
 import type { SceneNode } from '../../model/scene.js';
 import type { PrismViewer } from '../../viewer.js';
@@ -46,6 +46,26 @@ describe('the quick settings of a structure representation', () => {
     expect(quick.type.value).toBe('cartoon');
     expect(quick.opacity.value).toBe(1);
     expect(quick.size.value).toBe(1);
+  });
+
+  it('does not rebuild its choices or a type’s defaults for each step of a size or opacity drag', async () => {
+    const { v, quick } = await cartoon();
+    const registry = v.plugin.representation.structure.registry;
+    const getParams = vi.spyOn(registry.get('cartoon'), 'getParams');
+    const isApplicable = vi.spyOn(registry.get('cartoon'), 'isApplicable');
+    quick.change({ size: 1.1 });
+    getParams.mockClear();
+    isApplicable.mockClear();
+    for (let i = 0; i < 20; i++) {
+      quick.change({ opacity: 0.5 + i / 100 });
+      quick.change({ size: 1.2 + i / 100 });
+    }
+    expect(quick.opacity.value).toBeCloseTo(0.69, 5);
+    expect(quick.size.value).toBeCloseTo(1.39, 5);
+    expect(getParams).not.toHaveBeenCalled();
+    expect(isApplicable).not.toHaveBeenCalled();
+    quick.settle();
+    await idle(v);
   });
 
   it('offers no pLDDT for an experimental structure whose file does not say how it was determined', async () => {
