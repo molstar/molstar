@@ -22,24 +22,24 @@ design is so is in [.v6/ai](../../../.v6/ai/README.md) (its decisions, and the s
 
 ```
 messages ─┬─ harness ─┬─ tools ──── session
-          │           ├─ trace ─── (session/compose.ts)
+          │           ├─ trace
           │           └─ testing
           ├─ providers          (the host passes providers in)
           └─ threads ── testing/threads (the suite)
 narration (nothing of the other folders)
 ```
 
-| Folder (`src/`) | Holds                                                                                                              | Imports of the other folders                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`      | none (`@molstar/core`'s hash file only)      |
-| `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                   |
-| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK only here             |
-| `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here         |
-| `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`               |
-| `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts`  |
-| `threads/`      | the thread kernel and host, its row-store port, the memory rows; the suite is `_test/`                             | `messages` (`canonicalJson`, `Clock`)        |
-| `testing/`      | `createSession`; the clock, ids, scripted model and tools; the threads' suite (`testing/threads/`)                 | `messages`, `harness` (the suite: `threads`) |
-| `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                         |
+| Folder (`src/`) | Holds                                                                                                                                                          | Imports of the other folders                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`; the session's markers and labels (`markers.ts`) | none (`@molstar/core`'s hash file only)      |
+| `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/`                                             | `messages`                                   |
+| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies)                                             | `messages`; the AI SDK only here             |
+| `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                                                                       | `messages`, `harness`; zod only here         |
+| `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                                                                       | `messages`, `harness`, `tools`               |
+| `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                                                                     | `messages`, `harness`                        |
+| `threads/`      | the thread kernel and host, its row-store port, the memory rows; the suite is `_test/`                                                                         | `messages` (`canonicalJson`, `Clock`)        |
+| `testing/`      | `createSession`; the clock, ids, scripted model and tools; the threads' suite (`testing/threads/`)                                                             | `messages`, `harness` (the suite: `threads`) |
+| `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                                                                     | none                                         |
 
 The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports): zod is
 allowed only in `tools/` and `providers/` (and restricted everywhere outside `packages/ai`), the AI SDK only in

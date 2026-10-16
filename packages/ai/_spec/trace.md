@@ -2,8 +2,9 @@
 
 A read-only projection of a harness's records into plain data for a trace view (Prism's Inspector: Trace, Tools,
 Limits). It shows only what is committed, so it is safe to call while a turn runs; re-read on `client.watch()`, not on
-every streamed token. Imports `messages/` and `harness/` only, and `session/compose.ts` for `REQUEST_MARKER` (the label
-kinds, `LABELS`, are copied).
+every streamed token. Imports `messages/` and `harness/` only: the session's markers and labels (`REQUEST_MARKER`,
+`LABEL_REQUEST`, …) are in `messages/markers.ts`, so `@molstar/ai/trace` pulls neither the session nor the tools (the
+tools' label kinds in `LABELS` are copied).
 
 ## Files (`src/trace/`)
 

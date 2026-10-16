@@ -403,7 +403,6 @@
                       "**/tools/**",
                       "**/session",
                       "**/session/**",
-                      "!**/session/compose.js",
                       "**/threads",
                       "**/threads/**",
                       "**/testing",
@@ -411,7 +410,7 @@
                       "**/narration",
                       "**/narration/**"
                     ],
-                    "message": "The trace reads the harness records (and the request markers of session/compose.ts) only."
+                    "message": "The trace reads the harness records (and the session's markers, which are in messages/) only."
                   },
                   {
                     "group": ["node:*"],

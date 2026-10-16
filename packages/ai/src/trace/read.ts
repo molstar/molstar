@@ -6,14 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { REQUEST_MARKER } from '../session/compose.js';
 import {
   canonicalJson,
   estimatedTokens,
   type Json,
   type JsonObject,
   type Message,
+  LABEL_GUIDANCE,
+  LABEL_GUIDANCE_UPDATE,
+  LABEL_REQUEST,
   type ModelFinish,
+  REQUEST_MARKER,
 } from '../messages/index.js';
 import {
   type AttemptRecord,
@@ -59,9 +62,9 @@ import type {
  * and `tools/` give them. An entry is read by its label, never by its text.
  */
 export const LABELS = {
-  request: 'session:request',
-  guidance: 'session:guidance',
-  guidanceUpdate: 'session:guidance-update',
+  request: LABEL_REQUEST,
+  guidance: LABEL_GUIDANCE,
+  guidanceUpdate: LABEL_GUIDANCE_UPDATE,
   definitions: 'tools:definitions',
   skill: 'tools:skill',
   entry: 'tools:entry',

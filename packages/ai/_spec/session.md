@@ -11,7 +11,7 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `session.ts`  | `AgentSession`: the harness (made on first use), `turn`, `resume`, `stop`, hooks from observations, results                                                      |
 | `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`                                                                 |
-| `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                                                                                   |
+| `compose.ts`  | `turnInput`, `requestOf`; the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …) and labels, re-exported from `messages/markers.ts` (where the trace reads them)      |
 | `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`                                                                  |
 | `state.ts`    | `TurnState`: what the session keeps of the running turn (made afresh per turn and per resume; a resume keeps the events shown and seeds the parked step's calls) |
 | `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)                                                         |

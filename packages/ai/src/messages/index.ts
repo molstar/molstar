@@ -8,6 +8,7 @@
 
 export { estimatedTokens } from './estimate.js';
 export { canonicalJson, digest, encodeMessage, hashing, hashMessage } from './hash.js';
+export * from './markers.js';
 export type * from './messages.js';
 export * from './models.js';
 export type * from './values.js';
