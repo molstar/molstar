@@ -127,13 +127,15 @@ const FrontHalf = 14;
 /** A packet's amplitude in the front, and in the snap's burst (soft: no spike at the star). */
 const FrontAmplitude = 0.8;
 /**
- * The start: the grid seeded with this many broad, faint waves (random places, ways and wavenumbers of the spectrum;
- * half size `SeedSize` cells, amplitude `SeedAmplitude`), so the light is everywhere a little rather than in one spot
- * as the front comes in; the picture comes in over `SeedFade` s.
+ * The start: the flow already under way, faint: this many packets (half size `SeedSize` cells, amplitude
+ * `SeedAmplitude`, wavenumbers of the spectrum) spread along the beam's whole length and across its band, going right
+ * within `SeedSpread` radians, so the picture flows from the first frame and the front strengthens it as the glass
+ * assembles; it comes in over `SeedFade` s.
  */
-const Seeds = 14;
-const SeedSize = 22;
-const SeedAmplitude = 0.3;
+const Seeds = 10;
+const SeedSize = 10;
+const SeedAmplitude = 0.5;
+const SeedSpread = 0.25;
 const SeedFade = 1.5;
 const BurstAmplitude = 0.45;
 const Source = Edge + 6;
@@ -582,9 +584,11 @@ export class QuantumField {
     const im = this.#im;
     const s2 = 2 * SeedSize * SeedSize;
     for (let n = 0; n < Seeds; n++) {
-      const cx = Edge + this.#random() * (N - 2 * Edge);
-      const cy = Edge + this.#random() * (N - 2 * Edge);
-      const angle = this.#random() * Math.PI * 2;
+      // Along the beam's whole length (spread evenly, a little jitter), across its band, going right like the front.
+      const sy = (this.#oy - this.#gy) / Cell;
+      const cx = Source + ((n + 0.3 + 0.4 * this.#random()) / Seeds) * (N - Edge - Source);
+      const cy = sy + (this.#random() * 2 - 1) * FrontHalf * 1.4;
+      const angle = (this.#random() * 2 - 1) * SeedSpread;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
       const kx = k * Math.cos(angle);
       const ky = k * Math.sin(angle);
