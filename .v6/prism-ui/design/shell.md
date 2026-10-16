@@ -15,7 +15,8 @@ extension UI) are placed.
   the others are empty by default; apps can place tabs there.
 - **Appear when relevant.** Home shows when nothing is loaded, and a load started from it that brings something in
   shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the empty canvas
-  shows the wordmark (without Prism's triangle: the star is the prism), and with it, once the viewer is idle, a splash:
+  shows the wordmark (without Prism's triangle: the star is the prism) once it has been empty and the viewer idle for
+  0.7 s (any work restarts the wait: a long load shows nothing), and with it a splash:
   light drifting in behind the word and leaving the star along its arms as small spectra of the logo's colors, in
   bubbles that answer the pointer (pushed, stirred, a burst on a press). The word is glass, drawn by the splash's canvas: it
   gathers smoothly from drifting pieces as the splash starts, its pieces lean a little under the pointer, and a press on
