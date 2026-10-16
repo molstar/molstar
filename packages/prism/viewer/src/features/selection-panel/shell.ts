@@ -13,6 +13,8 @@ import { selectionSections, selectionTab } from './panels.js';
 /** The Selection tab (the core's id, `selection`) and its own sections. */
 export function selectionPanelShell({ shell, core, person, own }: BuiltInShellContext): () => void {
   const { sources } = core;
+  // The reveal in progress: one at a time (the latest component wins), and none after the shell goes.
+  let revealing: ReturnType<typeof setTimeout> | undefined;
   const undo = [
     shell.registerTabs(own('tab', [selectionTab(selectionSummaryModel(sources.interaction, person))])),
     shell.registerSections(
@@ -25,15 +27,19 @@ export function selectionPanelShell({ shell, core, person, own }: BuiltInShellCo
           // The tree follows the state on its own schedule: tried until the row is there (a second at most).
           let tries = 0;
           const reveal = () => {
+            revealing = undefined;
             if (core.views.scene.reveal?.(ref) || ++tries > 20) return;
-            setTimeout(reveal, 50);
+            revealing = setTimeout(reveal, 50);
           };
+          clearTimeout(revealing);
           reveal();
         }),
       ),
     ),
   ];
   return () => {
+    clearTimeout(revealing);
+    revealing = undefined;
     for (const u of undo.reverse()) u();
   };
 }

@@ -58,6 +58,8 @@ function listCommand(
   };
 }
 
+const SelectionTab = 'core.tab.selection';
+
 export const SuperpositionFeature: ViewerExtension = {
   id: 'superposition',
   title: 'Superposition',
@@ -74,9 +76,11 @@ export const SuperpositionFeature: ViewerExtension = {
         category,
         icon: 'layers',
         alias: ['superpose', 'superposition', 'align structures', 'rmsd'],
+        // The section is in the Selection panel: without the panel there is nowhere to open.
+        when: () => (api.view.hasTab(SelectionTab) ? true : 'There is no Selection panel.'),
         // Opens the section: a view, not a change.
         async run() {
-          const r = await api.view.open({ tab: 'core.tab.selection', section: 'superposition.section.superpose' });
+          const r = await api.view.open({ tab: SelectionTab, section: 'superposition.section.superpose' });
           if (ApiResult.isFailure(r)) throw new Error(r.message);
           return {
             message: 'Opened Superpose.',

@@ -35,7 +35,13 @@ export {
   type MeasureKind,
   readMeasurements,
 } from '../../sources/measurements.js';
-import { type MeasurementInfo, type MeasureKind, MeasureKinds, readMeasurements } from '../../sources/measurements.js';
+import {
+  type MeasurementInfo,
+  type MeasureKind,
+  MeasureKinds,
+  measurementLocis,
+  readMeasurements,
+} from '../../sources/measurements.js';
 
 const Kinds: readonly MeasurementKind[] = (Object.keys(MeasureKinds) as MeasureKind[]).map((id) => ({
   id,
@@ -157,7 +163,7 @@ export function createMeasurementsSource(plugin: PluginContext, api: ViewerApi):
             visibility: (hide) => void api.measure?.visibility({ measurement: m.ref, visible: !hide }),
             remove: () => void api.measure?.remove({ measurement: m.ref }),
             highlight: (on) => {
-              const loci = readMeasurements(plugin).find((x) => x.ref === m.ref)?.locis[0];
+              const loci = measurementLocis(plugin, m.ref)[0];
               if (on && loci) void api.highlight.set({ target: { loci } });
               else void api.highlight.clear();
             },

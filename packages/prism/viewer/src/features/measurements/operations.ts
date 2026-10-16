@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color';
 import { StructureElement } from '@molstar/model/model/structure';
+import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { StructureMeasurementParams } from '@molstar/plugin/state/manager/structure/measurement';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -228,10 +229,8 @@ export class MeasureApi extends ApiArea {
       if (found.hidden === !visible) {
         return ApiResult.already(`The ${found.kind} ${found.label} is already ${visible ? 'shown' : 'hidden'}.`);
       }
-      await PluginCommands.State.ToggleVisibility(ctx.plugin, {
-        state: ctx.plugin.state.data,
-        ref: found.selectionRef,
-      });
+      // Set, not toggled: the selection cell or the representation's alone may be the hidden one.
+      setSubtreeVisibility(ctx.plugin.state.data, found.selectionRef, !visible);
       return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} the ${found.kind} ${found.label}.`, { nodes: [found.ref] });
     },
   });

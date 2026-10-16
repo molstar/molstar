@@ -438,6 +438,15 @@ const noRmsd = (label: string) =>
 const needsTwo = (ctx: ApiAreaContext) =>
   ctx.sources.structures.value.length < 2 ? 'Superposing needs two or more structures.' : (true as const);
 
+/** The structures that cannot be placed by UniProt, as a failure. */
+function noMapping(ctx: ApiContext, lacking: readonly HierarchyStructure[]) {
+  return ApiResult.fail(
+    'invalid',
+    `${lacking.map((s) => labelOf(ctx, s)).join(', ')} ${lacking.length === 1 ? 'has' : 'have'} no SIFTS UniProt mapping.`,
+    'The mapping comes with the updated mmCIF files of the PDB (pdbx_sifts_xref_db_* in atom_site); use chains or TM-align instead.',
+  );
+}
+
 export class SuperposeApi extends ApiArea {
   readonly id = 'superpose';
 
@@ -719,7 +728,12 @@ export class SuperposeApi extends ApiArea {
     when: needsTwo,
     async run({ structures, traceOnly }, ctx) {
       const all = loadedStructures(ctx);
+      const hasMapping = (s: HierarchyStructure) =>
+        !!s.cell.obj?.data.models.some((m) => SIFTSMapping.Provider.isApplicable(m));
       let picked: HierarchyStructure[] = [...all];
+      // Every loaded one means every one the mapping can place: the others are left out, and said so.
+      const skipped = structures.length ? [] : all.filter((s) => s.cell.obj && !hasMapping(s));
+      if (!structures.length) picked = all.filter((s) => !skipped.includes(s));
       if (structures.length) {
         picked = [];
         for (const name of structures) {
@@ -736,6 +750,7 @@ export class SuperposeApi extends ApiArea {
         }
       }
       if (picked.length < 2) {
+        if (skipped.length) return noMapping(ctx, skipped);
         return ApiResult.fail(
           'invalid',
           'Superposing needs two or more structures.',
@@ -744,19 +759,14 @@ export class SuperposeApi extends ApiArea {
       }
       const datas = picked.map((s) => s.cell.obj?.data);
       if (datas.some((d) => !d)) return ApiResult.fail('failed', 'A structure is not ready yet.');
-      const lacking = picked.filter((s) => !s.cell.obj!.data.models.some((m) => SIFTSMapping.Provider.isApplicable(m)));
-      if (lacking.length) {
-        return ApiResult.fail(
-          'invalid',
-          `${lacking.map((s) => labelOf(ctx, s)).join(', ')} ${lacking.length === 1 ? 'has' : 'have'} no SIFTS UniProt mapping.`,
-          'The mapping comes with the updated mmCIF files of the PDB (pdbx_sifts_xref_db_* in atom_site); use chains or TM-align instead.',
-        );
-      }
+      const lacking = picked.filter((s) => !hasMapping(s));
+      if (lacking.length) return noMapping(ctx, lacking);
       const label = (i: number) => labelOf(ctx, picked[i]);
       const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(datas as Structure[], {
         traceOnly,
       });
       const warnings = [
+        ...skipped.map((s) => `${labelOf(ctx, s)} was left out: it has no SIFTS UniProt mapping.`),
         ...zeroOverlapPairs.map(([i, j]) => `${label(i)} and ${label(j)} share no UniProt residues.`),
         ...failedPairs.map(([i, j]) => `The superposition of ${label(j)} onto ${label(i)} failed.`),
       ];

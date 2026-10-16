@@ -69,7 +69,7 @@ import {
   voxelText,
   volumeStats,
 } from '../api/volume.js';
-import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
+import { type MeasuredCell, MeasureKinds, measurementLocis, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
 import { fromChanged, type SourceScope } from './state.js';
 import type { Observable } from 'rxjs';
@@ -506,7 +506,7 @@ export function createSceneSource(
     let n = nodes.get(m.ref);
     if (!n) {
       const ref = m.ref;
-      const locis = () => readMeasurements(plugin).find((x) => x.ref === ref)?.locis ?? [];
+      const locis = () => measurementLocis(plugin, ref);
       n = new Node(ref, 'measurement', MeasureKinds[m.kind].icon, m.label, false, {
         visibility: (hide) => void api.run('measure.visibility', { measurement: ref, visible: !hide }),
         highlight: (on) => {

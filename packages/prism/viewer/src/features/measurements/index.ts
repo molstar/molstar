@@ -20,6 +20,8 @@ declare module '../../api.js' {
 // The `measurements` feature (viewer-spec.md §3.1, plan 3.2): the `measure` area over Mol*'s measurement manager, and
 // the Measure section of the Selection tab. Its views are a chunk of their own.
 
+const SelectionTab = 'core.tab.selection';
+
 export const MeasurementsFeature: ViewerExtension = {
   id: 'measurements',
   title: 'Measurements',
@@ -109,9 +111,11 @@ export const MeasurementsFeature: ViewerExtension = {
         category: 'Measure',
         icon: 'ruler',
         alias: ['measure', 'measurements'],
+        // The section is in the Selection panel: without the panel there is nowhere to open.
+        when: () => (api.view.hasTab(SelectionTab) ? true : 'There is no Selection panel.'),
         async run() {
           const r = await runAsCommand(api, 'view.open', {
-            tab: 'core.tab.selection',
+            tab: SelectionTab,
             section: 'measurements.section.measure',
           });
           return { ...r, undoable: false };

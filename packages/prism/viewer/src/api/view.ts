@@ -27,6 +27,13 @@ const want = (on: 'toggle' | 'on' | 'off', current: boolean) => (on === 'toggle'
 export class ViewApi extends ApiArea {
   readonly id = 'view';
 
+  /** Whether a tab (by part id or core name) is in the layout: `view.open` finds a panel only if it is. */
+  hasTab(tab: string): boolean {
+    const id = shellIdOf(tab);
+    const { docks } = this.ctx.managers.viewState.layout.value;
+    return DockSides.some((d) => docks[d].tabs.includes(id));
+  }
+
   readonly open = this.operation({
     id: 'view.open',
     title: 'Open a panel',

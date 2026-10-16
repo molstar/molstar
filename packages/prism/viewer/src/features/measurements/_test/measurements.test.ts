@@ -10,6 +10,7 @@ import { StateSelection, StateTransform } from '@molstar/core/state';
 import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, until } from '../../../_test/harness.js';
+import { measurementLocis, readMeasurements } from '../../../sources/measurements.js';
 import { createTargetResolver } from '../../../sources/targets.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { MeasurementGroupTag } from '@molstar/plugin/state/manager/structure/measurement';
@@ -177,6 +178,17 @@ describe('measure', () => {
     expect(await empty.api.measure!.distance({ a: A(10), b: A(20) })).toMatchObject({ ok: false });
   });
 
+  it("reads a measurement's loci by its ref, as the list does, without describing the others", async () => {
+    const v = await setup();
+    const d = await v.api.measure!.distance({ a: A(10), b: A(20) });
+    expectOk(d);
+    expectOk(await v.api.measure!.label({ a: A(10), text: 'x' }));
+    const listed = readMeasurements(v.plugin).find((m) => m.ref === d.value!.ref)!;
+    expect(listed.locis).toHaveLength(2);
+    expect(measurementLocis(v.plugin, d.value!.ref)).toEqual(listed.locis);
+    expect(measurementLocis(v.plugin, 'nope')).toEqual([]);
+  });
+
   it('describes the measurements, shows or hides and removes them', async () => {
     const v = await setup();
     const none = await v.api.measure!.get();
@@ -203,6 +215,16 @@ describe('measure', () => {
       unchanged: true,
     });
     expectOk(await v.api.measure!.visibility({ measurement: d.value!.ref, visible: true }));
+
+    // Hidden through its representation cell alone (the State tree's eye): showing it shows it.
+    expectOk(await v.api.state!.visibility({ ref: d.value!.ref, visible: false }));
+    const viaRepresentation = await v.api.measure!.get();
+    expectOk(viaRepresentation);
+    expect(viaRepresentation.value?.[1]).toMatchObject({ hidden: true });
+    expectOk(await v.api.measure!.visibility({ measurement: d.value!.ref, visible: true }));
+    const shownAgain = await v.api.measure!.get();
+    expectOk(shownAgain);
+    expect(shownAgain.value?.[1]).toMatchObject({ hidden: false });
 
     // Which one? Several exist.
     expect(await v.api.measure!.remove({})).toMatchObject({ ok: false, code: 'ambiguous' });
@@ -365,6 +387,15 @@ describe('the feature', () => {
       .operations()
       .map((o) => o.definition.id);
     for (const id of defined) expect(v.managers.commands.get(id), id).toBeDefined();
+  });
+
+  it('offers Measure… only where there is a Selection tab to open', async () => {
+    const context = { empty: false };
+    // Headless has no tabs.
+    const v = await setup();
+    expect(v.managers.commands.get('measure.open')!.when?.(context)).toMatch(/no Selection panel/);
+    v.managers.viewState.setDock('right', { tabs: ['selection'] });
+    expect(v.managers.commands.get('measure.open')!.when?.(context)).toBe(true);
   });
 
   it('puts the Measure section in the Selection tab', async () => {

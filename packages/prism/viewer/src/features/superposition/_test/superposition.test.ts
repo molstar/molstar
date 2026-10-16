@@ -368,6 +368,20 @@ describe('superpose.db', () => {
     expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), Move, 1e-6)).toBe(true);
   });
 
+  it('leaves out, and says so, the loaded structures it has no mapping for', async () => {
+    const { v, mobile, api } = await twoCopies(crambin, { files: [withSifts('a.cif'), withSifts('b.cif')] });
+    expectOk(await v.api.load.files({ files: [crambin()] }, { copy: true }));
+    expect(structures(v.plugin)).toHaveLength(3);
+    // Named, the structure without the mapping is a mistake.
+    const named = await api.db({ structures: structures(v.plugin).map((s) => s.cell.transform.ref) });
+    expect(named).toMatchObject({ ok: false, code: 'invalid', message: expect.stringContaining('no SIFTS') });
+    const r = await api.db({});
+    expectOk(r);
+    expect(JSON.stringify(r)).toContain('left out');
+    expect(r.value!.results).toHaveLength(1);
+    expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), Undone, 0.02)).toBe(true);
+  });
+
   it('names a structure that is not there', async () => {
     const { api } = await twoCopies(crambin, { files: [withSifts('a.cif'), withSifts('b.cif')] });
     expect(await api.db({ structures: ['nope', 'a'] })).toMatchObject({ ok: false, code: 'not-found' });
@@ -389,6 +403,15 @@ describe('the feature', () => {
     ]) {
       expect(v.managers.commands.get(id), id).toBeDefined();
     }
+  });
+
+  it('offers Superpose… only where there is a Selection tab to open', async () => {
+    const context = { empty: false };
+    // Headless has no tabs.
+    const v = await headlessViewer({ extensions: [SuperpositionFeature] });
+    expect(v.managers.commands.get('superpose.open')!.when?.(context)).toMatch(/no Selection panel/);
+    v.managers.viewState.setDock('right', { tabs: ['selection'] });
+    expect(v.managers.commands.get('superpose.open')!.when?.(context)).toBe(true);
   });
 
   it('runs a command with its targets as text, one per structure', async () => {

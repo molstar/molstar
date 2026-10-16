@@ -196,7 +196,7 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
               ? await api.ligands({ targets: scoped })
               : v.method === 'atoms'
                 ? await api.atoms({ targets: scoped })
-                : await api.db({ structures: ids, traceOnly: v.traceOnly });
+                : await api.db({ traceOnly: v.traceOnly });
       // A failure says itself where the person looks (the notification), with what to do.
       deps.notify(r.ok ? r.did : r.hint ? `${r.message} ${r.hint}` : r.message, r.ok ? 'success' : 'error');
     } finally {

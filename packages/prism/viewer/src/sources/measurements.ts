@@ -90,34 +90,51 @@ export function readMeasurements(plugin: PluginContext): MeasuredCell[] {
   return out;
 }
 
+/** What a measurement cell's object holds: one of these, by kind. */
+interface MeasuredData {
+  infos?: { loci: Loci }[];
+  pairs?: Loci.Bundle<2>[];
+  triples?: Loci.Bundle<3>[];
+  quads?: Loci.Bundle<4>[];
+  locis?: Loci[];
+}
+
+/** The loci a measurement measures, in order: no labels. */
+function lociOfData(data: MeasuredData): Loci[] {
+  if (data.infos) return [data.infos[0].loci];
+  if (data.pairs) return [...data.pairs[0].loci];
+  if (data.triples) return [...data.triples[0].loci];
+  if (data.quads) return [...data.quads[0].loci];
+  return data.locis ? [...data.locis] : [];
+}
+
+/**
+ * The structure-element loci of one measurement, by its ref, without describing it (the labels of every measurement
+ * are for lists, not for a pointer crossing a row).
+ */
+export function measurementLocis(plugin: PluginContext, ref: string): StructureElement.Loci[] {
+  for (const [, key] of Order) {
+    for (const cell of listsOf(plugin)[key] as StructureMeasurementCell[]) {
+      if (cell.transform.ref !== ref) continue;
+      const data = cell.obj?.data.sourceData as MeasuredData | undefined;
+      return data ? lociOfData(data).filter(StructureElement.Loci.is) : [];
+    }
+  }
+  return [];
+}
+
 function describe(plugin: PluginContext, cell: StructureMeasurementCell, kind: MeasureKind): MeasuredCell | undefined {
-  const data = cell.obj?.data.sourceData as
-    | {
-        infos?: { loci: Loci }[];
-        pairs?: Loci.Bundle<2>[];
-        triples?: Loci.Bundle<3>[];
-        quads?: Loci.Bundle<4>[];
-        locis?: Loci[];
-      }
-    | undefined;
+  const data = cell.obj?.data.sourceData as MeasuredData | undefined;
   if (!data) return undefined;
   const params = (cell.transform.params ?? {}) as { customText?: string; unitLabel?: string };
   const text = (params.customText ?? '').trim();
-  let loci: Loci[] = [];
+  const loci = lociOfData(data);
   let value = '';
-  if (data.infos) {
-    loci = [data.infos[0].loci];
-    value = text;
-  } else if (data.pairs) {
-    loci = [...data.pairs[0].loci];
-    value = text || distanceLabel(data.pairs[0], { measureOnly: true, unitLabel: params.unitLabel ?? 'Å' });
-  } else if (data.triples) {
-    loci = [...data.triples[0].loci];
-    value = text || angleLabel(data.triples[0], { measureOnly: true });
-  } else if (data.quads) {
-    loci = [...data.quads[0].loci];
-    value = text || dihedralLabel(data.quads[0], { measureOnly: true });
-  } else if (data.locis) loci = [...data.locis];
+  if (data.infos) value = text;
+  else if (data.pairs) {
+    value = text || distanceLabel(data.pairs[0], { measureOnly: true, unitLabel: params.unitLabel ?? 'Å' });
+  } else if (data.triples) value = text || angleLabel(data.triples[0], { measureOnly: true });
+  else if (data.quads) value = text || dihedralLabel(data.quads[0], { measureOnly: true });
   const elements = loci.filter(StructureElement.Loci.is);
   const atoms =
     kind === 'orientation' || kind === 'plane' ? [summaryOf(elements)] : loci.map((l) => lociName(l) || 'Nothing');
