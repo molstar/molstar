@@ -182,6 +182,42 @@ describe('Tools', () => {
     expect(s.tools.callsOf('c')).toHaveLength(0);
   });
 
+  it('X1 skip-calls: a skip naming calls skips only those; the others run (harness.md §7)', async () => {
+    const s = createSession({
+      tools: {
+        a: () => ({ status: 'failed', text: 'a broke' }),
+        b: () => ({ text: 'b done' }),
+        c: () => ({ text: 'c done' }),
+      },
+      model: [
+        {
+          calls: [
+            { tool: 'a', arguments: {} },
+            { tool: 'b', arguments: {} },
+            { tool: 'c', arguments: {} },
+          ],
+        },
+        { text: 'final' },
+      ],
+      drive: with_({
+        schedule: serial,
+        // Skip c only: the unstarted calls are in the payload, by id.
+        failure: ({ payload }) => {
+          const c = payload.unstarted?.find((call) => call.toolId === 'c');
+          return { report: { skip: { text: 'Skipped: needs a', calls: c ? [c.callId] : [] } } };
+        },
+      }),
+    });
+    await s.send('go');
+    expect(await resultsOf(s)).toEqual([
+      { status: 'failed', text: 'a broke' },
+      { status: 'succeeded', text: 'b done' },
+      { status: 'failed', text: 'Skipped: needs a' },
+    ]);
+    expect(s.tools.callsOf('b')).toHaveLength(1);
+    expect(s.tools.callsOf('c')).toHaveLength(0);
+  });
+
   it('X1 no-result: a stream with no result fails the attempt stream-protocol, effect unknown (harness.md §8)', async () => {
     const failures: AttemptFailure[] = [];
     const s = createSession({

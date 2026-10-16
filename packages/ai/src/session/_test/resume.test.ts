@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { SimulatedClock, settle } from '../../testing/index.js';
 import { callOf, fixture } from './helpers.js';
 
 describe('a session with nothing parked', () => {
@@ -92,5 +93,46 @@ describe('a resumed turn (state after a resume)', () => {
     });
     expect(shown).toEqual(['ask_service:succeeded']);
     expect(r?.tools.map((t) => `${t.name}:${t.status}`)).toEqual(['ask_service:failed', 'ask_service:succeeded']);
+  });
+});
+
+describe('the session’s end (dispose)', () => {
+  it('ends a running turn as stopped', async () => {
+    const clock = new SimulatedClock();
+    const { session } = fixture([{ text: 'Never said.', waitMs: 60_000 }], { clock }, { clock });
+    const running = session.turn({ prompt: 'wait' });
+    await settle();
+    expect(session.busy).toBe(true);
+    session.dispose();
+    expect((await running).status).toBe('stopped');
+    expect(session.busy).toBe(false);
+  });
+
+  it('ends a parked turn as stopped: nothing is left to resume', async () => {
+    const f = fixture([{ calls: [callOf('ask_service')] }, { text: 'Done.' }]);
+    expect((await f.session.turn({ prompt: 'go' })).status).toBe('awaiting-approval');
+    f.session.dispose();
+    await expect(f.session.resume({ decisions: {} })).resolves.toBeUndefined();
+    const [turn] = await f.session.client().turns({ limit: 1 });
+    expect(turn?.status).toBe('stopped');
+    expect(f.api.log.lines).toEqual([]);
+  });
+
+  it('with no turn ever run, does nothing', () => {
+    const { session } = fixture([]);
+    expect(() => session.dispose()).not.toThrow();
+    expect(session.busy).toBe(false);
+  });
+});
+
+describe('a stop while the turn is being composed', () => {
+  it('ends it stopped before the harness begins it: no turn in the log, the next turn runs', async () => {
+    const { session, model } = fixture([{ text: 'Second.' }]);
+    const running = session.turn({ prompt: 'first' });
+    await session.stop();
+    expect((await running).status).toBe('stopped');
+    expect(await session.client().turns({ limit: 5 })).toEqual([]);
+    expect(await session.turn({ prompt: 'second' })).toMatchObject({ status: 'completed', text: 'Second.' });
+    expect(model.invocations).toHaveLength(1);
   });
 });

@@ -17,21 +17,21 @@ per row below, `helpers.ts` beside them). They are the harness's contract: a cha
 operation, a decision, an ending) comes with a case here. Which cases were kept, and why:
 `.v6/ai/simplification/conformance.md`.
 
-| File (`src/harness/_test/`) | Ids | Cases | What                                                                             |
-| --------------------------- | --- | ----: | -------------------------------------------------------------------------------- |
-| `journal.test.ts`           | J   |     2 | stop during tools leaves `main` as it was; the message hash is stable            |
-| `turns.test.ts`             | T   |     5 | begin while active, Stop (during a step, before a settlement), reset, catch-up   |
-| `homes.test.ts`             | H   |     3 | negative cases: each concern stays in its home                                   |
-| `steps.test.ts`             | E   |     9 | step endings, rounds, retries, park and resume                                   |
-| `tools.test.ts`             | X   |     9 | denied, unbound, failed, skipped calls, keys, parked permission, sibling failure |
-| `nested.test.ts`            | N   |     5 | nested runs: records, depth, pointers, usage                                     |
-| `budgets.test.ts`           | B   |     4 | charging, token shortfall, `endBy`                                               |
-| `projection.test.ts`        | C   |     5 | digest, prefix, window admission, unrepresentable, unknown tool                  |
-| `observation.test.ts`       | O   |     1 | observers cannot affect a turn                                                   |
-| `performance.test.ts`       | P   |     1 | P11: no round hashes more than the first                                         |
-| `coverage.test.ts`          | V   |    12 | unbound calls, drive errors, reset, nested decisions, limits, defaults, filtered |
-| `regressions.test.ts`       | R   |     3 | bugs found, each pinned                                                          |
-| `state.test.ts`             | —   |     4 | not cases: the reads (empty state, one entry per message, paging, `watch`)       |
+| File (`src/harness/_test/`) | Ids | Cases | What                                                                                                                                                           |
+| --------------------------- | --- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `journal.test.ts`           | J   |     2 | stop during tools leaves `main` as it was; the message hash is stable                                                                                          |
+| `turns.test.ts`             | T   |     8 | begin while active, Stop (during a step, before a settlement), reset (default, before any completed turn, named heads), a provider resolved per turn, catch-up |
+| `homes.test.ts`             | H   |     3 | negative cases: each concern stays in its home                                                                                                                 |
+| `steps.test.ts`             | E   |    12 | step endings, rounds, retries, park and resume (a nested park keeps what ended)                                                                                |
+| `tools.test.ts`             | X   |    10 | denied, unbound, failed, skipped calls (all, or named), keys, parked permission, sibling failure                                                               |
+| `nested.test.ts`            | N   |     8 | nested runs: records, depth, pointers, usage; from a pointer, from another head, dropped with the parent                                                       |
+| `budgets.test.ts`           | B   |     8 | charging, token shortfall, parallel admission, `endBy` (mid-step, extended late, between steps)                                                                |
+| `projection.test.ts`        | C   |     5 | digest, prefix, window admission, unrepresentable, unknown tool                                                                                                |
+| `observation.test.ts`       | O   |     1 | observers cannot affect a turn                                                                                                                                 |
+| `performance.test.ts`       | P   |     1 | P11: no round hashes more than the first                                                                                                                       |
+| `coverage.test.ts`          | V   |    12 | unbound calls, drive errors, reset, nested decisions, limits, defaults, filtered                                                                               |
+| `regressions.test.ts`       | R   |     3 | bugs found, each pinned                                                                                                                                        |
+| `state.test.ts`             | —   |     4 | not cases: the reads (empty state, one entry per message, paging, `watch`)                                                                                     |
 
 Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 

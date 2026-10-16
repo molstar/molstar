@@ -290,7 +290,9 @@ describe('Steps', () => {
     expect(s.tools.callsOf('gated').map((c) => c.prior)).toEqual(['none']);
     // The round holds every result, write's from before the park.
     const results = (await s.main()).flatMap((m) =>
-      m.role === 'user' ? m.parts.flatMap((p) => (p.kind === 'tool-result' ? [textOf(p)] : [])) : [],
+      m.role === 'user'
+        ? m.parts.flatMap((p) => (p.kind === 'tool-result' ? [textOf({ role: 'user', parts: p.parts })] : []))
+        : [],
     );
     expect(results).toEqual(['wrote', 'helper completed']);
   });

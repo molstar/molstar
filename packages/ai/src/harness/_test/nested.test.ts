@@ -49,7 +49,7 @@ async function messagesOf(s: Session, scope: string): Promise<Message[]> {
 
 const nestedCalls = (calls: readonly CallRecord[]) => calls.filter((call) => call.parentCallId !== undefined);
 
-/** N1–N3 (Nested runs). */
+/** N1–N4 (Nested runs). */
 describe('Nested runs', () => {
   it('N1 nested-records: a settled parent step holds the nested calls, with parentCallId (harness.md §9)', async () => {
     const s = createSession({
@@ -196,5 +196,89 @@ describe('Nested runs', () => {
       0,
     );
     expect(nestedInput).toBeGreaterThanOrEqual(10_000);
+  });
+
+  it('N4 from-pointer: a nested run on a pointer starts from its head and its messages move the pointer when the step commits (harness.md §9)', async () => {
+    const seen: string[][] = [];
+    const s = createSession({
+      declare: ['outer', 'seed'],
+      tools: {
+        seed: (context) => {
+          context.journal.append('notes', [user('earlier note')]);
+          return { text: 'seeded' };
+        },
+        outer: async (context) => {
+          const r = await context.run({ ...nestedRun(), pointer: 'notes' });
+          return { text: r.status };
+        },
+      },
+      model: [
+        { calls: [{ tool: 'seed', arguments: {} }] },
+        { calls: [{ tool: 'outer', arguments: {} }] },
+        // The nested run's model sees the pointer's head, then its input.
+        { text: 'nested reply' },
+        { text: 'final' },
+      ],
+      modelOptions: {
+        payload: (input) => {
+          seen.push(input.messages.map((m) => textOf(m)));
+          return { n: seen.length };
+        },
+      },
+    });
+    await s.send('go');
+    expect(seen[2]).toEqual(['earlier note', 'work on this']);
+    expect((await messagesOf(s, 'notes')).map(textOf)).toEqual(['earlier note', 'work on this', 'nested reply']);
+  });
+
+  it('N4 from-head: a nested run from another head reads it and writes nothing: its messages stay in the run (harness.md §9)', async () => {
+    const seen: string[][] = [];
+    let first: string | undefined;
+    const s = createSession({
+      declare: ['outer'],
+      tools: {
+        outer: async (context) => {
+          const r = await context.run({ ...nestedRun(), from: first as string });
+          return { text: r.status === 'completed' ? textOf(r.output as Message) : r.status };
+        },
+      },
+      model: [{ text: 'one' }, { calls: [{ tool: 'outer', arguments: {} }] }, { text: 'forked' }, { text: 'final' }],
+      modelOptions: {
+        payload: (input) => {
+          seen.push(input.messages.map((m) => textOf(m)));
+          return { n: seen.length };
+        },
+      },
+    });
+    await s.send('first');
+    first = (await s.harness.execution()).main;
+    await s.send('second');
+    // The fork read the first turn's head (the tool declarations, the prompt, the reply), then its input.
+    expect(seen[2]?.slice(-3)).toEqual(['first', 'one', 'work on this']);
+    // Its messages are nowhere but in its result: main holds the round, no pointer moved for it.
+    const main = await s.main();
+    expect(main.map(textOf)).not.toContain('work on this');
+    const results = main.flatMap((m) =>
+      m.parts.flatMap((p) => (p.kind === 'tool-result' ? [textOf({ role: 'user', parts: p.parts })] : [])),
+    );
+    expect(results).toEqual(['forked']);
+    const tools = stepEvents(await s.events()).find((e) => e.stepKind === 'tools');
+    expect(tools?.moves.map((m) => m.pointer)).toEqual([MAIN]);
+  });
+
+  it('N4 dropped-with-parent: a pointer run under a call that fails leaves the pointer where it was', async () => {
+    const s = createSession({
+      declare: ['outer'],
+      tools: {
+        outer: async (context) => {
+          await context.run({ ...nestedRun(), pointer: 'notes' });
+          return { status: 'failed', text: 'gave up' };
+        },
+      },
+      model: [{ calls: [{ tool: 'outer', arguments: {} }] }, { text: 'nested reply' }, { text: 'final' }],
+    });
+    await s.send('go');
+    expect(await messagesOf(s, 'notes')).toEqual([]);
+    expect((await s.turns())[0]?.status).toBe('completed');
   });
 });
