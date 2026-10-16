@@ -7,11 +7,6 @@
  */
 
 import type { ModelAdapter } from '@molstar/ai-agent';
-import {
-  createAnthropicModelAdapter,
-  createGoogleModelAdapter,
-  createOpenAIModelAdapter,
-} from '@molstar/ai-model-adapters';
 import { listedModels } from '@molstar/ai-model-adapters/model-catalog';
 import { observableState } from '@molstar/prism-ui/core';
 import type { KeyStore } from '../keys.js';
@@ -192,15 +187,26 @@ export function createAISettings(
       let adapter = adapters.get(provider);
       if (!adapter) {
         const o = own.get(provider);
+        const key = resolveApiKey(provider);
         adapter =
           provider === 'anthropic'
-            ? createAnthropicModelAdapter({ resolveApiKey: resolveApiKey(provider) })
+            ? lazyAdapter(async () =>
+                (await import('@molstar/ai-model-adapters/anthropic/adapter')).createAnthropicModelAdapter({
+                  resolveApiKey: key,
+                }),
+              )
             : provider === 'google'
-              ? createGoogleModelAdapter({ resolveApiKey: resolveApiKey(provider) })
-              : createOpenAIModelAdapter({
-                  resolveApiKey: resolveApiKey(provider),
-                  ...(o ? { baseURL: o.baseURL, api: o.api, provider: o.id, label: o.label } : {}),
-                });
+              ? lazyAdapter(async () =>
+                  (await import('@molstar/ai-model-adapters/google/adapter')).createGoogleModelAdapter({
+                    resolveApiKey: key,
+                  }),
+                )
+              : lazyAdapter(async () =>
+                  (await import('@molstar/ai-model-adapters/openai/adapter')).createOpenAIModelAdapter({
+                    resolveApiKey: key,
+                    ...(o ? { baseURL: o.baseURL, api: o.api, provider: o.id, label: o.label } : {}),
+                  }),
+                );
         adapters.set(provider, adapter);
       }
       return adapter;
@@ -254,4 +260,26 @@ function parse<T>(text: string | undefined): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * A provider's adapter whose SDK is imported on its first use: a person with one provider's key does not download the
+ * others' (each its own chunk). A failed import is tried again on the next use.
+ */
+export function lazyAdapter(load: () => Promise<ModelAdapter>): ModelAdapter {
+  let loading: Promise<ModelAdapter> | undefined;
+  const adapter = () => {
+    loading ??= load().catch((e) => {
+      loading = undefined;
+      throw e;
+    });
+    return loading;
+  };
+  return {
+    capabilitiesFor: async (configuration) => (await adapter()).capabilitiesFor(configuration),
+    project: async (input) => (await adapter()).project(input),
+    async *invoke(input) {
+      yield* (await adapter()).invoke(input);
+    },
+  };
 }
