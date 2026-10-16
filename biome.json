@@ -488,7 +488,11 @@
       }
     },
     {
-      "includes": ["packages/ai/src/testing/**", "!packages/ai/src/testing/**/_test/**"],
+      "includes": [
+        "packages/ai/src/testing/**",
+        "!packages/ai/src/testing/threads/**",
+        "!packages/ai/src/testing/**/_test/**"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -520,6 +524,64 @@
                       "**/narration/**"
                     ],
                     "message": "The test doubles use the messages and the harness contracts only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  },
+                  {
+                    "group": ["vitest", "vitest/**"],
+                    "message": "The test doubles are no tests: `./testing` must not pull Vitest (the threads' suite, which does, is `./testing/threads`)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/testing/threads/**", "!packages/ai/src/testing/threads/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/narration",
+                      "**/narration/**",
+                      "**/harness",
+                      "**/harness/**",
+                      "**/testing/*.js"
+                    ],
+                    "message": "The threads' suite (`./testing/threads`, it imports Vitest) uses the messages and the threads only."
                   },
                   {
                     "group": ["node:*"],

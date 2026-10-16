@@ -14,7 +14,7 @@ import {
   type ThreadCommandResult,
   type ThreadFailure,
   type ThreadLimits,
-} from '../index.js';
+} from '../../threads/index.js';
 import {
   type DeterministicThreadFixture,
   type ThreadBackend,
@@ -78,7 +78,7 @@ export interface ThreadConformanceFixture {
   readonly durable?: boolean;
 }
 
-/** Every Thread conformance case, against one backend. Call it from a Jest file. */
+/** Every Thread conformance case, against one backend. Call it from a Vitest file. */
 export function runThreadConformance(backend: ThreadConformanceFixture): void {
   const createFixture = (options: ThreadFixtureFactoryOptions = {}): DeterministicThreadFixture =>
     createDeterministicThreadFixture({ createThread: (deps) => backend.create(deps) }, options);

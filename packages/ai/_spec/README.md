@@ -25,21 +25,21 @@ messages ─┬─ harness ─┬─ tools ──── session
           │           ├─ trace ─── (session/compose.ts)
           │           └─ testing
           ├─ providers          (the host passes providers in)
-          └─ threads ── threads/_test (the suite)
+          └─ threads ── testing/threads (the suite)
 narration (nothing of the other folders)
 ```
 
-| Folder (`src/`) | Holds                                                                                                              | Imports of the other folders                |
-| --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`      | none (`@molstar/core`'s hash file only)     |
-| `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                  |
-| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK only here            |
-| `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
-| `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`              |
-| `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts` |
-| `threads/`      | the thread kernel and host, its row-store port, the memory rows; the suite is `_test/`                             | `messages` (`canonicalJson`, `Clock`)       |
-| `testing/`      | `createSession`; the clock, ids, scripted model and tools                                                          | `messages`, `harness`                       |
-| `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                        |
+| Folder (`src/`) | Holds                                                                                                              | Imports of the other folders                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`      | none (`@molstar/core`'s hash file only)      |
+| `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                   |
+| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK only here             |
+| `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here         |
+| `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`               |
+| `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts`  |
+| `threads/`      | the thread kernel and host, its row-store port, the memory rows; the suite is `_test/`                             | `messages` (`canonicalJson`, `Clock`)        |
+| `testing/`      | `createSession`; the clock, ids, scripted model and tools; the threads' suite (`testing/threads/`)                 | `messages`, `harness` (the suite: `threads`) |
+| `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                         |
 
 The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports): zod is
 allowed only in `tools/` and `providers/` (and restricted everywhere outside `packages/ai`), the AI SDK only in
@@ -59,7 +59,7 @@ allowed only in `tools/` and `providers/` (and restricted everywhere outside `pa
 | `@molstar/ai/models`                                        | `src/providers/models.ts`                 | the model catalog (data, no dependencies)                                                                                        |
 | `@molstar/ai/trace`                                         | `src/trace/index.ts`                      | `readTrace`, `toolsView`, the views, the formatters                                                                              |
 | `@molstar/ai/testing`                                       | `src/testing/index.ts`                    | `createSession`, `scriptedModel`, `scriptedTools`, the simulated clock and ids, message builders                                 |
-| `@molstar/ai/testing/threads`                               | `src/threads/_test/index.ts`              | `runThreadConformance`, the threads' suite (it imports Vitest)                                                                   |
+| `@molstar/ai/testing/threads`                               | `src/testing/threads/index.ts`            | `runThreadConformance`, the threads' suite (it imports Vitest; `./testing` does not)                                             |
 | `@molstar/ai/narration`, `@molstar/ai/narration/mediabunny` | `src/narration/index.ts`, `mediabunny.ts` | narration; the Mediabunny encoder apart, so Mediabunny stays out of a bundle that does not ask for it                            |
 
 ## How it binds: one turn, end to end

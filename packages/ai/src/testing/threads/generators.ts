@@ -12,7 +12,7 @@ import {
   THREAD_PAYLOAD_VERSION,
   type ThreadLimits,
   type ThreadPayloadEnvelope,
-} from '../index.js';
+} from '../../threads/index.js';
 
 export function threadConformanceEnvelope(value: unknown, codec = 'conformance.thread.v1'): ThreadPayloadEnvelope {
   return { codec, version: THREAD_PAYLOAD_VERSION, value };

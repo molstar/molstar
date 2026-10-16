@@ -18,7 +18,7 @@ import {
   threadEntryId,
   threadId,
   threadOwnerId,
-} from '../index.js';
+} from '../../threads/index.js';
 import { threadConformanceEnvelope, threadConformanceLimits } from './generators.js';
 
 export class ThreadManualClock implements Pick<Clock, 'now'> {

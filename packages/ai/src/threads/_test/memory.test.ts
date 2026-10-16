@@ -7,7 +7,7 @@
  */
 
 import { createThreadHost, createMemoryRows, type ThreadTable } from '../index.js';
-import { runThreadConformance } from './index.js';
+import { runThreadConformance } from '../../testing/threads/index.js';
 
 // The threads conformance against the memory rows: a restart is a second host over the same rows.
 runThreadConformance({

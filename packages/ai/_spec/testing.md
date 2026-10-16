@@ -36,8 +36,9 @@ operation, a decision, an ending) comes with a case here. Which cases were kept,
 Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 
 `@molstar/ai/testing/threads`: `runThreadConformance({ name, create, durable? })`, the threads' suite
-(`src/threads/_test/`, its own entry because it imports Vitest), run on memory (`src/threads/_test/memory.test.ts`) and
-on the viewer's IndexedDB rows (`prism/viewer/src/journal/_test/`).
+(`src/testing/threads/`, its own entry because it imports Vitest; Biome keeps Vitest out of the rest of `testing/`, and
+it is packed with the library, out of `_test/`), run on memory (`src/threads/_test/memory.test.ts`) and on the viewer's
+IndexedDB rows (`prism/viewer/src/journal/_test/`).
 
 ## Test doubles (`@molstar/ai/testing`, `src/testing/`)
 

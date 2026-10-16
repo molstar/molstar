@@ -64,7 +64,7 @@ const page = await threads.window({ threadId, start, limit: 20, direction: 'back
 `stream`, `deltas`, `receipt`, each row `{ json }`. The one backend here is `createMemoryRows`; a store that outlives
 the page is the application's. The viewer's IndexedDB rows are such a store (`createIndexedDbRows(name)`,
 `packages/prism/viewer/src/journal/indexeddb-rows.ts`), and its tests run the threads' conformance
-(`runThreadConformance` of `@molstar/ai/testing/threads`, the suite in `src/threads/_test/`) on them.
+(`runThreadConformance` of `@molstar/ai/testing/threads`, the suite in `src/testing/threads/`) on them.
 
 ## Limits
 

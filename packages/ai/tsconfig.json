@@ -6,12 +6,6 @@
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
   },
-  "files": [
-    "src/threads/_test/conformance.ts",
-    "src/threads/_test/fixtures.ts",
-    "src/threads/_test/generators.ts",
-    "src/threads/_test/index.ts"
-  ],
   "include": ["src/**/*"],
   "exclude": ["src/**/_test/**"],
   "references": [

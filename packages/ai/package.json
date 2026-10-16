@@ -56,9 +56,9 @@
       "import": "./lib/testing/index.js"
     },
     "./testing/threads": {
-      "molstar-src": "./src/threads/_test/index.ts",
-      "types": "./lib/threads/_test/index.d.ts",
-      "import": "./lib/threads/_test/index.js"
+      "molstar-src": "./src/testing/threads/index.ts",
+      "types": "./lib/testing/threads/index.d.ts",
+      "import": "./lib/testing/threads/index.js"
     },
     "./narration": {
       "molstar-src": "./src/narration/index.ts",
