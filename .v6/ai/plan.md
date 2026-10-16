@@ -64,11 +64,11 @@ Later:
 - **Evals**: `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run against real
   models, metering, baselines, the trace of each run), with each mode's scenarios in its `agent` folder.
 - **Vitest** for the whole repository, ESM throughout (`.v6/plans/checklist.md`); done, `jest:ai` folded in.
-- **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
-  WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
-  file retries its cases. The simulated clock now counts in-flight `crypto.subtle.digest` calls as pending work
-  (`settle` and `runUntil` wait for them) and gives idle work up to 5 s of real time before it reports a deadlock; CI
-  had false ones. With every hash slowed by 4 ms the whole memory conformance suite passes. Waiting on what each case
-  needs (as S3 now waits for its tool to start) removes the retries.
+- **The suite waits on conditions** (done 2026-10-16, simplification slice 11). The cases that counted event-loop
+  rounds of real work (timers, WebCrypto digests, fake IndexedDB) went with the storage-cost and liveness cases, the
+  IndexedDB run and the asynchronous hashing; the AI tests left the `serial` Vitest project and run in the parallel
+  `unit` project with everything else. Measured: 9 whole-repository runs and 13 `vitest run packages/ai` runs on a
+  machine at a load average of 30 to 70 (other jobs, plus a full run alongside), all green; the 53 AI files sum to
+  about 4.4 s of 505 s of file time (under 1%).
 - **SQLite storage** for the harness and threads (servers, headless), removed 2026-10-12 until a host needs it; the
   IndexedDB and memory backends and the conformance suites are the pattern.

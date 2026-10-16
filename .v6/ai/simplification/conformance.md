@@ -14,7 +14,7 @@
 | `src/suite.ts`, `index.ts`                   |    50 | `runHarnessConformance`: every case against one backend                    |
 
 It runs twice, from `components/src/harness/_test/`: on memory (`conformance.test.ts`) and on fake IndexedDB
-(`conformance-indexeddb.test.ts`). Every AI test file sits in the `serial` Vitest project, which runs after all other
+(`conformance-indexeddb.test.ts`). Every AI test file sat in the `serial` Vitest project (gone since slice 11), which ran after all other
 projects with `fileParallelism: false` because the cases "count and wait for rounds of real work (timers, WebCrypto,
 fake IndexedDB)" (`vitest.config.ts:14–17, 79–81`).
 
@@ -120,4 +120,5 @@ max-concurrency.
   under load (hashing becomes synchronous, harness.md §7)
   (`vitest.config.ts:14–16`; `.v6/ai/plan.md` "The suite waits on conditions"). If the remaining files pass in the
   parallel `unit` project under load (to verify: several full runs), the AI tests stop adding a serial tail at all.
-  Inferred, not measured.
+  **Done, measured (slice 11):** the project is gone; 9 whole-repository runs and 13 `packages/ai` runs under load all
+  passed, and the AI files are about 4.4 s of 505 s of file time (the serial tail was 5.3 s of a 71 to 78 s run).

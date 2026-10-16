@@ -11,11 +11,6 @@ import { defineConfig } from 'vitest/config';
 const include = ['**/*.test.{ts,tsx,mjs}'];
 const exclude = ['**/node_modules/**', '**/lib/**', '**/build/**', '.pnpm-store/**', '.claude/**', 'smoke/**'];
 
-// The AI packages' tests (the harness conformance suite above all) count and wait for rounds of real work (timers,
-// WebCrypto, fake IndexedDB), and lose those races when other test files share the machine: their files run one by
-// one, after everything else (as they did when they had a Jest run of their own).
-const serial = ['packages/ai/**/*.test.ts'];
-
 // Seq* (`packages/sequences`, .v6/seq/plan.md §2.3): its fast tier runs here, in two projects of its own. Files share a
 // worker's module registry (`isolate: false`: each file importing the whole package again was most of the run's time);
 // the files that mock or reset modules, found by reading them, run isolated. Never matched: the browser folders, the
@@ -55,7 +50,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'unit', include, exclude: [...exclude, ...serial, `${seq}/**`], sequence: { groupOrder: 0 } },
+        test: { name: 'unit', include, exclude: [...exclude, `${seq}/**`], sequence: { groupOrder: 0 } },
       },
       // Seq*: listed by file (a glob would have to be inverted to leave the mocking files out of this project).
       {
@@ -78,10 +73,6 @@ export default defineConfig({
           exclude: [...exclude, ...seqBrowser],
           sequence: { groupOrder: 0 },
         },
-      },
-      {
-        extends: true,
-        test: { name: 'serial', include: serial, exclude, fileParallelism: false, sequence: { groupOrder: 1 } },
       },
     ],
   },
