@@ -225,5 +225,10 @@ describe('the streaming row', () => {
     row.toggleVisibility();
     await until(() => row.isHidden.value);
     expect(behaviorParams(v).entry.params.view.name).toBe('off');
+
+    // And back on it shows the view the person chose, not the default one.
+    row.toggleVisibility();
+    await until(() => !row.isHidden.value);
+    expect(behaviorParams(v).entry.params.view.name).toBe('cell');
   });
 });

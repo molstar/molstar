@@ -36,4 +36,21 @@ describe('the focus row', () => {
     await until(() => focus().children.value.length === 0);
     expect(focus().description.value).toBe('none');
   });
+
+  it('hides and shows all its parts from one eye, as one history step', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const focus = () => v.views.scene.roots.value.find((c) => c.kind === 'focus')!;
+    await v.api.focus.set({ target: 'ligand' });
+    await until(() => focus().children.value.length === 2);
+    const steps = () => v.managers.history.steps.value.length;
+    const before = steps();
+
+    focus().toggleVisibility();
+    await until(() => focus().children.value.every((c) => c.isHidden.value));
+    await until(() => steps() > before);
+    expect(steps()).toBe(before + 1);
+
+    expect((await v.api.history.undo()).ok).toBe(true);
+    await until(() => focus().children.value.every((c) => !c.isHidden.value));
+  });
 });

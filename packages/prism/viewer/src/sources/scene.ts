@@ -222,10 +222,18 @@ export function createSceneSource(
   const unitCellOwners = new Map<string, string>();
   /** The structure a volume streaming row is under, and the streaming's behavior cell (its params change). */
   const streamingOwners = new Map<string, string>();
+  // The view streaming last had that was not off (and its radius), which the eye brings back.
+  const streamingShown = new Map<string, { view: string; radius: number }>();
   const streamingBehaviors = new Map<string, string>();
   /** How map levels are shown and typed (σ or map units), one choice for every map. */
   const levelUnit = observableState<VolumeLevelUnit>('sigma');
+  // The ids to refresh once a sync is done (a volume and each of its representations ask for it).
+  let refreshing: Set<string> | undefined;
   const refreshLevels = (id: string) => {
+    if (refreshing) {
+      refreshing.add(id);
+      return;
+    }
     const inspection = inspections.get(id);
     for (const l of (inspection?.levels ?? []) as VolumeLevelsSource[]) l.refresh();
     for (const t of (inspection?.transfer ?? []) as VolumeTransferSource[]) t.refresh();
@@ -285,15 +293,21 @@ export function createSceneSource(
       n = new Node(ref, 'extension', 'volume', 'Volume streaming', false, {
         visibility: (hide) => {
           const owner = streamingOwners.get(ref);
-          const view = hide ? 'off' : on.entry.kind === 'em' ? 'auto' : 'selection-box';
-          void api.run('volume.streaming-view', { structure: owner, view });
+          const last = streamingShown.get(ref);
+          const view = hide ? 'off' : (last?.view ?? (on.entry.kind === 'em' ? 'auto' : 'selection-box'));
+          void api.run('volume.streaming-view', { structure: owner, view, radius: hide ? 0 : (last?.radius ?? 0) });
         },
         remove: () => void api.run('volume.streaming', { structure: streamingOwners.get(ref), enabled: false }),
       });
       n.removable = true;
       nodes.set(ref, n);
     }
-    n.set('Volume streaming', streamingSummary(on), on.params.entry.params.view.name === 'off');
+    const view = on.params.entry.params.view;
+    if (view.name !== 'off') {
+      const radius = (view.params as { radius?: unknown } | undefined)?.radius;
+      streamingShown.set(ref, { view: view.name, radius: typeof radius === 'number' ? radius : 0 });
+    }
+    n.set('Volume streaming', streamingSummary(on), view.name === 'off');
     inspections.get(ref)?.form?.load(streamingValues(on));
     refreshLevels(ref);
     return n;
@@ -322,7 +336,8 @@ export function createSceneSource(
   const componentNode = (c: StructureComponentRef, structureRef: string): Node => {
     const ref = c.cell.transform.ref;
     let n = nodes.get(ref);
-    if (!n) {
+    // A bare row (made by `emptiedNode` with no component row before it, as after a restore) has no actions: make it whole.
+    if (!n || !n.actions.visibility) {
       const loci = () => {
         const data = c.cell.obj?.data;
         return data ? Structure_toLoci(data) : undefined;
@@ -421,14 +436,19 @@ export function createSceneSource(
         return data && !StructureElement.Loci.isEmpty(data) ? data : undefined;
       };
       n = new Node(FocusId, 'focus', 'focus', 'Focus', false, {
+        // The parts are one step (one undo brings back all of them).
         visibility: (hide) => {
-          for (const { component, structure } of focusPartsNow) {
-            void api.run('component.visibility', {
-              component: component.cell.transform.ref,
-              structure,
-              visible: !hide,
-            });
-          }
+          const parts = focusPartsNow;
+          if (parts.length === 0) return;
+          void api.group('Focus visibility', async (g) => {
+            for (const { component, structure } of parts) {
+              await g.run('component.visibility', {
+                component: component.cell.transform.ref,
+                structure,
+                visible: !hide,
+              });
+            }
+          });
         },
         highlight: (on) => {
           const l = target();
@@ -592,7 +612,7 @@ export function createSceneSource(
     return n;
   };
 
-  const sync = () => {
+  const syncRows = () => {
     const list = plugin.managers.structure.hierarchy.current.structures;
     const names = structureNames(list);
     const seen = new Set<string>();
@@ -724,6 +744,7 @@ export function createSceneSource(
         inspectionKeys.delete(id);
         unitCellOwners.delete(id);
         streamingOwners.delete(id);
+        streamingShown.delete(id);
         if (picked.value === n) picked.set(undefined);
       }
     }
@@ -740,6 +761,20 @@ export function createSceneSource(
       if (picked.value === n) inspection.set(inspections.get(id));
     }
     roots.set(top);
+  };
+
+  const sync = () => {
+    const outer = refreshing;
+    const ids = outer ?? new Set<string>();
+    refreshing = ids;
+    try {
+      syncRows();
+    } finally {
+      if (!outer) {
+        refreshing = undefined;
+        for (const id of ids) refreshLevels(id);
+      }
+    }
   };
 
   const build = (n: SceneNode) =>

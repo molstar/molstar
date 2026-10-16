@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cbs, headlessViewer, until } from '../../_test/harness.js';
+import { cbs, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import type { SceneNode } from '../../model/scene.js';
 
 // The contents rows (README decision 18): an entity's or a chain's eye hides it and shows it again, the row says which,
@@ -63,5 +63,38 @@ describe('the contents rows', () => {
     chain.toggleVisibility();
     await until(() => components().length === 3);
     expect(rows()[0].isHidden.value).toBe(false);
+  });
+
+  it('gives an emptied component row made without a row before it its actions once it is shown again', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const structure = () => v.views.scene.roots.value[0];
+    const contents = () => structure().children.value.find((c) => c.kind === 'contents')!;
+    contents().load?.();
+    const polymer = contents().children.value.find(
+      (c) => c.kind === 'entity' && /polymer/.test(c.description.value ?? ''),
+    )!;
+    const chain = polymer.children.value[0] as SceneNode;
+    chain.toggleVisibility();
+    await until(() => chain.isHidden.value);
+
+    // The structure removed and brought back by Undo: its rows are made anew, the polymer's as an emptied one.
+    expectOk(await v.api.structure.remove({ structure: structure().id }));
+    await until(() => v.views.scene.roots.value[0]?.kind !== 'structure');
+    expectOk(await v.api.history.undo());
+    await until(() => structure()?.kind === 'structure');
+    const rows = () => structure().children.value.filter((c) => c.kind === 'component');
+    await until(() => rows()[0]?.description.value === 'hidden in Contents');
+
+    contents().load?.();
+    const again = contents().children.value.find(
+      (c) => c.kind === 'entity' && /polymer/.test(c.description.value ?? ''),
+    )!;
+    (again.children.value[0] as SceneNode).toggleVisibility();
+    await until(() => rows()[0]?.description.value !== 'hidden in Contents');
+    const row = rows()[0];
+    expect(row.removable).toBe(true);
+    expect(row.menu?.length).toBeGreaterThan(0);
+    row.toggleVisibility();
+    await until(() => row.isHidden.value);
   });
 });
