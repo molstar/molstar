@@ -208,6 +208,8 @@ function canvasParamsOf(leaves: readonly string[]): PD.Params {
   return params;
 }
 
+// Param definitions only, made from Mol*'s static `Canvas3DParams`: no viewer's state (values live in each viewer's plugin),
+// so one cache for the page is harmless with several viewers (README decision 29).
 const canvasGroupParams = new Map<SettingsGroupId, PD.Params>();
 function paramsOfCanvasGroup(id: SettingsGroupId): PD.Params {
   let params = canvasGroupParams.get(id);

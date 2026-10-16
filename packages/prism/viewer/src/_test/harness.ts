@@ -14,7 +14,7 @@ import type { RunRecord } from '../api/run.js';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { createPrismViewerHeadless } from '../headless.js';
 import type { PrismViewerSpec, ViewerExtension } from '../spec.js';
-import type { PrismViewer } from '../viewer.js';
+import type { PrismViewer, ViewerCore } from '../viewer.js';
 
 // A headless viewer for tests (viewer-spec.md §6): made per test, disposed after it, with the repository's example
 // files. Tests never reach the network.
@@ -72,6 +72,10 @@ export async function headlessViewer(
   for (const f of o.files ?? []) expectOk(await viewer.api.load.files({ files: [f] }));
   return viewer;
 }
+
+/** The viewer's own target resolver and query languages (the ones its operations use). */
+export const targetsOf = (v: PrismViewer) => (v as ViewerCore).host.areaContext.targets;
+export const languagesOf = (v: PrismViewer) => (v as ViewerCore).host.areaContext.languages;
 
 /** Asserts a result is ok and narrows it. */
 export function expectOk<R>(r: ApiResult<R>): asserts r is Extract<ApiResult<R>, { ok: true }> {

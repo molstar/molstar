@@ -65,7 +65,7 @@ export class SelectApi extends ApiArea {
         description: 'Replace the selection, add to it, remove from it or keep what is in both',
       }),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     history: false,
     async run({ target, mode, structure, language }, ctx) {

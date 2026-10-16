@@ -57,6 +57,8 @@ export interface KeptRecordsOptions {
   readonly record: SessionRecord;
   /** The spec's `persist.rows`; the browser's IndexedDB when absent. */
   readonly rows?: ThreadRows;
+  /** The IndexedDB database to read when there are no rows (`recordsDatabase(persist.key)`). */
+  readonly database?: string;
   readonly max?: number;
 }
 
@@ -72,7 +74,7 @@ export function createKeptRecordsModel(o: KeptRecordsOptions): KeptRecordsModel 
   // One opening at a time; none (no database yet: nothing was kept) is tried again on the next read.
   const open = () => {
     opening ??= (async () => {
-      const rows = o.rows ?? (await openRecordsRows());
+      const rows = o.rows ?? (await openRecordsRows(o.database));
       if (!rows) return undefined;
       return { rows, index: await createRecordIndex(rows) };
     })().then(

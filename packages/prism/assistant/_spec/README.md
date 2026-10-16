@@ -35,8 +35,10 @@ is the truth for how.
 - **The setup**: Anthropic, Google, OpenAI and one's own OpenAI-compatible endpoints (chat or responses API; https, or
   http on localhost; an optional key; its models typed or fetched from its `/models`; it must allow CORS), one key each.
   The default model (`claude-sonnet-5-5` unless the host names one) is in effect while its provider has a key; the
-  person's choice (provider, model) is kept in localStorage apart from the keys, and the first provider with a key
-  stands in while the chosen one has none. The model applies from the next request.
+  person's choice (provider, model) is kept in localStorage apart from the keys, per viewer
+  (`prism-assistant@<persist.key>.`, `assistantPrefsPrefix`; the default key keeps `prism-assistant.`: several viewers
+  on a page, viewer README decision 29), and the first provider with a key stands in while the chosen one has none. The
+  model applies from the next request.
 - **A host's own models** (`provided`; a function makes them when the assistant loads): listed first, keyed "from the
   server", in effect with no key of the person's (the stories' scripted model).
 - **Keys** are the person's, kept for the `KeyScope` they choose: `reload` (memory), `session` (sessionStorage),
@@ -45,10 +47,12 @@ is the truth for how.
   (AES-GCM, or XOR without WebCrypto: against a naive read). A stored value is opened by trying the per-browser key,
   then the app key. Nothing guards against code running in the page. A key never reaches the model, the record, a
   session file, a log or a notification; the Storage view lists keys by provider and scope only, with Forget.
+- **Keys are shared by every viewer in the browser** (decision 29 of the viewer's README): the person's keys are theirs,
+  not a viewer's; one stored key serves all viewers on the origin, and Forget in one is seen by another after a reload.
 - **The origin is shared**: every page on the viewer's origin can use stored keys and read kept records; the app runs on
   an origin of its own (app.md §1), and the Storage view names the origin.
 - **Allowed domains** (the agent's Allow <host>, [agent.md](../../viewer/_spec/agent.md) §4): for the session, or kept
-  in this browser (the prefs' `domains`); listed in the Storage view with Forget.
+  in this browser (the prefs' `domains`, per viewer); listed in the Storage view with Forget.
 - **The Ask row** (prism-ui's command menu, the `CommandMenuAssistant` port: `ready`, `propose`, `ask`, `setup`): under
   the list, always there; it takes what is typed with ⌘↵ (Ctrl+↵), or ↵ when no command matches (it is then the
   default). Not set up, it is quiet ("Set up an AI assistant") and opens the Assistant tab.

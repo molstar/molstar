@@ -104,7 +104,7 @@ export class ComponentApi extends ApiArea {
           "A representation type id ('cartoon', 'ball-and-stick', …), 'none' for none; empty: ball-and-stick",
       }),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     // Identity (decision 30): a component of exactly that target (or with that label) on the structure. The fast
     // path knows only the targets it can compile without the viewer (not `selection`, `focus` or loci); `run` checks
@@ -112,7 +112,7 @@ export class ComponentApi extends ApiArea {
     exists(values, ctx) {
       const target = values.target;
       if (isLociTarget(target)) return undefined;
-      const compiled = compileTarget(target as Target, { language: values.language });
+      const compiled = compileTarget(target as Target, { language: values.language, languages: ctx.languages });
       if (!compiled.ok) return undefined;
       const list = values.structure ? someStructures(ctx, values.structure) : loadedStructures(ctx);
       if (isFailure(list) || (!values.structure && list.length !== 1)) return undefined;
@@ -314,7 +314,7 @@ export class ComponentApi extends ApiArea {
       target: TargetParam('What to add, take out or keep: ligand, A:120-130, …'),
       mode: ModeParam(),
       structure: StructureParam(InStructure),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run({ component, target, mode, structure, language }, ctx) {
       const found = inStructures(ctx, component, structure);

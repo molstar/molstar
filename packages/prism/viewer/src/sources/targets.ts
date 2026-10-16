@@ -13,6 +13,7 @@ import type { ApiErrorCode, ApiFailure } from '../api/area.js';
 import type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from '../api/targets.js';
 import { findStructure, structureNames, structuresWithSelection, workingStructure } from './naming.js';
 import { isLociTarget } from '../api/target-param.js';
+import type { QueryLanguages } from '../targets/languages.js';
 import {
   type CompiledTarget,
   compileTarget,
@@ -34,7 +35,7 @@ import {
 // the result says which it was. `selection` and
 // `focus` are the person's: Mol*'s selection and focus on that structure.
 
-export function createTargetResolver(plugin: PluginContext): TargetResolver {
+export function createTargetResolver(plugin: PluginContext, languages: QueryLanguages): TargetResolver {
   const structures = () => plugin.managers.structure.hierarchy.current.structures;
 
   const byName = (name: string): StructureRef | undefined => findStructure(structures(), name);
@@ -107,7 +108,7 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
       const parts: ResolvedPart[] = [];
       let failure: ApiFailure | undefined;
       let stored: unknown;
-      const language = options.language ? { language: options.language } : {};
+      const language = { languages, ...(options.language ? { language: options.language } : {}) };
       // Read and compiled once for every structure in scope; only `selection` and `focus` differ by structure.
       let personal = false;
       const once = compileTarget(target as Target, {

@@ -12,6 +12,7 @@ import {
   forgetKept,
   keptSize,
   openRecordsRows,
+  recordsDatabase,
   type RecordIndex,
   type SessionRecord,
 } from '../journal/record.js';
@@ -29,6 +30,8 @@ const DayMs = 24 * 60 * 60_000;
 export interface KeptRecordsSourceOptions {
   /** Where kept records are: the spec's `persist.rows`; else the browser's IndexedDB, opened only when it exists. */
   readonly rows?: ThreadRows;
+  /** The IndexedDB database when there are no rows (`recordsDatabase(persist.key)`, journal.md §6). */
+  readonly database?: string;
   /** This session's record: forgetting it while it is kept takes it back into memory (`unkeep`). */
   readonly record?: SessionRecord;
   readonly now?: () => number;
@@ -51,7 +54,7 @@ export function keptRecordsSource(o: KeptRecordsSourceOptions = {}): KeptRecords
 
   const open = () => {
     opening ??= (async () => {
-      const rows: Opened['rows'] | undefined = o.rows ?? (await openRecordsRows());
+      const rows: Opened['rows'] | undefined = o.rows ?? (await openRecordsRows(o.database));
       if (!rows) return undefined;
       if (disposed) {
         if (!o.rows) rows.close?.();
@@ -167,7 +170,11 @@ export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?:
   dispose(): void;
 } {
   const rows = o.persist?.rows as ThreadRows | undefined;
-  const records = keptRecordsSource({ ...(rows ? { rows } : {}), ...(o.record ? { record: o.record } : {}) });
+  const records = keptRecordsSource({
+    ...(rows ? { rows } : {}),
+    database: recordsDatabase(o.persist?.key),
+    ...(o.record ? { record: o.record } : {}),
+  });
   const sources: StorageSource[] = [records];
   const preferences = o.persist?.preferences;
   if (isListedStore(preferences)) {

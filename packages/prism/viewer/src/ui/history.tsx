@@ -33,7 +33,7 @@ import {
   type HistoryTurnRow,
 } from '../journal/history-model.js';
 import type { OpenedRecord } from '../journal/kept-records.js';
-import { createRecordIndex, type KeptRecord } from '../journal/record.js';
+import { createRecordIndex, type KeptRecord, recordsDatabase } from '../journal/record.js';
 import { recordSpan } from '../views/home/kept-records.js';
 import type { PrismViewer } from '../viewer.js';
 import { classes } from './_generated/history.module.css.js';
@@ -60,9 +60,6 @@ const modelName = (model: string) => model.slice(model.indexOf(':') + 1);
 
 const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-/** The name IndexedDB keeps the record in (journal.md §1). */
-const RecordsDatabase = 'prism-viewer-records';
-
 /** What kept records are listed under: the loaded structures' names, else "Session". */
 export function recordTitle(structures: readonly { label: string }[]): string {
   const names = [...new Set(structures.map((s) => s.label).filter(Boolean))];
@@ -78,7 +75,9 @@ const keeping = new WeakMap<object, Promise<boolean>>();
  * IndexedDB, and goes on writing there. Only the record: no state, no files. Says so when it cannot (no IndexedDB), and
  * returns whether it is kept.
  */
-export function keepSessionRecord(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
+export function keepSessionRecord(
+  viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers' | 'spec'>,
+): Promise<boolean> {
   const { record } = viewer;
   if (record.kept) return Promise.resolve(true);
   let p = keeping.get(record);
@@ -89,7 +88,7 @@ export function keepSessionRecord(viewer: Pick<PrismViewer, 'record' | 'sources'
   return p;
 }
 
-async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
+async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers' | 'spec'>): Promise<boolean> {
   const { record, sources, managers } = viewer;
   try {
     // Loaded when asked: the viewer without a kept record never pays for it.
@@ -97,7 +96,7 @@ async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>
     const made = record.keepIn
       ? undefined
       : (await import('../journal/indexeddb-rows.js')).createIndexedDbRows<import('@molstar/ai').ThreadTable>(
-          RecordsDatabase,
+          recordsDatabase(viewer.spec.persist?.key),
         );
     const rows = record.keepIn ?? made!;
     let handed = false;

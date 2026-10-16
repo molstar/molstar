@@ -19,8 +19,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
   Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
   JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
-- **The query languages' registry is page-wide** (`viewer/src/targets/languages.ts`): two viewers on a page offer each
-  other's languages. Recommended: page-wide until pages with several viewers matter.
+- **Assistant keys are shared by every viewer in the browser** (README decision 29): Forget in one viewer is seen by
+  another only after a reload; make the key store notify the other viewers if that matters.
 - **Size**: MolViewSpec in the startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk
   (one default for now, everything but streaming; its floor of ~721 kB is aligners, SeqQL, streams and palettes:
   [../sequences/todo.md](../sequences/todo.md)); eager extensions in the app (~190 kB, lazy stubs owning their formats);

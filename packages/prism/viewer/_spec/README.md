@@ -152,8 +152,18 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   (`sources/framing.ts` `frameBelowTop`, `paddedFocus`); Mol*'s own first framing of a scene does not (no hook without
   changing the graphics package). A ResizeObserver on the viewer's element sizes and draws the canvas in the same
   callback, and an unchanged size is not set again (`sources/canvas-host.ts`).
-- **29. Several viewers on a page**: keys go to the viewer that has focus (`ownsKey`, never the window); stored state is
-  namespaced by `persist.key`, two live viewers with one key are refused (`src/page.ts`).
+- **29. Several viewers on a page** (`src/page.ts`, the stories `Viewer/Several viewers`): each is a shadow root with a
+  plugin of its own, and nothing it owns is page-wide. Keys go to the viewer that has focus (`ownsKey`, never the
+  window; also the assistant's Esc and Inspector keys); menus and the pick level live in the viewer's root; fullscreen
+  follows its own element only (`FullscreenModel`). The query languages are a set per viewer (the page-wide ones only
+  seed it: `targets/languages.ts`). Stored state is namespaced by `persist.key`: the store prefixes (the host builds the
+  stores with the key as prefix: `webStore`), the kept records' IndexedDB `<key>-records` (`prism-viewer-records` for
+  the default key, `prism-viewer`, and with no key), the assistant's choices and allowed domains
+  (`prism-assistant@<key>.`; the default key keeps `prism-assistant.`); two live viewers with one key are refused.
+  **Shared on purpose**: the person's assistant keys (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`: one key
+  serves every viewer in the browser; Forget in one viewer is seen by another after a reload), and module-level
+  definitions that hold no state (the canvas settings' param definitions, `sources/settings.ts`). A host that keeps
+  cameras together uses `viewer.camera` / `syncCameras` (api.md §12).
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
   ([api.md](api.md) §1).
 - **31. Colorblind-safe and high-contrast palettes** for the UI and the data

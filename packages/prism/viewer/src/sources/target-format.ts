@@ -10,6 +10,7 @@ import { StructureElement, StructureProperties } from '@molstar/model/model/stru
 import type { PluginContext } from '@molstar/plugin/context';
 import type { CommandFormat, FormatCompletion } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
+import type { QueryLanguages } from '../targets/languages.js';
 import { KEYWORDS, PERSON_KEYWORDS, parseTarget } from '../targets/index.js';
 
 // The `target` field of commands (targets.md §1; parity.md §3, the focus picker's entries): checked as it is typed
@@ -30,14 +31,17 @@ const KeywordHelp: Readonly<Record<string, string>> = {
   focus: 'What is focused',
 };
 
-export function createTargetFormat(plugin: PluginContext): CommandFormat<ViewerCommandContext> {
+export function createTargetFormat(
+  plugin: PluginContext,
+  languages: QueryLanguages,
+): CommandFormat<ViewerCommandContext> {
   return {
     hint: () => 'ligand, A:120-130, resn HEM, selection, …',
     check(value) {
       const text = value.trim();
       if (!text)
         return { ok: false, message: 'Which part?', hint: 'A keyword (ligand), an address (A:120) or a query.' };
-      const parsed = parseTarget(text);
+      const parsed = parseTarget(text, { languages });
       return parsed.ok ? { ok: true, value: text } : { ok: false, message: parsed.message, hint: parsed.hint };
     },
     complete(text) {

@@ -7,6 +7,7 @@
  */
 
 import type { Expression } from '@molstar/query-language/language/expression';
+import type { QueryLanguages } from './languages.js';
 
 // Targets (_spec/targets.md §1). Ported from Stories Untold's `any-molql`. Kept structural (the plain data of an MVS
 // selector), so a target is data anywhere it goes; the one Mol* type here is MolQL's `Expression`, which is JSON.
@@ -96,6 +97,8 @@ export type PersonResolver = (which: PersonKeyword) => Expression | undefined;
 export interface CompileOptions {
   /** The language of query text (the first the viewer reads unless said: PyMOL in the default spec). */
   language?: QueryLanguage;
+  /** The languages the viewer reads (its own set; the page-wide one when none is given). */
+  languages?: QueryLanguages;
   /** Resolves `selection` and `focus`; without one they fail with a message. */
   resolvePerson?: PersonResolver;
 }

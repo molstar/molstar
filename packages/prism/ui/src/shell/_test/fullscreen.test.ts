@@ -49,4 +49,53 @@ describe('FullscreenModel', () => {
     sub.unsubscribe();
     model.dispose();
   });
+
+  it('of two viewers on a page: each follows its own element only', () => {
+    allow(true);
+    const a = document.createElement('div');
+    const b = document.createElement('div');
+    document.body.append(a, b);
+    const one = new FullscreenModel(() => a);
+    const two = new FullscreenModel(() => b);
+    const change = (element: Element | null) => {
+      Object.defineProperty(document, 'fullscreenElement', { value: element, configurable: true });
+      (element ?? a).dispatchEvent(new Event('fullscreenchange', { bubbles: true }));
+    };
+    change(a);
+    expect([one.active.value, two.active.value]).toEqual([true, false]);
+    // The browser moves fullscreen to the other: the first is no longer in it.
+    change(b);
+    expect([one.active.value, two.active.value]).toEqual([false, true]);
+    change(null);
+    expect([one.active.value, two.active.value]).toEqual([false, false]);
+    one.dispose();
+    two.dispose();
+    a.remove();
+    b.remove();
+  });
+
+  it('the button of one enters fullscreen while another is in it, and leaves only its own', async () => {
+    allow(true);
+    const a = document.createElement('div');
+    const b = document.createElement('div');
+    document.body.append(a, b);
+    const requested: Element[] = [];
+    let exited = 0;
+    (a as any).requestFullscreen = async () => void requested.push(a);
+    (b as any).requestFullscreen = async () => void requested.push(b);
+    (document as any).exitFullscreen = async () => void exited++;
+    const first = new FullscreenModel(() => a);
+    const two = new FullscreenModel(() => b);
+    Object.defineProperty(document, 'fullscreenElement', { value: a, configurable: true });
+    await two.toggle();
+    expect(requested).toEqual([b]);
+    expect(exited).toBe(0);
+    await first.toggle();
+    expect(exited).toBe(1);
+    Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
+    first.dispose();
+    two.dispose();
+    a.remove();
+    b.remove();
+  });
 });

@@ -436,3 +436,15 @@ the [API change ledger](breaking-v6-changes.md).
   `flattenTree` gives each node its place among its siblings; `keepRows` keeps a flattened list's unchanged rows;
   `TreeNavigation` (`dom/tree-keys`) is the tree keyboard over a flattened, virtualized tree (it replaces `treeKeys` and
   `treeFocus`).
+
+## Prism: several viewers on a page, and a camera to follow
+
+- Viewers on one page no longer share what each owns: the query languages are a set per viewer (the page-wide ones only
+  seed it), the kept records are in an IndexedDB named after the viewer's `persist.key` (`prism-viewer-records` for the
+  default key), the assistant's model choice and allowed domains are kept per viewer, fullscreen follows only its own
+  element, and the assistant's Esc and Inspector keys go to the viewer that has the focus. The assistant's keys stay the
+  person's, shared by every viewer in the browser.
+- `viewer.camera` (the view now, `changed`, `set(view, { silent })`) and `syncCameras(viewers)` keep viewers' cameras
+  together with no echo.
+- Stories: Viewer › Several viewers (three independent viewers; docking poses with a synced camera).
+

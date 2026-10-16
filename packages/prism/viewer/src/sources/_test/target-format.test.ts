@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cbs, headlessViewer } from '../../_test/harness.js';
+import { cbs, headlessViewer, languagesOf } from '../../_test/harness.js';
 import { createTargetFormat } from '../target-format.js';
 
 // The command menu's `target` format (targets.md §1, parity.md §3).
@@ -15,7 +15,7 @@ import { createTargetFormat } from '../target-format.js';
 describe('the target format', () => {
   it('checks targets as typed and completes keywords, chains and ligands', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const format = createTargetFormat(v.plugin);
+    const format = createTargetFormat(v.plugin, languagesOf(v));
     const ctx = { empty: false };
     expect(format.check('A:10-20', ctx)).toMatchObject({ ok: true });
     expect(format.check('resn (((', ctx)).toMatchObject({ ok: false });

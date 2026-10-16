@@ -9,9 +9,8 @@
 import { StateSelection, StateTransform } from '@molstar/core/state';
 import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { cbs, expectOk, headlessViewer, until } from '../../../_test/harness.js';
+import { cbs, expectOk, headlessViewer, targetsOf, until } from '../../../_test/harness.js';
 import { measurementLocis, readMeasurements } from '../../../sources/measurements.js';
-import { createTargetResolver } from '../../../sources/targets.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { MeasurementGroupTag } from '@molstar/plugin/state/manager/structure/measurement';
 import { MeasurementsFeature } from '../index.js';
@@ -147,7 +146,7 @@ describe('measure', () => {
 
     const picks = v.plugin.managers.structure.selection;
     const loci = async (t: string) => {
-      const r = await createTargetResolver(v.plugin).resolve(t);
+      const r = await targetsOf(v).resolve(t);
       if (!r.ok) throw new Error(r.message);
       return r.parts[0].loci;
     };
@@ -283,7 +282,7 @@ describe('the Measure section model', () => {
 
     const picks = v.plugin.managers.structure.selection;
     for (const t of [A(10), A(20), A(30)]) {
-      const r = await createTargetResolver(v.plugin).resolve(t);
+      const r = await targetsOf(v).resolve(t);
       if (!r.ok) throw new Error(r.message);
       picks.fromLoci('add', r.parts[0].loci, false);
     }
@@ -332,7 +331,7 @@ describe('the Measure section model', () => {
   it('shows the short form of a point and the full label for the tooltip', async () => {
     const v = await setup();
     const model = v.api.measure!.model(v.api);
-    const r = await createTargetResolver(v.plugin).resolve('A:10@CA');
+    const r = await targetsOf(v).resolve('A:10@CA');
     if (!r.ok) throw new Error(r.message);
     v.plugin.managers.structure.selection.fromLoci('add', r.parts[0].loci, false);
     const [point] = model.points.value;

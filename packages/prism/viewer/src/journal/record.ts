@@ -36,8 +36,16 @@ import type { RunRecord } from '../api/run.js';
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.
 
 export const RecordCodec = 'prism-viewer.record.v1';
-/** The IndexedDB database kept records go to when the spec gives no rows (journal.md §1; History's Keep). */
-export const RecordsDatabase = 'prism-viewer-records';
+/** The viewer's default persist key: what the records database is named after when the spec has none. */
+const DefaultPersistKey = 'prism-viewer';
+/** The IndexedDB database of a viewer without a `persist.key` (and of the app's, whose key is the default). */
+export const RecordsDatabase = `${DefaultPersistKey}-records`;
+/**
+ * The IndexedDB database kept records go to when the spec gives no rows (journal.md §1, §6; History's Keep): named after
+ * the viewer's `persist.key`, so viewers on a page keep their records apart (README decision 29). Viewers with no key
+ * share the default one.
+ */
+export const recordsDatabase = (persistKey?: string): string => `${persistKey || DefaultPersistKey}-records`;
 const Owner = threadOwnerId('prism-viewer');
 
 /** The thread's largest window (`maxWindowEntries`): longer reads go in pages of it. */
@@ -996,7 +1004,9 @@ async function copyEntry(
 }
 
 /** The browser's kept records' rows, only when the database exists (listing never makes an empty one). */
-export async function openRecordsRows(): Promise<(ThreadRows & { close?(): void }) | undefined> {
+export async function openRecordsRows(
+  database: string = RecordsDatabase,
+): Promise<(ThreadRows & { close?(): void }) | undefined> {
   let idb: IDBFactory | undefined;
   try {
     idb = globalThis.indexedDB;
@@ -1006,11 +1016,11 @@ export async function openRecordsRows(): Promise<(ThreadRows & { close?(): void 
   if (!idb) return undefined;
   if (typeof idb.databases === 'function') {
     const names = (await idb.databases()).map((d) => d.name);
-    if (!names.includes(RecordsDatabase)) return undefined;
+    if (!names.includes(database)) return undefined;
   }
   // Loaded when asked, as History's Keep does: a viewer that never lists them never pays for it.
   const { createIndexedDbRows } = await import('./indexeddb-rows.js');
-  return createIndexedDbRows<ThreadTable>(RecordsDatabase);
+  return createIndexedDbRows<ThreadTable>(database);
 }
 
 // ---- The index of kept records (journal.md §1) ----

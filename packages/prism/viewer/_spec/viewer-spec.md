@@ -91,7 +91,11 @@ decision 29).
 `QueryLanguageEntry[]` (`targets/languages/{pymol,vmd,jmol,molscript,all}`, one module each, so a spec bundles only what
 it names; [targets.md](targets.md) §1). Keywords, address lists and MolQL are always read; text in an unlisted language
 fails, naming those read. The default lists all four, PyMOL first (the default for text); none keeps the transpilers out
-of the bundle (`examples/minimal-prism-viewer`). Registered page-wide when a viewer is made.
+of the bundle (`examples/minimal-prism-viewer`). **Per viewer** (README decision 29): each viewer has its own set
+(`QueryLanguages`, `targets/languages.ts`), made when it is made from the page-wide defaults (`registerQueryLanguages`:
+none unless a host sets some) and then its spec's; one viewer's languages are not offered by another, in its `language`
+params, targets or command-menu `target` field. The target functions (`compileTarget`, `parseTarget`, `compileQuery`)
+take the viewer's set as `languages` and read the page-wide one without.
 
 ### 2.8 `palettes`: the data palettes' lists
 
@@ -178,8 +182,9 @@ options, the assistant and `persist`; its loaders read the URL once the viewer i
 - `createPrismViewer({ target, spec })` (page, shadow root; `<prism-viewer>` wraps it) and
   `createPrismViewerHeadless({ spec, plugin? })` (no DOM; `plugin` makes a `HeadlessPluginContext` for images). Both
   give a `PrismViewer` (`src/viewer.ts`): `plugin` (escape hatch), `api`, `run(label, work)` (one step), `managers`,
-  `views`, `sources` (read-only), `spec`, `options`, `state` (`ready`, `busy`, `empty`), `events` (`hover`, `click`,
-  `error`), `extensions`, `dispose()`.
+  `views`, `sources` (read-only), `camera` (the view to follow and set: api.md §12), `spec`, `options`, `state`
+  (`ready`, `busy`, `empty`), `events` (`hover`, `click`, `error`), `extensions`, `dispose()`. Several viewers on a
+  page: each its own `persist.key` (§2.6, README decision 29).
 - **Order**: validate the spec (`spec-check.ts`: ids, overrides, slots), compose the plugin spec, `init()` the plugin,
   make the API, managers and views, activate the extensions in order (lazy as stubs), then with a page mount the canvas
   and render the shell; `ready` last, and only then URL calls and the light restore ([journal.md](journal.md) §6).

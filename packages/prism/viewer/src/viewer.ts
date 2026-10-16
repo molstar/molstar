@@ -7,7 +7,7 @@
  */
 
 import type { AnnotationsApi } from './api/annotations.js';
-import { registerQueryLanguages } from './targets/languages.js';
+import { createQueryLanguages } from './targets/languages.js';
 import type { ThreadRows } from '@molstar/ai';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
@@ -37,6 +37,7 @@ import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from
 import { mountCanvas, unmountCanvas } from './sources/canvas-host.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
+import { createViewerCamera, type ViewerCamera } from './sources/camera.js';
 import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
 import { SequenceApi } from './api/sequence.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
@@ -60,7 +61,13 @@ import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, shellIdOf } from './extensions/overrides.js';
 import { createKeptRecordsModel, type KeptRecordsModel } from './journal/kept-records.js';
-import { createSessionRecord, recordFromLines, recordLines, type SessionRecord } from './journal/record.js';
+import {
+  createSessionRecord,
+  recordFromLines,
+  recordLines,
+  recordsDatabase,
+  type SessionRecord,
+} from './journal/record.js';
 import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
@@ -126,6 +133,11 @@ export interface PrismViewer {
   readonly views: PrismViewerViews;
   /** Read-only states over the plugin (state.md §4): what views, view models and the agent's account read. */
   readonly sources: ViewerSources;
+  /**
+   * The camera as a view to follow and set from outside, for keeping viewers' cameras together (`syncCameras`); not
+   * the `camera` area's operations, which are a person's or the agent's (api.md §12).
+   */
+  readonly camera: ViewerCamera;
   readonly state: {
     readonly ready: ReadonlyState<boolean>;
     readonly busy: ReadonlyState<boolean>;
@@ -236,7 +248,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const emptySub = empty.subscribe((e) => commandContext.set({ empty: e }));
     disposers.push(() => emptySub.unsubscribe());
 
-    const targetFormat = createTargetFormat(plugin);
+    // This viewer's own query languages: the page-wide defaults, then the spec's (targets.md §1; README decision 29).
+    const languages = createQueryLanguages(spec.languages ?? []);
+    const targetFormat = createTargetFormat(plugin, languages);
     const history = new HistoryManager<ViewerCheckpoint>(createCheckpointPort(plugin));
     const notifications = new NotificationsManager();
     const { viewState, navigation } = layoutManagers(spec, options);
@@ -263,9 +277,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(watchOutsideChanges(plugin, history));
 
-    // The spec's query languages, readable from here on (targets.md §1).
-    registerQueryLanguages(spec.languages ?? []);
-    const targets = createTargetResolver(plugin);
+    const targets = createTargetResolver(plugin, languages);
     const modules = new Set(o.modules);
     // Operations that load what an extension owns ask the extensions first; set once they are added.
     const extensionPort: ExtensionPort = { ensureFor: async () => {} };
@@ -275,6 +287,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       plugin,
       sources,
       targets,
+      languages,
       modules: { has: (k) => modules.has(k) },
       managers,
       extensions: extensionPort,
@@ -345,6 +358,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keptRecords = createKeptRecordsModel({
       record,
       ...(keepIn ? { rows: keepIn } : {}),
+      database: recordsDatabase(spec.persist?.key),
       max: options.ui.keptRecordsMax,
     });
     disposers.push(() => keptRecords.dispose());
@@ -472,6 +486,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     disposers.push(() => notifications.unmount());
 
     const ready = observableState(false);
+    const viewerCamera = createViewerCamera(plugin);
+    disposers.push(() => viewerCamera.dispose());
     let disposed = false;
     const core: ViewerCore = {
       plugin,
@@ -484,6 +500,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       views: viewsOf({ ...builtInViews, ...(sequence ? { sequence } : {}) }),
       // Read-only (api.md §6): the marks' writers are the API's (`highlight.mark`).
       sources: publicSources(sources),
+      camera: viewerCamera.camera,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,

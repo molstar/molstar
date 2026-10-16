@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ownsKey } from '@molstar/prism-ui/dom/events';
 import { Icon, type IconName, ScrollArea, For, Show, onCleanup, StatusPill } from '@molstar/prism-ui';
 import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../model.js';
@@ -136,9 +137,12 @@ export function UndoTurn(props: { agent: AgentModel; id: string }) {
  */
 export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: string) => void }) {
   const { agent } = props;
+  // Where the card is: its viewer's keys only (several viewers on a page).
+  const anchor = (<span hidden />) as HTMLElement;
   // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || agent.view.value !== 'card' || !agent.turn.value) return;
+    if (!ownsKey(anchor, e)) return;
     const target = e.target as HTMLElement | null;
     if (
       target?.isContentEditable ||
@@ -160,6 +164,7 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
     );
   return (
     <>
+      {anchor}
       <Show when={which('line')}>{() => <TurnLine agent={agent} />}</Show>
       <Show when={which('card')}>{(id) => <Card agent={agent} id={id} onTrace={props.onTrace} />}</Show>
     </>

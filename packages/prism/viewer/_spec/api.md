@@ -186,3 +186,21 @@ Every operation has a command, a tool, or both, or `surface: 'ui-only' | 'agent-
 - **Evals** run an agent over the headless viewer and check the state account ([agent.md](agent.md) §6).
 - **Not Stories**: no closed document language; the "document" is the plugin's state tree plus the sequence's
   SeqViewSpec. Operations compile to state updates and sequence patches; undo restores snapshots, not inverses.
+
+## 12. The camera as a view, and viewers that follow each other
+
+`viewer.camera` (`sources/camera.ts`; not an operation: a pointer-rate stream and a cut belong neither in the run path
+nor in the record or the history, and `camera.get`/`camera.set` are rounded, a result, a transition: for people and the
+agent):
+
+- `snapshot()`: the view now, full precision: `{ mode, fov (rad), position, target, up, radius }`; none without a
+  canvas.
+- `changed`: an `Observable` of the view after a frame drew a different one (the person dragging, a call, a transition's
+  frames). Not replaying. It speaks only when the view differs from the one last announced or set, by value
+  (`sameView`), so a view set `silent` is never announced.
+- `set(snapshot, { silent? })`: cuts the camera to the view (no transition; the radius is clamped to the scene's) and
+  asks for a draw; false without a canvas. `silent` marks it the last announced, so a host that mirrors one camera onto
+  another does not hear its own setting back: no echo loop, however many viewers follow each other.
+- `syncCameras(viewers, from?)` (`@molstar/prism-viewer`): each viewer's `changed` sets the others silently; `from`
+  applies its view to the rest at once; returns the unlink. The radius is part of the view so the clipping and fog
+  match; a viewer whose scene is smaller clamps it.

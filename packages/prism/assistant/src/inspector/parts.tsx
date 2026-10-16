@@ -10,6 +10,7 @@
 
 import type { BudgetView, TokensView } from '@molstar/ai/trace';
 import { credits, formatUsage, k } from '@molstar/ai/trace';
+import { ownsKey } from '@molstar/prism-ui/dom/events';
 import { type Child, type MaybeReactive, onCleanup, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { classes } from './_generated/parts.module.css.js';
@@ -160,7 +161,7 @@ export function listKeys(root: () => Element | undefined, move: (delta: number) 
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     const delta = e.key === 'ArrowDown' || e.key === 'j' ? 1 : e.key === 'ArrowUp' || e.key === 'k' ? -1 : 0;
     const el = root();
-    if (!delta || !el?.isConnected) return;
+    if (!delta || !el?.isConnected || !ownsKey(el, e)) return;
     const target = e.target as HTMLElement | null;
     if (
       !el.contains(target) &&

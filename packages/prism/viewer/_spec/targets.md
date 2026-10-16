@@ -10,7 +10,8 @@ the truth for how (`src/targets/`, `sources/targets.ts`, `api/target-param.ts`).
   permissive: `A/120`, `A 120-130`, a trailing comma), else query text; else fails with the part that did not read and a
   hint. `SelectorT` is MVS's: schema items or `{ molql }`; code in the page may pass `{ loci }`, never stored.
 - **Query languages are the spec's `languages`** (viewer-spec.md §2.7): only those transpilers are bundled, the first is
-  the default (PyMOL in the default spec), `language` picks another and is hidden when none is registered.
+  the default (PyMOL in the default spec), `language` picks another and is hidden when none is registered. The set is
+  the viewer's own, not the page's (README decision 29): another viewer's languages are not read here.
 - **The structure, one rule** (`workingStructure` in `sources/naming.ts`, `api/scope.ts`): a named one (state ref, else
   entry or label); else the focused one, else the only one holding the selection; else a target applies to every loaded
   one (`selection`: every one holding some), a one-structure operation takes the only one or fails `ambiguous`,

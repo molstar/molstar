@@ -13,4 +13,4 @@ export type { ProvidedModels, SettingsPrefs } from './viewer/settings-model.js';
 // import its code itself.
 export { createViewerAgent } from '@molstar/prism-viewer/agent/session';
 export { createViewerAgentModel, historyItemsOf } from './viewer/agent-model.js';
-export { createAISettings, localPrefs } from './viewer/settings-model.js';
+export { assistantPrefsPrefix, createAISettings, localPrefs } from './viewer/settings-model.js';

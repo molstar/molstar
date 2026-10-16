@@ -8,8 +8,7 @@
 
 import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
-import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
-import { createTargetResolver } from '../../sources/targets.js';
+import { cbs, expectOk, headlessViewer, targetsOf } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 import type { RunRecord } from '../run.js';
 
@@ -158,7 +157,7 @@ describe('select', () => {
 
   it('takes loci from code in the page, directly', async () => {
     const v = await setup();
-    const resolved = await createTargetResolver(v.plugin).resolve('A:20-24');
+    const resolved = await targetsOf(v).resolve('A:20-24');
     if (!resolved.ok) throw new Error(resolved.message);
     const loci = resolved.parts[0].loci;
     const r = await v.api.select.set({ target: { loci } });
@@ -172,7 +171,7 @@ describe('select', () => {
     const records: RunRecord[] = [];
     const sub = v.api.events.finished.subscribe((r) => records.push(r));
     const before = steps(v);
-    const resolved = await createTargetResolver(v.plugin).resolve('A:20-24');
+    const resolved = await targetsOf(v).resolve('A:20-24');
     if (!resolved.ok) throw new Error(resolved.message);
     const link = v.api.as({ kind: 'link' });
     expectOk(await link.select.set({ target: { loci: resolved.parts[0].loci } }));
@@ -238,7 +237,7 @@ describe('highlight', () => {
 
   it('lights loci in the sequence when asked, and a later plain highlight leaves no stale hover', async () => {
     const v = await setup();
-    const resolved = await createTargetResolver(v.plugin).resolve('A:10-14');
+    const resolved = await targetsOf(v).resolve('A:10-14');
     if (!resolved.ok) throw new Error(resolved.message);
     const target = { loci: resolved.parts[0].loci };
     expectOk(await v.api.highlight.set({ target, sequence: true }));
