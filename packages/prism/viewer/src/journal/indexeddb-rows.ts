@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Row, RowConflict, type RowStore, type RowWrite } from '@molstar/ai-fibers';
+import { type Row, RowConflict, type RowStore, type RowWrite } from '@molstar/ai';
 
 const ROWS = 'rows';
 const GENERATIONS = 'generations';

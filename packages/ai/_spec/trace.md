@@ -1,18 +1,18 @@
-# The trace (`@molstar/ai-trace`)
+# The trace (`src/trace/` of `@molstar/ai`, the `./trace` entry)
 
 A read-only projection of a harness's records into plain data for a trace view (Prism's Inspector: Trace, Tools,
 Limits). It shows only what is committed, so it is safe to call while a turn runs; re-read on `client.watch()`, not on
-every streamed token. Imports `ai-agent` and `ai-harness` only; it does not import the session (its markers and label
-kinds, `LABELS`, are copied).
+every streamed token. Imports `messages/` and `harness/` only (and may import `session/compose.ts`, which it does not
+yet: its markers and label kinds, `LABELS`, are copied).
 
-## Files (`trace/src/`)
+## Files (`src/trace/`)
 
 | File        | What                                                                                                             |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
 | `read.ts`   | `readTrace`, `TraceProfile`, `createTraceCache`, `defaultRequestOf`, `defaultWindowPart`, `estimatedTokens`      |
 | `types.ts`  | the views: `TraceData`, `TurnView`, `StepView`, `WindowView`, `BudgetView`, `TokensView`, tools and limits views |
 | `tools.ts`  | `toolsView(input)`: the Tools tab from plain inputs                                                              |
-| `format.ts` | `k`, `ms`, `credits`, `cachedShare`, `formatUsage` (`@molstar/ai-trace/format`)                                  |
+| `format.ts` | `k`, `ms`, `credits`, `cachedShare`, `formatUsage` (`@molstar/ai/trace`)                                         |
 
 ## `readTrace(reader: HarnessReader, profile?: TraceProfile): Promise<TraceData>`
 
@@ -55,6 +55,6 @@ latest turn), `preamble` (guidance and tool definitions with token estimates), `
 
 ## Consumers
 
-`@molstar/prism-assistant`'s Inspector (`src/inspector/`) uses the types and `./format`; in the Prism viewer its data
+`@molstar/prism-assistant`'s Inspector (`src/inspector/`) uses the types and `format`; in the Prism viewer its data
 comes from `src/viewer/inspector-sources.ts` (`readTrace` on the session's client, re-read on `watch()`, one read at a
 time; `toolsView` from the viewer's toolkit), in the stories from mock data (`src/testing/mock-inspector.ts`).

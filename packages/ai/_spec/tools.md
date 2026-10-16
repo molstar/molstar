@@ -1,10 +1,10 @@
-# Tools (`@molstar/ai-tools`)
+# Tools (`src/tools/` of `@molstar/ai`)
 
 How a host declares tools, what the model reads back, and how they become the harness's `ToolBindings`. Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this package (and
-`ai-model-adapters`): no export names it, and a Biome rule keeps it out of the rest of the repository.
+[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this folder (and
+`providers/`): no export names it, and a Biome rule keeps it out of the rest of the repository.
 
-## Files (`tools/src/`)
+## Files (`src/tools/`)
 
 | File          | What                                                                                    |
 | ------------- | --------------------------------------------------------------------------------------- |

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { normalize, shapeInput } from '@molstar/ai-tools';
+import { normalize, shapeInput } from '@molstar/ai';
 import { Color } from '@molstar/core/util/color/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { colorOf, paramsShape } from '../params.js';
@@ -93,7 +93,7 @@ describe('paramsShape', () => {
     expect(ps.shape.fields.repr.description).toBeUndefined();
   });
 
-  it('makes a JSON Schema and a check through ai-tools', () => {
+  it('makes a JSON Schema and a check through the tools module', () => {
     const input = shapeInput(ps.shape);
     expect((input.jsonSchema as any).properties.repr.enum).toEqual(['cartoon', 'ball-and-stick']);
     expect(input.parse(normalize(input.shape, { repr: 'BALL-AND-STICK', size: '3' }))).toEqual({

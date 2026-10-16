@@ -8,7 +8,7 @@
 
 import 'fake-indexeddb/auto';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
-import { createFiberHost, createMemoryRows, type FiberTable, fiberId } from '@molstar/ai-fibers';
+import { createFiberHost, createMemoryRows, type FiberTable, fiberId } from '@molstar/ai';
 import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import {

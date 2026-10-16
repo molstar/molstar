@@ -8,7 +8,7 @@
 
 import type { AnnotationsApi } from './api/annotations.js';
 import { registerQueryLanguages } from './targets/languages.js';
-import type { FiberRows } from '@molstar/ai-fibers';
+import type { FiberRows } from '@molstar/ai';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import {

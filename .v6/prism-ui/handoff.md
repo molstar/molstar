@@ -61,16 +61,16 @@ items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan
 - **Delegation**: mechanical work (ports, renames, merges) goes to Sonnet subagents. Scope their verification to the
   tests the change touches, never several overlapping full runs: the last SQLite removal took 30 minutes for that
   reason.
-- **Opt-in**: prism-ui never imports the modes, the assistant or `@molstar/ai-*`
-  (`ui/src/_test/opt-in-boundary.test.ts`). The AI packages never import Mol\*, Prism or rxjs; `node:*` only in
-  `ai-components`; zod only in `ai-tools` (Biome enforces these).
+- **Opt-in**: prism-ui never imports the modes, the assistant or `@molstar/ai`
+  (`ui/src/_test/opt-in-boundary.test.ts`). The AI package never imports Mol\*, Prism or rxjs; no `node:*`; zod only in
+  its `tools/` and `providers/` folders (Biome enforces these).
 - **Decisions the user made, so do not reopen them**:
   - one mode per app, with switching starting a new app;
   - `<prism-viewer>` with a shadow root;
   - the assistant package is `@molstar/prism-assistant`;
   - each mode's agent parts live in an `agent` folder of its package, not separate packages;
   - a denied tool call is told to the model;
-  - `ai-components` holds platform code (`src/harness/`);
+  - `ai-components` held platform code (`src/harness/`); it is gone (2026-10-16), the harness is in memory;
   - the AI SDK is pinned by major only (everything else is pinned exactly).
 
 ## Practical notes

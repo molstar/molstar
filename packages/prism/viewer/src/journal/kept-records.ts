@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { FiberRows } from '@molstar/ai-fibers';
+import type { FiberRows } from '@molstar/ai';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import {
   createRecordIndex,

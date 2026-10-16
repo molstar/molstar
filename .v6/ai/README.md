@@ -3,23 +3,34 @@
 The agent harness and what it needs: agent turns in memory, model adapters, tools, a session. Generic and UI-free; Prism hosts it
 (`@molstar/prism-assistant` is the Assistant's UI, [../prism-ui/](../prism-ui/)).
 
-## Packages (`packages/ai/`)
+## The package (`packages/ai/`)
 
-| Package                      | Holds                                                                                                                                                     |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` (core's MurmurHash3) |
-| `@molstar/ai-harness`        | `createHarness`: an in-memory loop (journal, event log, steps, tools, nested runs, drives, observation) and its reader                                    |
-| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`./model-catalog`, no dependencies) |
-| `@molstar/ai-tools`          | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure |
-| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction |
-| `@molstar/ai-conformance`    | the harness's conformance cases, the `createSession` fixture, and test doubles at `./testing` (clock, ids, scripted model and tools) |
+One package, `@molstar/ai`, in folders under `src/` ([simplification/packaging.md](simplification/packaging.md)):
 
-Also `@molstar/ai-trace` (the Inspector's trace), `@molstar/ai-fibers` (transcripts) and `@molstar/ai-narration`.
+| Folder       | Holds                                                                                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messages/`  | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` (core's MurmurHash3) |
+| `harness/`   | `createHarness`: an in-memory loop (journal, event log, steps, tools, nested runs, drives, observation) and its reader; its cases are `harness/_test/`      |
+| `providers/` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`models.ts`, no dependencies)         |
+| `tools/`     | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure               |
+| `session/`   | an agent session: turns, resume, stop; the default drive; message composition; compaction (`session/compaction/`)                                          |
+| `trace/`     | the Inspector's trace, a projection of the harness records (with `format.ts`)                                                                              |
+| `fibers/`    | transcripts: the kernel, the host, the memory rows; the fibers' conformance suite is `fibers/_test/`                                                       |
+| `narration/` | text-to-speech providers behind one port, the audio encoders (WAV; Mediabunny at its own entry)                                                            |
+| `testing/`   | the `createSession` fixture and test doubles (clock, ids, scripted model and tools)                                                                        |
+
+The entries (`package.json` `exports`; explicit, no `./*`): `.` (messages, the harness's types, tools, the session with
+its compaction, fibers: what a host names, and nothing that pulls the AI SDK), `./harness`, `./providers`,
+`./providers/{anthropic,openai,google}` (one SDK per lazy import), `./models` (the catalog, dependency-free), `./trace`,
+`./testing`, `./testing/fibers` (the fibers' conformance suite), `./narration` and `./narration/mediabunny`. The package
+is `"sideEffects": false`. The folders keep the layering `messages → harness → {tools, trace} → session`, with
+`providers`, `fibers`, `narration` and `testing` beside it; Biome enforces it as per-folder import rules (`biome.json`).
+
 `@molstar/ai-components` (storage backends, the supervisor) is gone (2026-10-16): the harness keeps nothing outside the
 page's memory ([simplification/harness.md](simplification/harness.md)).
 
-Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either (but
-`@molstar/core`'s one hash file, in `ai-agent`; simplification/harness.md §7).
+Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports it, and it imports nothing of either (but
+`@molstar/core`'s one hash file, in `messages/`; simplification/harness.md §7).
 
 ## Documents
 
@@ -27,7 +38,7 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)                                            |
 | [packages/ai/\_spec](../../packages/ai/_spec/README.md) | the spec for working with the code: packages, contracts, how they bind, where things are |
-| [tools-and-session.md](tools-and-session.md)       | `@molstar/ai-tools` and `@molstar/ai-session`: tools, field shapes, groups, the session, the drive, compaction |
+| [tools-and-session.md](tools-and-session.md)       | `tools/` and `session/` of `@molstar/ai`: tools, field shapes, groups, the session, the drive, compaction |
 | [plan.md](plan.md)                                 | where it comes from, the move, what is next                                                                    |
 | [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11)                                |
 

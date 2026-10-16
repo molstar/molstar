@@ -1,9 +1,10 @@
-# Narration (`@molstar/ai-narration`)
+# Narration (`src/narration/` of `@molstar/ai`)
 
 Text to speech for the story mode: providers behind one port, audio encoding behind another. Independent of the rest of
-`packages/ai` (no `@molstar/ai-*` imports). No package uses it yet; it is meant to be loaded lazily by the app.
+`packages/ai` (imports nothing of the other folders). No package uses it yet; it is meant to be loaded lazily by the
+app.
 
-## Ports (`narration/src/`)
+## Ports (`src/narration/`)
 
 - **`NarrationProvider`** (`provider.ts`): `{ id, name, models, voices, defaultVoice, synthesize(request) }`.
   `NarrationRequest { text, voice, model?, style?, signal? }` (`style` is a delivery note). It returns `ProviderAudio`:
@@ -26,7 +27,7 @@ Text to speech for the story mode: providers behind one port, audio encoding beh
 
 ## Encoding
 
-`mediabunnyEncoder({ prefer = ['aac', 'opus'], bitrate = 64_000, canEncode? })` at `@molstar/ai-narration/mediabunny`
+`mediabunnyEncoder({ prefer = ['aac', 'opus'], bitrate = 64_000, canEncode? })` at `@molstar/ai/narration/mediabunny`
 (not re-exported from the main entry, so Mediabunny stays out of a bundle that does not ask for it): AAC in MP4 (`.m4a`)
 or Opus in WebM, by the browser's WebCodecs support, falling back to the next codec, then WAV.
 

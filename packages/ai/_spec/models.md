@@ -1,6 +1,6 @@
-# Messages and models (`@molstar/ai-agent`, `@molstar/ai-model-adapters`)
+# Messages and models (`src/messages/`, `src/providers/` of `@molstar/ai`)
 
-## Messages (`agent/src/messages.ts`)
+## Messages (`src/messages/messages.ts`)
 
 - `Message` is `SystemMessage | UserMessage | AssistantMessage`, each `{ role, parts, label? }`. Parts:
   - `ModelVisiblePart`: `{ kind: 'text', text }` or `{ kind: 'reference', reference: Reference }` (a URI with
@@ -12,21 +12,21 @@
     provider's replay data: thinking signatures, encrypted reasoning).
 - `ToolDefinition { tool: { id }, name, description, inputSchema }`; the provider-safe wire name is derived from the id.
 - `hashMessage(message)` (SHA-256 over a structural encoding, async) is an entry's id; `digest(json)` addresses blobs,
-  segments and heads; `canonicalJson`, `encodeMessage` are the encodings (`agent/src/hash.ts`).
+  segments and heads; `canonicalJson`, `encodeMessage` are the encodings (`src/messages/hash.ts`).
 - **`label?: EntryLabel { kind, key?, data? }`** says what an entry is, for the code that reads the journal: `kind` is
   namespaced by the package that writes it, `key` names which one, `data` holds small facts the parts also say.
   - Part of the message, so of its hash (an absent label leaves the hash as before; the same text under another label is
     another entry).
-  - Never sent: adapters read only `role` and `parts` (`model-adapters/src/_test/labels.test.ts`), and sizes never count
-    it. The harness never reads it.
+  - Never sent: adapters read only `role` and `parts` (`src/providers/_test/labels.test.ts`), and sizes never count it.
+    The harness never reads it.
   - Only what is true of the content; what happened when (turn, step, time, cost) is the event log's. There is no other
     metadata on a message.
   - The kinds in use: `session:request` (data `{ prompt, focus? }`), `session:guidance`, `session:guidance-update` (key:
-    the text's fingerprint), `session:carry-over`, `session:memory` (`@molstar/ai-session` `LABEL_*`);
-    `tools:definitions`, `tools:skill`, `tools:entry` (key: the group's key; `@molstar/ai-tools` `LABEL_*`).
+    the text's fingerprint), `session:carry-over`, `session:memory` (`session/` `LABEL_*`); `tools:definitions`,
+    `tools:skill`, `tools:entry` (key: the group's key; `tools/` `LABEL_*`).
 - `Json`, `JsonObject`, `Reference` are in `values.ts`.
 
-## The port (`agent/src/models.ts`)
+## The port (`src/messages/models.ts`)
 
 ```ts
 interface ModelAdapter {
@@ -57,7 +57,7 @@ interface ModelBindings { resolve(target: ModelTarget): Promise<ModelAdapter> }
   `UnrepresentableInput` (code `unrepresentable`) when the provider cannot place something (a system message
   mid-conversation, a binary in a failed tool result).
 
-## The adapters (`model-adapters/src/`)
+## The adapters (`src/providers/`)
 
 Three factories, on the Vercel AI SDK (`ai`, `@ai-sdk/*`):
 
@@ -98,9 +98,9 @@ Three factories, on the Vercel AI SDK (`ai`, `@ai-sdk/*`):
   messages). An unsupported one is `UnrepresentableInput`; a corrupt one (digest, length) a plain error.
 - `cacheScopeId` reaches the provider only where `cacheScope` (OpenAI Responses: `promptCacheKey`).
 
-## The model catalog (`@molstar/ai-model-adapters/model-catalog`)
+## The model catalog (`@molstar/ai/models`, `src/providers/models.ts`)
 
-Data, no dependencies (only an `ai-agent` type). `MODEL_CATALOG: CatalogEntry[]`, each
+Data, no dependencies (only a `messages/` type). `MODEL_CATALOG: CatalogEntry[]`, each
 `{ provider, id, family?, label?, note?, limits?, reasoning?, quirks?, price? }`.
 
 - A **family** entry matches ids that start with it followed by `-`, `.`, `:`, `/`, `_` or `@` (so `gpt-6` covers
@@ -111,13 +111,12 @@ Data, no dependencies (only an `ai-agent` type). `MODEL_CATALOG: CatalogEntry[]`
   to the session's `thinking`), `dollarsOf(price, usage)` (dollars per call; the long-prompt factor applies to the whole
   call).
 - Adapters read only limits and the `appendsTools` quirk. Prices, labels and listing are for the host.
-- `@molstar/ai-session` has its own `dollarsOf(table, model, usage)` and `creditsOf` over an app `PriceTable`
-  ([session.md](session.md)); the session knows no models.
+- `dollarsOf(price, usage)` prices a call; the session knows no models.
 
 ## Hosting
 
-No host in the repository builds adapters yet; the tests are the examples (`model-adapters/src/_test/support.ts`). A
-host makes one adapter per provider it has a key for and gives the session a lookup:
+No host in the repository builds adapters yet; the tests are the examples (`src/providers/_test/support.ts`). A host
+makes one adapter per provider it has a key for and gives the session a lookup:
 
 ```ts
 const adapters: Record<string, ModelAdapter | undefined> = { anthropic: createAnthropicModelAdapter({ resolveApiKey: () => keys.anthropic }) };
@@ -126,7 +125,7 @@ new AgentSession({ models: { adapterFor: (p) => adapters[p], default: { provider
 
 ## Tests
 
-`model-adapters/src/_test/`: SSE fixtures and a recording `fetch` (`support.ts`); `compatibility.test.ts` replays
-recorded requests and checks their HTTP bodies hash exactly (`retained-wire.json`), so any change to wire bytes shows;
+`src/providers/_test/`: SSE fixtures and a recording `fetch` (`support.ts`); `compatibility.test.ts` replays recorded
+requests and checks their HTTP bodies hash exactly (`retained-wire.json`), so any change to wire bytes shows;
 `prefix.test.ts` (cache-stable prefixes), `deferred-tools.test.ts`, `attachments`, `capabilities`, `stream` (failure
-mapping, key redaction), `model-catalog`, `openai-chat` (a foreign endpoint). No test reaches the network.
+mapping, key redaction), `models` (the catalog), `openai-chat` (a foreign endpoint). No test reaches the network.

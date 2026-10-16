@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
+import { type ModelStep, scriptedModel } from '@molstar/ai/testing';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createViewerAgent } from '@molstar/prism-viewer/agent/session';

@@ -6,15 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json } from '@molstar/ai-agent';
 import {
   type DisclosureApi,
   failed,
   type FieldShape,
+  type Json,
+  toolFor,
   type ToolRegistration,
   type ToolResult,
-  toolFor,
-} from '@molstar/ai-tools';
+} from '@molstar/ai';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ApiResult, Changed, OperationDefinition, OperationDescription, ViewerApi } from '../api/area.js';
 import { paramsShape } from './params.js';
@@ -36,7 +36,7 @@ export interface AgentViewer {
   describe(id: string): OperationDescription | undefined;
 }
 
-/** The host's modules for the tools (`ai-tools`: each tool gets only what it declares). */
+/** The host's modules for the tools (`@molstar/ai`'s tools: each tool gets only what it declares). */
 export interface ViewerAgentApi extends DisclosureApi {
   readonly viewer: AgentViewer;
   /** The scene in words, for the reads (`account.ts`). */
@@ -139,7 +139,7 @@ function targetFormats(params: PD.Params): Record<string, string> {
   return out;
 }
 
-/** An operation's result as the model reads it (ai-tools `render`: did, changed, warnings, body, next). */
+/** An operation's result as the model reads it (the tools' `render`: did, changed, warnings, body, next). */
 export function toolResult(r: ApiResult<unknown>): ToolResult {
   if (!r.ok) return failed(r.code, r.message, r.hint);
   const changed = changedWords(r.changed);

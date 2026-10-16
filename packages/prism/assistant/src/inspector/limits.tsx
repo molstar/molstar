@@ -8,8 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LimitRowView, LimitsGroupView } from '@molstar/ai-trace';
-import { k } from '@molstar/ai-trace/format';
+import type { LimitRowView, LimitsGroupView } from '@molstar/ai/trace';
+import { k } from '@molstar/ai/trace';
 import { For, ScrollArea, Select, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import { classes } from './_generated/limits.module.css.js';

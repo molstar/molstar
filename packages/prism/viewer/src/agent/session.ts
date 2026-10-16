@@ -6,15 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Toolkit } from '@molstar/ai-tools';
 import {
   AgentSession,
   type ApprovalDecision,
   type ModelChoice,
   type ModelSource,
+  type Toolkit,
   type TurnHooks,
   type TurnResult,
-} from '@molstar/ai-session';
+} from '@molstar/ai';
 import type { PrismViewer } from '../viewer.js';
 import type { TurnWriter } from '../journal/record.js';
 import { createAccount, quoted } from './account.js';
@@ -24,7 +24,7 @@ import { createViewerToolkit } from './toolkit.js';
 import type { AgentViewer, ViewerAgentApi } from './tools.js';
 import { isLazyExtension, type PrismViewerSpec } from '../spec.js';
 
-// The viewer's agent (agent.md §1): an `AgentSession` (`@molstar/ai-session`) over the viewer's toolkit, its account
+// The viewer's agent (agent.md §1): an `AgentSession` (`@molstar/ai`) over the viewer's toolkit, its account
 // (the scene and the focus each turn), the turn as one history group (Undo turn undoes it at once), and the person's
 // own runs since the agent's last turn as its notes. DOM-free: the assistant calls it, and so do headless evals.
 

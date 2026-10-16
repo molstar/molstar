@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
+import { type ModelStep, scriptedModel } from '@molstar/ai/testing';
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';

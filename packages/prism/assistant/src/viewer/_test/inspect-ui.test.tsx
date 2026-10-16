@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { scriptedModel } from '@molstar/ai-conformance/testing';
+import { scriptedModel } from '@molstar/ai/testing';
 import { Scope } from '@molstar/prism-ui/dom/scope';
 import type { ViewRenderer } from '@molstar/prism-ui/dom/view';
 import { ShellModel, type ShellViewContext } from '@molstar/prism-ui/shell/shell';

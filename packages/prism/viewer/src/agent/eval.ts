@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelChoice, ModelSource, TurnResult } from '@molstar/ai-session';
+import type { ModelChoice, ModelSource, TurnResult } from '@molstar/ai';
 import type { RunRecord } from '../api/run.js';
 import type { PrismViewer } from '../viewer.js';
 import { createAccount } from './account.js';

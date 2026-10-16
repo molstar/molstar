@@ -104,7 +104,8 @@ an unminified build (6.0 MB of module code in all):
   engine packages' work, not the viewer spec's.
 - **`PrismViewerBehaviors` and `DefaultRegistry` are not the floor**: this example imports neither (`sources/base.ts`
   and `default-spec.ts` are the only modules that do, and nothing in the composition path imports them).
-- **`@molstar/ai-fibers`** (44 kB unminified) is in the bundle through the viewer's imports, although `agent: false`.
+- **The fibers of `@molstar/ai`** (44 kB unminified, measured when they were a package of their own) are in the bundle
+  through the viewer's imports, although `agent: false`.
 
 So the smallest composition today is the viewer core, the scene's API and the engine, about 2.9 MB (under half of the
 full viewer's single file). What is left of Prism above the engine is the shell (its frame, the command menu, icons),

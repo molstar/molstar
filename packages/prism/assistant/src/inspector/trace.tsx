@@ -19,8 +19,8 @@ import type {
   WindowEntryView,
   WindowPart,
   WindowView,
-} from '@molstar/ai-trace';
-import { cachedShare, formatUsage, k, ms } from '@molstar/ai-trace/format';
+} from '@molstar/ai/trace';
+import { cachedShare, formatUsage, k, ms } from '@molstar/ai/trace';
 import { type Child, For, observableState, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, skip, take } from 'rxjs';
 import { classes as layout } from './_generated/inspector.module.css.js';

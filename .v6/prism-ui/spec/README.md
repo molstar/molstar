@@ -99,7 +99,7 @@ apps/prism-stories         later: the stories app (an improved Stories Untold), 
     add side effects (the history's checkpoints). The list is [state.md](state.md) §5.
 25. **A dynamic toolkit** (David, 2026-10-15): tools and skills are added and removed while a session runs (an
     extension loaded, a feature removed, a registry changed); a removed tool's definitions are an eviction hint at the
-    next compaction. A mechanism in `@molstar/ai-tools` and `ai-session`; the viewer decides what is registered (§4,
+    next compaction. A mechanism in `@molstar/ai` (`tools/`, `session/`); the viewer decides what is registered (§4,
     [agent.md](agent.md) §3).
 26. **Approvals that stay out of the way** (David, 2026-10-15): known data services are allowed; another address asks
     once with "Allow once", "Allow this domain" (for the session or in this browser) and "Deny"; uploads and clearing
@@ -204,7 +204,7 @@ views ◄── view models ◄── sources ◄──────────�
   `api/` folder, which with `sources/` is the only code that imports `@molstar/plugin` (contexts.md §7).
 - **Commands** (people): forms with typed fields, previews, keybindings, the command menu, over the API.
 - **Tools** (the agent): flat inputs with few fields, normalized for small models, one result rendering; composed with
-  `@molstar/ai-tools`' toolkit (`createToolkit`, [packages/ai/\_spec/tools.md](../../../packages/ai/_spec/tools.md)),
+  `@molstar/ai`'s toolkit (`createToolkit`, [packages/ai/\_spec/tools.md](../../../packages/ai/_spec/tools.md)),
   as Stories does:
   - **The core**, offered from the first turn, always includes the two disclosure tools, `disclose_skills` and
     `disclose_tools`, and `list_skills` (a read, by tag). The disclosure tools' descriptions are the generated catalog,
@@ -373,8 +373,8 @@ What the spec asks of other packages, collected from the sections above; each is
 | `@molstar/plugin`, graphics  | every path that changes canvas props emits `settingsUpdated` (a bug where one does not)            | state.md §3      |
 | `@molstar/plugin`            | Prism's plugin resizes once a frame instead of after a debounce (no GL change); the rest after the WebGPU work | §3.5 |
 | `@molstar/core` (assets)     | a URL-keyed, ref-counted, read-through byte cache in `AssetManager`                                | sequence.md §2   |
-| `@molstar/ai-tools`, `ai-session` | a dynamic toolkit: add and remove tools and skills between turns; removed definitions as eviction hints for compaction (a mechanism; the viewer decides) | decision 25 |
-| `@molstar/ai-fibers`         | a listing of fibers by owner (kept records are listed from it), or the viewer keeps its own index | journal.md §1 |
+| `@molstar/ai` (`tools/`, `session/`) | a dynamic toolkit: add and remove tools and skills between turns; removed definitions as eviction hints for compaction (a mechanism; the viewer decides) | decision 25 |
+| `@molstar/ai` (`fibers/`)    | a listing of fibers by owner (kept records are listed from it), or the viewer keeps its own index | journal.md §1 |
 | `@molstar/prism-ui`          | the style registry adopts sheets into shadow roots as well as documents; keyboard handling scoped to a viewer's root | app.md §3, decision 29 |
 | `@molstar/plugin-extension`  | the loaders split from the React parts (the package declares `@molstar/plugin-ui`), so the viewer depends on no classic UI (review F43) | §3.2 |
 | Seq\* (`@molstar/seq-*`)     | none for data (its `Loaders` port suffices); `history: false` on the viewer's document port        | sequence.md §2, §7 |

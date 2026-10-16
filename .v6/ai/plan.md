@@ -4,15 +4,15 @@
 
 The harness was rewritten in Stories Untold (`lib/anystar`, branch `harness-next`, built 2026-10-05) against a frozen
 spec, conformance first, and Stories ran on it from then on. On 2026-10-11 the five packages moved here unchanged in
-logic, as `@molstar/ai-*`; Stories' own code (its tools, drive and agent) stayed behind. What carried over from that
+logic, as `@molstar/ai-*` (one package, `@molstar/ai`, since 2026-10-16: the names below are the history); Stories' own code (its tools, drive and agent) stayed behind. What carried over from that
 work:
 
 - **Conformance first.** A contract change comes with a conformance case, never a quiet edit; the suite runs on every
   backend.
 - **One home per concern** ([harness.md](harness.md) §1). A change that moves a concern to another home is the thing to
   look for in review.
-- **Import rules fail the build** (`biome.json`): no package imports Mol\*, Prism or rxjs; `ai-agent` imports nothing of
-  the workspace; `ai-harness` only `ai-agent`; no `node:*` outside `ai-components`. The original stack had drifted one
+- **Import rules fail the build** (`biome.json`): nothing imports Mol\*, Prism or rxjs; `messages/` imports nothing of
+  the other folders; `harness/` only `messages/`; no `node:*` anywhere (these were package rules before the nine packages became one, 2026-10-16). The original stack had drifted one
   reasonable local change at a time until concerns had no clear home; a rule that fails says "not here".
 
 ## 1. The move (2026-10-11)

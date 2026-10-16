@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { compactionFor } from '@molstar/ai-session/compaction';
+import { compactionFor } from '@molstar/ai';
 import {
   createTraceCache,
   type LimitRowView,
@@ -17,14 +17,14 @@ import {
   type ToolsData,
   toolsView,
   type TraceData,
-} from '@molstar/ai-trace';
+} from '@molstar/ai/trace';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { Observable } from 'rxjs';
 import type { ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import type { InspectorSources } from '../inspector/model.js';
 
 // The Inspector over the viewer's agent (agent.md §1): the trace read from the session's harness through
-// `@molstar/ai-trace` as its records change, while something watches it (the Inspector, the Assistant tab's links),
+// `@molstar/ai/trace` as its records change, while something watches it (the Inspector, the Assistant tab's links),
 // the Tools view from the viewer's toolkit as it is now, the limits from the session's budget and the model's window.
 // DOM-free.
 

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
+import { type ModelStep, scriptedModel } from '@molstar/ai/testing';
 import { describe, expect, it } from 'vitest';
 import { exampleFile, headlessViewer } from '../../_test/harness.js';
 import { type EvalTask, evalReport, runEval } from '../eval.js';

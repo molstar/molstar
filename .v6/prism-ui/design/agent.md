@@ -2,7 +2,7 @@
 
 An agent (an in-app assistant, or an outside one over MCP) controls Mol\* through the same commands people use, sees a
 compact account of what is loaded and what the person points at, and every change it makes is visible, attributed, and
-undoable in one step. The harness (`@molstar/ai-*`, [../../ai/](../../ai/)) runs the model loop and calls tools; it
+undoable in one step. The harness (`@molstar/ai`, [../../ai/](../../ai/)) runs the model loop and calls tools; it
 knows nothing about UI. This document is the Mol\* side: what the harness is given and how the UI shows an agent at
 work.
 
@@ -46,7 +46,7 @@ Commands add two fields for agents:
 - `approval?: true`: the run waits for the person (the harness's `permission` decision parks the turn).
 
 **Params as input** (`paramsShape(params, { formats })`, `@molstar/prism-assistant/tools/params`): PD params become
-`ai-tools` field shapes, every field optional (a param has a default), and the arguments become the params' values over
+`@molstar/ai` (`tools/`) field shapes, every field optional (a param has a default), and the arguments become the params' values over
 the defaults (`toValues`; `toArgs` reads values back). Select: a string enum, labels in the description; multi-select: a
 list of them; boolean, text (multiline: verbatim), numeric (integer when its step is), interval, vec3, mat4 (number
 lists); color: a name or hex; color list; url; group: an object; mapped: a variant on `name` with its `params`;
@@ -150,7 +150,7 @@ or `working`, and adds `denied`.
   read as it is gives no working key, which the tab says, along with what it does not guard against (code running in the
   page). With a server-side agent, keys come from its environment instead.
 - **The Inspector** (`@molstar/prism-assistant/inspector`, a separate entry: the tab and the card do not pull it in), a
-  page over the whole app (`ShellPage`) with three tabs over `@molstar/ai-trace`'s data:
+  page over the whole app (`ShellPage`) with three tabs over `@molstar/ai/trace`'s data:
   - _Trace_: an overview strip (a column per turn, a block per step; model and tool calls told apart by shape and lane,
     failed in danger, a retry hatched, a running step pulsing, the selected one outlined in the accent; Steps or Time),
     the rows (turns, requests, model and tool calls, nested runs indented; j/k move), and the detail: a turn's facts and
@@ -189,10 +189,10 @@ menu's `assistant` (`CommandMenuAssistant`), the shell's `agent` slot (`ShellVie
 tasks), and tabs and commands registered like any contribution (the agent's `mockAgentAddOn` adds the Assistant tab and
 swaps Log for History in the mock shell). An app that does not include it ships none of it. Planned, not built: one that
 does registers it as a contribution (`agentContribution({ … })`), with the harness and the model adapters
-(`@molstar/ai-*`) as its own dependencies, and the spec can still start it hidden (`ai: { enabled: false }`) for apps
+(`@molstar/ai`) as its own dependencies, and the spec can still start it hidden (`ai: { enabled: false }`) for apps
 that include it but turn it on per user. Each mode's agent parts (its skills and guidance, its state and focus accounts,
 its drive overrides) are an `agent` folder of the mode's package (`@molstar/prism-viewer/agent`,
-`@molstar/prism-stories/agent`), the only code there that imports the assistant or `@molstar/ai-*`, imported only by
+`@molstar/prism-stories/agent`), the only code there that imports the assistant or `@molstar/ai`, imported only by
 apps with the assistant; an extension brings its skills the same way
 ([../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md) §2.1, §8).
 

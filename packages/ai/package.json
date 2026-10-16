@@ -1,0 +1,101 @@
+{
+  "name": "@molstar/ai",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Mol* AI: the agent harness and what runs on it: messages, the in-memory harness, model providers, tools, the session, the trace, fibers, narration and test doubles",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./harness": {
+      "molstar-src": "./src/harness/index.ts",
+      "types": "./lib/harness/index.d.ts",
+      "import": "./lib/harness/index.js"
+    },
+    "./providers": {
+      "molstar-src": "./src/providers/index.ts",
+      "types": "./lib/providers/index.d.ts",
+      "import": "./lib/providers/index.js"
+    },
+    "./providers/anthropic": {
+      "molstar-src": "./src/providers/anthropic/adapter.ts",
+      "types": "./lib/providers/anthropic/adapter.d.ts",
+      "import": "./lib/providers/anthropic/adapter.js"
+    },
+    "./providers/openai": {
+      "molstar-src": "./src/providers/openai/adapter.ts",
+      "types": "./lib/providers/openai/adapter.d.ts",
+      "import": "./lib/providers/openai/adapter.js"
+    },
+    "./providers/google": {
+      "molstar-src": "./src/providers/google/adapter.ts",
+      "types": "./lib/providers/google/adapter.d.ts",
+      "import": "./lib/providers/google/adapter.js"
+    },
+    "./models": {
+      "molstar-src": "./src/providers/models.ts",
+      "types": "./lib/providers/models.d.ts",
+      "import": "./lib/providers/models.js"
+    },
+    "./trace": {
+      "molstar-src": "./src/trace/index.ts",
+      "types": "./lib/trace/index.d.ts",
+      "import": "./lib/trace/index.js"
+    },
+    "./testing": {
+      "molstar-src": "./src/testing/index.ts",
+      "types": "./lib/testing/index.d.ts",
+      "import": "./lib/testing/index.js"
+    },
+    "./testing/fibers": {
+      "molstar-src": "./src/fibers/_test/index.ts",
+      "types": "./lib/fibers/_test/index.d.ts",
+      "import": "./lib/fibers/_test/index.js"
+    },
+    "./narration": {
+      "molstar-src": "./src/narration/index.ts",
+      "types": "./lib/narration/index.d.ts",
+      "import": "./lib/narration/index.js"
+    },
+    "./narration/mediabunny": {
+      "molstar-src": "./src/narration/mediabunny.ts",
+      "types": "./lib/narration/mediabunny.d.ts",
+      "import": "./lib/narration/mediabunny.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "ai": "catalog:",
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/openai-compatible": "catalog:",
+    "mediabunny": "catalog:",
+    "tslib": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}

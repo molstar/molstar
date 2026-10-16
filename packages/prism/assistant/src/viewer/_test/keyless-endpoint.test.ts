@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelAdapter } from '@molstar/ai-agent';
+import type { ModelAdapter } from '@molstar/ai';
 import { describe, expect, it, vi } from 'vitest';
 import type { KeyScope, KeyStore } from '../../keys.js';
 import { createAISettings, type SettingsPrefs } from '../settings-model.js';
@@ -14,7 +14,7 @@ import { createAISettings, type SettingsPrefs } from '../settings-model.js';
 // An own endpoint added with no key (a local server): usable, with no empty key kept (agent.md §4).
 
 const made: { resolveApiKey: () => string | Promise<string> }[] = [];
-vi.mock('@molstar/ai-model-adapters/openai/adapter', () => ({
+vi.mock('@molstar/ai/providers/openai', () => ({
   createOpenAIModelAdapter: (options: { resolveApiKey: () => string | Promise<string> }) => {
     made.push(options);
     return {

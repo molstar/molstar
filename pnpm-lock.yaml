@@ -2500,77 +2500,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  packages/ai/agent:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/conformance:
-    dependencies:
-      '@molstar/ai-agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@molstar/ai-fibers':
-        specifier: workspace:*
-        version: link:../fibers
-      '@molstar/ai-harness':
-        specifier: workspace:*
-        version: link:../harness
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.4(@types/node@22.20.1)(@vitest/browser-playwright@5.0.4)(@vitest/ui@5.0.4)(jsdom@30.1.2)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/fibers:
-    dependencies:
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/harness:
-    dependencies:
-      '@molstar/ai-agent':
-        specifier: workspace:*
-        version: link:../agent
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/model-adapters:
+  packages/ai:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: 'catalog:'
@@ -2584,113 +2514,31 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: 'catalog:'
         version: 3.0.67(zod@4.6.5)
-      '@molstar/ai-agent':
+      '@molstar/core':
         specifier: workspace:*
-        version: link:../agent
+        version: link:../core
       ai:
         specifier: 'catalog:'
         version: 7.0.137(zod@4.6.5)
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/narration:
-    dependencies:
       mediabunny:
         specifier: 'catalog:'
         version: 1.61.3
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/session:
-    dependencies:
-      '@molstar/ai-agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@molstar/ai-harness':
-        specifier: workspace:*
-        version: link:../harness
-      '@molstar/ai-tools':
-        specifier: workspace:*
-        version: link:../tools
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@molstar/ai-conformance':
-        specifier: workspace:*
-        version: link:../conformance
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  packages/ai/tools:
-    dependencies:
-      '@molstar/ai-agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@molstar/ai-harness':
-        specifier: workspace:*
-        version: link:../harness
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
       zod:
         specifier: 'catalog:'
         version: 4.6.5
     devDependencies:
-      '@molstar/ai-conformance':
-        specifier: workspace:*
-        version: link:../conformance
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
-
-  packages/ai/trace:
-    dependencies:
-      '@molstar/ai-agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@molstar/ai-harness':
-        specifier: workspace:*
-        version: link:../harness
-      tslib:
+      vitest:
         specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@molstar/ai-conformance':
-        specifier: workspace:*
-        version: link:../conformance
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
+        version: 5.0.4(@types/node@22.20.1)(@vitest/browser-playwright@5.0.4)(@vitest/ui@5.0.4)(jsdom@30.1.2)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/core:
     dependencies:
@@ -2991,21 +2839,9 @@ importers:
 
   packages/prism/assistant:
     dependencies:
-      '@molstar/ai-agent':
+      '@molstar/ai':
         specifier: workspace:*
-        version: link:../../ai/agent
-      '@molstar/ai-model-adapters':
-        specifier: workspace:*
-        version: link:../../ai/model-adapters
-      '@molstar/ai-session':
-        specifier: workspace:*
-        version: link:../../ai/session
-      '@molstar/ai-tools':
-        specifier: workspace:*
-        version: link:../../ai/tools
-      '@molstar/ai-trace':
-        specifier: workspace:*
-        version: link:../../ai/trace
+        version: link:../../ai
       '@molstar/core':
         specifier: workspace:*
         version: link:../../core
@@ -3022,9 +2858,6 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
-      '@molstar/ai-conformance':
-        specifier: workspace:*
-        version: link:../../ai/conformance
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.0(lit@3.3.3)(storybook@10.6.0(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
@@ -3117,21 +2950,9 @@ importers:
 
   packages/prism/viewer:
     dependencies:
-      '@molstar/ai-agent':
+      '@molstar/ai':
         specifier: workspace:*
-        version: link:../../ai/agent
-      '@molstar/ai-fibers':
-        specifier: workspace:*
-        version: link:../../ai/fibers
-      '@molstar/ai-harness':
-        specifier: workspace:*
-        version: link:../../ai/harness
-      '@molstar/ai-session':
-        specifier: workspace:*
-        version: link:../../ai/session
-      '@molstar/ai-tools':
-        specifier: workspace:*
-        version: link:../../ai/tools
+        version: link:../../ai
       '@molstar/core':
         specifier: workspace:*
         version: link:../../core
@@ -3169,12 +2990,6 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
-      '@molstar/ai-conformance':
-        specifier: workspace:*
-        version: link:../../ai/conformance
-      '@molstar/ai-model-adapters':
-        specifier: workspace:*
-        version: link:../../ai/model-adapters
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.0(lit@3.3.3)(storybook@10.6.0(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))

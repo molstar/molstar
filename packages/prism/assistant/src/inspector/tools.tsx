@@ -8,8 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ToolGroupView, ToolView } from '@molstar/ai-trace';
-import { k } from '@molstar/ai-trace/format';
+import type { ToolGroupView, ToolView } from '@molstar/ai/trace';
+import { k } from '@molstar/ai/trace';
 import { For, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, skip, take } from 'rxjs';
 import { classes as layout } from './_generated/inspector.module.css.js';

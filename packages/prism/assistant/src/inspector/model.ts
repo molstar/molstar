@@ -15,7 +15,7 @@ import type {
   ToolView,
   TraceData,
   TurnView,
-} from '@molstar/ai-trace';
+} from '@molstar/ai/trace';
 import { keyedSelector, observableState, type ReadonlyState } from '@molstar/prism-ui';
 import { combineLatest, debounceTime, distinctUntilChanged, map, merge, type Observable, skip, take } from 'rxjs';
 
@@ -78,7 +78,7 @@ function settled<T>(source: Observable<T>, ms: number): Observable<T> {
 /**
  * The agent's Inspector (Trace, Tools, Limits): which view, the selected trace row and tool, the overview's scale, the
  * detail tabs; and the jumps between them (a tool call's definition to its tool, a page focus). The data is the
- * session's, as `@molstar/ai-trace` prepares it; the mocks feed fixed data.
+ * session's, as `@molstar/ai/trace` prepares it; the mocks feed fixed data.
  */
 export class InspectorModel {
   readonly trace: ReadonlyState<TraceData | undefined>;
@@ -256,7 +256,7 @@ export class InspectorModel {
   }
 
   // The rows of each trace read once; a row kept from the previous read while its turn and step are the same records
-  // (ai-trace's cache keeps them across re-reads), so the list renders again only what changed.
+  // (the trace cache of `@molstar/ai/trace` keeps them across re-reads), so the list renders again only what changed.
   readonly #rowsRead = new WeakMap<TraceData, readonly TraceRow[]>();
   #rowRecords = new Map<string, TraceRow>();
 

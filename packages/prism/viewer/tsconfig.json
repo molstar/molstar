@@ -41,19 +41,7 @@
       "path": "../../query-language"
     },
     {
-      "path": "../../ai/agent"
-    },
-    {
-      "path": "../../ai/tools"
-    },
-    {
-      "path": "../../ai/session"
-    },
-    {
-      "path": "../../ai/harness"
-    },
-    {
-      "path": "../../ai/fibers"
+      "path": "../../ai"
     }
   ]
 }

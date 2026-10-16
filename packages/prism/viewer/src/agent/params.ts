@@ -6,8 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json } from '@molstar/ai-agent';
-import type { FieldShape, ObjectShape } from '@molstar/ai-tools';
+import { type FieldShape, type Json, type ObjectShape } from '@molstar/ai';
 import { Color } from '@molstar/core/util/color/color';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';

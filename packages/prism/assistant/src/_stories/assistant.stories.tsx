@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
+import { type ModelStep, scriptedModel } from '@molstar/ai/testing';
 import { story } from '@molstar/prism-ui/testing/index';
 import type { AssistantUI, PrismViewerSpec } from '@molstar/prism-viewer/spec';
 import { ExampleFiles, RealViewerStory } from '@molstar/prism-viewer/testing/real-viewer';

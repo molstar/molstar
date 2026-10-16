@@ -8,8 +8,8 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { ModelAdapter } from '@molstar/ai-agent';
-import { createAnthropicModelAdapter, createGoogleModelAdapter } from '@molstar/ai-model-adapters';
+import type { ModelAdapter } from '@molstar/ai';
+import { createAnthropicModelAdapter, createGoogleModelAdapter } from '@molstar/ai/providers';
 
 // The models live runs use (`*.live.ts`, `pnpm test:live`): Haiku and Gemini Flash. The keys come from the repository's
 // `.env.local` and are never printed; a run skips a model without its key.

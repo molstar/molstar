@@ -8,11 +8,11 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 ## 1. Where it lives
 
 - **Tools, skills and the session factory**: the viewer's `agent/` folder (`packages/prism/viewer/src/agent/`),
-  DOM-free, on `@molstar/ai-tools` and `@molstar/ai-session`. Extensions bring theirs as skills,
+  DOM-free, on `@molstar/ai` (`tools/`, `session/`). Extensions bring theirs as skills,
   `ViewerExtension.skills` (a lazy one's in its stub; never core tools); the spec's `agent.core` and `agent.skills`
   change the viewer's defaults by id (`{ add, remove }`; an added id of a default's replaces it), never restating them
   (viewer-spec.md §2.4, §3). The declarations (`CoreTools`, `Skills`, their types) are plain data in `agent/skills.ts`,
-  which imports nothing, so a spec that reads or extends them does not bring the toolkit (ai-tools, zod) into the page
+  which imports nothing, so a spec that reads or extends them does not bring the toolkit (`@molstar/ai` tools, zod) into the page
   (review B10). PD params become tool fields through `paramsShape`, which moves from
   `@molstar/prism-assistant` into `agent/params.ts` (the viewer does not depend on the assistant; review F12).
 - **The session**: `createViewerAgent({ viewer, models, storage?, rules? })` in `agent/session.ts` makes the `AgentSession`
@@ -78,7 +78,7 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
   and removed between and during turns. An extension loaded adds its tools and skills; a lazy extension's skill is in
   the catalog by its stub's summary, and disclosing it loads the chunk, registers its tools and appends their
   definitions; a feature removed, or a registry changed, removes or replaces tools, and the removed definitions are an
-  eviction hint at the next compaction. A mechanism in `@molstar/ai-tools` and `ai-session`; what is registered is the
+  eviction hint at the next compaction. A mechanism in `@molstar/ai` (`tools/`, `session/`); what is registered is the
   viewer's.
 - **`ask`**: when the intent is unclear (load a second copy? which chain?), the agent asks instead of guessing; the turn
   parks as it does for an approval, the person picks an option or types, and the answer is the tool's result. As built

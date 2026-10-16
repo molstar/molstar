@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { PendingApproval, ToolEvent, TurnHooks, TurnResult } from '@molstar/ai-session';
+import type { PendingApproval, ToolEvent, TurnHooks, TurnResult } from '@molstar/ai';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import { createHistoryModel, type HistoryRow, type HistoryRunRow } from '@molstar/prism-viewer/journal/history-model';

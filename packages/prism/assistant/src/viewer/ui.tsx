@@ -19,7 +19,7 @@ import { AgentTurnCard } from '../views/agent-turn.js';
 import { AssistantTab } from '../views/assistant-tab.js';
 import { createViewerAgentModel } from './agent-model.js';
 import { createInspectorSources } from './inspector-sources.js';
-import { listedModels } from '@molstar/ai-model-adapters/model-catalog';
+import { listedModels } from '@molstar/ai/models';
 import type { AISetup } from '../model.js';
 import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs } from './settings-model.js';
 import { domainsStorageSource, keptDomains, keysStorageSource } from './storage.js';

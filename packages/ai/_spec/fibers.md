@@ -1,15 +1,15 @@
-# Fibers (`@molstar/ai-fibers`)
+# Fibers (`src/fibers/` of `@molstar/ai`)
 
 A fiber is an owner-scoped, append-only list of entries with idempotent commands. An entry is appended settled, or
 streams byte-offset deltas and then settles or aborts. Reads are bounded windows by position and delta pages with gap
 detection. It is what the harness lacks for a person-facing history: the journal is what the model sees (compaction
 drops turns from it) and turns have no records with a prompt and a reply. Independent of the harness: it imports nothing
-of the workspace and has its own storage port. Background: `.v6/ai/analysis/viewer-mode.md` §6.
+of the other folders and has its own storage port. Background: `.v6/ai/analysis/viewer-mode.md` §6.
 
 **Status**: built and conformance-tested; no production code uses it yet. A building block an application composes: for
 example an app writing an entry per turn from the session's hooks, and its History reading them in windows.
 
-## Files (`fibers/src/`)
+## Files (`src/fibers/`)
 
 | File         | What                                                                                               |
 | ------------ | -------------------------------------------------------------------------------------------------- |
@@ -60,8 +60,8 @@ const page = await fibers.window({ fiberId, start, limit: 20, direction: 'backwa
 `drop(scope)`, `generation(scope)`, optional `watch`. A fiber is the scope `fiber:<id>` with tables `fiber`, `entry`,
 `stream`, `deltas`, `receipt`, each row `{ json }`. Backends: `createMemoryRows` (here), SQLite later. The IndexedDB
 rows are not in `@molstar/ai`: prism-viewer owns them (`createIndexedDbRows(name)`,
-`packages/prism/viewer/src/journal/indexeddb-rows.ts`), and its tests run the fibers' conformance (`./fibers` of
-`@molstar/ai-conformance`) on them.
+`packages/prism/viewer/src/journal/indexeddb-rows.ts`), and its tests run the fibers' conformance (`runFiberConformance`
+of `@molstar/ai/testing/fibers`, the suite in `src/fibers/_test/`) on them.
 
 ## Limits
 

@@ -7,7 +7,7 @@
  */
 
 // The agent's tool and skill declarations (agent.md §3): plain data, no imports, so a spec reads or extends them without
-// the toolkit (`toolkit.ts`, on `@molstar/ai-tools` and zod) in the page's startup bundle. The toolkit turns them into
+// the toolkit (`toolkit.ts`, on `@molstar/ai` and zod) in the page's startup bundle. The toolkit turns them into
 // tools when the agent is made, in the assistant's chunk.
 
 /** A tool over an operation (agent.md §2). */

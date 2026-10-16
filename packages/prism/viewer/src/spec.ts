@@ -9,7 +9,7 @@
 import type { QueryLanguageEntry } from './targets/languages.js';
 import type { CanvasMenuItem, ShellModel } from '@molstar/prism-ui/shell/shell';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { ModelSource } from '@molstar/ai-session';
+import type { ModelSource } from '@molstar/ai';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { Observable } from 'rxjs';

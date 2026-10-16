@@ -1,5 +1,9 @@
 # The agent in the viewer mode: tools, skills, UI, fibers
 
+> The `@molstar/ai-*` names below are those of 2026-10-11. The packages are folders of the one package `@molstar/ai`
+> since 2026-10-16 (`ai-tools` is `tools/`, `ai-session` `session/`, `ai-fibers` `fibers/`, `ai-trace` `trace/`,
+> `ai-conformance` `testing/` and the `_test/` folders); `ai-components` is gone.
+
 Read-only sweeps (2026-10-11) of Stories Untold's agent (`stories-untold-redux/lib/stories/stories-agent`, `any-molql`,
 `any-molstar`, `any-toolscript`, `mvs-code`), its agent UIs (`stories-ui/src/inspector`) and fibers
 (`vendor/anystar/any-components/src/fibers` with its conformance, `lib/stories/stories-fibers`). What the viewer mode

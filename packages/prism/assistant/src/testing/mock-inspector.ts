@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { JsonObject } from '@molstar/ai-agent';
+import type { JsonObject } from '@molstar/ai';
 import type {
   AttemptView,
   LimitRowView,
@@ -21,7 +21,7 @@ import type {
   TraceData,
   TurnView,
   WindowEntryView,
-} from '@molstar/ai-trace';
+} from '@molstar/ai/trace';
 import { observableState } from '@molstar/prism-ui';
 import { InspectorModel } from '../inspector/model.js';
 

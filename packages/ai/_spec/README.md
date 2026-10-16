@@ -1,56 +1,62 @@
 # Mol\* AI: the specification
 
-The agent stack under `packages/ai/`: an agent loop in memory (the harness), what feeds it (model adapters, tools) and
-what a host drives it through (the session). Generic: nothing here imports Prism, React or rxjs, and of Mol\* only
-`@molstar/core`'s hash file (in `ai-agent`). This spec is for working on or with the code without reading all of it:
-what each package is, how they bind, the contracts a host relies on, and where the code is. Why the design is so is in
-[.v6/ai](../../../.v6/ai/README.md); code comments cite its sections (`harness.md §6`, `tools-and-session.md §5`), and
-those numbers are fixed. The code is the truth for how.
+The agent stack, the one package `@molstar/ai` (`packages/ai/`): an agent loop in memory (the harness), what feeds it
+(providers, tools) and what a host drives it through (the session). Generic: nothing here imports Prism, React or rxjs,
+and of Mol\* only `@molstar/core`'s hash file (in `messages/`). This spec is for working on or with the code without
+reading all of it: what each folder is, how they bind, the contracts a host relies on, and where the code is. Why the
+design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its sections (`harness.md §6`,
+`tools-and-session.md §5`), and those numbers are fixed. The code is the truth for how.
 
-| File                         | What it covers                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| [harness.md](harness.md)     | the engine: journal, event log, Execution, the loop, steps, decisions, the tool handler    |
-| [models.md](models.md)       | `Message`, the `ModelAdapter` port, the adapters, the model catalog                        |
-| [tools.md](tools.md)         | `@molstar/ai-tools`: defining tools, field shapes, results, the toolkit (skills), bindings |
-| [session.md](session.md)     | `@molstar/ai-session`: `AgentSession`, the drive's policies, budgets, compaction           |
-| [trace.md](trace.md)         | `@molstar/ai-trace`: the trace read from a harness, for the Inspector                      |
-| [fibers.md](fibers.md)       | `@molstar/ai-fibers`: durable append-only streams (transcripts), separate from the harness |
-| [narration.md](narration.md) | `@molstar/ai-narration`: text to speech and audio encoding                                 |
-| [testing.md](testing.md)     | the conformance suite, the test doubles, how to test a change                              |
+| File                         | What it covers                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| [harness.md](harness.md)     | the engine: journal, event log, Execution, the loop, steps, decisions, the tool handler           |
+| [models.md](models.md)       | `messages/` and `providers/`: `Message`, the `ModelAdapter` port, the adapters, the model catalog |
+| [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, the toolkit (skills), bindings                   |
+| [session.md](session.md)     | `session/`: `AgentSession`, the drive's policies, budgets, compaction                             |
+| [trace.md](trace.md)         | `trace/`: the trace read from a harness, for the Inspector                                        |
+| [fibers.md](fibers.md)       | `fibers/`: durable append-only streams (transcripts), separate from the harness                   |
+| [narration.md](narration.md) | `narration/`: text to speech and audio encoding                                                   |
+| [testing.md](testing.md)     | the harness cases, the test doubles (`testing/`), how to test a change                            |
 
-## Packages and layers
+## Folders and layers
 
 ```
-ai-agent ─┬─ ai-harness ─┬─ ai-tools ──── ai-session
-          │              ├─ ai-trace
-          │              └─ ai-conformance
-          └─ ai-model-adapters          (host passes adapters in)
-ai-fibers (nothing) ── ai-conformance/fibers
-ai-narration (nothing of the workspace)
+messages ─┬─ harness ─┬─ tools ──── session
+          │           ├─ trace
+          │           └─ testing
+          └─ providers          (host passes adapters in)
+fibers (nothing) ── fibers/_test (the suite; testing/fibers)
+narration (nothing of the other folders)
 ```
 
-| Package                      | Holds                                                                                                             | Imports of the workspace                |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `@molstar/ai-agent`          | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage` | `@molstar/core` (its hash file only)    |
-| `@molstar/ai-harness`        | the contracts (`src/contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`                    | `ai-agent`                              |
-| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `./model-catalog` (no dependencies)       | `ai-agent`                              |
-| `@molstar/ai-tools`          | `defineTool`, field shapes (`./zod` for zod input), results, bindings, repeated reads, nested tools, the toolkit  | `ai-agent`, `ai-harness`; zod only here |
-| `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`                                         | `ai-agent`, `ai-harness`, `ai-tools`    |
-| `@molstar/ai-trace`          | `readTrace` and the views the Inspector draws; `./format`                                                         | `ai-agent`, `ai-harness`                |
-| `@molstar/ai-fibers`         | the fiber kernel and host, its own storage port                                                                   | none                                    |
-| `@molstar/ai-conformance`    | `runHarnessConformance`, `createSession`; `./testing` (clock, ids, scripted model and tools); `./fibers`          | `ai-agent`, `ai-harness`, `ai-fibers`   |
-| `@molstar/ai-narration`      | TTS providers (Gemini, OpenAI), WAV encoding; `./mediabunny` for AAC/Opus                                         | none                                    |
+| Folder (`src/`) | Holds                                                                                                              | Imports of the other folders                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage`  | none (`@molstar/core`'s hash file only)     |
+| `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                  |
+| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK and zod only here    |
+| `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
+| `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`              |
+| `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts` |
+| `fibers/`       | the fiber kernel and host, its own storage port, the memory rows; the suite is `_test/`                            | none                                        |
+| `testing/`      | `createSession`; the clock, ids, scripted model and tools                                                          | `messages`, `harness`                       |
+| `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                        |
 
-The import rules are Biome's (`noRestrictedImports` per package in the root `biome.json`); they are architecture, so a
-failing import means "not here", not "loosen the rule". Each `src/index.ts` is the package's public surface; deep
-imports (`./*`) exist but a host should not need them.
+The entries (`package.json` `exports`, explicit, no deep imports): `.` re-exports what a host names (messages, the
+harness's types, tools, the session with `compaction/`, fibers) and nothing that pulls the AI SDK; `./harness`,
+`./providers` and `./providers/{anthropic,openai,google}` (one SDK per lazy import), `./models`, `./trace` (with
+`format`), `./testing`, `./testing/fibers` (the fibers' conformance suite, which imports Vitest), `./narration`,
+`./narration/mediabunny`. The package is `"sideEffects": false`.
+
+The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports); they
+are architecture, so a failing import means "not here", not "loosen the rule". Each folder's `index.ts` is its public
+surface.
 
 ## How it binds: one turn, end to end
 
-1. **The host** makes an `AgentSession` (`ai-session`) with a model source (adapters from `ai-model-adapters`, looked up
-   by provider), a toolkit (`ai-tools`), its API object and guidance.
+1. **The host** makes an `AgentSession` (`session/`) with a model source (adapters from `providers/`, looked up by
+   provider), a toolkit (`tools/`), its API object and guidance.
 2. **`session.turn(request, hooks)`** composes the user message (`[preamble][state] Focus: … notes Request: …`), plus
-   guidance and tool definitions on the first turn, and begins a turn of its **harness** (`createHarness`, `ai-harness`,
+   guidance and tool definitions on the first turn, and begins a turn of its **harness** (`createHarness`, `harness/`,
    in memory) with the `TurnConfiguration` (model, tool set, budget limits).
 3. **The harness** runs the turn's **begin step** (the drive's `turn-start`: compact first or not; then the messages are
    appended), then **rounds**: a model step (project through the adapter, admit against window and budget, stream) and,
@@ -62,7 +68,7 @@ imports (`./*`) exist but a host should not need them.
 5. **The session** follows `harness.observe()` (live deltas, each event) to fire `onText`/`onTool`/`onStatus`/`onTurn`,
    and resolves `TurnResult` when the turn's `done` settles: ended, or parked (`awaiting-approval`;
    `session.resume({ decisions, hooks })` goes on).
-6. **Afterwards** anything can read the harness through `session.client()` (a `HarnessReader`): `readTrace` (`ai-trace`)
+6. **Afterwards** anything can read the harness through `session.client()` (a `HarnessReader`): `readTrace` (`trace/`)
    for the Inspector, `turns()` and `events()` for history. Nothing outlives the page: a reload ends the conversation.
 
 ## Where to start, by task
@@ -82,9 +88,9 @@ imports (`./*`) exist but a host should not need them.
 - Built and tested: everything above. Consumers in the repository: the Prism viewer's agent
   (`@molstar/prism-viewer/agent`: operations as tools, `createViewerAgent` over `AgentSession`, one undo step per turn;
   `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector over
-  `ai-trace`).
+  `@molstar/ai/trace`).
 - Not built: persistence of a conversation (removed 2026-10-16 with the storage backends), more than one active turn,
-  `ai-evals`. What is missing and what was deferred: [../TODO.md](../TODO.md); the order:
+  evals. What is missing and what was deferred: [../TODO.md](../TODO.md); the order:
   [.v6/ai/plan.md](../../../.v6/ai/plan.md).
 
 ## Rules for changes here

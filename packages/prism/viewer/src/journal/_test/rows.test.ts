@@ -8,7 +8,7 @@
 
 import { afterAll, describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
-import { createMemoryRows, type FiberRows, type FiberTable, RowConflict } from '@molstar/ai-fibers';
+import { createMemoryRows, type FiberRows, type FiberTable, RowConflict } from '@molstar/ai';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
 
 // The row store contract, directly, on each backend: what the host relies on (analysis/viewer-mode.md §6).

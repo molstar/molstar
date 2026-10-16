@@ -12,25 +12,25 @@ import {
   createMemoryRows,
   FIBER_LIMIT_HARD_BOUNDS,
   FIBER_PAYLOAD_VERSION,
+  fiberCommandId,
   type FiberEntry,
   type FiberEntryId,
+  fiberEntryId,
   type FiberHost,
   type FiberId,
-  type FiberRows,
-  type FiberTable,
-  fiberCommandId,
-  fiberEntryId,
   fiberId,
   fiberOwnerId,
-} from '@molstar/ai-fibers';
-import type { Json } from '@molstar/ai-agent';
+  type FiberRows,
+  type FiberTable,
+  type Json,
+} from '@molstar/ai';
 import type { HistoryStep } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
 import type { RunOrigin, ViewerApi, OperationDefinition } from '../api/area.js';
 import type { RunRecord } from '../api/run.js';
 
 // The session's record (journal.md): what the person did and what the agent did, in order, in a fiber
-// (`@molstar/ai-fibers`). One record per viewer session, in memory by default; kept on purpose (IndexedDB rows) with a
+// (`@molstar/ai`). One record per viewer session, in memory by default; kept on purpose (IndexedDB rows) with a
 // small index of kept records (journal.md §1; fibers have no listing by owner). One writer: every change the API runs
 // (a `run` entry; an undo is an `undo` entry naming its step; a session opened, cleared or saved a `session` entry), and
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.

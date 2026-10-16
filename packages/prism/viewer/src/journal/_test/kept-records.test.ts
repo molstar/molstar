@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createMemoryRows, type FiberTable } from '@molstar/ai-fibers';
+import { createMemoryRows, type FiberTable } from '@molstar/ai';
 import { describe, expect, it } from 'vitest';
 import { createHistoryModel } from '../history-model.js';
 import { createKeptRecordsModel } from '../kept-records.js';

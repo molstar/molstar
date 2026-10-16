@@ -1,5 +1,24 @@
 # Packaging: ten packages into `@molstar/ai`
 
+## As done (slice 6, 2026-10-16)
+
+The collapse landed as proposed, with these differences:
+
+- **The model port stays in `messages/models.ts`** (not `providers/port.ts`): the harness uses it throughout, and the
+  harness may import only `messages/`. It moves when the providers slice (8) gives the port its final shape.
+- **The fibers' conformance suite stays in `fibers/_test/`** and has its own entry, `./testing/fibers`
+  (`runFiberConformance`, for prism-viewer's IndexedDB run), not `./testing`: it imports Vitest, and `./testing` is
+  loaded by browser stories (`scriptedModel`). The four suite files are listed in `tsconfig.json` `files`, so `lib/`
+  carries them although `_test/` is excluded.
+- **The harness cases are plain test files** in `harness/_test/` (`*.test.ts`, one per old case file); `suite.ts`,
+  `runHarnessConformance` and `ConformanceFixture` are gone. `createSession` is exported from `./testing`.
+- **Biome folder blocks** carry their full pattern list (a later override replaces an earlier one): no Mol\*, rxjs,
+  `node:*`; zod only in `tools/` and `providers/`; the AI SDK (`ai`, `@ai-sdk/*`) only in `providers/` (new: the root
+  entry must not pull it); the sibling folders a folder may not import. `harness/` has its own `tools/` subfolder
+  (`journal`, `plan`, `step`), excepted by name from the `**/tools/**` pattern.
+- **Name collisions on the root entry**: none needed resolving (the earlier slices removed the candidates); `tsc`
+  accepts `export *` of fibers, messages, session (with `compaction/`) and tools, and `export type *` of the harness.
+
 ## 1. What exists today
 
 Ten workspace packages under `packages/ai/*` (`pnpm-workspace.yaml:5`), each with its own `package.json`, `tsconfig.json`

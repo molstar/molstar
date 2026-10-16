@@ -85,8 +85,11 @@ the [API change ledger](breaking-v6-changes.md).
 
 ## Mol\* UI v-next, phase 1
 
-- Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in
+- Prism, the new UI (`packages/prism/*`), and the AI agent (`packages/ai`): private, not published, mocked in
   Storybook (`storybook/`, the repository's Storybook for the registered packages)
+- The AI packages are one package, `@molstar/ai` (`packages/ai`), with explicit entries (`.`, `./harness`, `./providers`,
+  `./providers/{anthropic,openai,google}`, `./models`, `./trace`, `./testing`, `./narration`): the nine
+  `@molstar/ai-*` packages are folders of it, and Biome enforces the layering between them
 - New `examples/minimal-prism-viewer`: the smallest Prism viewer composition (an mmCIF structure as cartoon or
   ball-and-stick, no features, extensions, sequence or assistant), a Vite app; its README lists what it leaves out and
   its bundle size

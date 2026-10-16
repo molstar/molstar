@@ -184,7 +184,7 @@ The agent, its tools and its policies do not need the assistant or a DOM. `creat
 headless included:
 
 ```ts
-import { createAnthropicModelAdapter } from '@molstar/ai-model-adapters';
+import { createAnthropicModelAdapter } from '@molstar/ai/providers/anthropic';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import { createViewerAgent } from '@molstar/prism-viewer/agent/session';

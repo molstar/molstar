@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { TraceData } from '@molstar/ai-trace';
+import type { TraceData } from '@molstar/ai/trace';
 import { domView, onCleanup, type ShellPage, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map } from 'rxjs';
 import { InspectorPageId } from '../inspector-access.js';

@@ -1,10 +1,10 @@
 # Tools and the session
 
-Two generic packages over the harness, ported from Stories Untold's agent (`lib/stories/stories-agent`) with its story
+Two generic folders of `@molstar/ai` over the harness, ported from Stories Untold's agent (`lib/stories/stories-agent`) with its story
 cut out ([analysis/viewer-mode.md](analysis/viewer-mode.md) §4). Code comments cite this document's sections
 (`tools-and-session.md §2`).
 
-## 1. `@molstar/ai-tools`: a tool and its result
+## 1. `tools/`: a tool and its result
 
 - **A tool** is
   `defineTool({ id, description, input, modules, optional?, read?, idempotent?, approval?, approvedBy?, run })`. `Api`
@@ -12,8 +12,8 @@ cut out ([analysis/viewer-mode.md](analysis/viewer-mode.md) §4). Code comments 
   and `run` gets only those, frozen. `run({ args, api, signal, progress, nest?, call })` gets its arguments normalized
   and checked, `call` (`callId`, `key`, `prior`) for idempotency, and returns a `ToolResult`.
 - **Input** is an object shape (`ObjectShape`, §2), a field shape: no zod in the public API (the owner's decision,
-  2026-10-16). `ai-tools` makes from it, once, the JSON Schema the model sees and the validator; zod is internal to
-  `packages/ai` (`ai-tools`, `ai-model-adapters`), and a Biome rule keeps it out of every file outside that folder.
+  2026-10-16). `tools/` makes from it, once, the JSON Schema the model sees and the validator; zod is internal to
+  `packages/ai` (`tools/`, `providers/`), and a Biome rule keeps it out of every file outside that folder.
 - **`ToolResult`** is `{ ok: true, did, changed?, view?, warnings?, body?, next?, contributions?, effect? }` or
   `{ ok: false, code, message, hint?, transient?, effect? }`, rendered for the model always in that order: what it did
   ("…: already so." when nothing had to change), `Changed: …`, `View: …`,
@@ -61,7 +61,7 @@ definitions as one system message of `tool-definition` parts, the guidance as a 
 fingerprint of its text (`tools:skill`, `skill:<id>@<fingerprint>`; a changed text is given again). Their descriptions list what there is, generated from the
 toolkit. Other disclosable texts (Stories' data sources and servers) are entries `{ id, summary, text, tools? }`.
 
-## 4. `@molstar/ai-session`: a conversation
+## 4. `session/`: a conversation
 
 `AgentSession` is one conversation over one in-memory harness (`createHarness`; harness.md §4–§6). Until 2026-10-16 it
 also set up a host, a runner per launch under a supervisor, and storage; that went with the harness's durability.
@@ -101,7 +101,7 @@ Defaults over `defaultDrive`, each replaceable (`drive` option):
 60 → 200, uncached input max(500k, 4×trigger) → max(2M, 20×), cache reads max(5M, 40×) → max(25M, 200×), output 200k →
 1M.
 
-## 6. Compaction (`@molstar/ai-session/compaction`)
+## 6. Compaction (`session/compaction/`)
 
 One nested model call over the whole context asks what to carry over; the new head is the guidance, the kept tools, the
 carry-over, the memory, the kept groups' guidance, the recent turns as they were and the current turn. It runs at the

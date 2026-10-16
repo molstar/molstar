@@ -38,11 +38,7 @@
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix assistant --check"
   },
   "dependencies": {
-    "@molstar/ai-agent": "workspace:*",
-    "@molstar/ai-model-adapters": "workspace:*",
-    "@molstar/ai-session": "workspace:*",
-    "@molstar/ai-tools": "workspace:*",
-    "@molstar/ai-trace": "workspace:*",
+    "@molstar/ai": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
     "@molstar/prism-viewer": "workspace:*",
@@ -50,7 +46,6 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
-    "@molstar/ai-conformance": "workspace:*",
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",

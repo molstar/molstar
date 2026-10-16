@@ -8,14 +8,14 @@ supervisor, a host protocol); that went, "just basic in memory harness for now f
 
 ## 1. Parts and homes
 
-| Part                        | Owns                                                                      | Package                      |
+| Part                        | Owns                                                                      | Folder of `@molstar/ai`      |
 | --------------------------- | ------------------------------------------------------------------------- | ---------------------------- |
-| Harness (`createHarness`)   | the state in memory; runs steps, binds and runs tools, asks the drive     | `@molstar/ai-harness`        |
+| Harness (`createHarness`)   | the state in memory; runs steps, binds and runs tools, asks the drive     | `harness/`                   |
 | Drive                       | every choice                                                              | the app; defaults in harness |
-| Model adapter               | projection and streaming for one provider                                 | `@molstar/ai-model-adapters` |
+| Model adapter               | projection and streaming for one provider                                 | `providers/`                 |
 | Tool handler                | one tool's effects                                                        | the app                      |
 
-`@molstar/ai-agent` holds the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the
+`messages/` (of `@molstar/ai`) holds the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the
 `ModelAdapter` port, `hashMessage`, `digest`.
 
 Each concern has one home and is kept nowhere else: what a model sees is the **journal** (§2); evidence (requests,

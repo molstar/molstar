@@ -8,13 +8,13 @@
 
 import {
   createToolkit,
+  failed,
   type ToolGroup,
   type Toolkit,
   type ToolkitPart,
   type ToolRegistration,
-} from '@molstar/ai-tools';
+} from '@molstar/ai';
 import { type AgentPolicy, mayAsk } from './policies.js';
-import { failed } from '@molstar/ai-tools';
 import { CoreTools, type OperationToolSpec, type SkillDeclaration, Skills } from './skills.js';
 import { type AgentViewer, operationTool, tool, toolResult, type ViewerAgentApi } from './tools.js';
 

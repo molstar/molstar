@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelAdapter } from '@molstar/ai-agent';
-import { listedModels } from '@molstar/ai-model-adapters/model-catalog';
+import type { ModelAdapter } from '@molstar/ai';
+import { listedModels } from '@molstar/ai/models';
 import { observableState } from '@molstar/prism-ui/core';
 import type { KeyStore } from '../keys.js';
 import type { AIProvider, AISettingsModel, AISetup, KeyScope } from '../model.js';
@@ -212,18 +212,18 @@ export function createAISettings(
         adapter =
           provider === 'anthropic'
             ? lazyAdapter(async () =>
-                (await import('@molstar/ai-model-adapters/anthropic/adapter')).createAnthropicModelAdapter({
+                (await import('@molstar/ai/providers/anthropic')).createAnthropicModelAdapter({
                   resolveApiKey: key,
                 }),
               )
             : provider === 'google'
               ? lazyAdapter(async () =>
-                  (await import('@molstar/ai-model-adapters/google/adapter')).createGoogleModelAdapter({
+                  (await import('@molstar/ai/providers/google')).createGoogleModelAdapter({
                     resolveApiKey: key,
                   }),
                 )
               : lazyAdapter(async () =>
-                  (await import('@molstar/ai-model-adapters/openai/adapter')).createOpenAIModelAdapter({
+                  (await import('@molstar/ai/providers/openai')).createOpenAIModelAdapter({
                     resolveApiKey: key,
                     ...(o ? { baseURL: o.baseURL, api: o.api, provider: o.id, label: o.label } : {}),
                   }),

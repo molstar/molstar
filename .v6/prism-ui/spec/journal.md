@@ -1,7 +1,7 @@
 # The session record: what happened, kept and shown back
 
-Yes to both (David, 2026-10-15): the viewer runs the agent on an `AgentSession` (`@molstar/ai-session`), and it keeps a
-record of the session in a fiber (`@molstar/ai-fibers`): what the person did, what the agent did, in order, shown back
+Yes to both (David, 2026-10-15): the viewer runs the agent on an `AgentSession` (`@molstar/ai`), and it keeps a
+record of the session in a fiber (`@molstar/ai`): what the person did, what the agent did, in order, shown back
 in History. **In memory by default**; the person keeps a record on purpose, and a kept record is only a record (§1).
 The record is the viewer's composition of the AI packages' building blocks, not something the library does (packages/ai/\_spec/session.md, "The session keeps no person-facing history").
 Status: **accepted** (2026-10-15).
@@ -30,7 +30,7 @@ Status: **accepted** (2026-10-15).
   records (id, title, first and last time; size not yet) in the same IndexedDB rows, written when a record is kept,
   forgotten, and while it is appended to at most once a minute and at the end of each turn (and when the viewer goes);
   each write is an entry, folded when listed (folding the index fiber itself as it grows: not yet). A fiber listing in
-  `@molstar/ai-fibers` would replace it (README §4). Copying the memory record into IndexedDB reads its windows and
+  `@molstar/ai` fibers would replace it (README §4). Copying the memory record into IndexedDB reads its windows and
   writes them in order with the same entry ids and positions: settled entries settled, a turn under way begun, an aborted
   one aborted.
 
@@ -92,7 +92,7 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 ## 4. The agent's session
 
 - **`AgentSession`** is made by the viewer's `createViewerAgent` (agent.md §1), over an in-memory harness
-  (`@molstar/ai-harness`), with the viewer's toolkit (agent.md §3), its drive's policies (approvals, agent.md §4),
+  (`@molstar/ai`), with the viewer's toolkit (agent.md §3), its drive's policies (approvals, agent.md §4),
   and the account and focus each turn (agent.md §5); the assistant and headless hosts both call it. Like the record, it lives as long as the page: a
   reload ends a running turn, and a kept record shows it as stopped.
 - The session's journal (what the model sees, compacted) and the record (what the person sees) are separate: compaction

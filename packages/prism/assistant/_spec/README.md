@@ -2,8 +2,8 @@
 
 `@molstar/prism-assistant`: the AI assistant's UI for Prism, opt-in (an app gets it only by depending on it; neither
 prism-ui nor the viewer imports it). The agent itself is the viewer's (`@molstar/prism-viewer/agent`: tools, skills,
-policies, `createViewerAgent`), on `@molstar/ai-session`; this package is the person's side of it: the model setup and
-keys, the turn card, the Assistant tab, the Inspector. Why it is so:
+policies, `createViewerAgent`), on `@molstar/ai`; this package is the person's side of it: the model setup and keys, the
+turn card, the Assistant tab, the Inspector. Why it is so:
 [.v6/prism-ui/spec/agent.md](../../../../.v6/prism-ui/spec/agent.md) §4–§6,
 [journal.md](../../../../.v6/prism-ui/spec/journal.md). The code is the truth for how.
 
@@ -22,7 +22,7 @@ keys, the turn card, the Assistant tab, the Inspector. Why it is so:
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `viewer/`    | the wiring to the real agent: `settings-model.ts` (providers, keys, the chosen model, own endpoints), `agent-model.ts` (the turn card from the session's hooks, approvals, Undo turn, the history), `inspector-sources.ts` (the Inspector's data from the session and toolkit), `storage.ts` (the keys in the Storage view), `ui.tsx` (the tab with its Inspect rows, the Inspector page and its commands) |
 | `views/`     | the Assistant tab, the setup form, the turn card, the history tab (Prism DOM JSX)                                                                                                                                                                                                                                                                                                                          |
-| `inspector/` | the Inspector's views (trace, tools, limits) over `@molstar/ai-trace`, its page and the Inspect rows (`links.ts`)                                                                                                                                                                                                                                                                                          |
+| `inspector/` | the Inspector's views (trace, tools, limits) over `@molstar/ai/trace`, its page and the Inspect rows (`links.ts`)                                                                                                                                                                                                                                                                                          |
 | `model.ts`   | the view models' contracts (`AgentModel`, `AISettingsModel`, `AgentTurn`, `CommandRun`)                                                                                                                                                                                                                                                                                                                    |
 | `testing/`   | the Inspector's mock data for its unit tests (the stories run the real assistant over a scripted model: `assistant({ provided })`)                                                                                                                                                                                                                                                                         |
 

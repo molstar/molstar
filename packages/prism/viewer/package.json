@@ -188,11 +188,7 @@
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix viewer --check"
   },
   "dependencies": {
-    "@molstar/ai-agent": "workspace:*",
-    "@molstar/ai-fibers": "workspace:*",
-    "@molstar/ai-harness": "workspace:*",
-    "@molstar/ai-session": "workspace:*",
-    "@molstar/ai-tools": "workspace:*",
+    "@molstar/ai": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
@@ -207,8 +203,6 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
-    "@molstar/ai-conformance": "workspace:*",
-    "@molstar/ai-model-adapters": "workspace:*",
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",

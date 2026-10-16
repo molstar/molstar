@@ -8,8 +8,8 @@
 
 import { afterAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { runFiberConformance } from '@molstar/ai-conformance/fibers';
-import { createFiberHost, type FiberTable } from '@molstar/ai-fibers';
+import { runFiberConformance } from '@molstar/ai/testing/fibers';
+import { createFiberHost, type FiberTable } from '@molstar/ai';
 import { createIndexedDbRows } from '../indexeddb-rows.js';
 
 // The fibers conformance against IndexedDB (fake-indexeddb in Node), one fresh database per case. A restart is a

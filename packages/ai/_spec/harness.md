@@ -1,4 +1,4 @@
-# The harness (`@molstar/ai-harness`)
+# The harness (`src/harness/` of `@molstar/ai`)
 
 Runs agent turns in memory: the model is called, the tools it asks for run, and the loop goes on until the turn ends or
 parks. Mechanism only; every choice is the drive's. Design and rationale:
@@ -8,7 +8,7 @@ durable (storage port, host protocol, leases, a supervisor); that went
 
 ## Files
 
-| Path (`harness/src/`)  | What                                                                                                                                                            |
+| Path (`src/harness/`)  | What                                                                                                                                                            |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `contracts/records.ts` | the records: `Execution`, `ActiveTurn`, `Head`, `Pointer`, events, `Usage`, `Limits`                                                                            |
 | `contracts/harness.ts` | `Harness`, `HarnessReader`, `HarnessOptions`, `TurnHandle`, `TurnOutcome`, `HeadEdit`, `HarnessError`                                                           |
@@ -22,7 +22,7 @@ durable (storage port, host protocol, leases, a supervisor); that went
 
 ## The data
 
-- **Entry**: a `Message` (`ai-agent`) addressed by `hashMessage` (`EntryId`, 32 hex digits). Immutable, deduplicated,
+- **Entry**: a `Message` (`messages/`) addressed by `hashMessage` (`EntryId`, 32 hex digits). Immutable, deduplicated,
   never deleted while the harness exists. Its optional `label` (what it is: a request, guidance) is part of it; the
   harness stores it and never reads it, and never counts it in a size (`Store.tokensOf`).
 - **Head**: an immutable list of entry ids (`Head { id, entries }`), `id` the digest of the list.

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ModelAdapter, ModelFrame } from '@molstar/ai-agent';
+import type { ModelAdapter, ModelFrame } from '@molstar/ai';
 import { describe, expect, it, vi } from 'vitest';
 import type { KeyScope, KeyStore } from '../../keys.js';
 import { checkEndpoint, createAISettings, lazyAdapter, type SettingsPrefs } from '../settings-model.js';

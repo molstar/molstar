@@ -2,7 +2,7 @@ packages:
   - 'packages/*'
   - 'packages/plugin/*'
   - 'packages/prism/*'
-  - 'packages/ai/*'
+  - 'packages/ai'
   - 'packages/mvs/*'
   - 'packages/sequences/*'
   - 'extensions/*'
@@ -96,7 +96,7 @@ catalog:
   'lucide-static': '1.48.0'
   # Preact (prism-ui's React/Preact adapter tests and stories only); MIT licensed.
   'preact': '10.29.8'
-  # The AI packages (@molstar/ai-*). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
+  # The AI package (@molstar/ai). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
   'ai': '^7.0.124'
   '@ai-sdk/anthropic': '^4.0.70'
   '@ai-sdk/google': '^4.0.87'

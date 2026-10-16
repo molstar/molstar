@@ -1,11 +1,11 @@
-# The session (`@molstar/ai-session`)
+# The session (`src/session/` of `@molstar/ai`)
 
 One conversation over one harness, with the policies an app would otherwise write: composition of requests, the drive,
 budgets, compaction, approvals, resume. This is what a host uses; it wires everything in
 [README.md § How it binds](README.md#how-it-binds-one-turn-end-to-end). Design:
 [.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §4–7.
 
-## Files (`session/src/`)
+## Files (`src/session/`)
 
 | File          | What                                                                                                        |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 ```ts
 const session = new AgentSession<MyApi>({
   models: { adapterFor: (provider) => adapters[provider], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } },
-  toolkit,                       // createToolkit(...) from ai-tools
+  toolkit,                       // createToolkit(...) from tools/
   api,                           // the host's modules; the session adds `disclosure` if absent
   guidance,                      // the system text of the first turn
 });
@@ -95,7 +95,7 @@ the session's.
 trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached input max(500k, 4×trigger) → max(2M,
 20×trigger), cache reads max(5M, 40×trigger) → max(25M, 200×trigger), output 200k → 1M.
 
-## Compaction (`@molstar/ai-session/compaction`)
+## Compaction (`src/session/compaction/`, also from the root entry)
 
 - **When**: `trigger` (mid-turn at `boundary`, the request reaching `triggerInputTokens`), `soft` (a turn's start, from
   `softShare` of the trigger), `force` (a `capacity` failure: a mechanical digest, no model call). Not again until the

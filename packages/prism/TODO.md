@@ -9,13 +9,13 @@ What is missing, and what was considered and deferred. One entry each, with a po
 ## Decisions open
 
 - **Reconsider zod** (David). The agent's tools are field shapes (`paramsShape`, `viewer/src/agent/params.ts`, from each
-  operation's `ParamDefinition`) that `@molstar/ai-tools` turns into zod, then into the JSON Schema the model sees and
-  the validator. zod is never in the page's startup bundle (the declarations are plain data,
-  `viewer/src/agent/skills.ts`; the assistant is a chunk, `assistant/src/spec.ts`), but it is ~192 kB minified in the
-  assistant's chunk (English only, as `scripts/esbuild/app.mjs` builds it; ~453 kB with every locale, 95 kB gzipped).
-  Alternatives: JSON Schema straight from `ParamDefinition` (operations already have it) or from the field shapes, with
-  a small validator over that closed vocabulary; a smaller validator. The AI SDK's providers import zod too, so it
-  leaves the page only with adapters of our own. The harness side: [../ai/TODO.md](../ai/TODO.md).
+  operation's `ParamDefinition`) that `@molstar/ai` turns into zod, then into the JSON Schema the model sees and the
+  validator. zod is never in the page's startup bundle (the declarations are plain data, `viewer/src/agent/skills.ts`;
+  the assistant is a chunk, `assistant/src/spec.ts`), but it is ~192 kB minified in the assistant's chunk (English only,
+  as `scripts/esbuild/app.mjs` builds it; ~453 kB with every locale, 95 kB gzipped). Alternatives: JSON Schema straight
+  from `ParamDefinition` (operations already have it) or from the field shapes, with a small validator over that closed
+  vocabulary; a smaller validator. The AI SDK's providers import zod too, so it leaves the page only with adapters of
+  our own. The harness side: [../ai/TODO.md](../ai/TODO.md).
 - **Duplicates** (review B11): `StatusModel` and `NotificationsManager`; `ShellModel.layout` beside `viewState.save()`;
   `persist.key` that namespaces nothing; three ways to run Preset and Styles in `StructureTab`.
 - **The query languages' registry is page-wide** (review B12): two viewers on a page offer each other's languages.

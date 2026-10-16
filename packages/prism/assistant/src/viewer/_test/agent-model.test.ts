@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
-import type { TurnResult } from '@molstar/ai-session';
+import { type ModelStep, scriptedModel } from '@molstar/ai/testing';
+import type { TurnResult } from '@molstar/ai';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { observableState } from '@molstar/prism-ui/core';

@@ -102,7 +102,7 @@ interface PrismViewerAgentSpec {
 }
 interface AgentListChange<T> { readonly add?: readonly T[]; readonly remove?: readonly string[] }
 // The declarations (CoreTools, Skills, their types) are plain data in `agent/skills.ts`, no imports: a spec that changes
-// them does not bring the toolkit (ai-tools, zod) into the page's startup bundle (review B10).
+// them does not bring the toolkit (`@molstar/ai` tools, zod) into the page's startup bundle (review B10).
 // The assistant creates the agent itself: its models come from the person's keys, which the assistant keeps (agent.md §4).
 interface AssistantHost {
   readonly viewer: PrismViewer;
