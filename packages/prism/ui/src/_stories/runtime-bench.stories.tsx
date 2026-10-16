@@ -16,12 +16,12 @@ import { keyedSelector } from '../reactive/keyed-selector.js';
 import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
 
-const meta: Meta = { title: 'Internals/Performance' };
+const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
 
-// The renderer bench (spike.md, Next): the js-framework-benchmark operations on the `dom` runtime, rows written the way
-// the app writes them (a record per row, keyed `For`, the selection a reactive class). Script is the operation alone;
-// total adds forced layout and a frame. Medians of `Runs` after a warm-up; time slicing off (raw throughput).
+// The renderer bench (rendering.md §1): the js-framework-benchmark operations on the `dom` runtime, rows written the
+// way the app writes them (a record per row, keyed `For`, the selection a reactive class). Script is the operation
+// alone; total adds forced layout and a frame. Medians of `Runs` after a warm-up; time slicing off (raw throughput).
 
 const Runs = 5;
 

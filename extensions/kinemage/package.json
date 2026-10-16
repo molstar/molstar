@@ -38,7 +38,9 @@
     "@molstar/model": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/io": "workspace:*",
-    "@molstar/plugin-ui": "workspace:*"
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -40,7 +40,6 @@
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
 
   &:hover {
     background: var(--msp-color-hover);

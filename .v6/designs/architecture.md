@@ -646,7 +646,10 @@ plugin version source once for both library and app builds.
 
 Apps use `scripts/esbuild/app.mjs` for shared plugins, source conditions, watch, and serve. Each app/example owns its
 entry, output paths, dependencies, themes, and scripts. Resolve imports from the importing workspace package; do not
-depend on a root `Apps` list or root dependency hoisting.
+depend on a root `Apps` list or root dependency hoisting. Production builds (the apps, the `molstar` distribution, the
+slim-bundle check) minify fully, identifiers included: nothing reads a function or class name at runtime except in
+diagnostics, so there is no `keepNames` (it would add ~6%, 30 kB gzipped to the Prism viewer's `index.js`). esbuild
+ignores `minifyIdentifiers: false` beside `minify: true`, so the override the builds carried from #1542 never applied.
 
 ```text
 pnpm --filter @molstar/viewer dev

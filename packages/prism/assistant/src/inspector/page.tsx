@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { TraceData } from '@molstar/ai-trace';
+import type { TraceData } from '@molstar/ai/trace';
 import { domView, onCleanup, type ShellPage, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map } from 'rxjs';
 import { InspectorPageId } from '../inspector-access.js';
@@ -20,9 +20,10 @@ import { ToolsView } from './tools.js';
 import { TraceView } from './trace.js';
 
 /**
- * The Inspector as a page over the whole app (analysis/viewer-mode.md §5): it needs the room. Its header has the three
- * views as words (Trace with its turns, Tools with its tools, Limits), then whether the agent works and its budget; a
- * page focus (`trace`, `tools`, `limits`, `turn:<id>`, `step:<id>`, `tool:<name>`) opens it there.
+ * The Inspector as a page over the whole app (packages/ai/_spec/trace.md § The Inspector): it needs the room. Its
+ * header has the three views as words (Trace with its turns, Tools with its tools, Limits), then whether the agent
+ * works and its budget; a page focus (`trace`, `tools`, `limits`, `turn:<id>`, `step:<id>`, `tool:<name>`) opens it
+ * there.
  */
 export function inspectorPage(model: InspectorModel): ShellPage {
   return {

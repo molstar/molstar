@@ -9,57 +9,62 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import {
-  type MockScenePreset,
-  mockComponentOptions,
-  mockPresets,
-  mockQuickStyles,
-  mockSceneWithPicked,
-} from '../../../testing/scene.js';
 import { story } from '@molstar/prism-ui/testing/index';
-import { ShellModel } from '@molstar/prism-ui/shell/shell';
-import { StructureTab } from '../structure-tab.js';
+import { ExampleFiles, openAt, RealViewerStory } from '../../../testing/real-viewer.js';
 
-const meta: Meta = { title: 'Views/Structure tab' };
+// The Structure panel in the real viewer: the scene tree and the inspector of what is picked (a structure, a component,
+// a representation), over the repository's example files. A map's inspector is in Viewer › Volumes.
+
+const meta: Meta = { title: 'Viewer/Structure panel', parameters: { layout: 'fullscreen' } };
 export default meta;
 
-const frame = 'width: 360px; height: 100vh; overflow: auto; background: var(--msp-color-panel); margin-left: auto;';
+/** Nothing picked: the tree, the inspector's hint. */
+export const Tree: StoryObj = {
+  render: () => story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => openAt(v)} />),
+};
 
-function Tab(props: { pick: string; preset?: MockScenePreset; stream?: boolean }) {
-  const shell = new ShellModel();
-  const scene = mockSceneWithPicked(props.pick, { preset: props.preset });
-  const picked = scene.picked.value;
-  if (props.stream && picked) scene.streaming(picked).set('enabled', true);
-  return (
-    <div style={frame}>
-      <StructureTab
-        shell={shell}
-        scene={scene}
-        presets={mockPresets()}
-        quickStyles={mockQuickStyles()}
-        options={mockComponentOptions()}
+/** The structure picked: its contents (counts, entities), its parameters, then the extensions' sections. */
+export const Structure: StoryObj = {
+  render: () =>
+    story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => openAt(v, (n) => n.kind === 'structure')} />),
+};
+
+/** A component picked: its actions and its representations, each to open. */
+export const Component: StoryObj = {
+  render: () =>
+    story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => openAt(v, (n) => n.kind === 'component')} />),
+};
+
+/** A representation picked (the cartoon): its quick settings (type, color, opacity, size) above its whole form. */
+export const Representation: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => openAt(v, (n) => n.kind === 'representation')} />
+    )),
+};
+
+/** Several structures (1CBS, crambin, gramicidin), each its row in the tree. */
+export const ManyStructures: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory load={[ExampleFiles.cbs, ExampleFiles.crambin, ExampleFiles.grm]} setup={(v) => openAt(v)} />
+    )),
+};
+
+/**
+ * Density streaming turned on (1TQN from the PDB, its maps from PDBe), the ligand focused: the streaming's row picked,
+ * its maps' levels in the inspector. Network.
+ */
+export const StreamingDensity: StoryObj = {
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        setup={async (v) => {
+          await v.api.load.entry?.({ source: 'pdb', id: '1TQN' });
+          await v.api.volume.streaming?.({ enabled: true } as never);
+          await v.api.focus.set({ target: 'ligand' });
+          openAt(v, (n) => n.kind === 'extension' && n.label.value === 'Volume streaming');
+        }}
       />
-    </div>
-  );
-}
-
-/** A representation picked: the inspector shows its parameters (essentials, then Advanced). */
-export const Representation: StoryObj = { render: () => story(() => <Tab pick="polymer-cartoon" />) };
-
-/** The structure picked: facts, its parameters, then extension sections (density streaming; no symmetry for C1). */
-export const Structure: StoryObj = { render: () => story(() => <Tab pick="1tqn" />) };
-
-/** Density streaming enabled from the structure's section: the channels appear under the structure. */
-export const StreamingDensity: StoryObj = { render: () => story(() => <Tab pick="1tqn" stream />) };
-
-/** Several structures, collapsed but the first. */
-export const ManyStructures: StoryObj = { render: () => story(() => <Tab pick="none" preset="many" />) };
-
-/** An EMDB map next to its fitted model; the map picked: its facts and the isosurface below it. */
-export const EmdbMap: StoryObj = { render: () => story(() => <Tab pick="emd-2984-iso" preset="em" />) };
-
-/** The fitted model of a symmetric assembly: assembly symmetry shows. */
-export const EmdbModel: StoryObj = { render: () => story(() => <Tab pick="5a1a" preset="em" />) };
-
-/** Nothing picked: the tree only. */
-export const TreeOnly: StoryObj = { render: () => story(() => <Tab pick="none" />) };
+    )),
+};

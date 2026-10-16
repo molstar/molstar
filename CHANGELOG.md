@@ -10,6 +10,12 @@ here.
 
 ## [Unreleased]
 
+- Fix `murmurHash3_128`, which was not MurmurHash3_x86_128 (one lane rotated by 13 instead of 18), and hash strings as
+  their UTF-8 bytes in `murmurHash3_32`, `murmurHash3_128`, `hashMurmur32o` and `hashMurmur128o` (they hashed each
+  UTF-16 code unit's low byte, so texts differing in characters above U+00FF could collide, e.g. in state transform
+  versions). MVSX archive ids and transform versions change; add `murmurHash3_32_fromBytes`
+- Snapshot manager: `getStateSnapshot` and `serialize` take `keepList` to save the current scene without adding to or
+  replacing the list's entries
 - Add the `element-schema` generator to MolQL (`sel.atom.element-schema` in MolScript, with `schema-item` and
   `empty-value`): it selects the elements of tables of fields (`label_asym_id`, `auth_seq_id`, ranges, ...) through
   per-model indices instead of testing every atom for every row (1000 rows on 720k atoms: seconds to ~17 ms).

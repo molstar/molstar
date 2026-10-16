@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The quick allocation tier's measurement (SPIKE, .v6/seq/plans/lanes-input-perf.md §4.1), for every package: bytes
+// The quick allocation tier's measurement (SPIKE; packages/sequences/AGENTS.md, Tests), for every package: bytes
 // allocated per step, read directly instead of inferred from heap growth. `v8.GCProfiler` records the heap spaces
 // before and after every collection in a window, so the bytes allocated over the window are Σ(before − the previous
 // after) plus the final delta, whatever collected in between: a window may collect as often as it likes (the quick

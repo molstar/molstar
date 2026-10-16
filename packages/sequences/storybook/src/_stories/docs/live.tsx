@@ -126,21 +126,22 @@ function previewPath() {
 }
 
 /**
- * Prism's viewer with a real Mol* plugin (the `Shell/Viewer mode › RealPluginPredicted` story) in a frame of its own:
+ * Prism's viewer as the app composes it (the `Viewer/With extensions › Predicted` story) in a frame of its own:
  * a whole app on a predicted structure, with the Seq* band linked to its 3D view. A frame, not the docs blocks: the story
  * is a full-height web-components app, and the frame isolates its styles, its plugin and its WebGL context from this
  * page. It follows the page's theme (the story's `theme` global) and works in `storybook dev` and the static build.
  */
 export function ExamplePlugin() {
   const theme = useTheme();
-  const id = 'prism-shell-viewer-mode--real-plugin-predicted';
+  // The embedded layout: the rail hidden behind its button in the canvas's corner.
+  const id = 'prism-viewer-with-extensions--embedded';
   return (
     <Unstyled>
       <div className={s.stack}>
         <iframe
           className={s.embed}
           title="Prism's viewer with a Mol* plugin: AlphaFill's CYP3A4 with ligands, colored by pLDDT, linked to the Seq* sequence band"
-          src={`${previewPath()}?id=${id}&viewMode=story&globals=theme:${theme}&args=compact:true`}
+          src={`${previewPath()}?id=${id}&viewMode=story&globals=theme:${theme}`}
           loading="lazy"
         />
       </div>

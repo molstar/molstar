@@ -8,8 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { BudgetView, TokensView } from '@molstar/ai-trace';
-import { credits, formatUsage, k } from '@molstar/ai-trace/format';
+import type { BudgetView, TokensView } from '@molstar/ai/trace';
+import { credits, formatUsage, k } from '@molstar/ai/trace';
 import { type Child, type MaybeReactive, onCleanup, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { classes } from './_generated/parts.module.css.js';
@@ -100,7 +100,7 @@ export function Json(props: { value: unknown }) {
   return pre;
 }
 
-/** A call's or turn's usage in one line (ai-trace's `formatUsage`). */
+/** A call's or turn's usage in one line (`@molstar/ai/trace` `formatUsage`). */
 export function Usage(props: { tokens: TokensView; class?: string }) {
   return <span class={`${classes.usage} ${props.class ?? ''}`}>{formatUsage(props.tokens)}</span>;
 }

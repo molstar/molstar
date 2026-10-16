@@ -7,7 +7,7 @@
 
 import { UUID } from './uuid.js';
 import { ajaxGet, type DataType, type DataResponse, readFromFile } from './data-source.js';
-import { Task } from '@molstar/core/task';
+import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 
@@ -86,14 +86,62 @@ function urlHeadersEqual(a?: Record<string, string>, b?: Record<string, string>)
   return true;
 }
 
+/**
+ * The key of the byte cache (`AssetManager`), or `undefined` for a request that is not cached.
+ *
+ * Only plain GETs are cached: a request with a body (POST: GraphQL, queries) can answer differently every time, so it
+ * keeps the per-asset behavior (one download per `Asset.Url`). The headers are part of the key (an `Authorization` or
+ * `Accept` header changes the response); the title is not. The response type is deliberately not part of the key: the
+ * cache holds the raw bytes and every type (`string`, `json`, `binary`, ...) is decoded from them (`readFromFile`),
+ * so a text and a binary read of one URL share one download.
+ */
+function urlCacheKey(asset: Asset.Url): string | undefined {
+  if (asset.body) return undefined;
+  const headers = asset.headers
+    ? Object.keys(asset.headers)
+        .sort()
+        .map((k) => [k, asset.headers![k]])
+    : [];
+  return JSON.stringify(['GET', asset.url, headers]);
+}
+
+/** A cached download: in flight (`pending`) or done (`file`); `refCount` counts holders, in-flight waiters included. */
+interface UrlCacheEntry {
+  refCount: number;
+  file?: File;
+  pending?: Promise<File>;
+}
+
+/**
+ * Holds assets (URL downloads and files) and their bytes, ref-counted: `resolve` takes a reference and
+ * `Asset.Wrapper.dispose` (`release`) gives it back.
+ *
+ * URL assets read through a URL-keyed, ref-counted byte cache (`urlCacheKey`): the first `resolve` of a URL downloads,
+ * later ones (another `Asset.Url` of the same URL and headers, or the same one) are served from the held bytes, and
+ * concurrent ones share the download in flight, so a URL is fetched once whoever asks first. The bytes live while any
+ * asset that resolved to them is held and are dropped with the last one.
+ *
+ * - A failed download is not cached, the next `resolve` fetches again. The waiters of that download get its error.
+ * - An aborted download (its requester was aborted) does not fail the waiters: they that are still interested retry,
+ *   one of them becoming the downloader. A waiter itself notices its own abort when its task next updates.
+ * - `resolve(asset, type, false)` (`store` off) and requests with a body bypass the cache.
+ */
 class AssetManager {
-  // TODO: add URL based ref-counted cache?
   // TODO: when serializing, check for duplicates?
 
-  private _assets = new Map<string, { asset: Asset; file: File; refCount: number; isStatic?: boolean; tag?: string }>();
+  private _assets = new Map<
+    string,
+    { asset: Asset; file: File; refCount: number; isStatic?: boolean; tag?: string; cacheKey?: string }
+  >();
+  private _urlCache = new Map<string, UrlCacheEntry>();
 
   get assets() {
     return iterableToArray(this._assets.values());
+  }
+
+  /** The number of URLs the byte cache holds or is downloading. */
+  get urlCacheSize() {
+    return this._urlCache.size;
   }
 
   tryFindUrl(url: string, body?: string, headers?: Record<string, string>): Asset.Url | undefined {
@@ -122,6 +170,7 @@ class AssetManager {
   }
 
   set(asset: Asset, file: File, options?: { isStatic?: boolean; tag?: string }) {
+    this._remove(asset.id);
     this._assets.set(asset.id, { asset, file, refCount: 0, tag: options?.tag, isStatic: options?.isStatic });
   }
 
@@ -130,7 +179,7 @@ class AssetManager {
   }
 
   delete(asset: Asset) {
-    return this._assets.delete(asset.id);
+    return this._remove(asset.id);
   }
 
   has(asset: Asset) {
@@ -150,10 +199,31 @@ class AssetManager {
           return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
         }
 
-        const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
-        const file = new File([data], 'raw-data');
-        this._assets.set(asset.id, { asset, file, refCount: 1 });
-        return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+        const key = urlCacheKey(asset);
+        if (key === undefined) {
+          const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
+          const file = new File([data], 'raw-data');
+          this._assets.set(asset.id, { asset, file, refCount: 1 });
+          return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+        }
+
+        // read through the byte cache: the asset takes one hold of the entry, given back when it leaves the manager
+        const held = await this._acquireUrl(ctx, asset, key);
+        const existing = this._assets.get(asset.id);
+        if (existing) {
+          // the same asset was resolved concurrently and registered first
+          this._releaseUrl(key);
+          existing.refCount++;
+        } else {
+          this._assets.set(asset.id, { asset, file: held.file!, refCount: 1, cacheKey: key });
+        }
+        const file = (existing ?? this._assets.get(asset.id)!).file;
+        try {
+          return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+        } catch (e) {
+          this.release(asset);
+          throw e;
+        }
       });
     } else {
       return Task.create(`Read ${asset.name}`, async (ctx) => {
@@ -177,7 +247,7 @@ class AssetManager {
     const entry = this._assets.get(asset.id);
     if (!entry) return;
     entry.refCount--;
-    if (entry.refCount <= 0 && !entry.isStatic) this._assets.delete(asset.id);
+    if (entry.refCount <= 0 && !entry.isStatic) this._remove(asset.id);
   }
 
   clearTag(tag: string) {
@@ -185,16 +255,90 @@ class AssetManager {
     for (const key of keys) {
       const entry = this._assets.get(key);
       if (entry && entry.tag === tag) {
-        this._assets.delete(key);
+        this._remove(key);
       }
     }
   }
 
   clear() {
-    this._assets.clear();
+    for (const id of Array.from(this._assets.keys())) this._remove(id);
   }
 
   dispose() {
     this.clear();
+  }
+
+  /** Deletes an asset entry and gives back its hold of the byte cache. */
+  private _remove(id: string) {
+    const entry = this._assets.get(id);
+    if (!entry) return false;
+    this._assets.delete(id);
+    if (entry.cacheKey !== undefined) this._releaseUrl(entry.cacheKey);
+    return true;
+  }
+
+  private _releaseUrl(key: string, entry = this._urlCache.get(key)) {
+    if (!entry) return;
+    entry.refCount--;
+    if (entry.refCount <= 0 && this._urlCache.get(key) === entry) this._urlCache.delete(key);
+  }
+
+  /** A hit, the download in flight, or a new download; returns an entry with `file` and one hold taken for the caller. */
+  private async _acquireUrl(ctx: RuntimeContext, asset: Asset.Url, key: string): Promise<UrlCacheEntry> {
+    for (;;) {
+      const entry = this._urlCache.get(key);
+      if (!entry) return this._download(ctx, asset, key);
+
+      entry.refCount++;
+      if (entry.file) return entry;
+
+      // wait for the download in flight (an abort of this task surfaces here)
+      try {
+        await ctx.update({ message: `Waiting for ${asset.title || asset.url}` });
+        await entry.pending;
+        return entry;
+      } catch (e) {
+        this._releaseUrl(key, entry);
+        // the downloader was aborted, not this task: not a failure for us, take over
+        if (Task.isAbort(e) && !(await this._isAborted(ctx))) continue;
+        throw e;
+      }
+    }
+  }
+
+  private async _download(ctx: RuntimeContext, asset: Asset.Url, key: string): Promise<UrlCacheEntry> {
+    const entry: UrlCacheEntry = { refCount: 1 };
+    this._urlCache.set(key, entry);
+    const pending = (async () => {
+      const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
+      return new File([data], 'raw-data');
+    })();
+    entry.pending = pending;
+    pending.then(
+      (file) => {
+        entry.file = file;
+        entry.pending = undefined;
+      },
+      () => {
+        // not cached: the next request fetches again
+        if (this._urlCache.get(key) === entry) this._urlCache.delete(key);
+      },
+    );
+    try {
+      await pending;
+      return entry;
+    } catch (e) {
+      this._releaseUrl(key, entry);
+      throw e;
+    }
+  }
+
+  private async _isAborted(ctx: RuntimeContext) {
+    try {
+      await ctx.update();
+      return false;
+    } catch (e) {
+      return Task.isAbort(e);
+    }
   }
 }

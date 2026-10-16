@@ -11,8 +11,11 @@ import type { CommandDefinition } from '@molstar/prism-ui';
 // The ways into the Inspector, without the Inspector: its page id and the commands that open it. The page itself is
 // `@molstar/prism-assistant/inspector` (`inspectorPage`), so the Assistant's tab and card do not pull it in.
 
-/** The Inspector's page (`ShellModel.openPage`), opened at a focus: `trace`, `tools`, `limits`, `turn:<id>`, `tool:<name>`. */
-export const InspectorPageId = 'inspector';
+/**
+ * The Inspector's page (`ShellModel.openPage`), opened at a focus: `trace`, `tools`, `limits`, `turn:<id>`,
+ * `tool:<name>`. A part of the assistant's in the viewer (`<owner>.<kind>.<name>`, viewer-spec.md §4).
+ */
+export const InspectorPageId = 'assistant.page.inspector';
 
 /** The Inspector's views, as the ways in name them. */
 export type InspectorFocus = 'trace' | 'tools' | 'limits';

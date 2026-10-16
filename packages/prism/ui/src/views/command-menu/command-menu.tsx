@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
@@ -17,6 +17,7 @@ import type { CommandGroup } from '../../commands/types.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
@@ -34,8 +35,13 @@ export interface CommandMenuProps {
   prefixes?: readonly CommandMenuPrefix[];
   /** Opens inside this group (the Structure tab's Preset and Styles buttons open theirs). */
   group?: string;
-  /** The assistant (when the spec turns AI on): typed words get an Ask row (design/agent.md §5). */
+  /** The assistant (when the spec turns AI on): typed words get an Ask row (prism-assistant's _spec, "The Ask row"). */
   assistant?: CommandMenuAssistant;
+  /**
+   * Opened for one command from elsewhere (a component's action): its form is the menu, so Esc (and ⌫ past its first
+   * field) closes the menu rather than going back to the list.
+   */
+  direct?: boolean;
 }
 
 /**
@@ -117,6 +123,11 @@ type Row =
   | { kind: 'item'; item: CommandMenuItem; index: number };
 type Pickable = Exclude<Row, { kind: 'caption' }>;
 
+/** Rows rendered at first (and added at a time): more than the list shows. */
+const Screenful = 24;
+/** An option's height (`.row`), for the scroll height of the rows not rendered yet. */
+const RowPx = 28;
+
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
   // The words a sentence was proposed from by the assistant (shown over it), until it closes.
@@ -129,14 +140,35 @@ export function CommandMenu(props: CommandMenuProps) {
     if (o.kind === 'done') props.onClose();
   });
   onCleanup(() => manager.close());
+  // A modal dialog (accessibility.md): Tab stays inside it, and closing it gives the focus back to what opened it.
+  const restore = rememberFocus();
+  let menu: HTMLElement | undefined;
+  onCleanup(() => restore(menu));
   return (
     <div
       class={classes.scrim}
+      data-keeps-card=""
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div class={classes.menu} role="dialog" aria-label="Commands">
+      <div
+        class={classes.menu}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Commands"
+        ref={(el) => {
+          menu = el;
+        }}
+        onKeyDown={(e) => {
+          trapTab(e, e.currentTarget);
+          // Escape anywhere in the menu (a run button, a picker) closes it, and nothing behind it.
+          if (e.key !== 'Escape' || e.defaultPrevented) return;
+          e.preventDefault();
+          e.stopPropagation();
+          props.onClose();
+        }}
+      >
         <Show when={manager.active} fallback={() => <ListMode {...props} onPropose={(t) => proposed.set(t)} />}>
           {(invocation) => (
             <FormMode
@@ -144,6 +176,7 @@ export function CommandMenu(props: CommandMenuProps) {
               invocation={invocation}
               proposed={proposed.asReadonly}
               onClose={props.onClose}
+              {...(props.direct ? { direct: true } : {})}
             />
           )}
         </Show>
@@ -158,6 +191,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   const group = observableState<string | undefined>(props.group);
   const highlight = observableState(0);
   const message = observableState<string | undefined>(undefined);
+  // The combobox's list and its options' ids: the input names the highlighted one (`aria-activedescendant`).
+  const listId = uniqueId('msp-command-list');
+  const optionId = (i: number) => `${listId}-${i}`;
   const prefixes = [...(props.prefixes ?? []), helpPrefix(props, (t) => setText(t))];
   const prefixOf = (t: string) => prefixes.find((p) => t.startsWith(p.char));
 
@@ -254,8 +290,45 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
   });
+  // The rows rendered: a screenful first, more as the list scrolls or the highlight moves past them, so opening the menu
+  // builds what shows rather than every command (styling.md §5). A spacer keeps the scroll height of the
+  // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its bind below runs before the
+  // input's and the list's, so the list has grown to it by the time they read the highlight.
+  const limit = observableState<{ of?: readonly Row[]; n: number }>({ n: Screenful });
+  const shown = combineLatest([rows, limit.asReadonly]).pipe(
+    map(([r, l]) => (r.length <= (l.of === r ? l.n : Screenful) ? r : r.slice(0, l.of === r ? l.n : Screenful))),
+    distinctUntilChanged((a, b) => a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1]),
+  );
+  const rest = combineLatest([rows, shown]).pipe(
+    map(([r, s]) => (r.length - s.length) * RowPx),
+    distinctUntilChanged(),
+  );
+  const grow = (n: number) => {
+    const l = limit.value;
+    const have = l.of === current ? l.n : Screenful;
+    if (n > have && have < current.length) limit.set({ of: current, n: Math.max(n, have + Screenful) });
+  };
+  bind(highlight.asReadonly, (h) => {
+    const at = current.findIndex((r) => r.kind !== 'caption' && r.index === h);
+    if (at >= 0) grow(at + 1);
+  });
   // A move of the highlight notifies the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
+  const active = combineLatest([highlight.asReadonly, rows]).pipe(
+    map(([h, r]) => (r.some((x) => x.kind !== 'caption') ? optionId(h) : undefined)),
+    distinctUntilChanged(),
+  );
+  // What a search found, said once the typing pauses (the list itself is not live).
+  const found = combineLatest([text.asReadonly, rows]).pipe(
+    debounceTime(400),
+    map(([t, r]) => {
+      if (!t.trim()) return '';
+      const n = r.filter((x) => x.kind !== 'caption').length;
+      if (n) return n === 1 ? '1 result' : `${n} results`;
+      return props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.';
+    }),
+    distinctUntilChanged(),
+  );
 
   const setText = (t: string) => {
     text.set(t);
@@ -299,7 +372,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
       type="text"
       role="combobox"
       aria-expanded="true"
-      aria-controls="msp-command-menu-list"
+      aria-controls={listId}
+      aria-autocomplete="list"
+      aria-activedescendant={active}
       aria-label="Command"
       placeholder={placeholder}
       spellcheck={false}
@@ -353,16 +428,31 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         </For>
         {input}
       </div>
-      <Show when={message}>{(m) => <p class={classes.message}>{m}</p>}</Show>
+      <Show when={message}>
+        {(m) => (
+          <p class={classes.message} role="alert">
+            {m}
+          </p>
+        )}
+      </Show>
+      <span class={classes.srOnly} role="status" aria-live="polite">
+        {found}
+      </span>
       <ScrollArea
         class={classes.list}
         contentClass={classes.listContent}
-        id="msp-command-menu-list"
+        id={listId}
         role="listbox"
         aria-label="Commands"
+        viewportRef={(el) => {
+          // Reads only (a scroll event, before anything is written): the rows down to two screens below the top.
+          const more = () => grow(Math.ceil((el.scrollTop + 2 * el.clientHeight) / RowPx));
+          el.addEventListener('scroll', more, { passive: true });
+          onCleanup(() => el.removeEventListener('scroll', more));
+        }}
       >
         <For
-          each={rows}
+          each={shown}
           fallback={() => (
             <p class={classes.empty}>
               {props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.'}
@@ -370,13 +460,21 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           )}
         >
           {(row) => {
-            if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
+            // A caption is not an option (a listbox owns options only): read as text, skipped by the highlight.
+            if (row.kind === 'caption')
+              return (
+                <div class={classes.caption} role="presentation">
+                  {row.label}
+                </div>
+              );
             const i = row.index;
+            const id = optionId(i);
             const selected = highlighted.is(i);
             const hover = () => highlight.set(i);
             if (row.kind === 'group')
               return (
                 <GroupRow
+                  id={id}
                   manager={manager}
                   group={row.group}
                   selected={selected}
@@ -385,9 +483,10 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
                 />
               );
             if (row.kind === 'item')
-              return <ItemRow item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
+              return <ItemRow id={id} item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
             return (
               <CommandRow
+                id={id}
                 row={row}
                 path={relativePath(manager, row.match.command.group, group.value)}
                 inGroup={group.value !== undefined}
@@ -399,6 +498,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
             );
           }}
         </For>
+        <Show when={rest.pipe(map((h) => h > 0))}>
+          {() => <div class={classes.rest} role="presentation" style={{ height: rest.pipe(map((h) => `${h}px`)) }} />}
+        </Show>
       </ScrollArea>
       {props.assistant ? (
         <AskBar
@@ -430,8 +532,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
 }
 
 /**
- * The assistant, always at hand under the list (design/agent.md §5): it takes what is typed (⌘↵, or ↵ when no command
- * matches, which it then shows as the default); without a model it opens the setup.
+ * The assistant, always at hand under the list (prism-assistant's _spec/README.md, "The Ask row"): it takes what is
+ * typed (⌘↵, or ↵ when no command matches, which it then shows as the default); without a model it opens the setup.
  */
 function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Observable<boolean>; onAsk(): void }) {
   if (!props.ready)
@@ -515,6 +617,7 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
 }
 
 function GroupRow(props: {
+  id: string;
   manager: CommandManager<any>;
   group: CommandGroup;
   selected: Observable<boolean>;
@@ -524,6 +627,7 @@ function GroupRow(props: {
   const path = props.manager.groupPath(props.group.parent).map((g) => g.title);
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -542,10 +646,17 @@ function GroupRow(props: {
   return el;
 }
 
-function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; onPick(): void; onHover(): void }) {
+function ItemRow(props: {
+  id: string;
+  item: CommandMenuItem;
+  selected: Observable<boolean>;
+  onPick(): void;
+  onHover(): void;
+}) {
   const { item } = props;
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -562,6 +673,7 @@ function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; 
 }
 
 function CommandRow(props: {
+  id: string;
   row: Extract<Row, { kind: 'match' }>;
   /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
   path: readonly string[];
@@ -577,6 +689,7 @@ function CommandRow(props: {
   const title = match.preset ? `${c.title.replace(/…$/, '')} ${match.preset.title}` : c.title;
   const el = (
     <div
+      id={props.id}
       class={classes.row}
       role="option"
       aria-selected={props.selected}
@@ -632,6 +745,8 @@ function FormMode(props: {
   /** Proposed by the assistant from these words. */
   proposed?: Observable<string | undefined>;
   onClose(): void;
+  /** Opened for this command alone: leaving the form closes the menu. */
+  direct?: boolean;
 }) {
   const { manager, invocation } = props;
   const state = invocation.state;
@@ -640,20 +755,30 @@ function FormMode(props: {
     map((s) => s.fields.find((f) => f.id === s.field)),
     distinctUntilChanged(),
   );
+  const listId = uniqueId('msp-command-options');
+  const optionId = (i: number) => `${listId}-${i}`;
   const input = (
     <input
       class={classes.input}
       type="text"
       role="combobox"
-      aria-expanded="true"
-      aria-controls="msp-command-menu-completions"
+      aria-expanded={state.pipe(map((s) => s.completions.length > 0))}
+      aria-controls={listId}
+      aria-autocomplete="list"
+      aria-activedescendant={state.pipe(
+        map((s) => (s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined)),
+        distinctUntilChanged(),
+      )}
       aria-label={field.pipe(map((f) => f?.label ?? command.title))}
       placeholder={field.pipe(map((f) => (f ? f.label : 'Enter to run')))}
       spellcheck={false}
       value={state.pipe(map((s) => s.text))}
       onInput={(e) => invocation.type(e.currentTarget.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && e.altKey && command.view) {
+          e.preventDefault();
+          goToView();
+        } else if (e.key === 'Enter') {
           e.preventDefault();
           void invocation.enter();
         } else if (e.key === 'Tab') {
@@ -664,16 +789,29 @@ function FormMode(props: {
           invocation.move(e.key === 'ArrowDown' ? 1 : -1);
         } else if (e.key === 'Backspace' && !e.currentTarget.value) {
           e.preventDefault();
-          if (!invocation.back()) manager.close();
+          if (!invocation.back()) leave();
         } else if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
-          manager.close();
+          leave();
         }
       }}
     />
   ) as HTMLInputElement;
   queueMicrotask(() => input.focus());
+  // Leaving the form: back to the list, or, opened for this command alone, the menu closes.
+  const leave = () => {
+    manager.close();
+    if (props.direct) props.onClose();
+  };
+  // To where the command lives in the UI: the form and the menu close, the place opens.
+  const goToView = () => {
+    const view = command.view;
+    if (!view) return;
+    manager.close();
+    props.onClose();
+    view.open(manager.context.value);
+  };
   return (
     <>
       <Show when={props.proposed}>
@@ -705,6 +843,12 @@ function FormMode(props: {
           )}
         </For>
         <span class={classes.spacer} />
+        {command.view ? (
+          <button type="button" class={classes.view} title={`Open ${command.view.title} (⌥↵)`} onClick={goToView}>
+            {command.view.title}
+            <Icon name="chevron-right" size={13} />
+          </button>
+        ) : null}
         <button type="button" class={classes.run} onClick={() => void invocation.enter()}>
           {state.pipe(map((s) => s.action))}
           <kbd>↵</kbd>
@@ -721,13 +865,14 @@ function FormMode(props: {
       <ScrollArea
         class={classes.list}
         contentClass={classes.listContent}
-        id="msp-command-menu-completions"
+        id={listId}
         role="listbox"
         aria-label="Options"
       >
         <For each={state.pipe(map((s) => s.completions))}>
           {(c, i) => (
             <div
+              id={i.pipe(map(optionId))}
               class={classes.row}
               role="option"
               aria-selected={combineLatest([state, i]).pipe(map(([s, j]) => s.pick === j))}
@@ -754,8 +899,9 @@ function FormMode(props: {
         hints={[
           ['tab', 'next field'],
           ['↵', 'run'],
+          ...(command.view ? [['⌥↵', 'open in the UI'] as [string, string]] : []),
           ['⌫', 'back'],
-          ['esc', 'commands'],
+          props.direct ? ['esc', 'close'] : ['esc', 'commands'],
         ]}
       />
     </>

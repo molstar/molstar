@@ -8,7 +8,11 @@
 
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import type { Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import type { RepresentationQuickModel } from './representation-quick.js';
+import type { VolumeLevelsModel } from './volume-levels.js';
+import type { VolumeTransferModel } from './volume-transfer.js';
 
 export type SceneNodeKind =
   | 'structure'
@@ -16,12 +20,16 @@ export type SceneNodeKind =
   | 'representation'
   | 'volume'
   | 'volume-representation'
+  | 'particles'
+  | 'particles-representation'
+  | 'measurements'
+  | 'measurement'
   | 'unit-cell'
   | 'contents'
   | 'entity'
   | 'chain'
-  | 'measurements'
-  | 'measurement'
+  /** A structure's focus group: the focus behavior's components (viewer-spec.md §2.1, always there). */
+  | 'focus'
   /** A row an extension adds under a structure (volume streaming, assembly symmetry). */
   | 'extension';
 
@@ -38,6 +46,8 @@ export interface SceneNode {
   label: ReadonlyState<string>;
   /** A short second line ("3,624 atoms", "Cartoon · Chain ID"). */
   description: ReadonlyState<string | undefined>;
+  /** A color shown before the description (a volume's isosurface: which one is which); undefined: a theme's colors. */
+  swatch?: ReadonlyState<number | undefined>;
   isHidden: ReadonlyState<boolean>;
   isExpanded: ReadonlyState<boolean>;
   children: ReadonlyState<readonly SceneNode[]>;
@@ -46,8 +56,12 @@ export interface SceneNode {
    * structure with thousands of chains costs nothing until someone looks. Expandable before it has any.
    */
   lazy?: boolean;
-  /** Computes the children (once; `children` updates when they arrive). */
-  load?(): void;
+  /**
+   * Computes the children (`children` updates when they arrive); from then on they follow the scene. With `peek` (a
+   * search looking in), they are computed while it stays lazy: they do not follow the scene, and are computed again at
+   * the next look after it changed.
+   */
+  load?(peek?: boolean): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
   /** Highlights it in 3D while hovered. */
@@ -72,6 +86,10 @@ export interface SceneMenuItem {
   danger?: boolean;
   run?(): void;
   items?: readonly SceneMenuItem[];
+  /** Its items are icons on its own row, always shown (Modify by selection: include, subtract, intersect), not a fold. */
+  inline?: true;
+  /** Unavailable while true (an action on the selection with nothing selected). */
+  disabled?: Observable<boolean>;
 }
 
 /** What the inspector shows for a node: its parameters as a form (changes apply to the state tree). */
@@ -85,6 +103,35 @@ export interface SceneInspection {
   facts?: readonly (readonly [label: string, value: string])[];
   /** Things to do from here, as plain buttons under the facts (Measurements: measure the selection, in its tab). */
   actions?: readonly SceneMenuItem[];
+  /** Gives it another name (a component: `component.rename`); the inspector's title becomes editable. */
+  rename?(label: string): void;
+  /** A map's levels, above the form (a volume, an isosurface, streamed density: one per map). */
+  levels?: readonly VolumeLevelsModel[];
+  /** A direct volume's transfer function (opacity and color over the map's values), above the form. */
+  transfer?: readonly VolumeTransferModel[];
+  /** A structure representation's quick settings (type, color, opacity, size), above the form. */
+  quick?: RepresentationQuickModel;
+  /** A structure's contents: its counts, and its entities to open in the tree. */
+  contents?: ContentsSummary;
+}
+
+/** What a structure is made of, at a glance. */
+export interface ContentsSummary {
+  /** Entities, chains, polymer residues, atoms (models when several), each a figure. */
+  readonly counts: readonly { readonly label: string; readonly value: string }[];
+  readonly entities: readonly ContentsEntity[];
+  /** Opens an entity's row in the tree (Contents opened) and picks it. */
+  reveal(entity: string): void;
+}
+
+export interface ContentsEntity {
+  readonly id: string;
+  readonly name: string;
+  /** mmCIF's: polymer, non-polymer, branched, water, … */
+  readonly type: string;
+  /** Its chains (author ids). */
+  readonly chains: readonly string[];
+  readonly atoms: number;
 }
 
 export interface SceneModel {
@@ -94,6 +141,14 @@ export interface SceneModel {
   picked: ReadonlyState<SceneNode | undefined>;
   pick(node: SceneNode | undefined): void;
   inspect(node: SceneNode): SceneInspection;
+  /**
+   * The picked node's inspection, built anew when what it shows is no longer what it was built from (a structure's
+   * facts and contents after an assembly change, a volume's levels and transfer functions as its representations
+   * change); its form stays the same. Absent: `inspect(picked)` holds.
+   */
+  inspection?: ReadonlyState<SceneInspection | undefined>;
+  /** Picks a node by id, its ancestors expanded so the tree shows where it is; false while it is not in the tree. */
+  reveal?(id: string): boolean;
 }
 
 /** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */

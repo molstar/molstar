@@ -11,9 +11,8 @@
 import { map, type Observable, of } from 'rxjs';
 import { formatChord, isMac } from '../commands/keys.js';
 import type { CommandManager } from '../commands/manager.js';
-import type { CommandDefinition } from '../commands/types.js';
 import type { IconName } from '../components/icon/icon.js';
-import { Dynamic, Show } from '../dom/control-flow.js';
+import { Show } from '../dom/control-flow.js';
 import type { Child } from '../dom/jsx-types.js';
 import { onCleanup } from '../dom/scope.js';
 import { domView } from '../dom/view.js';
@@ -21,12 +20,11 @@ import { type CanvasInk, fixedInk } from '../model/canvas-theme.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
-import { ShellModel, type ShellPage, type ShellTab } from '../shell/shell.js';
+import { ShellModel, type ShellTab } from '../shell/shell.js';
 import { StatusModel } from '../shell/status.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
-import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
+import { CommandMenu, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
 import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
-import { type ModeChoice, ModeChooser } from '../views/shell/mode-chooser.js';
 import { CommandManager as Commands } from '../commands/manager.js';
 import { SettingsTab } from '../views/settings/settings-tab.js';
 import { HelpPanel, type InputBindingGroup } from '../views/shell/help-panel.js';
@@ -34,10 +32,9 @@ import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
 import { mockSettings } from './settings.js';
 
-// The mock app, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
-// command menu, Log and Settings, and the add-ons such as the agent) and the one mode the app runs: the viewer
-// (@molstar/prism-viewer) or the story mode (@molstar/prism-stories). A mode is chosen before the app exists (the
-// splash, `PrismAppStory`); switching later starts a new app in the other mode (design/modes.md).
+// The mock frame (prism-ui's own stories): the shell and its view, the status column, the theme, fullscreen, the
+// command menu, Log, Settings and Help, around a mode that fills the canvas (`mockBlankMode`: an empty one). The viewer's
+// and the assistant's stories run the real viewer instead (`@molstar/prism-viewer/testing/real-viewer`).
 
 /** What the frame gives its mode. */
 export interface MockFrameContext {
@@ -47,14 +44,6 @@ export interface MockFrameContext {
   /** The canvas background (a CSS color). */
   background?: string;
   openCommandMenu(group?: string): void;
-  /** The app's modes (to offer the choice, as Home does while nothing is loaded) and the one running. */
-  modes: readonly ModeChoice[];
-  mode: string;
-  /**
-   * Starts a new app: in that mode at once (nothing loaded, nothing lost: Home's choice), or, without one, after asking
-   * (the splash over the app, saying what goes).
-   */
-  switchMode(id?: string): void;
 }
 
 /**
@@ -91,29 +80,6 @@ export interface MockMode {
   activate(ctx: MockFrameContext): MockModeParts;
 }
 
-/**
- * What a module adds to the mock shell, the way an app would contribute it: tabs (one with an existing id replaces it,
- * as History replaces Log), the command menu's assistant, the canvas's agent slot, and the person's finished commands.
- */
-export interface MockShellAddOnParts {
-  tabs?: readonly ShellTab[];
-  /** Pages over the app (the Inspector). */
-  pages?: readonly ShellPage[];
-  /** Its commands, beside the mode's. */
-  commands?: readonly CommandDefinition<any>[];
-  assistant?: CommandMenuAssistant;
-  agent?: Child;
-  commandDone?(message: string, commandId: string): void;
-}
-
-export type MockShellAddOn = (ctx: { shell: ShellModel; status: StatusModel; loaded: boolean }) => MockShellAddOnParts;
-
-function withAddOnTabs(tabs: ShellTab[], extra: readonly ShellTab[] | undefined): ShellTab[] {
-  if (!extra?.length) return tabs;
-  const replaced = new Set(extra.map((t) => t.id));
-  return [...tabs.filter((t) => !replaced.has(t.id)), ...extra];
-}
-
 /** The frame alone, with an empty canvas: for stories about the frame or what is added to it. */
 export function mockBlankMode(): MockMode {
   return {
@@ -147,25 +113,13 @@ export interface ShellStoryProps {
   compact?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
-  /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
-  addOn?: MockShellAddOn;
-  /** Opens a page over the app (an add-on's: the Inspector), at `openPageAt` if given. */
-  openPage?: string;
-  openPageAt?: string;
+  /** Tabs of the story's own (a React panel), with the shell and the status column to work with. */
+  tabs?: (ctx: { shell: ShellModel; status: StatusModel }) => readonly ShellTab[];
 }
 
-/** The app's side of switching (`PrismAppStory`): its modes, and starting a new app. */
-export interface MockApp {
-  modes: readonly ModeChoice[];
-  switchMode(id?: string): void;
-}
-
-/**
- * The mock frame running one mode: Mol*'s own UI is `mockViewerMode` (@molstar/prism-viewer), the story mode
- * `mockStoryMode` (@molstar/prism-stories). Inside `PrismAppStory`, it can start a new app in another mode.
- */
-export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
-  const { mode, app } = props;
+/** The mock frame running a mode (`mockBlankMode`). */
+export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
+  const { mode } = props;
   const shell = new ShellModel({
     compactRail: !!props.compact,
     docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
@@ -183,45 +137,36 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
   // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
   const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
   theme.applyTo(document.documentElement);
-  // What an add-on brings (the agent module's tabs, its Ask port and turn card): only when the story includes one.
-  const addOn = props.addOn?.({ shell, status, loaded: props.loaded });
   const settings = mockSettings();
 
   // The frame's own tabs and buttons: in every mode.
-  shell.registerTabs(
-    withAddOnTabs(
-      [
-        {
-          id: 'log',
-          title: 'Log',
-          icon: 'scroll-text',
-          order: 2.5,
-          // Not a working panel: with Settings at the rail's foot.
-          place: 'foot',
-          render: domView(() => <LogView status={status} />),
-        },
-        {
-          id: 'settings',
-          title: 'Settings',
-          icon: 'settings',
-          order: 3,
-          place: 'foot',
-          render: domView(() => <SettingsTab model={settings} />),
-        },
-      ],
-      addOn?.tabs,
-    ),
-  );
+  shell.registerTabs([
+    {
+      id: 'log',
+      title: 'Log',
+      icon: 'scroll-text',
+      order: 2.5,
+      // Not a working panel: with Settings at the rail's foot.
+      place: 'foot',
+      render: domView(() => <LogView status={status} />),
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      icon: 'settings',
+      order: 3,
+      place: 'foot',
+      render: domView(() => <SettingsTab model={settings} />),
+    },
+  ]);
 
+  if (props.tabs) shell.registerTabs(props.tabs({ shell, status }));
   const parts = mode.activate({
     shell,
     status,
     loaded: props.loaded,
     background: props.background,
     openCommandMenu,
-    modes: app?.modes ?? [mode],
-    mode: mode.id,
-    switchMode: (id) => app?.switchMode(id),
   });
   // The canvas tools act on what is shown: the mode says whether anything is.
   const empty = parts.empty ?? of(!props.loaded);
@@ -330,30 +275,9 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     },
   ]);
 
-  // Switching modes, with more than one: a command that asks (the splash over the app, saying what goes).
-  const switching: CommandDefinition<any>[] =
-    app && app.modes.length > 1
-      ? [
-          {
-            id: 'app.switch-mode',
-            title: 'Switch mode…',
-            alias: ['mode', 'viewer', 'story', 'start over'],
-            category: 'View',
-            icon: 'prism',
-            run: () => {
-              app.switchMode();
-              return { message: '' };
-            },
-          },
-        ]
-      : [];
-  if (switching.length) parts.commands.register(switching);
-  if (addOn?.pages?.length) shell.registerPages(addOn.pages);
-  if (addOn?.commands?.length) parts.commands.register(addOn.commands);
-  // What commands did goes to the status line (and, with the agent, to History).
+  // What commands did goes to the status line.
   const outcomes = parts.commands.outcomes.subscribe((o) => {
     if (o.kind === 'done' && o.result.message) status.post(o.result.message);
-    if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
     else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
   });
 
@@ -372,7 +296,6 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   if (props.openCard) shell.openOverlay(props.openCard);
   if (props.openTab) shell.show(props.openTab);
-  if (props.openPage) shell.openPage(props.openPage, props.openPageAt);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     window.removeEventListener('keydown', onKey);
@@ -399,7 +322,6 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
               manager={parts.commands}
               prefixes={parts.prefixes}
               group={commandMenuGroup.value}
-              assistant={addOn?.assistant}
               onClose={() => {
                 commandMenuOpen.set(false);
                 commandMenuGroup.set(undefined);
@@ -408,7 +330,6 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
           )}
         </Show>
       }
-      agent={addOn?.agent}
       canvasLead={parts.canvasLead?.() ?? null}
       canvasAside={parts.canvasAside?.() ?? null}
       onOpenLog={() => shell.show('log')}
@@ -416,61 +337,5 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
       onDropFiles={parts.onDropFiles}
       dropFormats={parts.dropFormats}
     />
-  );
-}
-
-/**
- * The app as it starts (design/modes.md): the splash asks which mode before any app exists; choosing one creates the
- * app in it. Switching later shows the splash over the app, saying what goes (what is loaded; stories are kept in the
- * browser); choosing creates a new app, Cancel goes back. With `start`, the app starts in that mode (no splash).
- */
-export function PrismAppStory(props: ShellStoryProps & { modes: readonly MockMode[]; start?: string }) {
-  const find = (id: string | undefined) => props.modes.find((m) => m.id === id);
-  // Each start counted: the app is created again even in the same mode (states skip equal records).
-  let starts = 0;
-  const start = (mode: MockMode) => ({ mode, n: ++starts });
-  const running = observableState<{ mode: MockMode; n: number } | undefined>(
-    find(props.start) ? start(find(props.start)!) : undefined,
-  );
-  const asking = observableState(false);
-  const app: MockApp = {
-    modes: props.modes,
-    switchMode: (id) => {
-      const next = find(id);
-      if (next) queueMicrotask(() => running.set(start(next)));
-      else asking.set(true);
-    },
-  };
-  const choose = (id: string) => {
-    asking.set(false);
-    const next = find(id);
-    if (next && next.id !== running.value?.mode.id) queueMicrotask(() => running.set(start(next)));
-  };
-  return (
-    <div style="position: relative; height: 100%">
-      <Dynamic
-        component={running.asReadonly.pipe(
-          map((r) =>
-            r
-              ? () => <ShellStory {...props} mode={r.mode} app={app} />
-              : () => (
-                  <ModeChooser variant="splash" modes={props.modes} onChoose={(id) => running.set(start(find(id)!))} />
-                ),
-          ),
-        )}
-      />
-      <Show when={asking}>
-        {() => (
-          <ModeChooser
-            variant="welcome"
-            modes={props.modes}
-            active={running.asReadonly.pipe(map((r) => r?.mode.id ?? ''))}
-            notice="Switching starts a new session: what is loaded now goes. Stories are kept in this browser."
-            onChoose={choose}
-            onCancel={() => asking.set(false)}
-          />
-        )}
-      </Show>
-    </div>
   );
 }

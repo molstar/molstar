@@ -15,6 +15,7 @@ export const classes = {
   'fade-in': 'msp-shell-empty-canvas-fade-in',
   'fade-out': 'msp-shell-empty-canvas-fade-out',
   'mark': 'msp-shell-empty-canvas-mark',
+  'splash': 'msp-shell-empty-canvas-splash',
 } as const;
 
 defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
@@ -27,6 +28,12 @@ defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
   &[data-phase="out"] {
     animation: msp-shell-empty-canvas-fade-out .25s var(--msp-ease) forwards;
   }
+}
+
+.msp-shell-empty-canvas-splash {
+  inset: 0 calc(-1 * var(--msp-canvas-right-inset, 0px)) 0 0;
+  animation: msp-shell-empty-canvas-fade-in 1.2s var(--msp-ease) both;
+  position: absolute;
 }
 
 .msp-shell-empty-canvas-mark {

@@ -10,6 +10,7 @@
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
+import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
@@ -18,6 +19,7 @@ import { ActionBlock } from '../home/home-tab.js';
 import { classes as tree } from '../structure/_generated/scene-tree.module.css.js';
 import { classes as tab } from '../structure/_generated/structure-tab.module.css.js';
 import { classes } from './_generated/state-tree-tab.module.css.js';
+import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
 
 /**
  * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with the updates, the
@@ -42,7 +44,14 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   return (
     <div class={tab.tab}>
       <ScrollArea edge class={tab.tree}>
-        <div class={`${tree.tree} ${classes.tree}`} role="tree" aria-label="State tree">
+        <div
+          class={`${tree.tree} ${classes.tree}`}
+          role="tree"
+          aria-label="State tree"
+          tabIndex={0}
+          onKeyDown={treeKeys}
+          onFocusIn={treeFocus}
+        >
           <For
             each={model.roots}
             key={(n) => n.ref}
@@ -93,10 +102,20 @@ function Cell(props: {
     else next.add(node.ref);
     collapsed.set(next);
   };
+  // Named by its own label and description (not the whole subtree it holds).
+  const labelId = uniqueId('msp-tree-label');
   return (
-    <div role="treeitem" aria-expanded={expanded} aria-selected={selected}>
+    <div
+      role="treeitem"
+      aria-expanded={expanded}
+      aria-selected={selected}
+      aria-labelledby={`${labelId} ${labelId}-d`}
+      tabIndex={-1}
+      class={tree.item}
+    >
       <div
         data-tip-row=""
+        data-tree-row=""
         class={tree.row}
         classList={{ [tree.hidden]: hidden, [tree.picked]: selected }}
         style={{ '--msp-tree-depth': depth }}
@@ -106,6 +125,8 @@ function Cell(props: {
           type="button"
           class={tree.expander}
           classList={{ [tree.leaf]: !hasChildren }}
+          data-tree-toggle=""
+          tabIndex={-1}
           aria-label="Expand"
           onClick={(e) => {
             e.stopPropagation();
@@ -115,10 +136,10 @@ function Cell(props: {
           <Icon name="chevron-right" size={14} />
         </button>
         {depth === 0 ? <Icon name={node.icon} size={15} class={tree.kind} /> : null}
-        <span class={tree.label} data-tip-part="">
+        <span class={tree.label} id={labelId} data-tip-part="">
           {node.label}
         </span>
-        <span class={tree.description} data-tip-part="">
+        <span class={tree.description} id={`${labelId}-d`} data-tip-part="">
           {node.status === 'error' ? <span class={classes.error}>{node.error ?? 'Error'}</span> : node.description}
         </span>
         <span class={tree.actions}>

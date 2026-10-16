@@ -11,8 +11,18 @@
 import { distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { deepActiveElement, focusFirstItem, menuKeys } from '@molstar/prism-ui/dom/focus';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/mode-switch.module.css.js';
+
+/** The picking level's menu (one per shadow root or page: the viewer's shell is in one): Select controls it. */
+const LevelMenuId = 'msp-pick-level';
+
+/** The levels' menu next to `el` (in its shadow root or document). */
+function levelMenu(el: Element): HTMLElement | null {
+  return (el.getRootNode() as Document | ShadowRoot).getElementById?.(LevelMenuId) ?? null;
+}
 
 /** What a click on the canvas does: interact (focus, rotate, measure) or select. */
 export type CanvasMode = 'interact' | 'select';
@@ -70,7 +80,20 @@ export function ModeSwitch(props: ModeSwitchProps) {
         data-tip={current ? undefined : 'Select: click to select, Shift+click to extend'}
         data-tip-side="top"
         aria-label="Select"
+        aria-haspopup={current ? 'menu' : undefined}
+        aria-controls={current ? LevelMenuId : undefined}
+        aria-expanded={current ? false : undefined}
         onClick={() => props.setMode('select')}
+        onKeyDown={
+          current
+            ? (e) => {
+                // ↑ or ↓ goes into the picking levels (the menu button pattern), at the current one.
+                if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                const menu = levelMenu(e.currentTarget);
+                if (menu && focusFirstItem(menu, true)) e.preventDefault();
+              }
+            : undefined
+        }
       >
         <Icon name="mouse-pointer-click" size={20} />
         {current ? <Show when={current}>{(l) => <Icon name={l.icon} size={10} class={classes.badge} />}</Show> : null}
@@ -82,16 +105,55 @@ export function ModeSwitch(props: ModeSwitchProps) {
 /**
  * The picking levels, above the canvas toolbar over Select (outside the toolbar's frame, so it is not clipped): the list
  * itself, one click from the toolbar: the current level marked; picking one sets it and turns select mode on. Shown while
- * the pointer is on Select or on it, or Select or a row has the keyboard focus (Tab goes from Select into the list);
- * always on touch screens (no hover). It opens upward.
+ * the pointer is on Select or on it, or Select or a row has the keyboard focus (a click's focus does not keep it); on touch screens (no hover) a tap on
+ * Select opens it. It opens upward. From the keyboard: ↑ or ↓ on Select goes into it (at the current level), the
+ * arrows move between levels, Escape or a pick goes back to Select (it is outside the toolbar in the DOM, so Tab does
+ * not reach it).
  */
 export function PickLevel(props: ModeSwitchProps) {
   const levels = props.granularities;
   const granularity = props.granularity;
   if (!levels || !granularity) return null;
+  // On a touch screen it shows while Select has the focus, and a tap on the canvas (not focusable) does not take the
+  // focus away: a tap outside the list and Select lets it go, so the list closes.
+  let level: HTMLElement | undefined;
+  const onDown = (e: PointerEvent) => {
+    const active = deepActiveElement();
+    if (!level || !(active instanceof HTMLElement)) return;
+    const menu = level.querySelector(`#${LevelMenuId}`);
+    const select = menu && opener(menu);
+    const holds = (el: Element | null | undefined) => !!el && (el === active || el.contains(active));
+    if (!holds(menu) && !holds(select)) return;
+    const path = e.composedPath();
+    if ((menu && path.includes(menu)) || (select && path.includes(select))) return;
+    active.blur();
+  };
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
   return (
-    <div class={classes.level}>
-      <div class={classes.levels} role="menu" aria-label="What a click selects">
+    <div class={classes.level} ref={(el) => (level = el)}>
+      <div
+        class={classes.levels}
+        id={LevelMenuId}
+        role="menu"
+        aria-label="What a click selects"
+        onKeyDown={(e) => {
+          menuKeys(e);
+          if (e.key !== 'Escape' && e.key !== 'Tab') return;
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          if (e.key === 'Tab') e.preventDefault();
+          opener(e.currentTarget)?.focus();
+        }}
+        onFocusIn={(e) => opener(e.currentTarget)?.setAttribute('aria-expanded', 'true')}
+        onFocusOut={(e) => {
+          const menu = e.currentTarget;
+          if (menu.contains(e.relatedTarget as Node | null)) return;
+          opener(menu)?.setAttribute('aria-expanded', 'false');
+        }}
+      >
         {levels.map((l, i) => (
           <>
             {l.group && l.group !== levels[i - 1]?.group ? <div class={classes.group}>{l.group}</div> : null}
@@ -100,9 +162,15 @@ export function PickLevel(props: ModeSwitchProps) {
               role="menuitemradio"
               class={classes.levelRow}
               aria-checked={granularity.pipe(map((g) => g === l.value))}
-              onClick={() => {
+              onClick={(e) => {
+                const menu = e.currentTarget.closest<HTMLElement>(`#${LevelMenuId}`);
+                const inside = !!menu && menu.contains(deepActiveElement() ?? null);
                 props.setGranularity?.(l.value);
                 props.setMode('select');
+                // Picked from the keyboard: back to Select (the list hides once the focus leaves it). Picked with the
+                // pointer: the row lets the focus go, so the list closes as the pointer leaves it.
+                if (inside && e.detail === 0) opener(menu)?.focus();
+                else if (e.detail > 0) e.currentTarget.blur();
               }}
             >
               <Icon name={l.icon} size={15} />
@@ -113,4 +181,9 @@ export function PickLevel(props: ModeSwitchProps) {
       </div>
     </div>
   );
+}
+
+/** The Select button that controls the levels' menu. */
+function opener(menu: Element): HTMLElement | null {
+  return (menu.getRootNode() as Document | ShadowRoot).querySelector?.(`[aria-controls="${LevelMenuId}"]`) ?? null;
 }

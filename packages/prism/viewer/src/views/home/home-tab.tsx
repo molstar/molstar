@@ -8,25 +8,27 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable } from 'rxjs';
+import { map } from 'rxjs';
 import { formatChord } from '@molstar/prism-ui/commands/keys';
-import { ActionFooter, type ModeChoice, ModeChooser } from '@molstar/prism-ui';
+import { ActionFooter } from '@molstar/prism-ui';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import type { HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
+import type { AnnotationOfferModel, HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
+import { KeptRecordsList } from './kept-records.js';
 
 export interface HomeTabProps {
   home: HomeModel;
+  /** More sections after the actions (the `home.import` slot). */
+  more?: () => Child;
   /** Opens the command menu (the hint at the bottom). */
   onOpenCommandMenu?: () => void;
-  /** The app's modes, when it has more than one: offered while nothing is loaded (design/modes.md). */
-  modes?: { list: readonly ModeChoice[]; active: Observable<string>; choose(id: string): void };
 }
 
 /**
@@ -41,32 +43,97 @@ export function HomeTab(props: HomeTabProps) {
       {/* What scrolls; the hint below stays in view. */}
       <ScrollArea class={classes.content} contentClass={classes.contentInner}>
         {home.session ? <Session session={home.session} /> : null}
-        {props.modes && props.modes.list.length > 1 ? (
-          <Show when={home.session?.isEmpty ?? true}>
-            {() => (
-              <section class={classes.group} aria-label="Mode">
-                <h3 class={classes.caption}>Mode</h3>
-                <ModeChooser
-                  variant="rows"
-                  modes={props.modes!.list}
-                  active={props.modes!.active}
-                  onChoose={(id) => props.modes!.choose(id)}
-                />
-              </section>
-            )}
-          </Show>
-        ) : null}
+        {home.annotationOffer ? <AnnotationOfferLine model={home.annotationOffer} /> : null}
         <section class={classes.group} aria-label="Actions">
-          <For each={home.actions} key={(a) => a.id}>
-            {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
+          {/* The first action (Download Structure, open), then Open Files, then the rest (folded). */}
+          <For each={home.actions.pipe(map((a) => a.slice(0, 1)))} key={(a) => a.id}>
+            {(action) => <ActionBlock action={action} open />}
           </For>
+          <OpenFiles home={home} />
+          <For each={home.actions.pipe(map((a) => a.slice(1)))} key={(a) => a.id}>
+            {(action) => <ActionBlock action={action} open={false} />}
+          </For>
+          {/* Extensions' loaders (Zenodo): among the actions, folded, as one of them. */}
+          {props.more?.()}
         </section>
-        {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
+        {home.remoteStates ? <RemoteStatesList model={home.remoteStates} caption /> : null}
+        {home.keptRecords ? <KeptRecordsList model={home.keptRecords} /> : null}
       </ScrollArea>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
       </button>
+    </div>
+  );
+}
+
+/**
+ * Open files: a block that folds, like the actions (parity.md §1), holding a drop area: drop files on it, or click it
+ * for the file picker; they open as files dropped anywhere do. Its hint says what it reads (the formats on hover).
+ */
+function OpenFiles(props: { home: HomeModel }) {
+  const { home } = props;
+  const open = observableState(false);
+  const over = observableState(false);
+  const pick = (files: readonly File[]) => {
+    if (files.length) home.openFiles(files);
+  };
+  const input = (
+    <input
+      type="file"
+      multiple
+      hidden
+      onChange={(e) => {
+        const el = e.currentTarget as HTMLInputElement;
+        const files = [...(el.files ?? [])];
+        el.value = '';
+        pick(files);
+      }}
+    />
+  ) as HTMLInputElement;
+  // Only drags that carry files (the page's drop overlay, when it is on, takes them before this area does).
+  const carriesFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
+  return (
+    <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+      <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
+        <span class={classes.actionTitle}>Open Files</span>
+        <span class={classes.actionDescription}>Structures, maps, trajectories and sessions from your computer</span>
+        <Icon name="chevron-down" size={14} class={classes.chevron} />
+      </button>
+      <Show when={open} reveal>
+        {() => (
+          <div class={classes.actionBody}>
+            <button
+              type="button"
+              class={classes.drop}
+              data-over={over.asReadonly.pipe(map((o) => (o ? '' : undefined)))}
+              title={home.formats.length ? `Reads ${home.formats.join(', ')}` : undefined}
+              onClick={() => input.click()}
+              onDragEnter={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                over.set(true);
+              }}
+              onDragOver={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+              }}
+              onDragLeave={() => over.set(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                over.set(false);
+                pick([...(e.dataTransfer?.files ?? [])]);
+              }}
+            >
+              <Icon name="folder-open" size={20} />
+              <span class={classes.dropText}>
+                Drop files here, or <span class={classes.dropLink}>browse</span>
+              </span>
+            </button>
+            {input}
+          </div>
+        )}
+      </Show>
     </div>
   );
 }
@@ -152,14 +219,59 @@ function Session(props: { session: SessionModel }) {
   );
 }
 
-/** Sessions on a state server: the list (newest first), refresh, and the server behind a settings button. */
-function RemoteStates(props: { model: RemoteStatesModel }) {
+/**
+ * The result line after a load (parity.md §6a): "AF-P04637 has pLDDT" with Show (`annotations.apply`, one step) and a
+ * dismiss. Only for what an extension brings; it goes once used or dismissed.
+ */
+function AnnotationOfferLine(props: { model: AnnotationOfferModel }) {
+  const { model } = props;
+  return (
+    <Show when={model.offer}>
+      {(offer) => (
+        <section class={classes.offer} aria-label="Loaded">
+          <Icon name="sparkles" size={14} class={classes.offerIcon} />
+          <span class={classes.offerText} data-tip-overflow="" title={offer.description}>
+            {offer.label} has {offer.title}
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => model.accept()}>
+            Show
+          </Button>
+          <Button size="xs" variant="ghost" icon={<Icon name="x" />} title="Dismiss" onClick={() => model.dismiss()} />
+        </section>
+      )}
+    </Show>
+  );
+}
+
+/**
+ * Sessions on a state server: the list (newest first; a click opens one), refresh, and the server behind a settings
+ * button. Home's own group (`caption`), or the body of the `remote-states` feature's section in `home.import`, whose
+ * header says the title.
+ */
+/** A server's host name ("webchem.ncbr.muni.cz"); the address itself when it is not a URL. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+export function RemoteStatesList(props: { model: RemoteStatesModel; caption?: boolean }) {
   const { model } = props;
   const settings = observableState(false);
   return (
     <section class={classes.group} aria-label="Remote states">
       <div class={classes.captionRow}>
-        <h3 class={classes.caption}>Remote states</h3>
+        {/* Under a header that says the title (the feature's section): the server the list is from, what the buttons
+            act on. */}
+        {props.caption ? (
+          <h3 class={classes.caption}>Remote states</h3>
+        ) : (
+          <span class={classes.serverHost} data-tip-overflow="">
+            {model.serverUrl.pipe(map(hostOf))}
+          </span>
+        )}
         <span class={classes.captionActions}>
           <Button
             size="xs"

@@ -35,6 +35,11 @@
     display: none;
   }
 
+  /* A list inline in a panel: at its ends the wheel scrolls the panel. */
+  .root[data-chain] > & {
+    overscroll-behavior: auto;
+  }
+
   .root[data-axis="y"] > & {
     overflow-x: hidden;
   }
@@ -128,17 +133,17 @@
   flex: none;
   border-radius: 3px;
   background: color-mix(in oklab, var(--msp-color-text), transparent 72%);
-  transition:
-    width var(--msp-motion-fast) var(--msp-ease),
-    height var(--msp-motion-fast) var(--msp-ease),
-    background-color var(--msp-motion-fast) var(--msp-ease);
+  /* Wider under the pointer by `scale` (composited); its length follows the content at once (styling.md §5). */
+  transition: scale var(--msp-motion-fast) var(--msp-ease);
 
   [data-orientation="vertical"] > & {
     width: 4px;
+    transform-origin: right;
   }
 
   [data-orientation="horizontal"] > & {
     height: 4px;
+    transform-origin: bottom;
   }
 
   .scrollbar:hover > &,
@@ -148,11 +153,11 @@
 
   [data-orientation="vertical"]:hover > &,
   [data-orientation="vertical"][data-dragging] > & {
-    width: 6px;
+    scale: 1.5 1;
   }
 
   [data-orientation="horizontal"]:hover > &,
   [data-orientation="horizontal"][data-dragging] > & {
-    height: 6px;
+    scale: 1 1.5;
   }
 }

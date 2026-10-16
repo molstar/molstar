@@ -46,6 +46,8 @@
 
 .groupsContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--msp-space-1);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
@@ -67,6 +69,12 @@
 
   &:hover {
     background: var(--msp-color-hover);
+  }
+
+  /* Open, the top of its well: square at the bottom (as a section's header and Home's actions). */
+  &:has(.toggle[aria-expanded="true"]) {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
   }
 }
 

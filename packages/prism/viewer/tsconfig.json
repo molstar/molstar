@@ -20,9 +20,6 @@
       "path": "../../model"
     },
     {
-      "path": "../../../extensions/model-archive"
-    },
-    {
       "path": "../../plugin/core"
     },
     {
@@ -36,6 +33,15 @@
     },
     {
       "path": "../../sequences/molstar-poc"
+    },
+    {
+      "path": "../../mvs/runtime"
+    },
+    {
+      "path": "../../query-language"
+    },
+    {
+      "path": "../../ai"
     }
   ]
 }

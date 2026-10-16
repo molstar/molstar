@@ -9,10 +9,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
 import { observableState } from '../../../reactive/observable-state.js';
-import { Select } from '../select.js';
+import { Floating, Select } from '../select.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -57,6 +57,41 @@ describe('Select', () => {
     button.click();
     document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     expect(container.querySelector('[role=listbox]')).toBeNull();
+    container.remove();
+  });
+});
+
+describe('Floating', () => {
+  it('places itself on page scrolls, not on scrolls of its own content, and writes its min width once', async () => {
+    const anchor = document.createElement('button');
+    document.body.append(anchor);
+    const rect = vi.spyOn(anchor, 'getBoundingClientRect');
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(
+      () => (
+        <Floating anchor={anchor}>
+          <div class="list" />
+        </Floating>
+      ),
+      container,
+    );
+    await flush();
+    expect(rect).toHaveBeenCalledTimes(1);
+    const floating = container.firstElementChild as HTMLElement;
+    const minWidth = vi.spyOn(floating.style, 'minWidth', 'set');
+
+    floating.querySelector('.list')!.dispatchEvent(new Event('scroll'));
+    expect(rect).toHaveBeenCalledTimes(1);
+
+    document.dispatchEvent(new Event('scroll'));
+    expect(rect).toHaveBeenCalledTimes(2);
+    expect(minWidth).not.toHaveBeenCalled();
+
+    dispose();
+    document.dispatchEvent(new Event('scroll'));
+    expect(rect).toHaveBeenCalledTimes(2);
+    anchor.remove();
     container.remove();
   });
 });

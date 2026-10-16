@@ -18,6 +18,9 @@ export const MolecularIcons = {
   cartoon: '<path d="M3 15c3-10 6-10 9 0s6 10 9 0"/><path d="M3 9c3 10 6 10 9 0s6-10 9 0"/>',
   /** A hexagonal ring with a substituent. */
   ligand: '<path d="M10 7l5.2 3v6L10 19l-5.2-3v-6z"/><path d="m15.2 10 3.5-2"/><circle cx="20" cy="7" r="1.5"/>',
+  /** Snapshots: a frame holding a molecule (a ring with a substituent), another frame behind it. */
+  snapshots:
+    '<rect x="7" y="3" width="14" height="14" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/><path d="M13 6.4l2.6 1.5v3L13 12.4l-2.6-1.5v-3z"/><path d="m15.6 10.9 1.6 1"/><circle cx="18.1" cy="12.5" r="1.1"/>',
   /** Two distance arrows with end bars. */
   'measure-distance': '<path d="M3 6v12M21 6v12M3 12h18M7 9l-4 3 4 3M17 9l4 3-4 3"/>',
   /** Two rays from a vertex with an arc between them. */

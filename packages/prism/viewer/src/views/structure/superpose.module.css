@@ -69,3 +69,14 @@
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
+
+/* A selection the method cannot use: its reason, where the role would be. */
+.problem {
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  color: var(--msp-color-warning);
+  font-size: var(--msp-font-size-xs);
+  text-overflow: clip;
+  white-space: nowrap;
+}

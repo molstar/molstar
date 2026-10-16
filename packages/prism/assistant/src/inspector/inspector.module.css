@@ -49,6 +49,8 @@
 
 .detailContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--msp-space-4);
   min-width: 0;

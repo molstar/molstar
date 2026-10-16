@@ -37,7 +37,7 @@
 }
 
 .scope {
-  height: 22px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -109,7 +109,7 @@
 
 .action {
   flex: none;
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 84%);
@@ -159,7 +159,7 @@
 }
 
 .link {
-  height: 22px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -173,7 +173,7 @@
 
 .fold {
   justify-self: start;
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -218,8 +218,8 @@
 .refresh {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
 

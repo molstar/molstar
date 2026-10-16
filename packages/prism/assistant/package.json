@@ -38,18 +38,18 @@
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix assistant --check"
   },
   "dependencies": {
-    "@molstar/ai-agent": "workspace:*",
-    "@molstar/ai-tools": "workspace:*",
-    "@molstar/ai-trace": "workspace:*",
+    "@molstar/ai": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
     "rxjs": "catalog:",
     "tslib": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
-    "@types/node": "catalog:",
     "@storybook/web-components-vite": "catalog:",
-    "@molstar/prism-viewer": "workspace:*"
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "fake-indexeddb": "catalog:",
+    "typescript": "catalog:"
   }
 }

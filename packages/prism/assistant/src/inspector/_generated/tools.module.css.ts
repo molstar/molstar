@@ -20,6 +20,7 @@ defineStyles('assistant/inspector/tools.module.css', `@layer msp.components {
 .msp-assistant-tools-toolList {
   gap: var(--msp-space-2);
   font-size: var(--msp-font-size-xs);
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: 0;
   line-height: 1.45;

@@ -51,6 +51,9 @@ const RepresentationTransformerScopes: { [id: string]: RepresentationScope | und
   'ms-plugin.particles-representation-3d': 'particles',
 };
 
+/** How long a scrubbed transition (`setAnimationSnapshot`) rests before it emits `canvas3d.settingsUpdated`. */
+const SettingsUpdatedDebounceMs = 100;
+
 class PluginState extends PluginComponent {
   private get animation() {
     return this.plugin.managers.animation;
@@ -86,8 +89,35 @@ class PluginState extends PluginComponent {
     this.snapshotParams.next({ ...PluginState.DefaultSnapshotParams, ...params });
   };
 
+  private readonly customState = new Map<string, PluginState.CustomStateEntry>();
+
+  /**
+   * Registers state owned by a component outside the plugin's own state (for example the sequence viewer of Prism,
+   * `'prism-viewer.sequence'`). `getSnapshot` writes `get()` of every registered key into `snapshot.custom`;
+   * `setSnapshot` calls `set` after the data tree is applied, with `undefined` when the snapshot has no value for the
+   * key (reset to defaults). Transition frames do not apply it. Returns the unregister function; registering a key
+   * twice throws.
+   */
+  registerCustomState(key: string, entry: PluginState.CustomStateEntry): () => void {
+    if (this.customState.has(key)) throw new Error(`Custom state '${key}' is already registered`);
+    this.customState.set(key, entry);
+    return () => {
+      if (this.customState.get(key) === entry) this.customState.delete(key);
+    };
+  }
+
   getSnapshot(params?: PluginState.SnapshotParams): PluginState.Snapshot {
     const p = { ...this.snapshotParams.value, ...params };
+    // A camera reset waits for the next frame (after a load, `camera.reset`): committed now, so the snapshot keeps the
+    // framed view rather than the camera before it.
+    if (p.camera) this.plugin.canvas3d?.commit(true);
+    let custom: { [key: string]: unknown } | undefined;
+    if (this.customState.size > 0) {
+      custom = {};
+      this.customState.forEach((entry, key) => {
+        custom![key] = entry.get();
+      });
+    }
     return {
       id: UUID.create22(),
       data: p.data ? this.data.getSnapshot() : void 0,
@@ -96,7 +126,8 @@ class PluginState extends PluginComponent {
       startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
       camera: p.camera
         ? {
-            current: this.plugin.canvas3d!.camera.getSnapshot(),
+            // Where an animating camera is going (a focus that just started), not a frame of the way there.
+            current: this.plugin.canvas3d!.camera.getSettledSnapshot(),
             transitionStyle: p.cameraTransition!.name,
             transitionDurationInMs:
               p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0,
@@ -116,6 +147,7 @@ class PluginState extends PluginComponent {
           }
         : void 0,
       durationInMs: p?.durationInMs,
+      custom,
     };
   }
 
@@ -185,6 +217,7 @@ class PluginState extends PluginComponent {
     // behaviors have registered their providers by now
     this.reportUnregisteredNames(snapshot);
     if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
+    await this.setCustomState(snapshot);
     if (snapshot.canvas3d?.props) {
       const settings: Partial<Canvas3DProps> = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
       if (snapshot.camera?.current || snapshot.camera?.focus) {
@@ -197,7 +230,7 @@ class PluginState extends PluginComponent {
     }
     if (snapshot.canvas3dContext?.props) {
       const props = PD.normalizeParams(Canvas3DContext.Params, snapshot.canvas3dContext.props, 'children');
-      this.plugin.canvas3dContext?.setProps(props);
+      this.plugin.setCanvas3DContextProps(props);
     }
     if (snapshot.interactivity) {
       if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
@@ -245,6 +278,23 @@ class PluginState extends PluginComponent {
     }
   }
 
+  /** Calls `set` of every registered custom state with the snapshot's value, or `undefined`; other keys are ignored. */
+  private async setCustomState(snapshot: PluginState.Snapshot) {
+    for (const [key, entry] of Array.from(this.customState)) {
+      try {
+        await entry.set(snapshot.custom?.[key]);
+      } catch (e) {
+        this.plugin.log.error(`Failed to restore custom state '${key}': ${e instanceof Error ? e.message : e}`);
+      }
+    }
+  }
+
+  private settingsUpdatedTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  private emitSettingsUpdated = () => {
+    this.settingsUpdatedTimer = undefined;
+    this.plugin.events.canvas3d.settingsUpdated.next(void 0);
+  };
+
   async setAnimationSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
     await this.animation.stopStateTransitionAnimation();
 
@@ -253,9 +303,13 @@ class PluginState extends PluginComponent {
     const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
     const frame = transition.frames[finalIndex] ?? snapshot.data;
     if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
-    if (frame.canvas3d?.props) {
+    if (frame.canvas3d?.props && this.plugin.canvas3d) {
+      // A scrubbed transition sets every frame's props silently and says so once the scrubbing settles: emitting per
+      // frame would wake every settings reader at the scrub's rate.
       const settings = PD.normalizeParams(Canvas3DParams, frame.canvas3d.props, 'children');
-      this.plugin.canvas3d?.setProps(settings);
+      this.plugin.canvas3d.setProps(settings);
+      clearTimeout(this.settingsUpdatedTimer);
+      this.settingsUpdatedTimer = setTimeout(this.emitSettingsUpdated, SettingsUpdatedDebounceMs);
     }
     if (frame.camera?.current) {
       PluginCommands.Camera.Reset(this.plugin, {
@@ -312,6 +366,7 @@ class PluginState extends PluginComponent {
   }
 
   dispose() {
+    clearTimeout(this.settingsUpdatedTimer);
     this.behaviors.cells.forEach((cell) => {
       if (PluginBehavior.Behavior.is(cell.obj)) {
         cell.obj.data.unregister?.();
@@ -397,6 +452,16 @@ namespace PluginState {
     durationInMs?: number;
     transition?: StateTransition;
     onLoadMarkdownCommands?: Record<string, any>;
+    /**
+     * Owner-keyed state registered with `PluginState.registerCustomState` (for example Prism's sequence viewer,
+     * `'prism-viewer.sequence'`). Keys nobody registered are kept as they are and ignored on restore.
+     */
+    custom?: { [key: string]: unknown };
+  }
+
+  export interface CustomStateEntry {
+    get(): unknown;
+    set(value: unknown | undefined): void | Promise<void>;
   }
 
   export interface StateTransition {

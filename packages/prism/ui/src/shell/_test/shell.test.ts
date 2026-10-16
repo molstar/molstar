@@ -43,6 +43,22 @@ describe('ShellModel', () => {
     expect(shell.tabFocus.value).toBeUndefined();
   });
 
+  it('asking again for the same tab section or card section emits again', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('selection')]);
+    shell.registerOverlays([{ id: 'export', title: 'Export', render: view }]);
+    const focus: unknown[] = [];
+    const overlay: unknown[] = [];
+    shell.tabFocus.subscribe((f) => focus.push(f));
+    shell.overlay.subscribe((o) => overlay.push(o));
+    shell.show('selection', 'measure');
+    shell.show('selection', 'measure');
+    expect(focus.filter(Boolean)).toHaveLength(2);
+    shell.openOverlay('export', undefined, 'mp4');
+    shell.openOverlay('export', undefined, 'mp4');
+    expect(overlay.filter(Boolean)).toHaveLength(2);
+  });
+
   it('places a tab registered later by its order among the tabs already there', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('home', { order: 0 }), tab('structure', { order: 1 }), tab('tree', { order: 2 })]);
@@ -162,5 +178,36 @@ describe('pages', () => {
     const plain = new ShellModel();
     plain.toggleRail();
     expect(plain.railShown.value).toBe(true);
+  });
+
+  it('keeps a tab open when it is registered again before the old one goes (a lazy stub replaced by the real tab)', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('home')]);
+    const removeStub = shell.registerTabs([tab('tree')]);
+    shell.show('tree');
+    const seen: (string | undefined)[] = [];
+    const sub = shell.dock('right').active.subscribe((t) => seen.push(t?.id));
+    // The real tab comes first, then the stub goes: the panel never closes or falls back to another tab.
+    shell.registerTabs([tab('tree', { title: 'State tree' })]);
+    removeStub();
+    sub.unsubscribe();
+    expect(seen.every((id) => id === 'tree')).toBe(true);
+    expect(shell.dock('right').active.value?.title).toBe('State tree');
+  });
+
+  it('closes the panel of a compact rail before it hides the rail (hidden UI is paused: no flash on showing it again)', () => {
+    const shell = new ShellModel({ compactRail: true });
+    shell.registerTabs([tab('home'), tab('structure')]);
+    shell.setRailOpen(true);
+    shell.show('structure');
+    const seen: string[] = [];
+    const a = shell.railShown.subscribe((shown) => seen.push(`rail:${shown}`));
+    const b = shell.dock('right').active.subscribe((t) => seen.push(`panel:${t ? t.id : 'none'}`));
+    seen.length = 0;
+    shell.setRailOpen(false);
+    a.unsubscribe();
+    b.unsubscribe();
+    expect(seen.indexOf('panel:none')).toBeGreaterThanOrEqual(0);
+    expect(seen.indexOf('panel:none')).toBeLessThan(seen.indexOf('rail:false'));
   });
 });

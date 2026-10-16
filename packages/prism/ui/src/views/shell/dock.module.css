@@ -55,6 +55,9 @@
 
 .content {
   position: relative;
+  /* What changes inside lays out the panel, not the shell (styling.md §5). Not `paint`: the splitter hangs over the
+     edge, and a frameless tab's content shows past it. */
+  contain: layout style;
   display: flex;
   flex-direction: column;
   width: var(--msp-dock-size);
@@ -76,6 +79,9 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  /* A heading (h2: heading navigation finds the panel), in the header's type. */
+  font-size: inherit;
+  font-weight: inherit;
   /* Cut off: it fades out (reset.css, msp-fade-overflow). */
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   animation-name: msp-fade-overflow;
@@ -85,6 +91,8 @@
 }
 
 .body {
+  /* Clipped already (a scroll area): a change inside lays out and paints the body only (styling.md §5). */
+  contain: layout paint;
   flex: 1;
   min-height: 0;
 }
@@ -107,13 +115,10 @@
 .tab {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: max(36px, var(--msp-touch-target, 0px));
+  height: max(36px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
-  transition:
-    background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
 
   &:hover {
     background: var(--msp-color-hover);
@@ -122,6 +127,8 @@
 
   &[aria-selected="true"] {
     background: var(--msp-color-control);
+    /* Marked by more than a shade where contrast matters (theme.css, --msp-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
 }
@@ -234,7 +241,7 @@
 
   & .tab {
     width: 100%;
-    height: var(--msp-rail-button, 40px);
+    height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
     border-radius: 0;
   }
 
@@ -434,9 +441,19 @@
   max-height: 100%;
   animation: rail-menu-in var(--msp-motion-fast) var(--msp-ease);
 
+  /* The card shrinks to the room there is; its rows scroll in a ScrollArea (styling.md §4). */
   & > * {
-    overflow-y: auto;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
   }
+}
+
+.railMenuScroll {
+  min-height: 0;
+}
+
+.railMenuRows {
+  display: grid;
 }
 
 @keyframes rail-menu-in {

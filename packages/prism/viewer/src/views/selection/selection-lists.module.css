@@ -1,0 +1,317 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* What a Selection section made (style layers, superpositions): a caption with Clear all, then rows in the well, as the
+   Measure section's Added list. Under the section's action footer, which reaches into the bottom padding: the block
+   gives that room back. */
+.block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--msp-space-3);
+  font-size: var(--msp-font-size-sm);
+  gap: var(--msp-space-1);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 22px;
+}
+
+.caption {
+  flex: 1;
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+.count {
+  margin-left: var(--msp-space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.clear {
+  flex: none;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+/* There can be many: the list keeps a height (about eight rows) and scrolls by itself. */
+.list {
+  max-height: 224px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  contain: content;
+}
+
+.listContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--msp-space-1);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+/* The swatch of a color, else the kind's icon, in one slot. */
+.lead {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  color: var(--msp-color-text-muted);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  text-align: left;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.value {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A superposition's row: the structure's name, then how, which takes the room and fades when cut. */
+.name {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+}
+
+/* Edit and remove on hover (and while editing, and for the keyboard). */
+.action {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .row:hover &,
+  &[aria-expanded="true"],
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+/* The value's form, under its row. */
+.editor {
+  margin: var(--msp-space-1) 0 var(--msp-space-1) var(--msp-space-5);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+/* --- the selection summary, at the top of the Selection tab --- */
+
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  gap: var(--msp-space-1);
+}
+
+.summaryHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 24px;
+}
+
+.summaryIcon {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.summaryTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-md);
+  font-weight: 600;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.summaryAction {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+/* One line per structure the selection is in: its name, then the chains and atoms. */
+.part {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding-left: calc(var(--msp-icon-md) + var(--msp-space-2));
+  font-size: var(--msp-font-size-xs);
+}
+
+.partName {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.partLine {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.summaryHint {
+  margin: 0;
+  padding-left: calc(var(--msp-icon-md) + var(--msp-space-2));
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
+.summaryLevel {
+  color: var(--msp-color-text-muted);
+  font-weight: 500;
+}
+
+.summaryOffer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--msp-space-2);
+}
+
+/* The way into Select mode: the one action of the empty summary, so it carries the accent. */
+.summaryStart {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  margin-left: calc(var(--msp-icon-md) + var(--msp-space-2));
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}

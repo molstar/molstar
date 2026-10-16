@@ -34,8 +34,6 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-md);
   white-space: nowrap;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   display: inline-flex;
 
   &:hover:not(:disabled) {
@@ -44,6 +42,7 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 
   &:active:not(:disabled), &[aria-pressed="true"] {
     background: var(--msp-color-pressed);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
   }
 
   &:disabled {
@@ -62,6 +61,7 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 
   &:active:not(:disabled), &[aria-pressed="true"] {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
   }
 
   &:disabled {
@@ -84,14 +84,14 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 }
 
 .msp-button-small {
-  height: 24px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-inset);
   font-size: var(--msp-font-size-sm);
 }
 
 .msp-button-tiny {
   gap: var(--msp-space-1);
-  height: 20px;
+  height: max(24px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   font-size: var(--msp-font-size-xs);
 
@@ -105,12 +105,8 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
   width: var(--msp-control-height);
   padding: 0;
 
-  &.msp-button-small {
-    width: 24px;
-  }
-
-  &.msp-button-tiny {
-    width: 20px;
+  &.msp-button-small, &.msp-button-tiny {
+    width: max(24px, var(--msp-touch-target, 0px));
   }
 }
 

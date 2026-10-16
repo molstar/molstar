@@ -254,10 +254,9 @@ export {
   DefaultSeqViewerSpec,
   SeqViewerBehaviors,
   SeqViewerOptionalBehaviors,
-  SeqViewerSpec,
-  ViewerIssueCodes,
   ViewerLayerTypes,
-} from './spec.js';
+} from './default-spec.js';
+export { SeqViewerSpec, ViewerIssueCodes } from './spec.js';
 export type {
   Live,
   Origin,

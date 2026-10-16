@@ -16,6 +16,11 @@ const spec = { ...DefaultSeqViewerSpec(), registry: [DefaultRegistry, Interactio
   behaviors: [...DefaultSeqViewerSpec().behaviors, SeqViewerSpec.Behavior(MyLink, { select: false })] };
 ```
 
+The spec is required: nothing in the viewer imports the default composition (`default-spec.ts`, as Mol\*'s
+`DefaultPluginSpec`), and its behaviors and entries are built in pure calls, so a host that lists its own parts bundles
+only those (a viewer made from an empty spec is about 720 kB minified, the default about 1,040 kB; `todo.md` "No slim
+build yet" has what the floor still holds).
+
 ## The context
 
 `SeqViewerContext` holds all state of one viewer: the document and its graph, the managers, the layout, the input

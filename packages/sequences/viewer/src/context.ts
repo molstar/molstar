@@ -46,7 +46,7 @@ import { Results, type ResultsManager } from './results.js';
 import { manualScheduler, type Scheduler, type TrackedScheduler, trackedScheduler } from './scheduler.js';
 import { type SelectionManager, Selections } from './selection.js';
 import { type SnapshotManager, Snapshots } from './snapshots.js';
-import { DefaultSeqViewerSpec, type SeqViewerSpec } from './spec.js';
+import type { SeqViewerSpec } from './spec.js';
 import {
   event,
   type Live,
@@ -707,10 +707,7 @@ class Context implements SeqViewerContext {
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Builds the managers, registers `spec.registry`, then creates `spec.behaviors` in order. */
-export function createSeqViewer(
-  spec: SeqViewerSpec = DefaultSeqViewerSpec(),
-  ports: Partial<SeqViewerPorts> = {},
-): SeqViewerContext {
+export function createSeqViewer(spec: SeqViewerSpec, ports: Partial<SeqViewerPorts> = {}): SeqViewerContext {
   const ctx = new Context(spec, ports);
   if (spec.registry) ctx.register(spec.registry);
   for (const b of spec.behaviors) ctx.behaviors.add(b.behavior, b.defaultParams);

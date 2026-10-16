@@ -44,8 +44,13 @@
   }
 }
 
-.optionsButton {
+/* What sits at the header's end before the options (Play), pushing them right. */
+.trailing {
+  display: flex;
   margin-left: auto;
+}
+
+.optionsButton {
   margin-right: var(--msp-space-2);
 }
 
@@ -59,6 +64,8 @@
 
 .blockContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--msp-space-2) var(--msp-space-3);
 }
 
@@ -67,46 +74,6 @@
   padding: var(--msp-space-1) 0 var(--msp-space-2);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-}
-
-.choice {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-3);
-  min-width: 0;
-  height: 30px;
-  margin: 0 calc(-1 * var(--msp-space-2));
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
-  text-align: left;
-
-  &:hover,
-  &:focus-visible {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-    outline: none;
-  }
-}
-
-.choiceTitle {
-  flex: none;
-  color: var(--msp-color-text);
-  font-weight: 600;
-}
-
-.choiceHint {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
-  animation-name: msp-fade-overflow;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self inline);
-  white-space: nowrap;
 }
 
 /* The snapshots: rows like the scene tree's (scene-tree.module.css). */
@@ -190,6 +157,11 @@
   cursor: grab;
   touch-action: none;
   opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);
@@ -287,6 +259,11 @@
   color: var(--msp-color-text-muted);
   opacity: 0;
 
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .row:hover &,
   .row:focus-within &,
   &[aria-expanded="true"] {
@@ -300,14 +277,6 @@
 }
 
 /* A row's menu: inline under the row, like the scene tree's. */
-.menu {
-  display: grid;
-  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
-  padding: var(--msp-space-1);
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-}
-
 .menuItem {
   display: grid;
   grid-template-columns: 14px 1fr;
@@ -355,6 +324,8 @@
 /* At least the inspector's height: the hint (stretched) centers in it. */
 .inspectorContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
 }
 

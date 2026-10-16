@@ -19,9 +19,9 @@ import type {
   WindowEntryView,
   WindowPart,
   WindowView,
-} from '@molstar/ai-trace';
-import { cachedShare, formatUsage, k, ms } from '@molstar/ai-trace/format';
-import { type Child, For, observableState, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
+} from '@molstar/ai/trace';
+import { cachedShare, formatUsage, k, ms } from '@molstar/ai/trace';
+import { type Child, For, formatChord, observableState, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, skip, take } from 'rxjs';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { classes } from './_generated/trace.module.css.js';
@@ -41,9 +41,9 @@ export const TurnStatusWords: Record<TurnStatus, string> = {
 };
 
 /**
- * The agent trace (analysis/viewer-mode.md §5): the whole session at a glance (the overview strip), the conversation as
- * rows (each turn's request, model calls and tool calls; nested runs indented), and the selected row in detail (for a
- * model call: exactly what it saw). j/k or the arrows move through the rows.
+ * The agent trace (packages/ai/_spec/trace.md § The Inspector): the whole session at a glance (the overview strip),
+ * the conversation as rows (each turn's request, model calls and tool calls; nested runs indented), and the selected
+ * row in detail (for a model call: exactly what it saw). j/k or the arrows move through the rows.
  */
 export function TraceView(props: { model: InspectorModel }) {
   const { model } = props;
@@ -56,7 +56,7 @@ export function TraceView(props: { model: InspectorModel }) {
       when={has}
       fallback={() => (
         <p class={layout.empty}>
-          The agent has not run yet. Ask it something (⌘K, then Ask AI assistant): each turn shows here, step by step.
+          {`The agent has not run yet. Ask it something (${formatChord({ key: 'k', mod: true })}, then Ask AI assistant): each turn shows here, step by step.`}
         </p>
       )}
     >

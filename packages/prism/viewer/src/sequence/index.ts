@@ -6,15 +6,30 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export type {
+  SequenceBehavior,
+  SequenceBehaviorContext,
+  SequenceOffer,
+  SequenceShown,
+  SequenceTrackMenuItem,
+} from './behaviors.js';
 export { LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
 export { LegendCard } from './legend-card.js';
-export { ComplexRef, DefaultSequenceTheme, SectionRef, sequenceDocument } from './document.js';
+export {
+  ComplexRef,
+  DefaultSequenceTheme,
+  SectionRef,
+  sequenceDocument,
+  svsDocument,
+  svsStructureSource,
+} from './document.js';
 export { linkSequence, type SequenceView3D } from './link.js';
 export { legendOf, NoLegend, type SequenceLegend } from './legend.js';
 export {
   createSequenceViewers,
   type HostActions,
   type HostStructure,
+  type SequenceOverride,
   type SequenceStructure,
   type SequenceStyle,
   type SequenceTheme,

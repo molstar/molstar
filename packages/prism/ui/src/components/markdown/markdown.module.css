@@ -42,6 +42,28 @@
     font-size: 0.92em;
   }
 
+  & pre {
+    overflow-x: auto;
+    padding: var(--msp-space-2);
+    border-radius: var(--msp-radius-sm);
+    background: var(--msp-color-control);
+
+    & code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  & hr {
+    border: 0;
+    border-top: 1px solid var(--msp-color-border);
+  }
+
+  & img {
+    max-width: 100%;
+    border-radius: var(--msp-radius-sm);
+  }
+
   & a {
     color: var(--msp-color-accent);
     text-decoration: none;
@@ -49,5 +71,36 @@
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+/* The audio player a command made, above the text. */
+.media {
+  display: grid;
+
+  & audio {
+    width: 100%;
+    height: 32px;
+  }
+}
+
+/* A table scrolls sideways by itself when it is wider than the description. */
+.table {
+  overflow-x: auto;
+
+  & table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & th,
+  & td {
+    padding: var(--msp-space-1) var(--msp-space-2);
+    border-bottom: 1px solid var(--msp-color-border);
+    text-align: left;
+  }
+
+  & th {
+    font-weight: 600;
   }
 }

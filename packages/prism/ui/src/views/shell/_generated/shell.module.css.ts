@@ -33,9 +33,11 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
   container-type: size;
 
   &[data-mode="compact"] {
+    --msp-row-height: 44px;
+    --msp-control-height: 40px;
+    --msp-touch-target: 44px;
     grid-template: "top"
                    "viewport" minmax(0, 1fr)
-                   "status"
                    "bottom"
                    "right"
                    / minmax(0, 1fr);
@@ -53,7 +55,12 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
 
 .msp-shell-canvas {
   inset: 0 var(--msp-canvas-end, var(--msp-canvas-pinned, 0px)) 0 0;
+  transition: opacity var(--msp-motion-reveal) var(--msp-ease);
   position: absolute;
+
+  &[data-quiet] {
+    opacity: 0;
+  }
 }
 
 .msp-shell-layer {

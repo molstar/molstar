@@ -74,6 +74,7 @@ defineStyles('assistant/views/history-tab.module.css', `@layer msp.components {
 
 .msp-assistant-history-tab-listContent {
   gap: var(--msp-space-1);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

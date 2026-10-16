@@ -24,11 +24,18 @@ export const classes = {
   'confirmText': 'msp-viewer-home-tab-confirmText',
   'content': 'msp-viewer-home-tab-content',
   'contentInner': 'msp-viewer-home-tab-contentInner',
+  'drop': 'msp-viewer-home-tab-drop',
+  'dropLink': 'msp-viewer-home-tab-dropLink',
+  'dropText': 'msp-viewer-home-tab-dropText',
   'group': 'msp-viewer-home-tab-group',
   'hint': 'msp-viewer-home-tab-hint',
   'home': 'msp-viewer-home-tab-home',
   'none': 'msp-viewer-home-tab-none',
+  'offer': 'msp-viewer-home-tab-offer',
+  'offerIcon': 'msp-viewer-home-tab-offerIcon',
+  'offerText': 'msp-viewer-home-tab-offerText',
   'server': 'msp-viewer-home-tab-server',
+  'serverHost': 'msp-viewer-home-tab-serverHost',
   'session': 'msp-viewer-home-tab-session',
   'sessionSummary': 'msp-viewer-home-tab-sessionSummary',
   'spin': 'msp-viewer-home-tab-spin',
@@ -58,6 +65,7 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   align-content: start;
   gap: var(--msp-space-4);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -90,6 +98,11 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   &[data-open] {
     background: var(--msp-color-well);
   }
+}
+
+.msp-viewer-home-tab-action[data-open] > .msp-viewer-home-tab-actionHeader {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .msp-viewer-home-tab-actionHeader {
@@ -140,7 +153,41 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 .msp-viewer-home-tab-actionBody {
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
+}
+
+.msp-viewer-home-tab-drop {
+  justify-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  padding: var(--msp-space-5) var(--msp-space-3);
+  border: 1px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  transition: background-color var(--msp-motion-fast) var(--msp-ease),
+    border-color var(--msp-motion-fast) var(--msp-ease);
+  display: grid;
+
+  &:hover {
+    border-color: var(--msp-color-text-subtle);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+
+  &[data-over] {
+    border-color: var(--msp-color-accent);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.msp-viewer-home-tab-dropText {
+  font-size: var(--msp-font-size-sm);
+}
+
+.msp-viewer-home-tab-dropLink {
+  color: var(--msp-color-accent);
 }
 
 .msp-viewer-home-tab-state {
@@ -211,10 +258,27 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-viewer-home-tab-captionRow {
-  padding-right: var(--msp-space-1);
   justify-content: space-between;
   align-items: center;
+  gap: var(--msp-space-3);
+  padding: 0 var(--msp-space-1) 0 var(--msp-inset);
   display: flex;
+}
+
+.msp-viewer-home-tab-captionRow > .msp-viewer-home-tab-caption {
+  padding-left: 0;
+}
+
+.msp-viewer-home-tab-serverHost {
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 
 .msp-viewer-home-tab-none {
@@ -273,6 +337,32 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   min-width: 0;
   color: var(--msp-color-text-muted);
   flex: 1;
+}
+
+.msp-viewer-home-tab-offer {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  display: flex;
+}
+
+.msp-viewer-home-tab-offerIcon {
+  color: var(--msp-color-accent);
+  flex: none;
+}
+
+.msp-viewer-home-tab-offerText {
+  white-space: nowrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 }
 `);

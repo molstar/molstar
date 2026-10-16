@@ -11,6 +11,7 @@
 import type { ChannelEntry, ChannelKind, ResolvedLayer, ResolvedSection, ThemeRef } from '@molstar/seq-core/format';
 import type { Issue, KeyTarget, SeqSet } from '@molstar/seq-core/model';
 import { createSeqViewer, type Theme, ThemeLocation } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 
 import { createTheme, themeContext } from '../src/themes.js';
 
@@ -33,7 +34,7 @@ interface Opts {
 }
 /** A theme context over a hand-made layer of `set`, through the default registry. */
 export function context(set: SeqSet, o: Opts = {}) {
-  const registry = createSeqViewer().registry;
+  const registry = createSeqViewer(DefaultSeqViewerSpec()).registry;
   const issues: Issue[] = [];
   const data = (o.data ?? []).map((k) => idOf(set, k));
   const [domainMin, domainMax] = o.domain ?? [Number.NaN, Number.NaN];

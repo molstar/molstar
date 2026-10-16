@@ -15,6 +15,7 @@ import type { CommandDefinition } from '../../commands/types.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
+import type { Child } from '../../dom/jsx-types.js';
 import { classes } from './_generated/help-panel.module.css.js';
 
 /** A mouse or touch binding, as the Help card lists it: what it does, and the input (keys and a gesture). */
@@ -32,9 +33,13 @@ export interface InputBindingGroup {
   bindings: readonly InputBinding[];
 }
 
-/** The keys that work everywhere, whatever the mode. */
-const GlobalKeys: InputBinding[] = [
-  { action: 'Command menu', input: ['⌘', 'K'], or: ['⇧', '⌘', 'P'] },
+/** The keys that work everywhere, whatever the mode: in this platform's keys (⌘ on macOS, Ctrl elsewhere). */
+const globalKeys = (): InputBinding[] => [
+  {
+    action: 'Command menu',
+    input: chordKeys({ key: 'k', mod: true }),
+    or: chordKeys({ key: 'p', mod: true, shift: true }),
+  },
   { action: 'Help (this card)', input: ['?'] },
   { action: 'Close a menu, a card or the command menu', input: ['Esc'] },
 ];
@@ -44,11 +49,17 @@ const GlobalKeys: InputBinding[] = [
  * shortcut, read from the command registry as it is), and shortcut conflicts (two commands on one chord). A tab at the
  * rail's foot (it stays open while you try things on the canvas); also the command menu's `?`.
  */
-export function HelpPanel(props: { commands: CommandManager<any>; bindings: readonly InputBindingGroup[] }) {
+export function HelpPanel(props: {
+  commands: CommandManager<any>;
+  bindings: readonly InputBindingGroup[];
+  /** Above the bindings: a mode's prose (the viewer's basics). */
+  intro?: () => Child;
+}) {
   const shortcuts = props.commands.commands.pipe(map((all) => all.filter((c) => c.shortcut)));
   const conflicts = shortcuts.pipe(map(conflictsOf));
   return (
     <ScrollArea edge class={classes.help} contentClass={classes.content} aria-label="Help">
+      {props.intro?.()}
       <Show when={conflicts.pipe(map((c) => (c.length ? c : undefined)))}>
         {(list) => (
           <section class={classes.conflicts} aria-label="Shortcut conflicts">
@@ -64,7 +75,7 @@ export function HelpPanel(props: { commands: CommandManager<any>; bindings: read
         )}
       </Show>
       <For each={props.bindings}>{(group) => <Group title={group.title} bindings={group.bindings} />}</For>
-      <Group title="Everywhere" bindings={GlobalKeys} />
+      <Group title="Everywhere" bindings={globalKeys()} />
       <Show when={shortcuts.pipe(map((s) => (s.length ? s : undefined)))}>
         {(list) => (
           <Group title="Commands" bindings={list.map((c) => ({ action: c.title, input: chordKeys(c.shortcut!) }))} />

@@ -34,7 +34,7 @@ import { Hover } from '../hover.js';
 import type { RenderProps } from '../layout.js';
 import type { SeqViewerRegistryEntry } from '../registry.js';
 import { type ManualScheduler, manualScheduler } from '../scheduler.js';
-import { DefaultRegistry } from '../spec.js';
+import { DefaultRegistry } from '../default-spec.js';
 import { Viewport } from '../viewport.js';
 import { SvgBackend, type SvgOptions, type SvgPorts } from './backend.js';
 import { hasMetrics, type MetricsMeasurer, metricsMeasurer } from './metrics.js';

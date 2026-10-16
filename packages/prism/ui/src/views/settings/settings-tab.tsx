@@ -14,6 +14,7 @@ import { ParamsForm, paramsMatch } from '../../components/params/params-form.js'
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { Show } from '../../dom/control-flow.js';
+import type { Child } from '../../dom/jsx-types.js';
 import type { SettingsGroup, SettingsModel } from '../../model/settings.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
@@ -21,9 +22,13 @@ import { classes } from './_generated/settings-tab.module.css.js';
 
 /**
  * The Settings tab: a search over every setting, then the groups by intent (essentials first), each a form that folds
- * open. While searching, only matching rows show and their groups open; a group with no match hides.
+ * open, then `more`. While searching, only matching rows show and their groups open; a group with no match hides.
  */
-export function SettingsTab(props: { model: SettingsModel }) {
+export function SettingsTab(props: {
+  model: SettingsModel;
+  /** More after the groups (the app's extension sections). */
+  more?: () => Child;
+}) {
   const { model } = props;
   const query = observableState('');
   const q = query.asReadonly;
@@ -50,6 +55,7 @@ export function SettingsTab(props: { model: SettingsModel }) {
           <Group group={group} query={q} open={i === 0} />
         ))}
         <Show when={none}>{() => <p class={classes.none}>No setting matches “{q}”.</p>}</Show>
+        {props.more?.()}
       </ScrollArea>
     </div>
   );

@@ -1,51 +1,52 @@
-# Messages and models (`@molstar/ai-agent`, `@molstar/ai-model-adapters`)
+# Messages and models (`src/messages/`, `src/providers/` of `@molstar/ai`)
 
-## Messages (`agent/src/messages.ts`)
+## Messages (`src/messages/messages.ts`)
 
 - `Message` is `SystemMessage | UserMessage | AssistantMessage`, each `{ role, parts, label? }`. Parts:
   - `ModelVisiblePart`: `{ kind: 'text', text }` or `{ kind: 'reference', reference: Reference }` (a URI with
-    `mediaType`, `byteLength`, `digest`; adapters inline only `data:` URIs, others become text `[ref <uri>]`).
+    `mediaType`, `byteLength`, `digest`; providers inline only `data:` URIs, others become text `[ref <uri>]`).
   - system only: `ToolDefinitionPart { definition, deferred }`; `deferred: false` loads the tool, `true` only declares
     it. Never sent as text.
   - user only: `ToolResultPart { requestId, tool, status, parts }`.
   - assistant only: `ToolCallPart { requestId, tool, arguments, providerOptions? }` (`providerOptions` keeps the
     provider's replay data: thinking signatures, encrypted reasoning).
 - `ToolDefinition { tool: { id }, name, description, inputSchema }`; the provider-safe wire name is derived from the id.
-- `hashMessage(message)` (SHA-256 over a structural encoding, async) is an entry's id; `digest(json)` addresses blobs,
-  segments and heads; `canonicalJson`, `encodeMessage` are the encodings (`agent/src/hash.ts`).
+- `hashMessage(message)` (MurmurHash3_x86_128 over a structural encoding, synchronous) is an entry's id; `digest(json)`
+  addresses blobs and heads; `canonicalJson`, `encodeMessage` are the encodings (`src/messages/hash.ts`).
 - **`label?: EntryLabel { kind, key?, data? }`** says what an entry is, for the code that reads the journal: `kind` is
   namespaced by the package that writes it, `key` names which one, `data` holds small facts the parts also say.
   - Part of the message, so of its hash (an absent label leaves the hash as before; the same text under another label is
     another entry).
-  - Never sent: adapters read only `role` and `parts` (`model-adapters/src/_test/labels.test.ts`), and sizes never count
-    it. The harness never reads it.
+  - Never sent: providers read only `role` and `parts` (`src/providers/_test/labels.test.ts`), and sizes never count it.
+    The harness never reads it.
   - Only what is true of the content; what happened when (turn, step, time, cost) is the event log's. There is no other
     metadata on a message.
   - The kinds in use: `session:request` (data `{ prompt, focus? }`), `session:guidance`, `session:guidance-update` (key:
-    the text's fingerprint), `session:carry-over`, `session:memory` (`@molstar/ai-session` `LABEL_*`);
-    `tools:definitions`, `tools:skill`, `tools:entry` (key: the group's key; `@molstar/ai-tools` `LABEL_*`).
+    the text's fingerprint), `session:carry-over`, `session:memory` (`session/` `LABEL_*`); `tools:definitions`,
+    `tools:skill`, `tools:entry` (key: the group's key; `tools/` `LABEL_*`).
 - `Json`, `JsonObject`, `Reference` are in `values.ts`.
 
-## The port (`agent/src/models.ts`)
+## The port (`src/messages/models.ts`)
 
 ```ts
-interface ModelAdapter {
-  capabilitiesFor(configuration: ModelConfiguration): Promise<ModelCapabilities>;
+interface Provider {
+  capabilities(configuration: ModelConfiguration): Promise<ModelCapabilities>;
   project(input: ProjectInput): Promise<ProjectedRequest>; // pure: same input, same payload and digest
   invoke(input: { request: ProjectedRequest; signal: AbortSignal }): AsyncIterable<ModelFrame>;
 }
-interface ModelBindings { resolve(target: ModelTarget): Promise<ModelAdapter> }
+interface ProviderBindings { resolve(target: ModelTarget): Promise<Provider> }
 ```
 
 - `ModelConfiguration { target: { provider, model }, parameters: { temperature?, topP?, maxOutputTokens?, reasoning? }, cacheScopeId? }`.
   `ReasoningParameters`: `{ mode: 'off' }`, `{ mode: 'adaptive', effort? }`, `{ mode: 'budget', tokens }`. Parameters
-  are requests: an adapter rejects what its model cannot do.
+  are requests: a provider rejects what its model cannot do.
 - `ModelCapabilities`: `contextWindowTokens`, `maxInputTokens?`, `maxOutputTokens?`, `defaultMaxOutputTokens?`,
   `outputLimitIncludesReasoning`, `appendsTools`, `cacheScope`.
 - `ProjectInput { messages, tools (available: enabled and loaded), configuration, capabilities }` →
-  `ProjectedRequest { payload, digest, adapterRevision, inputTokens (an estimate, for admission), segments? }`.
-  `segments` are short digests of tools, system, then each message: a request can reuse a cache when the previous one's
-  segments are a prefix of its own (the trace's "prefix break").
+  `ProjectedRequest { payload, digest, revision, inputTokens (an estimate, for admission), prefix? }`. `prefix` is the
+  short digests of tools, system, then each message: a request can reuse a cache when the previous one's `prefix` is a
+  prefix of its own (the trace's "prefix break"). (`inputTokens` is the providers' calibrated estimate,
+  `providers/common/estimate.ts`; the plain four-characters-a-token one is `estimatedTokens` of `messages/`.)
 - `ModelFrame`: `text-delta`, `reasoning-delta`, `usage` (totals so far), then exactly one
   `result { message, finish, usage }`, last. `ModelFinish`: `complete`, `tool-calls`, `output-limit`, `filtered`.
 - `ProviderUsage`: `inputTokens` (total, cache included), `outputTokens`, `cacheReadInputTokens`,
@@ -55,32 +56,49 @@ interface ModelBindings { resolve(target: ModelTarget): Promise<ModelAdapter> }
   transient, effect `unknown`; pass `effect: 'none'` when the request surely did nothing, so a retry is safe;
   `retryAfterMs` when the provider said how long to wait, which the harness keeps on the attempt's failure);
   `UnrepresentableInput` (code `unrepresentable`) when the provider cannot place something (a system message
-  mid-conversation, a binary in a failed tool result).
+  mid-conversation, a binary in a failed tool result, a medium it does not take).
 
-## The adapters (`model-adapters/src/`)
+## The providers (`src/providers/`)
 
-Three factories, on the Vercel AI SDK (`ai`, `@ai-sdk/*`):
+A thin layer over the Vercel AI SDK (`ai`, `@ai-sdk/*`; § Decisions). Three factories, each its own entry so a host
+imports only the SDKs it uses (`@molstar/ai/providers/{anthropic,openai,google}`; all three from
+`@molstar/ai/providers`):
 
-| Factory                       | Options (besides `resolveApiKey: () => string \| Promise<string>`, `fetch?`, `tokenEstimate?`, `modelLimits?`)            |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `createAnthropicModelAdapter` | `headers?`, `cache?` (default true: cache breakpoints on system, top level and the last immediate tool)                   |
-| `createOpenAIModelAdapter`    | `api?: 'responses' \| 'chat'` (default responses), `baseURL?`, `provider?` (default `'openai'`), `label?`, `body?` (chat) |
-| `createGoogleModelAdapter`    | none                                                                                                                      |
+| Factory                   | Options (besides `resolveApiKey: () => string \| Promise<string>`, `fetch?`, `tokenEstimate?`, `modelLimits?`)            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `createAnthropicProvider` | `headers?`, `cache?` (default true: cache breakpoints on system, top level and the last immediate tool)                   |
+| `createOpenAIProvider`    | `api?: 'responses' \| 'chat'` (default responses), `baseURL?`, `provider?` (default `'openai'`), `label?`, `body?` (chat) |
+| `createGoogleProvider`    | none                                                                                                                      |
 
-- **Any endpoint of a dialect**: `createOpenAIModelAdapter({ api: 'chat', baseURL, provider: 'lab', modelLimits })`
-  serves a compatible endpoint under its own provider id. A foreign `baseURL` uses no catalog: limits come only from
-  `modelLimits` (keyed by model id), and tools are never appended. Replay identity is the provider id, never a URL.
-- **Shared core** `common/`: `createProviderAdapter(spec: ProviderSpec)` (`adapter.ts`), the payload builder and token
-  measurement (`payload.ts`), streaming, replay and error mapping (`stream.ts`), attachments, capabilities
-  (`resolveProviderCapabilities`: `modelLimits[model]`, else the catalog, else an error asking for an override). Each
-  provider folder supplies `capabilities.ts`, `attachments.ts`, `stream.ts` and (Anthropic, OpenAI) a native
-  `payload.ts`.
+- **The payload is `streamText`'s own arguments**, as JSON:
+  `{ provider, revision, model, toolIds, system?, messages: ModelMessage[], allowSystemInMessages?, tools?: { [wireName]: { description, inputSchema, providerOptions? } }, providerOptions?, maxOutputTokens, temperature?, topP?, appended? }`.
+  `project` builds it once (`common/messages.ts`: one `Message` → `ModelMessage` converter, tool calls carrying their
+  replay `providerOptions`), digests it with the synchronous `digest`, and gives its `prefix`; `invoke` checks it is
+  this provider's (revision, digest, provider: a `ModelError` with effect `none` otherwise), strips the identity fields,
+  wraps each tool's schema in `jsonSchema` and passes the rest to `streamText` as it is (`common/stream.ts`). `toolIds`
+  maps a returned call's wire name back to its tool id (a call to an unknown name keeps it).
+- **Shared core** `common/`: `createProvider(spec: ProviderSpec)` (`provider.ts`: projection, the input estimate, the
+  request's `prefix`, invocation), the converter and the context order (`messages.ts`), the stream mapper and the error
+  mapping (`stream.ts`), attachments (`attachments.ts`), capabilities (`resolveProviderCapabilities`:
+  `modelLimits[model]`, else the catalog, else an error asking for an override). A provider (`anthropic/provider.ts`,
+  `openai/provider.ts`, `google/provider.ts`) gives only what differs: the SDK model factory, its parameter checks,
+  reasoning and caching as `providerOptions`, its attachment rule, how a call's reasoning is kept and replayed, and
+  (Anthropic, OpenAI) the appended layout (`ProviderSpec.native`: which models, and their `project`; OpenAI's in
+  `openai/native.ts`).
+- **Any endpoint of a dialect**: `createOpenAIProvider({ api: 'chat', baseURL, provider: 'lab', modelLimits })` serves a
+  compatible endpoint under its own provider id. A foreign `baseURL` uses no catalog: limits come only from
+  `modelLimits` (keyed by model id; a model without them fails the turn, "supply a modelLimits override"), and tools are
+  never appended. The assistant supplies them for one's own endpoint (`prism/assistant/src/viewer/settings-model.ts`:
+  the person's context window and max output, else 32,768 and 4,096 tokens, for each listed model and the chosen one).
+  Replay identity is the provider id, never a URL.
 - **Errors**: any HTTP error has `effect: 'none'`, and 408, 409, 429 and ≥500 are transient; a failure without a status
-  (network, mid-stream) is transient with `effect: 'unknown'`; a response's `retry-after-ms` or `retry-after` (seconds
-  or a date) becomes `retryAfterMs` (`retryAfterOf`); the key is redacted from messages; the SDK runs with
-  `maxRetries: 0` (retries are the drive's).
-- **Revision**: each adapter has a `revision` string in its payload; `invoke` refuses a request of another revision,
-  provider or digest. Raise it whenever projection or replay rules change.
+  (network, mid-stream) is transient with `effect: 'unknown'`; the SDK's `UnsupportedFunctionalityError` is not
+  transient, effect `none`; a response's `retry-after-ms` or `retry-after` (seconds or a date) becomes `retryAfterMs`
+  (`retryAfterOf`); the key is redacted from messages; the SDK runs with `maxRetries: 0` (retries are the drive's).
+- **Revision**: each provider has a `revision` string (`anthropic-ai-sdk-v4`, `openai-responses-ai-sdk-v4`,
+  `openai-chat-ai-sdk-v2`, `google-ai-sdk-v4`), in the request and its payload; `invoke` refuses a request of another
+  revision, provider or digest, and the harness refuses a retry that projects another. Raise it whenever projection or
+  replay rules change.
 
 ## Projection rules
 
@@ -88,19 +106,26 @@ Three factories, on the Vercel AI SDK (`ai`, `@ai-sdk/*`):
   only before the first non-system message (else `UnrepresentableInput`). The session therefore sends changed guidance
   later as a user message.
 - **Appended** (`appendsTools: true`, a catalog quirk: Claude Sonnet 5.5, GPT-6 Luna): a definition loaded mid
-  conversation is placed where it loads (Anthropic `tool_addition`, OpenAI `additional_tools` developer items via
-  `openai/disclosure-transport.ts`), so the prefix stays byte-stable as tools are disclosed. Loads follow the head, not
-  the callable set.
+  conversation is placed where it loads, so the prefix stays byte-stable as tools are disclosed. Loads follow the head,
+  not the callable set. Anthropic: the head's inventory is the tool list, `deferLoading` but for what loads before the
+  conversation, and a later load is a system message with `providerOptions.anthropic.toolChanges` (`tool_addition`).
+  OpenAI: a load is a placeholder system message (its tools in `providerOptions.molstar.additionalTools`) which the
+  provider's `fetch` rewrites into an `additional_tools` developer item, dropping the tool list (it served only to parse
+  calls), because the installed SDK has no such input.
 - Reasoning maps per provider (Anthropic thinking budget or adaptive effort; OpenAI `reasoningEffort`: Responses sends
   `off` as effort `none`, chat sends no effort; Google Gemini 3+ thinking level or budget); replayed reasoning rides in
-  each call's `providerOptions`.
-- Attachments: per-provider media types and placements (Google takes the most; OpenAI chat only images in user
-  messages). An unsupported one is `UnrepresentableInput`; a corrupt one (digest, length) a plain error.
+  each call's `providerOptions` (`anthropic.thinking`, `openai.reasoning` and `itemId`, `google.thoughtSignature`,
+  `chat.text`) and goes back before the call as reasoning parts.
+- Attachments: each provider's rule says which binary media it takes where (`AttachmentRule`; Google takes the most,
+  OpenAI chat only images in user messages); text types are sent as text (Anthropic: a text document in user content).
+  An unsupported one is `UnrepresentableInput` at projection, so the harness can say so before any request; a corrupt
+  one (encoding, length, digest) a plain error. A reference's `digest` is `murmur3-128:<32 hex>`, the messages' own hash
+  of the decoded bytes (checked when given).
 - `cacheScopeId` reaches the provider only where `cacheScope` (OpenAI Responses: `promptCacheKey`).
 
-## The model catalog (`@molstar/ai-model-adapters/model-catalog`)
+## The model catalog (`@molstar/ai/models`, `src/providers/models.ts`)
 
-Data, no dependencies (only an `ai-agent` type). `MODEL_CATALOG: CatalogEntry[]`, each
+Data, no dependencies (only a `messages/` type). `MODEL_CATALOG: CatalogEntry[]`, each
 `{ provider, id, family?, label?, note?, limits?, reasoning?, quirks?, price? }`.
 
 - A **family** entry matches ids that start with it followed by `-`, `.`, `:`, `/`, `_` or `@` (so `gpt-6` covers
@@ -110,23 +135,35 @@ Data, no dependencies (only an `ai-agent` type). `MODEL_CATALOG: CatalogEntry[]`
 - `modelInfo(provider, id, catalog?)`, `listedModels(provider?)`, `defaultReasoning(provider, id)` (what a host passes
   to the session's `thinking`), `dollarsOf(price, usage)` (dollars per call; the long-prompt factor applies to the whole
   call).
-- Adapters read only limits and the `appendsTools` quirk. Prices, labels and listing are for the host.
-- `@molstar/ai-session` has its own `dollarsOf(table, model, usage)` and `creditsOf` over an app `PriceTable`
-  ([session.md](session.md)); the session knows no models.
+- Providers read only limits and the `appendsTools` quirk. Prices, labels and listing are for the host; the session
+  knows no models.
 
 ## Hosting
 
-No host in the repository builds adapters yet; the tests are the examples (`model-adapters/src/_test/support.ts`). A
-host makes one adapter per provider it has a key for and gives the session a lookup:
+A host makes one provider per provider id it has a key for and gives the session a lookup (Prism's assistant:
+`packages/prism/assistant/src/viewer/settings-model.ts`, each provider's SDK imported on its first use):
 
 ```ts
-const adapters: Record<string, ModelAdapter | undefined> = { anthropic: createAnthropicModelAdapter({ resolveApiKey: () => keys.anthropic }) };
-new AgentSession({ models: { adapterFor: (p) => adapters[p], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } }, … });
+const providers: Record<string, Provider | undefined> = { anthropic: createAnthropicProvider({ resolveApiKey: () => keys.anthropic }) };
+new AgentSession({ models: { providerFor: (id) => providers[id], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } }, … });
 ```
+
+## Decisions
+
+- **Providers are a thin layer over the AI SDK**: the SDK does the wire formats; ours is projection, replay and error
+  mapping, each provider its own lazy entry so a bundle loads one SDK.
+- **A request is projected once**, to `streamText`'s arguments as JSON, which is digested and sent as it is: what is
+  recorded is what was sent.
+- **Replay identity is the provider id, never a URL**: one dialect serves any compatible endpoint under that endpoint's
+  id.
+- **Native mid-conversation tool additions stay** for the catalog's `appendsTools` models: the prefix stays cacheable as
+  tools are disclosed.
 
 ## Tests
 
-`model-adapters/src/_test/`: SSE fixtures and a recording `fetch` (`support.ts`); `compatibility.test.ts` replays
-recorded requests and checks their HTTP bodies hash exactly (`retained-wire.json`), so any change to wire bytes shows;
-`prefix.test.ts` (cache-stable prefixes), `deferred-tools.test.ts`, `attachments`, `capabilities`, `stream` (failure
-mapping, key redaction), `model-catalog`, `openai-chat` (a foreign endpoint). No test reaches the network.
+`src/providers/_test/`: SSE fixtures and a recording `fetch` (`support.ts`); `port.test.ts` (projection pure, digests, a
+retained request of another revision, digest or provider refused, `UnrepresentableInput`, tool definitions never text),
+one round trip per provider (`anthropic`, `openai`, `openai-chat`: a foreign endpoint, `google`: text, a tool call,
+reasoning replay), `prefix.test.ts` (an appended turn's payload and `prefix` extend the previous ones),
+`deferred-tools.test.ts` (the appended layout), `attachments`, `capabilities`, `stream` (failure mapping, retry-after,
+key redaction), `labels`, `models` (the catalog). No test reaches the network.

@@ -13,6 +13,18 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 export interface SuperpositionEntry {
   id: string;
   label: string;
+  /** Why the method cannot use this selection ("5 chains: select one"); undefined: it can. */
+  problem?: string;
+}
+
+/** A superposition made: the structure moved ("1TQN") and how ("onto 1CBS · chains · RMSD 0.53 Å"). */
+export interface SuperposedEntry {
+  /** The moved structure's state ref. */
+  id: string;
+  label: string;
+  detail: string;
+  /** All of it in words ("1W0E onto 1TQN by chains, RMSD 0.78 Å"), for the tooltip. */
+  line: string;
 }
 
 /**
@@ -30,6 +42,14 @@ export interface SuperpositionModel {
   /** Enough to superpose; otherwise `hint` says what to select. */
   ready: ReadonlyState<boolean>;
   hint: ReadonlyState<string>;
+  /** Why Superpose is disabled, when some selection cannot be used (a row says its own reason); undefined: none. */
+  blocked?: ReadonlyState<string | undefined>;
   focus(id: string): void;
   superpose(): void;
+  /** The superpositions made (the structures still where one put them), each removable; absent: not listed. */
+  made?: ReadonlyState<readonly SuperposedEntry[]>;
+  /** Puts a superposed structure back where it was loaded. */
+  remove?(id: string): void;
+  /** Puts every superposed structure back. */
+  clear?(): void;
 }

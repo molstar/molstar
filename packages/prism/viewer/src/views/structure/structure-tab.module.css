@@ -38,7 +38,7 @@
    read out), so nothing falls off the edge. */
 @container (width < 296px) {
   .actions > button:has(.actionLabel) {
-    width: 24px;
+    width: max(24px, var(--msp-touch-target, 0px));
     padding: 0;
   }
 
@@ -116,6 +116,35 @@
   text-transform: capitalize;
 }
 
+/* A component's title with its pencil; renaming, the field takes the title's room. */
+.renameTitle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
+
+  & .inspectorTitle {
+    flex: 0 1 auto;
+  }
+}
+
+.renameField {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The header's eye (show or hide, turn on or off): quiet at the end, the text color while hidden or off. */
+.inspectorEye {
+  flex: none;
+  margin: calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) auto;
+  color: var(--msp-color-text-muted);
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-text);
+  }
+}
+
 /* An item with nothing to set: a quiet line instead of an empty space. */
 .nothing {
   margin: 0;
@@ -134,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -188,6 +217,8 @@
 
 .presetsContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-2);
   padding: var(--msp-space-2);
 }
@@ -206,7 +237,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);
@@ -240,8 +271,17 @@
 }
 
 /* The options button sits at the end of the header row. */
-.optionsButton {
+.searchButton {
   margin-left: auto;
+}
+
+/* The tree's search, between the header and the tree. */
+.search {
+  display: grid;
+  padding: 0 var(--msp-space-2);
+}
+
+.optionsButton {
   /* Level with the header's ✕ (8px from the panel's edge: the tab's 4px inset and 4px more). */
   margin-right: var(--msp-space-2);
 }
@@ -255,4 +295,80 @@
 
 .optionsContent {
   padding: var(--msp-space-2) var(--msp-space-3);
+}
+
+/* A component's representations: rows to open them (their inspector), each with its eye. */
+.children {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.childrenTitle {
+  padding: 0 var(--msp-space-2) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.child {
+  display: flex;
+  align-items: center;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.childHidden {
+  color: var(--msp-color-text-subtle);
+}
+
+.childOpen {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: max(30px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  text-align: left;
+}
+
+.childIcon {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.childLabel {
+  flex: none;
+  font-weight: 500;
+}
+
+.childDescription {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.childChevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.childEye {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
 }

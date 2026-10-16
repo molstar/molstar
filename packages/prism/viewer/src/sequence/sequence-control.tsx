@@ -9,17 +9,26 @@
  */
 
 import type { Structure } from '@molstar/model/model/structure';
-import { BandFadePx, bind, type DockId, onCleanup, openContextMenu, type ShellModel } from '@molstar/prism-ui';
+import {
+  BandFadePx,
+  bind,
+  type DockId,
+  observableState,
+  onCleanup,
+  openContextMenu,
+  type ShellModel,
+} from '@molstar/prism-ui';
 import type { HoverLabel } from '@molstar/seq-viewer';
-import { mountSection } from '@molstar/seq-viewer/canvas';
-import { combineLatest, of, switchMap } from 'rxjs';
+import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
+import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
+import type { MarksView } from '../sources/marks.js';
 import { linkSequence, type SequenceView3D } from './link.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
 
-// The sequence control (prism-sequence.md §4): Seq*'s section surface in the canvas band, the link with the 3D view
+// The sequence control (sequence.md §8): Seq*'s section surface in the canvas band, the link with the 3D view
 // while it is shown, the Seq* hover label for the shell's one cursor-following label, and the fades where the text
 // scrolls. It has no controls of its own: the style, the colors and the legend are the canvas stack's Sequence menu
 // (sequence/menu.ts, commands). Seq* draws the letters, hover, selection and focus and handles the pointer.
@@ -31,14 +40,19 @@ export interface SequenceControlProps {
    * Over the real plugin it is `pluginView3D(plugin, structure)` (sources/).
    */
   view3d?: (structure: Structure) => SequenceView3D | undefined;
-  /** The shell and its dock, for the height rules (§4): tracks follow their content, the text has a fixed height. */
+  /** The shell and its dock, for the height rules (sequence.md §8): tracks fit their content, text a fixed height. */
   shell?: ShellModel;
   dock?: DockId;
   /** The text version's lines' height, px (the band is this and its air and fade). */
   textHeight?: number;
   /** The Seq* hover label as lines for the shell's hover label (`[]`: none), once a frame and only when it changes. */
   onHover?: (lines: readonly string[]) => void;
+  /** A view's marks and hover (marks.md): shown here too, through the link. */
+  marks?: MarksView;
 }
+
+/** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */
+const CursorSayMs = 300;
 
 /** The text version's lines' height: two or three lines of letters; the rest scrolls. */
 export const TextHeight = 80;
@@ -68,9 +82,25 @@ export function SequenceControl(props: SequenceControlProps) {
   const { viewer } = props;
   const seq = viewer.seq;
 
-  const surface = (<div class={classes.surface} />) as HTMLElement;
-  const section = mountSection(seq, SectionRef, surface);
-  onCleanup(() => section.dispose());
+  // Its hover feeds the shell's label, shown while the pointer is here (`data-msp-hover-source`).
+  const surface = (<div class={classes.surface} data-msp-hover-source="" />) as HTMLElement;
+  // The section the band shows is the model's (`structure.section`: a loaded SeqViewSpec names its own, sequence.md §6),
+  // kept while a new document is made; another one mounts that section in place of the last.
+  const bandState = observableState(viewer.structure.value?.section ?? SectionRef);
+  const band = bandState.asReadonly;
+  const bandSub = viewer.structure.subscribe((s) => s && bandState.set(s.section));
+  let section: Surface | undefined;
+  // Seq*'s canvas draws through OffscreenCanvas: where there is none (jsdom, Node) the band stays empty.
+  const drawable = typeof OffscreenCanvas === 'function';
+  const mounted = band.subscribe((ref) => {
+    section?.dispose();
+    section = drawable ? mountSection(seq, ref, surface) : undefined;
+  });
+  onCleanup(() => {
+    bandSub.unsubscribe();
+    mounted.unsubscribe();
+    section?.dispose();
+  });
 
   // The fonts: the host's tokens, read once at the start of a frame (the control is in the document by then).
   const fontFrame = requestAnimationFrame(() => {
@@ -83,15 +113,17 @@ export function SequenceControl(props: SequenceControlProps) {
   onCleanup(() => cancelAnimationFrame(fontFrame));
 
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
-  if (props.view3d) onCleanup(linkSequence(viewer, props.view3d));
+  if (props.view3d) onCleanup(linkSequence(viewer, props.view3d, props.marks ? { marks: props.marks } : undefined));
 
-  // The track menus (prism-sequence.md §4): the browser's context-menu request on a track (a right-click, Ctrl+click on
+  // The track menus (sequence.md §8): the browser's context-menu request on a track (a right-click, Ctrl+click on
   // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and
   // the place; the model says what the track offers, Prism's menu opens there and runs it on the 3D view. The browser's
   // own menu is suppressed only over a track that offers one.
   {
     let close: (() => void) | undefined;
-    const menus = seq.interaction.on('menu', { section: SectionRef, part: ['data', 'header', 'gutter'] });
+    const menus = band.pipe(
+      switchMap((ref) => seq.interaction.on('menu', { section: ref, part: ['data', 'header', 'gutter'] })),
+    );
     const asked = menus.subscribe((e) => {
       const actions = e.part.track === null ? [] : viewer.trackActions(e.part.track);
       if (actions.length === 0) return;
@@ -159,8 +191,8 @@ export function SequenceControl(props: SequenceControlProps) {
     const follow = () => {
       stopVp?.();
       stopVp = undefined;
-      const vp = seq.viewports.get(SectionRef);
-      const layout = seq.layout.get(SectionRef);
+      const vp = seq.viewports.get(band.value);
+      const layout = seq.layout.get(band.value);
       if (!vp || !layout) return fade(false, false);
       const sub = vp.live.version.subscribe(() => {
         const s = vp.live.current;
@@ -173,9 +205,11 @@ export function SequenceControl(props: SequenceControlProps) {
     };
     const sections = seq.viewports.sections.subscribe(follow);
     const style = viewer.style.subscribe(follow);
+    const shown = band.subscribe(follow);
     onCleanup(() => {
       sections.unsubscribe();
       style.unsubscribe();
+      shown.unsubscribe();
       stopVp?.();
     });
   }
@@ -212,7 +246,7 @@ export function SequenceControl(props: SequenceControlProps) {
     const follow = () => {
       stopScroll?.();
       stopScroll = undefined;
-      const vp = seq.viewports.get(SectionRef);
+      const vp = seq.viewports.get(band.value);
       if (!vp) return;
       const sub = vp.live.version.subscribe(() => {
         const y = vp.live.current.scrollY;
@@ -228,34 +262,70 @@ export function SequenceControl(props: SequenceControlProps) {
       stopScroll = () => sub.unsubscribe();
     };
     const sections = seq.viewports.sections.subscribe(follow);
+    const shown = band.subscribe(follow);
     onCleanup(() => {
       surface.removeEventListener('pointerenter', enter);
       surface.removeEventListener('pointerleave', leave);
       drag.unsubscribe();
       sections.unsubscribe();
+      shown.unsubscribe();
       stopScroll?.();
       if (timer !== undefined) clearTimeout(timer);
     });
   }
 
   // The height rules: tracks follow Seq*'s content height, the text has its own; the dock is restored when the control
-  // goes. Written only when the size changes.
+  // goes. Written only when the size changes, and not while a new document is made (the band keeps its height).
   if (props.shell) {
     const { shell } = props;
     const dockId = props.dock ?? 'top';
     const before = shell.dock(dockId).state.value.size;
     const text = props.textHeight ?? TextHeight;
     onCleanup(() => shell.setSize(dockId, before));
-    const content = combineLatest([viewer.style, viewer.structure]).pipe(
-      switchMap(([style]) => (style === 'tracks' ? (seq.layout.contentHeight(SectionRef) ?? of(0)) : of(0))),
+    const height = combineLatest([viewer.style, viewer.structure]).pipe(
+      filter(([, shown]) => shown !== undefined),
+      switchMap(([style, shown]) => (style === 'tracks' ? (seq.layout.contentHeight(shown!.section) ?? of(0)) : of(0))),
     );
-    bind(combineLatest([viewer.style, content]), ([style, height]) => {
-      shell.setSize(dockId, (style === 'tracks' && height > 0 ? height : text) + BandExtra);
+    bind(height, (h) => shell.setSize(dockId, (h > 0 ? h : text) + BandExtra));
+  }
+
+  // The keyboard cursor, said (accessibility.md): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the
+  // cursor holds the hover), once the arrows rest, in a polite region of the control's own; nothing while the pointer
+  // hovers.
+  const cursorSaid = (<span class={classes.said} aria-live="polite" />) as HTMLElement;
+  {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const say = () => {
+      timer = undefined;
+      const text =
+        seq.ui.keyCursor.value && seq.hover.live.current.owner === 'keyboard'
+          ? labelLines(seq.labels.current.value).join(', ')
+          : '';
+      if (cursorSaid.textContent !== text) cursorSaid.textContent = text;
+    };
+    const later = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = setTimeout(say, CursorSayMs);
+    };
+    const moved = seq.ui.keyCursor.subscribe(later);
+    // The labels follow the pointer too: only the cursor's moves are timed (nothing per pointer move).
+    const labelled = seq.labels.current.subscribe(() => {
+      if (seq.ui.keyCursor.value || cursorSaid.textContent) later();
+    });
+    onCleanup(() => {
+      moved.unsubscribe();
+      labelled.unsubscribe();
+      if (timer !== undefined) clearTimeout(timer);
     });
   }
 
-  const root = (<div class={classes.root}>{surface}</div>) as HTMLElement;
+  const root = (
+    <div class={classes.root}>
+      {surface}
+      {cursorSaid}
+    </div>
+  ) as HTMLElement;
   // The coloring icons of the tracks (round 3), where the host offers colorings.
-  onCleanup(mountTrackGutter(viewer, surface, root));
+  onCleanup(mountTrackGutter(viewer, surface, root, band));
   return root;
 }

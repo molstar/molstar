@@ -19,6 +19,15 @@
   }
 }
 
+/* The splash under the mark: in with it, once the canvas has been empty a while and the viewer is idle. */
+/* The light runs to the canvas's right edge, under what floats there (the rail, a panel), not cut short beside it: the
+   mark alone is centred between the edges. */
+.splash {
+  position: absolute;
+  inset: 0 calc(-1 * var(--msp-canvas-right-inset, 0px)) 0 0;
+  animation: fade-in 1200ms var(--msp-ease) both;
+}
+
 /* Quiet on the canvas: the canvas's own subtle text color. Centred to whole pixels (171 × 66 at 3×: plain centring
    would put it on a half pixel and blur its lines). */
 .mark {

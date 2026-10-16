@@ -36,27 +36,25 @@ export const ReactAndPreactTabs: StoryObj = {
           <ShellStory
             loaded={true}
             mode={mockBlankMode()}
-            addOn={({ status, shell }) => {
+            tabs={({ status, shell }) => {
               const post = (text: string) => status.post(text);
               queueMicrotask(() => shell.show('react'));
-              return {
-                tabs: [
-                  {
-                    id: 'react',
-                    title: 'React',
-                    icon: 'orbit',
-                    order: 2.8,
-                    render: reactView(() => createElement(ReactPanel, { count, post }), { createRoot }),
-                  },
-                  {
-                    id: 'preact',
-                    title: 'Preact',
-                    icon: 'hexagon',
-                    order: 2.9,
-                    render: preactPanelView({ count, post }),
-                  },
-                ],
-              };
+              return [
+                {
+                  id: 'react',
+                  title: 'React',
+                  icon: 'orbit',
+                  order: 2.8,
+                  render: reactView(() => createElement(ReactPanel, { count, post }), { createRoot }),
+                },
+                {
+                  id: 'preact',
+                  title: 'Preact',
+                  icon: 'hexagon',
+                  order: 2.9,
+                  render: preactPanelView({ count, post }),
+                },
+              ];
             }}
           />
         </div>

@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type MaybeReactive, ScrollArea } from '@molstar/prism-ui';
+import { formatChord, type MaybeReactive, ScrollArea } from '@molstar/prism-ui';
 import type { AgentModel } from '../model.js';
 import { AISetup } from './ai-setup.js';
 import { classes } from './_generated/assistant-tab.module.css.js';
@@ -27,9 +27,9 @@ export interface AssistantInspect {
 }
 
 /**
- * The Assistant tab, at the rail's foot by Settings (only with the agent module included, design/agent.md §6): the
- * model it uses and the keys, then (with the Inspector) a way into its trace, tools and limits; asking happens in the
- * command menu.
+ * The Assistant tab, at the rail's foot by Settings (only with the agent module included; _spec/README.md, "The
+ * Assistant tab"): the model it uses and the keys, then (with the Inspector) a way into its trace, tools and limits;
+ * asking happens in the command menu.
  */
 export function AssistantTab(props: { agent: AgentModel; inspect?: AssistantInspect }) {
   const { inspect } = props;
@@ -48,8 +48,8 @@ export function AssistantTab(props: { agent: AgentModel; inspect?: AssistantInsp
         </section>
       ) : null}
       <p class={classes.hint}>
-        Ask from the command menu (⌘K): type what you want, then <strong>Ask AI assistant</strong>. Its work shows over
-        the canvas and in History, and undoes in one step.
+        Ask from the command menu ({formatChord({ key: 'k', mod: true })}): type what you want, then{' '}
+        <strong>Ask AI assistant</strong>. Its work shows over the canvas and in History, and undoes in one step.
       </p>
     </ScrollArea>
   );

@@ -17,9 +17,6 @@ export const classes = {
   'block': 'msp-viewer-snapshots-panel-block',
   'blockCaption': 'msp-viewer-snapshots-panel-blockCaption',
   'blockContent': 'msp-viewer-snapshots-panel-blockContent',
-  'choice': 'msp-viewer-snapshots-panel-choice',
-  'choiceHint': 'msp-viewer-snapshots-panel-choiceHint',
-  'choiceTitle': 'msp-viewer-snapshots-panel-choiceTitle',
   'description': 'msp-viewer-snapshots-panel-description',
   'descriptionField': 'msp-viewer-snapshots-panel-descriptionField',
   'empty': 'msp-viewer-snapshots-panel-empty',
@@ -39,7 +36,6 @@ export const classes = {
   'label': 'msp-viewer-snapshots-panel-label',
   'list': 'msp-viewer-snapshots-panel-list',
   'listContent': 'msp-viewer-snapshots-panel-listContent',
-  'menu': 'msp-viewer-snapshots-panel-menu',
   'menuItem': 'msp-viewer-snapshots-panel-menuItem',
   'name': 'msp-viewer-snapshots-panel-name',
   'optionsButton': 'msp-viewer-snapshots-panel-optionsButton',
@@ -49,6 +45,7 @@ export const classes = {
   'slot': 'msp-viewer-snapshots-panel-slot',
   'textarea': 'msp-viewer-snapshots-panel-textarea',
   'thumb': 'msp-viewer-snapshots-panel-thumb',
+  'trailing': 'msp-viewer-snapshots-panel-trailing',
 } as const;
 
 defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.components {
@@ -87,8 +84,12 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   }
 }
 
-.msp-viewer-snapshots-panel-optionsButton {
+.msp-viewer-snapshots-panel-trailing {
   margin-left: auto;
+  display: flex;
+}
+
+.msp-viewer-snapshots-panel-optionsButton {
   margin-right: var(--msp-space-2);
 }
 
@@ -101,6 +102,7 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 
 .msp-viewer-snapshots-panel-blockContent {
   padding: var(--msp-space-2) var(--msp-space-3);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -109,44 +111,6 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;
-}
-
-.msp-viewer-snapshots-panel-choice {
-  align-items: center;
-  gap: var(--msp-space-3);
-  min-width: 0;
-  height: 30px;
-  margin: 0 calc(-1 * var(--msp-space-2));
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
-  text-align: left;
-  display: flex;
-
-  &:hover, &:focus-visible {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-    outline: none;
-  }
-}
-
-.msp-viewer-snapshots-panel-choiceTitle {
-  color: var(--msp-color-text);
-  flex: none;
-  font-weight: 600;
-}
-
-.msp-viewer-snapshots-panel-choiceHint {
-  min-width: 0;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
-  white-space: nowrap;
-  flex: 1;
-  animation-name: msp-fade-overflow;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self inline);
-  overflow: hidden;
 }
 
 .msp-viewer-snapshots-panel-list {
@@ -227,6 +191,10 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);
@@ -319,6 +287,10 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .msp-viewer-snapshots-panel-row:hover &, .msp-viewer-snapshots-panel-row:focus-within &, &[aria-expanded="true"] {
     opacity: 1;
   }
@@ -327,14 +299,6 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
   }
-}
-
-.msp-viewer-snapshots-panel-menu {
-  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
-  padding: var(--msp-space-1);
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  display: grid;
 }
 
 .msp-viewer-snapshots-panel-menuItem {
@@ -379,6 +343,7 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 }
 
 .msp-viewer-snapshots-panel-inspectorContent {
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
   display: grid;
 }

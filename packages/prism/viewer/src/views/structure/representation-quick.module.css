@@ -1,0 +1,134 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The quick settings above a representation's whole form: a column of settings, set apart from the form below by
+   more than the settings are from each other (the inspector's gap and this margin). */
+.quick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-3);
+  margin-bottom: var(--msp-space-2);
+  font-size: var(--msp-font-size-sm);
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-2);
+}
+
+/* Opacity and size: one group, close together. */
+.ranges {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-1);
+
+  &:empty {
+    display: none;
+  }
+}
+
+/* A setting's name, and its current value beside it. */
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+}
+
+.name {
+  color: var(--msp-color-text-subtle);
+}
+
+.value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* The types: one strip, its segments the types' icons; the current one raised in it. */
+.segments {
+  display: flex;
+  padding: 2px; /* off-scale: the strip's inner edge */
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+}
+
+.segment {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-width: 0;
+  height: 30px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  &[aria-checked="true"] {
+    background: var(--msp-color-raised);
+    box-shadow:
+      0 0 0 1px var(--msp-glass-edge),
+      inset 0 0 0 1px var(--msp-selected-edge);
+    color: var(--msp-color-accent);
+  }
+}
+
+/* The color themes: tiles painted with their colors on this structure; the current one ringed. */
+.tiles {
+  display: flex;
+  gap: var(--msp-space-1);
+}
+
+.tile {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 44px;
+  height: 22px;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &[aria-checked="true"] {
+    box-shadow:
+      0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 3px var(--msp-color-text);
+  }
+}
+
+/* A theme with no legend: its name's first letter would not say more; a quiet hatch. */
+.unpainted {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--msp-color-control) 0 4px,
+    color-mix(in oklab, var(--msp-color-text-muted), transparent 75%) 4px 8px
+  );
+}
+
+/* One color: its tile shows the color with a small dot, so it reads as "one" among the palettes. */
+.one {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px; /* off-scale: centred */
+  border-radius: 50%;
+  background: var(--msp-color-bg);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 70%);
+}

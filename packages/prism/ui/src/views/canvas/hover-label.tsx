@@ -23,7 +23,15 @@ const Offset = 14;
  * it `data-msp-canvas`), not what floats over it: over the panel or the chrome there is no label, though the hovered
  * tree row highlights its part on the canvas.
  */
-export function HoverLabel(props: { model: HoverLabelModel; area: () => HTMLElement | null }) {
+export function HoverLabel(props: {
+  model: HoverLabelModel;
+  area: () => HTMLElement | null;
+  /**
+   * What the pointer must be over for the label to show (the canvas, the sequence band): over anything else in the area
+   * (a panel floating over it, whose rows highlight atoms and have their own tooltips) there is none. Default: all.
+   */
+  over?: (target: Element) => boolean;
+}) {
   const label = (
     <div class={classes.label} hidden={true} role="tooltip">
       <For each={props.model.lines}>
@@ -71,10 +79,11 @@ export function HoverLabel(props: { model: HoverLabelModel; area: () => HTMLElem
   queueMicrotask(() => {
     const area = props.area();
     if (!area) return;
+    const over = props.over;
     const onMove = (e: PointerEvent) => {
       x = e.clientX;
       y = e.clientY;
-      inside = true;
+      inside = !over || over(e.target as Element);
       dragging = e.buttons !== 0;
       schedule();
     };

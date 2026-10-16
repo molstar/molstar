@@ -8,22 +8,22 @@ not).
 
 ## Where things are
 
-| Path                                 | What                                                                                                               |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                            |
-| `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                             |
-| `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                                     |
-| `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                                  |
-| `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [.v6/prism-ui](.v6/prism-ui/README.md))                  |
-| `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [.v6/ai](.v6/ai/README.md))             |
-| `packages/sequences/*`               | Seq\*, the sequence viewer and SeqViewSpec ([AGENTS.md](packages/sequences/AGENTS.md), [.v6/seq](.v6/seq/plan.md)) |
-| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                               |
-| `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                                         |
-| `smoke/`                             | packed-consumer and browser checks                                                                                 |
-| `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                |
-| `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                  |
-| `.v6/`                               | v6 designs, plans and decisions (`designs/`, `plans/`, `prism-ui/`, `ai/`)                                         |
-| `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                                  |
+| Path                                 | What                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                                             |
+| `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                                              |
+| `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                                                      |
+| `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                                                   |
+| `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [_spec](packages/prism/viewer/_spec/README.md))                           |
+| `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [_spec](packages/ai/_spec/README.md))                    |
+| `packages/sequences/*`               | Seq\*, the sequence viewer and SeqViewSpec ([AGENTS.md](packages/sequences/AGENTS.md), [_spec](packages/sequences/_spec/README.md)) |
+| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                                                |
+| `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                                                          |
+| `smoke/`                             | packed-consumer and browser checks                                                                                                  |
+| `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                                 |
+| `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                                   |
+| `.v6/`                               | v6-wide designs and plans (`designs/`, `plans/`); a package's own decisions are in its `_spec/`                                     |
+| `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                                                   |
 
 ## Commands
 
@@ -39,7 +39,9 @@ pnpm format                # Biome (code, JSON) and Prettier (Markdown, YAML, SC
 pnpm test:unit             # unit tests (Vitest, ESM; one run for every package, `vitest.config.ts`)
 pnpm test:unit packages/ai # a folder or file filter; `pnpm test:watch` for watch mode
 pnpm test                  # lint and the unit tests
+pnpm test:live             # live agent runs on real models (opt in: keys in .env.local; costs money)
 pnpm check:workspace       # package boundaries, exports, imports, the inventory
+pnpm deploy:local          # build, then the GitHub Pages folder in deploy/data (apps, prism/, ui-storybook/)
 npx tsc -b                 # every project, by references
 ```
 
@@ -61,5 +63,6 @@ npx tsc -b                 # every project, by references
   `// @vitest-environment jsdom`); they never reach the network.
 - **User-facing changes** go into the `[Unreleased]` section of `CHANGELOG.md` (v6 collects them in
   `.v6/plans/changelog.md`); a v6 break of a public API is recorded in `.v6/plans/breaking-v6-changes.md`.
-- **Keep the docs true**: a change that moves what a `.v6` design or plan says updates it in the same commit; code
-  comments cite the design section they follow (`harness.md §6`, `contexts.md §4`).
+- **Keep the docs true**: a change that moves what a package's `_spec/` (or a `.v6` design or plan) says updates it in
+  the same commit; code comments cite the spec section they follow (`harness.md §6`, `api.md §2`). Specs are for agents:
+  terse, a rule and its reason, no history; open items go to the package's TODO.

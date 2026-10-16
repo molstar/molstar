@@ -22,6 +22,12 @@
     },
     {
       "path": "../../packages/plugin/ui"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../packages/prism/ui"
     }
   ]
 }

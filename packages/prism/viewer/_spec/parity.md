@@ -1,0 +1,106 @@
+# Parity with the v5 Viewer
+
+Each v5 Viewer feature → where it lives in the Prism viewer → its API area ([operations.md](operations.md)). The plugin
+state behind a row: [state.md](state.md). The code is the truth for how.
+
+## 1. Loading and data
+
+| v5                                             | Prism                                                               | API                     |
+| ---------------------------------------------- | ------------------------------------------------------------------- | ----------------------- |
+| Home's download actions, Open Files            | Home: registry actions as blocks; Open files drop area              | `load.action`, `.files` |
+| custom import controls (Zenodo)                | Home's `home.import` slot                                           | `zenodo.*` (§6)         |
+| drag and drop                                  | the shell's drop target (lists readable formats)                    | `load.files`            |
+| `Viewer.load*`, raw data, all models, assembly | the `loaders` feature                                               | `load.*`, `load.data`   |
+| SeqViewSpec (new)                              | `.svs`/`.svsj`/`.svsx`, `svs-url` ([sequence.md](sequence.md) §6)   | `load.svs`              |
+| URL parameters                                 | run at start, origin `url` (`runUrlLoads`; [app.md](app.md) §4)     | `load.*`                |
+| remote states                                  | Remote states card, Home's list; behind `ui.showRemoteStates`, lazy | `session.remote.*`      |
+| sessions `.molx`/`.molj`                       | Snapshots tab, drop, Export › Session & state                       | `session.*`             |
+
+## 2. The scene
+
+| v5                                         | Prism                                                                                                          | API                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Structure source (model, type, assembly)   | structure inspector's Model and Type; row menu                                                                 | `trajectory.frame`, `structure.assembly`, `.preset` |
+| crystal symmetry, unit cell                | inspector's Type; a Unit cell row                                                                              | `structure.symmetry`, `.unit-cell`                  |
+| Conformation Transform                     | inspector's Transform; row menu's Reset transform                                                              | `structure.transform`, `.transform-reset`           |
+| (new) contents                             | "Structure" group: entities, chains, built on expand                                                           | `contents.*`                                        |
+| Components, representations                | scene rows, menus, inspectors; quick settings (`model/representation-quick.ts`)                                | `component.*`, `representation.*`                   |
+| Quick styles                               | Structure tab styles; command menu                                                                             | `styles.apply`                                      |
+| generic representation controls            | extension rows in the scene tree (`ViewerExtensionUI.rows`)                                                    | the extension's (§6)                                |
+| Volume, density controls, volume streaming | volume nodes; levels (`model/volume-levels.ts`); transfer function (`model/volume-transfer.ts`); streaming row | `volume.*`                                          |
+| Particles                                  | particle nodes                                                                                                 | `particles.*`                                       |
+| Measurements                               | Selection › Measure; measurement nodes                                                                         | `measure.*`                                         |
+| Superposition                              | Selection › Superpose; Superposed list (new)                                                                   | `superpose.*` (lazy)                                |
+| State tree                                 | State tree tab (lazy)                                                                                          | `state.*`                                           |
+| Undo                                       | the viewer's history; History tab                                                                              | `history.*`                                         |
+
+## 3. Selection and focus
+
+| v5                                                   | Prism                                                                          | API                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------ |
+| selection mode, granularity                          | canvas mode switch; Selection tab summary                                      | `select.mode`, `.granularity`  |
+| selection toolbar, theme layers, Modify by Selection | selection bar, Selection tab's style and layer list ([targets.md](targets.md)) | `select.*`, `representation.*` |
+| focus, its history, the picker's entries             | `focus.set` targets with completions; "Focus again…"                           | `focus.*`                      |
+| procedural animation                                 | Animation card › Procedural                                                    | `animation.wiggle`             |
+
+## 4. The canvas
+
+| v5                                                    | Prism                                                                         | API                                                  |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
+| camera reset, zoom, orient, reset axes                | toolbar Reset menu                                                            | `camera.*`                                           |
+| screenshot                                            | Export › Image                                                                | `export.image`                                       |
+| camera info, state import/export                      | Export › Camera, Export › Session & state                                     | `camera.get/set`, `export.viewport`, `load.viewport` |
+| canvas settings                                       | Canvas settings card                                                          | `canvas.*`                                           |
+| illumination, XR                                      | Canvas card; toolbar Rendering items (XR only where WebXR is)                 | `canvas.illumination`, `.xr`                         |
+| expand, fullscreen                                    | toolbar `expand`                                                              | `view.expand`, `.fullscreen`                         |
+| toggle controls                                       | the rail; `ui.collapsed`                                                      | options                                              |
+| animation, snapshot stepper, description, transitions | Animation card; playback card (opens by itself for a story)                   | `animation.*`, `snapshot.*`, `trajectory.*`          |
+| snapshot markdown (`markdownExtensions`), audio       | the playback card's `Markdown` with a host; audio bar                         | `snapshot.link`                                      |
+| hover labels                                          | hover label at the cursor                                                     | —                                                    |
+| toasts, task progress, log                            | status column (`sources/toasts.ts`), status pill, busy overlay, History's Log | —                                                    |
+
+## 5. Panels and settings
+
+| v5                       | Prism                                                                      | API                      |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------ |
+| sequence viewer          | the sequence band ([sequence.md](sequence.md)); no pickers                 | `sequence.*`             |
+| Snapshots                | Snapshots tab                                                              | `snapshot.*`             |
+| Settings, behaviors tree | Settings tab's groups                                                      | `settings.*`             |
+| Help                     | Help tab: prose (`views/help/help-prose.tsx`), bindings (`ui/bindings.ts`) | —                        |
+| layout                   | the shell                                                                  | `options.ui.*`, `view.*` |
+| keyboard                 | the plugin's canvas keys; scoped command shortcuts (README decision 29)    | —                        |
+
+## 6. Extensions
+
+Commands first (README decision 27); the core does not depend on them; the app composes them
+(`apps/prism-viewer/src/extensions.ts`).
+
+| Extension                                            | Prism                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| model-export, geo-export                             | Export › Models, Geometry; `model-export.export`, `geo-export.export`                                  |
+| video-export (lazy)                                  | Export › Image › Animation (`export.picture`); `video.*`                                               |
+| zenodo (lazy)                                        | `home.import`; `zenodo.list`, `zenodo.load`                                                            |
+| assembly-symmetry                                    | `assembly-symmetry.*`; a structure row (`assembly-symmetry.row.symmetry`)                              |
+| kinemage                                             | `kinemage.*`; no view                                                                                  |
+| model-archive (pLDDT, QMEAN, PAE)                    | themes, `annotations.apply`, pLDDT track; PAE card (`model-archive.overlay.pae`, [marks.md](marks.md)) |
+| anvil                                                | `membrane.*`; a structure row (`anvil.row.membrane`)                                                   |
+| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds | data-only (`data-extensions.ts`): generic commands, `annotations.apply`; no SB-NCBR tunnels            |
+| MolViewSpec                                          | the base: `load.mvs`, snapshots                                                                        |
+| volumes-and-segmentations, debug-helpers             | not carried over                                                                                       |
+
+## 6a. Not copied verbatim
+
+- **"Automatic (w/ Annotation)" is not a preset** (README decision 27): after a load, Home's result line offers what a
+  new structure carries (`createAnnotationOffer`, `model/home.ts`: the first non-built-in from `annotations.list`), Show
+  runs `annotations.apply` as one step.
+
+## 9. The Viewer API and embedding
+
+| v5                                       | Prism                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `molstar.Viewer.create`, a script global | `createPrismViewer`, `<prism-viewer>` ([app.md](app.md) §3); the global dropped (breaking-v6-changes.md) |
+| `PluginExtensions.*`                     | `@molstar/mvs-builder`, extensions (§6), `plugin.config`, `viewer.plugin` (api.md §8)                    |
+| `Viewer.structureInteractivity`          | `highlight.set`, `select.set`, `focus.set` over targets                                                  |
+| `Viewer.load*`, `setRemoteSnapshot`      | `load.*`, `session.open` with `id`                                                                       |
+| `Viewer.handleResize()`                  | none: the canvas follows its host                                                                        |
+| `viewer.subscribe`, `Viewer.instances`   | `viewer.events`, `viewer.sources` ([api.md](api.md) §6); no instance registry                            |

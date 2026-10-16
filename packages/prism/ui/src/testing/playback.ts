@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SnapshotStepperModel, TrajectoryControlsModel } from '../model/playback.js';
+import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../model/playback.js';
 import { observableState } from '../reactive/observable-state.js';
 
 const Story = [
@@ -85,6 +85,37 @@ export function mockTrajectory(count = 20, label = '1TQN'): TrajectoryControlsMo
       isPlaying.set(!isPlaying.value);
       clearInterval(timer);
       if (isPlaying.value) timer = setInterval(() => index.set((index.value + 1) % count), 150);
+    },
+  };
+}
+
+/** A snapshot's transition of `duration` ms, played in frames of `step` ms. */
+export function mockTransition(duration = 2000, step = 100): SnapshotTransitionModel {
+  const time = observableState(0);
+  const isPlaying = observableState(false);
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const stop = () => {
+    clearInterval(timer);
+    isPlaying.set(false);
+  };
+  return {
+    duration: observableState(duration).asReadonly,
+    step: observableState(step).asReadonly,
+    time: time.asReadonly,
+    isPlaying: isPlaying.asReadonly,
+    seek: (t) => {
+      stop();
+      time.set(Math.max(0, Math.min(duration, t)));
+    },
+    togglePlay: () => {
+      if (isPlaying.value) return stop();
+      time.set(0);
+      isPlaying.set(true);
+      timer = setInterval(() => {
+        const next = time.value + step;
+        time.set(Math.min(duration, next));
+        if (next >= duration) stop();
+      }, step);
     },
   };
 }

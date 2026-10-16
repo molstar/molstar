@@ -9,7 +9,12 @@ import { produce } from '@molstar/core/util/produce';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
-import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import {
+  Canvas3D,
+  Canvas3DContext,
+  DefaultCanvas3DParams,
+  type PartialCanvas3DProps,
+} from '@molstar/graphics/canvas3d/canvas3d';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
@@ -276,6 +281,24 @@ export class PluginContext {
    */
   readonly customState: unknown = Object.create(null);
 
+  /**
+   * Sets the canvas props and emits `events.canvas3d.settingsUpdated`, so a reader of `canvas3d.props` can follow.
+   * Prefer this (or `PluginCommands.Canvas3D.SetSettings`) over `canvas3d.setProps`, which emits nothing. Not for
+   * per-frame use: it emits on every call.
+   */
+  setCanvas3DProps(props: PartialCanvas3DProps) {
+    if (!this.canvas3d) return;
+    this.canvas3d.setProps(props);
+    this.events.canvas3d.settingsUpdated.next(void 0);
+  }
+
+  /** Sets the canvas context props (transparency, resolution, ...) and emits `events.canvas3d.settingsUpdated`. */
+  setCanvas3DContextProps(props: Partial<Canvas3DContext.Props>) {
+    if (!this.canvas3dContext) return;
+    this.canvas3dContext.setProps(props);
+    this.events.canvas3d.settingsUpdated.next(void 0);
+  }
+
   async initViewerAsync(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
     return this._initViewer(canvas, container, canvas3dContext);
   }
@@ -301,7 +324,7 @@ export class PluginContext {
       return false;
     }
     if (options?.checkeredCanvasBackground) {
-      this.canvas3d?.setProps({ checkeredTransparentBackground: true });
+      this.setCanvas3DProps({ checkeredTransparentBackground: true });
     }
     this.container = container;
     return true;
@@ -359,7 +382,7 @@ export class PluginContext {
 
       const backgroundColor = Color(0xfcfbf9);
       if (!props) {
-        this.canvas3d?.setProps({ renderer: { backgroundColor } });
+        this.setCanvas3DProps({ renderer: { backgroundColor } });
       } else {
         if (props.renderer?.backgroundColor === void 0) {
           props = produce(props, (p) => {
@@ -367,7 +390,7 @@ export class PluginContext {
             else p.renderer = { backgroundColor };
           });
         }
-        this.canvas3d?.setProps(props);
+        this.setCanvas3DProps(props);
       }
       this.animationLoop.start();
       (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
@@ -447,7 +470,7 @@ export class PluginContext {
   }
 
   clear(resetViewportSettings = false) {
-    if (resetViewportSettings) this.canvas3d?.setProps(DefaultCanvas3DParams);
+    if (resetViewportSettings) this.setCanvas3DProps(DefaultCanvas3DParams);
     return PluginCommands.State.RemoveObject(this, { state: this.state.data, ref: StateTransform.RootRef });
   }
 

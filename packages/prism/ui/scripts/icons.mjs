@@ -34,6 +34,7 @@ const LUCIDE_VERSION = '1.48.0';
 const ICONS = [
   'house',
   'swatch-book',
+  'book-open',
   'layers',
   'list-tree',
   'settings',
@@ -58,6 +59,8 @@ const ICONS = [
   'plus',
   'minus',
   'play',
+  'volume-2',
+  'volume-x',
   'clapperboard',
   'square',
   'pause',
@@ -146,6 +149,10 @@ const ICONS = [
   'move-3d',
   'refresh-cw',
   'list-restart',
+  // History (origins of a step).
+  'history',
+  'user',
+  'bot',
 ];
 
 const require = createRequire(import.meta.url);

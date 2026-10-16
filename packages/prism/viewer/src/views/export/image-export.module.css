@@ -32,9 +32,14 @@
   box-shadow: 0 0 0 1px var(--msp-glass-edge);
 }
 
-/* What is cut away is dimmed; the box itself is a hairline in the text color (dashed while it follows the content). */
+/*
+ * What is cut away is dimmed; the box itself is a hairline in the text color (dashed while it follows the content). It
+ * moves when dragged and resizes from its handles; while dragged it follows the pointer without easing.
+ */
 .crop {
   position: absolute;
+  cursor: move;
+  touch-action: none;
   border: 1px solid color-mix(in oklab, var(--msp-color-text), transparent 30%);
   border-radius: 1px;
   box-shadow: 0 0 0 999px color-mix(in oklab, var(--msp-color-bg), transparent 45%);
@@ -46,6 +51,79 @@
 
   &[data-auto] {
     border-style: dashed;
+  }
+
+  &[data-dragging] {
+    transition: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-accent);
+    outline-offset: 1px;
+  }
+}
+
+/* The edges' and corners' grips: small squares on the hairline, shown on hover and focus. */
+.handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px; /* off-scale: centres the grip on the hairline */
+  border-radius: 1px;
+  background: var(--msp-color-text);
+  opacity: 0;
+  transition: opacity var(--msp-motion-fast) var(--msp-ease);
+
+  .crop:hover > &,
+  .crop:focus-visible > &,
+  .crop[data-dragging] > & {
+    opacity: 0.8;
+  }
+
+  &[data-edge="n"],
+  &[data-edge="s"] {
+    left: 50%;
+    cursor: ns-resize;
+  }
+
+  &[data-edge="e"],
+  &[data-edge="w"] {
+    top: 50%;
+    cursor: ew-resize;
+  }
+
+  &[data-edge="n"],
+  &[data-edge="ne"],
+  &[data-edge="nw"] {
+    top: 0;
+  }
+
+  &[data-edge="s"],
+  &[data-edge="se"],
+  &[data-edge="sw"] {
+    top: 100%;
+  }
+
+  &[data-edge="w"],
+  &[data-edge="nw"],
+  &[data-edge="sw"] {
+    left: 0;
+  }
+
+  &[data-edge="e"],
+  &[data-edge="ne"],
+  &[data-edge="se"] {
+    left: 100%;
+  }
+
+  &[data-edge="nw"],
+  &[data-edge="se"] {
+    cursor: nwse-resize;
+  }
+
+  &[data-edge="ne"],
+  &[data-edge="sw"] {
+    cursor: nesw-resize;
   }
 }
 

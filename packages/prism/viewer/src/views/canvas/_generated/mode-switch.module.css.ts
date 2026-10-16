@@ -40,8 +40,6 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   width: var(--msp-stack-row, 40px);
   height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   place-items: center;
   display: grid;
 
@@ -52,6 +50,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 
   &[aria-pressed="true"] {
     background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-text);
   }
 }
@@ -77,7 +76,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   transform: translateY(4px);
 }
 
-:where(:has( > * .msp-viewer-mode-switch-select:hover,  > * .msp-viewer-mode-switch-select:focus-visible)) > .msp-viewer-mode-switch-level, .msp-viewer-mode-switch-level:hover, .msp-viewer-mode-switch-level:focus-within, .msp-viewer-mode-switch-level:has([aria-expanded="true"]) {
+:where(:has( > * .msp-viewer-mode-switch-select:hover,  > * .msp-viewer-mode-switch-select:focus-visible)) > .msp-viewer-mode-switch-level, .msp-viewer-mode-switch-level:hover, .msp-viewer-mode-switch-level:has(:focus-visible), .msp-viewer-mode-switch-level:has([aria-expanded="true"]) {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
@@ -86,8 +85,14 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 
 @media (hover: none) {
   .msp-viewer-mode-switch-level {
+    left: auto;
+    right: 0;
+  }
+
+  :where(:has( > * .msp-viewer-mode-switch-select:focus)) > .msp-viewer-mode-switch-level {
     opacity: 1;
     visibility: visible;
+    transition-delay: 0s;
     transform: none;
   }
 }
@@ -138,6 +143,12 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   &[aria-checked="true"] {
     color: var(--msp-color-accent);
     font-weight: 600;
+  }
+}
+
+@media (pointer: coarse) {
+  .msp-viewer-mode-switch-levelRow {
+    height: max(28px, var(--msp-touch-target, 0px));
   }
 }
 

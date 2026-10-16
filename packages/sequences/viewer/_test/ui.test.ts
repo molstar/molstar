@@ -151,7 +151,7 @@ describe('setActive: a covered or hidden viewer', () => {
   });
 
   it('is refused after dispose, as the other verbs are', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     ctx.dispose();
     expect(() => ctx.setActive(false)).toThrow(/after dispose/);
   });
@@ -161,7 +161,7 @@ describe('tasks and issues', () => {
   it('busy only after its delay, until the work ends (ported)', async () => {
     const io = manualLoaders();
     const scheduler = manualScheduler();
-    const ctx = createSeqViewer(undefined, { loaders: io.loaders, scheduler });
+    const ctx = createSeqViewer(DefaultSeqViewerSpec(), { loaders: io.loaders, scheduler });
     const b = createSeqViewSpec();
     b.data.sequence({ ref: 's', source: { uri: 'https://x.test/slow.fa', format: 'fasta' } });
     b.view({ ref: 'v', label: 'V' }).track().letters();

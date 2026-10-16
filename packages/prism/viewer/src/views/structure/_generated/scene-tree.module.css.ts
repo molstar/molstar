@@ -18,6 +18,9 @@ export const classes = {
   'empty': 'msp-viewer-scene-tree-empty',
   'expander': 'msp-viewer-scene-tree-expander',
   'hidden': 'msp-viewer-scene-tree-hidden',
+  'inlineIcons': 'msp-viewer-scene-tree-inlineIcons',
+  'inlineItem': 'msp-viewer-scene-tree-inlineItem',
+  'item': 'msp-viewer-scene-tree-item',
   'keep': 'msp-viewer-scene-tree-keep',
   'kind': 'msp-viewer-scene-tree-kind',
   'label': 'msp-viewer-scene-tree-label',
@@ -25,11 +28,15 @@ export const classes = {
   'loading': 'msp-viewer-scene-tree-loading',
   'menu': 'msp-viewer-scene-tree-menu',
   'menuItem': 'msp-viewer-scene-tree-menuItem',
+  'more': 'msp-viewer-scene-tree-more',
+  'moreCount': 'msp-viewer-scene-tree-moreCount',
   'picked': 'msp-viewer-scene-tree-picked',
   'row': 'msp-viewer-scene-tree-row',
+  'rowBody': 'msp-viewer-scene-tree-rowBody',
   'subChevron': 'msp-viewer-scene-tree-subChevron',
   'subItems': 'msp-viewer-scene-tree-subItems',
   'subMenu': 'msp-viewer-scene-tree-subMenu',
+  'swatch': 'msp-viewer-scene-tree-swatch',
   'tree': 'msp-viewer-scene-tree-tree',
 } as const;
 
@@ -46,13 +53,25 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   font-size: var(--msp-font-size-sm);
 }
 
+.msp-viewer-scene-tree-item {
+  outline: none;
+}
+
+.msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-row {
+  box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+}
+
+.msp-viewer-scene-tree-tree:focus-visible {
+  outline: none;
+}
+
 .msp-viewer-scene-tree-row {
   align-items: center;
   gap: var(--msp-space-2);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 26px;
   min-width: 0;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
+  content-visibility: auto;
+  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -74,9 +93,9 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-expander {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
-  width: 18px;
-  height: 18px;
   color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
   flex: none;
@@ -127,6 +146,17 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   overflow: hidden;
 }
 
+.msp-viewer-scene-tree-swatch {
+  background: conic-gradient(var(--msp-accent-red) 0 25%,
+    var(--msp-accent-orange) 0 50%,
+    var(--msp-accent-green) 0 75%,
+    var(--msp-accent-blue) 0);
+  border-radius: 50%;
+  flex: none;
+  width: 8px;
+  height: 8px;
+}
+
 .msp-viewer-scene-tree-actions {
   flex: none;
   gap: 1px;
@@ -134,13 +164,17 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-action {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
-  width: 22px;
-  height: 22px;
   color: var(--msp-color-text-muted);
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .msp-viewer-scene-tree-row:hover &, &:focus-visible {
     opacity: 1;
@@ -153,7 +187,9 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-actionSlot {
-  width: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
+  place-items: center;
+  display: grid;
 }
 
 .msp-viewer-scene-tree-keep {
@@ -173,12 +209,18 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   display: grid;
+
+  &[data-popover], &[data-flat] {
+    background: none;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 .msp-viewer-scene-tree-menuItem {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
@@ -210,6 +252,32 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   display: grid;
 }
 
+.msp-viewer-scene-tree-more {
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  width: 100%;
+  height: 26px;
+  padding-left: calc(var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    22px);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  line-height: 26px;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-scene-tree-moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
 .msp-viewer-scene-tree-loading {
   height: 26px;
   padding-left: calc(var(--msp-space-1) +
@@ -219,6 +287,20 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 26px;
+}
+
+.msp-viewer-scene-tree-inlineItem {
+  cursor: default;
+  grid-template-columns: 14px 1fr auto;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.msp-viewer-scene-tree-inlineIcons {
+  gap: 2px;
+  display: flex;
 }
 
 .msp-viewer-scene-tree-menuItem[data-danger] {
@@ -234,6 +316,14 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
     background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
     color: var(--msp-color-danger);
   }
+}
+
+.msp-viewer-scene-tree-rowBody {
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+  display: grid;
 }
 }
 `);

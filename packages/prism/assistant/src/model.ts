@@ -8,7 +8,7 @@
 
 import type { ReadonlyState } from '@molstar/prism-ui';
 
-/** Who ran a command (design/agent.md §4): shown in the history, so an agent's work is never mistaken for the person's. */
+/** Who ran a command (_spec/README.md, "History"): so an agent's work is never mistaken for the person's. */
 export type RunSource =
   | { kind: 'person' }
   | { kind: 'assistant' }
@@ -34,6 +34,8 @@ export interface CommandRun {
   detail?: string;
   /** Leaves the page or cannot be undone: it waited for the person's Allow. */
   approval?: boolean;
+  /** Waiting for an address no rule allows yet: its host, which "Allow this domain" allows (agent.md §4). */
+  domain?: string;
   time: Date;
   durationMs?: number;
 }
@@ -41,8 +43,8 @@ export interface CommandRun {
 export type TurnStatus = 'thinking' | 'working' | 'waiting' | 'done' | 'stopped' | 'failed';
 
 /**
- * An agent turn: one request and everything done for it (design/agent.md §5). A checkpoint is taken before its first
- * change; undoing the turn restores it (data, camera, selection), however many commands ran.
+ * An agent turn: one request and everything done for it (_spec/README.md, "The turn card"). A checkpoint is taken
+ * before its first change; undoing the turn restores it (data, camera, selection), however many commands ran.
  */
 export interface AgentTurn {
   id: string;
@@ -78,13 +80,13 @@ export type HistoryItem = { kind: 'run'; run: CommandRun } | { kind: 'turn'; tur
 export type KeyScope = 'reload' | 'session' | 'browser';
 
 /**
- * A model provider (any-model-adapters: Anthropic, Google, OpenAI, or an OpenAI-compatible endpoint of one's own, e.g.
+ * A model provider (Anthropic, Google, OpenAI, or an OpenAI-compatible endpoint of one's own, e.g.
  * OpenRouter, Ollama, vLLM). Keys go only to their provider.
  */
 export interface AIProvider {
   id: string;
   label: string;
-  /** The adapter family: how it is called. */
+  /** The provider family: how it is called. */
   family: 'anthropic' | 'google' | 'openai';
   /** One's own: an OpenAI-compatible endpoint (https, or http on localhost). */
   baseURL?: string;
@@ -92,6 +94,24 @@ export interface AIProvider {
   key?: { from: 'here'; scope: KeyScope } | { from: 'server' };
   /** Models offered for it (the default first). */
   models: readonly string[];
+}
+
+/**
+ * An own endpoint's limits when the person gives none: conservative, as a model the catalog does not know may be
+ * small (a provider asks for limits for a foreign endpoint: `modelLimits`, which `settings-model.ts` gives).
+ */
+export const OwnLimits = { contextWindowTokens: 32_768, maxOutputTokens: 4_096 } as const;
+
+/** What is wrong with an own endpoint's limits (positive whole numbers, the output within the window), if anything. */
+export function checkLimits(limits: { contextWindow?: number; maxOutputTokens?: number }): string | undefined {
+  const { contextWindow, maxOutputTokens } = limits;
+  for (const value of [contextWindow, maxOutputTokens])
+    if (value !== undefined && (!Number.isSafeInteger(value) || value <= 0))
+      return 'The context window and the max output are whole numbers of tokens, above zero.';
+  const window = contextWindow ?? OwnLimits.contextWindowTokens;
+  const output = maxOutputTokens ?? OwnLimits.maxOutputTokens;
+  if (output >= window) return `The max output (${output}) must be less than the context window (${window}).`;
+  return undefined;
 }
 
 /** The model the assistant uses (from the next request on). */
@@ -112,7 +132,10 @@ export interface AISettingsModel {
   refreshModels(provider?: string): Promise<void>;
   /** Asks an endpoint not added yet which models it offers (OpenAI-compatible `/models`). */
   listModels(endpoint: { baseURL: string; key: string }): Promise<readonly string[]>;
-  /** One's own OpenAI-compatible endpoint (name, URL, which API, key, its models). */
+  /**
+   * One's own OpenAI-compatible endpoint (name, URL, which API, key, its models, and optionally its models' limits in
+   * tokens: 32,768 of context and 4,096 of output when not given).
+   */
   addProvider(own: {
     label: string;
     baseURL: string;
@@ -120,6 +143,8 @@ export interface AISettingsModel {
     key: string;
     scope: KeyScope;
     models: readonly string[];
+    contextWindow?: number;
+    maxOutputTokens?: number;
   }): void;
 }
 
@@ -145,6 +170,11 @@ export interface AgentModel {
   stop(): void;
   /** Answers a run waiting for approval. */
   approve(runId: string, allow: boolean): void;
+  /**
+   * Allows the waiting call and its host from now on: for this session, or kept in this browser (agent.md §4); the
+   * rules are listed in the Storage view, each with Forget.
+   */
+  allowDomain?(runId: string, scope: 'session' | 'browser'): void;
   /** Restores the checkpoint before the turn (only the latest turn has one, until the next action). */
   undo(turnId: string): void;
   /** Closes the turn's card to its line (a running turn goes on). */

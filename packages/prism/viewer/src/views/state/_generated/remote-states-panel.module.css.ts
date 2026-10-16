@@ -157,6 +157,10 @@ defineStyles('viewer/views/state/remote-states-panel.module.css', `@layer msp.co
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .msp-viewer-remote-states-panel-row:hover &, &:focus-visible, &[aria-expanded="true"] {
     opacity: 1;
   }

@@ -17,7 +17,18 @@
       "molstar-src": "./src/quality-assessment/pairwise/ui.tsx",
       "types": "./lib/quality-assessment/pairwise/ui.d.ts",
       "import": "./lib/quality-assessment/pairwise/ui.js"
-    }
+    },
+    "./pae/ui": {
+      "molstar-src": "./src/pae/ui.tsx",
+      "types": "./lib/pae/ui.d.ts",
+      "import": "./lib/pae/ui.js"
+    },
+    "./pae/plot": {
+      "molstar-src": "./src/pae/plot.tsx",
+      "types": "./lib/pae/plot.d.ts",
+      "import": "./lib/pae/plot.js"
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -39,7 +50,9 @@
     "@molstar/query-language": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
-    "@molstar/io": "workspace:*"
+    "@molstar/io": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

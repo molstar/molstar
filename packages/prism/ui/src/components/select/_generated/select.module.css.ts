@@ -15,10 +15,15 @@ export const classes = {
   'check': 'msp-select-check',
   'chevron': 'msp-select-chevron',
   'floating': 'msp-select-floating',
+  'group': 'msp-select-group',
+  'groupBody': 'msp-select-groupBody',
+  'groupChevron': 'msp-select-groupChevron',
+  'groupHead': 'msp-select-groupHead',
   'label': 'msp-select-label',
   'list': 'msp-select-list',
   'list-in': 'msp-select-list-in',
   'listContent': 'msp-select-listContent',
+  'menuPopover': 'msp-select-menuPopover',
   'option': 'msp-select-option',
   'select': 'msp-select-select',
 } as const;
@@ -39,10 +44,10 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   display: flex;
 
   &[data-size="sm"] {
@@ -124,6 +129,47 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   }
 }
 
+.msp-select-group {
+  display: grid;
+}
+
+.msp-select-groupHead {
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-align: left;
+  font-weight: 600;
+  display: flex;
+
+  &:hover, &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+}
+
+.msp-select-groupChevron {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+  flex: none;
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+.msp-select-groupBody {
+  padding-left: var(--msp-space-3);
+  display: grid;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .msp-select-check {
   visibility: hidden;
   flex: none;
@@ -147,6 +193,7 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 
   & .msp-select-option {
     white-space: nowrap;
+    min-height: 24px;
   }
 
   & > .msp-select-list {
@@ -154,6 +201,18 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
     box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
       var(--msp-shadow-overlay);
   }
+}
+
+.msp-select-menuPopover {
+  min-width: 180px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+  font-size: var(--msp-font-size-sm);
+  animation: msp-select-list-in var(--msp-motion-fast) var(--msp-ease);
+  display: grid;
 }
 }
 `);

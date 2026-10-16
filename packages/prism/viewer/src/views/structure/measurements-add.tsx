@@ -10,7 +10,7 @@
 
 import { distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
-import { ParamsForm } from '@molstar/prism-ui';
+import { bind, ParamsForm } from '@molstar/prism-ui';
 import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
@@ -90,7 +90,13 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
         <Icon name="chevron-right" size={14} class={classes.chevron} />
         Options
       </button>
-      <Show when={options}>{() => <ParamsForm form={model.options} />}</Show>
+      <Show when={options}>
+        {() => {
+          // The form follows the manager while it shows (a hidden section holds no subscription).
+          if (model.optionValues) bind(model.optionValues, (v) => model.loadOptions?.(v));
+          return <ParamsForm form={model.options} />;
+        }}
+      </Show>
     </div>
   );
 }
@@ -116,8 +122,15 @@ function PointRow(props: {
           <Icon name="grip-vertical" size={13} />
         </span>
       </span>
-      <button type="button" class={classes.pointLabel} title="Focus" onClick={() => model.focusPoint(point.id)}>
-        {point.label}
+      {/* The short form; the full label (where the pick is) in the tooltip. */}
+      <button
+        type="button"
+        class={classes.pointLabel}
+        title={point.label}
+        aria-label={`Focus ${point.label}`}
+        onClick={() => model.focusPoint(point.id)}
+      >
+        {point.short ?? point.label}
       </button>
       <span class={classes.pointActions}>
         <button

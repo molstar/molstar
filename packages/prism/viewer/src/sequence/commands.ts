@@ -13,7 +13,7 @@ import type { SequenceViewer } from './model.js';
 import { LetterSchemes } from './palette.js';
 import type { TracksRail } from './presets.js';
 
-// The sequence's commands (prism-sequence.md §4): the one way to change what the sequence shows. The canvas stack's
+// The sequence's commands (sequence.md §8): the one way to change what the sequence shows. The canvas stack's
 // Sequence menu runs them, so does the command menu; `view.sequence` (show or hide) is the shell's own.
 
 /** The overlay card the legend is in (registered by the viewer mode). */
@@ -31,13 +31,28 @@ const Rails: readonly { id: string; label: string; rail: TracksRail }[] = [
 const schemeId = (name: string | null) => `sequence.colors.${name === null ? 'none' : name.replace(':', '-')}`;
 const schemeLabel = (name: string | null) => (name === null ? 'No colors' : (colorScheme(name)?.label ?? name));
 
-export function sequenceCommands(viewer: SequenceViewer, shell: ShellModel): CommandDefinition<any>[] {
+export function sequenceCommands(
+  viewer: SequenceViewer,
+  shell: ShellModel,
+  /** The viewer's API (the person's): style, colors and the rail change through it, as steps (sequence.md §7). */
+  api?: { run(id: string, values?: Readonly<Record<string, unknown>>): Promise<unknown> },
+): CommandDefinition<any>[] {
   const hide = () => {
     if (shell.dock('top').active.value) shell.toggle('top');
   };
   const show = (style: 'compact' | 'tracks') => {
-    viewer.setStyle(style);
+    if (api) void api.run('sequence.style', { style: style === 'compact' ? 'text' : 'tracks' });
+    else viewer.setStyle(style);
     shell.show('sequence');
+  };
+  const setRail = (rail: TracksRail) => {
+    if (api)
+      void api.run('sequence.rail', { navigator: rail.navigator, ...(rail.height ? { height: rail.height } : {}) });
+    else viewer.setRail(rail);
+  };
+  const color = (letters: string | null) => {
+    if (api) void api.run('sequence.colors', { scheme: letters ?? 'none' });
+    else viewer.setTheme({ letters });
   };
   return [
     {
@@ -70,7 +85,7 @@ export function sequenceCommands(viewer: SequenceViewer, shell: ShellModel): Com
         title: `Sequence tracks rail: ${r.label.toLowerCase()}`,
         category: 'Sequence',
         icon: 'ruler',
-        run: () => (viewer.setRail(r.rail), show('tracks'), done(`Sequence rail: ${r.label.toLowerCase()}`)),
+        run: () => (setRail(r.rail), show('tracks'), done(`Sequence rail: ${r.label.toLowerCase()}`)),
       }),
     ),
     ...LetterSchemes.map(
@@ -79,7 +94,7 @@ export function sequenceCommands(viewer: SequenceViewer, shell: ShellModel): Com
         title: name === null ? 'Sequence: no colors' : `Sequence colors: ${schemeLabel(name)}`,
         category: 'Sequence',
         icon: 'palette',
-        run: () => (viewer.setTheme({ letters: name }), done(`Sequence colors: ${schemeLabel(name).toLowerCase()}`)),
+        run: () => (color(name), done(`Sequence colors: ${schemeLabel(name).toLowerCase()}`)),
       }),
     ),
     {

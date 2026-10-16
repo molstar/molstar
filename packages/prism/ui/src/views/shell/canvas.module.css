@@ -48,11 +48,8 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: var(--msp-rail-button, 40px);
+  height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
   color: var(--msp-color-text-muted);
-  transition:
-    background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
 
   &:hover {
     background: var(--msp-color-hover);
@@ -61,6 +58,8 @@
 
   &[aria-pressed="true"] {
     background: var(--msp-color-control);
+    /* Marked by more than a shade where contrast matters (theme.css, --msp-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
 }
@@ -79,6 +78,8 @@
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
   overflow: hidden;
+  /* Its size is its place's, and it clips: what changes inside stays inside (styling.md §5). */
+  contain: content;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -123,11 +124,22 @@
 
 .cardTitle {
   flex: 1;
+  /* A heading (h2: heading navigation finds the card), in the header's type. */
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .cardBody {
   /* The rest of the card's height: content can fill it (a list that scrolls on its own) or scroll as a whole. */
   flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A card whose view fills it (`fill`): the view takes the body's height and scrolls its own parts. */
+.cardBodyFill {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
   min-height: 0;
 }
 
@@ -146,9 +158,23 @@
 }
 
 .stack {
-  --msp-stack-row: 34px;
+  /* Compact: 38px, not the panels' 44 (still well over WCAG's 24): the canvas' own buttons stay small beside the
+     molecule (accessibility.md). */
+  --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
 
   position: relative;
+  /* In and out as the sequence band does (opacity only): in as it gets its buttons, out as the canvas empties (they
+     stay `CanvasStackFadeMs` for it). */
+  transition: opacity var(--msp-motion-fade) var(--msp-ease-reveal);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  &[data-quiet] {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /* The compact rail's toggle: centered in the rail's column (44px, at the right edge), at the corner row's bottom, where
@@ -205,6 +231,12 @@
 .stack .tool {
   width: var(--msp-stack-row);
   height: var(--msp-stack-row);
+
+  /* Compact: the icons a size down with the buttons. */
+  [data-mode="compact"] & svg {
+    width: 18px;
+    height: 18px;
+  }
   flex: none;
 }
 
@@ -397,13 +429,20 @@
   }
 }
 
-/* Narrow: the corner on a row of its own, above the status. */
+/* Narrow: the corner takes the row; the status floats above it, growing upward, so a message coming and going moves
+   neither the toolbar nor the canvas. */
 @container bottom-bar (width < 560px) {
   .bottomGrid {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "corner"
-      "status";
+    grid-template-areas: "corner";
+  }
+
+  .bottomGrid > .status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + var(--msp-space-2));
   }
 }
 
@@ -443,7 +482,7 @@
   gap: var(--msp-space-2);
   max-width: 100%;
   /* One height for everything along the bottom of the canvas (status, tasks, the selection bar). */
-  height: 34px;
+  height: max(34px, var(--msp-touch-target, 0px));
   overflow: hidden;
   padding: 0 0 0 var(--msp-space-3);
   border-radius: var(--msp-radius-lg);
@@ -529,10 +568,11 @@
 
 .pillButton {
   /* Edge to edge, like the canvas stack's buttons: the full height, square, at the pill's end. */
+  position: relative;
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
+  width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
   color: var(--msp-color-text-muted);
 
@@ -542,8 +582,59 @@
   }
 }
 
+/* A line that goes on its own (a finished turn): a ring around its ✕, drawn down over the time left; held with the
+   line's hover or focus (as its timer). */
+.countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  pointer-events: none;
+
+  & circle {
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 1.5;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+    animation: countdown var(--msp-countdown, 8s) linear forwards;
+  }
+
+  .pill:hover &,
+  .pill:focus-within & {
+    & circle {
+      animation-play-state: paused;
+    }
+  }
+}
+
+@keyframes countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    display: none;
+  }
+}
+
 /* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
    halo of the background color so it reads over the molecule too. */
+/* Read by screen readers, not shown (the pill shows the same message). */
+.status .announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .status .pill {
   /* Its text's own height (no box to center in). Indented as a framed pill's content would be (no frame to set it
      off the canvas edge). */
@@ -574,15 +665,20 @@
 
 /* Compact: More at the end of the bottom tab bar; its list opens just above it. */
 .railMenu {
-  position: relative;
   display: contents;
+}
+
+/* More and its list: the list is placed against this box (`.railMenu` has none: its buttons sit in the bar). */
+.railMenuAnchor {
+  position: relative;
+  display: grid;
 }
 
 .railMenuButton {
   display: grid;
   place-items: center;
   width: 44px;
-  height: 40px;
+  height: max(40px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
 
@@ -607,52 +703,6 @@
     var(--msp-glass-shadow),
     0 8px 24px rgb(0 0 0 / 0.12);
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
-}
-
-/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below),
-   as plain full-width rows: no glass, no rounding, a hairline between them. */
-.compactStatus {
-  grid-area: status;
-  display: grid;
-  background: var(--msp-color-panel);
-
-  &:empty {
-    display: none;
-  }
-
-  & .status,
-  & .context {
-    grid-area: auto;
-    padding-bottom: 0;
-    display: grid;
-    justify-self: stretch;
-    justify-content: stretch;
-    gap: 0;
-  }
-
-  /* A task's bar takes the row, its ✕ at the end. */
-  & .progress {
-    flex: 1;
-  }
-
-  & .status:empty,
-  & .context:empty {
-    display: none;
-  }
-
-  & .pill {
-    width: 100%;
-    max-width: none;
-    height: 34px;
-    padding-left: var(--msp-space-3);
-    text-shadow: none;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-top: 1px solid var(--msp-glass-edge);
-  }
 }
 
 /* Compact: no side panel to stand in for; a card fills the canvas. */
@@ -732,10 +782,13 @@
 
 .busyBar {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 2px;
   background: var(--msp-color-accent);
-  transition: width var(--msp-motion-fast) linear;
+  /* The progress scales the bar from its start (`scale`, set inline), composited: no layout per frame (styling.md §5). */
+  transform-origin: left;
+  transition: scale var(--msp-motion-fast) linear;
 
   &[data-indeterminate] {
     animation: busy-slide 1.2s var(--msp-ease) infinite;

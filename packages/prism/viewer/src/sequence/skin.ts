@@ -6,10 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type CanvasInk, parseColor } from '@molstar/prism-ui';
+import { type CanvasInk, parseColor } from '@molstar/prism-ui/core';
 import { DarkSkin, DefaultSkin, type Skin } from '@molstar/seq-viewer';
 
-// The sequence view's colors from the canvas ink (prism-sequence.md §5): Seq*'s skin, written from the ink's theme and
+// The sequence view's colors from the canvas ink (sequence.md §9): Seq*'s skin, written from the ink's theme and
 // background and Prism's palette for that theme (`theme.css`: the text and accent colors of the light and dark
 // themes). Nothing reads the DOM or CSS: the same ink gives the same skin in a story, a shadow root and a test.
 
@@ -42,6 +42,17 @@ export interface SequenceFonts {
  * canvas theme, the quieter inks and the grid are steps from the surface toward them, the selection is the accent at
  * 25% (as the mock strip draws it). `fonts` replaces Seq*'s default stacks.
  */
+/**
+ * Plain letters' cells (no colors), as `#rrggbb`: the surface a shade toward the text, so the strip still shows where
+ * letters are too small to draw, and drawn letters take the text's contrast.
+ */
+export function plainCellHex(ink: CanvasInk): string {
+  const dark = ink.theme === 'dark';
+  const surface = parseColor(ink.color) ?? (dark ? 0x111318 : 0xffffff);
+  const cell = mix(surface, Palette[ink.theme].text, 0.1);
+  return `#${cell.toString(16).padStart(6, '0')}`;
+}
+
 export function skinFor(ink: CanvasInk, fonts?: SequenceFonts): Skin {
   const dark = ink.theme === 'dark';
   const base = dark ? DarkSkin : DefaultSkin;

@@ -2,7 +2,7 @@ packages:
   - 'packages/*'
   - 'packages/plugin/*'
   - 'packages/prism/*'
-  - 'packages/ai/*'
+  - 'packages/ai'
   - 'packages/mvs/*'
   - 'packages/sequences/*'
   - 'extensions/*'
@@ -96,7 +96,7 @@ catalog:
   'lucide-static': '1.48.0'
   # Preact (prism-ui's React/Preact adapter tests and stories only); MIT licensed.
   'preact': '10.29.8'
-  # The AI packages (@molstar/ai-*). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
+  # The AI package (@molstar/ai). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
   'ai': '^7.0.124'
   '@ai-sdk/anthropic': '^4.0.70'
   '@ai-sdk/google': '^4.0.87'
@@ -104,9 +104,7 @@ catalog:
   '@ai-sdk/openai-compatible': '^3.0.62'
   # The AI SDK's peer (its schemas); MIT licensed.
   'zod': '^4.6.5'
-  # Property tests (the harness and its conformance suite); MIT licensed.
-  'fast-check': '4.10.2'
-  # IndexedDB in Node (the harness's IndexedDB storage tests only); Apache-2.0 licensed.
+  # IndexedDB in Node (the tests of prism-viewer's kept records and storage, and prism-assistant's storage); Apache-2.0 licensed.
   'fake-indexeddb': '6.2.5'
   # Seq* (packages/sequences): EBI's Nightingale web components (the nightingale adapter), by major; the browser-test provider is pinned to the vitest above; the class-name helper of its Storybook content; MIT / Apache-2.0 licensed.
   '@nightingale-elements/nightingale-colored-sequence': '^5'

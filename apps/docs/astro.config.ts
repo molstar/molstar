@@ -56,7 +56,19 @@ export default defineConfig({
       sidebar: [
         {
           label: 'v6',
-          items: [{ slug: 'v6', label: 'Introduction' }],
+          items: [
+            { slug: 'v6', label: 'Introduction' },
+            {
+              label: 'Prism viewer',
+              items: [
+                { slug: 'v6/prism-viewer', label: 'Overview' },
+                { slug: 'v6/prism-viewer/embedding', label: 'Embedding' },
+                { slug: 'v6/prism-viewer/api', label: 'API' },
+                { slug: 'v6/prism-viewer/extensions', label: 'Extensions' },
+                { slug: 'v6/prism-viewer/assistant', label: 'Assistant' },
+              ],
+            },
+          ],
         },
         {
           label: 'v5',

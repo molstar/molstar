@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The performance pass's quick cases (.v6/seq/plans/lanes-input-perf.md §4.2; perf-pass.quick.ts): the host options'
+// The performance pass's quick cases (seqspec:viewer#performance; perf-pass.quick.ts): the host options'
 // hot paths and this PR's new ones, each a section on the real composer and dispatcher with a step:
 // - `unobservedLinear`: letters' cells with `unobservedGray`, zoomed in on a linear section over a unit with many
 //   `observed` ranges, panned a step each (the per-unit mask, `LettersState.observed`);

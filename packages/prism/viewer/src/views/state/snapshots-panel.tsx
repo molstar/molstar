@@ -9,39 +9,31 @@
  */
 
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
-import { Button } from '@molstar/prism-ui';
+import { Button, MenuPopover } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
 import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { SnapshotEntry, SnapshotsModel } from '../../model/snapshots.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/snapshots-panel.module.css.js';
 
 /**
- * Save state: the Structure tab's shape for snapshots. A header of actions (a new snapshot, save to a file, open one; the
- * save options behind the sliders), the snapshots as rows (a click applies one; its ⋯ reorders, replaces, removes), and
- * under them, at a fixed height, the current snapshot's own settings.
+ * Save state: the Structure tab's shape for snapshots. A header: Add, and what a new snapshot includes behind the
+ * sliders (saving and opening a file is Export › Session & state's, and Home's Open); the snapshots as rows (a click
+ * applies one; its ⋯ reorders, replaces, removes), and under them, at a fixed height, the current snapshot's own settings.
  */
-export function SnapshotsPanel(props: { model: SnapshotsModel }) {
+export function SnapshotsPanel(props: {
+  model: SnapshotsModel;
+  /** At the header's end, before the options (Play): what the tab adds to it. */
+  actions?: () => Child;
+}) {
   const { model } = props;
-  const open = observableState<'save' | 'options' | undefined>(undefined);
-  const toggle = (block: 'save' | 'options') => open.set(open.value === block ? undefined : block);
-  const file = (
-    <input
-      type="file"
-      accept=".molx,.molj,.zip,.json"
-      hidden
-      onChange={(e) => {
-        const files = e.currentTarget.files;
-        if (files?.length) model.open([...files]);
-        e.currentTarget.value = '';
-      }}
-    />
-  ) as HTMLInputElement;
+  const open = observableState(false);
   const current = model.current.pipe(distinctUntilChanged());
   let list: HTMLElement | undefined;
   const drag = (id: string) => (e: PointerEvent) => dragToReorder(e, list, id, (index) => model.moveTo(id, index));
@@ -52,69 +44,29 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.add()}>
           <span class={classes.actionLabel}>Add</span>
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="download" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'save'))}
-          onClick={() => toggle('save')}
-        >
-          <span class={classes.actionLabel}>Save</span>
-        </Button>
-        <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
-          <span class={classes.actionLabel}>Open</span>
-        </Button>
-        {file}
+        <span class={classes.trailing}>{props.actions?.()}</span>
         <Button
           size="sm"
           variant="ghost"
           class={classes.optionsButton}
           icon={<Icon name="settings" />}
-          title="Save options"
-          pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
-          onClick={() => toggle('options')}
+          title="Snapshot options"
+          pressed={open.asReadonly}
+          onClick={() => open.set(!open.value)}
         />
       </div>
-      <Show when={open} reveal>
-        {(block) =>
-          block === 'save' ? (
-            <ScrollArea
-              class={classes.block}
-              contentClass={classes.blockContent}
-              role="region"
-              aria-label="Save to a file"
-            >
-              <SaveChoice
-                icon="download"
-                title="Session"
-                hint=".molx · the state with its data"
-                onClick={() => {
-                  open.set(undefined);
-                  model.download('session');
-                }}
-              />
-              <SaveChoice
-                icon="download"
-                title="State"
-                hint=".molj · the description; data loads from its sources"
-                onClick={() => {
-                  open.set(undefined);
-                  model.download('state');
-                }}
-              />
-            </ScrollArea>
-          ) : (
-            <ScrollArea
-              class={classes.block}
-              contentClass={classes.blockContent}
-              role="region"
-              aria-label="Save options"
-            >
-              <p class={classes.blockCaption}>What a new snapshot includes</p>
-              <ParamsForm form={model.saveOptions} />
-            </ScrollArea>
-          )
-        }
+      <Show when={open.asReadonly} reveal>
+        {() => (
+          <ScrollArea
+            class={classes.block}
+            contentClass={classes.blockContent}
+            role="region"
+            aria-label="Snapshot options"
+          >
+            <p class={classes.blockCaption}>What a new snapshot includes</p>
+            <ParamsForm form={model.saveOptions} />
+          </ScrollArea>
+        )}
       </Show>
       <ScrollArea
         class={classes.list}
@@ -161,15 +113,6 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
   );
 }
 
-function SaveChoice(props: { icon: 'download'; title: string; hint: string; onClick: () => void }) {
-  return (
-    <button type="button" class={classes.choice} onClick={props.onClick}>
-      <span class={classes.choiceTitle}>{props.title}</span>
-      <span class={classes.choiceHint}>{props.hint}</span>
-    </button>
-  );
-}
-
 /** A snapshot: its position, thumbnail, name, key and the description's first line; a click applies it. */
 function SnapshotRow(props: {
   model: SnapshotsModel;
@@ -181,6 +124,7 @@ function SnapshotRow(props: {
 }) {
   const { model, entry } = props;
   const menu = observableState(false);
+  let more: HTMLElement | undefined;
   const firstLine = entry.description
     ?.split('\n')
     .map((l) => l.replace(/[#*`>-]/g, '').trim())
@@ -192,21 +136,30 @@ function SnapshotRow(props: {
         role="option"
         tabIndex={0}
         aria-selected={props.current}
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
         onClick={() => model.apply(entry.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             model.apply(entry.id);
+          } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.target === e.currentTarget) {
+            // The order by keyboard (the handle is for the pointer): the row moves and keeps the focus.
+            e.preventDefault();
+            const row = e.currentTarget as HTMLElement;
+            model.move(entry.id, e.key === 'ArrowUp' ? -1 : 1);
+            queueMicrotask(() => {
+              if (row.isConnected && document.activeElement !== row) row.focus();
+            });
           }
         }}
       >
-        {/* The position; on hover, the handle that drags the row (Move up/down stay in its ⋯). */}
+        {/* The position; on hover, the handle that drags the row (by hand; Alt+Up and Down on the row move it by key). */}
         <span class={classes.slot}>
           <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
           <span
             class={classes.grip}
             aria-hidden="true"
-            data-tip="Drag to reorder"
+            data-tip="Drag to reorder (Alt+Up or Down on the row)"
             onPointerDown={props.onGrab}
             onClick={(e) => e.stopPropagation()}
           >
@@ -234,7 +187,9 @@ function SnapshotRow(props: {
             type="button"
             class={classes.action}
             aria-label="More"
+            aria-haspopup="menu"
             aria-expanded={menu}
+            ref={(el: HTMLElement) => (more = el)}
             onClick={(e) => {
               e.stopPropagation();
               menu.set(!menu.value);
@@ -244,11 +199,17 @@ function SnapshotRow(props: {
           </button>
         </span>
       </div>
+      {/* A popover from ⋯ (as the tree's rows): Remove; the order is the drag handle's and Alt+Up and Down's (no Move up and down). */}
       <Show when={menu}>
         {() => (
-          <div class={classes.menu} role="menu">
-            <MenuItem icon="arrow-up" label="Move up" run={() => model.move(entry.id, -1)} />
-            <MenuItem icon="arrow-down" label="Move down" run={() => model.move(entry.id, 1)} />
+          <MenuPopover
+            anchor={more!}
+            aria-label={`${entry.name}: actions`}
+            onClose={(refocus) => {
+              menu.set(false);
+              if (refocus) more?.focus();
+            }}
+          >
             <MenuItem
               icon="trash-2"
               label="Remove"
@@ -258,19 +219,14 @@ function SnapshotRow(props: {
                 model.remove(entry.id);
               }}
             />
-          </div>
+          </MenuPopover>
         )}
       </Show>
     </div>
   );
 }
 
-function MenuItem(props: {
-  icon: 'arrow-up' | 'arrow-down' | 'trash-2';
-  label: string;
-  danger?: boolean;
-  run: () => void;
-}) {
+function MenuItem(props: { icon: 'trash-2'; label: string; danger?: boolean; run: () => void }) {
   return (
     <button
       type="button"
@@ -279,6 +235,8 @@ function MenuItem(props: {
       data-danger={props.danger ? '' : undefined}
       onClick={props.run}
     >
+      {/* The column the tree's menus keep for a chevron: the label in the second. */}
+      <span />
       <span>{props.label}</span>
     </button>
   );

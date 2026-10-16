@@ -31,6 +31,12 @@
       "private": false
     },
     {
+      "name": "@molstar/prism-viewer-app",
+      "path": "apps/prism-viewer",
+      "kind": "app",
+      "private": true
+    },
+    {
       "name": "@molstar/chem-comp-dict-cli",
       "path": "cli/chem-comp-dict",
       "kind": "cli",
@@ -141,6 +147,12 @@
     {
       "name": "@molstar/lighting-example",
       "path": "examples/lighting",
+      "kind": "example",
+      "private": true
+    },
+    {
+      "name": "@molstar/minimal-prism-viewer-example",
+      "path": "examples/minimal-prism-viewer",
       "kind": "example",
       "private": true
     },
@@ -361,62 +373,8 @@
       "private": false
     },
     {
-      "name": "@molstar/ai-agent",
-      "path": "packages/ai/agent",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-harness",
-      "path": "packages/ai/harness",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-conformance",
-      "path": "packages/ai/conformance",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-components",
-      "path": "packages/ai/components",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-model-adapters",
-      "path": "packages/ai/model-adapters",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-tools",
-      "path": "packages/ai/tools",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-session",
-      "path": "packages/ai/session",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-trace",
-      "path": "packages/ai/trace",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-fibers",
-      "path": "packages/ai/fibers",
-      "kind": "library",
-      "private": true
-    },
-    {
-      "name": "@molstar/ai-narration",
-      "path": "packages/ai/narration",
+      "name": "@molstar/ai",
+      "path": "packages/ai",
       "kind": "library",
       "private": true
     },

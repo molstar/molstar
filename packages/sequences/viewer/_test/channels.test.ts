@@ -41,6 +41,7 @@ import {
   SelectBehavior,
   type SeqViewerContext,
 } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { shown } from './projection-fixtures.js';
 
 type Shown = Awaited<ReturnType<typeof shown>>;
@@ -481,7 +482,7 @@ describe('held targets follow their set', () => {
       : l;
 
   it("a Coordinates hover resolves on the new set, not the old one's loci kept (LB-07)", async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     await ctx.setData({ set: build([p53, q]) });
     ctx.hover.setLoci({ systems: ['seqstar:q/unit'], runs: Int32Array.of(0, 1, 2) }, '3d');
     const before = ctx.hover.toLoci();
@@ -494,7 +495,7 @@ describe('held targets follow their set', () => {
   });
 
   it('a host highlight and an external hover remap across a new lineage; Coordinates are held by key', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     await ctx.setData({ set: build([p53, q]) });
     ctx.highlight.set('host', ctx.refs.toLoci('q/unit', { start: 2, stop: 4 }));
     ctx.hover.setLoci(ctx.refs.toLoci('q/unit', { start: 1, stop: 2 }), '3d');

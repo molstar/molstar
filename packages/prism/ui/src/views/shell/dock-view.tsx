@@ -13,13 +13,15 @@ import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { activity, For, Show } from '../../dom/control-flow.js';
+import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
+import { deepActiveElement, focusFirstItem, menuKeys, rememberFocus, rovingTabs, uniqueId } from '../../dom/focus.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
-import { ItemIcon, itemTitle } from './canvas-chrome.js';
+import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
@@ -41,6 +43,8 @@ export function DockView(props: {
   const showStrip = horizontal
     ? combineLatest([dock.tabs, dock.active]).pipe(map(([tabs, active]) => tabs.length > 1 && !!active))
     : of(true);
+  const panelId = uniqueId('msp-panel');
+  let pinned: HTMLElement | undefined;
   return (
     <Show when={hasTabs}>
       {() => (
@@ -48,24 +52,33 @@ export function DockView(props: {
           class={`${classes.dock} ${classes[dock.id]}`}
           classList={{ [classes.compact]: compact }}
           style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
+          ref={(el) => {
+            pinned = el;
+          }}
         >
           <Show
             when={dock.active}
             reveal
+            // One tab's panel replacing another's: a view transition in the dock (motion.ts `swapIn`).
+            swap={() => pinned}
             fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
           >
-            {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
+            {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
           </Show>
           <Show when={showStrip}>
             {() => (
-              <nav
+              <div
                 class={classes.strip}
                 role="tablist"
+                aria-label="Panels"
                 aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
+                ref={(el) => onCleanup(rovingTabs(el))}
               >
-                <For each={compactTabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+                <For each={compactTabs}>
+                  {(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}
+                </For>
                 {props.stripEnd}
-              </nav>
+              </div>
             )}
           </Show>
         </div>
@@ -99,6 +112,7 @@ export function FloatingDock(props: {
   const head = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
   const strip = shown.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
   const foot = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));
+  const panelId = uniqueId('msp-panel');
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
     // canvas toolbar button (Sequence) brings it back.
@@ -108,8 +122,8 @@ export function FloatingDock(props: {
         classList={{ [classes.band]: dock.active.pipe(map((tab) => tab?.frame === 'none')) }}
         style={size}
       >
-        <Show when={dock.active} reveal>
-          {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
+        <Show when={dock.active} reveal="fade">
+          {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
         </Show>
       </div>
     );
@@ -128,16 +142,28 @@ export function FloatingDock(props: {
         {props.railLead}
         <Show when={head.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
-            <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Home">
-              <For each={head}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
-            </nav>
+            <div
+              class={classes.strip}
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Home"
+              ref={(el) => onCleanup(rovingTabs(el))}
+            >
+              <For each={head}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}</For>
+            </div>
           )}
         </Show>
         <Show when={strip.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
-            <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Panels">
-              <For each={strip}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
-            </nav>
+            <div
+              class={classes.strip}
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Panels"
+              ref={(el) => onCleanup(rovingTabs(el))}
+            >
+              <For each={strip}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}</For>
+            </div>
           )}
         </Show>
         {props.railItems?.(rail)}
@@ -145,16 +171,23 @@ export function FloatingDock(props: {
         <div class={classes.railFoot}>
           <Show when={foot.pipe(map((tabs) => tabs.length > 0))}>
             {() => (
-              <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="More panels">
-                <For each={foot}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
-              </nav>
+              <div
+                class={classes.strip}
+                role="tablist"
+                aria-orientation="vertical"
+                aria-label="More panels"
+                ref={(el) => onCleanup(rovingTabs(el))}
+              >
+                <For each={foot}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}</For>
+              </div>
             )}
           </Show>
           {props.railFoot?.(rail)}
         </div>
       </div>
-      <Show when={dock.active} reveal="side">
-        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable coveredBy={shell.overlay} />}
+      {/* Opening slides in; one tab's panel replacing another's is a view transition in the dock (motion.ts `swapIn`). */}
+      <Show when={dock.active} reveal="side" swap={() => root}>
+        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} pinnable coveredBy={shell.overlay} />}
       </Show>
       <RailMoreMenu shell={shell} dock={dock} rail={rail} />
     </div>
@@ -192,12 +225,12 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
               aria-label="More"
               aria-haspopup="menu"
               aria-expanded={menu.asReadonly.pipe(map((m) => !!m))}
-              onClick={(e) => {
-                if (menu.value) return menu.set(undefined);
-                // One read, on the click: where the button is, so the menu's bottom edge is level with it.
-                const anchor = e.currentTarget;
-                const bottom = props.root().getBoundingClientRect().bottom - anchor.getBoundingClientRect().bottom;
-                menu.set({ bottom, anchor });
+              onClick={(e) => rail.toggleMenu(e.currentTarget)}
+              onKeyDown={(e) => {
+                // ↑ or ↓ opens it too (the menu button pattern); it opens at its first item.
+                if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || menu.value) return;
+                e.preventDefault();
+                e.currentTarget.click();
               }}
             >
               <Icon name="ellipsis" size={20} />
@@ -213,9 +246,9 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
 function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLayout }) {
   const { shell, dock, rail } = props;
   const menu = rail.menu;
-  // Open only while there is something in it (the rail grew: nothing is left out).
+  // Open only while there is something in it (More's: the rail grew, nothing is left out).
   const open = combineLatest([menu.asReadonly, rail.overflow]).pipe(
-    map(([m, o]) => (m && o.length > 0 ? m : undefined)),
+    map(([m, o]) => (m && (m.item ? m.item.menu?.length : o.length > 0) ? m : undefined)),
   );
   const run = (entry: RailEntry, anchor: Element) => {
     menu.set(undefined);
@@ -225,7 +258,7 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
     else item.run?.(anchor);
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || !menu.value) return;
+    if (e.key !== 'Escape' || !menu.value || !ownsKey(menu.value.anchor, e)) return;
     const anchor = menu.value.anchor as HTMLElement;
     menu.set(undefined);
     anchor.focus();
@@ -234,8 +267,8 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
   const onDown = (e: PointerEvent) => {
     const m = menu.value;
     if (!m) return;
-    const target = e.target as Node;
-    if (m.anchor.contains(target) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
+    const target = eventTarget(e) as Node;
+    if (isInside(e, m.anchor) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
     menu.set(undefined);
   };
   document.addEventListener('keydown', onKey);
@@ -246,33 +279,53 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
   });
   return (
     <Show when={open}>
-      {(m) => (
-        <div class={classes.railMenu} style={{ bottom: `${m.bottom}px` }}>
-          <div
-            class={canvasClasses.toolMenuCard}
-            role="menu"
-            aria-label="More"
-            ref={(el) => queueMicrotask(() => el.querySelector('button')?.focus())}
-          >
-            <For each={rail.overflow} key={(e) => e.id}>
-              {(entry) => (
-                <button
-                  type="button"
-                  role="menuitem"
-                  class={canvasClasses.toolMenuRow}
-                  onClick={(e) => run(entry, m.anchor)}
-                >
-                  {entry.tab ? <Icon name={entry.tab.icon} size={16} /> : <ItemIcon item={entry.item!} size={16} />}
-                  <span class={canvasClasses.toolMenuLabel}>
-                    {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
-                  </span>
-                  <span />
-                </button>
-              )}
-            </For>
+      {(m) => {
+        // Closed by a choice or a click elsewhere: a focus left in it goes back to More.
+        const restore = rememberFocus(() => m.anchor as HTMLElement);
+        let list: HTMLElement | undefined;
+        onCleanup(() => restore(list));
+        return (
+          <div class={classes.railMenu} style={{ bottom: `${m.bottom}px` }}>
+            <div
+              class={canvasClasses.toolMenuCard}
+              role="menu"
+              aria-label={m.item ? itemTitle(m.item) : 'More'}
+              onKeyDown={menuKeys}
+              ref={(el) => {
+                list = el;
+                queueMicrotask(() => focusFirstItem(el));
+              }}
+            >
+              <ScrollArea class={classes.railMenuScroll} contentClass={classes.railMenuRows}>
+                {m.item ? (
+                  <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
+                ) : (
+                  <For each={rail.overflow} key={(e) => e.id}>
+                    {(entry) => (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        class={canvasClasses.toolMenuRow}
+                        onClick={(e) => run(entry, m.anchor)}
+                      >
+                        {entry.tab ? (
+                          <Icon name={entry.tab.icon} size={16} />
+                        ) : (
+                          <ItemIcon item={entry.item!} size={16} />
+                        )}
+                        <span class={canvasClasses.toolMenuLabel}>
+                          {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
+                        </span>
+                        <span />
+                      </button>
+                    )}
+                  </For>
+                )}
+              </ScrollArea>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      }}
     </Show>
   );
 }
@@ -294,7 +347,8 @@ function CollapsedBar(props: { shell: ShellModel; dock: DockModel }) {
   );
 }
 
-function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab }) {
+/** A panel's tab: one of a tab list (`rovingTabs`: one Tab stop, the arrows between tabs); it controls the dock's panel. */
+function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; panel: string }) {
   const { shell, dock, tab } = props;
   // An overlay card in the right panel's place replaces it: no tab there shows selected, and a click brings the tab back.
   const covered = dock.id === 'right' ? shell.overlay.pipe(map((o) => !!o)) : of(false);
@@ -311,6 +365,8 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab })
       data-tip-side="left"
       aria-label={tab.title}
       aria-selected={selected}
+      aria-controls={props.panel}
+      data-tab={tab.id}
       onClick={() => activateTab(shell, dock, tab)}
     >
       <Icon name={tab.icon} size={20} />
@@ -351,22 +407,58 @@ function DockContent(props: {
   shell: ShellModel;
   dock: DockModel;
   tab: ShellTab;
+  /** The panel's id: its tabs control it (`aria-controls`). */
+  id: string;
   pinnable?: boolean;
   coveredBy?: ReadonlyState<unknown>;
 }) {
   const { shell, dock, tab } = props;
   const shown = props.coveredBy ? props.coveredBy.pipe(map((o) => !o)) : true;
+  let section: HTMLElement | undefined;
+  // Whether the focus is in it. A focus lost with its nodes (a view's, removed before this content's cleanup) or with
+  // its closing (made inert) still counts; one moved out, to another element or to the page (a click on the canvas),
+  // does not.
+  let focusIn = false;
+  const onFocusOut = (e: FocusEvent) => {
+    const to = e.relatedTarget as Node | null;
+    if (to) {
+      focusIn = !!section?.contains(to);
+      return;
+    }
+    const from = eventTarget(e) as Element;
+    queueMicrotask(() => {
+      const now = deepActiveElement();
+      if (now && section?.contains(now)) return;
+      if (from.isConnected && !from.closest('[inert]')) focusIn = false;
+    });
+  };
+  // Closed (✕, its shortcut) with the focus in it: the focus goes to its tab, not to the page (accessibility.md). A
+  // switch with the focus elsewhere (a script's, the agent's, with the focus on the page) leaves it there.
+  onCleanup(() => {
+    if (!focusIn) return;
+    const now = deepActiveElement();
+    if (now && !section?.contains(now)) return;
+    const root = (section?.closest('.msp-root') ?? section?.getRootNode()) as ParentNode | undefined;
+    const tabs = root ? [...root.querySelectorAll<HTMLElement>('[role="tab"]')] : [];
+    tabs.find((t) => t.dataset.tab === tab.id)?.focus({ preventScroll: true });
+  });
   return activity(shown, () => (
     <section
       class={tab.frame === 'none' ? `${classes.content} ${classes.frameless}` : classes.content}
       role="tabpanel"
+      id={props.id}
       aria-label={tab.title}
+      ref={(el) => {
+        section = el;
+      }}
+      onFocusIn={() => {
+        focusIn = true;
+      }}
+      onFocusOut={onFocusOut}
     >
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
-        <span class={classes.title}>
-          {typeof tab.heading === 'function' ? tab.heading() : (tab.heading ?? tab.title)}
-        </span>
+        <h2 class={classes.title}>{typeof tab.heading === 'function' ? tab.heading() : (tab.heading ?? tab.title)}</h2>
         {props.pinnable ? <PinButton shell={shell} dock={dock.id} /> : null}
         <Button
           variant="ghost"
@@ -413,6 +505,16 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       class={classes.splitter}
       role="separator"
       aria-orientation="vertical"
+      // From the keyboard too (WAI-ARIA's window splitter): ← and → resize by 16 px (64 with Shift).
+      tabIndex={0}
+      aria-label="Panel width"
+      aria-valuenow={dock.state.pipe(map((s) => Math.round(s.size)))}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        const step = (e.shiftKey ? 64 : 16) * (e.key === 'ArrowRight' ? 1 : -1);
+        shell.setSize(dock.id, dock.state.value.size + sign * step);
+      }}
       onPointerEnter={(e) => e.currentTarget.setAttribute('data-active', '')}
       onPointerLeave={(e) => {
         if (!dragging) e.currentTarget.removeAttribute('data-active');

@@ -10,8 +10,19 @@ import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { ComplexRef, sequenceDocument } from '../document.js';
+import { DefaultTracksRail } from '../presets.js';
+import { applySaved } from '../runtime.js';
 import { skinFor } from '../skin.js';
-import { headlessViewers, hostStructure } from './fixtures.js';
+import type { SequenceBehaviorContext } from '../behaviors.js';
+import { headlessViewers, hostStructure, ValuesTrack, valuesBehavior } from './fixtures.js';
+
+async function until(check: () => boolean, ms = 3000): Promise<void> {
+  const t0 = Date.now();
+  while (!check()) {
+    if (Date.now() - t0 > ms) throw new Error(`timed out after ${ms} ms`);
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
 
 /** Waits for the document to be in (the viewer says what it shows), then lets the frames run. */
 const settled = async (h: ReturnType<typeof headlessViewers>) => {
@@ -101,6 +112,26 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
+  it('draws no colors as plain letters: cells in the surface color, the text in the ink', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    h.viewer.setStyle('compact');
+    h.viewer.setTheme({ letters: null });
+    await settled(h);
+    h.scheduler.advance(50);
+    const shown = JSON.stringify(h.viewer.seq.document.shown.value);
+    expect(shown).toContain('"theme":"uniform"');
+    expect(shown).not.toContain('prism:residues');
+    expect(h.viewer.seq.layout.props('main').wrappedColors).toBe(false);
+    // Colors again: the text is tinted again.
+    h.viewer.setTheme({ letters: 'taylor' });
+    await settled(h);
+    h.scheduler.advance(50);
+    expect(h.viewer.seq.layout.props('main').wrappedColors).toBe(true);
+    h.viewers.dispose();
+  });
+
   it('writes the theme into the document and keeps the set (so the link stays valid)', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
@@ -152,50 +183,75 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
-  it('a predicted model gets a pLDDT track in the AlphaFold bands, and the legend lists the four bands', async () => {
-    const h = headlessViewers();
+  it("a behavior adds its track to each document by patch, its legend block and its track's menu", async () => {
+    const patched: boolean[] = [];
+    const h = headlessViewers({ behaviors: [valuesBehavior(patched)] });
     const host = await hostStructure();
-    expect(h.viewer.legend.value.sections).toBeUndefined();
-    h.structure.set({ ...host, predicted: true });
-    await settled(h);
-    // The recorded entry is no prediction, but its B-factors are read as the confidence: the track is there, with no issue.
-    expect(h.viewer.seq.issues.current.value).toEqual([]);
-    expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('molstar:plddt');
-    const sections = h.viewer.legend.value.sections;
-    expect(sections?.map((x) => x.title)).toEqual(['Secondary structure', 'Model confidence']);
-    expect(sections?.[0].items.map((i) => i.label)).toEqual(['Helix', 'Strand', 'Turn']);
-    const bands = sections?.[1];
-    expect(bands?.items.map((i) => i.label)).toEqual([
-      'Very high (pLDDT > 90)',
-      'Confident (70–90)',
-      'Low (50–70)',
-      'Very low (< 50)',
-    ]);
-    // An experimental structure after it: the secondary structure, no bands.
     h.structure.set(host);
     await settled(h);
+    await until(() => patched.length === 1);
+    expect(patched).toEqual([true]);
+    await h.viewer.seq.graph.update();
+    // The recorded entry is no prediction, but its B-factors are read as the confidence: the track is there, with no issue.
+    expect(h.viewer.seq.issues.current.value).toEqual([]);
+    const doc = JSON.stringify(h.viewer.seq.document.shown.value);
+    expect(doc).toContain(`"ref":"${ValuesTrack}"`);
+    expect(doc.indexOf('"ref":"ss-track"')).toBeLessThan(doc.indexOf(`"ref":"${ValuesTrack}"`));
+    const sections = h.viewer.legend.value.sections;
+    expect(sections?.map((x) => x.title)).toEqual(['Secondary structure', 'Values']);
+    expect(sections?.[0].items.map((i) => i.label)).toEqual(['Helix', 'Strand', 'Turn']);
+    // Another structure: a new document, and the behavior adds its track to it again.
+    h.structure.set(await hostStructure('2ocj'));
+    await settled(h);
+    await until(() => patched.length === 2);
+    expect(patched).toEqual([true, true]);
+    expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain(`"ref":"${ValuesTrack}"`);
+    h.viewers.dispose();
+  });
+
+  it('drops a patch made for a document that was replaced, and a removed behavior withdraws its offer', async () => {
+    const h = headlessViewers();
+    const host = await hostStructure();
+    let ctx: SequenceBehaviorContext | undefined;
+    const remove = h.viewer.addBehavior({
+      id: 'test.sequence.probe',
+      title: 'Probe',
+      attach: (c) => ((ctx = c), () => {}),
+    });
+    expect(() => h.viewer.addBehavior({ id: 'test.sequence.probe', title: 'Again', attach: () => () => {} })).toThrow();
+    h.structure.set(host);
+    await settled(h);
+    const first = ctx!.shown.value!;
+    ctx!.offer({ legend: [{ title: 'Probe', items: [] }] });
+    expect(h.viewer.legend.value.sections?.map((x) => x.title)).toEqual(['Secondary structure', 'Probe']);
+    h.structure.set(await hostStructure('2ocj'));
+    await settled(h);
+    expect(ctx!.shown.value).not.toBe(first);
+    expect(await ctx!.patch(first, [{ op: 'remove', ref: 'letters' }])).toBe(false);
+    expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('"ref":"letters"');
+    remove();
     expect(h.viewer.legend.value.sections?.map((x) => x.title)).toEqual(['Secondary structure']);
     h.viewers.dispose();
   });
 
   it('the tracks have their menus: the model says what each offers, they run on the 3D view', async () => {
     const calls: string[] = [];
-    const h = headlessViewers({ actions: { colorStructure: (c) => void calls.push(c) } });
+    const h = headlessViewers({
+      actions: { colorStructure: (c) => void calls.push(c) },
+      behaviors: [valuesBehavior()],
+    });
     const host = await hostStructure();
-    h.structure.set({ ...host, predicted: true });
+    h.structure.set(host);
     await settled(h);
     // Asked through Seq*'s `interaction.menu` (sequence-control.tsx): no behavior of Prism's in the spec for it.
     expect(h.viewer.seq.behaviors.get('contextMenu')).toBeNull();
     const menu = (track: string) => h.viewer.trackActions(track).map((a) => a.label);
     expect(menu('letters')).toEqual(['Apply default coloring']);
     expect(menu('ss-track')).toEqual(['Color by secondary structure']);
-    expect(menu('plddt-track')).toEqual(['Color by pLDDT']);
+    expect(menu(ValuesTrack)).toEqual(['Color by values']);
     expect(menu('ruler')).toEqual([]);
-    for (const t of ['letters', 'ss-track', 'plddt-track']) h.viewer.trackActions(t)[0].run();
-    expect(calls).toEqual(['default', 'secondary', 'plddt']);
-    // The tracks exist in the document under those refs.
-    const refs = JSON.stringify(h.viewer.seq.document.shown.value);
-    for (const t of ['letters', 'ss-track', 'plddt-track']) expect(refs).toContain(`"ref":"${t}"`);
+    for (const t of ['letters', 'ss-track', ValuesTrack]) h.viewer.trackActions(t)[0].run();
+    expect(calls).toEqual(['default', 'secondary-structure', 'plddt-confidence']);
     h.viewers.dispose();
     // Without a host's actions no track has a menu.
     const bare = headlessViewers();
@@ -239,6 +295,32 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
+  it('announces every document it builds, though the structure and the complex ref are the same (the 3D link is remade)', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    const before = h.viewer.structure.value;
+    let emitted = 0;
+    const sub = h.viewer.structure.subscribe(() => emitted++);
+    emitted = 0;
+    // A new document over the same structure (the text version's colors).
+    h.viewer.setTheme({ letters: null });
+    await until(() => h.viewer.structure.value !== before);
+    expect(emitted).toBeGreaterThan(0);
+    expect(h.viewer.structure.value?.structure).toBe(before?.structure);
+    expect(h.viewer.structure.value?.complex).toBe(before?.complex);
+    sub.unsubscribe();
+    h.viewers.dispose();
+  });
+
+  it('restores the default rail with the default state (a snapshot without the sequence, Undo to the start)', () => {
+    const h = headlessViewers();
+    h.viewer.setRail({ navigator: 'strip', height: 30 });
+    applySaved(h.viewer, () => {}, undefined, undefined);
+    expect(h.viewer.rail.value).toEqual(DefaultTracksRail);
+    h.viewers.dispose();
+  });
+
   it('dispose leaves nothing running', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
@@ -255,7 +337,7 @@ describe('the sequence model', () => {
 
   it('the document lists only the ligands the 3D view draws (the same list), and every one when none is given', async () => {
     const host = await hostStructure();
-    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null } };
+    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null }, plain: '#ffffff' };
     const options = (ligands?: string[]) => {
       const text = JSON.stringify(sequenceDocument({ ...base, ...(ligands ? { ligands } : {}) }));
       const node = (JSON.parse(text) as { root: unknown }).root;

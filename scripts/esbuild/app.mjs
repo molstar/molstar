@@ -15,6 +15,8 @@ const value = (flag, fallback) => {
 const all = args.includes('--all');
 const dev = args.includes('--dev') || args.includes('--watch');
 const production = args.includes('--prd') || !dev;
+// `--metafile`: esbuild's metafile beside each output (`<name>.meta.json`), for size breakdowns.
+const metafile = args.includes('--metafile');
 const serve = dev || args.includes('--serve');
 const port = Number(value('--port', '1338'));
 const kind = value('--kind');
@@ -93,7 +95,8 @@ const apps = (inventory.packages ?? []).filter((p) => {
   const manifestPath = path.join(root, p.path, 'package.json');
   if (!fs.existsSync(manifestPath)) return false;
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  return manifest.molstar?.platform !== 'node';
+  // A package with its own builder (`molstar.builder`, a Vite example) is built by its own scripts.
+  return manifest.molstar?.platform !== 'node' && !manifest.molstar?.builder;
 });
 const matches = (pkg, target) =>
   pkg.name === target || pkg.path === target || (kind && path.basename(pkg.path) === target);
@@ -132,6 +135,23 @@ function staticAssetsPlugin(outdir) {
     },
   };
 }
+/** The single file's images: copied to `images/` beside it, imported as URLs relative to the module. */
+function moduleRelativeImagesPlugin(outdir) {
+  return {
+    name: 'molstar-module-relative-images',
+    setup(build) {
+      build.onLoad({ filter: /\.(jpg|jpeg|png|gif|svg)$/i }, async ({ path: input }) => {
+        const name = path.basename(input);
+        await fs.promises.mkdir(path.join(outdir, 'images'), { recursive: true });
+        await fs.promises.copyFile(input, path.join(outdir, 'images', name));
+        return {
+          contents: `export default new URL(${JSON.stringify(`./images/${name}`)}, import.meta.url).href;`,
+          loader: 'js',
+        };
+      });
+    },
+  };
+}
 const sourceJsExtensionPlugin = {
   name: 'molstar-source-js-extension',
   setup(build) {
@@ -145,6 +165,21 @@ const sourceJsExtensionPlugin = {
       }
       return null;
     });
+  },
+};
+/**
+ * zod's `locales` namespace (62 translations, ~260 kB) is re-exported whole and the AI SDKs import zod as a namespace, so
+ * the assistant's chunk would carry all of them. Nothing here picks a locale: the namespace is English only (the
+ * default locale zod registers itself imports `en.js` directly).
+ */
+const zodEnglishOnlyPlugin = {
+  name: 'molstar-zod-english-only',
+  setup(build) {
+    build.onLoad({ filter: /[\\/]zod[\\/]v4[\\/]locales[\\/]index\.js$/ }, ({ path: input }) => ({
+      contents: 'export { default as en } from "./en.js";',
+      resolveDir: path.dirname(input),
+      loader: 'js',
+    }));
   },
 };
 function entryFor(pkg, config) {
@@ -162,24 +197,36 @@ async function buildPackage(rawPkg) {
   await fs.promises.mkdir(outdir, { recursive: true });
   const filename = cfg.filename ?? (pkg.kind === 'example' ? 'index.js' : 'molstar.js');
   const outfile = path.join(outdir, filename);
+  // `format: "esm"` (the Prism viewer, app.md §2): an ES module entry with lazy chunks beside it, loaded by
+  // `<script type="module">`; the default is one IIFE file with a global.
+  const esm = cfg.format === 'esm';
+  if (esm && cfg.themes?.length) throw new Error(`${pkg.name}: themes are built as IIFE files; an esm app takes none`);
+  const output = esm
+    ? {
+        format: 'esm',
+        splitting: true,
+        outdir,
+        entryNames: path.basename(filename, '.js'),
+        chunkNames: 'chunks/[name]-[hash]',
+      }
+    : { format: 'iife', globalName: cfg.globalName ?? 'molstar', outfile };
+  if (esm) await fs.promises.rm(path.join(outdir, 'chunks'), { recursive: true, force: true });
   const options = {
     absWorkingDir: root,
     entryPoints: [entry],
     bundle: true,
     platform: 'browser',
-    format: 'iife',
-    globalName: cfg.globalName ?? 'molstar',
-    outfile,
+    ...output,
     tsconfig: fs.existsSync(path.join(dir, 'tsconfig.json'))
       ? path.join(dir, 'tsconfig.json')
       : path.join(root, 'tsconfig.json'),
     minify: production,
-    minifyIdentifiers: false,
     sourcemap: !production,
     conditions: ['molstar-src', 'import', 'default'],
     external: ['crypto', 'fs', 'path', 'stream'],
     plugins: [
       sourceJsExtensionPlugin,
+      zodEnglishOnlyPlugin,
       staticAssetsPlugin(outdir),
       sassPlugin({ type: 'css', embedded: false, importers: [sassImporter], silenceDeprecations: ['import'] }),
     ],
@@ -207,7 +254,57 @@ async function buildPackage(rawPkg) {
     const ctx = await esbuild.context(options);
     await ctx.watch();
     contexts.push(ctx);
-  } else await esbuild.build(options);
+  } else {
+    const result = await esbuild.build({ ...options, metafile });
+    if (metafile)
+      await fs.promises.writeFile(
+        path.join(outdir, `${path.basename(filename, '.js')}.meta.json`),
+        JSON.stringify(result.metafile),
+      );
+  }
+  // `single` (the single-file Prism viewer, app.md §2): one more entry built as one ES module, its lazy parts inlined
+  // (no splitting: esbuild bundles dynamic imports into the file), so a page imports it with no other request.
+  if (cfg.single) {
+    const singleOptions = {
+      ...options,
+      entryPoints: [path.resolve(dir, cfg.single.entry)],
+      format: 'esm',
+      splitting: false,
+      outdir: undefined,
+      entryNames: undefined,
+      chunkNames: undefined,
+      outfile: path.join(outdir, cfg.single.filename),
+      // Images beside the file (`images/`), by a URL relative to the module (not the page): fetched only when used (a
+      // background's picture), instead of inlined into every page's download.
+      plugins: [
+        ...options.plugins.filter((p) => p.name !== 'molstar-static-assets'),
+        moduleRelativeImagesPlugin(outdir),
+      ],
+    };
+    if (dev) {
+      const ctx = await esbuild.context(singleOptions);
+      await ctx.watch();
+      contexts.push(ctx);
+    } else {
+      const result = await esbuild.build({ ...singleOptions, metafile });
+      if (metafile) {
+        const name = path.basename(cfg.single.filename, '.js');
+        await fs.promises.writeFile(path.join(outdir, `${name}.meta.json`), JSON.stringify(result.metafile));
+      }
+    }
+  }
+  // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`).
+  if (!dev) {
+    for (const f of fs.readdirSync(outdir)) if (f.endsWith('.js.map')) await fs.promises.rm(path.join(outdir, f));
+    const over = Object.entries(cfg.budgets ?? {})
+      .map(([file, budget]) => [file, budget, fs.statSync(path.join(outdir, file)).size])
+      .filter(([, budget, size]) => size > budget);
+    if (over.length) {
+      throw new Error(
+        `${pkg.name}: over budget: ${over.map(([f, b, s]) => `${f} ${(s / 1e6).toFixed(2)} MB > ${(b / 1e6).toFixed(2)} MB`).join(', ')}`,
+      );
+    }
+  }
   for (const theme of cfg.themes ?? []) {
     const themeRoot = path.join(dir, 'src/theme');
     let themeEntry = path.join(themeRoot, `${theme}.ts`);

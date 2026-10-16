@@ -267,9 +267,15 @@ type PointerEvent = {
   movementX?: number;
   movementY?: number;
   target: EventTarget | null;
+  composedPath?: () => EventTarget[];
 
   preventDefault?: () => void;
 };
+
+/** The innermost target of an event; inside a shadow root `event.target` is retargeted to the host. */
+function originalTarget(ev: { target: EventTarget | null; composedPath?: () => EventTarget[] }): EventTarget | null {
+  return ev.composedPath?.()[0] ?? ev.target;
+}
 
 type GestureEvent = {
   scale: number;
@@ -394,7 +400,8 @@ namespace InputObserver {
     }
 
     function getKeyOnElement(event: Event): boolean {
-      return event.target === document.body || event.target === element;
+      const target = originalTarget(event);
+      return target === document.body || target === element;
     }
 
     let dragging: DraggingState = DraggingState.Stopped;
@@ -1107,7 +1114,7 @@ namespace InputObserver {
         button,
         modifiers: getModifierKeys(),
         inside,
-        onElement: ev.target === element,
+        onElement: originalTarget(ev) === element,
       });
 
       if (dragging === DraggingState.Stopped) return;

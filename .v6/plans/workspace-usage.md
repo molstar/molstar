@@ -28,7 +28,8 @@ Viewer dev server. Each browser app/example also has its own `build` and `dev` s
 with `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and `--help` to list available browser
 targets. Omit names to watch every browser app (`pnpm dev:apps`) or example (`pnpm dev:examples`). Supply multiple names
 to watch a subset, such as `pnpm dev:apps -- viewer mvs-stories`. All selected targets share one server, which prints
-each page URL. Node examples compile with TypeScript. The root `scripts/workspace/inventory.json` records package
+each page URL. Node examples compile with TypeScript. An example with its own builder (`"molstar": { "builder": "vite" }` in its
+manifest, as `examples/minimal-prism-viewer`) is left out of these selectors and runs its own `dev` and `build`. The root `scripts/workspace/inventory.json` records package
 ownership; explicit exports and dependencies live in each package's manifest. When adding/moving a source module, update
 those declarations and TypeScript references. The `scripts/refresh-workspace.mjs` helper regenerates the explicit
 inventories from production imports; review its result before committing. It preserves external and optional dependency
@@ -128,6 +129,19 @@ standard names. `expressionValidationIssues(expression, { getSymbol })` exposes 
 not check missing required arguments, argument types, selection-result types, or molecular execution support.
 `mvs-validate` uses the standard vocabulary and exits with status 1 if any file fails. Molecular compilation stays in
 model.
+
+## Deploying the apps (GitHub Pages)
+
+`pnpm deploy:local` builds the workspace (`pnpm build`) and prepares the Git-ignored `deploy/data` folder as
+[molstar.github.io](https://github.com/molstar/molstar.github.io) serves it: `viewer/`, `prism/` (the Prism viewer app),
+`me/viewer/` (Mesoscale Explorer), `stories-viewer/v<version>/`, `demos/{lighting,alpha-orbitals,mvs-stories}/` and
+`ui-storybook/` (the static build of `storybook/`). Every entry uses relative paths, so a static server checks it
+(`npx http-server deploy/data`, then `/prism/` and `/ui-storybook/`). `pnpm deploy:remote` does the same, then commits
+the folder into a clone in `deploy/molstar.github.io` and pushes it (maintainers only); `node scripts/deploy.js
+--dry-run` prepares the folder from the existing builds and prints what it would push. `--<app>-prefix <folder>` puts an
+app elsewhere (`viewer`, `prism`, `storybook`, `mesoscale`, `stories`, `demos`): `pnpm deploy:remote -- --prism-prefix
+prism-preview` serves the Prism viewer at `/prism-preview/`; `--help` lists the defaults. The script is
+`pnpm deploy:remote`, not `deploy`, because `pnpm deploy` is a pnpm command.
 
 ## Versions and checks
 

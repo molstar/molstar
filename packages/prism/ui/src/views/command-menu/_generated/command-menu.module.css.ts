@@ -36,6 +36,7 @@ export const classes = {
   'message': 'msp-command-menu-message',
   'more': 'msp-command-menu-more',
   'proposed': 'msp-command-menu-proposed',
+  'rest': 'msp-command-menu-rest',
   'row': 'msp-command-menu-row',
   'rowChevron': 'msp-command-menu-rowChevron',
   'rowIcon': 'msp-command-menu-rowIcon',
@@ -45,9 +46,11 @@ export const classes = {
   'scrim': 'msp-command-menu-scrim',
   'sentence': 'msp-command-menu-sentence',
   'spacer': 'msp-command-menu-spacer',
+  'srOnly': 'msp-command-menu-srOnly',
   'tail': 'msp-command-menu-tail',
   'token': 'msp-command-menu-token',
   'value': 'msp-command-menu-value',
+  'view': 'msp-command-menu-view',
 } as const;
 
 defineStyles('views/command-menu/command-menu.module.css', `@layer msp.components {
@@ -171,6 +174,10 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   margin: 0;
 }
 
+.msp-command-menu-rest {
+  pointer-events: none;
+}
+
 .msp-command-menu-caption {
   padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
   color: var(--msp-color-text-subtle);
@@ -193,6 +200,10 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
     background: var(--msp-color-hover);
   }
 
+  &[aria-selected="true"] .msp-command-menu-rowMeta {
+    color: var(--msp-color-text-muted);
+  }
+
   &[aria-disabled="true"] {
     color: var(--msp-color-text-subtle);
   }
@@ -213,7 +224,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   overflow: hidden;
 
   & mark {
-    color: var(--msp-color-accent);
+    color: var(--msp-color-accent-strong);
     background: none;
     font-weight: 600;
   }
@@ -285,6 +296,23 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   flex: 1;
 }
 
+.msp-command-menu-view {
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
 .msp-command-menu-run {
   align-items: center;
   gap: var(--msp-space-2);
@@ -292,15 +320,15 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-accent);
-  color: #fff;
+  color: var(--msp-color-on-accent);
   font-size: var(--msp-font-size-sm);
   font-weight: 600;
   display: flex;
 
   & kbd {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-on-accent), transparent 50%);
     color: inherit;
     background: none;
-    box-shadow: inset 0 0 0 1px #ffffff80;
   }
 }
 
@@ -368,34 +396,25 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-ask {
   align-items: center;
-  gap: var(--msp-space-2);
-  min-height: 40px;
+  gap: var(--msp-space-3);
+  min-height: 32px;
   margin: 0 var(--msp-space-2) var(--msp-space-2);
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   text-align: left;
   flex: none;
-  display: flex;
+  grid-template-columns: 16px auto minmax(0, 1fr) auto;
+  display: grid;
 
   &:hover, &[data-default] {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
-  }
-
-  &[data-default] {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+    background: var(--msp-color-hover);
   }
 
   &[data-setup] {
-    min-height: 32px;
     color: var(--msp-color-text-muted);
-    background: none;
-
-    &:hover {
-      background: var(--msp-color-hover);
-    }
+    grid-template-columns: 16px minmax(0, 1fr);
 
     & .msp-command-menu-askIcon {
       color: var(--msp-color-text-subtle);
@@ -405,13 +424,12 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-askIcon {
   color: var(--msp-color-accent);
-  flex: none;
+  justify-self: center;
 }
 
 .msp-command-menu-askLabel {
-  color: var(--msp-color-accent-strong);
-  flex: none;
-  font-weight: 600;
+  color: var(--msp-color-text);
+  font-weight: 500;
 }
 
 .msp-command-menu-askText {
@@ -443,6 +461,15 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
   display: flex;
+}
+
+.msp-command-menu-srOnly {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 }
 `);

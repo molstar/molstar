@@ -37,3 +37,6 @@ storybook-static/
 
 # mise local overrides
 mise.local.toml
+
+# Local environment
+.env.local

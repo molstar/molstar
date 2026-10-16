@@ -329,7 +329,7 @@ describe('CLIs', () => {
   };
 
   // A process each: slow. The print below is the fast tier's one CLI run; the CLIs run built (`tsc -b`: the slow tier
-  // builds first), so it waits for a `lib` (.v6/seq/plan.md §2.3).
+  // builds first), so it waits for a `lib` (packages/sequences/AGENTS.md, Tests).
   it("svs-validate: exit 0 valid, 0 with a newer minor's warnings, 1 with errors, 2 on usage", {
     tags: ['slow'],
   }, () => {

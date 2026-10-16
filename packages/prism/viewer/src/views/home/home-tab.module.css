@@ -24,6 +24,9 @@
 
 .contentInner {
   display: grid;
+  /* One column no wider than the panel: a long line (an offer, a description) fades out in its row instead of widening
+     the column, and every section with it, past the panel's edge. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--msp-space-4);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
@@ -60,6 +63,12 @@
   &[data-open] {
     background: var(--msp-color-well);
   }
+}
+
+.action[data-open] > .actionHeader {
+  /* Open, the top of its well: square at the bottom (as a section's header). */
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .actionHeader {
@@ -110,8 +119,46 @@
 
 .actionBody {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+}
+
+/* Open Files' drop area: a quiet dashed well that browses on a click and lights while files are over it. */
+.drop {
+  display: grid;
+  justify-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  padding: var(--msp-space-5) var(--msp-space-3);
+  border: 1px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    border-color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    border-color: var(--msp-color-text-subtle);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+
+  /* Files over it: the accent (it is where they go). */
+  &[data-over] {
+    border-color: var(--msp-color-accent);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.dropText {
+  font-size: var(--msp-font-size-sm);
+}
+
+.dropLink {
+  color: var(--msp-color-accent);
 }
 
 .state {
@@ -188,7 +235,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: var(--msp-space-1);
+  gap: var(--msp-space-3);
+  /* The text at the rows' inset; the buttons at the right, their icons over the dates' end. */
+  padding: 0 var(--msp-space-1) 0 var(--msp-inset);
+}
+
+.captionRow > .caption {
+  padding-left: 0;
+}
+
+/* The server the list is from (in the feature's section, under its header): quiet, one line. */
+.serverHost {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
 }
 
 .none {
@@ -250,4 +317,31 @@
   flex: 1;
   min-width: 0;
   color: var(--msp-color-text-muted);
+}
+
+/* The result line after a load: what the structure carries, offered in one click (parity.md §6a). */
+.offer {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.offerIcon {
+  flex: none;
+  color: var(--msp-color-accent);
+}
+
+.offerText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
 }

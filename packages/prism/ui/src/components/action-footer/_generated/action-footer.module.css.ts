@@ -50,7 +50,6 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
   padding: 0 var(--msp-space-4);
   color: var(--msp-color-accent);
   font-size: var(--msp-font-size-sm);
-  transition: color var(--msp-motion-fast) var(--msp-ease);
   flex: none;
   margin-left: auto;
   font-weight: 600;

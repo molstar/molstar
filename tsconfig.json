@@ -14,6 +14,9 @@
       "path": "./apps/viewer"
     },
     {
+      "path": "./apps/prism-viewer"
+    },
+    {
       "path": "./cli/chem-comp-dict"
     },
     {
@@ -69,6 +72,9 @@
     },
     {
       "path": "./examples/lighting"
+    },
+    {
+      "path": "./examples/minimal-prism-viewer"
     },
     {
       "path": "./examples/mvs-stories"
@@ -179,34 +185,7 @@
       "path": "./packages/plugin/ui"
     },
     {
-      "path": "./packages/ai/agent"
-    },
-    {
-      "path": "./packages/ai/harness"
-    },
-    {
-      "path": "./packages/ai/conformance"
-    },
-    {
-      "path": "./packages/ai/components"
-    },
-    {
-      "path": "./packages/ai/model-adapters"
-    },
-    {
-      "path": "./packages/ai/tools"
-    },
-    {
-      "path": "./packages/ai/session"
-    },
-    {
-      "path": "./packages/ai/trace"
-    },
-    {
-      "path": "./packages/ai/fibers"
-    },
-    {
-      "path": "./packages/ai/narration"
+      "path": "./packages/ai"
     },
     {
       "path": "./packages/prism/ui"

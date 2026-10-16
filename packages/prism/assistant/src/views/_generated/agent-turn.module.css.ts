@@ -28,6 +28,7 @@ export const classes = {
   'mark': 'msp-assistant-agent-turn-mark',
   'note': 'msp-assistant-agent-turn-note',
   'prompt': 'msp-assistant-agent-turn-prompt',
+  'remember': 'msp-assistant-agent-turn-remember',
   'run': 'msp-assistant-agent-turn-run',
   'runDetail': 'msp-assistant-agent-turn-runDetail',
   'runTime': 'msp-assistant-agent-turn-runTime',
@@ -143,6 +144,7 @@ defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
 .msp-assistant-agent-turn-bodyContent {
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-3) var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -255,6 +257,7 @@ defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
   padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 88%);
+  flex-wrap: wrap;
   display: flex;
 }
 
@@ -292,6 +295,15 @@ defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
   &:hover {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
   }
+}
+
+.msp-assistant-agent-turn-remember {
+  align-items: center;
+  gap: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
+  display: inline-flex;
 }
 
 .msp-assistant-agent-turn-footer {

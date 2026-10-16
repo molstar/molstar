@@ -27,3 +27,5 @@ coverage/
 packages/sequences/_spec/reference/
 packages/sequences/**/*.mdx
 packages/sequences/core/src/algorithms/biomsa/
+# Generated from the code (src/_test/operations-spec.test.ts)
+packages/prism/viewer/_spec/operations.md

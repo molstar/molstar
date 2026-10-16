@@ -16,6 +16,7 @@ export const classes = {
   'hint': 'msp-viewer-superpose-hint',
   'index': 'msp-viewer-superpose-index',
   'label': 'msp-viewer-superpose-label',
+  'problem': 'msp-viewer-superpose-problem',
   'role': 'msp-viewer-superpose-role',
   'superpose': 'msp-viewer-superpose-superpose',
 } as const;
@@ -80,6 +81,16 @@ defineStyles('viewer/views/structure/superpose.module.css', `@layer msp.componen
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   flex: none;
+}
+
+.msp-viewer-superpose-problem {
+  max-width: 55%;
+  color: var(--msp-color-warning);
+  font-size: var(--msp-font-size-xs);
+  text-overflow: clip;
+  white-space: nowrap;
+  flex: none;
+  overflow: hidden;
 }
 }
 `);

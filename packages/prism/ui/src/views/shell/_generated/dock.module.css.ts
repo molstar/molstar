@@ -33,6 +33,8 @@ export const classes = {
   'rail-menu-in': 'msp-shell-dock-rail-menu-in',
   'railFoot': 'msp-shell-dock-railFoot',
   'railMenu': 'msp-shell-dock-railMenu',
+  'railMenuRows': 'msp-shell-dock-railMenuRows',
+  'railMenuScroll': 'msp-shell-dock-railMenuScroll',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -87,6 +89,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-content {
+  contain: layout style;
   width: var(--msp-dock-size);
   flex-direction: column;
   min-width: 0;
@@ -106,6 +109,8 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-title {
   min-width: 0;
+  font-size: inherit;
+  font-weight: inherit;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
@@ -116,6 +121,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-body {
+  contain: layout paint;
   flex: 1;
   min-height: 0;
 }
@@ -135,12 +141,10 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-tab {
+  width: max(36px, var(--msp-touch-target, 0px));
+  height: max(36px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-md);
-  width: 36px;
-  height: 36px;
   color: var(--msp-color-text-muted);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
   place-items: center;
   display: grid;
 
@@ -151,6 +155,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   &[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
     color: var(--msp-color-accent);
   }
 }
@@ -254,7 +259,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & .msp-shell-dock-tab {
     width: 100%;
-    height: var(--msp-rail-button, 40px);
+    height: max(var(--msp-rail-button, 40px), var(--msp-touch-target, 0px));
     border-radius: 0;
   }
 
@@ -424,8 +429,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   position: absolute;
 
   & > * {
-    overflow-y: auto;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
   }
+}
+
+.msp-shell-dock-railMenuScroll {
+  min-height: 0;
+}
+
+.msp-shell-dock-railMenuRows {
+  display: grid;
 }
 
 @keyframes msp-shell-dock-rail-menu-in {

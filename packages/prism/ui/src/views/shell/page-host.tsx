@@ -12,6 +12,7 @@ import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { distinctUntilChanged, map } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
+import { activeElement, ownsKey } from '../../dom/events.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { ShellModel, ShellPage } from '../../shell/shell.js';
 import { classes } from './_generated/page.module.css.js';
@@ -57,17 +58,17 @@ function Page(props: { shell: ShellModel; page: ShellPage }) {
   ) as HTMLElement;
   // Esc closes it when it has the focus (or nothing has), after anything nearer has had it (an open list, a field's
   // own Escape). With the focus in the panel beside it, Esc is the panel's.
-  const before = document.activeElement as HTMLElement | null;
+  const before = activeElement(document) as HTMLElement | null;
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
-    const active = document.activeElement;
+    if (e.key !== 'Escape' || e.defaultPrevented || !ownsKey(page, e)) return;
+    const active = activeElement(page);
     if (active && active !== document.body && !page.contains(active)) return;
     shell.closePage();
     e.preventDefault();
   };
   document.addEventListener('keydown', onKey);
   queueMicrotask(() => {
-    if (!page.contains(document.activeElement)) page.focus({ preventScroll: true });
+    if (!page.contains(activeElement(page))) page.focus({ preventScroll: true });
   });
   onCleanup(() => {
     document.removeEventListener('keydown', onKey);

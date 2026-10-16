@@ -50,13 +50,14 @@ export function helpOf(param: PD.Any, value: Observable<any>): Observable<ParamH
 
 /**
  * A row's label with its help: the label text, and a small ? when there is help (shown on hover, or while open); the
- * help itself opens under the row (`HelpBlock`). Returns the label's content and the block.
+ * help itself opens under the row (`HelpBlock`). Returns the label's content and the block. `id` goes on the label's
+ * text (not the ?), for the row's control to be labelled by (`aria-labelledby`).
  */
-export function withHelp(label: string, help: Observable<ParamHelp | undefined> | undefined) {
+export function withHelp(label: string, help: Observable<ParamHelp | undefined> | undefined, id?: string) {
   if (!help)
     return {
       head: (
-        <span class={classes.text} data-tip-overflow="">
+        <span class={classes.text} id={id} data-tip-overflow="">
           {label}
         </span>
       ) as Child,
@@ -69,6 +70,7 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
       {/* With help, the text is underlined (dotted) and opens it too, as the ? does. */}
       <span
         class={classes.text}
+        id={id}
         data-tip-overflow=""
         data-help={has.pipe(map((h) => (h ? '' : undefined)))}
         onClick={(e) => {

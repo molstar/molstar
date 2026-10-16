@@ -70,7 +70,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       `resolve.conditions` and `ssr.resolve.conditions`, so a new package needs no mapping; explicit `vitest` imports
       (no globals); `jest.*` to `vi.*`; `@jest-environment` docblocks to `@vitest-environment`. Four io tests that
       imported `@molstar/model` moved to the model package, which the Jest mapper had hidden. The sequence packages
-      (`.v6/seq/plan.md`) have joined this run (the `sequences` projects, the fast tier only; their other tiers are each
+      (`packages/sequences/_spec`) have joined this run (the `sequences` projects, the fast tier only; their other tiers are each
       package's own scripts).
 
 Tooling verification (2026-10-05): native TypeScript 7.0.2 forced compilation of all 67 projects took 7.28 s, compared
@@ -105,9 +105,9 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 ## Remaining architecture and release work
 
-- [ ] Seq\*, the sequence viewer, ported from Stories Untold into `packages/sequences` ([plan](../seq/plan.md) §2):
+- [ ] Seq\*, the sequence viewer, ported from Stories Untold into `packages/sequences` ([spec](../../packages/sequences/_spec/README.md)):
   workspace packages, the fast tier in the root Vitest run, Mol\*'s msgpack and zip, molstar-poc on v6, its Storybook
-  and lint rules; then Prism over it ([design](../seq/prism-sequence.md)).
+  and lint rules; then Prism over it ([spec](../../packages/prism/viewer/_spec/sequence.md)).
 - [ ] Rendering-backend extraction and GL resource/pass/readback redesign (owner: Alex; separate workstream).
 - [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
       registries, `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog

@@ -137,10 +137,12 @@ export class RailLayout {
   readonly height: ObservableState<number> = observableState(0);
   readonly entries: Observable<readonly RailEntry[]>;
   readonly hidden: Observable<ReadonlySet<string>>;
-  /** The open More menu: its bottom edge's distance from the dock's bottom, and the button it belongs to. */
-  readonly menu: ObservableState<{ bottom: number; anchor: Element } | undefined> = observableState<
-    { bottom: number; anchor: Element } | undefined
-  >(undefined);
+  /**
+   * The open menu beside the rail: its bottom edge's distance from the dock's bottom, and the button it belongs to; More's
+   * (the left-out buttons) or a rail button's own (`item`: the theme's choices).
+   */
+  readonly menu: ObservableState<{ bottom: number; anchor: Element; item?: CanvasToolbarItem } | undefined> =
+    observableState<{ bottom: number; anchor: Element; item?: CanvasToolbarItem } | undefined>(undefined);
   /** The left-out buttons, in rail order: the More menu's rows. */
   readonly overflow: Observable<readonly RailEntry[]>;
 
@@ -170,7 +172,22 @@ export class RailLayout {
   }
 
   /** Observes the rail element: its height is the only thing measured, and only when it changes. */
+  /**
+   * Opens a menu beside the rail at a button, its bottom edge level with the button's (one read, on the click), or
+   * closes it when that button's is open: More's (no `item`) or the button's own.
+   */
+  toggleMenu(anchor: Element, item?: CanvasToolbarItem): void {
+    const open = this.menu.value;
+    if (open && open.anchor === anchor) return this.menu.set(undefined);
+    const root = this.#rail?.parentElement;
+    const bottom = root ? root.getBoundingClientRect().bottom - anchor.getBoundingClientRect().bottom : 0;
+    this.menu.set({ bottom, anchor, ...(item ? { item } : {}) });
+  }
+
+  #rail: Element | undefined;
+
   observe(rail: Element): () => void {
+    this.#rail = rail;
     const ro = new ResizeObserver((entries) => {
       const h = Math.round(entries[entries.length - 1].contentRect.height);
       if (h !== this.height.value) this.height.set(h);

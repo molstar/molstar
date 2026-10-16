@@ -10,19 +10,16 @@
   "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
   "references": [
     {
-      "path": "../../ai/agent"
-    },
-    {
-      "path": "../../ai/tools"
-    },
-    {
-      "path": "../../ai/trace"
+      "path": "../../ai"
     },
     {
       "path": "../../core"
     },
     {
       "path": "../ui"
+    },
+    {
+      "path": "../viewer"
     }
   ]
 }

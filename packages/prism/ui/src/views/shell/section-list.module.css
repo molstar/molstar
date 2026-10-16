@@ -36,6 +36,12 @@
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  /* Open, it is the top of its section's well: its hover square at the bottom, not a pill apart from the body. */
+  &[aria-expanded="true"] {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .title {
@@ -62,6 +68,15 @@
 .body {
   /* A little room under the header before the first control. */
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+}
+
+/* Among Home's actions: the same inset and height as theirs (its own padding would indent it twice). */
+.list[data-bare] {
+  padding: 0;
+
+  & .header {
+    height: 32px;
+  }
 }
 
 .list[data-flat] {

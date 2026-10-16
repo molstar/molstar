@@ -11,12 +11,13 @@ import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
 /** The UI themes (theme.css): `auto` follows the system's light or dark. */
-export type UITheme = 'light' | 'dark' | 'blue' | 'auto';
+export type UITheme = 'light' | 'dark' | 'blue' | 'contrast' | 'auto';
 
 export const UIThemes: readonly { id: UITheme; title: string; icon: IconName }[] = [
   { id: 'light', title: 'Light', icon: 'sun' },
   { id: 'dark', title: 'Dark', icon: 'moon' },
   { id: 'blue', title: 'Blue', icon: 'palette' },
+  { id: 'contrast', title: 'High contrast', icon: 'eye' },
   { id: 'auto', title: 'Auto (system)', icon: 'sun-moon' },
 ];
 

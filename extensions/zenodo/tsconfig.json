@@ -16,6 +16,12 @@
     },
     {
       "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../packages/prism/ui"
     }
   ]
 }

@@ -1,0 +1,119 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* One quiet row: play or pause, the time, the line, the length, stop and close. */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 32px;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* The main action: a round button in the accent. */
+.play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--msp-color-accent);
+  color: var(--msp-color-on-accent);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    transform: scale(1.06);
+  }
+}
+
+.time {
+  flex: none;
+  min-width: 4ch;
+  color: var(--msp-color-text-subtle);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* The position: a thin line, filled as far as it has played (scaled, not resized), a knob at the end. */
+.track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 3px;
+    margin-top: -1.5px; /* off-scale: centred */
+    border-radius: 1.5px;
+    background: var(--msp-color-pressed);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 1px var(--msp-color-focus-ring);
+    border-radius: var(--msp-radius-sm);
+  }
+}
+
+.fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  margin-top: -1.5px; /* off-scale: centred */
+  border-radius: 1.5px;
+  background: var(--msp-color-accent);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.knobTrack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: -5px; /* off-scale: centred on the line's end */
+  width: 10px;
+  height: 10px;
+  margin-top: -5px; /* off-scale */
+  border-radius: 50%;
+  background: var(--msp-color-accent);
+  box-shadow: 0 0 0 2px var(--msp-color-well);
+}
+
+.action {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}

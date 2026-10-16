@@ -12,7 +12,7 @@ import { type ObservableState, observableState } from '../reactive/observable-st
 import { sameShallow } from '../reactive/same-shallow.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import type { Child, Component } from './jsx-types.js';
-import { playClose } from './motion.js';
+import { playClose, swapIn } from './motion.js';
 import { insert, insertRegion, Passthrough, removeBetween } from './render.js';
 import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, type Scope, toStream } from './scope.js';
 
@@ -42,10 +42,16 @@ export function Show<T>(props: {
   /**
    * Content that opens (hidden to shown after the first render; not one shown value replacing another, like a tab
    * switch) is revealed: its element gets `data-reveal`, which `reset.css` animates (it grows to its height and fades
-   * in, or slides in from the side with `'side'`). Closing plays it back (collapses or slides out, then goes). None
-   * with reduced motion. Overview › Foundations › Motion.
+   * in; slides in from the side with `'side'`; only fades in with `'fade'`, for what must not change size, like a band
+   * drawn on a canvas). Closing plays it back (collapses, slides out or fades, then goes). None with reduced motion.
+   * Overview › Foundations › Motion.
    */
-  reveal?: boolean | 'side';
+  reveal?: boolean | 'side' | 'fade';
+  /**
+   * One shown value replaced by another (a panel by another) runs as a view transition scoped to this element, where
+   * the browser has them (`swapIn`, motion.ts); opening and closing are `reveal`'s.
+   */
+  swap?: () => Element | null | undefined;
 }): Node {
   let first = true;
   let shown = false;
@@ -57,7 +63,8 @@ export function Show<T>(props: {
   const content = (v: NonNullable<T>, reveal: boolean) => () => {
     const child = props.children(v);
     tops = topElements(child);
-    if (reveal) for (const el of tops) el.setAttribute('data-reveal', props.reveal === 'side' ? 'side' : '');
+    if (reveal)
+      for (const el of tops) el.setAttribute('data-reveal', props.reveal === true ? '' : String(props.reveal));
     return child;
   };
   return region(
@@ -85,12 +92,22 @@ export function Show<T>(props: {
             if (!same) {
               shownValue = v;
               shownFn = content(v as NonNullable<T>, !!props.reveal && opening);
+              // A value replacing another: swapped in, if asked (the content rendered when the transition has the old
+              // state, unless something newer came by then).
+              if (wasShown && props.swap) {
+                const fn = shownFn;
+                swapIn(props.swap(), () => {
+                  if (shownFn === fn) subscriber.next(fn);
+                });
+                return;
+              }
             }
             subscriber.next(shownFn);
             return;
           }
           shownValue = shownFn = undefined;
-          const animations = closingNow && props.reveal ? tops.map((el) => playClose(el, props.reveal === 'side')) : [];
+          const kind = props.reveal === true ? 'grow' : props.reveal;
+          const animations = closingNow && kind ? tops.map((el) => playClose(el, kind)) : [];
           if (animations.length === 0 || animations.some((a) => !a)) {
             subscriber.next(props.fallback ?? null);
             return;

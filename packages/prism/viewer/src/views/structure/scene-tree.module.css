@@ -21,15 +21,29 @@
   font-size: var(--msp-font-size-sm);
 }
 
+/* A tree item: focusable by the keyboard (dom/tree-keys.ts); its row shows the focus, not the item (which holds its
+   children). */
+.item {
+  outline: none;
+}
+
+.item:focus-visible > .row {
+  box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+}
+
+.tree:focus-visible {
+  outline: none;
+}
+
 .row {
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
   min-width: 0;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
   content-visibility: auto;
-  contain-intrinsic-size: auto 26px;
+  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -53,8 +67,9 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  /* 24px at least (WCAG 2.5.8), 44px on touch. */
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
@@ -105,6 +120,20 @@
   white-space: nowrap;
 }
 
+/* A row's color (a volume's isosurface), before its description; a theme's colors: a split swatch. */
+.swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--msp-accent-red) 0 25%,
+    var(--msp-accent-orange) 0 50%,
+    var(--msp-accent-green) 0 75%,
+    var(--msp-accent-blue) 0
+  );
+}
+
 .actions {
   flex: none;
   display: flex;
@@ -114,11 +143,16 @@
 .action {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .row:hover &,
   &:focus-visible {
@@ -132,7 +166,9 @@
 }
 
 .actionSlot {
-  width: 22px;
+  display: grid;
+  place-items: center;
+  width: max(24px, var(--msp-touch-target, 0px));
 }
 
 /* A hidden node keeps its eye visible: the state is worth seeing at a glance. */
@@ -155,6 +191,20 @@
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+
+  /* In a `MenuPopover` (a row's ⋯): its frame is the popover's. */
+  &[data-popover] {
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* In the inspector (a node's actions): plain rows on the panel, no well and no inset. */
+  &[data-flat] {
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
 }
 
 .menuItem {
@@ -162,7 +212,7 @@
   grid-template-columns: 14px 1fr;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
@@ -193,6 +243,35 @@
   display: grid;
 }
 
+/* Show all: a quiet row where the rest would be, at the children's depth. */
+.more {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  width: 100%;
+  height: 26px;
+  padding-left: calc(
+    var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    22px
+  ); /* off-scale: past the chevron */
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  line-height: 26px;
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
 .loading {
   height: 26px;
   padding-left: calc(
@@ -207,6 +286,21 @@
 }
 
 /* Destructive (Remove): in the danger color, set apart by a hairline from what comes before it (alone, no line). */
+/* An entry with its choices as icons at its end (Modify by selection): not a button itself, no hover of its own. */
+.inlineItem {
+  grid-template-columns: 14px 1fr auto;
+  cursor: default;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.inlineIcons {
+  display: flex;
+  gap: 2px; /* off-scale: icon buttons side by side */
+}
+
 .menuItem[data-danger] {
   color: var(--msp-color-danger);
 
@@ -221,4 +315,13 @@
     background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
     color: var(--msp-color-danger);
   }
+}
+
+/* An extension's row's controls (scene-row.tsx): under the row, aligned with its label. */
+.rowBody {
+  display: grid;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
 }

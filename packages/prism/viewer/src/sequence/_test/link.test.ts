@@ -6,9 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { StructureElement } from '@molstar/model/model/structure';
+import { Structure, type StructureElement } from '@molstar/model/model/structure';
+import { observableState } from '@molstar/prism-ui/core';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import type { Mark, MarkHover, MarksSource } from '../../sources/marks.js';
 import { linkSequence, type SequenceView3D } from '../link.js';
 import { headlessViewers, hostStructure } from './fixtures.js';
 
@@ -143,6 +145,62 @@ describe('linking the sequence to a 3D view', () => {
     expect(reveal).not.toHaveBeenCalled();
     h.scheduler.advance(200);
     expect(reveal).toHaveBeenCalledTimes(1);
+    h.viewers.dispose();
+  });
+
+  it("shows a view's marks as highlight channels in their tones and its hover as the 3D view's, and clears them on cleanup", async () => {
+    const h = headlessViewers();
+    const fake = fakeView();
+    const list = observableState<readonly Mark[]>([]);
+    const hover = observableState<MarkHover | undefined>(undefined);
+    const marks = {
+      marks: list.asReadonly,
+      hover: hover.asReadonly,
+    } as MarksSource;
+    const stop = linkSequence(h.viewer, () => fake.view, { marks });
+    const host = await hostStructure();
+    h.structure.set(host);
+    await shown(h);
+    const seq = h.viewer.seq;
+    const setHover = vi.spyOn(seq.hover, 'setLoci');
+    const all = Structure.toStructureElementLoci(host.structure);
+    const mark = (id: string, tone: Mark['tone']): Mark => ({
+      owner: 'plot',
+      id,
+      label: id,
+      tone,
+      structure: 's',
+      loci: all,
+    });
+
+    list.set([mark('a', 'highlight'), mark('b', 'accent')]);
+    const channels = () => [...seq.highlight.channels.value].filter(([c]) => c.startsWith('marks:'));
+    expect(channels().map(([c, e]) => [c, e.style])).toEqual([
+      ['marks:plot:a', 'highlight'],
+      ['marks:plot:b', 'accent'],
+    ]);
+    list.set([mark('b', 'accent')]);
+    expect(channels().map(([c]) => c)).toEqual(['marks:plot:b']);
+
+    hover.set({ owner: 'plot', structure: 's', loci: all });
+    expect(setHover).toHaveBeenLastCalledWith(expect.anything(), '3d');
+    // The hover is not sent back to the 3D view, which lit it.
+    expect(fake.calls).toEqual([]);
+    hover.set(undefined);
+    expect(setHover).toHaveBeenLastCalledWith(null, '3d');
+
+    // Another model's loci are not this one's residues (they would remap by unit id and atom index).
+    const other = Structure.toStructureElementLoci((await hostStructure('1c26')).structure);
+    list.set([{ ...mark('c', 'accent'), loci: other }]);
+    expect(channels()).toEqual([]);
+    hover.set({ owner: 'plot', structure: 's', loci: other });
+    expect(setHover).toHaveBeenLastCalledWith(null, '3d');
+    hover.set(undefined);
+
+    hover.set({ owner: 'plot', structure: 's', loci: all });
+    stop();
+    expect(channels()).toEqual([]);
+    expect(setHover).toHaveBeenLastCalledWith(null, '3d');
     h.viewers.dispose();
   });
 });

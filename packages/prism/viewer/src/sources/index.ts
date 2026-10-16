@@ -7,4 +7,3 @@
  */
 
 export { hoverLines } from './hover-lines.js';
-export { createViewerPlugin, type ViewerPlugin } from './viewer-plugin.js';

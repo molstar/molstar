@@ -10,14 +10,13 @@ import type { Observable } from 'rxjs';
 import type { IconName } from '../components/icon/icon.js';
 import type { Child } from '../dom/jsx-types.js';
 import type { ViewRenderer } from '../dom/view.js';
-import { type ObservableRecordState, type ObservableState, observableState } from '../reactive/observable-state.js';
+import { NavigationManager } from '../managers/navigation.js';
+import { type DockId, DockIds, type DockLayout, type ShellMode, ViewStateManager } from '../managers/view-state.js';
+import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
-export type DockId = 'left' | 'right' | 'top' | 'bottom';
-export const DockIds: readonly DockId[] = ['left', 'right', 'top', 'bottom'];
-
-export type ShellMode = 'desktop' | 'compact' | 'embedded';
+export { type DockId, DockIds, type ShellMode } from '../managers/view-state.js';
 
 /** What a tab, overlay or canvas item is rendered with. */
 export interface ShellViewContext {
@@ -68,6 +67,10 @@ export interface ShellOverlay {
   id: string;
   title: string;
   render: ViewRenderer<ShellViewContext>;
+  /** Stays open on a click outside it, as a pinned card (Esc or its ✕ close it): what is read beside the scene. */
+  persistent?: boolean;
+  /** Its view takes the card's whole height and scrolls its own parts (the card's body does not scroll). */
+  fill?: boolean;
 }
 
 /**
@@ -109,6 +112,13 @@ export interface ShellLayout {
 }
 
 export interface ShellOptions {
+  /**
+   * The layout's state (api.md §11): docks, sizes, mode, rail, buttons. Given, the shell reads and writes it and
+   * the options below that it holds are ignored; absent, the shell makes one from them.
+   */
+  viewState?: ViewStateManager;
+  /** What is open: each dock's tab, the card, the page. Given or made, as `viewState`. */
+  navigation?: NavigationManager;
   mode?: ShellLayout['mode'];
   docks?: Partial<Record<DockId, Partial<DockState>>>;
   /** Below this width (px) an `auto` shell is compact. */
@@ -131,12 +141,14 @@ export interface ShellOptions {
  * structure passes under it faded, with no hard cut. The band's view keeps this much clear at its bottom.
  */
 export const BandFadePx = 28;
+
+/**
+ * Ms the canvas stack (its toolbar) takes to fade out when the canvas empties (`--msp-motion-fade`): what is in it is
+ * kept that long, so the fade has something to fade (`CanvasStack`'s `quiet`).
+ */
+export const CanvasStackFadeMs = 360;
 /** Px of the band's last lines over which its backdrop already starts to fade (the dissolve begins within the band). */
 export const BandDissolvePx = 36;
-
-const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
-// Side docks are resized by their splitter; a top or bottom dock is sized by its view (the sequence follows its content).
-const MinSizes: Record<DockId, number> = { left: 180, right: 180, top: 40, bottom: 40 };
 
 /**
  * A section contributed to a slot of a panel or overlay: the Export panel's `export` slot (image, session, animation,
@@ -148,12 +160,16 @@ export interface ShellSection {
   /** The slot it goes to (`export`). */
   slot: string;
   title: string;
+  /** Its header's words when they follow what it offers (Export's "Image & animation"); `title` otherwise. */
+  heading?: Observable<string>;
   icon?: IconName;
   /** Words it is also found by (the command menu, the section filter). */
   keywords?: readonly string[];
   order?: number;
   /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
   when?(ctx: ShellViewContext): boolean;
+  /** Open until the person folds it, in a list whose sections start folded (`SectionList`'s `collapsed`). */
+  open?: boolean;
   render: ViewRenderer<ShellViewContext>;
 }
 
@@ -186,6 +202,8 @@ export interface CanvasToolbarItem {
   face?: Observable<{ icon: IconName; title: string }>;
   /** Opens (or closes) this overlay, anchored to the button. */
   overlay?: string;
+  /** Its click leaves an open card open (the command menu's button: the menu acts on what is open). */
+  keepsCard?: boolean;
   run?(anchor: Element): void;
   /**
    * Variants of the button's action, shown beside it on hover or focus (the camera: reset zoom, orient axes, reset
@@ -229,9 +247,9 @@ export interface OpenOverlay {
   focus?: string;
 }
 
-/** One dock's state and its resolved tabs. */
+/** One dock's state and its resolved tabs: its layout (`viewState`) and what is open in it (`navigation`). */
 export class DockModel {
-  readonly #state: ObservableRecordState<DockState>;
+  readonly #state: ObservableState<DockState>;
   readonly #tabs: ObservableState<readonly ShellTab[]>;
   readonly #active: ObservableState<ShellTab | undefined>;
 
@@ -259,38 +277,44 @@ export class DockModel {
   }
 
   /** @internal */
-  update(partial: Partial<DockState>, registered: ReadonlyMap<string, ShellTab>): void {
-    this.#state.update(partial);
-    const state = this.#state.value;
+  sync(state: DockState, registered: ReadonlyMap<string, ShellTab>): void {
+    this.#state.set(state);
     const tabs = state.tabs.map((id) => registered.get(id)).filter((t): t is ShellTab => !!t);
     this.#tabs.set(tabs);
     this.#active.set(state.collapsed ? undefined : tabs.find((t) => t.id === state.active));
   }
 }
 
+const LayoutKeys = ['tabs', 'size', 'floating', 'pinned'] as const;
+
 /**
- * The frame around the canvas: docks of tabs, the overlay over the canvas, and the mode (desktop, compact, embedded).
- * Owned by the UI context; persisted layout and contributions come later.
+ * The frame around the canvas: the parts registered into it (tabs, overlays, pages, sections, toolbar items) and what
+ * a person does with them (show, select, move, resize, open a card). Its state is two managers' (api.md §11):
+ * `viewState` (the layout) and `navigation` (what is open), so an app keeps, restores and drives them without a view.
  */
 export class ShellModel extends ReactiveModel {
   readonly #registered = new Map<string, ShellTab>();
   readonly #overlays = new Map<string, ShellOverlay>();
   readonly #pages = new Map<string, ShellPage>();
+  readonly #viewState: ViewStateManager;
+  readonly #navigation: NavigationManager;
   readonly #page = observableState<OpenPage | undefined>(undefined);
   readonly #docks: Record<DockId, DockModel>;
-  readonly #mode = observableState<ShellLayout['mode']>('auto');
-  readonly #compactRail = observableState(false);
-  readonly #railOpen = observableState(false);
   readonly #railShown = observableState(true);
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
-  readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
-  /** The last request to show a tab at a section (each request a new object, so asking again scrolls again). */
-  readonly #tabFocus = observableState<{ tab: string; section: string } | undefined>(undefined);
+  // Compared by identity: each request is a new object, so asking again for the same section is not swallowed.
+  readonly #overlay = observableState<OpenOverlay | undefined>(undefined, { compare: Object.is });
+  /** The element the open card is anchored to: a view's, not state. */
+  #anchor: { id: string; element: Element } | undefined;
+  readonly #tabFocus = observableState<{ tab: string; section: string } | undefined>(undefined, {
+    compare: Object.is,
+  });
+  readonly #compactRail = observableState(false);
+  readonly #railOpen = observableState(false);
   /** Every registered item, and the shown ones (`buttons` applied). */
   readonly #toolbarAll = observableState<readonly CanvasToolbarItem[]>([]);
   readonly #toolbar = observableState<readonly CanvasToolbarItem[]>([]);
-  #buttons: Readonly<Record<string, boolean>>;
   readonly #sections = observableState<readonly ShellSection[]>([]);
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
   readonly #compactWidth: number;
@@ -298,22 +322,22 @@ export class ShellModel extends ReactiveModel {
   constructor(options: ShellOptions = {}) {
     super();
     this.#compactWidth = options.compactWidth ?? 720;
-    this.#buttons = options.buttons ?? {};
+    this.#viewState = options.viewState ?? new ViewStateManager(layoutOptions(options));
+    this.#navigation = options.navigation ?? new NavigationManager(navigationOptions(options));
     this.#docks = {} as Record<DockId, DockModel>;
-    for (const id of DockIds) {
-      this.#docks[id] = new DockModel(id, {
-        tabs: [],
-        active: undefined,
-        size: DefaultSizes[id],
-        collapsed: false,
-        floating: id === 'right' || id === 'top',
-        pinned: false,
-        ...options.docks?.[id],
-      });
-    }
-    this.#mode.set(options.mode ?? 'auto');
-    this.#resolveMode();
-    this.setCompactRail(!!options.compactRail);
+    for (const id of DockIds) this.#docks[id] = new DockModel(id, this.#dockState(id));
+    this.subscribePermanently(this.#viewState.layout, () => this.#sync());
+    this.subscribePermanently(this.#navigation.state, () => this.#sync());
+  }
+
+  /** The layout's state (docks, sizes, mode, rail, buttons). */
+  get viewState(): ViewStateManager {
+    return this.#viewState;
+  }
+
+  /** What is open (each dock's tab, the card, the page). */
+  get navigation(): NavigationManager {
+    return this.#navigation;
   }
 
   /** The rail is a column hidden behind the canvas corner's button (`ShellOptions.compactRail`). */
@@ -332,7 +356,7 @@ export class ShellModel extends ReactiveModel {
   }
 
   setCompactRail(compact: boolean): void {
-    this.#compactRail.set(compact);
+    this.#viewState.setCompactRail(compact);
     this.setRailOpen(false);
   }
 
@@ -342,17 +366,30 @@ export class ShellModel extends ReactiveModel {
    * is opened again).
    */
   setRailOpen(open: boolean): void {
-    this.#railOpen.set(open);
-    this.#railShown.set(!this.#compactRail.value || open);
-    if (!this.#railShown.value) {
+    // What opened from it closes first, while the rail is still shown: hidden UI is paused (styling.md §5), so a panel
+    // closed after the rail hid would only see it when the rail came back, and flash open and shut then.
+    if (this.#viewState.layout.value.compactRail && !open) {
       this.closeOverlay();
-      const right = this.#docks.right;
-      if (!right.state.value.collapsed) right.update({ collapsed: true }, this.#registered);
+      this.#navigation.setDock('right', { collapsed: true });
     }
+    this.#navigation.setRailOpen(open);
   }
 
   toggleRail(): void {
-    if (this.#compactRail.value) this.setRailOpen(!this.#railOpen.value);
+    if (this.#viewState.layout.value.compactRail) this.setRailOpen(!this.#navigation.state.value.railOpen);
+  }
+
+  /**
+   * The canvas fills the viewer (`navigation.expanded`, `view.expand`): the view leaves out the rail, the docks and the
+   * sequence band; the canvas stack stays, with the way back (and Escape).
+   */
+  get expanded(): ReadonlyState<boolean> {
+    return this.#navigation.expanded;
+  }
+
+  setExpanded(expanded: boolean): void {
+    if (expanded) this.closeOverlay();
+    this.#navigation.setExpanded(expanded);
   }
 
   dock(id: DockId): DockModel {
@@ -430,19 +467,14 @@ export class ShellModel extends ReactiveModel {
 
   /** Shows or hides toolbar buttons by id (the UI spec's `layout.buttons`, or a settings toggle). */
   setButtons(buttons: Readonly<Record<string, boolean>>): void {
-    this.#buttons = { ...this.#buttons, ...buttons };
-    this.#updateToolbar();
-  }
-
-  #updateToolbar() {
-    this.#toolbar.set(this.#toolbarAll.value.filter((i) => this.#buttons[i.id] !== false));
+    this.#viewState.setButtons(buttons);
   }
 
   /** The layout as it can be persisted. */
   get layout(): ShellLayout {
     const docks = {} as Record<DockId, DockState>;
-    for (const id of DockIds) docks[id] = this.#docks[id].state.value;
-    return { docks, mode: this.#mode.value };
+    for (const id of DockIds) docks[id] = this.#dockState(id);
+    return { docks, mode: this.#viewState.layout.value.mode };
   }
 
   /** Adds tabs (to their dock, after the tabs there); returns a function that removes them. */
@@ -450,8 +482,8 @@ export class ShellModel extends ReactiveModel {
     const added = [...tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     for (const tab of added) {
       this.#registered.set(tab.id, tab);
-      const dock = this.#dockOf(tab.id) ?? this.#docks[tab.dock ?? 'right'];
-      const state = dock.state.value;
+      const dock = this.#dockOf(tab.id) ?? tab.dock ?? 'right';
+      const state = this.#dockState(dock);
       // A new tab goes by its order among those already there (an extension's tab lands where its order says, not
       // at the end); one already in the dock (a restored layout) keeps its place.
       let ids = state.tabs;
@@ -460,53 +492,58 @@ export class ShellModel extends ReactiveModel {
         const at = ids.findIndex((id) => (this.#registered.get(id)?.order ?? 0) > order);
         ids = at < 0 ? [...ids, tab.id] : [...ids.slice(0, at), tab.id, ...ids.slice(at)];
       }
-      dock.update({ tabs: ids, active: state.active ?? tab.id }, this.#registered);
+      this.#update(dock, { tabs: ids, active: state.active ?? tab.id });
     }
+    this.#sync();
     return () => {
       for (const tab of added) {
         if (this.#registered.get(tab.id) !== tab) continue;
         this.#registered.delete(tab.id);
         const dock = this.#dockOf(tab.id);
         if (!dock) continue;
-        const state = dock.state.value;
+        const state = this.#dockState(dock);
         const ids = state.tabs.filter((id) => id !== tab.id);
-        dock.update({ tabs: ids, active: state.active === tab.id ? ids[0] : state.active }, this.#registered);
+        this.#update(dock, { tabs: ids, active: state.active === tab.id ? ids[0] : state.active });
       }
+      this.#sync();
     };
   }
 
   registerOverlays(overlays: readonly ShellOverlay[]): () => void {
     for (const o of overlays) this.#overlays.set(o.id, o);
+    this.#sync();
     return () => {
       for (const o of overlays) {
         if (this.#overlays.get(o.id) !== o) continue;
         this.#overlays.delete(o.id);
-        if (this.#overlay.value?.overlay === o) this.closeOverlay();
+        if (this.#navigation.state.value.card?.id === o.id) this.closeOverlay();
       }
+      this.#sync();
     };
   }
 
   registerPages(pages: readonly ShellPage[]): () => void {
     for (const p of pages) this.#pages.set(p.id, p);
+    this.#sync();
     return () => {
       for (const p of pages) {
         if (this.#pages.get(p.id) !== p) continue;
         this.#pages.delete(p.id);
-        if (this.#page.value?.page === p) this.closePage();
+        if (this.#navigation.state.value.page?.id === p.id) this.closePage();
       }
+      this.#sync();
     };
   }
 
   /** Opens a page over the app (an open card closes); `focus` says what to show in it. */
   openPage(id: string, focus?: string): void {
-    const page = this.#pages.get(id);
-    if (!page) return;
+    if (!this.#pages.has(id)) return;
     this.closeOverlay();
-    this.#page.set({ page, ...(focus ? { focus } : {}) });
+    this.#navigation.setPage({ id, ...(focus ? { focus } : {}) });
   }
 
   closePage(): void {
-    this.#page.set(undefined);
+    this.#navigation.setPage(undefined);
   }
 
   /** Shows a tab: activates it and expands its dock; with `section`, at that section (the Selection tab at Measure). */
@@ -514,56 +551,53 @@ export class ShellModel extends ReactiveModel {
     const dock = this.#dockOf(tabId);
     if (!dock) return;
     // At a section, or plainly: a plain show forgets an earlier section request for this tab (it was done).
-    if (section) this.#tabFocus.set({ tab: tabId, section });
-    else if (this.#tabFocus.value?.tab === tabId) this.#tabFocus.set(undefined);
-    dock.update({ active: tabId, collapsed: false }, this.#registered);
+    if (section) this.#navigation.setFocus({ tab: tabId, section });
+    else if (this.#navigation.state.value.focus?.tab === tabId) this.#navigation.setFocus(undefined);
+    this.#update(dock, { active: tabId, collapsed: false });
   }
 
   /** A tab strip click: activates the tab, or collapses the dock when it is already the active one. */
   select(tabId: string): void {
     const dock = this.#dockOf(tabId);
     if (!dock) return;
-    if (this.#tabFocus.value?.tab === tabId) this.#tabFocus.set(undefined);
-    const state = dock.state.value;
-    if (state.active === tabId && !state.collapsed) dock.update({ collapsed: true }, this.#registered);
-    else dock.update({ active: tabId, collapsed: false }, this.#registered);
+    if (this.#navigation.state.value.focus?.tab === tabId) this.#navigation.setFocus(undefined);
+    const state = this.#dockState(dock);
+    if (state.active === tabId && !state.collapsed) this.#update(dock, { collapsed: true });
+    else this.#update(dock, { active: tabId, collapsed: false });
   }
 
   toggle(dock: DockId): void {
-    const d = this.#docks[dock];
-    d.update({ collapsed: !d.state.value.collapsed }, this.#registered);
+    this.#update(dock, { collapsed: !this.#dockState(dock).collapsed });
   }
 
   /** Moves a tab to another dock (at the end, or at `index`), making it active there. */
   move(tabId: string, to: DockId, index?: number): void {
     const from = this.#dockOf(tabId);
     if (!from || !this.#registered.has(tabId)) return;
-    const fromState = from.state.value;
+    const fromState = this.#dockState(from);
     const rest = fromState.tabs.filter((id) => id !== tabId);
-    from.update({ tabs: rest, active: fromState.active === tabId ? rest[0] : fromState.active }, this.#registered);
-    const target = this.#docks[to];
-    const ids = [...target.state.value.tabs.filter((id) => id !== tabId)];
+    this.#update(from, { tabs: rest, active: fromState.active === tabId ? rest[0] : fromState.active });
+    const ids = [...this.#dockState(to).tabs.filter((id) => id !== tabId)];
     ids.splice(index ?? ids.length, 0, tabId);
-    target.update({ tabs: ids, active: tabId, collapsed: false }, this.#registered);
+    this.#update(to, { tabs: ids, active: tabId, collapsed: false });
   }
 
   setSize(dock: DockId, size: number): void {
-    this.#docks[dock].update({ size: Math.max(MinSizes[dock], Math.round(size)) }, this.#registered);
+    this.#viewState.setDock(dock, { size });
   }
 
   /** Floats a dock over the canvas, or docks it beside the canvas. */
   setFloating(dock: DockId, floating: boolean): void {
-    this.#docks[dock].update({ floating }, this.#registered);
+    this.#viewState.setDock(dock, { floating });
   }
 
   /** Pins a floating dock beside the canvas (the canvas shrinks to make room), or lets it float over it again. */
   setPinned(dock: DockId, pinned: boolean): void {
-    this.#docks[dock].update({ pinned }, this.#registered);
+    this.#viewState.setDock(dock, { pinned });
   }
 
   setMode(mode: ShellLayout['mode']): void {
-    this.#mode.set(mode);
-    this.#resolveMode();
+    this.#viewState.setMode(mode);
   }
 
   /** The shell's width, reported by its view; resolves `auto`. */
@@ -574,28 +608,120 @@ export class ShellModel extends ReactiveModel {
 
   /** Opens an overlay; `focus` names a section to bring into view (a command opening the Export panel at MP4). */
   openOverlay(id: string, anchor?: Element, focus?: string): void {
-    const overlay = this.#overlays.get(id);
-    if (overlay) this.#overlay.set({ overlay, ...(anchor ? { anchor } : {}), ...(focus ? { focus } : {}) });
+    if (!this.#overlays.has(id)) return;
+    this.#anchor = anchor ? { id, element: anchor } : this.#anchor?.id === id ? this.#anchor : undefined;
+    const before = this.#overlay.value;
+    this.#navigation.setCard({ id, ...(focus ? { section: focus } : {}) });
+    // Asked again at the same section (the sync found nothing new): the card brings it into view again.
+    if (this.#overlay.value === before) this.#syncOverlay(true);
   }
 
   /** Opens the overlay, or closes it when it is the open one. */
   toggleOverlay(id: string, anchor?: Element): void {
-    if (this.#overlay.value?.overlay.id === id) this.closeOverlay();
+    if (this.#navigation.state.value.card?.id === id) this.closeOverlay();
     else this.openOverlay(id, anchor);
   }
 
   closeOverlay(): void {
-    this.#overlay.set(undefined);
+    this.#anchor = undefined;
+    this.#navigation.setCard(undefined);
   }
 
-  #dockOf(tabId: string): DockModel | undefined {
-    for (const id of DockIds) if (this.#docks[id].state.value.tabs.includes(tabId)) return this.#docks[id];
+  #dockOf(tabId: string): DockId | undefined {
+    const docks = this.#viewState.layout.value.docks;
+    for (const id of DockIds) if (docks[id].tabs.includes(tabId)) return id;
     return undefined;
   }
 
+  #dockState(id: DockId): DockState {
+    const layout = this.#viewState.layout.value.docks[id];
+    const nav = this.#navigation.state.value.docks[id];
+    return { ...layout, active: nav.active, collapsed: nav.collapsed };
+  }
+
+  /** Writes a dock's change to the manager that holds each part. */
+  #update(id: DockId, partial: Partial<DockState>): void {
+    const layout: Partial<{ -readonly [K in keyof DockLayout]: DockLayout[K] }> = {};
+    for (const key of LayoutKeys) if (key in partial) (layout as Record<string, unknown>)[key] = partial[key];
+    if (Object.keys(layout).length) this.#viewState.setDock(id, layout);
+    const nav: { active?: string; collapsed?: boolean } = {};
+    if ('active' in partial) nav.active = partial.active;
+    if ('collapsed' in partial) nav.collapsed = partial.collapsed;
+    if (Object.keys(nav).length) this.#navigation.setDock(id, nav);
+  }
+
+  /** The views' states, from the managers and the registries. */
+  #sync(): void {
+    if (!this.#docks) return;
+    for (const id of DockIds) this.#docks[id].sync(this.#dockState(id), this.#registered);
+    const layout = this.#viewState.layout.value;
+    const nav = this.#navigation.state.value;
+    this.#compactRail.set(layout.compactRail);
+    this.#railOpen.set(nav.railOpen);
+    this.#railShown.set(!layout.compactRail || nav.railOpen);
+    this.#tabFocus.set(nav.focus);
+    const page = nav.page ? this.#pages.get(nav.page.id) : undefined;
+    const open = this.#page.value;
+    if (!page) this.#page.set(undefined);
+    else if (open?.page !== page || open.focus !== nav.page?.focus) {
+      this.#page.set({ page, ...(nav.page?.focus ? { focus: nav.page.focus } : {}) });
+    }
+    this.#syncOverlay(false);
+    this.#updateToolbar();
+    this.#resolveMode();
+  }
+
+  #syncOverlay(again: boolean): void {
+    const card = this.#navigation.state.value.card;
+    const overlay = card ? this.#overlays.get(card.id) : undefined;
+    if (!overlay || !card) {
+      this.#overlay.set(undefined);
+      return;
+    }
+    const current = this.#overlay.value;
+    const anchor = this.#anchor?.id === card.id ? this.#anchor.element : undefined;
+    if (!again && current?.overlay === overlay && current.anchor === anchor && current.focus === card.section) return;
+    this.#overlay.set({ overlay, ...(anchor ? { anchor } : {}), ...(card.section ? { focus: card.section } : {}) });
+  }
+
+  #updateToolbar() {
+    const buttons = this.#viewState.layout.value.buttons;
+    this.#toolbar.set(this.#toolbarAll.value.filter((i) => buttons[i.id] !== false));
+  }
+
   #resolveMode(): void {
-    const mode = this.#mode.value;
+    const mode = this.#viewState.layout.value.mode;
     const width = this.#width.value;
     this.#effectiveMode.set(mode !== 'auto' ? mode : width > 0 && width < this.#compactWidth ? 'compact' : 'desktop');
   }
+}
+
+function layoutOptions(options: ShellOptions): ConstructorParameters<typeof ViewStateManager>[0] {
+  const docks: Partial<Record<DockId, Partial<DockLayout>>> = {};
+  for (const id of DockIds) {
+    const d = options.docks?.[id];
+    if (!d) continue;
+    const layout: Record<string, unknown> = {};
+    for (const key of LayoutKeys) if (key in d) layout[key] = d[key];
+    docks[id] = layout as Partial<DockLayout>;
+  }
+  return {
+    docks,
+    ...(options.mode ? { mode: options.mode } : {}),
+    compactRail: !!options.compactRail,
+    buttons: options.buttons ?? {},
+  };
+}
+
+function navigationOptions(options: ShellOptions): ConstructorParameters<typeof NavigationManager>[0] {
+  const docks: Partial<Record<DockId, { active?: string; collapsed?: boolean }>> = {};
+  for (const id of DockIds) {
+    const d = options.docks?.[id];
+    if (!d) continue;
+    docks[id] = {
+      ...('active' in d ? { active: d.active } : {}),
+      ...(d.collapsed !== undefined ? { collapsed: d.collapsed } : {}),
+    };
+  }
+  return { docks };
 }

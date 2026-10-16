@@ -16,6 +16,95 @@
   -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
+/* The playback card: a row each (snapshots, transition, models), a hairline between them; not there with no rows. The
+   rows sit in their views' hosts (display: contents), so they are the grid's items. Compact like the canvas toolbar:
+   as wide as its rows need (a long title fades at its cap), the buttons close together. */
+.deck {
+  display: grid;
+  justify-self: start;
+  grid-template-columns: minmax(0, 1fr);
+  width: fit-content;
+  max-width: 100%;
+  overflow: clip;
+  font-size: var(--msp-font-size-sm);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+
+  &:not(:has([data-row])) {
+    display: none;
+  }
+
+  /* Every row has a hairline above it; the card clips the first one's. */
+  & [data-row] {
+    box-shadow: 0 -1px 0 var(--msp-color-border);
+  }
+
+  & .bar {
+    gap: 0;
+    height: 32px;
+    padding: 0 var(--msp-space-1);
+  }
+
+  & :is(.rowTitle, .trajectoryLabel) {
+    flex: 0 1 auto;
+    max-width: 168px;
+    padding: 0 var(--msp-space-2);
+    font-weight: 500;
+  }
+
+  /* A short title, or none (the snapshots' position): the buttons stay at the row's end, under the other rows'. */
+  & :is(.rowTitle, .position) {
+    margin-right: auto;
+  }
+
+  & :is(.counter, .position, .time) {
+    font-size: var(--msp-font-size-xs);
+  }
+
+  & .counter {
+    min-width: 36px;
+  }
+
+  & .time {
+    min-width: 56px;
+    padding-right: var(--msp-space-1);
+  }
+
+  & .scrubber {
+    flex: 1 0 96px;
+  }
+}
+
+/* In an overlay's card: the same text, no frame of its own; it fills the card, the description taking what the bar
+   leaves. */
+.bare {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  font-size: var(--msp-font-size-sm);
+
+  & > .snapshots {
+    flex: 1 1 0;
+  }
+
+  & .description {
+    flex: 1 1 0;
+    max-height: none;
+  }
+}
+
+/* The bar, the list and the description, one under the other. */
+.snapshots {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .bar {
   display: flex;
   align-items: center;
@@ -79,8 +168,18 @@
 }
 
 .descriptionContent {
+  min-width: 0;
   padding: 0 var(--msp-space-4) var(--msp-space-4);
   font-size: var(--msp-font-size-sm);
+  /* Long words and links wrap rather than run out of the card. */
+  overflow-wrap: anywhere;
+}
+
+/* A plain-text description (`descriptionFormat: 'plaintext'`): its line breaks kept. */
+.plain {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
 }
 
 .scrubber {
@@ -141,6 +240,29 @@
   }
 }
 
+/* The current snapshot's title in its row. */
+.rowTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Where the transition is, and its length. */
+.time {
+  flex: none;
+  min-width: 64px;
+  color: var(--msp-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 /* Which structure's models these are. */
 .trajectoryLabel {
   overflow: hidden;
@@ -172,7 +294,6 @@
     height: 6px;
     border-radius: 50%;
     background: var(--msp-color-border-strong);
-    transition: background-color var(--msp-motion-fast) var(--msp-ease);
   }
 
   &:hover::before {
@@ -186,7 +307,9 @@
 
 /* Many snapshots: the position as a quiet button that opens the list. */
 .position {
+  flex: none;
   height: 24px;
+  white-space: nowrap;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -212,6 +335,8 @@
 
 .listRowsContent {
   display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .listRow {

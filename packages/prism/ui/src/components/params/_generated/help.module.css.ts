@@ -51,6 +51,17 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
   flex: none;
   place-items: center;
   display: grid;
+  position: relative;
+
+  &:after {
+    content: "";
+    width: max(24px, var(--msp-touch-target, 0px));
+    height: max(24px, var(--msp-touch-target, 0px));
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
 
   :hover > * > &, :hover > &, &[aria-expanded="true"], &:focus-visible {
     opacity: 1;

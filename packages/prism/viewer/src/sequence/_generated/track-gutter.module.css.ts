@@ -26,6 +26,7 @@ defineStyles('viewer/sequence/track-gutter.module.css', `@layer msp.components {
 
 .msp-viewer-track-gutter-icon {
   width: 24px;
+  min-height: 24px;
   margin-left: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -50,6 +51,17 @@ defineStyles('viewer/sequence/track-gutter.module.css', `@layer msp.components {
 
   &[data-active] {
     color: var(--msp-color-accent);
+  }
+}
+
+@media (hover: none) {
+  .msp-viewer-track-gutter-icon {
+    opacity: .6;
+    pointer-events: auto;
+
+    &[data-active] {
+      opacity: 1;
+    }
   }
 }
 }

@@ -9,7 +9,7 @@
 .bar {
   display: flex;
   align-items: center;
-  height: 34px;
+  height: max(34px, var(--msp-touch-target, 0px));
   overflow: hidden;
   padding: 0 0 0 var(--msp-space-4);
   border-radius: var(--msp-radius-lg);
@@ -41,7 +41,7 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
+  width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
   color: var(--msp-color-text-muted);
 
@@ -49,20 +49,4 @@
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
-}
-
-/* Docked (compact): a plain full-width row like the status rows around it. */
-:where([data-docked]) .bar {
-  width: 100%;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-top: 1px solid var(--msp-glass-edge);
-  animation: none;
-}
-
-:where([data-docked]) .summary {
-  flex: 1;
 }

@@ -42,6 +42,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
 .msp-viewer-measurements-add-add {
   font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -56,6 +57,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-panel);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -102,6 +104,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);
@@ -165,6 +171,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .msp-viewer-measurements-add-point:hover &, &:focus-visible {
     opacity: 1;
   }
@@ -176,6 +186,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
 }
 
 .msp-viewer-measurements-add-kinds {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -246,10 +257,12 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-panel);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
 .msp-viewer-measurements-add-addedItem {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -289,6 +302,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .msp-viewer-measurements-add-addedRow:hover &, [data-hidden] > .msp-viewer-measurements-add-pointActions > &:first-child, &[aria-expanded="true"], &:focus-visible {
     opacity: 1;

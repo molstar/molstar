@@ -19,6 +19,7 @@ import {
 } from '@molstar/seq-core/model';
 import { describe, expect, it } from 'vitest';
 import { createSeqViewer, type SeqViewerContext, type WritableSeqState } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { carry } from '../src/lineage.js';
 import { patch, smallDoc, viewer } from './graph-fixtures.js';
 
@@ -54,7 +55,7 @@ describe('selection across changes', () => {
   });
 
   it('carried across setData with build inputs; elements on tombstoned ids dropped', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     await ctx.setData({ inputs: { molecules: [p53, q], annotations: [hot(6)] } });
     ctx.selection.set(ctx.refs.toLoci('p53/unit', { start: 0, stop: 3 }), 'api');
     ctx.selection.add(ctx.refs.toLoci('q/unit', { start: 1, stop: 2 }) as SeqLoci, 'pointer');
@@ -73,7 +74,7 @@ describe('selection across changes', () => {
   });
 
   it('remapped by key across lineages, dropping what is gone', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const build = (ms: MoleculeInput[]) => SeqSets.build({ molecules: ms }).set;
     await ctx.setData({ set: build([p53, q]) });
     ctx.selection.set(ctx.refs.toLoci('q/unit', { start: 2, stop: 4 }), 'api');
@@ -91,7 +92,7 @@ describe('selection across changes', () => {
 
 describe('held loci follow their inputs (VS3)', () => {
   it('an item selection after a range edit marks the new extent', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     await ctx.setData({ inputs: { molecules: [p53], annotations: [hot(6)] } });
     ctx.selection.set(ctx.refs.toLoci('hot'), 'api');
     expect(extents(ctx.selection.current.value.items as ItemLoci)).toEqual([[3, 6]]);
@@ -102,7 +103,7 @@ describe('held loci follow their inputs (VS3)', () => {
   });
 
   it('an assembled set that goes null and comes back keeps the selection, carried from the last set', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const build = (ms: MoleculeInput[]) => SeqSets.build({ molecules: ms }).set;
     await ctx.setData({ set: build([p53, q]) });
     ctx.selection.set(ctx.refs.toLoci('q/unit', { start: 2, stop: 4 }), 'api');
@@ -128,7 +129,7 @@ describe('held loci follow their inputs (VS3)', () => {
 
 describe('refs with item ids', () => {
   it('unknown, empty and trailing ids are dropped; none left is null', async () => {
-    const ctx = createSeqViewer();
+    const ctx = createSeqViewer(DefaultSeqViewerSpec());
     const feats = {
       key: 'feats',
       geometry: 'ranges' as const,

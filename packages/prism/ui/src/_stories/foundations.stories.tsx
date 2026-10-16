@@ -12,7 +12,6 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { Button } from '../components/button/button.js';
 import { Icon } from '../components/icon/icon.js';
-import { MolstarWordmark } from '../components/icon/wordmark.js';
 import { Select } from '../components/select/select.js';
 import { Show } from '../dom/control-flow.js';
 import { observableState } from '../reactive/observable-state.js';
@@ -134,7 +133,7 @@ export const Themes: StoryObj = {
   render: () =>
     story(() => (
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-        {['light', 'dark', 'blue'].map((theme) => (
+        {['light', 'dark', 'blue', 'contrast'].map((theme) => (
           <div
             data-msp-theme={theme}
             style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: var(--msp-space-5); display: grid; gap: var(--msp-space-3); font-size: var(--msp-font-size-sm)"
@@ -325,12 +324,39 @@ function FoldRow(props: { label: string; children: readonly string[] }) {
   );
 }
 
+/** The principles of motion, as the Motion story lists them (ui/_spec/shell.md, Motion). */
+const MotionPrinciples: readonly [string, string][] = [
+  [
+    'Pick the move by what must not change',
+    'Grow (to its height) for content in a flow: folds, sections. Slide for panels. Fade, opacity only, for what must keep its size: a band drawn on a canvas, the 3D canvas itself (growing would lay it out again every frame, and it jitters).',
+  ],
+  [
+    'Replace by a scoped view transition',
+    "One view replacing another (a right panel by another) swaps as a view transition scoped to its container where the browser has them (`Show` `swap`, `swapIn`). Never the document's: it snapshots the page and the 3D canvas stands still. Elsewhere, at once.",
+  ],
+  [
+    'Calm before the content',
+    "The canvas starts quiet and is quiet while the empty canvas's mark and splash are up (no axes, nothing half drawn); what loads comes in gradually over the canvas's own color.",
+  ],
+  [
+    'Guard against flashes',
+    'Only a settled state animates in: the mark waits for the canvas to be empty and the viewer idle (work restarts the wait), so a scene cleared to load the next never flashes it, and a load it never showed for appears at once.',
+  ],
+  [
+    'Cheap to run',
+    'transform and opacity only, never layout in a frame; nothing animates on the first render, on a tab switch inside a panel, for rows of a list; nothing at all under reduced motion.',
+  ],
+];
+
 /**
  * Motion: what moves, and how (`--msp-motion-fast` for state changes, `--msp-motion-base` for content that opens,
- * `--msp-ease`, and `--msp-ease-reveal` for opening and closing). Content that opens grows to its height and fades in, and closing plays it back (Show's `reveal`;
- * `dom/motion.ts` for code that hides content itself, as section lists do); panels slide in from the side; chevrons
- * turn; hover and press change color; option lists and popovers drop in. Nothing animates on the first render, on a
- * tab switch, for rows of a list, or with reduced motion. Slow motion (×5) to look at them.
+ * `--msp-motion-fade` for what only fades, `--msp-motion-reveal` for the canvas coming in, `--msp-ease`, and
+ * `--msp-ease-reveal` for opening and closing). Content that opens grows to its height and fades in, and closing plays
+ * it back (Show's `reveal`; `dom/motion.ts` for code that hides content itself, as section lists do); panels slide in
+ * from the side; a band only fades (`reveal="fade"`); one panel replacing another swaps by a scoped view transition
+ * (`swap`); the canvas is quiet under the empty mark and comes in on a load; chevrons turn; hover and press change
+ * color; option lists and popovers drop in. Nothing animates on the first render, on a tab switch inside a panel, for
+ * rows of a list, or with reduced motion. Slow motion (×5) to look at them.
  */
 export const Motion: StoryObj = {
   render: () =>
@@ -338,6 +364,10 @@ export const Motion: StoryObj = {
       const slow = observableState(false);
       const panel = observableState(false);
       const theme = observableState('chain-id');
+      const band = observableState(true);
+      const tab = observableState<'home' | 'structure' | 'selection'>('home');
+      const quiet = observableState(true);
+      let swapScope: HTMLElement | undefined;
       const card =
         'display: grid; gap: var(--msp-space-3); align-content: start; padding: var(--msp-space-4); border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';
       return (
@@ -349,16 +379,27 @@ export const Motion: StoryObj = {
             maxWidth: '960px',
             '--msp-motion-fast': slow.asReadonly.pipe(map((s) => (s ? '500ms' : ''))),
             '--msp-motion-base': slow.asReadonly.pipe(map((s) => (s ? '900ms' : ''))),
+            '--msp-motion-fade': slow.asReadonly.pipe(map((s) => (s ? '1800ms' : ''))),
+            '--msp-motion-reveal': slow.asReadonly.pipe(map((s) => (s ? '4500ms' : ''))),
           }}
         >
+          <section style="display: grid; gap: var(--msp-space-3);">
+            <h3 style={heading}>Principles</h3>
+            <dl style="display: grid; grid-template-columns: minmax(180px, max-content) 1fr; gap: var(--msp-space-2) var(--msp-space-4); margin: 0;">
+              {MotionPrinciples.map(([rule, why]) => [
+                <dt style="font-size: var(--msp-font-size-sm); font-weight: 600;">{rule}</dt>,
+                <dd style={`${note}; margin: 0;`}>{why}</dd>,
+              ])}
+            </dl>
+          </section>
           <div style="display: flex; gap: var(--msp-space-5); align-items: center;">
             <label style="display: flex; gap: 6px; align-items: center; font-size: var(--msp-font-size-sm);">
               <input type="checkbox" checked={slow.asReadonly} onChange={(e) => slow.set(e.currentTarget.checked)} />
               Slow motion (×5)
             </label>
             <p style={note}>
-              --msp-motion-fast 100 ms · --msp-motion-base 220 ms · --msp-ease (0.2, 0, 0, 1) · --msp-ease-reveal (0.4,
-              0, 0.2, 1)
+              --msp-motion-fast 100 ms · --msp-motion-base 220 ms · --msp-motion-fade 360 ms · --msp-motion-reveal 900
+              ms · --msp-ease (0.2, 0, 0, 1) · --msp-ease-reveal (0.4, 0, 0.2, 1)
             </p>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--msp-space-4);">
@@ -405,48 +446,69 @@ export const Motion: StoryObj = {
                 onChange={(v) => theme.set(v)}
               />
             </section>
+            <section style={card}>
+              <h3 style={heading}>Fade (a band on the canvas)</h3>
+              <p style={note}>Only its opacity moves: drawn on a canvas, it keeps its size (fade).</p>
+              <Button size="sm" onClick={() => band.set(!band.value)}>
+                {band.asReadonly.pipe(map((b) => (b ? 'Hide the band' : 'Show the band')))}
+              </Button>
+              <div style="height: 48px;">
+                <Show when={band.asReadonly} reveal="fade">
+                  {() => (
+                    <div style="height: 48px; border-radius: var(--msp-radius-md); background: repeating-linear-gradient(90deg, var(--msp-color-raised) 0 10px, var(--msp-color-panel) 10px 14px); font: var(--msp-font-size-xs) var(--msp-font-mono); display: flex; align-items: center; padding-inline: var(--msp-space-3);">
+                      MKTAYIAKQRQISFVKSHFSRQ
+                    </div>
+                  )}
+                </Show>
+              </div>
+            </section>
+            <section style={card}>
+              <h3 style={heading}>Swap (one panel for another)</h3>
+              <p style={note}>A scoped view transition where the browser has one; elsewhere at once.</p>
+              <div style="display: flex; gap: var(--msp-space-2);">
+                {(['home', 'structure', 'selection'] as const).map((t) => (
+                  <Button size="sm" onClick={() => tab.set(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </Button>
+                ))}
+              </div>
+              <div
+                ref={(el) => {
+                  swapScope = el;
+                }}
+                style="min-height: 90px;"
+              >
+                <Show when={tab.asReadonly} swap={() => swapScope}>
+                  {(t) => (
+                    <div style="padding: var(--msp-space-4); border-radius: var(--msp-radius-md); background: var(--msp-color-raised); font-size: var(--msp-font-size-sm);">
+                      {`The ${t} panel`}
+                    </div>
+                  )}
+                </Show>
+              </div>
+            </section>
+            <section style={card}>
+              <h3 style={heading}>Reveal (the canvas)</h3>
+              <p style={note}>Quiet under the empty mark; what loads comes in over the canvas's own color.</p>
+              <Button size="sm" onClick={() => quiet.set(!quiet.value)}>
+                {quiet.asReadonly.pipe(map((q) => (q ? 'Load' : 'Clear')))}
+              </Button>
+              <div style="height: 90px; border-radius: var(--msp-radius-md); background: var(--msp-color-bg); overflow: hidden;">
+                <div
+                  style={{
+                    height: '100%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    transition: 'opacity var(--msp-motion-reveal) var(--msp-ease)',
+                    opacity: quiet.asReadonly.pipe(map((q) => (q ? '0' : '1'))),
+                  }}
+                >
+                  <Icon name="cartoon" />
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       );
     }),
-};
-
-function LogoPanel(props: { theme: 'light' | 'dark' }) {
-  return (
-    <div
-      data-msp-theme={props.theme}
-      style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
-    >
-      <div style="display: grid; gap: var(--msp-space-3)">
-        <span style={note}>The wordmark (Home's heading; the empty canvas at 3×): hover it for the logo's colors</span>
-        <div style="display: flex; gap: var(--msp-space-6); align-items: end; flex-wrap: wrap">
-          <MolstarWordmark />
-          <MolstarWordmark scale={2} />
-          <MolstarWordmark scale={3} live />
-        </div>
-      </div>
-      <div style="display: grid; gap: var(--msp-space-3)">
-        <span style={note}>The Home icon (16, 20, 24, 48 px)</span>
-        <div style="display: flex; gap: var(--msp-space-5); align-items: center">
-          {[16, 20, 24, 48].map((size) => (
-            <Icon name="prism" size={size} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * The logo: the Mol* wordmark with Prism's mark after it, a triangle as tall as the asterisk pointing away from it (a
- * prism, a play button) with a thicker core inside (a tetrahedron from above); Home's icon is the mark as a delta.
- */
-export const Logo: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msp-space-5); padding: var(--msp-space-5)">
-        <LogoPanel theme="light" />
-        <LogoPanel theme="dark" />
-      </div>
-    )),
 };

@@ -569,6 +569,7 @@ async function browserCheck() {
     'viewer/molstar.css',
     'mvs-stories/mvs-stories.js',
     'mvs-stories/mvs-stories.css',
+    'prism-viewer/prism-viewer.js',
   ]) {
     if (!(await exists(join(packedDistribution, 'build', artifact))))
       fail(`Classic browser smoke prerequisite missing in the packed tarball: build/${artifact}`);
@@ -583,6 +584,9 @@ async function browserCheck() {
       else if (pathname === '/fixtures/tiny.mvsj') file = join(here, 'fixtures/tiny.mvsj');
       else if (pathname === '/viewer/') file = join(here, 'browser/viewer/index.html');
       else if (pathname === '/library/') file = join(here, 'browser/library/index.html');
+      else if (pathname === '/prism/') file = join(here, 'browser/prism/index.html');
+      else if (pathname === '/prism/prism-viewer.js')
+        file = join(packedDistribution, 'build/prism-viewer/prism-viewer.js');
       else if (pathname.startsWith('/build/esm/')) file = join(packedDistribution, pathname.slice(1));
       else if (pathname === '/classic/viewer.html') file = join(here, 'browser/classic/viewer.html');
       else if (pathname === '/classic/mvs-stories.html') file = join(here, 'browser/classic/mvs-stories.html');
@@ -632,7 +636,7 @@ async function browserCheck() {
   const address = server.address();
   if (serve) {
     console.log('Packed browser smoke pages (Ctrl+C to stop):');
-    for (const page of ['/viewer/', '/library/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
+    for (const page of ['/viewer/', '/library/', '/prism/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
       console.log(`  http://127.0.0.1:${address.port}${page}`);
     }
     try {
@@ -654,7 +658,7 @@ async function browserCheck() {
   let browser;
   try {
     browser = await launchBrowser();
-    for (const pagePath of ['/viewer/', '/library/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
+    for (const pagePath of ['/viewer/', '/library/', '/prism/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
       const page = await browser.newPage();
       page.on('pageerror', (error) => browserErrors.push(`${pagePath}: ${error.stack ?? error.message}`));
       page.on('requestfailed', (request) =>
@@ -681,7 +685,12 @@ async function browserCheck() {
       if (pagePath === '/viewer/') {
         assert((await page.locator('canvas').count()) > 0, 'Viewer did not create a render canvas');
       }
-      if (pagePath === '/viewer/' || pagePath === '/library/' || pagePath.startsWith('/classic/')) {
+      if (
+        pagePath === '/viewer/' ||
+        pagePath === '/library/' ||
+        pagePath === '/prism/' ||
+        pagePath.startsWith('/classic/')
+      ) {
         assert(
           await page.evaluate(() => (window.smokeResult?.representations ?? 0) > 0),
           `${pagePath} loaded data but created no structure representations`,

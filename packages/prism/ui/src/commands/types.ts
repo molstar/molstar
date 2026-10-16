@@ -97,6 +97,11 @@ export interface CommandDefinition<Ctx> {
   run(args: CommandArgs, ctx: Ctx, signal: AbortSignal): CommandResult | Promise<CommandResult>;
   /** An assistant may fill this command in from words; the instruction says what the values mean. */
   assist?: { instruction: string; answers?: boolean };
+  /**
+   * Where it is in the UI (a card's section, a tab): its form offers to go there instead (⌥↵), for what the form leaves
+   * out (a preview, the options at their defaults). `title` names the place: "Export › Models".
+   */
+  view?: { title: string; open(ctx: Ctx): void };
 }
 
 /** A node of the command tree for browsing (Select › Expression); groups nest by `parent`. */

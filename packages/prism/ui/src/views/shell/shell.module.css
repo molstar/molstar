@@ -24,12 +24,17 @@
   container-type: size;
 
   &[data-mode="compact"] {
+    /* Touch targets of at least 44px (accessibility.md, WCAG 2.5.5 on touch): rows and controls grow; the rest
+       follows. */
+    --msp-row-height: 44px;
+    --msp-control-height: 40px;
+    /* What fixed-size targets grow to (`max(<their size>, var(--msp-touch-target, 0px))`). */
+    --msp-touch-target: 44px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       "top"
       "viewport"
-      "status"
       "bottom"
       "right";
   }
@@ -49,6 +54,13 @@
   position: absolute;
   /* The rail and a pinned panel sit beside the canvas: it ends where they begin (the rail alone, while the panel floats). */
   inset: 0 var(--msp-canvas-end, var(--msp-canvas-pinned, 0px)) 0 0;
+  /* Quiet under the empty canvas's mark and splash, back in gradually when something loads (the viewport behind it is
+     the canvas's own color). */
+  transition: opacity var(--msp-motion-reveal) var(--msp-ease);
+
+  &[data-quiet] {
+    opacity: 0;
+  }
 }
 
 /* Items floating over the canvas: two layers, the view's chrome (canvas-themed) and the application's (UI-themed).

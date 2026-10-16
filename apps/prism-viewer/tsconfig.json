@@ -1,0 +1,82 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**"],
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../extensions/model-archive"
+    },
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../extensions/backgrounds"
+    },
+    {
+      "path": "../../extensions/dnatco"
+    },
+    {
+      "path": "../../extensions/g3d"
+    },
+    {
+      "path": "../../extensions/pdbe"
+    },
+    {
+      "path": "../../extensions/rcsb"
+    },
+    {
+      "path": "../../extensions/sb-ncbr"
+    },
+    {
+      "path": "../../extensions/wwpdb"
+    },
+    {
+      "path": "../../extensions/kinemage"
+    },
+    {
+      "path": "../../extensions/geo-export"
+    },
+    {
+      "path": "../../extensions/model-export"
+    },
+    {
+      "path": "../../extensions/video-export"
+    },
+    {
+      "path": "../../extensions/zenodo"
+    },
+    {
+      "path": "../../extensions/assembly-symmetry"
+    },
+    {
+      "path": "../../extensions/anvil"
+    },
+    {
+      "path": "../../packages/model"
+    },
+    {
+      "path": "../../packages/query-language"
+    },
+    {
+      "path": "../../packages/mvs/runtime"
+    },
+    {
+      "path": "../../packages/mvs/builder"
+    },
+    {
+      "path": "../../extensions/plugin"
+    }
+  ]
+}

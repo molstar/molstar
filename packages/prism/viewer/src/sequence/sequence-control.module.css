@@ -28,10 +28,22 @@
 /* Seq*'s surface: its canvases fill it; a change inside does not touch the rest of the shell. Where the text scrolls
    the control sets the fades (`data-fade`, the lengths by custom properties, only when a side turns on or off). */
 .surface {
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   contain: layout paint;
   pointer-events: auto;
+
+  /* Seq*'s surface takes the keyboard (one Tab stop) with no outline of its own: the ring is drawn over it here, from
+     the keyboard only (accessibility.md, WCAG 2.4.7). */
+  &:has(> :focus-visible)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--msp-radius-md);
+    box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+    pointer-events: none;
+  }
 
   &[data-fade] {
     mask-image: linear-gradient(
@@ -54,4 +66,14 @@
 
 .surface[data-bars] [data-pass^="vnav"] {
   opacity: 1;
+}
+
+/* The keyboard cursor's place, for screen readers only (a polite region of the control's own). */
+.said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

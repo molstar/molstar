@@ -16,6 +16,8 @@ export interface MeasurementPoint {
   id: string;
   /** "CYS 442 SG", "HEM 508 FE". */
   label: string;
+  /** The short form for a row ("REA 200 · 1CBS"): the point and its structure; `label` is the tooltip. */
+  short?: string;
 }
 
 /** What can be measured, and how many points it takes (0: the current selection as a whole). */
@@ -43,6 +45,10 @@ export interface MeasurementsModel {
   add(kind: MeasurementKind['id']): void;
   /** Distance unit, label text size and color (the measurement manager's options). */
   options: ParamsFormModel<any>;
+  /** The options as the manager has them: bound while the form shows, so a hidden form holds no subscription. */
+  optionValues?: ReadonlyState<Record<string, unknown>>;
+  /** Shows values the manager has in the form, unless the person's edit is still on its way. */
+  loadOptions?(values: Record<string, unknown>): void;
   /**
    * The measurements made, to adjust after adding: the same rows as under Measurements in the Structure tab (show or
    * hide, remove), each with its style (the same form its row's inspector shows).

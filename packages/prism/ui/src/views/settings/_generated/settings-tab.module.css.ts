@@ -67,6 +67,7 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
   align-content: start;
   gap: var(--msp-space-1);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -85,6 +86,11 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 
   &:hover {
     background: var(--msp-color-hover);
+  }
+
+  &:has(.msp-settings-settings-tab-toggle[aria-expanded="true"]) {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
   }
 }
 

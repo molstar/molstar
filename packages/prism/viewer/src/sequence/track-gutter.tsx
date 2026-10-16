@@ -8,13 +8,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon } from '@molstar/prism-ui';
+import { Icon, type ReadonlyState } from '@molstar/prism-ui';
 import { EntryKind, type SectionLayout } from '@molstar/seq-viewer';
-import { SectionRef } from './document.js';
+import { switchMap } from 'rxjs';
 import type { SequenceViewer, TrackColoring } from './model.js';
 import { classes } from './_generated/track-gutter.module.css.js';
 
-// The tracks' left gutter (prism-sequence.md §9, round 3): a coloring icon per track row that has one (the action of the
+// The tracks' left gutter (sequence.md §8): a coloring icon per track row that has one (the action of the
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
 // tops and heights are read from Seq*'s section layout when the layout is rebuilt, never per frame or pointer move; the
 // row the pointer is over is Seq*'s `interaction.hover` (its track, whatever part of the row), which fires only when
@@ -50,8 +50,16 @@ export function gutterRows(
   return out;
 }
 
-/** Mounts the gutter over `surface` (in `root`, which is positioned and lets the pointer through); returns the unmount. */
-export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, root: HTMLElement): () => void {
+/**
+ * Mounts the gutter over `surface` (in `root`, which is positioned and lets the pointer through), for the rows of the
+ * section the band shows (`section`); returns the unmount.
+ */
+export function mountTrackGutter(
+  viewer: SequenceViewer,
+  surface: HTMLElement,
+  root: HTMLElement,
+  section: ReadonlyState<string>,
+): () => void {
   const seq = viewer.seq;
   const gutter = (<div class={classes.gutter} />) as HTMLElement;
   root.append(gutter);
@@ -78,7 +86,7 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   /** The rows again, on the layout's rebuild (a resize, tracks coming and going, the style): edge rate. */
   const rebuild = () => {
     const a = seq.graph.assembled.value;
-    const layout = seq.layout.get(SectionRef)?.current;
+    const layout = seq.layout.get(section.value)?.current;
     const view = a?.view;
     gutter.replaceChildren();
     buttons.clear();
@@ -121,7 +129,7 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   const follow = () => {
     stop?.();
     stop = undefined;
-    const live = seq.layout.get(SectionRef);
+    const live = seq.layout.get(section.value);
     rebuild();
     if (!live) return;
     const sub = live.version.subscribe(rebuild);
@@ -130,8 +138,9 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
   const sections = seq.viewports.sections.subscribe(follow);
   const style = viewer.style.subscribe(follow);
   const structure = viewer.structure.subscribe(follow);
+  const shown = section.subscribe(follow);
 
-  const hovers = seq.interaction.on('hover', { section: SectionRef });
+  const hovers = section.pipe(switchMap((ref) => seq.interaction.on('hover', { section: ref })));
   const hovered = hovers.subscribe((e) =>
     hover(e.part.track !== null && buttons.has(e.part.track) ? e.part.track : undefined),
   );
@@ -151,6 +160,7 @@ export function mountTrackGutter(viewer: SequenceViewer, surface: HTMLElement, r
     sections.unsubscribe();
     style.unsubscribe();
     structure.unsubscribe();
+    shown.unsubscribe();
     hovered.unsubscribe();
     surface.removeEventListener('pointerleave', onSurfaceLeave);
     gutter.removeEventListener('pointerleave', onGutterLeave);

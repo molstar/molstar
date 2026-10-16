@@ -30,6 +30,7 @@ import {
 } from '../../core/_test/format/stream-provider.js';
 import { DynamicNodes, heldNodeRefs } from '../src/dynamic.js';
 import { ChannelMarks, createSeqViewer, Hit, MarkBit } from '../src/index.js';
+import { DefaultSeqViewerSpec } from '../src/default-spec.js';
 import { itemSystemNodes } from '../src/item-systems.js';
 import type { Features } from '../src/prepare.js';
 import type { Streams } from '../src/streams.js';
@@ -353,7 +354,7 @@ describe('item coordinate systems', () => {
     const nodes = new DynamicNodes(
       () => {},
       (code) => said.push(code),
-      heldNodeRefs(createSeqViewer().registry.svs),
+      heldNodeRefs(createSeqViewer(DefaultSeqViewerSpec()).registry.svs),
     );
     const out: StreamNode[] = [];
     const t = { id: ['T1'], map: [{ method: 'codon', cds: [[0, 30]] }], label: ['T1'] };
@@ -427,7 +428,7 @@ describe('item coordinate systems', () => {
     const nodes = new DynamicNodes(
       () => {},
       () => {},
-      heldNodeRefs(createSeqViewer().registry.svs),
+      heldNodeRefs(createSeqViewer(DefaultSeqViewerSpec()).registry.svs),
     );
     const seq: StreamNode = { kind: 'sequence', key: 's1', params: { value: 'MKV' } };
     nodes.add('src', [seq]);
@@ -449,7 +450,7 @@ describe('item coordinate systems', () => {
     const nodes = new DynamicNodes(
       () => {},
       (code) => said.push(code),
-      heldNodeRefs(createSeqViewer().registry.svs),
+      heldNodeRefs(createSeqViewer(DefaultSeqViewerSpec()).registry.svs),
     );
     const node = { kind: ItemSystemKind as StreamNode['kind'], key: 'X', params: { length: 5 } };
     expect([nodes.add('genes_src', [node]), said, nodes.entries.size]).toEqual([null, ['svs.node.kind'], 0]);

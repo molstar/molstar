@@ -49,6 +49,11 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  &[aria-expanded="true"] {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .msp-shell-section-list-title {
@@ -73,6 +78,14 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 
 .msp-shell-section-list-body {
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+}
+
+.msp-shell-section-list-list[data-bare] {
+  padding: 0;
+
+  & .msp-shell-section-list-header {
+    height: 32px;
+  }
 }
 
 .msp-shell-section-list-list[data-flat] {

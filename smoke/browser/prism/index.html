@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mol* packed Prism single-file smoke</title>
+<div id="viewer" style="position:relative;width:900px;height:650px"></div>
+<script type="module">
+  // The single-file viewer (app.md §2): one module, no build step, no other script request.
+  window.smokeReady = (async () => {
+    const { createPrismViewer, FullPrismViewerSpec } = await import('/prism/prism-viewer.js');
+    const viewer = await createPrismViewer({ target: document.getElementById('viewer'), spec: FullPrismViewerSpec() });
+    const loaded = await viewer.api.run('load.url', { url: `${location.origin}/fixtures/tiny.pdb`, format: 'pdb' });
+    // A lazy extension, inlined: it loads with no request.
+    const lazy = await viewer.extensions.load('video-export');
+    viewer.plugin.canvas3d?.commit(true);
+    const scripts = performance.getEntriesByType('resource').filter((e) => /\.m?js(\?|$)/.test(e.name)).map((e) => new URL(e.name).pathname);
+    const result = {
+      loaded: loaded.ok,
+      structures: viewer.plugin.managers.structure.hierarchy.current.structures.length,
+      representations: viewer.plugin.canvas3d?.reprCount.value ?? 0,
+      lazy,
+      scripts,
+    };
+    window.smokeResult = result;
+    const pass = result.loaded && result.structures === 1 && result.lazy && scripts.length === 1 && scripts[0] === '/prism/prism-viewer.js';
+    document.documentElement.dataset.smoke = pass ? 'pass' : 'fail';
+  })();
+</script>

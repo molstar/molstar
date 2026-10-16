@@ -6,25 +6,31 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The viewer mode, opt-in: Mol*'s own UI (Home, the Structure tab, the state tree, snapshots, export, the canvas's
-// mode switch and selection bar) as a mode of the app (design/modes.md). An app composed only of story mode does not
-// depend on it; nothing in @molstar/prism-ui imports it.
+// `@molstar/prism-viewer`: what a page embedding the viewer uses (viewer-spec.md §6): create a viewer from a spec, the
+// default spec, and the types of the spec, the viewer and its API. The rest is on narrower subpaths (package.json's
+// exports): `/headless` (Node), `/api` (an extension's areas and results), `/spec`, `/features/<name>`, the views an
+// extension draws with (`/views/structure/scene-row`).
 
-export type * from './model/home.js';
-export type * from './model/image-export.js';
-export type * from './model/measurements.js';
-export type * from './model/scene.js';
-export type * from './model/selection.js';
-export type * from './model/snapshots.js';
-export type * from './model/state-tree.js';
-export type * from './model/superposition.js';
-export { ModeSwitch, PickLevel } from './views/canvas/mode-switch.js';
-export { SelectionBar } from './views/canvas/selection-bar.js';
-export { ImageExport } from './views/export/image-export.js';
-export { HomeTab } from './views/home/home-tab.js';
-export { SequenceStrip } from './views/sequence/sequence-strip.js';
-export { RemoteStatesPanel } from './views/state/remote-states-panel.js';
-export { SnapshotsPanel } from './views/state/snapshots-panel.js';
-export { StateTreeTab } from './views/state-tree/state-tree-tab.js';
-export { StructureTab } from './views/structure/structure-tab.js';
-export * from './sequence/index.js';
+export { type CreatePrismViewerOptions, createPrismViewer } from './page.js';
+export { DefaultPrismViewerSpec } from './default-spec.js';
+export type { PrismViewer } from './viewer.js';
+export type {
+  LazyViewerExtension,
+  PrismViewerSpec,
+  ViewerExtension,
+  ViewerExtensionUI,
+  ViewerSkill,
+  ViewerUIContext,
+} from './spec.js';
+export {
+  ApiResult,
+  type ApiFailure,
+  type NodeQuery,
+  node,
+  type OperationDescription,
+  type RunOrigin,
+  type ViewerApi,
+} from './api.js';
+export type { SceneNode } from './model/scene.js';
+// The sequence's types; its values (Seq* and the views over it) are its own chunk: `@molstar/prism-viewer/sequence/index`.
+export type * from './sequence/index.js';

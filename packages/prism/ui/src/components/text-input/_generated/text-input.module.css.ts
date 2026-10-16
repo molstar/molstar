@@ -21,10 +21,10 @@ defineStyles('components/text-input/text-input.module.css', `@layer msp.componen
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
   color: var(--msp-color-text);
   font: inherit;
   font-size: var(--msp-font-size-sm);
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
   border: 0;
   margin: 0;
 

@@ -12,6 +12,8 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'markdown': 'msp-markdown-markdown',
+  'media': 'msp-markdown-media',
+  'table': 'msp-markdown-table',
 } as const;
 
 defineStyles('components/markdown/markdown.module.css', `@layer msp.components {
@@ -47,6 +49,28 @@ defineStyles('components/markdown/markdown.module.css', `@layer msp.components {
     font-size: .92em;
   }
 
+  & pre {
+    padding: var(--msp-space-2);
+    border-radius: var(--msp-radius-sm);
+    background: var(--msp-color-control);
+    overflow-x: auto;
+
+    & code {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  & hr {
+    border: 0;
+    border-top: 1px solid var(--msp-color-border);
+  }
+
+  & img {
+    border-radius: var(--msp-radius-sm);
+    max-width: 100%;
+  }
+
   & a {
     color: var(--msp-color-accent);
     text-decoration: none;
@@ -54,6 +78,34 @@ defineStyles('components/markdown/markdown.module.css', `@layer msp.components {
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+.msp-markdown-media {
+  display: grid;
+
+  & audio {
+    width: 100%;
+    height: 32px;
+  }
+}
+
+.msp-markdown-table {
+  overflow-x: auto;
+
+  & table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & th, & td {
+    padding: var(--msp-space-1) var(--msp-space-2);
+    border-bottom: 1px solid var(--msp-color-border);
+    text-align: left;
+  }
+
+  & th {
+    font-weight: 600;
   }
 }
 }

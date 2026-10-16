@@ -617,7 +617,7 @@ export interface LettersState {
    * Per block over a unit with `observed` ranges, by unit position: 1 where the structure models the position, 0 (or
    * past the end) where it does not, for `unobservedGray` (the letters' cells, their zoomed-out classes, the gray text);
    * one array per unit, shared by its blocks. Null: no ranges, every position observed. Built once per prepared state:
-   * the draw scanned the unit's ranges per position per frame before (lanes-input-perf.md §4.2).
+   * the draw scanned the unit's ranges per position per frame before (seqspec:viewer#performance).
    */
   readonly observed: readonly (Uint8Array | null)[];
 }

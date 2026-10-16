@@ -11,16 +11,12 @@
 
 export { story } from './story-root.js';
 export { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
-export { mockSnapshots, mockTrajectory } from './playback.js';
+export { mockSnapshots, mockTrajectory, mockTransition } from './playback.js';
 export {
   type MockFrameContext,
   type MockMode,
   type MockModeParts,
-  type MockShellAddOn,
-  type MockShellAddOnParts,
-  type MockApp,
   mockBlankMode,
-  PrismAppStory,
   ShellStory,
   type ShellStoryProps,
 } from './shell.js';

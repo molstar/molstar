@@ -111,6 +111,12 @@
   }
 }
 
+@keyframes msp-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
     /* Heights animate to and from auto (a reveal grows to its height). */
@@ -119,6 +125,16 @@
     font-size: var(--msp-font-size-md);
     line-height: var(--msp-line-height);
     color: var(--msp-color-text);
+    /* The host page's inherited text styles (a viewer in a styled article) stop here. */
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-align: start;
+    text-transform: none;
+    text-indent: 0;
+    letter-spacing: normal;
+    word-spacing: normal;
+    white-space: normal;
     -webkit-font-smoothing: antialiased;
     text-size-adjust: none;
     /* An app, not a page: the arrow over labels and headings; the text cursor only where text is typed. */
@@ -179,6 +195,11 @@
 
   :where(.msp-root) :where([data-reveal="side"]) {
     animation-name: msp-reveal-side;
+  }
+
+  /* Only a fade, no change of size (a band drawn on a canvas would be laid out again every frame as it grew). */
+  :where(.msp-root) :where([data-reveal="fade"]) {
+    animation: msp-reveal-fade var(--msp-motion-fade) var(--msp-ease-reveal);
   }
 
   :where(.msp-root) :where([hidden]) {

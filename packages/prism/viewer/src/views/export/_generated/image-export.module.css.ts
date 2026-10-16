@@ -14,6 +14,7 @@ export const classes = {
   'autoCrop': 'msp-viewer-image-export-autoCrop',
   'crop': 'msp-viewer-image-export-crop',
   'export': 'msp-viewer-image-export-export',
+  'handle': 'msp-viewer-image-export-handle',
   'preview': 'msp-viewer-image-export-preview',
   'stage': 'msp-viewer-image-export-stage',
 } as const;
@@ -45,6 +46,8 @@ defineStyles('viewer/views/export/image-export.module.css', `@layer msp.componen
 }
 
 .msp-viewer-image-export-crop {
+  cursor: move;
+  touch-action: none;
   border: 1px solid color-mix(in oklab, var(--msp-color-text), transparent 30%);
   box-shadow: 0 0 0 999px color-mix(in oklab, var(--msp-color-bg), transparent 45%);
   transition: left var(--msp-motion-base) var(--msp-ease),
@@ -56,6 +59,64 @@ defineStyles('viewer/views/export/image-export.module.css', `@layer msp.componen
 
   &[data-auto] {
     border-style: dashed;
+  }
+
+  &[data-dragging] {
+    transition: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-accent);
+    outline-offset: 1px;
+  }
+}
+
+.msp-viewer-image-export-handle {
+  background: var(--msp-color-text);
+  opacity: 0;
+  width: 8px;
+  height: 8px;
+  transition: opacity var(--msp-motion-fast) var(--msp-ease);
+  border-radius: 1px;
+  margin: -4px;
+  position: absolute;
+
+  .msp-viewer-image-export-crop:hover > &, .msp-viewer-image-export-crop:focus-visible > &, .msp-viewer-image-export-crop[data-dragging] > & {
+    opacity: .8;
+  }
+
+  &[data-edge="n"], &[data-edge="s"] {
+    cursor: ns-resize;
+    left: 50%;
+  }
+
+  &[data-edge="e"], &[data-edge="w"] {
+    cursor: ew-resize;
+    top: 50%;
+  }
+
+  &[data-edge="n"], &[data-edge="ne"], &[data-edge="nw"] {
+    top: 0;
+  }
+
+  &[data-edge="s"], &[data-edge="se"], &[data-edge="sw"] {
+    top: 100%;
+  }
+
+  &[data-edge="w"], &[data-edge="nw"], &[data-edge="sw"] {
+    left: 0;
+  }
+
+  &[data-edge="e"], &[data-edge="ne"], &[data-edge="se"] {
+    left: 100%;
+  }
+
+  &[data-edge="nw"], &[data-edge="se"] {
+    cursor: nwse-resize;
+  }
+
+  &[data-edge="ne"], &[data-edge="sw"] {
+    cursor: nesw-resize;
   }
 }
 

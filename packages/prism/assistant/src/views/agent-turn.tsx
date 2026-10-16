@@ -129,9 +129,10 @@ export function UndoTurn(props: { agent: AgentModel; id: string }) {
 }
 
 /**
- * The agent at work, over the canvas at the bottom left (design/agent.md §5): the request, the model's words as they
- * stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it did in one
- * line, its trace (with the Inspector: `onTrace` opens it at the turn) and Undo turn (back to the checkpoint before it).
+ * The agent at work, over the canvas at the bottom left (_spec/README.md, "The turn card"): the request, the model's
+ * words as they stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it
+ * did in one line, its trace (with the Inspector: `onTrace` opens it at the turn) and Undo turn (back to the checkpoint
+ * before it).
  */
 export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: string) => void }) {
   const { agent } = props;
@@ -165,6 +166,9 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
   );
 }
 
+/** How long a finished turn's line stays (the ring around its ✕ counts it down). */
+const FinishedLineMs = 8000;
+
 /**
  * A closed card: a line of the status column, like a task's: the request and its state (the spark pulsing while it
  * runs); a click opens the card again, ✕ takes the line away (the turn stays in History).
@@ -185,6 +189,8 @@ function TurnLine(props: { agent: AgentModel }) {
         onClick={() => props.agent.reopen()}
         dismissLabel="Hide"
         onDismiss={() => props.agent.hide()}
+        // Finished (done, stopped): it goes after a while; a turn that waits or failed stays.
+        autoDismiss={status.pipe(map((s) => (s === 'done' || s === 'stopped' ? FinishedLineMs : undefined)))}
       />
     </span>
   );
@@ -210,7 +216,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
           distinctUntilChanged(),
         );
         return (
-          <section class={classes.card} data-status={status} aria-label="Assistant" aria-live="polite">
+          // Not a live region: the text streams in; the finished reply is said once by the shell's region
+          // (accessibility.md; agent-model.ts announces it).
+          <section class={classes.card} data-status={status} aria-label="Assistant">
             <header class={classes.header}>
               <Icon name="sparkles" size={14} class={classes.spark} />
               <span class={classes.prompt} data-tip-overflow="">
@@ -255,19 +263,43 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
             </ScrollArea>
             {/* A run waiting for the person: what it does, why it asks, and the answer. */}
             <Show when={waiting}>
-              {(run) => (
-                <div class={classes.approval} role="group" aria-label="Approval">
-                  <span class={classes.approvalText}>
-                    Allow “{run.title}”? <span class={classes.approvalWhy}>{run.detail}</span>
-                  </span>
-                  <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, false)}>
-                    Deny
-                  </button>
-                  <button type="button" class={classes.allow} onClick={() => agent.approve(run.id, true)}>
-                    Allow
-                  </button>
-                </div>
-              )}
+              {(run) => {
+                let remember: HTMLInputElement | undefined;
+                return (
+                  <div class={classes.approval} role="group" aria-label="Approval">
+                    <span class={classes.approvalText}>
+                      Allow “{run.title}”? <span class={classes.approvalWhy}>{run.detail}</span>
+                    </span>
+                    <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, false)}>
+                      Deny
+                    </button>
+                    {run.domain && agent.allowDomain ? (
+                      <>
+                        <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, true)}>
+                          Allow once
+                        </button>
+                        {/* Its host from now on (agent.md §4): this session, or remembered in this browser. */}
+                        <label class={classes.remember}>
+                          <input type="checkbox" ref={(el: HTMLInputElement) => (remember = el)} />
+                          Remember
+                        </label>
+                        <button
+                          type="button"
+                          class={classes.allow}
+                          title={`Allow ${run.domain} from now on (Storage lists it, with Forget)`}
+                          onClick={() => agent.allowDomain!(run.id, remember?.checked ? 'browser' : 'session')}
+                        >
+                          Allow {run.domain}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" class={classes.allow} onClick={() => agent.approve(run.id, true)}>
+                        Allow
+                      </button>
+                    )}
+                  </div>
+                );
+              }}
             </Show>
             <Show when={running.pipe(map((r) => !r))}>
               {() => (

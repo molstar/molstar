@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -192,13 +192,14 @@ export function updateStructureComponent(
       if (!Structure.areEquivalent(a, cache.source)) {
         return StateTransformer.UpdateResult.Recreate;
       }
-      if (b.data.model === a.model) return StateTransformer.UpdateResult.Unchanged;
-      if (!b.data.model) return StateTransformer.UpdateResult.Unchanged; // .model can be undefined, when a substructure is empty -> doesn't need remapping
+      // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).
+      if (b.data.model === a.model || !b.data.model) break;
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
       b.data = b.data.remapModel(a.model);
       cache.isSource = false; // (a copy)
-      return StateTransformer.UpdateResult.Updated;
+      updated = true;
+      break;
     }
     case 'script':
       if (!Script.areEqual(oldParams.type.params as Script, newParams.type.params)) {

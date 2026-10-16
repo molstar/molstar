@@ -13,12 +13,12 @@ import { map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { ObservableState } from '../../reactive/observable-state.js';
 import { Icon } from '../icon/icon.js';
-import { OptionList } from '../select/select.js';
+import { Floating, OptionList } from '../select/select.js';
 import { classes } from './_generated/params-form.module.css.js';
 
 /**
  * PD's presets (a group's `presets`, an object list's `presets`, a line graph's `getPresets`): named values to start
- * from, as Mol*'s Presets menu. A quiet button opens them as a list; a pick applies one.
+ * from, as Mol*'s Presets menu. A quiet button opens them as a popover; a pick applies one.
  */
 export function PresetsButton(props: { open: ObservableState<boolean>; label: string }) {
   const { open } = props;
@@ -26,6 +26,7 @@ export function PresetsButton(props: { open: ObservableState<boolean>; label: st
     <button
       type="button"
       class={classes.presets}
+      ref={(el: HTMLButtonElement) => anchors.set(open, el)}
       aria-label={`${props.label} presets`}
       // The list's opener: a press on it toggles the list (it is not a press outside that closes it first).
       aria-haspopup="listbox"
@@ -42,34 +43,43 @@ export function PresetsButton(props: { open: ObservableState<boolean>; label: st
   );
 }
 
-/** The presets as a list under where they were opened; the one the value matches is marked. */
+/** Where each presets list opens from: its button (`PresetsButton`), by the state they share. */
+const anchors = new WeakMap<ObservableState<boolean>, HTMLElement>();
+
+/**
+ * The presets as a popover under what opened them (its `PresetsButton`, or `anchor`), so a long list never pushes the
+ * form down; the one the value matches is marked.
+ */
 export function PresetsList<T>(props: {
   open: ObservableState<boolean>;
   presets: () => readonly PD.SelectOption<T>[];
   /** The preset the value matches, by index (undefined when none: Custom). */
   current: Observable<number | undefined>;
   onPick(value: T): void;
+  /** What it opens from, when not its `PresetsButton` (a select-like row). */
+  anchor?: () => HTMLElement | undefined;
 }) {
   const { open } = props;
   return (
-    <Show when={open} reveal>
+    <Show when={open}>
       {() => {
         // Read when opened: a line graph's presets come from the data at hand (a volume's statistics).
         const presets = props.presets();
-        return (
-          <div class={classes.presetsList}>
-            <OptionList
-              options={presets.map(([, label], i) => [String(i), label] as const)}
-              value={props.current.pipe(map((i) => (i === undefined ? undefined : String(i))))}
-              onPick={(i) => {
-                open.set(false);
-                const preset = presets[Number(i)];
-                if (preset) props.onPick(preset[0]);
-              }}
-              onClose={() => open.set(false)}
-            />
-          </div>
+        const list = (
+          <OptionList
+            options={presets.map(([, label], i) => [String(i), label] as const)}
+            value={props.current.pipe(map((i) => (i === undefined ? undefined : String(i))))}
+            onPick={(i) => {
+              open.set(false);
+              const preset = presets[Number(i)];
+              if (preset) props.onPick(preset[0]);
+            }}
+            onClose={() => open.set(false)}
+            floating
+          />
         );
+        const anchor = props.anchor?.() ?? anchors.get(open);
+        return anchor ? <Floating anchor={anchor}>{list}</Floating> : <div class={classes.presetsList}>{list}</div>;
       }}
     </Show>
   );

@@ -166,6 +166,13 @@ export class Camera implements ICamera {
     return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
   }
 
+  /** The view the camera comes to: the target of a transition under way, else where it is (what a saved state keeps). */
+  getSettledSnapshot() {
+    return this.transition.inTransition
+      ? Camera.copySnapshot(Camera.createDefaultSnapshot(), this.transition.target)
+      : this.getSnapshot();
+  }
+
   getTargetDistance(radius: number) {
     return Math.max(
       this.minTargetDistance / this.scale,

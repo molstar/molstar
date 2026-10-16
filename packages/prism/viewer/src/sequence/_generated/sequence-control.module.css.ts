@@ -12,6 +12,7 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
   'root': 'msp-viewer-sequence-control-root',
+  'said': 'msp-viewer-sequence-control-said',
   'surface': 'msp-viewer-sequence-control-surface',
 } as const;
 
@@ -35,6 +36,16 @@ defineStyles('viewer/sequence/sequence-control.module.css', `@layer msp.componen
   pointer-events: auto;
   flex: 1 1 0;
   min-height: 0;
+  position: relative;
+
+  &:has( > :focus-visible):after {
+    content: "";
+    border-radius: var(--msp-radius-md);
+    box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+  }
 
   &[data-fade] {
     mask-image: linear-gradient(to bottom,
@@ -52,6 +63,15 @@ defineStyles('viewer/sequence/sequence-control.module.css', `@layer msp.componen
 
 .msp-viewer-sequence-control-surface[data-bars] [data-pass^="vnav"] {
   opacity: 1;
+}
+
+.msp-viewer-sequence-control-said {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 }
 `);

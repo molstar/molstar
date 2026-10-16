@@ -10,7 +10,7 @@
 
 import { Icon, Select, TextInput, For, Show, type ObservableState, observableState } from '@molstar/prism-ui';
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
-import type { AIProvider, AISettingsModel, KeyScope } from '../model.js';
+import { type AIProvider, type AISettingsModel, checkLimits, type KeyScope } from '../model.js';
 import { classes } from './_generated/ai-setup.module.css.js';
 
 const Scopes: readonly (readonly [KeyScope, string])[] = [
@@ -26,7 +26,7 @@ const scopeText: Record<KeyScope, string> = {
 };
 
 /**
- * Setting up the assistant's model (as Stories untold does, over any-model-adapters): every provider with its key (one
+ * Setting up the assistant's model (as Stories untold does): every provider with its key (one
  * for each, as many as one likes), how long a key is kept, the model in use, and one's own OpenAI-compatible endpoint
  * (OpenRouter, Ollama, vLLM, …). With no key yet, a word on what it is first, and the first provider's key open.
  */
@@ -243,10 +243,12 @@ function RefreshModels(props: { settings: AISettingsModel }) {
 
 /**
  * One's own OpenAI-compatible endpoint (Stories' "your own"): a name, the URL, which OpenAI API it speaks, its key and
- * how long to keep it, and its models (typed, or fetched from its `/models`).
+ * how long to keep it, its models (typed, or fetched from its `/models`), and optionally their context window and max
+ * output (32,768 and 4,096 tokens when left empty).
  */
 function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
-  const values = { label: '', baseURL: '', key: '' };
+  const values = { label: '', baseURL: '', key: '', contextWindow: '', maxOutputTokens: '' };
+  const problem = observableState<string | undefined>(undefined);
   const api = observableState<'chat' | 'responses'>('chat');
   const scope = observableState<KeyScope>('browser');
   const models = observableState('');
@@ -282,7 +284,23 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
       .map((m) => m.trim())
       .filter(Boolean);
     if (!values.label || !values.baseURL || !list.length) return;
-    props.settings.addProvider({ ...values, scope: scope.value, api: api.value, models: list });
+    // Empty is the default; anything else is a whole number of tokens.
+    const tokens = (text: string) => (text ? Number(text.replaceAll(/[,_\s]/g, '')) : undefined);
+    const limits = { contextWindow: tokens(values.contextWindow), maxOutputTokens: tokens(values.maxOutputTokens) };
+    const wrong = checkLimits(limits);
+    problem.set(wrong);
+    if (wrong) return;
+    const { label, baseURL, key } = values;
+    props.settings.addProvider({
+      label,
+      baseURL,
+      key,
+      scope: scope.value,
+      api: api.value,
+      models: list,
+      ...(limits.contextWindow !== undefined ? { contextWindow: limits.contextWindow } : {}),
+      ...(limits.maxOutputTokens !== undefined ? { maxOutputTokens: limits.maxOutputTokens } : {}),
+    });
     props.onDone();
   };
   return (
@@ -331,6 +349,11 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
         {() => (
           <p class={classes.error}>Could not list its models: check the endpoint, the key, and that it allows CORS.</p>
         )}
+      </Show>
+      {field('contextWindow', 'Context window', 'Optional: 32,768 tokens if empty')}
+      {field('maxOutputTokens', 'Max output', 'Optional: 4,096 tokens if empty')}
+      <Show when={problem.asReadonly.pipe(map((p) => p !== undefined))}>
+        {() => <p class={classes.error}>{problem.asReadonly.pipe(map((p) => p ?? ''))}</p>}
       </Show>
       <p class={classes.note}>It must speak an OpenAI API, and allow this page to call it (CORS).</p>
       <div class={classes.ownFoot}>

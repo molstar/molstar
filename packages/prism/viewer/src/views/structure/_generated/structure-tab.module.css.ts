@@ -14,6 +14,16 @@ export const classes = {
   'actionLabel': 'msp-viewer-structure-tab-actionLabel',
   'actions': 'msp-viewer-structure-tab-actions',
   'chevron': 'msp-viewer-structure-tab-chevron',
+  'child': 'msp-viewer-structure-tab-child',
+  'childChevron': 'msp-viewer-structure-tab-childChevron',
+  'childDescription': 'msp-viewer-structure-tab-childDescription',
+  'childEye': 'msp-viewer-structure-tab-childEye',
+  'childHidden': 'msp-viewer-structure-tab-childHidden',
+  'childIcon': 'msp-viewer-structure-tab-childIcon',
+  'childLabel': 'msp-viewer-structure-tab-childLabel',
+  'childOpen': 'msp-viewer-structure-tab-childOpen',
+  'children': 'msp-viewer-structure-tab-children',
+  'childrenTitle': 'msp-viewer-structure-tab-childrenTitle',
   'fact': 'msp-viewer-structure-tab-fact',
   'facts': 'msp-viewer-structure-tab-facts',
   'inspection': 'msp-viewer-structure-tab-inspection',
@@ -22,6 +32,7 @@ export const classes = {
   'inspectorActions': 'msp-viewer-structure-tab-inspectorActions',
   'inspectorContent': 'msp-viewer-structure-tab-inspectorContent',
   'inspectorEmpty': 'msp-viewer-structure-tab-inspectorEmpty',
+  'inspectorEye': 'msp-viewer-structure-tab-inspectorEye',
   'inspectorHeader': 'msp-viewer-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-viewer-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-viewer-structure-tab-inspectorTitle',
@@ -36,6 +47,10 @@ export const classes = {
   'presets': 'msp-viewer-structure-tab-presets',
   'presetsContent': 'msp-viewer-structure-tab-presetsContent',
   'quickStyles': 'msp-viewer-structure-tab-quickStyles',
+  'renameField': 'msp-viewer-structure-tab-renameField',
+  'renameTitle': 'msp-viewer-structure-tab-renameTitle',
+  'search': 'msp-viewer-structure-tab-search',
+  'searchButton': 'msp-viewer-structure-tab-searchButton',
   'tab': 'msp-viewer-structure-tab-tab',
   'tree': 'msp-viewer-structure-tab-tree',
 } as const;
@@ -67,7 +82,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 
 @container (width < 296px) {
   .msp-viewer-structure-tab-actions > button:has(.msp-viewer-structure-tab-actionLabel) {
-    width: 24px;
+    width: max(24px, var(--msp-touch-target, 0px));
     padding: 0;
   }
 
@@ -137,6 +152,33 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   text-transform: capitalize;
 }
 
+.msp-viewer-structure-tab-renameTitle {
+  align-items: center;
+  gap: var(--msp-space-1);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+
+  & .msp-viewer-structure-tab-inspectorTitle {
+    flex: 0 auto;
+  }
+}
+
+.msp-viewer-structure-tab-renameField {
+  flex: 1;
+  min-width: 0;
+}
+
+.msp-viewer-structure-tab-inspectorEye {
+  margin: calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) auto;
+  color: var(--msp-color-text-muted);
+  flex: none;
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-text);
+  }
+}
+
 .msp-viewer-structure-tab-nothing {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
@@ -152,7 +194,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 .msp-viewer-structure-tab-inspectorAction {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -206,6 +248,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 .msp-viewer-structure-tab-presetsContent {
   gap: var(--msp-space-2);
   padding: var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -220,7 +263,7 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-preset {
-  height: 28px;
+  height: max(28px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);
@@ -256,8 +299,16 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   }
 }
 
-.msp-viewer-structure-tab-optionsButton {
+.msp-viewer-structure-tab-searchButton {
   margin-left: auto;
+}
+
+.msp-viewer-structure-tab-search {
+  padding: 0 var(--msp-space-2);
+  display: grid;
+}
+
+.msp-viewer-structure-tab-optionsButton {
   margin-right: var(--msp-space-2);
 }
 
@@ -270,6 +321,81 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 
 .msp-viewer-structure-tab-optionsContent {
   padding: var(--msp-space-2) var(--msp-space-3);
+}
+
+.msp-viewer-structure-tab-children {
+  margin: 0 calc(-1 * var(--msp-space-2));
+  display: grid;
+}
+
+.msp-viewer-structure-tab-childrenTitle {
+  padding: 0 var(--msp-space-2) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-viewer-structure-tab-child {
+  border-radius: var(--msp-radius-md);
+  align-items: center;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-structure-tab-childHidden {
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-viewer-structure-tab-childOpen {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: max(30px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  text-align: left;
+  flex: 1;
+  display: flex;
+}
+
+.msp-viewer-structure-tab-childIcon {
+  color: var(--msp-color-text-muted);
+  flex: none;
+}
+
+.msp-viewer-structure-tab-childLabel {
+  flex: none;
+  font-weight: 500;
+}
+
+.msp-viewer-structure-tab-childDescription {
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  flex: 1;
+  overflow: hidden;
+}
+
+.msp-viewer-structure-tab-childChevron {
+  color: var(--msp-color-text-subtle);
+  flex: none;
+}
+
+.msp-viewer-structure-tab-childEye {
+  width: 28px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
 }
 }
 `);

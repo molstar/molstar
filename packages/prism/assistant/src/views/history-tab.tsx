@@ -24,8 +24,9 @@ function ago(time: Date) {
 }
 
 /**
- * The History tab (the Log grown up, design/agent.md §5): every command, newest first, the person's one by one and an
- * agent's grouped under its request, with the checkpoint before it (Undo turn); the status messages under Messages.
+ * The History tab (the Log grown up, _spec/README.md, "History"): every command, newest first, the person's one by one
+ * and an agent's grouped under its request, with the checkpoint before it (Undo turn); the status messages under
+ * Messages.
  */
 export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
   const { agent } = props;
@@ -61,7 +62,13 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
         fallback={() => <LogView status={props.status} />}
       >
         {() => (
-          <ScrollArea class={classes.list} contentClass={classes.listContent} role="log" aria-label="Commands">
+          <ScrollArea
+            class={classes.list}
+            contentClass={classes.listContent}
+            role="log"
+            aria-live="off"
+            aria-label="Commands"
+          >
             <For
               each={ids}
               fallback={() => (

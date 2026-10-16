@@ -14,6 +14,7 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { CommandInvocation } from './invocation.js';
 import { fuzzyScore } from './match.js';
 import type {
+  CommandValues,
   CommandAssistant,
   CommandDefinition,
   CommandFormats,
@@ -72,6 +73,8 @@ export interface KeyEventLike {
   code?: string;
   /** Where the key went (an element in a page); a text-entry target keeps keys that type. */
   target?: unknown;
+  /** The composed path of a DOM event: across a shadow root `target` is its host, the path's first item the real one. */
+  composedPath?(): EventTarget[];
   isComposing?: boolean;
   repeat?: boolean;
   defaultPrevented?: boolean;
@@ -311,15 +314,21 @@ export class CommandManager<Ctx> {
   }
 
   /**
-   * Opens a command: its form (with a preset's values, when one is named), or runs it at once
-   * when it has none. Refused while a run is in flight, and when the command cannot run; never
-   * throws.
+   * Opens a command: its form (with a preset's values, when one is named, or the values given: what it is opened for,
+   * a component's own row), or runs it at once when it has none. Refused while a run is in flight, and when the command
+   * cannot run; never throws.
    */
-  open(id: string, tail?: string, preset?: string): OpenResult<Ctx> {
+  open(id: string, tail?: string, preset?: string | CommandValues): OpenResult<Ctx> {
     const command = this.get(id);
     if (!command) return { kind: 'blocked', reason: `No command "${id}".` };
-    const values = preset === undefined ? undefined : this.#presets(command).find((p) => p.id === preset)?.values;
-    if (preset !== undefined && !values) return { kind: 'blocked', reason: `${command.title} has no "${preset}".` };
+    const values =
+      preset === undefined
+        ? undefined
+        : typeof preset === 'string'
+          ? this.#presets(command).find((p) => p.id === preset)?.values
+          : preset;
+    if (typeof preset === 'string' && !values)
+      return { kind: 'blocked', reason: `${command.title} has no "${preset}".` };
     if (this.#run) return { kind: 'blocked', reason: `${this.#run.command.title.replace(/…$/, '')} is still running.` };
     const blocked = this.blocked(command);
     if (blocked) return { kind: 'blocked', reason: blocked };
@@ -372,12 +381,22 @@ export class CommandManager<Ctx> {
    */
   handleKey(e: KeyEventLike, mac = true): boolean {
     if (e.defaultPrevented || e.repeat || e.isComposing || e.key === 'Process') return false;
-    const typing = typesText(e.target);
+    const target = e.composedPath?.()[0] ?? e.target;
+    const typing = typesText(target);
+    // A control that steps with the arrows (a slider, a radio group, a tab strip) keeps the plain keys too.
+    const owns = !typing && usesKeys(target);
     const hits = this.#commands.asReadonly.value.filter(
-      (c) => c.shortcut && (!typing || typesNothing(c.shortcut)) && chordMatches(c.shortcut, e, mac),
+      (c) =>
+        c.shortcut &&
+        (!typing || typesNothing(c.shortcut)) &&
+        (!owns || !isPlain(c.shortcut)) &&
+        chordMatches(c.shortcut, e, mac),
     );
     const command = hits.find((c) => !this.blocked(c)) ?? hits[0];
     if (!command) return false;
+    // A plain key (an arrow: the next snapshot) is ambient: where its command cannot run, the key is not taken, and
+    // nothing says it was refused.
+    if (isPlain(command.shortcut!) && this.blocked(command)) return false;
     const r = this.open(command.id);
     if (r.kind === 'blocked') this.#outcomes.next({ kind: 'blocked', command, message: r.reason });
     return true;
@@ -479,15 +498,41 @@ function typesText(target: unknown): boolean {
   return tag === 'INPUT' && !NOT_TEXT.has((t.type ?? 'text').toLowerCase());
 }
 
+const KEY_ROLES = new Set(['slider', 'spinbutton', 'radio', 'tab', 'menuitem', 'option', 'treeitem', 'listbox']);
+
+/** Does the target move with the arrow keys itself (a range or radio input, a widget with a role that does)? */
+function usesKeys(target: unknown): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const t = target as { tagName?: string; type?: string; getAttribute?(name: string): string | null };
+  if (t.tagName?.toUpperCase() === 'INPUT') {
+    const type = (t.type ?? '').toLowerCase();
+    if (type === 'range' || type === 'radio') return true;
+  }
+  const role = typeof t.getAttribute === 'function' ? t.getAttribute('role') : null;
+  return role !== null && KEY_ROLES.has(role);
+}
+
+/** No modifier at all (an arrow, a letter alone). */
+function isPlain(chord: KeyChord): boolean {
+  return !chord.mod && !chord.alt && !chord.shift;
+}
+
 /** ⌘ or Ctrl without Alt never types a character (Alt does on macOS; Ctrl+Alt is AltGr). */
 function typesNothing(chord: KeyChord): boolean {
   return !!chord.mod && !chord.alt;
 }
 
+/** A single character that is not a letter, a digit or a space. */
+function isSymbol(key: string): boolean {
+  return /^[^\p{L}\p{N}\s]$/u.test(key);
+}
+
 function chordMatches(chord: KeyChord, e: KeyEventLike, mac: boolean): boolean {
   const mod = mac ? !!e.metaKey : !!e.ctrlKey;
   const other = mac ? !!e.ctrlKey : !!e.metaKey;
-  if (!!chord.mod !== mod || other || !!chord.alt !== !!e.altKey || !!chord.shift !== !!e.shiftKey) return false;
+  if (!!chord.mod !== mod || other || !!chord.alt !== !!e.altKey) return false;
+  // A symbol (`?` is Shift+/ on most layouts) already implies its modifiers; letters and digits match Shift strictly.
+  if (!!chord.shift !== !!e.shiftKey && (chord.shift || !isSymbol(chord.key))) return false;
   const want = chord.key.toLowerCase();
   const key = e.key.toLowerCase();
   if (key === want) return true;

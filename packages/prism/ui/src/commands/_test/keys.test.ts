@@ -105,6 +105,70 @@ describe('keybindings', () => {
   });
 });
 
+describe('single-key shortcuts', () => {
+  function plain() {
+    const context = observableState<Ctx>({ log: [] });
+    const manager = new CommandManager<Ctx>({ context: context.asReadonly, formats: { get: () => undefined } });
+    const command = (id: string, shortcut: CommandDefinition<Ctx>['shortcut']): CommandDefinition<Ctx> => ({
+      id,
+      title: id,
+      category: 'Scene',
+      ...(shortcut ? { shortcut } : {}),
+      run: (_v, c) => {
+        c.log.push(id);
+        return {};
+      },
+    });
+    manager.register([
+      command('help.keys', { key: '?' }),
+      command('scene.plain', { key: 'a' }),
+      command('scene.shifted', { key: 'b', shift: true }),
+    ]);
+    return { context, manager };
+  }
+
+  it('a symbol chord matches with Shift held (? is Shift+/), letters keep strict Shift matching', async () => {
+    const { context, manager } = plain();
+    const flush = () => new Promise((r) => setTimeout(r, 0));
+    expect(manager.handleKey({ key: '?', shiftKey: true })).toBe(true);
+    await flush();
+    expect(manager.handleKey({ key: '?' })).toBe(true);
+    await flush();
+    expect(manager.handleKey({ key: 'a', shiftKey: true })).toBe(false);
+    expect(manager.handleKey({ key: 'a' })).toBe(true);
+    await flush();
+    expect(manager.handleKey({ key: 'b' })).toBe(false);
+    expect(manager.handleKey({ key: 'b', shiftKey: true })).toBe(true);
+    await flush();
+    expect(context.value.log).toEqual(['help.keys', 'help.keys', 'scene.plain', 'scene.shifted']);
+  });
+
+  it('a key typed in a field inside a shadow root does not run a single-key command', () => {
+    const { context, manager } = plain();
+    const host = document.createElement('div');
+    document.body.append(host);
+    const input = document.createElement('input');
+    host.attachShadow({ mode: 'open' }).append(input);
+    const results: boolean[] = [];
+    const onKey = (e: KeyboardEvent) => {
+      // here `e.target` is the host
+      expect(e.target).toBe(host);
+      results.push(manager.handleKey(e));
+    };
+    document.addEventListener('keydown', onKey);
+    try {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true, composed: true }));
+      expect(results).toEqual([false]);
+      expect(context.value.log).toEqual([]);
+      host.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true, composed: true }));
+      expect(results).toEqual([false, true]);
+      expect(context.value.log).toEqual(['help.keys']);
+    } finally {
+      document.removeEventListener('keydown', onKey);
+    }
+  });
+});
+
 describe('chord display', () => {
   it('shows ⌘ on macOS and Ctrl elsewhere', () => {
     expect(formatChord({ key: 'k', mod: true }, true)).toBe('⌘K');

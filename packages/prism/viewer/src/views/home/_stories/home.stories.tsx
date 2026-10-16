@@ -9,31 +9,32 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockHome } from '../../../testing/home.js';
 import { story } from '@molstar/prism-ui/testing/index';
-import { HomeTab } from '../home-tab.js';
+import { RealViewerStory } from '../../../testing/real-viewer.js';
 
-const meta: Meta = { title: 'Views/Home tab' };
+// Home in the real viewer: what loads data (the loaders' actions as forms, Open files), opened at start while nothing is
+// loaded (`ui.homeWhenEmpty`).
+
+const meta: Meta = { title: 'Viewer/Home', parameters: { layout: 'fullscreen' } };
 export default meta;
 
-const frame = 'width: 360px; height: 100vh; overflow: auto; background: var(--msp-color-panel); margin-left: auto;';
-
-/** The root's actions as forms (the first open, Open Files among them), and the command menu hint. */
+/** The root's actions as forms (the first open, Open files among them), and the command menu hint. */
 export const Default: StoryObj = {
   render: () =>
     story(() => (
-      <div style={frame}>
-        <HomeTab home={mockHome((text) => console.info(text))} />
-      </div>
+      <RealViewerStory spec={(base) => ({ ...base, options: { ...base.options, ui: { homeWhenEmpty: true } } })} />
     )),
 };
 
-/** With remote states (a feature flag in the spec, off by default): sessions on a state server. */
+/** With remote states (on in the spec, off by default): sessions on a state server. Network. */
 export const WithRemoteStates: StoryObj = {
   render: () =>
     story(() => (
-      <div style={frame}>
-        <HomeTab home={mockHome((text) => console.info(text), { remoteStates: true })} />
-      </div>
+      <RealViewerStory
+        spec={(base) => ({
+          ...base,
+          options: { ...base.options, ui: { homeWhenEmpty: true, showRemoteStates: true } },
+        })}
+      />
     )),
 };

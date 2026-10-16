@@ -285,6 +285,12 @@ export const ColorLists = {
 
   // Qualitative schemes from ColorBrewer (putting them here so that order in UI is sequential, diverging, cyclical, categorical)
 
+  'okabe-ito': ColorList(
+    'Okabe-Ito',
+    'qualitative',
+    'Okabe-Ito, categorical color scheme distinguishable by people with color vision deficiencies (Okabe & Ito, 2008)',
+    [0xe69f00, 0x56b4e9, 0x009e73, 0xf0e442, 0x0072b2, 0xd55e00, 0xcc79a7, 0x999999],
+  ),
   'set-2': ColorList(
     'Set-2',
     'qualitative',
@@ -459,6 +465,15 @@ export const ColorLists = {
     'diverging',
     'Diverging color scheme with red-white-blue',
     [0xbf2222, 0xffffff, 0x3361e1],
+  ),
+  'many-distinct-prism': ColorList(
+    'Many-Distinct (Prism)',
+    'qualitative',
+    "Many-Distinct redrawn in OKLCH for Prism: Mol*'s green and orange first, even weight, distinct throughout",
+    [
+      0x07a57b, 0xe57434, 0x7b74c4, 0xd8588f, 0x78b248, 0xecb333, 0x915a23, 0x4cbadc, 0xcb4644, 0x2a61b1, 0x1a8390,
+      0xc793df, 0x7f8026, 0xf6a88d, 0x883f73, 0x9bdcb1,
+    ],
   ),
   'many-distinct': ColorList(
     'Many-Distinct',

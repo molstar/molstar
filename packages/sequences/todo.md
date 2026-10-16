@@ -6,21 +6,40 @@ starts); a new deferral comes in with what triggers it and where its context is.
 
 ## In progress
 
-Nothing: tracks in the text view as lanes, input as streams and the host options' performance pass are built, as one PR
-(`.v6/seq/plans/lanes-input-perf.md`: §2.6 to §2.8, §3.6, §4.3).
+Nothing.
 
 ## Next
 
-The move into Mol\* v6's repository is done. Next is Prism over Seq\* (`.v6/seq/plan.md` §3, designed in
-`.v6/seq/prism-sequence.md`): the Prism viewer's sequence control, tooltip and legend replacing the default primitives
-(the chrome's next look, below), then the plan's §4 follow-ups (whether `viewer/react` stays).
+Prism over Seq\* is built (`packages/prism/viewer/_spec/sequence.md`): its band, menu, tooltip and legend replace the
+default primitives in the Prism viewer. Next are the follow-ups below: whether `viewer/react` stays, and the chrome's
+next look.
 
 ## Deferred features
 
 Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:model#pieces-and-layout-maps`) with the
 biology at application level, never in the core.
 
-**Loci and coordinates on input events** (2026-10-14, from input as streams: `.v6/seq/plans/lanes-input-perf.md` §3.6).
+**Coordinate systems as a primitive of their own** (David, 2026-10-15). The model is headless already: systems and maps
+(`CoordinateSystem`, `Coords`), mappings and composed paths (`Mappings`, `Paths`) in `@molstar/seq-core/model`, and the
+`Translator` in `@molstar/seq-core/translate`. What makes them usable by name stops at the viewer, though:
+
+- Naming a set's own systems by key (`seqstar:<ref>`) and building their descriptors happens in the viewer's
+  `SystemRegistry` (`viewer/src/systems.ts`), which runs on the viewer's `state` and the shown set.
+- The `Coordinates` type (runs by system key) and `coordinatesOf` live in `viewer/src/systems.ts` and
+  `viewer/src/projection.ts`.
+- A Mol\* structure registers its complex system through a viewer's `ctx.systems` (`molstar-poc/src/link.ts`, Prism's
+  `sequence/link.ts`).
+
+Move these into core, as a `@molstar/seq-core/systems` entry or into `/translate`: a registry over a `SeqSet` with no
+viewer, which reports changes through a plain callback; `Coordinates` and its conversions to and from loci and `Extents`
+go with it. The viewer's `ctx.systems` becomes that registry plus its reactive `version`, and the structure link
+attaches to the registry rather than to a viewer. Then a host can map between a structure, a sequence set, an
+alignment's columns and a transcript without drawing anything (an agent tool, MVS or SVS validation, a server, a
+headless test), and a viewer joins the same registry later. `seqspec:libraries#translate` and
+`seqspec:interaction#focus` move with it. _Trigger:_ a consumer of the mapping without a viewer, or the next change to
+`ctx.systems`.
+
+**Loci and coordinates on input events** (2026-10-14, from input as streams: `seqspec:interaction#streams`).
 `ctx.interaction`'s payloads carry refs and indices (`part`, `at`: layer, lane, block, index, row, item), not the hit's
 loci or its `Coordinates`; a consumer that wants them reads `hover.toLoci()` (the hover) or resolves the refs. To add
 them lazily (computed on first read, as `seq-hover`'s): a hit copied into the payload (`Hit.copy`), the hover's resolve
@@ -161,6 +180,24 @@ unboxed under the canvas); motion (menus dropping in, the legend's reveal); a ho
 `SeqViewerRoot`/`createDomUI` (a DOM part per shown section, as React's `shownSections` map does by hand). _Trigger:_
 the move into Mol\* v6 and its Prism components replacing the default primitives.
 
+**The React UI (`viewer/react`): kept or dropped.** Kept for React hosts, or dropped now that Prism has its own sequence
+UI (`packages/prism/viewer/src/sequence/`). _Trigger:_ the next change to the React parts, or a React host asking.
+
+**Input streams, the rest** (2026-10-14, `seqspec:interaction#streams`). Safari's keyboard `contextmenu` has no
+`pointerType` and reads as the pointer's; with no `menu` subscriber the menu key's default is the browser's (the default
+UIs prevent it); a macOS Ctrl+click is both a menu request and `select`'s `toggle`; rxjs reports a throwing stream
+subscriber asynchronously, not as `seqv.behavior.error`. _Trigger:_ a host on Safari, or a subscriber's error lost.
+
+**Chips without a cap.** Every short unit flows as a chip in the text view (`seqspec:viewer#the-text-view`); nothing
+caps how many a section shows. _Trigger:_ a structure with many ligands or ions in Text.
+
+**`useDefineForClassFields: true` for the whole repository.** Seq\* sets it per package (built and guarded under ES2022
+define semantics); Mol\*'s base keeps `false`. An audit for re-declared fields (`declare`), then the full tests and
+apps. _Trigger:_ a class-field bug, or the next tooling pass.
+
+**The heap tiers in a scheduled CI job** (opt-in by hand today, AGENTS.md, Tests). _Trigger:_ a hot-path regression
+missed between checkpoints.
+
 **A codon text track.** A residue's three bases drawn in its cell on a protein's axis, only where a cell holds three
 letters (about 20 px or more), nothing below that. _Trigger:_ a variant story where the reader must see the reference
 and alternate codon side by side.
@@ -265,6 +302,28 @@ source's `coordinate_system` and a layer's `of` are not covered. _Trigger:_ a ch
 ## Costs and cleanups
 
 Known, measured, unowned: whoever next touches the code takes one, and its commit says so.
+
+- **No slim build yet: a partial spec bundles most of Seq\* anyway** (measured 2026-10-16 with esbuild, minified, a
+  probe that calls `createSeqViewer` alone). The default spec is 1,040 kB of Seq\* (viewer 533, core 507); the Prism
+  viewer's sequence chunk 1,183 kB. Done (2026-10-16): `createSeqViewer` takes its spec (no default that imported
+  `DefaultSeqViewerSpec`), `defineBehavior` and the viewer's `own` are `@__NO_SIDE_EFFECTS__` and `DefaultRegistry` is
+  built in a pure call, so a behavior or entry no spec lists is left out: an empty spec went from 992 to 721 kB (viewer
+  283, core 438). What is left is the floor every viewer pays, and two steps remain:
+  - **Parts** (small): `DefaultRegistry` and the core's `KernelRegistry` as named parts a host composes (the layer types
+    with their renderers by family: letters and tracks; alignments, pairs, logos, matrices, dot plots; the streaming
+    sources), and the default behaviors split the same way (dot-plot select, the ring window). A Prism-like set (every
+    node kind, five renderers, every behavior) measured 977 kB: about 60 kB from the viewer's parts, ~70 kB more once
+    the core's splits. A document needing a part not registered loads it (a host's loader for the rest).
+  - **The floor** (larger): the format's compile reaches the aligners (`algorithms/`: biomsa, myers; ~57 kB) and SeqQL
+    (`query/` and `model/query/`; ~100 kB) directly, the viewer's context always makes the stream manager (`streams.ts`,
+    `stream-layer.ts`, `stream-patches.ts`; ~40 kB), and the palettes come whole (~41 kB): each through registration
+    instead, ~240 kB of the 721. Measure with `node scripts/esbuild/app.mjs apps/prism-viewer --prd --metafile` and a
+    probe entry (`createSeqViewer({ registry: [], behaviors: [] })`). _Trigger:_ the Prism viewer's band (David asked,
+    2026-10-16).
+  - **Streaming as a part** (measured 2026-10-16): the stream manager, the stream layer, its patches, levels and sources
+    come to ~51 kB minified (the streamed sources themselves, GMOD and tiles, are not in the default spec), but the
+    context makes the manager always and ~30 viewer modules read it. Not worth the refactor for Prism's band (David
+    decided its default is everything but streaming, 2026-10-16: it keeps the default until a trim pays).
 
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates
