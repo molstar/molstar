@@ -94,10 +94,11 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       }
       const first = attempt === 1;
       const invoked = fault === undefined;
+      let release = () => undefined as void;
       if (invoked) {
         const need = { ...ZERO, modelCalls: first ? 1 : 0, uncachedInput: request.inputTokens };
         const cost = run.core.price?.(configuration, need);
-        await admit(run, {
+        release = await admit(run, {
           modelCalls: need.modelCalls,
           uncachedInput: need.uncachedInput,
           endBy: 0,
@@ -150,6 +151,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
         usage: used,
       });
       charge(run, used);
+      release();
       observations.next({ kind: 'attempt.ended', ...scope, outcome });
       if (signal.aborted) throw signal.reason;
       if (fault !== undefined) {

@@ -42,7 +42,7 @@ import { Journal } from '../tools/journal.js';
 import { bind, planCalls, stored, toolCalls } from '../tools/plan.js';
 import { toolsStep } from '../tools/step.js';
 import { modelStep } from './model.js';
-import { append, blob, boundary, type Core, compact, decide, type Run, sizeOf } from './run.js';
+import { append, askTime, blob, boundary, type Core, compact, decide, type Run, sizeOf } from './run.js';
 import {
   addUsage,
   Collector,
@@ -315,9 +315,15 @@ export function createHarness(options: HarnessOptions): Harness {
 
   // --- Steps ---
 
+  /** A step settles only once an open `endBy` decision is answered: its `extend` is the step's (harness.md §11). */
+  async function timeAnswered(run: Run): Promise<void> {
+    while (run.budget.time !== undefined) await run.budget.time.catch(() => undefined);
+  }
+
   /** A round's end (harness.md §6): the boundary, then the commit naming the next step or the turn's end. */
   async function round(run: Run, completing: boolean): Promise<void> {
     await boundary(run, completing);
+    await timeAnswered(run);
     commit(run, { ending: 'settled', ...(completing ? { end: { status: 'completed' } } : { next: model() }) });
   }
 
@@ -330,6 +336,7 @@ export function createHarness(options: HarnessOptions): Harness {
       const next = ids.next('step');
       const plan = planCalls(run, message, next);
       const ref = blob(run, message as unknown as Json);
+      await timeAnswered(run);
       return commit(run, { ending: 'settled', next: { id: next, kind: 'tools', message: ref, plan: stored(plan) } });
     }
     append(run, run.context, [message]);
@@ -351,26 +358,25 @@ export function createHarness(options: HarnessOptions): Harness {
     await round(run, false);
   }
 
-  /** `endBy` passing during a step opens `budget`; without an extend the step fails (harness.md §11). */
+  /**
+   * `endBy` passing during a step opens `budget` (one decision, shared with admission: `askTime`); without an extend
+   * the step fails (harness.md §11). The step settles only once the decision is answered; the watcher ends with it.
+   */
   function endBy(run: Run): AbortController {
     const timer = new AbortController();
     (async () => {
       for (;;) {
         const at = run.budget.limits.endBy;
-        if (at === undefined) return;
+        if (at === undefined || timer.signal.aborted) return;
         if (clock.now() < at) {
           await clock.sleep(at - clock.now(), timer.signal);
           continue;
         }
-        const answer = await decide(
-          run,
-          'budget',
-          { dimension: 'endBy', budget: run.budget, need: 0 },
-          { reason: 'time' },
-        );
-        run.budget.limits = { ...run.budget.limits, ...answer.extend };
-        if ((run.budget.limits.endBy ?? Number.POSITIVE_INFINITY) <= clock.now())
+        await askTime(run);
+        if ((run.budget.limits.endBy ?? Number.POSITIVE_INFINITY) <= clock.now()) {
           run.state.exit(new Exit('fail', { reason: { reason: 'time' } }));
+          return;
+        }
       }
     })().catch(() => undefined);
     return timer;

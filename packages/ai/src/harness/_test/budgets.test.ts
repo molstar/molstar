@@ -92,4 +92,108 @@ describe('Budgets', () => {
     expect(s.model.invocations).toHaveLength(1);
     expect((await s.turns())[0]?.status).toBe('failed');
   });
+
+  it('B2 parallel-admission: calls admitted together count each other; a limit of one runs one', async () => {
+    let clock: Session['clock'] | undefined;
+    const s = createSession({
+      configuration: { limits: { toolCalls: 1 } },
+      tools: {
+        t: async () => {
+          await clock?.sleep(10);
+          return { text: 'x' };
+        },
+      },
+      model: [{ calls: [1, 2, 3].map((a) => ({ tool: 't', arguments: { a } })) }, { text: 'done' }],
+      drive: with_({
+        schedule: ({ payload }) => ({ stages: [payload.calls.map((c) => c.callId)], maxConcurrency: 3 }),
+      }),
+    });
+    clock = s.clock;
+    await s.send('go');
+    const budgets = s.observations.filter((o) => o.kind === 'decision.opened' && o.decisionKind === 'budget');
+    expect(budgets.length).toBeGreaterThan(0);
+    // The default drive fails the budget: the one admitted call ran, the others never did.
+    expect(s.tools.callsOf('t')).toHaveLength(1);
+    expect((await s.turns())[0]?.status).toBe('failed');
+  });
+
+  it('B2 parallel-admission-extended: each extension admits the call that asked; every call runs once', async () => {
+    let clock: Session['clock'] | undefined;
+    const needs: number[] = [];
+    const s = createSession({
+      configuration: { limits: { toolCalls: 1 } },
+      tools: {
+        t: async () => {
+          await clock?.sleep(10);
+          return { text: 'x' };
+        },
+      },
+      model: [{ calls: [1, 2, 3].map((a) => ({ tool: 't', arguments: { a } })) }, { text: 'done' }],
+      drive: with_({
+        schedule: ({ payload }) => ({ stages: [payload.calls.map((c) => c.callId)], maxConcurrency: 3 }),
+        budget: ({ payload }) => {
+          needs.push(payload.need ?? 0);
+          return { extend: { toolCalls: (payload.budget.limits.toolCalls ?? 0) + 1 } };
+        },
+      }),
+    });
+    clock = s.clock;
+    await s.send('go');
+    expect(s.tools.callsOf('t')).toHaveLength(3);
+    // What the earlier admitted calls hold is in each need.
+    expect(Math.max(...needs)).toBeGreaterThan(1);
+    expect((await s.turns())[0]?.status).toBe('completed');
+  });
+
+  it('B2 end-by-extended-mid-step: an extend answered after the step’s work ends is the step’s; time is asked once', async () => {
+    const endBy = new SimulatedClock().now() + 1000;
+    let clock: Session['clock'] | undefined;
+    const s = createSession({
+      configuration: { limits: { endBy } },
+      tools: {
+        slow: async (context) => {
+          await clock?.sleep(2000, context.signal);
+          return { text: 'slow done' };
+        },
+      },
+      model: [{ calls: [{ tool: 'slow', arguments: {} }] }, { text: 'done' }],
+      drive: with_({
+        // The person answers after the tool has ended.
+        budget: async ({ payload }) => {
+          await clock?.sleep(1500);
+          return { extend: { endBy: (payload.budget.limits.endBy ?? 0) + 60_000 } };
+        },
+      }),
+    });
+    clock = s.clock;
+    await s.send('go');
+    const opened = s.observations.filter((o) => o.kind === 'decision.opened' && o.decisionKind === 'budget');
+    expect(opened).toHaveLength(1);
+    const tools = stepEvents(await s.events()).find((e) => e.stepKind === 'tools');
+    expect(tools?.ending).toBe('settled');
+    expect(tools?.limits?.endBy).toBe(endBy + 60_000);
+    expect((await s.turns())[0]?.status).toBe('completed');
+  });
+
+  it('B2 end-by-between-steps: endBy passed before a step asks once at its start (watcher and admission share it)', async () => {
+    const endBy = new SimulatedClock().now() + 1000;
+    let clock: Session['clock'] | undefined;
+    const s = createSession({
+      configuration: { limits: { endBy } },
+      tools: {
+        t: async () => {
+          await clock?.sleep(1000);
+          return { text: 'x' };
+        },
+      },
+      // The tool ends exactly at endBy: the next model step begins with it passed.
+      model: [{ calls: [{ tool: 't', arguments: {} }] }, { text: 'done' }],
+      drive: with_({ budget: () => ({ extend: { endBy: endBy + 60_000 } }) }),
+    });
+    clock = s.clock;
+    await s.send('go');
+    const opened = s.observations.filter((o) => o.kind === 'decision.opened' && o.decisionKind === 'budget');
+    expect(opened).toHaveLength(1);
+    expect((await s.turns())[0]?.status).toBe('completed');
+  });
 });

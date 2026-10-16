@@ -91,6 +91,16 @@ export interface Core {
   driveJournal(run: Run): Writer;
 }
 
+/** A run's budget (harness.md §11): its limits, what it consumed, and admission's own state. */
+export interface RunBudget {
+  limits: Limits;
+  consumed: Usage;
+  /** What admitted attempts hold until they are charged, so calls admitted together cannot overshoot a limit. */
+  reserved?: Partial<Record<Dimension, number>>;
+  /** The open `endBy` decision: admission and the step's watcher share it, so time is asked about once. */
+  time?: Promise<void>;
+}
+
 /** A top-level turn's step, or a nested run inside it (harness.md §9): one engine for both. */
 export interface Run {
   readonly core: Core;
@@ -106,7 +116,7 @@ export interface Run {
   readonly tools: ToolSet;
   /** A nested run's own definitions, loaded for it without being in its head. */
   readonly definitions?: readonly ToolDefinition[];
-  readonly budget: { limits: Limits; consumed: Usage };
+  readonly budget: RunBudget;
   readonly drives: readonly Drive[];
   /** The transient head. */
   readonly context: Staged;
@@ -272,32 +282,77 @@ export function modelUsage(
   };
 }
 
-/** Admission before an attempt (harness.md §11): a shortfall opens `budget` until it is extended. */
-export async function admit(run: Run, need: Partial<Record<Dimension, number>>): Promise<void> {
+/**
+ * `endBy` has passed: one `budget` decision, shared by every admission and the step's watcher that ask meanwhile; its
+ * `extend` applies to the run's limits (harness.md §11).
+ */
+export function askTime(run: Run): Promise<void> {
+  const budget = run.budget;
+  budget.time ??= (async () => {
+    try {
+      const answer = await decide(
+        run,
+        'budget',
+        { dimension: 'endBy', budget: { limits: budget.limits, consumed: budget.consumed }, need: 0 },
+        { reason: 'time' },
+      );
+      budget.limits = { ...budget.limits, ...answer.extend };
+    } finally {
+      budget.time = undefined;
+    }
+  })();
+  return budget.time;
+}
+
+/**
+ * Admission before an attempt (harness.md §11): a shortfall opens `budget` until it is extended. What is admitted is
+ * reserved until the attempt is charged (call the returned release then): calls admitted together, in parallel, count
+ * each other (`need` in a decision includes what they hold).
+ */
+export async function admit(run: Run, need: Partial<Record<Dimension, number>>): Promise<() => void> {
   for (;;) {
     const { limits, consumed } = run.budget;
+    const reserved = run.budget.reserved ?? {};
     let short: { dimension: Dimension; need: number } | undefined;
     for (const [dimension, amount] of Object.entries(need) as [Dimension, number][]) {
       const limit = limits[dimension];
       if (limit === undefined) continue;
+      const held = dimension === 'endBy' ? 0 : (reserved[dimension] ?? 0);
       const over =
         dimension === 'endBy'
           ? run.core.clock.now() >= limit
-          : ((consumed[dimension as keyof Usage] as number | undefined) ?? 0) + amount > limit;
+          : ((consumed[dimension as keyof Usage] as number | undefined) ?? 0) + held + amount > limit;
       if (over) {
-        short = { dimension, need: amount };
+        short = { dimension, need: amount + held };
         break;
       }
     }
-    if (short === undefined) return;
-    const answer = await decide(
-      run,
-      'budget',
-      { dimension: short.dimension, budget: { limits, consumed }, need: short.need },
-      short.dimension === 'endBy' ? { reason: 'time' } : undefined,
-    );
+    if (short === undefined) return reserve(run, need);
+    if (short.dimension === 'endBy') {
+      await askTime(run);
+      continue;
+    }
+    const answer = await decide(run, 'budget', {
+      dimension: short.dimension,
+      budget: { limits, consumed },
+      need: short.need,
+    });
     run.budget.limits = { ...run.budget.limits, ...answer.extend };
   }
+}
+
+/** Holds an admitted need until its attempt is charged; the release, once. */
+function reserve(run: Run, need: Partial<Record<Dimension, number>>): () => void {
+  const held = Object.entries(need).filter(([d, amount]) => d !== 'endBy' && amount > 0) as [Dimension, number][];
+  if (held.length === 0) return () => undefined;
+  const reserved = (run.budget.reserved ??= {});
+  for (const [d, amount] of held) reserved[d] = (reserved[d] ?? 0) + amount;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    for (const [d, amount] of held) reserved[d] = (reserved[d] ?? 0) - amount;
+  };
 }
 
 export const charge = (run: Run, usage: Usage): void => {

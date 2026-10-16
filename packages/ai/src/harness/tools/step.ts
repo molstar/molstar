@@ -143,7 +143,7 @@ async function runCall(run: Run, call: Planned, skip: Skip): Promise<Result> {
     call.key,
   );
   for (let attempt = 1; ; attempt += 1) {
-    await admit(run, { toolCalls: attempt === 1 ? 1 : 0, endBy: 0 });
+    const release = await admit(run, { toolCalls: attempt === 1 ? 1 : 0, endBy: 0 });
     const controller = linked(run.abort.signal);
     const journal = new Journal(run, call.callId);
     const attemptId = `${call.callId}:${ids.next('attempt')}`;
@@ -163,6 +163,7 @@ async function runCall(run: Run, call: Planned, skip: Skip): Promise<Result> {
       usage: used,
     });
     charge(run, used);
+    release();
     observations.next({ kind: 'attempt.ended', ...scope, outcome });
     if (aborted) {
       journal.drop();

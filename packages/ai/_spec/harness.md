@@ -142,7 +142,10 @@ sibling the park cut short, a writer whose writes went with the step, their nest
 
 - `Limits` over `modelCalls`, `toolCalls`, `uncachedInput`, `cacheRead`, `cacheWrite`, `output`, `reasoning`, `cost`
   (with the harness's `price`), `endBy` (a time). Consumption per turn and per nested run; each ended attempt is charged
-  once, estimated where usage is missing. A short dimension opens `budget`.
+  once, estimated where usage is missing. A short dimension opens `budget`. Admission reserves what it admits until the
+  attempt is charged, so calls running in parallel cannot overshoot a limit (a decision's `need` includes what the
+  others hold). `endBy` passing opens one `budget` decision, shared by the step's watcher and its admissions; the step
+  settles only once it is answered, so its `extend` is the step's.
 - Projection is pure (`provider.project({ messages, tools, configuration, capabilities })`); appending keeps the
   projected prefix byte-stable so provider caches hold (see [models.md](models.md)).
 

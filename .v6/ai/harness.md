@@ -121,7 +121,9 @@ None: no steering, interrupts or withdrawal; each prompt is its own turn (§5).
   provider caches hold. Providers report the request's `prefix` so a trace can say where a cache broke.
 - A request is admitted only if its estimate plus the reserved output fits the window (else `capacity`).
 - **Budgets** are limits plus consumption per turn and per nested run, over calls, tokens by kind, `cost` (with an app
-  price) and `endBy`. Every ended attempt is charged once; estimates where usage is missing.
+  price) and `endBy`. Every ended attempt is charged once; estimates where usage is missing. Admission reserves what
+  it admits until the attempt is charged, so parallel calls cannot overshoot a limit; `endBy` passing is asked about
+  once per step, and the step settles only once that is answered.
 
 ## 12. Operations
 
