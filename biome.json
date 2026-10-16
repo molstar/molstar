@@ -21,7 +21,8 @@
       "!**/package-lock.json",
       "!**/npm-shrinkwrap.json",
       "!**/_generated/**",
-      "!packages/sequences/**/_test/**/*.json"
+      "!packages/sequences/**/_test/**/*.json",
+      "!packages/prism/viewer/src/_stories/**/fixtures/**"
     ]
   },
   "formatter": {
