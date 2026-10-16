@@ -36,8 +36,8 @@ the assistant): [../prism/TODO.md](../prism/TODO.md).
   ([\_spec/harness.md](_spec/harness.md) §18).
 - Some tests wait a fixed number of event-loop rounds (`settle()` of `@molstar/ai/testing`); waiting on what each case
   needs is the sturdier form ([\_spec/testing.md](_spec/testing.md), "Pitfalls").
-- The simplification's review gate (2026-10-16): CI on the pushed branch, a kept record surviving a reload checked in
-  the browser, and the owner's sign-off.
+- The simplification's review gate (2026-10-16; signed off by the owner the same day): CI on the pushed branch, and a
+  kept record surviving a reload checked in the browser.
 
 ## Considered and deferred
 
