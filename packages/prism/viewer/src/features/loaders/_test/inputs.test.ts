@@ -126,6 +126,9 @@ describe('the format, told', () => {
     expect(await pick('1abc.bcif', 'mmcif')).toEqual({ format: 'mmcif', binary: true });
     expect(await pick('download', 'mmcif', undefined, true)).toEqual({ format: 'mmcif', binary: true });
     expect(await pick('emd.map', 'ccp4', undefined, false)).toEqual({ format: 'ccp4', binary: false });
+    // A density server's cell at an address without an extension: BinaryCIF, as v5 read it.
+    expect(await pick('https://ds.example/em/emd-1234/cell', 'dscif')).toEqual({ format: 'dscif', binary: true });
+    expect(await pick('cell.cif', 'dscif')).toEqual({ format: 'dscif', binary: false });
   });
 
   it('fails invalid where it cannot tell, naming the formats', async () => {

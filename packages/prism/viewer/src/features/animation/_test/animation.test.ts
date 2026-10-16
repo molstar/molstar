@@ -102,7 +102,8 @@ describe('animation', () => {
   it('has one play command whose form lists the animations registered when it is shown', async () => {
     const v = await headlessViewer({ extensions: [AnimationFeature] });
     const play = v.managers.commands.get('animation.play')!;
-    const options = () => ((play.params!({}) as any).name.options as [string, string][]).map((o) => o[0]);
+    const options = () =>
+      ((play.params!({ empty: false }, {}) as any).name.options as [string, string][]).map((o) => o[0]);
     expect(options()).toEqual(expect.arrayContaining([short.spin, short.models]));
     // One registered later is in the form, with no command made for it.
     const later = {
@@ -112,7 +113,7 @@ describe('animation', () => {
     };
     v.plugin.managers.animation.register(later as never);
     expect(options()).toContain('animate-later');
-    expect(play.defaults!({})).toMatchObject({ name: expect.any(String) });
+    expect(play.defaults!({ empty: false })).toMatchObject({ name: expect.any(String) });
   });
 
   it('cannot play without a canvas', async () => {

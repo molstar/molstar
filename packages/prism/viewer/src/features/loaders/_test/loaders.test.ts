@@ -243,7 +243,7 @@ describe('load.entry', () => {
     serve({});
     const v = await viewer();
     expect(await v.api.load.entry!({ source: 'pdb', id: '' })).toMatchObject({ ok: false, code: 'invalid' });
-    expect(await v.api.load.entry!({ source: 'pdb', id: '1cbs', representation: 'nonsense' })).toMatchObject({
+    expect(await v.api.load.entry!({ source: 'pdb', id: '1cbs', preset: 'nonsense' })).toMatchObject({
       ok: false,
       code: 'not-found',
     });

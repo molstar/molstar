@@ -57,7 +57,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `history.undo-turn` | Undo the assistant's turn | view | turn, discardLater |
 | `load.action` | Run a loading action | network (asks); ui-only | action, params |
 | `load.data` | Load data | network (addresses) | url, data, file, format, binary, label, models, assembly |
-| `load.entry` | Load an entry | network (addresses); needs network | source, id, assembly, representation |
+| `load.entry` | Load an entry | network (addresses); needs network | source, id, assembly, preset |
 | `load.files` | Open files | needs files | files, visuals |
 | `load.mvs` | Load a MolViewSpec | destructive | url, data, file, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
 | `load.snapshot` | Load a session (as session.open) | destructive | url, data, file, id, type |

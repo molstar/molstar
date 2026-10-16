@@ -107,7 +107,8 @@ export async function chooseFormat(
     ? true
     : provider.stringExtensions?.includes(ext)
       ? false
-      : !!provider.binaryExtensions?.length && !provider.stringExtensions?.length;
+      : // A density server's cell is BinaryCIF unless asked otherwise (v5's default for `dscif`).
+        provider.name === 'dscif' || (!!provider.binaryExtensions?.length && !provider.stringExtensions?.length);
   return { provider, candidates: [], binary: binary ?? kind };
 }
 

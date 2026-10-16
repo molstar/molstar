@@ -82,7 +82,7 @@ export const EntryParams = {
       'The entry id: 1TQN, 8ZZC (pdb-ihm), Q8W3K0 (afdb, UniProt accession), EMD-1832 (emdb), ma-bak-cepc-0003; several for structures, separated by commas',
   }),
   assembly: PD.Text('', { description: 'Structures: the assembly id to build; empty: the default' }),
-  representation: PD.Text('', {
+  preset: PD.Text('', {
     description: "Structures: a representation preset by id or name; empty: the viewer's default (AFDB: pLDDT)",
   }),
 };
@@ -271,7 +271,8 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
     const loaded = ids.every((i) => entryLabels(source, i).some((l) => have.some((d) => d.label === l)));
     return loaded ? entriesLoaded(source, ids) : undefined;
   },
-  async run({ source, id, assembly, representation }, ctx) {
+  async run({ source, id, assembly, preset }, ctx) {
+    let representation = preset;
     let ids = idsOf(id, source);
     if (!ids.length) {
       return ApiResult.fail(

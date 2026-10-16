@@ -41,9 +41,9 @@ describe('absent values', () => {
     const v = await headlessViewer();
     const nav = v.managers.navigation;
     expect(nav.expanded.value).toBe(false);
-    await v.managers.commands.get('view.expand')!.run({}, undefined as never);
+    await v.managers.commands.get('view.expand')!.run({}, { empty: false }, new AbortController().signal);
     expect(nav.expanded.value).toBe(true);
-    await v.managers.commands.get('view.expand')!.run({}, undefined as never);
+    await v.managers.commands.get('view.expand')!.run({}, { empty: false }, new AbortController().signal);
     expect(nav.expanded.value).toBe(false);
     // The operation itself never toggles: on, and on again, is already so.
     expectOk(await v.api.view.expand({ on: true }));
