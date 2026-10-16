@@ -81,18 +81,19 @@ No `./*` wildcard: every deep import that exists today is one of the entries abo
 
 | Category                   | What                                                                                     | Lines removed (src / test)       | Lines moved or rewritten           | File            |
 | -------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------- | --------------- |
-| Rename only                | fibers → threads; `Fiber*` → `Thread*`, the `fiber` table and `fiber:` scope prefix      | 0                                | ~1,750 occurrences in ~30 files    | threads.md      |
-| Collapse                   | ten packages into folders of one; one `package.json`, tsconfig, Biome block, inventory entry | ~1,000 of plumbing (package.json, tsconfig, Biome) | all 37,171 lines move; 57 external import sites, ~300 internal import lines rewritten | packaging.md |
+| Rename only                | fibers → threads; `Fiber*` → `Thread*`, the `fiber` table and `fiber:` scope prefix      | 0                                | ~1,750 occurrences in ~40 files    | threads.md      |
+| Collapse                   | ten packages into folders of one; one `package.json`, tsconfig, Biome block, inventory entry | ~1,000 of plumbing (package.json, tsconfig, Biome) | all 37,171 lines move; 57 external import sites, 196 internal import lines (126 files) rewritten | packaging.md |
 | Replace                    | model adapters → providers: retained neutral payload, its decode and native projection go | ~1,700 / ~2,500 (inferred estimate) | ~900 new provider lines (inferred) | providers.md    |
 | Remove: IndexedDB          | the durable core, IndexedDB storage and rows, their tests and conformance run            | 557 / 210                        | the viewer's kept records (decision) | persistence.md |
-| Remove: durability (option B) | leases, launch keys, supervisor, schema version, spill cache: what only a durable store needs | ~1,200–1,800 / ~1,500 (inferred) | the session's takeover path | persistence.md §4 |
-| Simplify: conformance      | 219 harness cases → ~75; no second backend; no performance suite or storage meter        | ~6,000 of 8,914                  | the cases left become `harness/_test/` | conformance.md |
-| Dead or speculative        | narration, `runOnce`, session prices, `callTool`, fiber deltas, `./zod`, pre-label fallbacks | ~1,450 / ~1,350             | —                                  | dead-code.md    |
+| Remove: durability (option B) | leases, launch keys, supervisor, schema version, spill cache: what only a durable store needs | ~1,200–1,800 / ~600 beyond the conformance cut (inferred) | the session's takeover path | persistence.md §4 |
+| Simplify: conformance      | 219 harness cases → 70; no second backend; no performance suite or storage meter        | ~5,550 of 8,914 (to ~3,350)      | the cases left become `harness/_test/` | conformance.md |
+| Dead or speculative        | narration, `runOnce`, session prices, `callTool`, fiber deltas, `./zod`, pre-label fallbacks | ~1,600 / ~1,250             | —                                  | dead-code.md    |
 | Duplicates                 | markers, token estimates, prices, canonical JSON, two storage ports, three model-limit sources | ~150 (and two concepts fewer) | —                                | duplicates.md   |
 
-Totals, if every recommendation is taken but option B is not: about **11,000 of 37,000 lines go** (source and tests),
-the package count goes from ten to one, and the AI tests' share of CI goes from about 52 s to an estimated 10 s
-(conformance.md §1). With option B, roughly 3,000 more.
+Totals, if every recommendation is taken but option B is not, counting each line once: about **14,000 of 38,400
+lines go** (source, tests and package plumbing; ~37%), the package count goes from ten to one, and the AI tests' serial
+tail in CI goes from about 52 s to an estimated 15 s (conformance.md §4), or to almost nothing if they can leave the
+serial Vitest project. With option B, roughly 2,000 more.
 
 ## Top findings
 
