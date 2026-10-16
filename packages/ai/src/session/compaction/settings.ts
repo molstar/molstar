@@ -7,7 +7,7 @@
  */
 
 /**
- * Compaction (tools-and-session.md §6): one more model call on the context as it stands (read from the provider's
+ * Compaction (session.md §4): one more model call on the context as it stands (read from the provider's
  * cache) plus an instruction gives the context to carry over; the new head is [system, tools kept, carried-over
  * context, retained skills' guidance, recent turns, the current turn]. The person's wishes are carried as quotes
  * checked against their own words. When the call fails or its answer does not parse, a mechanical digest is carried

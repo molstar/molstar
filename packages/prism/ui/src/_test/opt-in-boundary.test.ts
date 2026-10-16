@@ -12,7 +12,7 @@ import * as path from 'node:path';
 
 // The opt-in modules are their own packages, which an app gets only by depending on them: the assistant
 // (`@molstar/prism-assistant`, design/agent.md §6), the modes, viewer and story (`@molstar/prism-viewer`,
-// `@molstar/prism-stories`, design/modes.md), and the agent harness (`@molstar/ai`, .v6/ai). prism-ui
+// `@molstar/prism-stories`, design/modes.md), and the agent harness (`@molstar/ai`, packages/ai/_spec). prism-ui
 // knows them only through its ports (tabs, modes, the command menu's assistant, the canvas's agent slot), so neither
 // its manifest nor any of its files (stories and tests included) may name them.
 const root = path.resolve(import.meta.dirname, '../..');

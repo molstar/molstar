@@ -101,7 +101,7 @@
                 "patterns": [
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -127,7 +127,7 @@
                       "@molstar/*/**",
                       "!@molstar/core/data/util/hash-functions"
                     ],
-                    "message": "The AI package imports nothing of Mol* or Prism but core's one hash file (.v6/ai/simplification/harness.md \u00a77): Prism hosts it, not the other way round."
+                    "message": "The AI package imports nothing of Mol* or Prism but core's one hash file (packages/ai/_spec/README.md, Decisions): Prism hosts it, not the other way round."
                   },
                   {
                     "group": ["rxjs", "rxjs/**"],
@@ -160,7 +160,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -218,7 +218,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -365,7 +365,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -418,7 +418,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -473,7 +473,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -530,7 +530,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -588,7 +588,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -645,7 +645,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the tools' and the providers' own (tools-and-session.md \u00a71): declare inputs as field shapes."
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
                   },
                   {
                     "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
@@ -690,7 +690,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -727,7 +727,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -768,7 +768,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -801,7 +801,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -833,7 +833,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }
@@ -868,7 +868,7 @@
                   },
                   {
                     "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
                   }
                 ]
               }

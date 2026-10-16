@@ -24,7 +24,7 @@ import {
 
 const outcomes = (r: { tools: { name: string; status: string }[] }) => r.tools.map((t) => `${t.name}:${t.status}`);
 
-describe('a tool call that fails transiently (tools-and-session.md §5)', () => {
+describe('a tool call that fails transiently (session.md §3)', () => {
   it('is retried when the attempt changed nothing; the model sees nothing of it', async () => {
     const f = fixture([{ calls: [callOf('fetch_read')] }, { text: 'Done.' }]);
     f.api.flaky.failures = 2;
@@ -229,7 +229,7 @@ describe('the repair decision for each reason', () => {
   });
 });
 
-describe('the budget (tools-and-session.md §5)', () => {
+describe('the budget (session.md §3)', () => {
   const ZERO = { modelCalls: 0, toolCalls: 0, uncachedInput: 0, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0 };
   /** The budget decision when `toolCalls` is short by one call. */
   const short = (limit: number, consumed: number): Decisions['budget'][0] => ({

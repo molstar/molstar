@@ -30,7 +30,7 @@ const bump = tool({
   },
 });
 
-describe('repeated reads (tools-and-session.md §1)', () => {
+describe('repeated reads (tools.md §4)', () => {
   it('the same read with the same arguments while the version is unchanged answers in one line', async () => {
     const api = toy();
     const repeats = new RepeatedReads({ version: () => api.state.version });

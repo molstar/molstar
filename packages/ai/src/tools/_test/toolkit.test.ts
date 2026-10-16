@@ -77,7 +77,7 @@ async function disclose(name: string, args: unknown, held: { loaded?: string[]; 
   return call(t, api, args as never);
 }
 
-describe('a toolkit: one place for each tool (tools-and-session.md §3)', () => {
+describe('a toolkit: one place for each tool (tools.md §5)', () => {
   it('places the core, the groups’ tools and extras, an entry’s tools and every other tool singly', () => {
     expect(kit.placementOf('get_state')).toEqual({ kind: 'core' });
     expect(kit.placementOf('disclose_skills')).toEqual({ kind: 'core' });

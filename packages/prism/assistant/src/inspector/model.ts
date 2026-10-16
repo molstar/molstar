@@ -19,7 +19,7 @@ import type {
 import { keyedSelector, observableState, type ReadonlyState } from '@molstar/prism-ui';
 import { combineLatest, debounceTime, distinctUntilChanged, map, merge, type Observable, skip, take } from 'rxjs';
 
-/** The Inspector's three views (analysis/viewer-mode.md §5). */
+/** The Inspector's three views (packages/ai/_spec/trace.md § The Inspector). */
 export type InspectorView = 'trace' | 'tools' | 'limits';
 
 /** The overview strip's scale: every step the same width, or widths that follow how long each took. */

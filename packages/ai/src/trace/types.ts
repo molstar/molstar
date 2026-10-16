@@ -9,7 +9,7 @@
 import type { JsonObject, ModelFinish } from '../messages/index.js';
 
 /**
- * What the Inspector shows (analysis/viewer-mode.md §5), prepared from the harness records (harness.md §3, §13): plain
+ * What the Inspector shows (trace.md), prepared from the harness records (harness.md §3, §13): plain
  * data, no functions, so a view can be built on mock data and a host can keep it in a store. Times are milliseconds
  * from the session's first step event; tokens are the model's own counts (estimates where marked).
  */

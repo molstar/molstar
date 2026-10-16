@@ -9,9 +9,10 @@
 import type { ReasoningParameters } from '../messages/index.js';
 
 /**
- * The model catalog (plan.md §2.5): what the providers' own models are, as data, with no dependencies, so a host's
- * model list reads it without loading a provider. The providers take their limits and quirks from it; a host takes the
- * labels, the reasoning default and the prices. Endpoints of the host's own (a gateway, a plan) are the host's.
+ * The model catalog (models.md § The model catalog): what the providers' own models are, as data, with no
+ * dependencies, so a host's model list reads it without loading a provider. The providers take their limits and quirks
+ * from it; a host takes the labels, the reasoning default and the prices. Endpoints of the host's own (a gateway, a
+ * plan) are the host's.
  */
 
 export interface ModelLimits {

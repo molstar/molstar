@@ -11,7 +11,7 @@ import { z } from 'zod';
 import type { ArgsOf, FieldShape, ObjectShape } from './shape.js';
 
 /**
- * A tool's input as `tools/` holds it (tools-and-session.md §1): the shape its arguments are normalized against, the
+ * A tool's input as `tools/` holds it (tools.md §2): the shape its arguments are normalized against, the
  * JSON Schema the model sees, and the check. Made once, from a field shape (`shapeInput`); zod is this package's own
  * business, so no type of this interface names it.
  */
@@ -158,7 +158,7 @@ export function zodBacked<A>(shape: ObjectShape, schema: z.ZodObject): ToolInput
   };
 }
 
-/** An input from a field shape (tools-and-session.md §2), validated and described through zod. */
+/** An input from a field shape (tools.md §2), validated and described through zod. */
 export function shapeInput<const S extends ObjectShape>(shape: S): ToolInput<ArgsOf<S>> {
   return zodBacked<ArgsOf<S>>(shape, objectSchema(shape));
 }

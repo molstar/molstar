@@ -106,7 +106,7 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   guidance: string;
   clock?: Clock;
   /**
-   * Compaction (tools-and-session.md §6): sizes to override, or false for none. Default: from each turn's model's
+   * Compaction (session.md §4): sizes to override, or false for none. Default: from each turn's model's
    * context window (`compactionFor`: at 80% of it).
    */
   compaction?: Partial<CompactionSettings> | false;
@@ -142,7 +142,7 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
 const COMPOSING = 'composing';
 
 /**
- * One conversation over one in-memory harness (tools-and-session.md §4): each prompt is a turn of the harness, run
+ * One conversation over one in-memory harness (session.md §1–§2): each prompt is a turn of the harness, run
  * under this session's drive. One turn at a time; stop() cancels the running (or parked) turn.
  */
 export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = ModelChoice> {

@@ -23,7 +23,7 @@ import {
 import { fingerprint, LABEL_DEFINITIONS } from '../tools/index.js';
 
 /**
- * The messages of a turn (tools-and-session.md §4): the first turn sends the guidance, then the tool definitions
+ * The messages of a turn (session.md §2): the first turn sends the guidance, then the tool definitions
  * (the core loaded, the rest declared), then the request; later turns send what changed since (new or changed
  * definitions, changed guidance as a user message), then the request.
  */

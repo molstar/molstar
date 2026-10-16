@@ -60,9 +60,9 @@ interface ProviderBindings { resolve(target: ModelTarget): Promise<Provider> }
 
 ## The providers (`src/providers/`)
 
-A thin layer over the Vercel AI SDK (`ai`, `@ai-sdk/*`; [.v6/ai/README.md](../../../.v6/ai/README.md) decision 7). Three
-factories, each its own entry so a host imports only the SDKs it uses
-(`@molstar/ai/providers/{anthropic,openai,google}`; all three from `@molstar/ai/providers`):
+A thin layer over the Vercel AI SDK (`ai`, `@ai-sdk/*`; § Decisions). Three factories, each its own entry so a host
+imports only the SDKs it uses (`@molstar/ai/providers/{anthropic,openai,google}`; all three from
+`@molstar/ai/providers`):
 
 | Factory                   | Options (besides `resolveApiKey: () => string \| Promise<string>`, `fetch?`, `tokenEstimate?`, `modelLimits?`)            |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -147,6 +147,17 @@ A host makes one provider per provider id it has a key for and gives the session
 const providers: Record<string, Provider | undefined> = { anthropic: createAnthropicProvider({ resolveApiKey: () => keys.anthropic }) };
 new AgentSession({ models: { providerFor: (id) => providers[id], default: { provider: 'anthropic', model: 'claude-sonnet-5-5' } }, … });
 ```
+
+## Decisions
+
+- **Providers are a thin layer over the AI SDK**: the SDK does the wire formats; ours is projection, replay and error
+  mapping, each provider its own lazy entry so a bundle loads one SDK.
+- **A request is projected once**, to `streamText`'s arguments as JSON, which is digested and sent as it is: what is
+  recorded is what was sent.
+- **Replay identity is the provider id, never a URL**: one dialect serves any compatible endpoint under that endpoint's
+  id.
+- **Native mid-conversation tool additions stay** for the catalog's `appendsTools` models: the prefix stays cacheable as
+  tools are disclosed.
 
 ## Tests
 

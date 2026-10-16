@@ -2,8 +2,8 @@
 
 One conversation over one harness, with the policies an app would otherwise write: composition of requests, the drive,
 budgets, compaction, approvals, resume. This is what a host uses; it wires everything in
-[README.md § How it binds](README.md#how-it-binds-one-turn-end-to-end). Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §4–6.
+[README.md § How it binds](README.md#how-it-binds-one-turn-end-to-end). Code comments cite the numbered sections
+(`session.md §3`).
 
 ## Files (`src/session/`)
 
@@ -16,7 +16,7 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 | `state.ts`    | `TurnState`: what the session keeps of the running turn (made afresh per turn and per resume; a resume keeps the events shown and seeds the parked step's calls) |
 | `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)                                                         |
 
-## Making one
+## 1. Making one
 
 ```ts
 const session = new AgentSession<MyApi>({
@@ -40,7 +40,7 @@ The harness (made on first use) is `createHarness({ models, tools, drive, clock,
 wrapped to observe calls, and `createDrive(...)`; the session subscribes to its observations. It lives in memory, as
 long as the session (a reload ends the conversation).
 
-## Turns
+## 2. Turns
 
 - `turn(request, hooks)` → `Promise<TurnResult>`; one at a time (a second throws). `TurnRequest`: `prompt`, `state?`,
   `focus?`, `notes?`, `preamble?`, `attachments?` (`Reference`s with their bytes), `model?` (a `ModelChoice`
@@ -75,7 +75,7 @@ long as the session (a reload ends the conversation).
   the log; a parked turn ends reset), `dispose()` (a turn still running or parked ends stopped), `client()` (the
   harness's `HarnessReader`, for a trace and the Inspector), `isFresh()`, `contextWindow()`, `budget(choice?)`.
 
-## The drive (`createDrive`, `drive.ts`)
+## 3. The drive (`createDrive`, `drive.ts`)
 
 `drive(hostOverrides, drive(sessionPolicies, defaultDrive()))`: a host handler answering `'pass'` leaves the decision to
 the session's.
@@ -95,7 +95,7 @@ the session's.
 trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached input max(500k, 4×trigger) → max(2M,
 20×trigger), cache reads max(5M, 40×trigger) → max(25M, 200×trigger), output 200k → 1M.
 
-## Compaction (`src/session/compaction/`, also from the root entry)
+## 4. Compaction (`src/session/compaction/`, also from the root entry)
 
 - **When**: `trigger` (mid-turn at `boundary`, the request reaching `triggerInputTokens`), `soft` (a turn's start, from
   `softShare` of the trigger), `force` (a `capacity` failure: a mechanical digest, no model call). Not again until the
@@ -111,6 +111,15 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
 - **What it keeps is the host's**: `CompactionDomain` (`isRequest`, `requestText?`, `coreToolIds`, `groups`, `groupsIn`,
   `groupEntry`, `memory?`, `pins?`, `wishSources?`, `evicted?()`: the tools the toolkit no longer has, an eviction
   hint); the session builds it from the toolkit (`toolkitDomain`) and merges `compactionDomain`.
+
+## Decisions
+
+- **Every policy is a default over `defaultDrive`**, replaceable per decision (`drive` option), so a host writes only
+  what differs.
+- **The session knows no models**: limits come from the provider's `capabilities()`, thinking and prices from the host,
+  so a new model needs no change here.
+- **The person-facing history is the host's** (a thread, [threads.md](threads.md)): the journal is what the model sees,
+  and compaction rewrites it.
 
 ## Gotchas
 

@@ -14,8 +14,7 @@ calls a real model costs money; ask before running it.
 
 The 59 essential cases run on the in-memory harness (`createHarness`), as plain test files in `src/harness/_test/` (one
 per row below, `helpers.ts` beside them). They are the harness's contract: a change to a contract (a record, an
-operation, a decision, an ending) comes with a case here. Which cases were kept, and why:
-`.v6/ai/simplification/conformance.md`.
+operation, a decision, an ending) comes with a case here.
 
 | File (`src/harness/_test/`) | Ids | Cases | What                                                                                                                                                           |
 | --------------------------- | --- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -73,7 +72,7 @@ unless `wait: false`), `run(handle)`, `resume()`, `events()`, `main()`, `turns()
 
 - Hashing is synchronous (core's MurmurHash3); on a simulated clock, wait for a condition (`until` in
   `harness/_test/helpers.ts`, `settle()`) or `runUntil`, not a fixed number of ticks.
-- Some cases still wait a fixed number of event-loop rounds and retry under load (`.v6/ai/plan.md`, "The suite waits on
-  conditions"); prefer waiting on the condition in new cases.
+- Some cases still wait a fixed number of event-loop rounds (`settle()`; [../TODO.md](../TODO.md)); prefer waiting on
+  the condition in new cases.
 - Tests inside the package import by relative path (`../../testing/index.js`); other packages by name
   (`@molstar/ai/testing`), which Vitest resolves to sources through the `molstar-src` condition.

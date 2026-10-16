@@ -9,8 +9,8 @@
 import type { TokensView } from './types.js';
 
 /**
- * How the Inspector, the Assistant's card and the History say numbers (analysis/viewer-mode.md §5: one usage
- * formatter, where Stories has three copies).
+ * How the Inspector, the Assistant's card and the History say numbers (trace.md § The Inspector: one usage
+ * formatter).
  */
 
 /** A count of tokens: `812`, `3.2k`, `41k`, `1.5M`. */

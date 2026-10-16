@@ -8,7 +8,7 @@
 
 /**
  * Reading audio as providers send it, and writing the one container with no dependency (WAV). Nothing here encodes
- * MP3: a provider's MP3 is kept as it arrives, and only its length is read (.v6/ai/plan.md).
+ * MP3: a provider's MP3 is kept as it arrives, and only its length is read (narration.md).
  */
 
 /**

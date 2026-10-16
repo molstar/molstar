@@ -124,7 +124,7 @@ const toolText = async (s: Session) => {
   return out;
 };
 
-describe('whole turns over the harness (tools-and-session.md §1, §3)', () => {
+describe('whole turns over the harness (tools.md §1, §5)', () => {
   it('a skill is disclosed, its tool then called, and the host’s write hook ran only for what changed', async () => {
     const api = toy();
     const saved: string[] = [];

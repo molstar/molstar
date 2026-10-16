@@ -9,7 +9,7 @@
 import type { Json } from '../messages/index.js';
 
 /**
- * A tool's input as a small neutral shape (tools-and-session.md §2): what a host declares without importing a
+ * A tool's input as a small neutral shape (tools.md §2): what a host declares without importing a
  * validator, what the arguments are normalized against, and what `tools/` makes its JSON Schema and check from.
  */
 export type FieldShape = (
@@ -76,7 +76,7 @@ const trimmed = (v: unknown) => (typeof v === 'string' ? v.trim() : v);
 const sameCase = (values: readonly string[], v: string) => values.find((x) => x.toLowerCase() === v.toLowerCase()) ?? v;
 
 /**
- * What small models send, made what the shape asks for, before it is checked (tools-and-session.md §2): an empty
+ * What small models send, made what the shape asks for, before it is checked (tools.md §2): an empty
  * string or null is absent; strings are trimmed (not verbatim ones); "3" is a number and "true" a boolean where one is
  * asked for, a number a string where a string is; a list of strings is one comma-joined text where one text is asked
  * for, and "A, B" a list where a list of non-objects is; an enum's value in another case is its value; objects (in a

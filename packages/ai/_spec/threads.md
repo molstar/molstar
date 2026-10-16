@@ -4,8 +4,7 @@ A thread is an owner-scoped, append-only list of entries with idempotent command
 streams byte-offset deltas and then settles or aborts. Reads are bounded windows by position and delta pages with gap
 detection. It is what the harness lacks for a person-facing history: the journal is what the model sees (compaction
 drops turns from it) and turns have no records with a prompt and a reply. Independent of the harness: it imports only
-`messages/` (`canonicalJson`, the `Clock` type) of the other folders and has its own storage port. Background:
-`.v6/ai/analysis/viewer-mode.md` §6.
+`messages/` (`canonicalJson`, the `Clock` type) of the other folders and has its own storage port.
 
 **Status**: built and conformance-tested. A building block an application composes: the Prism viewer's record is a
 thread (`packages/prism/viewer/src/journal/record.ts`): every change the viewer's API runs and every agent turn (begun
@@ -72,6 +71,14 @@ the page is the application's. The viewer's IndexedDB rows are such a store (`cr
 window and delta-page sizes, active streams (count, bytes, batches), heartbeat, inactivity and aborted-preview
 retention. `THREAD_LIMIT_HARD_BOUNDS` are the ceilings (e.g. entry 1 MB, 32 active streams, window 256 entries,
 inactivity 1 h); relations are checked (heartbeat < inactivity, batch ≤ entry, window ≥ 2 × entry …).
+
+## Decisions
+
+- **Apart from the harness**, with its own row-store port: the journal is what the model sees and compaction rewrites
+  it, so a person-facing history needs its own record.
+- **Memory rows here, durable rows the application's**: `@molstar/ai` stays platform-free (the viewer's IndexedDB rows
+  are in `@molstar/prism-viewer`).
+- **Streamed deltas kept**, though no record streams yet: a streaming record may need them.
 
 ## Gotchas
 

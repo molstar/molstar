@@ -1,11 +1,11 @@
 # AI
 
 The agent harness and what runs on it, the one package `@molstar/ai`. The repository's rules
-([../../AGENTS.md](../../AGENTS.md)) apply; these are the package's own. Architecture and decisions:
-[.v6/ai](../../.v6/ai/README.md) (`harness.md`, `tools-and-session.md`).
+([../../AGENTS.md](../../AGENTS.md)) apply; these are the package's own.
 
-- **The spec** is `_spec/` (start with [_spec/README.md](_spec/README.md): the folders, how a turn binds them, where to
-  start for a task). Read it before the code; a change that moves what it says updates it in the same commit.
+- **The spec** is `_spec/`: architecture and decisions (start with [_spec/README.md](_spec/README.md): the folders, how
+  a turn binds them, where to start for a task). Read it before the code; a change that moves what it says updates it in
+  the same commit. Code comments cite its numbered sections (`harness.md §6`, `tools.md §2`, `session.md §3`).
 - **What is missing** and what was deferred: [TODO.md](TODO.md) (an entry leaves when it is done).
 - `src/` has the folders `messages`, `harness` (its cases are `harness/_test/`), `providers`, `tools`, `session`,
   `trace`, `threads`, `testing` (the `createSession` fixture and test doubles) and `narration`. The entries are the

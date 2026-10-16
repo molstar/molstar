@@ -13,7 +13,7 @@ import { type CallIdentity, type Projection, registered, type ToolRegistration }
 import { failed, render, type ToolResult } from './result.js';
 import { normalize } from './shape.js';
 
-/** What a tool's `run` gets (tools-and-session.md §1). */
+/** What a tool's `run` gets (tools.md §1). */
 export interface RunInput<Api, K extends keyof Api, A, M = unknown> {
   /** Its arguments, normalized and checked, typed as the input says. */
   args: A;
@@ -31,7 +31,7 @@ export interface RunInput<Api, K extends keyof Api, A, M = unknown> {
 export interface ToolSpec<Api, K extends keyof Api, I extends InputSpec, M = unknown> {
   id: string;
   description: string;
-  /** A field shape (tools-and-session.md §2). */
+  /** A field shape (tools.md §2). */
   input: I;
   modules: readonly K[];
   /** Of its modules, those it does without where the host lacks them. */

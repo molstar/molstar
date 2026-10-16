@@ -22,7 +22,7 @@ export interface RowWrite<T extends string = string> {
 }
 
 /**
- * Where a scope's rows are kept between runs: the threads' storage port (analysis/viewer-mode.md §6). A scope is
+ * Where a scope's rows are kept between runs: the threads' storage port (threads.md § Storage). A scope is
  * one thread. The host keeps a loaded scope in memory and writes every command through as one write set, applied
  * only if the scope's generation is still the one it read.
  */

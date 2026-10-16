@@ -41,9 +41,9 @@ export const TurnStatusWords: Record<TurnStatus, string> = {
 };
 
 /**
- * The agent trace (analysis/viewer-mode.md §5): the whole session at a glance (the overview strip), the conversation as
- * rows (each turn's request, model calls and tool calls; nested runs indented), and the selected row in detail (for a
- * model call: exactly what it saw). j/k or the arrows move through the rows.
+ * The agent trace (packages/ai/_spec/trace.md § The Inspector): the whole session at a glance (the overview strip),
+ * the conversation as rows (each turn's request, model calls and tool calls; nested runs indented), and the selected
+ * row in detail (for a model call: exactly what it saw). j/k or the arrows move through the rows.
  */
 export function TraceView(props: { model: InspectorModel }) {
   const { model } = props;

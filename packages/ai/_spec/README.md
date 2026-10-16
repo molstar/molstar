@@ -3,9 +3,9 @@
 The agent stack, the one package `@molstar/ai` (`packages/ai/`): an agent loop in memory (the harness), what feeds it
 (providers, tools) and what a host drives it through (the session). Generic: nothing here imports Prism, React or rxjs,
 and of Mol\* only `@molstar/core`'s hash file (in `messages/`). This spec is for working on or with the code without
-reading all of it: what each folder is, how they bind, the contracts a host relies on, and where the code is. Why the
-design is so is in [.v6/ai](../../../.v6/ai/README.md) (its decisions, and the sections code comments cite:
-`harness.md §6`, `tools-and-session.md §5`). The code is the truth for how.
+reading all of it: what each folder is, how they bind, the contracts a host relies on, where the code is, and the
+decisions (each file's "Decisions": the rule, then why). Code comments cite numbered sections (`harness.md §6`,
+`tools.md §2`, `session.md §3`). The code is the truth for how.
 
 | File                         | What it covers                                                                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -95,6 +95,16 @@ allowed only in `tools/` and `providers/` (and restricted everywhere outside `pa
   history composes it from the hooks and `TurnResult` (Prism's record is a thread, [threads.md](threads.md)).
 - **Reads are async and level-triggered**: re-read on `client().watch()`; a missed emission loses nothing.
 
+## Decisions
+
+- **Generic and platform-free**: nothing imports Prism, React or rxjs, nor Mol\* but `@molstar/core`'s one hash file
+  (`messages/hash.ts`); no storage, no `node:*`. It runs in browsers and Node alike, and Prism hosts it, not the other
+  way round.
+- **One package, folder rules**: one `@molstar/ai` with explicit entries; the layering is Biome's per folder, so a
+  failing import means "not here", not "loosen the rule".
+- **Opt-in**: nothing in Mol\* or prism-ui imports it; only an app with the assistant pays for it.
+- **Lazy where heavy**: each provider (an AI SDK, zod) and Mediabunny is its own entry, so a startup bundle pulls none.
+
 ## Where to start, by task
 
 | Task                              | Read                                                                                     |
@@ -114,12 +124,13 @@ allowed only in `tools/` and `providers/` (and restricted everywhere outside `pa
   in `journal/`; `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector
   over `@molstar/ai/trace`). Narration has no consumer yet.
 - Not built: persistence of a conversation, more than one active turn, evals. What is missing and what was deferred:
-  [../TODO.md](../TODO.md); the order: [.v6/ai/plan.md](../../../.v6/ai/plan.md).
+  [../TODO.md](../TODO.md).
 
 ## Rules for changes here
 
 - A change to a harness contract comes with a case in `src/harness/_test/` ([testing.md](testing.md)).
-- One home per concern ([.v6/ai/harness.md](../../../.v6/ai/harness.md) §1): if a change moves what a model sees out of
-  the journal, evidence out of the event log, or a choice out of the drive, it is the wrong change.
+- One home per concern ([harness.md](harness.md) §1): if a change moves what a model sees out of the journal, evidence
+  out of the event log, or a choice out of the drive, it is the wrong change.
 - Tests never call a real model; anything that does costs money, so ask before running it.
-- Keep this spec true: a change that moves what a file here says updates it in the same commit, as for `.v6`.
+- Keep this spec true: a change that moves what a file here says updates it in the same commit; a citation names a
+  section that exists.

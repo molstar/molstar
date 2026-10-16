@@ -44,7 +44,7 @@ const rename = tool({
   },
 });
 
-describe('tools over field shapes (tools-and-session.md §1)', () => {
+describe('tools over field shapes (tools.md §1)', () => {
   it('normalizes what small models send before checking it', async () => {
     const api = toy();
     const r = await call(rename, api, {

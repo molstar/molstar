@@ -27,7 +27,7 @@ const entries: ToolEntry[] = [
   { definition: def('web_get'), placement: { kind: 'single' }, unavailable: 'The host has no web access.' },
 ];
 
-describe('toolsView (analysis/viewer-mode.md §5)', () => {
+describe('toolsView (trace.md § The other tabs)', () => {
   it('groups tools as the model is offered them: core, each skill, loaded by name', () => {
     const view = toolsView({
       tools: entries,

@@ -29,7 +29,7 @@ export interface CompactionOptions {
 }
 
 /**
- * Whether the context needs condensing now, and the new head if so (tools-and-session.md §6): one nested model call
+ * Whether the context needs condensing now, and the new head if so (session.md §4): one nested model call
  * on the context as it stands asks what to carry over; the plan builds the new head from its answer (or from a
  * digest, when the call fails or the context cannot be sent any more). Above its target the plan is accepted all the
  * same, with a size note for the next one.

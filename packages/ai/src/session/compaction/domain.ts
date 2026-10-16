@@ -11,7 +11,7 @@ import type { DisclosableEntry, ToolGroup, Toolkit } from '../../tools/index.js'
 import { LABEL_REQUEST } from '../compose.js';
 
 /**
- * What compaction keeps is the host's (tools-and-session.md §6): what a request is, the core tools, the groups
+ * What compaction keeps is the host's (session.md §4): what a request is, the core tools, the groups
  * (skills) with their guidance, the memory, the pins. A session builds the domain from its toolkit and the request
  * label; the host adds the rest.
  */
