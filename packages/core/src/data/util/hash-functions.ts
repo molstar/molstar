@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -308,7 +308,7 @@ function hashFnv256aToHex(hash: Uint32Array): string {
 }
 
 /**
- * 32-bit Murmur hash
+ * 32-bit Murmur hash of `JSON.stringify(obj)` (its UTF-8 bytes)
  */
 export function hashMurmur32o(obj: any, seed: number = 42): number {
   const jsonString = JSON.stringify(obj);
@@ -316,30 +316,55 @@ export function hashMurmur32o(obj: any, seed: number = 42): number {
 }
 
 /**
- * 128-bit Murmur hash
+ * 128-bit Murmur hash of `JSON.stringify(obj)` (its UTF-8 bytes)
  */
 export function hashMurmur128o(obj: any, seed: number = 42): string {
   const jsonString = JSON.stringify(obj);
   return murmurHash3_128(jsonString, seed);
 }
 
+const utf8 = new TextEncoder();
+/** Reused for the UTF-8 bytes of strings, so hashing a string allocates nothing once it is large enough. */
+let utf8Scratch = new Uint8Array(1024);
+
+/** Encodes `key` as UTF-8 into the scratch buffer; returns the number of bytes written. */
+function encodeUtf8(key: string): number {
+  // A UTF-16 code unit takes at most 3 UTF-8 bytes (a surrogate pair, 2 units, takes 4).
+  if (utf8Scratch.length < 3 * key.length) {
+    utf8Scratch = new Uint8Array(Math.max(3 * key.length, 2 * utf8Scratch.length));
+  }
+  return utf8.encodeInto(key, utf8Scratch).written;
+}
+
 /**
- * MurmurHash3 32-bit implementation
+ * MurmurHash3_x86_32 of the UTF-8 bytes of a string
  * @param key - The input string to hash
- * @param seed - The seed value (default: 0)
+ * @param seed - The seed value
  * @returns The 32-bit hash as a number
  */
 export function murmurHash3_32(key: string, seed: number): number {
+  const length = encodeUtf8(key); // may replace the scratch buffer: read it after
+  return murmur32(utf8Scratch, length, seed);
+}
+
+/**
+ * MurmurHash3_x86_32 of bytes
+ * @param key - The input data to hash
+ * @param seed - The seed value
+ * @returns The 32-bit hash as a number
+ */
+export function murmurHash3_32_fromBytes(key: Uint8Array, seed: number): number {
+  return murmur32(key, key.length, seed);
+}
+
+/** MurmurHash3_x86_32 of the first `length` bytes of `key`. */
+function murmur32(key: Uint8Array, length: number, seed: number): number {
   let h = seed >>> 0;
-  const remainder = key.length % 4;
-  const bytes = key.length - remainder;
+  const remainder = length % 4;
+  const bytes = length - remainder;
 
   for (let i = 0; i < bytes; i += 4) {
-    let k =
-      (key.charCodeAt(i) & 0xff) |
-      ((key.charCodeAt(i + 1) & 0xff) << 8) |
-      ((key.charCodeAt(i + 2) & 0xff) << 16) |
-      ((key.charCodeAt(i + 3) & 0xff) << 24);
+    let k = key[i] | (key[i + 1] << 8) | (key[i + 2] << 16) | (key[i + 3] << 24);
 
     k = Math.imul(k, 0xcc9e2d51);
     k = (k << 15) | (k >>> 17);
@@ -353,18 +378,18 @@ export function murmurHash3_32(key: string, seed: number): number {
   let k = 0;
   switch (remainder) {
     case 3:
-      k ^= (key.charCodeAt(bytes + 2) & 0xff) << 16;
+      k ^= key[bytes + 2] << 16;
     case 2:
-      k ^= (key.charCodeAt(bytes + 1) & 0xff) << 8;
+      k ^= key[bytes + 1] << 8;
     case 1:
-      k ^= key.charCodeAt(bytes) & 0xff;
+      k ^= key[bytes];
       k = Math.imul(k, 0xcc9e2d51);
       k = (k << 15) | (k >>> 17);
       k = Math.imul(k, 0x1b873593);
       h ^= k;
   }
 
-  h ^= key.length;
+  h ^= length;
   h ^= h >>> 16;
   h = Math.imul(h, 0x85ebca6b);
   h ^= h >>> 13;
@@ -375,61 +400,41 @@ export function murmurHash3_32(key: string, seed: number): number {
 }
 
 /**
- * MurmurHash3 128-bit implementation
+ * MurmurHash3_x86_128 of bytes
  * @param key - The input data to hash
- * @param seed - The seed value (default: 0)
- * @returns The 128-bit hash as a hexadecimal string
+ * @param seed - The seed value
+ * @returns The 128-bit hash as a hexadecimal string (h1 to h4, each as 8 hex digits)
  */
 export function murmurHash3_128_fromBytes(key: Uint8Array, seed: number): string {
-  // This fakeString approach is much faster than `new TextDecoder('ascii').decode(key)`
-  const fakeString = {
-    length: key.length,
-    charCodeAt(i: number) {
-      return key[i];
-    },
-  };
-  return murmurHash3_128(fakeString as string, seed);
+  return murmur128(key, key.length, seed);
 }
 
 /**
- * MurmurHash3 128-bit implementation
+ * MurmurHash3_x86_128 of the UTF-8 bytes of a string
  * @param key - The input string to hash
- * @param seed - The seed value (default: 0)
- * @returns The 128-bit hash as a hexadecimal string
+ * @param seed - The seed value
+ * @returns The 128-bit hash as a hexadecimal string (h1 to h4, each as 8 hex digits)
  */
 export function murmurHash3_128(key: string, seed: number): string {
+  const length = encodeUtf8(key); // may replace the scratch buffer: read it after
+  return murmur128(utf8Scratch, length, seed);
+}
+
+/** MurmurHash3_x86_128 of the first `length` bytes of `key`. */
+function murmur128(key: Uint8Array, length: number, seed: number): string {
   let h1 = seed >>> 0;
   let h2 = seed >>> 0;
   let h3 = seed >>> 0;
   let h4 = seed >>> 0;
 
-  const remainder = key.length % 16;
-  const bytes = key.length - remainder;
+  const remainder = length % 16;
+  const bytes = length - remainder;
 
   for (let i = 0; i < bytes; i += 16) {
-    let k1 =
-      (key.charCodeAt(i) & 0xff) |
-      ((key.charCodeAt(i + 1) & 0xff) << 8) |
-      ((key.charCodeAt(i + 2) & 0xff) << 16) |
-      ((key.charCodeAt(i + 3) & 0xff) << 24);
-
-    let k2 =
-      (key.charCodeAt(i + 4) & 0xff) |
-      ((key.charCodeAt(i + 5) & 0xff) << 8) |
-      ((key.charCodeAt(i + 6) & 0xff) << 16) |
-      ((key.charCodeAt(i + 7) & 0xff) << 24);
-
-    let k3 =
-      (key.charCodeAt(i + 8) & 0xff) |
-      ((key.charCodeAt(i + 9) & 0xff) << 8) |
-      ((key.charCodeAt(i + 10) & 0xff) << 16) |
-      ((key.charCodeAt(i + 11) & 0xff) << 24);
-
-    let k4 =
-      (key.charCodeAt(i + 12) & 0xff) |
-      ((key.charCodeAt(i + 13) & 0xff) << 8) |
-      ((key.charCodeAt(i + 14) & 0xff) << 16) |
-      ((key.charCodeAt(i + 15) & 0xff) << 24);
+    let k1 = key[i] | (key[i + 1] << 8) | (key[i + 2] << 16) | (key[i + 3] << 24);
+    let k2 = key[i + 4] | (key[i + 5] << 8) | (key[i + 6] << 16) | (key[i + 7] << 24);
+    let k3 = key[i + 8] | (key[i + 9] << 8) | (key[i + 10] << 16) | (key[i + 11] << 24);
+    let k4 = key[i + 12] | (key[i + 13] << 8) | (key[i + 14] << 16) | (key[i + 15] << 24);
 
     k1 = Math.imul(k1, 0x239b961b);
     k1 = (k1 << 15) | (k1 >>> 17);
@@ -459,7 +464,7 @@ export function murmurHash3_128(key: string, seed: number): string {
     h3 = Math.imul(h3, 5) + 0x96cd1c35;
 
     k4 = Math.imul(k4, 0xa1e38b93);
-    k4 = (k4 << 13) | (k4 >>> 19);
+    k4 = (k4 << 18) | (k4 >>> 14);
     k4 = Math.imul(k4, 0x239b961b);
     h4 ^= k4;
 
@@ -475,60 +480,60 @@ export function murmurHash3_128(key: string, seed: number): string {
 
   switch (remainder) {
     case 15:
-      k4 ^= key.charCodeAt(bytes + 14) << 16;
+      k4 ^= key[bytes + 14] << 16;
     case 14:
-      k4 ^= key.charCodeAt(bytes + 13) << 8;
+      k4 ^= key[bytes + 13] << 8;
     case 13:
-      k4 ^= key.charCodeAt(bytes + 12);
+      k4 ^= key[bytes + 12];
       k4 = Math.imul(k4, 0xa1e38b93);
-      k4 = (k4 << 13) | (k4 >>> 19);
+      k4 = (k4 << 18) | (k4 >>> 14);
       k4 = Math.imul(k4, 0x239b961b);
       h4 ^= k4;
 
     case 12:
-      k3 ^= key.charCodeAt(bytes + 11) << 24;
+      k3 ^= key[bytes + 11] << 24;
     case 11:
-      k3 ^= key.charCodeAt(bytes + 10) << 16;
+      k3 ^= key[bytes + 10] << 16;
     case 10:
-      k3 ^= key.charCodeAt(bytes + 9) << 8;
+      k3 ^= key[bytes + 9] << 8;
     case 9:
-      k3 ^= key.charCodeAt(bytes + 8);
+      k3 ^= key[bytes + 8];
       k3 = Math.imul(k3, 0x38b34ae5);
       k3 = (k3 << 17) | (k3 >>> 15);
       k3 = Math.imul(k3, 0xa1e38b93);
       h3 ^= k3;
 
     case 8:
-      k2 ^= key.charCodeAt(bytes + 7) << 24;
+      k2 ^= key[bytes + 7] << 24;
     case 7:
-      k2 ^= key.charCodeAt(bytes + 6) << 16;
+      k2 ^= key[bytes + 6] << 16;
     case 6:
-      k2 ^= key.charCodeAt(bytes + 5) << 8;
+      k2 ^= key[bytes + 5] << 8;
     case 5:
-      k2 ^= key.charCodeAt(bytes + 4);
+      k2 ^= key[bytes + 4];
       k2 = Math.imul(k2, 0xab0e9789);
       k2 = (k2 << 16) | (k2 >>> 16);
       k2 = Math.imul(k2, 0x38b34ae5);
       h2 ^= k2;
 
     case 4:
-      k1 ^= key.charCodeAt(bytes + 3) << 24;
+      k1 ^= key[bytes + 3] << 24;
     case 3:
-      k1 ^= key.charCodeAt(bytes + 2) << 16;
+      k1 ^= key[bytes + 2] << 16;
     case 2:
-      k1 ^= key.charCodeAt(bytes + 1) << 8;
+      k1 ^= key[bytes + 1] << 8;
     case 1:
-      k1 ^= key.charCodeAt(bytes);
+      k1 ^= key[bytes];
       k1 = Math.imul(k1, 0x239b961b);
       k1 = (k1 << 15) | (k1 >>> 17);
       k1 = Math.imul(k1, 0xab0e9789);
       h1 ^= k1;
   }
 
-  h1 ^= key.length;
-  h2 ^= key.length;
-  h3 ^= key.length;
-  h4 ^= key.length;
+  h1 ^= length;
+  h2 ^= length;
+  h3 ^= length;
+  h4 ^= length;
 
   h1 += h2;
   h1 += h3;
