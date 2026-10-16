@@ -61,8 +61,8 @@ const PrismViewerOptions = {                                   // PD params; a v
 
 `homeWhenEmpty` (off by default) opens Home at start while nothing is loaded; the app turns it on when its URL loads
 nothing, a page that drives the viewer itself leaves it off. `splash` (on by default) is the empty canvas's splash:
-light through Prism's mark (`PrismSplash`, prism-ui), fading in under the wordmark once the viewer has been idle on the
-empty canvas a while.
+light through the Mol\* star (`PrismSplash`, prism-ui), in with the wordmark once the viewer is idle on the empty
+canvas, answering the pointer.
 
 - **In code**: `packages/prism/viewer/src/options.ts`; `auto` (transparency, resolution, WebGL 1) leaves the plugin's
   own detection. Turned into config items and canvas props by `sources/compose-plugin.ts`.

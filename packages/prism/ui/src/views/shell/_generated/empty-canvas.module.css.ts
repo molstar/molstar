@@ -31,7 +31,7 @@ defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-empty-canvas-splash {
-  animation: msp-shell-empty-canvas-fade-in 2.4s var(--msp-ease) both;
+  animation: msp-shell-empty-canvas-fade-in 1.2s var(--msp-ease) both;
   position: absolute;
   inset: 0;
 }

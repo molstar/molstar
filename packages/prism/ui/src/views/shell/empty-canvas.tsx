@@ -31,8 +31,11 @@ import { type PrismFieldOptions, PrismSplash } from './prism-splash.js';
 const Delay = 700;
 /** How long it takes to fade out when something loads (faster than it came). */
 const FadeOut = 250;
-/** How long the mark has shown, the viewer idle, before the splash fades in under it. */
-const SplashDelay = 2500;
+/**
+ * How long the mark has shown, the viewer idle, before the splash fades in under it: none, so the stream's rush meets the
+ * mark's colors wiping in (the mark itself waits for the canvas to stay empty); a busy viewer delays it until idle.
+ */
+const SplashDelay = 0;
 
 type Phase = 'in' | 'out' | 'gone';
 
@@ -75,14 +78,22 @@ export function EmptyCanvas(props: {
   return (
     <Show when={phase.pipe(map((p) => p !== 'gone'))}>
       {() => {
-        const mark = (<MolstarWordmark scale={3} flash="reveal" live class={classes.mark} />) as Element;
+        // The word alone: with the splash, its star is the prism.
+        const mark = (
+          <MolstarWordmark scale={3} flash="reveal" live prism={!splash} class={classes.mark} />
+        ) as Element;
         return (
           <div class={classes.empty} data-phase={phase}>
             {splash ? (
               <Show when={idle}>
                 {() => (
                   <div class={classes.splash}>
-                    <PrismSplash mark={() => mark} options={splash === true ? {} : splash} />
+                    <PrismSplash
+                      mark={() => mark}
+                      // The viewport: the pointer over the canvas (which keeps it) moves the light too.
+                      pointer={() => mark.closest('[data-msp-viewport]') ?? mark.parentElement}
+                      options={splash === true ? {} : splash}
+                    />
                   </div>
                 )}
               </Show>

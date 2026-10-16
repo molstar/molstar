@@ -28,19 +28,24 @@ const PrismCore = 'M60 7.83 63.76 10 60 12.17Z';
 
 /** Drawn width with its margin (the viewBox runs from -1). */
 const Width = 72;
+/** Without Prism's mark: the Mol* wordmark alone, to the asterisk's last arm (54.5) and the margin. */
+const WordWidth = 57;
+/** The asterisk's middle: where the empty canvas's splash splits the light (`data-part="star"`). */
+const StarX = 48;
+const StarY = 10;
 
 let gradients = 0;
 
 /** The outline's shapes. */
-function Shapes() {
+function Shapes(props: { prism: boolean }) {
   return (
     <>
       <path d={M} />
       <rect x="19.5" y="6.5" width="11" height="13" rx="5" />
       <rect x="22.5" y="9.5" width="5" height="7" rx="2.5" />
       <path d={LStar} />
-      <path d={Prism} data-part="prism" />
-      <path d={PrismCore} class={classes.core} />
+      {props.prism ? <path d={Prism} data-part="prism" /> : null}
+      {props.prism ? <path d={PrismCore} class={classes.core} /> : null}
     </>
   );
 }
@@ -61,14 +66,18 @@ export function MolstarWordmark(props: {
    * centred on the cursor, moving with it, fading in on enter and back out on leave.
    */
   live?: boolean;
+  /** Prism's mark after the word (on by default); the empty canvas leaves it out (its splash makes the star the prism). */
+  prism?: boolean;
 }) {
   const id = `msp-wordmark-${++gradients}`;
   const scale = Math.max(1, Math.round(props.scale ?? 1));
+  const prism = props.prism ?? true;
+  const width = prism ? Width : WordWidth;
   const svg = (extra: { class: string; stroke: string; hidden?: boolean }) => (
     <svg
       class={extra.class}
-      viewBox={`-1 -1 ${Width} 22`}
-      width={Width * scale}
+      viewBox={`-1 -1 ${width} 22`}
+      width={width * scale}
       height={22 * scale}
       fill="none"
       stroke={extra.stroke}
@@ -78,7 +87,7 @@ export function MolstarWordmark(props: {
       {extra.hidden ? (
         <defs>
           {/* The logo's colors, left to right. */}
-          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={String(Width - 2)} y2="0">
+          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={String(width - 2)} y2="0">
             {/* The theme's brand colors (theme.css): lighter on dark backgrounds, from the nearest theme. */}
             <stop offset="0" style={{ 'stop-color': 'var(--msp-color-brand-1)' }} />
             <stop offset="0.35" style={{ 'stop-color': 'var(--msp-color-brand-2)' }} />
@@ -87,14 +96,18 @@ export function MolstarWordmark(props: {
           </linearGradient>
         </defs>
       ) : null}
-      <Shapes />
+      <Shapes prism={prism} />
+      {/* The star's middle, unpainted: what the splash measures. */}
+      {extra.hidden ? null : (
+        <rect data-part="star" x={StarX - 0.5} y={StarY - 0.5} width="1" height="1" stroke="none" visibility="hidden" />
+      )}
     </svg>
   );
-  const glow = props.live ? live(id, scale) : undefined;
+  const glow = props.live ? live(id, scale, width, prism) : undefined;
   const root = (
     <span
       class={`${classes.wordmark} ${props.class ?? ''}`}
-      style={{ '--msp-wordmark-scale': scale }}
+      style={{ '--msp-wordmark-scale': scale, '--msp-wordmark-width': width }}
       data-flash={props.flash ?? 'rare'}
       data-live={props.live ? '' : undefined}
       role="img"
@@ -120,7 +133,7 @@ export function MolstarWordmark(props: {
 }
 
 /** The live layer: the outline stroked with the logo's colors running across, centred where the pointer is. */
-function live(id: string, scale: number) {
+function live(id: string, scale: number, width: number, prism: boolean) {
   const gradient = (
     <linearGradient id={`${id}-live`} gradientUnits="userSpaceOnUse" x1="13" y1="0" x2="41" y2="0">
       <stop offset="0" style={{ 'stop-color': 'var(--msp-color-brand-1)' }} />
@@ -133,8 +146,8 @@ function live(id: string, scale: number) {
   const svg = (
     <svg
       class={classes.live}
-      viewBox={`-1 -1 ${Width} 22`}
-      width={Width * scale}
+      viewBox={`-1 -1 ${width} 22`}
+      width={width * scale}
       height={22 * scale}
       fill="none"
       stroke={`url(#${id}-live)`}
@@ -142,7 +155,7 @@ function live(id: string, scale: number) {
       aria-hidden="true"
     >
       <defs>{gradient}</defs>
-      <Shapes />
+      <Shapes prism={prism} />
     </svg>
   );
   return { svg, gradient };

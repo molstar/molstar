@@ -15,8 +15,9 @@ extension UI) are placed.
   the others are empty by default; apps can place tabs there.
 - **Appear when relevant.** Home shows when nothing is loaded, and a load started from it that brings something in
   shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the empty canvas
-  shows the wordmark, and once the viewer has been idle on it a while, a splash under it: light through Prism's mark
-  splitting into the logo's colors, barely there (`ui.splash` turns it off); the camera and rendering tools only once something is;
+  shows the wordmark (without Prism's triangle: the star is the prism), and with it, once the viewer is idle, a splash:
+  light drifting in behind the word and leaving the star along its arms as small spectra of the logo's colors, in
+  bubbles that answer the pointer (pushed, stirred, a burst on a press; `ui.splash` turns it off); the camera and rendering tools only once something is;
   trajectory controls only for multi-model trajectories; snapshot controls only when there are snapshots; the selection
   bar only while something is selected; the Sequence button only while there is a sequence and its card is hidden; the
   log as one fading line.

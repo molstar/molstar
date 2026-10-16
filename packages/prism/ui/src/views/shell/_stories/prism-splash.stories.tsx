@@ -26,12 +26,28 @@ const meta: Meta<Args> = {
       control: { type: 'range', min: 0, max: 60, step: 1 },
       description: "The stream's half height at its start",
     },
-    spread: { control: { type: 'range', min: 2, max: 60, step: 1 }, description: "The fan's half angle (degrees)" },
-    reach: { control: { type: 'range', min: 60, max: 800, step: 10 }, description: 'How far the fan goes (px)' },
+    spread: { control: { type: 'range', min: 2, max: 60, step: 1 }, description: "A ray's half angle (degrees)" },
+    reach: { control: { type: 'range', min: 60, max: 800, step: 10 }, description: 'How far the rays go (px)' },
     alpha: { control: { type: 'range', min: 0.05, max: 1, step: 0.01 }, description: 'The most a speck shows' },
-    size: { control: { type: 'range', min: 0.3, max: 3, step: 0.1 }, description: "A speck's radius (px)" },
-    tail: { control: { type: 'range', min: 0, max: 30, step: 1 }, description: 'A streak behind a colored speck (px)' },
-    colors: { control: 'boolean', description: "The fan in the logo's colors" },
+    size: { control: { type: 'range', min: 0.3, max: 4, step: 0.1 }, description: "A speck's radius (px)" },
+    variety: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'How much their sizes vary' },
+    bob: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'Bubbles swell and shrink' },
+    twinkle: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'How much they twinkle' },
+    swirl: { control: { type: 'range', min: 0, max: 2, step: 0.05 }, description: 'The pointer stirs an eddy' },
+    colors: { control: 'boolean', description: "The rays in the logo's colors" },
+    intro: {
+      control: { type: 'range', min: 0, max: 6, step: 0.1 },
+      description: 'Seconds the stream rushes in at the start',
+    },
+    pulse: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'The light in waves' },
+    curl: { control: { type: 'range', min: 0, max: 2, step: 0.05 }, description: 'The specks curl as they go' },
+    breathe: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'The rays breathe' },
+    interactive: { control: 'boolean', description: 'It answers the pointer (mouse, pen, touch)' },
+    radius: { control: { type: 'range', min: 20, max: 300, step: 5 }, description: "The pointer's reach (px)" },
+    push: { control: { type: 'range', min: 0, max: 3000, step: 20 }, description: 'How hard it pushes specks aside' },
+    wake: { control: { type: 'range', min: 0, max: 2, step: 0.05 }, description: 'How much of its stroke it lends' },
+    follow: { control: { type: 'range', min: 0, max: 1, step: 0.05 }, description: 'More light toward the pointer' },
+    burst: { control: { type: 'range', min: 0, max: 200, step: 2 }, description: 'Specks a press releases' },
     seed: { control: { type: 'number' } },
   },
 };
@@ -41,23 +57,24 @@ export default meta;
 function Canvas(props: { theme: 'light' | 'dark'; options: Partial<PrismFieldOptions> }) {
   const markBox = (
     <div style="position: absolute; left: round(down, calc(50% - 85.5px), 1px); top: round(down, calc(50% - 33px), 1px); color: var(--msp-color-text-subtle)">
-      <MolstarWordmark scale={3} flash="reveal" />
+      <MolstarWordmark scale={3} flash="reveal" live prism={false} />
     </div>
   ) as HTMLElement;
-  return (
+  const root = (
     <div
       data-msp-theme={props.theme}
       style={`position: relative; height: 520px; overflow: hidden; border-radius: var(--msp-radius-lg); background: ${props.theme === 'dark' ? '#000' : '#fff'}`}
     >
-      <PrismSplash options={props.options} mark={() => markBox} />
+      <PrismSplash options={props.options} mark={() => markBox} pointer={() => root} />
       {markBox}
     </div>
-  );
+  ) as HTMLElement;
+  return root;
 }
 
 /**
- * The empty canvas's splash: light through Prism's mark, splitting into the logo's colors. Tune it with the controls;
- * it is meant to be barely there.
+ * The empty canvas's splash: light through the Mol* star, leaving it along its arms in the logo's colors. Move over it,
+ * swipe through the rays, click or tap for a burst; tune it with the controls. It is meant to be barely there.
  */
 export const Splash: StoryObj<Args> = {
   render: (args) =>

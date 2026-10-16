@@ -49,20 +49,22 @@ describe('EmptyCanvas', () => {
     expect(mark()).toBeNull();
   });
 
-  it('shows the splash under the mark once the viewer has been idle on the empty canvas a while', () => {
+  it('shows the splash under the mark with it, once the viewer is idle on the empty canvas', () => {
     const empty = observableState(true);
     const busy = observableState(false);
     const container = document.createElement('div');
     render(() => <EmptyCanvas empty={empty.asReadonly} busy={busy.asReadonly} />, container);
     const splash = () => container.querySelector('canvas');
-    vi.advanceTimersByTime(800);
-    expect(splash()).toBeNull();
-    // Working (a load starting): it waits.
+    // Working (a load starting): the mark shows, the splash waits.
     busy.set(true);
+    vi.advanceTimersByTime(800);
+    expect(container.querySelector('[role=img]')).not.toBeNull();
+    expect(splash()).toBeNull();
     vi.advanceTimersByTime(5000);
     expect(splash()).toBeNull();
+    // Idle: with the mark.
     busy.set(false);
-    vi.advanceTimersByTime(2600);
+    vi.advanceTimersByTime(1);
     expect(splash()).not.toBeNull();
     // Something loaded: it goes with the mark.
     empty.set(false);

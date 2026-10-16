@@ -6,59 +6,130 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The empty canvas's splash (design/shell.md, "Appear when relevant"): light through Prism's mark. A sparse, faint stream
-// of specks drifts in from the left behind the wordmark (white light, in the canvas's subtle text color); where it
-// reaches the mark's prism it splits into a slow fan of the logo's colors (brand-1 to brand-4, as a spectrum: each color
-// bends its own way), which spreads and fades out. After Stories Untold's thread field (its beads that scatter in and
-// out), without the threads and much quieter. A 2D canvas: everything per frame is preallocated (memory: render paths
-// stay allocation-free); it draws nothing while hidden or stopped, and one still frame under reduced motion.
+// The empty canvas's splash (design/shell.md, "Appear when relevant"): light through the Mol* star. A sparse, faint
+// stream of specks drifts in from the left behind the wordmark (white light, in the canvas's subtle text color) and, where
+// it reaches the star, leaves it along the star's arms (the asterisk's eight at 45°, less the one the light comes in
+// along), each ray a small spectrum of the logo's colors (brand-1 to brand-4, each bent a little its own way across the
+// ray), spreading and fading out. After Stories Untold's thread field (its beads that scatter in and out), without the
+// threads and much quieter.
+//
+// Circles, playful: dots in the stream, bubbles of varied sizes in the rays that swell and shrink and twinkle each at its
+// own pace. It moves on its own: the stream rushes in at the start (meeting the wordmark's colors as they wipe in), the
+// light comes in waves, the specks curl a little as they go, the rays breathe. And it answers the pointer (mouse, pen or
+// touch) without taking it from the canvas: specks near it are pushed aside, dragged along its stroke and stirred round it
+// in a little eddy, the arms facing it take more of the light, moving it brings more light, and a press releases a burst
+// along every arm. A speck pushed off the star's line passes by uncolored.
+//
+// A 2D canvas: everything per frame is preallocated (memory: render paths stay allocation-free); it draws nothing while
+// hidden or stopped, and one still frame under reduced motion.
 
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
   rate: number;
   /** Their speed, px per second. */
   speed: number;
-  /** How far before the prism the stream starts (px; it fades in over its first third). */
+  /** How far before the split the stream starts (px; it fades in over its first third). */
   beam: number;
-  /** The stream's half height at its start (px); it narrows into the prism. */
+  /** The stream's half height at its start (px); it narrows into the split. */
   width: number;
-  /** The fan's half angle (degrees): the first color bends up by it, the last down. */
+  /** A ray's half angle (degrees): across it the first color bends one way by it, the last the other. */
   spread: number;
-  /** How far past the prism a colored speck goes before it is gone (px). */
+  /** How far past the split a colored speck goes before it is gone (px). */
   reach: number;
   /** The most a speck shows (0..1); the stream shows at a third of it. */
   alpha: number;
-  /** A speck's radius (px). */
+  /** A speck's radius (px): a dot of the stream; a colored one is a little larger. */
   size: number;
-  /** A colored speck's streak behind it (px; 0: a dot). */
-  tail: number;
-  /** The fan in the logo's colors; in the stream's color when off. */
+  /** How much their sizes vary (0: all alike; 1: now and then a bubble three times as large). */
+  variety: number;
+  /** The colored ones swell and shrink as they go (0..1), each at its own pace. */
+  bob: number;
+  /** How much they twinkle (0..1). */
+  twinkle: number;
+  /** The rays in the logo's colors; in the stream's color when off. */
   colors: boolean;
+  /** The light comes in waves (0: steady, 1: from nothing to twice the rate). */
+  pulse: number;
+  /**
+   * Seconds the stream rushes in at the start (faster and denser, easing to its pace), so the first light reaches the star
+   * as the wordmark fades in; 0: it starts at its pace.
+   */
+  intro: number;
+  /** The specks curl as they go (0: straight). */
+  curl: number;
+  /** The rays breathe: their spread swells and narrows by this much (0..1). */
+  breathe: number;
+  /** It answers the pointer. */
+  interactive: boolean;
+  /** How far the pointer reaches (px). */
+  radius: number;
+  /** How hard it pushes specks aside (px/s² at its center). */
+  push: number;
+  /** How much of its stroke it lends the specks it passes (0..1). */
+  wake: number;
+  /** How much it stirs them round it, a little eddy (0..1). */
+  swirl: number;
+  /** How much more light goes out along the arms facing it (0..1). */
+  follow: number;
+  /** Specks a press releases from the split. */
+  burst: number;
   seed: number;
 }
 
 export const PrismFieldDefaults: PrismFieldOptions = {
-  rate: 9,
-  speed: 22,
+  rate: 24,
+  speed: 26,
   beam: 260,
   width: 10,
-  spread: 16,
-  reach: 300,
+  spread: 7,
+  reach: 320,
   alpha: 0.55,
-  size: 1,
-  tail: 5,
+  size: 1.4,
+  variety: 0.7,
+  bob: 0.35,
+  twinkle: 0.45,
   colors: true,
+  pulse: 0.55,
+  intro: 2.4,
+  curl: 0.6,
+  breathe: 0.3,
+  interactive: true,
+  radius: 90,
+  push: 520,
+  wake: 0.5,
+  swirl: 0.5,
+  follow: 0.5,
+  burst: 36,
   seed: 3,
 };
 
 /** Specks alive at most. */
-const Capacity = 1024;
-/** Alpha levels a frame batches specks into (per color), so a frame strokes a few paths. */
+const Capacity = 1536;
+/** Alpha levels a frame batches specks into (per color), so a frame fills a few paths. */
 const Levels = 12;
 /** The stream's color and the four of the logo. */
 const Colors = 5;
-/** Seconds a still frame (reduced motion) simulates first, so the fan is full. */
+/** Seconds a still frame (reduced motion) simulates first, so the rays are full. */
 const StillSeconds = 30;
+/** Half the split's height (px): a speck crossing its line farther from its point passes by. */
+const SplitHalf = 22;
+/** How far an uncolored speck goes past the split's line before it is gone (px). */
+const PassBy = 140;
+/** Seconds the warmth of a stroke lasts, and px of stroke to full warmth. */
+const WarmFade = 1.6;
+const WarmTravel = 260;
+/**
+ * The star's arms (radians, canvas y down): the asterisk's eight at 45°, less the left one, which runs into the l and
+ * along which the light comes in. The light leaves the star along them.
+ */
+const Arms = [0, 1, 2, 3, 5, 6, 7].map((k) => (k * Math.PI) / 4);
+/** An arm's weight toward the pointer (cosine of its angle to it, raised: the facing arms take most). */
+const armWeights = new Float32Array(Arms.length);
+
+/** How much faster (and denser) the stream is at the very start of its intro. */
+const IntroBoost = 8;
+/** Seconds a speck's speed takes to settle back after a push or a burst. */
+const Settle = 0.8;
 
 /** The theme's colors the field draws in, as CSS custom properties on (or above) its canvas. */
 const ColorVars = [
@@ -86,14 +157,19 @@ export class PrismField {
   readonly #ctx: CanvasRenderingContext2D | null;
   #random: () => number;
 
-  // The specks: position (px, canvas CSS pixels), velocity (px/s), age (s), color (0: the stream; 1–4: the logo's),
-  // a shimmer phase; `alive` packs the live ones first.
+  // The specks: position (px, canvas CSS pixels), velocity (px/s), the speed they settle back to, where they split
+  // (px), color (0: the stream; 1–4: the logo's), a shimmer phase; `alive` packs the live ones first.
   readonly #x = new Float32Array(Capacity);
   readonly #y = new Float32Array(Capacity);
   readonly #vx = new Float32Array(Capacity);
   readonly #vy = new Float32Array(Capacity);
-  readonly #age = new Float32Array(Capacity);
+  readonly #base = new Float32Array(Capacity);
+  readonly #sx = new Float32Array(Capacity);
+  readonly #sy = new Float32Array(Capacity);
   readonly #shimmer = new Float32Array(Capacity);
+  /** Its size (a factor of `size`) and its own pace (twinkle, bob, curl). */
+  readonly #scale = new Float32Array(Capacity);
+  readonly #pace = new Float32Array(Capacity);
   readonly #color = new Uint8Array(Capacity);
   #alive = 0;
   // A frame's buckets: per color and alpha level, the specks in it.
@@ -102,11 +178,11 @@ export class PrismField {
   readonly #counts = new Uint16Array(Colors * Levels);
   readonly #starts = new Uint16Array(Colors * Levels);
 
-  #colors: string[] = ['#888', '#7a4f2f', '#e0ae2c', '#6f9a80', '#3f86ad'];
+  readonly #colors: string[] = ['#888', '#7a4f2f', '#e0ae2c', '#6f9a80', '#3f86ad'];
   #width = 0;
   #height = 0;
   #dpr = 1;
-  /** The prism's point (canvas CSS pixels): where the stream splits. */
+  /** The split's point (canvas CSS pixels): where the stream splits. */
   #ox = 0;
   #oy = 0;
   #emit = 0;
@@ -115,8 +191,22 @@ export class PrismField {
   #frame = 0;
   #running = false;
   #visible = true;
-  #colorsRead = -Infinity;
+  #colorsRead = Number.NEGATIVE_INFINITY;
   readonly #still: boolean;
+
+  // The pointer: where it is (canvas px), its stroke's velocity (px/s, smoothed), whether it is over the field, when it
+  // last moved (ms), the warmth its strokes left, a burst waiting.
+  #px = 0;
+  #py = 0;
+  #pvx = 0;
+  #pvy = 0;
+  #pointer = false;
+  #moved = 0;
+  #warmth = 0;
+  /** Where the pointer is from the star (radians), and how much it draws the light (0..1, eased). */
+  #toward = 0;
+  #pull = 0;
+  #burst = 0;
 
   constructor(canvas: HTMLCanvasElement, options: Partial<PrismFieldOptions> = {}, init: { still?: boolean } = {}) {
     this.#canvas = canvas;
@@ -136,7 +226,7 @@ export class PrismField {
     if (this.#still) this.#drawStill();
   }
 
-  /** Where the stream splits, in the canvas's CSS pixels (the mark's prism). */
+  /** Where the stream splits, in the canvas's CSS pixels (the star's middle). */
   setOrigin(x: number, y: number): void {
     this.#ox = x;
     this.#oy = y;
@@ -170,6 +260,36 @@ export class PrismField {
       if (v) this.#colors[i] = v;
     }
     el.style.color = before;
+  }
+
+  /** The pointer moved, at (x, y) in the canvas's CSS pixels; `now` in ms. */
+  pointerMove(x: number, y: number, now: number): void {
+    if (!this.#options.interactive || this.#still) return;
+    if (this.#pointer && this.#moved) {
+      const dt = Math.max(0.008, (now - this.#moved) / 1000);
+      // Smoothed: a stroke, not a jitter.
+      this.#pvx += ((x - this.#px) / dt - this.#pvx) * 0.35;
+      this.#pvy += ((y - this.#py) / dt - this.#pvy) * 0.35;
+      this.#warmth = Math.min(1, this.#warmth + Math.hypot(x - this.#px, y - this.#py) / WarmTravel);
+    }
+    this.#px = x;
+    this.#py = y;
+    this.#moved = now;
+    this.#pointer = true;
+  }
+
+  /** The pointer left (or a touch ended). */
+  pointerLeave(): void {
+    this.#pointer = false;
+    this.#pvx = 0;
+    this.#pvy = 0;
+  }
+
+  /** A press (a click, a tap): a burst of color from the split. */
+  pointerDown(x: number, y: number, now: number): void {
+    if (!this.#options.interactive || this.#still) return;
+    this.pointerMove(x, y, now);
+    this.#burst += this.#options.burst;
   }
 
   /** Runs while visible; nothing is drawn or scheduled while stopped or hidden. */
@@ -210,6 +330,11 @@ export class PrismField {
       this.#colorsRead = now;
       this.readColors();
     }
+    // A pointer that stopped moving has no stroke.
+    if (now - this.#moved > 80) {
+      this.#pvx *= 0.85;
+      this.#pvy *= 0.85;
+    }
     this.#step(dt);
     this.#draw();
     this.#frame = requestAnimationFrame(this.#tick);
@@ -218,26 +343,80 @@ export class PrismField {
   #drawStill(): void {
     if (!this.#width) return;
     this.#alive = 0;
+    this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < StillSeconds; t += 1 / 30) this.#step(1 / 30);
     this.#draw();
   }
 
-  #spawn(): void {
+  /** A speck of the stream, at its start, toward the split's point. */
+  #spawnStream(): void {
     if (this.#alive >= Capacity) return;
     const o = this.#options;
     const i = this.#alive++;
     this.#x[i] = this.#ox - o.beam;
     this.#y[i] = this.#oy + (this.#random() * 2 - 1) * o.width;
-    // Toward the prism's point: the stream narrows into it.
     const dy = this.#oy - this.#y[i];
     const len = Math.hypot(o.beam, dy) || 1;
-    const v = o.speed * (0.85 + this.#random() * 0.3);
+    const v = o.speed * (0.8 + this.#random() * 0.4);
     this.#vx[i] = (v * o.beam) / len;
     this.#vy[i] = (v * dy) / len;
-    this.#age[i] = 0;
+    this.#base[i] = v;
     this.#color[i] = 0;
     this.#shimmer[i] = this.#random() * Math.PI * 2;
+    // A speck of the stream is a small dot; it gets its own size when it splits.
+    this.#scale[i] = 0.55 + this.#random() * 0.35;
+    this.#pace[i] = 0.6 + this.#random() * 0.9;
+  }
+
+  /** A speck of a burst: colored at the star, fast at first, along an arm and a little wider. */
+  #spawnBurst(spread: number): void {
+    if (this.#alive >= Capacity) return;
+    const o = this.#options;
+    const i = this.#alive++;
+    const c = 1 + Math.floor(this.#random() * 4);
+    const angle = this.#fanAngle(c, spread * 1.6);
+    const v = o.speed * (2.2 + this.#random() * 1.6);
+    this.#x[i] = this.#ox;
+    this.#sx[i] = this.#ox;
+    this.#y[i] = this.#oy;
+    this.#sy[i] = this.#oy;
+    this.#vx[i] = v * Math.cos(angle);
+    this.#vy[i] = v * Math.sin(angle);
+    this.#base[i] = o.speed * (0.8 + this.#random() * 0.4);
+    this.#color[i] = c;
+    this.#shimmer[i] = this.#random() * Math.PI * 2;
+    this.#scale[i] = this.#bubble();
+    this.#pace[i] = 0.6 + this.#random() * 0.9;
+  }
+
+  /** A colored speck's size: most about the same, now and then a bubble (up to three times as large). */
+  #bubble(): number {
+    const r = this.#random();
+    return 1 + this.#options.variety * 2 * r * r * r;
+  }
+
+  /**
+   * The way a speck of color `c` goes: along one of the star's arms (those facing the pointer more likely), bent across
+   * the arm by its color (a small spectrum on each), a little scattered.
+   */
+  #fanAngle(c: number, spread: number): number {
+    let total = 0;
+    for (let k = 0; k < Arms.length; k++) {
+      const facing = Math.max(0, Math.cos(Arms[k] - this.#toward));
+      armWeights[k] = 1 + this.#pull * 6 * facing * facing * facing;
+      total += armWeights[k];
+    }
+    let pick = this.#random() * total;
+    let arm = Arms[Arms.length - 1];
+    for (let k = 0; k < Arms.length; k++) {
+      pick -= armWeights[k];
+      if (pick <= 0) {
+        arm = Arms[k];
+        break;
+      }
+    }
+    return arm + spread * ((c - 1) / 1.5 - 1) + (this.#random() * 2 - 1) * spread * 0.22;
   }
 
   #kill(i: number): void {
@@ -246,40 +425,122 @@ export class PrismField {
     this.#y[i] = this.#y[last];
     this.#vx[i] = this.#vx[last];
     this.#vy[i] = this.#vy[last];
-    this.#age[i] = this.#age[last];
+    this.#base[i] = this.#base[last];
+    this.#sx[i] = this.#sx[last];
+    this.#sy[i] = this.#sy[last];
     this.#color[i] = this.#color[last];
     this.#shimmer[i] = this.#shimmer[last];
+    this.#scale[i] = this.#scale[last];
+    this.#pace[i] = this.#pace[last];
   }
 
   #step(dt: number): void {
     const o = this.#options;
     this.#time += dt;
-    this.#emit += dt * o.rate;
+    const t = this.#time;
+    this.#warmth = Math.max(0, this.#warmth - dt / WarmFade);
+    // The intro: the stream rushes in at full speed for its first half, then eases (smoothly) to its pace.
+    const u = o.intro > 0 ? Math.min(1, Math.max(0, (t / o.intro - 0.5) * 2)) : 1;
+    const boost = 1 + (IntroBoost - 1) * (1 - u * u * (3 - 2 * u));
+
+    // The rays: breathing; the pointer draws the light into the arms facing it (eased in and out).
+    const spread = ((o.spread * Math.PI) / 180) * (1 + o.breathe * Math.sin(t * 0.37));
+    const drawn = this.#pointer && o.interactive ? o.follow : 0;
+    if (drawn) this.#toward = Math.atan2(this.#py - this.#oy, this.#px - this.#ox);
+    this.#pull += (drawn - this.#pull) * Math.min(1, dt * 1.5);
+
+    // The light in waves (two slow ones beating), more while the pointer warms it.
+    const wave = 0.5 + 0.35 * Math.sin(t * 0.83) + 0.15 * Math.sin(t * 2.1 + 1.3);
+    this.#emit += dt * o.rate * (1 - o.pulse + o.pulse * 2 * wave) * (1 + 2 * this.#warmth) * boost;
     while (this.#emit >= 1) {
       this.#emit -= 1;
-      this.#spawn();
+      this.#spawnStream();
     }
-    const spread = (o.spread * Math.PI) / 180;
+    while (this.#burst >= 1) {
+      this.#burst -= 1;
+      this.#spawnBurst(spread);
+    }
+
+    const pointer = this.#pointer && o.interactive;
+    const r = o.radius;
+    const r2 = r * r;
+    const settle = Math.min(1, dt / Settle);
     for (let i = 0; i < this.#alive; i++) {
-      this.#age[i] += dt;
-      this.#x[i] += this.#vx[i] * dt;
-      this.#y[i] += this.#vy[i] * dt;
+      let vx = this.#vx[i];
+      let vy = this.#vy[i];
+      const x = this.#x[i];
+      const y = this.#y[i];
+
+      if (pointer) {
+        const dx = x - this.#px;
+        const dy = y - this.#py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < r2) {
+          const d = Math.sqrt(d2) + 1e-3;
+          const f = 1 - d / r;
+          const f2 = f * f;
+          // Aside, along its stroke, and round it (an eddy).
+          const eddy = o.push * o.swirl * f2 * dt;
+          vx += (dx / d) * o.push * f2 * dt + this.#pvx * o.wake * f2 * dt * 4 - (dy / d) * eddy;
+          vy += (dy / d) * o.push * f2 * dt + this.#pvy * o.wake * f2 * dt * 4 + (dx / d) * eddy;
+        }
+      }
+
+      // The speed settles back to the speck's own (its direction stays where it was pushed).
+      const v = Math.hypot(vx, vy) || 1;
+      const k = 1 + (this.#base[i] / v - 1) * settle;
+      vx *= k;
+      vy *= k;
+
+      // A slow curl: a drift across the speck's way from a field that moves, added to its motion but not to its velocity
+      // (so it wavers, and never wanders off).
+      let cx = 0;
+      let cy = 0;
+      if (o.curl > 0) {
+        // Straight out of the star, wavering more the farther a ray has gone (the stream barely).
+        const far =
+          this.#color[i] === 0 ? 0.2 : Math.min(1, Math.hypot(x - this.#sx[i], y - this.#sy[i]) / o.reach) * 1.5;
+        const w =
+          o.curl *
+          0.45 *
+          far *
+          this.#base[i] *
+          Math.sin(x * 0.013 + t * 0.7 * this.#pace[i] + this.#shimmer[i]) *
+          Math.cos(y * 0.019 - t * 0.5);
+        const inv = 1 / (Math.hypot(vx, vy) || 1);
+        cx = -vy * inv * w;
+        cy = vx * inv * w;
+      }
+      // The stream moves at the intro's pace; the rays at their own.
+      const pace = this.#color[i] === 0 ? boost : 1;
+      const nx = x + (vx + cx) * dt * pace;
+      const ny = y + (vy + cy) * dt * pace;
+      this.#vx[i] = vx;
+      this.#vy[i] = vy;
+      this.#x[i] = nx;
+      this.#y[i] = ny;
+
       if (this.#color[i] === 0) {
-        // Through the prism: one of the logo's colors, bent its own way (the first up, the last down), a little
-        // scattered.
-        if (this.#x[i] >= this.#ox) {
+        if (x < this.#ox && nx >= this.#ox && Math.abs(ny - this.#oy) <= SplitHalf) {
+          // Through the star: one of the logo's colors, bent its own way, split where it crossed.
           const c = 1 + Math.floor(this.#random() * 4);
           this.#color[i] = c;
-          const angle = spread * ((c - 1) / 1.5 - 1) + (this.#random() * 2 - 1) * spread * 0.22;
-          const v = Math.hypot(this.#vx[i], this.#vy[i]);
-          this.#vx[i] = v * Math.cos(angle);
-          this.#vy[i] = v * Math.sin(angle);
-          this.#x[i] = this.#ox;
-          this.#y[i] = this.#oy;
+          const angle = this.#fanAngle(c, spread);
+          // In the intro it leaves the star with some of the rush, and settles to its pace: the first colors pop out.
+          const speed = Math.hypot(vx, vy) * Math.min(3, boost);
+          this.#vx[i] = speed * Math.cos(angle);
+          this.#vy[i] = speed * Math.sin(angle);
+          this.#sx[i] = nx;
+          this.#sy[i] = ny;
+          this.#scale[i] = this.#bubble();
+        } else if (nx > this.#ox + PassBy || nx < this.#ox - o.beam * 1.5 || Math.abs(ny - this.#oy) > o.reach) {
+          // Pushed off the split's line: it passes by, and goes.
+          this.#kill(i);
+          i--;
         }
       } else {
-        const dx = this.#x[i] - this.#ox;
-        const dy = this.#y[i] - this.#oy;
+        const dx = nx - this.#sx[i];
+        const dy = ny - this.#sy[i];
         if (dx * dx + dy * dy > o.reach * o.reach) {
           this.#kill(i);
           i--;
@@ -293,15 +554,19 @@ export class PrismField {
     const o = this.#options;
     let a: number;
     if (this.#color[i] === 0) {
-      // The stream: in over its first third, at a third of the most.
-      const along = 1 - (this.#ox - this.#x[i]) / o.beam;
+      // The stream: in over its first third, at a third of the most; past the split's line (it missed), out.
+      const x = this.#x[i];
+      const along = 1 - (this.#ox - x) / o.beam;
       a = (o.alpha / 3) * Math.min(1, Math.max(0, along * 3));
+      if (x > this.#ox) a *= Math.max(0, 1 - (x - this.#ox) / PassBy);
     } else {
-      const d = Math.hypot(this.#x[i] - this.#ox, this.#y[i] - this.#oy) / o.reach;
-      // Brightest just past the prism, gone at the reach.
+      const d = Math.hypot(this.#x[i] - this.#sx[i], this.#y[i] - this.#sy[i]) / o.reach;
+      // Brightest just past the split, gone at the reach.
       a = o.alpha * Math.min(1, d * 12) * (1 - d) ** 1.6;
     }
-    a *= 0.7 + 0.3 * Math.sin(this.#time * 1.7 + this.#shimmer[i]);
+    // A twinkle, each at its own pace.
+    a *=
+      1 - o.twinkle + o.twinkle * (0.5 + 0.5 * Math.sin(this.#time * (1.4 + 2.6 * this.#pace[i]) + this.#shimmer[i]));
     return Math.max(0, Math.min(Levels - 1, Math.round((a / Math.max(o.alpha, 1e-6)) * (Levels - 1))));
   }
 
@@ -328,16 +593,15 @@ export class PrismField {
       this.#starts[b] = sum;
       sum += counts[b];
     }
-    for (let b = 0; b < counts.length; b++) counts[b] = 0;
+    counts.fill(0);
     for (let i = 0; i < this.#alive; i++) {
       const b = this.#bucketOf[i];
       this.#bucket[this.#starts[b] + counts[b]++] = i;
     }
 
-    ctx.lineCap = 'round';
-    ctx.lineWidth = o.size * 2;
+    // Circles: a dot of the stream, a colored one larger and swelling and shrinking at its own pace.
+    const t = this.#time;
     for (let c = 0; c < Colors; c++) {
-      ctx.strokeStyle = this.#colors[c];
       ctx.fillStyle = this.#colors[c];
       for (let l = 1; l < Levels; l++) {
         const b = c * Levels + l;
@@ -350,17 +614,13 @@ export class PrismField {
           const i = this.#bucket[s + k];
           const x = this.#x[i];
           const y = this.#y[i];
-          const tail = this.#color[i] === 0 ? o.tail * 0.6 : o.tail;
-          if (tail > 0) {
-            const v = Math.hypot(this.#vx[i], this.#vy[i]) || 1;
-            ctx.moveTo(x - (this.#vx[i] / v) * tail, y - (this.#vy[i] / v) * tail);
-            ctx.lineTo(x, y);
-          } else {
-            ctx.moveTo(x + 0.01, y);
-            ctx.lineTo(x, y);
-          }
+          let r = o.size * this.#scale[i];
+          if (this.#color[i] !== 0) r *= 1 + o.bob * Math.sin(t * (1.5 + 2 * this.#pace[i]) + this.#shimmer[i]);
+          if (r < 0.2) continue;
+          ctx.moveTo(x + r, y);
+          ctx.arc(x, y, r, 0, Math.PI * 2);
         }
-        ctx.stroke();
+        ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
