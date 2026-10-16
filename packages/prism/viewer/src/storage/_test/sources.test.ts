@@ -7,7 +7,7 @@
  */
 
 import 'fake-indexeddb/auto';
-import { createIndexedDbRows } from '@molstar/ai-components';
+import { createIndexedDbRows } from '../../journal/indexeddb-rows.js';
 import { createMemoryRows, type FiberTable } from '@molstar/ai-fibers';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeApi } from '../../journal/_test/runs.js';

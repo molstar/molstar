@@ -14,9 +14,6 @@
     },
     {
       "path": "../harness"
-    },
-    {
-      "path": "../fibers"
     }
   ]
 }

@@ -70,7 +70,7 @@ items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan
   - the assistant package is `@molstar/prism-assistant`;
   - each mode's agent parts live in an `agent` folder of its package, not separate packages;
   - a denied tool call is told to the model;
-  - `ai-components` holds platform code (`src/harness/`, `src/fibers/`);
+  - `ai-components` holds platform code (`src/harness/`);
   - the AI SDK is pinned by major only (everything else is pinned exactly).
 
 ## Practical notes

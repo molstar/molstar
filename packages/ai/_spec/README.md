@@ -25,22 +25,22 @@ ai-agent ─┬─ ai-harness ─┬─ ai-components ─┐
           │              ├─ ai-trace       │
           │              └─ ai-conformance │
           └─ ai-model-adapters             (host passes adapters in)
-ai-fibers (nothing) ── ai-components (its backends), ai-conformance/fibers
+ai-fibers (nothing) ── ai-conformance/fibers
 ai-narration (nothing of the workspace)
 ```
 
-| Package                      | Holds                                                                                                             | Imports of the workspace                                |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `@molstar/ai-agent`          | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage` | none                                                    |
-| `@molstar/ai-harness`        | the contracts (`src/contracts/`), the host protocol, the runner, `defaultDrive`/`drive`                           | `ai-agent`                                              |
-| `@molstar/ai-components`     | storage (memory; IndexedDB on a durable core); the in-process supervisor; the fibers' IndexedDB rows              | `ai-agent`, `ai-harness`, `ai-fibers`; `node:*` allowed |
-| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `./model-catalog` (no dependencies)       | `ai-agent`                                              |
-| `@molstar/ai-tools`          | `defineTool`, field shapes (`./zod` for zod input), results, bindings, repeated reads, nested tools, the toolkit  | `ai-agent`, `ai-harness`; zod only here                 |
-| `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`                                         | `ai-agent`, `ai-harness`, `ai-components`, `ai-tools`   |
-| `@molstar/ai-trace`          | `readTrace` and the views the Inspector draws; `./format`                                                         | `ai-agent`, `ai-harness`                                |
-| `@molstar/ai-fibers`         | the fiber kernel and host, its own storage port                                                                   | none                                                    |
-| `@molstar/ai-conformance`    | `runHarnessConformance`; `./testing` (clock, ids, scripted model and tools); `./fibers`                           | `ai-agent`, `ai-harness`, `ai-fibers`                   |
-| `@molstar/ai-narration`      | TTS providers (Gemini, OpenAI), WAV encoding; `./mediabunny` for AAC/Opus                                         | none                                                    |
+| Package                      | Holds                                                                                                             | Imports of the workspace                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `@molstar/ai-agent`          | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `ModelAdapter` port, `ModelError`, `hashMessage` | none                                                  |
+| `@molstar/ai-harness`        | the contracts (`src/contracts/`), the host protocol, the runner, `defaultDrive`/`drive`                           | `ai-agent`                                            |
+| `@molstar/ai-components`     | storage (memory; IndexedDB on a durable core); the in-process supervisor                                          | `ai-agent`, `ai-harness`; `node:*` allowed            |
+| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `./model-catalog` (no dependencies)       | `ai-agent`                                            |
+| `@molstar/ai-tools`          | `defineTool`, field shapes (`./zod` for zod input), results, bindings, repeated reads, nested tools, the toolkit  | `ai-agent`, `ai-harness`; zod only here               |
+| `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`                                         | `ai-agent`, `ai-harness`, `ai-components`, `ai-tools` |
+| `@molstar/ai-trace`          | `readTrace` and the views the Inspector draws; `./format`                                                         | `ai-agent`, `ai-harness`                              |
+| `@molstar/ai-fibers`         | the fiber kernel and host, its own storage port                                                                   | none                                                  |
+| `@molstar/ai-conformance`    | `runHarnessConformance`; `./testing` (clock, ids, scripted model and tools); `./fibers`                           | `ai-agent`, `ai-harness`, `ai-fibers`                 |
+| `@molstar/ai-narration`      | TTS providers (Gemini, OpenAI), WAV encoding; `./mediabunny` for AAC/Opus                                         | none                                                  |
 
 The import rules are Biome's (`noRestrictedImports` per package in the root `biome.json`); they are architecture, so a
 failing import means "not here", not "loosen the rule". Each `src/index.ts` is the package's public surface; deep

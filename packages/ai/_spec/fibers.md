@@ -58,8 +58,10 @@ const page = await fibers.window({ fiberId, start, limit: 20, direction: 'backwa
 
 `RowStore<T>`: `load(scope)`, `apply(scope, expected, writes)` (atomic; generation `expected + 1` or `RowConflict`),
 `drop(scope)`, `generation(scope)`, optional `watch`. A fiber is the scope `fiber:<id>` with tables `fiber`, `entry`,
-`stream`, `deltas`, `receipt`, each row `{ json }`. Backends: `createMemoryRows` (here), `createIndexedDbRows(name)`
-(`@molstar/ai-components`). SQLite later.
+`stream`, `deltas`, `receipt`, each row `{ json }`. Backends: `createMemoryRows` (here), SQLite later. The IndexedDB
+rows are not in `@molstar/ai`: prism-viewer owns them (`createIndexedDbRows(name)`,
+`packages/prism/viewer/src/journal/indexeddb-rows.ts`), and its tests run the fibers' conformance (`./fibers` of
+`@molstar/ai-conformance`) on them.
 
 ## Limits
 

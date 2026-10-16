@@ -17,7 +17,7 @@ Status: **accepted** (2026-10-15).
 - **In memory by default** (`createMemoryRows`): the record lives as long as the page. A reload ends it, and with it
   every checkpoint, so an agent's turn can no longer be undone after a reload; that is accepted.
 - **Kept on purpose**: "Keep this session's record" (History's menu, and a command) copies the record into IndexedDB
-  (`createIndexedDbRows('prism-viewer-records')`, `@molstar/ai-components`) and keeps appending there for the rest of
+  (`createIndexedDbRows('prism-viewer-records')`, `packages/prism/viewer/src/journal/indexeddb-rows.ts`, loaded when asked) and keeps appending there for the rest of
   the session. **Only the record**: no plugin state, no files, no checkpoints, no autosave, so IndexedDB never becomes a
   second file system; the state comes back only from a session file the person saved.
 - The spec chooses the rows a kept record goes to (`persist.rows`, viewer-spec.md §2.6; the record's `keepIn`); without

@@ -2521,9 +2521,6 @@ importers:
       '@molstar/ai-agent':
         specifier: workspace:*
         version: link:../agent
-      '@molstar/ai-fibers':
-        specifier: workspace:*
-        version: link:../fibers
       '@molstar/ai-harness':
         specifier: workspace:*
         version: link:../harness
@@ -3163,9 +3160,6 @@ importers:
       '@molstar/ai-agent':
         specifier: workspace:*
         version: link:../../ai/agent
-      '@molstar/ai-components':
-        specifier: workspace:*
-        version: link:../../ai/components
       '@molstar/ai-fibers':
         specifier: workspace:*
         version: link:../../ai/fibers

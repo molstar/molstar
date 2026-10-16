@@ -771,7 +771,7 @@ export async function openRecordsRows(): Promise<(FiberRows & { close?(): void }
     if (!names.includes(RecordsDatabase)) return undefined;
   }
   // Loaded when asked, as History's Keep does: a viewer that never lists them never pays for it.
-  const { createIndexedDbRows } = await import('@molstar/ai-components');
+  const { createIndexedDbRows } = await import('./indexeddb-rows.js');
   return createIndexedDbRows<FiberTable>(RecordsDatabase);
 }
 

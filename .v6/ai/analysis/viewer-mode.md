@@ -175,7 +175,7 @@ Port plan:
 
 - `@molstar/ai-fibers`: the kernel as it is, the host, and its own storage port (the row-store shape plus a watch); not
   built on `HarnessStorage`, whose transactions are fixed to the harness's records. Imports nothing of the workspace.
-- Its backends in `ai-components` (`src/fibers/`, next to the harness's in `src/harness/`): memory and IndexedDB.
+- Its backends: memory (in `ai-fibers`) and IndexedDB (in prism-viewer, `src/journal/indexeddb-rows.ts`; moved out of `ai-components` 2026-10-16).
   Stories' plain-files backend is not carried over; a SQLite backend (`node:sqlite`) for servers and headless hosts
   comes later.
 - The conformance (8 cases, `node:assert` → Jest) as `@molstar/ai-conformance/fibers`, plus the cases Stories tests only

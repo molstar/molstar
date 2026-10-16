@@ -189,7 +189,6 @@
   },
   "dependencies": {
     "@molstar/ai-agent": "workspace:*",
-    "@molstar/ai-components": "workspace:*",
     "@molstar/ai-fibers": "workspace:*",
     "@molstar/ai-harness": "workspace:*",
     "@molstar/ai-session": "workspace:*",
