@@ -146,20 +146,30 @@ export function summarize(loci: StructureElement.Loci, options: SummarizeOptions
   let atoms = 0;
   let residues = 0;
   const location = StructureElement.Location.create(loci.structure);
-  const add = (n: number) => {
-    const chainId = P.chain.auth_asym_id(location);
+  const piece = (chainId: string, n: number) => {
     let chain = chains.get(chainId);
     if (!chain) {
       chain = { chain: chainId, residues: 0, atoms: 0, numbers: new Map() };
       chains.set(chainId, chain);
     }
-    const seq = P.residue.auth_seq_id(location);
-    const ins = P.residue.pdbx_PDB_ins_code(location) || '';
     chain.residues++;
     chain.atoms += n;
     residues++;
+    return chain;
+  };
+  const number = (chain: ChainAccumulator, seq: number, ins: string) => {
     const key = `${seq}|${ins}`;
     if (!chain.numbers.has(key)) chain.numbers.set(key, { seq, ins });
+  };
+  const add = (n: number) => {
+    const chain = piece(P.chain.auth_asym_id(location), n);
+    number(chain, P.residue.auth_seq_id(location), P.residue.pdbx_PDB_ins_code(location) || '');
+  };
+  // A coarse element has no author chain or numbers: its label chain, and the residues it covers (label numbers).
+  const addCoarse = () => {
+    const chain = piece(P.chain.label_asym_id(location), 1);
+    const end = P.coarse.seq_id_end(location);
+    for (let seq = P.coarse.seq_id_begin(location); seq <= end; seq++) number(chain, seq, '');
   };
   for (const { unit, indices } of loci.elements) {
     const size = OrderedSet.size(indices);
@@ -187,7 +197,7 @@ export function summarize(loci: StructureElement.Loci, options: SummarizeOptions
       // Coarse elements (spheres, gaussians) are their own residue-like pieces.
       for (let i = 0; i < size; i++) {
         location.element = unit.elements[OrderedSet.getAt(indices, i)];
-        add(1);
+        addCoarse();
       }
     }
   }
