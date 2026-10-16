@@ -83,12 +83,12 @@ export const LargeComplex1AON: StoryObj = {
 
 // --- Models and trajectories ------------------------------------------------------------------------------------
 
-/** An NMR ensemble (ubiquitin, 1D3Z, 10 models) opened on its first model, then `structure.model` shows the fourth. */
+/** An NMR ensemble (ubiquitin, 1D3Z, 10 models) opened on its first model, then `trajectory.frame` shows the fourth. */
 export const NmrEnsemble1D3Z: StoryObj = {
   render: () =>
     viewerStory(async (v) => {
       await loadRcsb(v, '1D3Z');
-      await must(person(v).structure.model({ index: 3 }));
+      await must(person(v).trajectory.frame({ index: 3 }));
     }),
 };
 
@@ -97,7 +97,7 @@ export const MultiModelPdb2L22: StoryObj = {
   render: () =>
     viewerStory(async (v) => {
       await loadUrl(v, 'https://files.rcsb.org/download/2L22.pdb', '2l22.pdb');
-      await must(person(v).structure.model({ index: 19 }));
+      await must(person(v).trajectory.frame({ index: 19 }));
     }),
 };
 

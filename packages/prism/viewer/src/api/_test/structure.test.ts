@@ -64,23 +64,6 @@ describe('structure', () => {
     expect(type).toBeDefined();
   });
 
-  it('refuses a model index past the end, with the range', async () => {
-    const v = await setup(['1crn.cif', '1crn.cif']);
-    const r = await v.api.structure.model({ index: 3 });
-    expect(r).toMatchObject({ ok: false, code: 'invalid' });
-    const same = await v.api.structure.model({ index: 0 });
-    expect(same.ok && same.did).toMatch(/already/);
-  });
-
-  it('asks which structure when several are loaded and none is named', async () => {
-    const v = await setup(['1crn.cif', '1crn.cif'], ['1cbs_updated.cif', '1cbs.cif']);
-    const r = await v.api.structure.model({ index: 0 });
-    expect(r).toMatchObject({ ok: false, code: 'ambiguous' });
-    if (!r.ok) expect(r.hint).toMatch(/1CRN/i);
-    const named = await v.api.structure.model({ index: 0, structure: '1cbs' });
-    expect(named.ok).toBe(true);
-  });
-
   it('asks which one when a label names several structures, and takes a state ref', async () => {
     const v = await setup(['1cbs_updated.cif', '1cbs.cif'], ['1cbs_updated.cif', '1cbs-copy.cif']);
     const refs = v.api.structure.loaded.value.map((x) => x.ref);

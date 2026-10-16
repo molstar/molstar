@@ -164,12 +164,13 @@ export class RepresentationApi extends ApiArea {
     title: 'Remove a representation',
     params: {
       component: ComponentParam(),
-      type: PD.Text('', { description: 'A representation type; empty: all of the component' }),
+      type: PD.Text('', { description: "A representation type; empty: the component's only one" }),
+      all: OptionalParam(PD.Boolean(false, { description: 'Every representation of the component' })),
       structure: StructureParam(InStructure),
       node: NodeParam('Representations by selector or a state ref (instead of a component and type)'),
     },
     approval: 'destructive',
-    async run({ component, type, structure, node }, ctx) {
+    async run({ component, type, all: every, structure, node }, ctx) {
       if (node) {
         const found = representationsOf(ctx, node);
         if (isFailure(found)) return found;
@@ -181,6 +182,14 @@ export class RepresentationApi extends ApiArea {
       const c = found.component;
       if (type && !ctx.plugin.representation.structure.registry.has(type)) {
         return ApiResult.fail('invalid', `There is no representation type '${type}'.`, `Types: ${typeIds(ctx)}.`);
+      }
+      // An empty remove is the only one (operations.md §1 "Words"); `all` clears.
+      if (!type && !every && c.representations.length > 1) {
+        return ApiResult.fail(
+          'ambiguous',
+          `Which representation of ${componentName(c)}? It has ${c.representations.length}.`,
+          `Give a type (${[...new Set(c.representations.map(typeOf))].join(', ')}), a node, or all: true.`,
+        );
       }
       const doomed = c.representations.filter((r) => !type || typeOf(r) === type);
       if (!doomed.length) {

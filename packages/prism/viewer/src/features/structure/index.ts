@@ -51,12 +51,6 @@ function structureFeatureCommands(api: ViewerApi): CommandDefinition<ViewerComma
       alias: ['preset', 'representation preset', 'polymer cartoon', 'illustrative', 'auto'],
       action: 'Apply',
     }),
-    operationCommand(api, api.structure.model, {
-      category: 'Data',
-      icon: 'layers',
-      alias: ['model', 'next model', 'nmr model', 'switch model'],
-      action: 'Show',
-    }),
     operationCommand(api, api.structure.assembly, {
       category: 'Data',
       icon: 'box',

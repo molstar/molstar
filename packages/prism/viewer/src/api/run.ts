@@ -121,8 +121,9 @@ export class ApiRunner implements OperationPort {
       throw new Error(`Operation '${def.id}' is defined twice`);
     }
     this.#owners.set(def.id, area);
+    // An alias may name another area (`structure.model` runs `trajectory.frame`): one id, one operation.
     for (const alias of def.aliases ?? []) {
-      if (!alias.startsWith(`${area}.`)) throw new Error(`Alias '${alias}' must start with its area's id, '${area}.'`);
+      if (this.#owners.has(alias) || this.#aliases.has(alias)) throw new Error(`Alias '${alias}' is taken`);
       this.#aliases.set(alias, def.id);
     }
     this.#definitions.set(new Map([...this.#definitions.value, [def.id, def]]));

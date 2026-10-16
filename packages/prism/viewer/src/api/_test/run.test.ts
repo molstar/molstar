@@ -125,9 +125,9 @@ describe('the run path', () => {
   it('records no step for what is already so, or refused', async () => {
     const v = await create();
     await v.api.load.files({ files: [crambin()] });
-    const same = await v.api.structure.model({ index: 0 });
+    const same = await v.api.structure.visibility({ visible: true });
     expect(same).toMatchObject({ ok: true, unchanged: true });
-    const refused = await v.api.structure.model({ index: 9 });
+    const refused = await v.api.trajectory.frame({ index: 9 });
     expect(refused.ok).toBe(false);
     expect(v.managers.history.steps.value).toHaveLength(1);
   });

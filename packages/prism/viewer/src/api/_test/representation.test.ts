@@ -186,6 +186,18 @@ describe('representation', () => {
     if (!missing.ok) expect(missing.hint ?? '').toContain(component);
   });
 
+  it('takes the only representation when no type is given, and all of them with all: true', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const polymer = components(v).find((c) => c.representations.length > 0)!;
+    const component = nameOf(polymer);
+    expectOk(await v.api.representation.set({ component, type: 'spacefill' }));
+    const now = () => components(v).find((c) => c.cell.transform.ref === polymer.cell.transform.ref)!;
+    expect(now().representations.length).toBeGreaterThan(1);
+    expect(await v.api.representation.remove({ component })).toMatchObject({ ok: false, code: 'ambiguous' });
+    expectOk(await v.api.representation.remove({ component, all: true }));
+    expect(now()?.representations ?? []).toHaveLength(0);
+  });
+
   it('removes a type, or all, from a component', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const polymer = components(v).find((c) => c.representations.length > 0)!;

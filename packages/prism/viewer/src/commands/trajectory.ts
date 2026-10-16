@@ -19,7 +19,7 @@ export function trajectoryCommands(api: ViewerApi): CommandDefinition<ViewerComm
       category,
       icon: 'trajectory',
       title: 'Show a model…',
-      alias: ['frame', 'model', 'next model', 'previous model', 'ensemble', 'trajectory'],
+      alias: ['frame', 'model', 'next model', 'previous model', 'nmr model', 'switch model', 'ensemble', 'trajectory'],
       action: 'Show',
     }),
     operationCommand(api, api.trajectory.play, {

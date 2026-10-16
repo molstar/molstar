@@ -58,7 +58,10 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   operation's modes are `add`, `remove`, `intersect` (and `set` where it replaces: `select.set`); a read names a
   structure `{ ref, label }`. A renamed operation keeps its old id as an alias until the release (`aliases`:
   `api.run('structure.get')` runs `structure.list`; only the new id is listed). An area's state to subscribe to is a
-  noun (`structure.loaded`, `canvas.state`, `history.steps`).
+  noun (`structure.loaded`, `canvas.state`, `history.steps`). One state, one operation: the model a structure shows is
+  `trajectory.frame` (`index` or `by`; `structure.model` its alias), the camera's projection `canvas.camera`. An empty
+  `remove` is the only one there is, else `ambiguous`; `all: true` clears (`representation.remove`,
+  `superpose.remove`).
 - **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
   (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
   order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already
@@ -88,7 +91,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
 | `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary; `models`, `assembly`), `data` (text, base64 or bytes, a format), `mvs` (url or data; v5's `append`, camera and snapshot options), `svs` (a SeqViewSpec in the sequence, url or data; sequence.md §6), `snapshot` (url or remote id), `trajectory`, `volume` | — | core; loaders |
 | `session`      | `open` (`.molx`, `.molj`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove`                  | `remote.list`                 | core; remote feature |
-| `structure`    | `preset` (hierarchy and representation presets by id), `model`, `assembly`, `symmetry`, `unit-cell`, `transform`, `transform-reset`, `visibility`, `remove` (the whole entry) | `get` (the scene outline)     | core                |
+| `structure`    | `preset` (hierarchy and representation presets by id), `assembly`, `symmetry`, `unit-cell`, `transform`, `transform-reset`, `visibility`, `remove` (the whole entry) | `list` (the scene outline)    | core                |
 | `contents`     | `visibility` (entity or chain: left out of every component, below)                                                          | `get` (entities, chains)      | core                |
 | `component`    | `add` (target, label), `modify` (target, mode `union`/`subtract`/`intersect`), `remove`, `rename`, `visibility`, `options` (hydrogens, quality, lighting, …) | — | core |
 | `representation` | `set` (on a component: type and params), `update` (a representation's params, the inspector), `visibility` (a row's eye), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays), `emissive`, `material`, `clipping` (target: excluded from the clip objects, Mol*'s clipping layer), `reset` (a layer, or `all`), `layers` (read: the layers applied, one per value of a kind on a structure, by id), `layer-update` (one layer's color or amount, where it is), `layer-remove` (one layer) | — | core |

@@ -83,7 +83,7 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`, `viewport`.                             |
 | `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.                                                     |
-| `structure`           | `preset`, `model`, `assembly`, `symmetry`, `visibility`, `remove`, `list`, `transform`, `transform-reset`, `unit-cell`.                                          |
+| `structure`           | `preset`, `assembly`, `symmetry`, `visibility`, `remove`, `list`, `transform`, `transform-reset`, `unit-cell`.                                                   |
 | `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                                                              |
 | `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                                                            |
 | `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`, `layers`, `layer-update`, `layer-remove`. |

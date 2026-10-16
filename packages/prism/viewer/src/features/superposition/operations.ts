@@ -27,6 +27,7 @@ import { StateTransform } from '@molstar/core/state';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResult } from '../../api/area.js';
+import { OptionalParam } from '../../api/params.js';
 import { isFailure, labelOf, loadedStructures, pickNamed } from '../../api/scope.js';
 import type { ResolvedPart } from '../../api/targets.js';
 import { LanguageParam, type TargetValue } from '../../api/target-param.js';
@@ -486,14 +487,23 @@ export class SuperposeApi extends ApiArea {
     title: 'Remove a superposition',
     params: {
       structure: PD.Text('', {
-        description: 'A superposed structure by label or state ref; empty: every superposed structure',
+        description: 'A superposed structure by label or state ref; empty: the only one (several: name it, or all)',
       }),
+      all: OptionalParam(PD.Boolean(false, { description: 'Every superposed structure' })),
     },
     when: (ctx) => (readSuperposed(ctx.plugin).length ? true : 'No structure is superposed.'),
-    async run({ structure }, ctx) {
+    async run({ structure, all: every }, ctx) {
       const made = readSuperposed(ctx.plugin);
       if (!made.length) return ApiResult.already('No structure is superposed.');
       let doomed = made;
+      // An empty remove is the only one (operations.md §1 "Words"); `all` clears.
+      if (!structure && !every && made.length > 1) {
+        return ApiResult.fail(
+          'ambiguous',
+          `Which superposition? ${made.length} structures are superposed.`,
+          `Name one (${made.map((m) => m.structure.label).join(', ')}), or give all: true.`,
+        );
+      }
       if (structure) {
         const all = loadedStructures(ctx);
         const s = pickNamed(all, structure, {

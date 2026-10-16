@@ -19,7 +19,6 @@ import { getTransformFromParams, type TransformParam } from '@molstar/plugin/sta
 import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { whileViewing } from '../sources/trajectory.js';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 import { reapplyContents } from './contents.js';
@@ -90,44 +89,6 @@ export class StructureApi extends ApiArea {
       await reapplyContents(ctx, freshStructures(ctx, applicable));
       return ApiResult.ok(`Applied ${provider.display.name} to ${applicable.map((x) => labelOf(ctx, x)).join(', ')}.`, {
         nodes: applicable.map((s) => s.cell.transform.ref),
-      });
-    },
-  });
-
-  readonly model = this.operation({
-    id: 'structure.model',
-    title: 'Show another model',
-    params: {
-      index: PD.Numeric(0, { min: 0, step: 1 }, { description: 'The model, from 0' }),
-      structure: StructureParam(),
-    },
-    // As `trajectory.frame`: a model shown is viewing, not a step (sequence.md §7.3), so Undo never lists a change it
-    // would leave where it is (the checkpoint restore keeps the frame shown now).
-    history: false,
-    async run({ index, structure }, ctx) {
-      const s = oneStructure(ctx, structure || undefined);
-      if (isFailure(s)) return s;
-      const model = s.model;
-      const trajectory = model?.trajectory?.cell.obj?.data;
-      if (!model || !trajectory) return ApiResult.fail('blocked', `${labelOf(ctx, s)} has no models to choose from.`);
-      const count = trajectory.frameCount;
-      if (index >= count) {
-        return ApiResult.fail(
-          'invalid',
-          `${labelOf(ctx, s)} has ${count} model${count === 1 ? '' : 's'}.`,
-          `Give 0 to ${count - 1}.`,
-        );
-      }
-      const params = model.cell.transform.params as { modelIndex: number };
-      if (params.modelIndex === index) return ApiResult.already(`${labelOf(ctx, s)} already shows model ${index + 1}.`);
-      await whileViewing(ctx.plugin, () =>
-        ctx.plugin.state.updateTransform(ctx.plugin.state.data, model.cell.transform.ref, {
-          ...params,
-          modelIndex: index,
-        }),
-      );
-      return ApiResult.ok(`${labelOf(ctx, s)} shows model ${index + 1} of ${count}.`, {
-        nodes: [s.cell.transform.ref],
       });
     },
   });

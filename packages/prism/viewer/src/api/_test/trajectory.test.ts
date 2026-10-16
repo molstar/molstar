@@ -32,6 +32,17 @@ describe('trajectory', () => {
     expect(none.value?.structures).toEqual([]);
   });
 
+  it('runs under its former ids too (operations.md §1 "Words"), listed once', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    expectOk(await v.api.run('structure.model', { index: 1 }));
+    expect(modelIndex(v)).toBe(1);
+    expect(v.api.describe('structure.model')?.definition.id).toBe('trajectory.frame');
+    expect(v.api.definitions.value.has('structure.model')).toBe(false);
+    const listed = await v.api.run('structure.get', {});
+    expect(listed).toMatchObject({ ok: true });
+    expectOk(await v.api.structure.get());
+  });
+
   it('shows a frame by index and by delta, without a history step', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     const steps = v.managers.history.steps.value.length;
@@ -55,7 +66,7 @@ describe('trajectory', () => {
   it('structure.model shows a model as viewing too: no history step', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     const steps = v.managers.history.steps.value.length;
-    expectOk(await v.api.structure.model({ index: 2 }));
+    expectOk(await v.api.trajectory.frame({ index: 2 }));
     expect(modelIndex(v)).toBe(2);
     expect(v.managers.history.steps.value.length).toBe(steps);
   });

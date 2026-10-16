@@ -88,7 +88,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `representation.layer-update` | Change a style layer |  | layer, value |
 | `representation.layers` | List the style layers | read | structure |
 | `representation.material` | Set material |  | material, component, structure |
-| `representation.remove` | Remove a representation | destructive | component, type, structure, node |
+| `representation.remove` | Remove a representation | destructive | component, type, all, structure, node |
 | `representation.reset` | Reset a style layer |  | layer, structure |
 | `representation.set` | Show a component as… |  | component, type, params, structure |
 | `representation.size` | Set size |  | target, theme, factor, structure, language |
@@ -142,7 +142,6 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `state.visibility` | Show or hide state cells |  | node, visible |
 | `structure.assembly` | Show an assembly |  | id, structure |
 | `structure.list` | Describe the scene | read |  |
-| `structure.model` | Show another model | view | index, structure |
 | `structure.preset` | Apply a representation preset |  | preset, structure |
 | `structure.remove` | Remove a structure | destructive | structure |
 | `structure.symmetry` | Show crystal symmetry |  | kind, radius, cells, structure |
@@ -156,7 +155,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `superpose.db` | Superpose by UniProt (SIFTS) |  | structures, traceOnly |
 | `superpose.ligands` | Superpose by ligands |  | language, targets |
 | `superpose.list` | List the superpositions | read |  |
-| `superpose.remove` | Remove a superposition |  | structure |
+| `superpose.remove` | Remove a superposition |  | structure, all |
 | `superpose.tm-align` | Superpose by TM-align |  | language, targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |

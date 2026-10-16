@@ -53,6 +53,8 @@ export class TrajectoryApi extends ApiArea {
 
   readonly frame = this.operation({
     id: 'trajectory.frame',
+    // One operation per state (operations.md §1 "Words"): the model a structure shows; `structure.model` was another.
+    aliases: ['structure.model'],
     title: 'Show a frame',
     params: {
       structure: StructureParam('A structure by label or state ref; empty: the one with frames in view'),

@@ -1453,7 +1453,7 @@ function sourceChanges(
   const structure = s.cell.transform.ref;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const apply = async (v: SourceValues, name: string) => {
-    if (name === 'model') return api.run('structure.model', { structure, index: v.model - 1 });
+    if (name === 'model') return api.run('trajectory.frame', { structure, index: v.model - 1 });
     if (v.type.startsWith('assembly:')) {
       return api.run('structure.assembly', { structure, id: v.type.slice('assembly:'.length) });
     }
