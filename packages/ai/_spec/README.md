@@ -39,7 +39,7 @@ ai-narration (nothing of the workspace)
 | `@molstar/ai-session`        | `AgentSession`, the session's drive, budgets, composition, `./compaction`, `runOnce`, prices                      | `ai-agent`, `ai-harness`, `ai-components`, `ai-tools`   |
 | `@molstar/ai-trace`          | `readTrace` and the views the Inspector draws; `./format`                                                         | `ai-agent`, `ai-harness`                                |
 | `@molstar/ai-fibers`         | the fiber kernel and host, its own storage port                                                                   | none                                                    |
-| `@molstar/ai-conformance`    | `runHarnessConformance`, `meterStorage`; `./testing` (clock, ids, scripted model and tools); `./fibers`           | `ai-agent`, `ai-harness`, `ai-fibers`                   |
+| `@molstar/ai-conformance`    | `runHarnessConformance`; `./testing` (clock, ids, scripted model and tools); `./fibers`                           | `ai-agent`, `ai-harness`, `ai-fibers`                   |
 | `@molstar/ai-narration`      | TTS providers (Gemini, OpenAI), WAV encoding; `./mediabunny` for AAC/Opus                                         | none                                                    |
 
 The import rules are Biome's (`noRestrictedImports` per package in the root `biome.json`); they are architecture, so a

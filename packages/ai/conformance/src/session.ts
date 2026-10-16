@@ -27,7 +27,6 @@ import {
   type TurnConfiguration,
   type TurnSummary,
 } from '@molstar/ai-harness';
-import { meterStorage, type StorageCounts } from './meter.js';
 import { SimulatedClock } from './testing/clock.js';
 import { simulatedIds } from './testing/ids.js';
 import { declareTools, user } from './testing/messages.js';
@@ -73,8 +72,6 @@ export interface Session {
   readonly host: HarnessHost;
   readonly client: HarnessClient;
   readonly port: RunnerPort;
-  /** Storage counts so far (P1–P11). */
-  counts(): StorageCounts;
   /** A runner over this session's port; its observations collect in `observations`. */
   runner(overrides?: Partial<RunnerOptions>): Runner & { readonly observations: Observation[] };
   /** Submits a prompt; if that launched a runner, runs one until it exits. */
@@ -93,9 +90,8 @@ export async function createSession(fixture: ConformanceFixture, setup: SessionS
   const clock = new SimulatedClock();
   const ids = simulatedIds();
   const harnessId = `harness-${++sessions}`;
-  const metered = meterStorage(await fixture.storage());
-  // Storage work in flight is work in progress for the simulated clock (slow backends, IndexedDB).
-  const inner = metered.storage;
+  // Storage work in flight is work in progress for the simulated clock (slow backends).
+  const inner = await fixture.storage();
   const storage: HarnessStorage = {
     transact: (harnessId, run) => clock.track(() => inner.transact(harnessId, run)),
     putBlobs: (harnessId, blobs) => clock.track(() => inner.putBlobs(harnessId, blobs)),
@@ -149,7 +145,6 @@ export async function createSession(fixture: ConformanceFixture, setup: SessionS
     host,
     client,
     port,
-    counts: metered.counts,
     runner,
     run,
     async send(prompt, options = {}) {

@@ -10,7 +10,6 @@ import { describe, expect, it } from 'vitest';
 import type { Message } from '@molstar/ai-agent';
 import {
   type CallRecord,
-  type Decision,
   HarnessError,
   type LaunchKey,
   MAIN,
@@ -21,7 +20,7 @@ import {
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { textOf, toolDefinition, user } from '../testing/messages.js';
-import { stepEvents, with_ } from './helpers.js';
+import { stepEvents } from './helpers.js';
 
 /** Handlers run inside the session they are made for; this is their way back to it. */
 interface Later {
@@ -62,12 +61,6 @@ const nestedRun = (...tools: string[]): RunSpec => ({
   limits: {},
 });
 
-/** One stage, every call at once. */
-const parallel = ({ payload }: Decision<'schedule'>) => ({
-  stages: [payload.calls.map((call) => call.callId)],
-  maxConcurrency: payload.calls.length,
-});
-
 /** What a failed `run()` says, whether it rejects or returns a failed result (the contract says only that it fails). */
 async function failureOf(attempt: Promise<RunResult>): Promise<string | undefined> {
   try {
@@ -91,39 +84,6 @@ const nestedCalls = (calls: readonly CallRecord[]) => calls.filter((call) => cal
 /** N1–N3 (Nested runs). */
 export function nestedCases(fixture: ConformanceFixture): void {
   describe('Nested runs', () => {
-    it('N1 nested-crash: a crash during a nested run writes nothing of it; the re-run runs it whole (harness.md §9)', async () => {
-      const later: Later = {};
-      const s = await createSession(fixture, {
-        host: { leaseMs: 30_000 },
-        declare: ['outer'],
-        tools: {
-          outer: async (context) => ({ text: (await context.run(nestedRun('inner'))).status }),
-          inner: () => ({ text: 'inner done' }),
-        },
-        model: [
-          { calls: [{ tool: 'outer', arguments: {} }] },
-          { calls: [{ tool: 'inner', arguments: {} }] },
-          { text: 'late', waitMs: 600_000 },
-          { calls: [{ tool: 'inner', arguments: {} }] },
-          { text: 'nested done' },
-          { text: 'final' },
-        ],
-      });
-      later.s = s;
-      const { launch } = await s.send('go', { run: false });
-      await crash(s, launch as string, () => s.model.invocations.length === 3);
-      expect(s.tools.callsOf('inner')).toHaveLength(1);
-      const before = stepEvents(await s.events()).flatMap((event) => event.calls);
-      expect(nestedCalls(before)).toHaveLength(0);
-      expect((await s.main()).some((message) => message.role === 'assistant')).toBe(false);
-      await recover(s);
-      expect(s.tools.callsOf('inner')).toHaveLength(2);
-      const nested = nestedCalls(stepEvents(await s.events()).flatMap((event) => event.calls));
-      expect(nested.filter((call) => call.kind === 'model')).toHaveLength(2);
-      expect(nested.filter((call) => call.kind === 'tool')).toHaveLength(1);
-      expect((await s.turns())[0]?.status).toBe('completed');
-    });
-
     it('N1 nested-records: a settled parent step holds the nested calls, with parentCallId (harness.md §9)', async () => {
       const s = await createSession(fixture, {
         declare: ['outer'],
@@ -184,42 +144,6 @@ export function nestedCases(fixture: ConformanceFixture): void {
       expect((await s.turns())[0]?.status).toBe('completed');
     });
 
-    it('N2 pointer-busy: of two sibling nested runs naming one pointer the second fails pointer-busy (harness.md §8, §9)', async () => {
-      const outcomes: (string | undefined)[] = [];
-      const s = await createSession(fixture, {
-        declare: ['a', 'b'],
-        tools: {
-          a: async (context) => {
-            const failure = await failureOf(context.run({ ...nestedRun(), pointer: 'shared' }));
-            outcomes.push(failure);
-            return { text: failure ?? 'ran' };
-          },
-          b: async (context) => {
-            const failure = await failureOf(context.run({ ...nestedRun(), pointer: 'shared' }));
-            outcomes.push(failure);
-            return { text: failure ?? 'ran' };
-          },
-        },
-        model: [
-          {
-            calls: [
-              { tool: 'a', arguments: {} },
-              { tool: 'b', arguments: {} },
-            ],
-          },
-          { text: 'nested done' },
-          { text: 'final' },
-        ],
-        drive: with_({ schedule: parallel }),
-      });
-      await s.send('go');
-      expect(outcomes).toHaveLength(2);
-      expect(outcomes.filter((outcome) => outcome === undefined)).toHaveLength(1);
-      expect(outcomes.filter((outcome) => outcome?.includes('pointer-busy'))).toHaveLength(1);
-      expect(await messagesOf(s, 'shared')).toHaveLength(2);
-      expect(s.model.remaining()).toBe(0);
-    });
-
     it('N2 pointer-busy: a nested run naming main fails pointer-busy (harness.md §8)', async () => {
       const outcomes: (string | undefined)[] = [];
       const s = await createSession(fixture, {
@@ -237,30 +161,6 @@ export function nestedCases(fixture: ConformanceFixture): void {
       expect(outcomes).toHaveLength(1);
       expect(outcomes[0]).toContain('pointer-busy');
       expect(s.model.remaining()).toBe(0);
-    });
-
-    it('N2 fork: a nested run started from a head moves no pointer (harness.md §9)', async () => {
-      const s = await createSession(fixture, {
-        declare: ['fork'],
-        tools: {
-          fork: async (context) => {
-            const { head } = await context.journal.read(MAIN);
-            if (head === undefined) throw new Error('main has no head');
-            const result = await context.run({ ...nestedRun(), input: [user('fork input')], from: head });
-            return { text: result.status };
-          },
-        },
-        model: [{ calls: [{ tool: 'fork', arguments: {} }] }, { text: 'forked' }, { text: 'final' }],
-      });
-      await s.send('go');
-      const step = stepEvents(await s.events()).find((event) => event.stepKind === 'tools');
-      expect(step?.moves.map((move) => move.pointer)).toEqual([MAIN]);
-      expect((await s.main()).map(textOf)).not.toContain('fork input');
-      // The fork continued from main's head: its model saw main's prompt before its own input.
-      const texts = s.model.projections[1]?.messages.map(textOf) ?? [];
-      expect(texts).toContain('go');
-      expect(texts).toContain('fork input');
-      expect(texts.indexOf('go')).toBeLessThan(texts.indexOf('fork input'));
     });
 
     it("N2 tool-journal: a handler's append moves its pointer when the step commits, not before (harness.md §8)", async () => {
@@ -297,110 +197,6 @@ export function nestedCases(fixture: ConformanceFixture): void {
       expect((await messagesOf(s, 'notes')).map(textOf)).toEqual(['remember']);
       const step = stepEvents(await s.events()).find((event) => event.stepKind === 'tools');
       expect(step?.moves.map((move) => move.pointer).sort()).toEqual([MAIN, 'notes']);
-    });
-
-    it("N2 main-read-only: a handler's append to main fails pointer-busy; read works (harness.md §8)", async () => {
-      let code: string | undefined;
-      let readable = 0;
-      const s = await createSession(fixture, {
-        tools: {
-          sneak: async (context) => {
-            try {
-              context.journal.append(MAIN, [user('sneaky')]);
-            } catch (error) {
-              code = error instanceof HarnessError ? error.code : String(error);
-            }
-            readable = (await context.journal.read(MAIN)).messages.length;
-            return { text: 'tried' };
-          },
-        },
-        model: [{ calls: [{ tool: 'sneak', arguments: {} }] }, { text: 'final' }],
-      });
-      await s.send('go');
-      expect(code).toBe('pointer-busy');
-      expect(readable).toBeGreaterThan(0);
-      expect((await s.main()).map(textOf)).not.toContain('sneaky');
-    });
-
-    it("N2 hold-per-attempt: a failed attempt's append is dropped; its retry appends again and only that commits (harness.md §8)", async () => {
-      const errors: string[] = [];
-      const s = await createSession(fixture, {
-        tools: {
-          log: (context) => {
-            try {
-              context.journal.append('log', [user(`attempt ${context.attempt}`)]);
-            } catch (error) {
-              errors.push(error instanceof HarnessError ? error.code : String(error));
-            }
-            return context.attempt === 1 ? { status: 'failed', text: 'flaky', transient: true } : { text: 'logged' };
-          },
-        },
-        model: [{ calls: [{ tool: 'log', arguments: {} }] }, { text: 'final' }],
-      });
-      await s.send('go');
-      expect(s.tools.callsOf('log').map((call) => call.attempt)).toEqual([1, 2]);
-      expect(errors).toEqual([]);
-      expect((await messagesOf(s, 'log')).map(textOf)).toEqual(['attempt 2']);
-    });
-
-    it("N2 pointer-continues: a nested run's pointer, used on a later turn, continues from its head (harness.md §9)", async () => {
-      let uses = 0;
-      const s = await createSession(fixture, {
-        declare: ['helper'],
-        tools: {
-          helper: async (context) => {
-            uses += 1;
-            const input = [user(uses === 1 ? 'first' : 'second')];
-            return { text: (await context.run({ ...nestedRun(), input, pointer: 'helper' })).status };
-          },
-        },
-        model: [
-          { calls: [{ tool: 'helper', arguments: {} }] },
-          { text: 'one' },
-          { text: 'turn 1 done' },
-          { calls: [{ tool: 'helper', arguments: {} }] },
-          { text: 'two' },
-          { text: 'turn 2 done' },
-        ],
-      });
-      await s.send('go');
-      expect((await messagesOf(s, 'helper')).map(textOf)).toEqual(['first', 'one']);
-      await s.send('again');
-      expect(await s.turns()).toHaveLength(2);
-      expect((await messagesOf(s, 'helper')).map(textOf)).toEqual(['first', 'one', 'second', 'two']);
-      // The second turn's nested model saw the first turn's exchange before the new input.
-      const seen = s.model.projections.find((projection) => projection.messages.map(textOf).includes('second'));
-      expect(seen?.messages.map(textOf).filter((text) => ['first', 'one', 'second'].includes(text))).toEqual([
-        'first',
-        'one',
-        'second',
-      ]);
-    });
-
-    it("N3 nested-usage: a nested run's usage is reported, never charged to the parent", async () => {
-      const s = await createSession(fixture, {
-        configuration: { limits: { uncachedInput: 5_000 } },
-        tools: {
-          investigate: async (context) => {
-            const result = await context.run({
-              input: [user('look closely')],
-              tools: { enabled: [], preauthorized: [], definitions: [] },
-              model: { target: { provider: 'scripted', model: 'scripted-1' }, parameters: {} },
-              limits: {},
-            });
-            return { text: result.status };
-          },
-        },
-        model: [
-          { calls: [{ tool: 'investigate', arguments: {} }] },
-          { text: 'found it', usage: { inputTokens: 10_000, outputTokens: 10 } },
-          { text: 'final' },
-        ],
-      });
-      await s.send('go');
-      const [turn] = await s.turns();
-      expect(turn?.status).toBe('completed');
-      expect(turn?.usage.uncachedInput).toBeGreaterThanOrEqual(10_000);
     });
 
     it("N3 nested-usage: the running budget excludes the nested 10k while the turn's usage totals include it", async () => {

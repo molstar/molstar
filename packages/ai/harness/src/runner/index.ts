@@ -9,7 +9,6 @@
 import type { Json, Message, ModelAdapter, ModelCapabilities } from '@molstar/ai-agent';
 import { canonicalJson } from '@molstar/ai-agent';
 import type { ItemView, LastCompaction } from '../contracts/drive.js';
-import type { Inspectable } from '../contracts/inspect.js';
 import type { Observation } from '../contracts/observe.js';
 import { type CommitBatch, HarnessError, type Lease, type Move } from '../contracts/ports.js';
 import {
@@ -62,7 +61,7 @@ const view = (item: Item): ItemView => ({
 });
 
 /** The engine (harness.md §4–§11): one runner serves turns for one claim, then releases or hands off. */
-export function createRunner(options: RunnerOptions): Runner & Inspectable {
+export function createRunner(options: RunnerOptions): Runner {
   const { port, drive } = options;
   const clock = options.clock ?? realClock;
   const ids = options.ids ?? randomIds;
@@ -725,7 +724,6 @@ export function createRunner(options: RunnerOptions): Runner & Inspectable {
 
   return {
     observe: () => observations,
-    retention: () => cache.retention(),
     abort() {
       halt('abort');
     },

@@ -16,7 +16,6 @@ import { performanceCases } from './cases/performance.js';
 import { projectionCases } from './cases/projection.js';
 import { regressionCases } from './cases/regressions.js';
 import { stepCases } from './cases/steps.js';
-import { supervisorCases } from './cases/supervisor.js';
 import { toolCases } from './cases/tools.js';
 import { turnCases } from './cases/turns.js';
 import type { ConformanceFixture } from './session.js';
@@ -31,7 +30,6 @@ export function runHarnessConformance(fixture: ConformanceFixture): void {
   nestedCases(fixture);
   budgetCases(fixture);
   projectionCases(fixture);
-  supervisorCases(fixture);
   observationCases(fixture);
   performanceCases(fixture);
   coverageCases(fixture);

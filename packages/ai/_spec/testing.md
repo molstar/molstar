@@ -12,28 +12,29 @@ calls a real model costs money; ask before running it.
 
 ## The conformance suite
 
-`runHarnessConformance({ name, storage: () => HarnessStorage })` runs every case against one backend. It is the
-harness's contract: a change to a contract (a record, an operation, a decision, an ending) comes with a case here, and
-the suite must pass on every backend. Runners: `components/src/harness/_test/conformance.test.ts` (memory) and
-`conformance-indexeddb.test.ts` (fake-indexeddb).
+`runHarnessConformance({ name, storage: () => HarnessStorage })` runs the 59 essential cases against a backend. It is
+the harness's contract: a change to a contract (a record, an operation, a decision, an ending) comes with a case here.
+The one runner is `components/src/harness/_test/conformance.test.ts` (memory); the IndexedDB run is gone, and with it
+the cases only a durable or shared store makes reachable: backend faults, leases and launch races, supervisor liveness,
+schema versions, tombstones, crash re-runs and storage cost (what was cut, and why:
+`.v6/ai/simplification/conformance.md`).
 
-| File (`conformance/src/cases/`) | Ids | What                                                                                   |
-| ------------------------------- | --- | -------------------------------------------------------------------------------------- |
-| `journal.ts`                    | J   | entries, heads, pointers, moves, projectability                                        |
-| `turns.ts`                      | T   | begin, end, stop, reset, park/resume, the inbox, leases, schema versions               |
-| `homes.ts`                      | H   | negative cases: each concern stays in its home                                         |
-| `steps.ts`                      | E   | step endings, retries, precedence (stop > fail > park > interrupt)                     |
-| `tools.ts`                      | X   | binding, repair, permission, schedule, keys and `prior`, contributions, the journal    |
-| `nested.ts`                     | N   | nested runs: budgets, depth, staging, re-runs                                          |
-| `budgets.ts`                    | B   | limits, charging, extension                                                            |
-| `projection.ts`                 | C   | projection, admission, capacity, segments                                              |
-| `supervisor.ts`                 | S   | liveness (takeover after a lease or launch window), stale claims, stalls               |
-| `observation.ts`                | O   | observers cannot affect a turn                                                         |
-| `performance.ts`                | P   | storage cost bounds, metered at the port (`meterStorage`), never timed                 |
-| `coverage.ts`                   | V   | the rest: drive errors, reset edge cases, nested decisions, operation edge cases, cost |
-| `regressions.ts`                | R   | bugs found, each pinned                                                                |
+| File (`conformance/src/cases/`) | Ids | Cases | What                                                                             |
+| ------------------------------- | --- | ----: | -------------------------------------------------------------------------------- |
+| `journal.ts`                    | J   |     2 | stop during tools leaves `main` as it was; the message hash is stable            |
+| `turns.ts`                      | T   |     5 | begin while active, Stop (a live runner, before a settlement), reset, catch-up   |
+| `homes.ts`                      | H   |     3 | negative cases: each concern stays in its home                                   |
+| `steps.ts`                      | E   |     9 | step endings, rounds, retries, park and resume                                   |
+| `tools.ts`                      | X   |     9 | denied, unbound, failed, skipped calls, keys, parked permission, sibling failure |
+| `nested.ts`                     | N   |     5 | nested runs: records, depth, pointers, usage                                     |
+| `budgets.ts`                    | B   |     4 | charging, token shortfall, `endBy`                                               |
+| `projection.ts`                 | C   |     5 | digest, prefix, window admission, unrepresentable, unknown tool                  |
+| `observation.ts`                | O   |     1 | observers cannot affect a turn                                                   |
+| `performance.ts`                | P   |     1 | P11: no round hashes more than the first                                         |
+| `coverage.ts`                   | V   |    12 | unbound calls, drive errors, reset, nested decisions, limits, defaults, filtered |
+| `regressions.ts`                | R   |     3 | bugs found, each pinned                                                          |
 
-Case names start with their id and cite the design section (`'R1 cold-read-fault: … (harness.md §4)'`).
+Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 
 `@molstar/ai-conformance/fibers`: `runFiberConformance({ name, create, durable? })`, the fibers' suite, run on memory
 and IndexedDB rows in `components/src/fibers/_test/`.
@@ -49,7 +50,7 @@ and IndexedDB rows in `components/src/fibers/_test/`.
 | `user`, `system`, `assistant`, `toolDefinition`, `declareTools`, `textOf` | message builders                                                                                                                                                            |
 
 `createSession(fixture, setup)` (from the main entry) wires host, client, port, scripted model and tools on a simulated
-clock for harness-level tests: `send(prompt)`, `run(launch)`, `events()`, `main()`, `turns()`, `counts()`.
+clock for harness-level tests: `send(prompt)`, `run(launch)`, `events()`, `main()`, `turns()`.
 
 ## Testing at each level
 

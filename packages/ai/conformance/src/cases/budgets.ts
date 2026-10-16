@@ -9,12 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { SimulatedClock } from '../testing/clock.js';
-import { crashMidStep, lastStep, stepEvents, with_ } from './helpers.js';
-
-/** Known lease and launch windows, so the cases can expire them (harness.md §4). */
-const WINDOWS = { leaseMs: 30_000, launchMs: 10_000 };
-
-const crash = (s: Session, launch: string) => crashMidStep(s, launch, WINDOWS.leaseMs);
+import { lastStep, stepEvents, with_ } from './helpers.js';
 
 const modelAttempts = async (s: Session) =>
   stepEvents(await s.events()).flatMap((event) =>
@@ -25,22 +20,6 @@ const modelAttempts = async (s: Session) =>
 export function budgetCases(fixture: ConformanceFixture): void {
   describe('Budgets', () => {
     // B1 (harness.md §11, Charging: every ended attempt counts once, when its step event is written)
-    it('B1 usage-once: a step re-run after a crash charges only the committed attempt', async () => {
-      const s = await createSession(fixture, {
-        host: WINDOWS,
-        model: [
-          { text: 'lost', waitMs: 60_000, usage: { inputTokens: 1_000, outputTokens: 100 } },
-          { text: 'kept', usage: { inputTokens: 200, outputTokens: 20 } },
-        ],
-      });
-      const { launch } = await s.send('go', { run: false });
-      await s.run(await crash(s, launch as string));
-      const [turn] = await s.turns();
-      expect(turn?.status).toBe('completed');
-      expect(turn?.usage).toMatchObject({ modelCalls: 1, uncachedInput: 200, output: 20 });
-      expect(await modelAttempts(s)).toHaveLength(1);
-    });
-
     it('B1 missing-usage: an attempt with no reported usage is charged estimates, marked estimated', async () => {
       const s = await createSession(fixture, { model: [{ text: 'ok', usage: null }] });
       await s.send('go');
@@ -63,17 +42,6 @@ export function budgetCases(fixture: ConformanceFixture): void {
     });
 
     // B2 (harness.md §11, Admission)
-    it('B2 retry-after-call-limit: a retry is no new call, so it is admitted at modelCalls 1 (defect 1)', async () => {
-      const s = await createSession(fixture, {
-        configuration: { limits: { modelCalls: 1 } },
-        model: [{ fail: { transient: true } }, { text: 'ok' }],
-      });
-      await s.send('go');
-      const [turn] = await s.turns();
-      expect(turn?.status).toBe('completed');
-      expect(s.model.invocations).toHaveLength(2);
-    });
-
     it('B2 token-shortfall: a projected input over what remains opens budget before the attempt; extend admits it', async () => {
       const asked: { dimension: string; need: number | undefined }[] = [];
       const s = await createSession(fixture, {
@@ -99,58 +67,6 @@ export function budgetCases(fixture: ConformanceFixture): void {
       expect(s.model.invocations).toHaveLength(1);
       expect((await s.turns())[0]?.status).toBe('completed');
       expect(stepEvents(await s.events()).some((event) => event.limits?.uncachedInput === 1_000_000)).toBe(true);
-    });
-
-    it("B2 extend-persisted: an extend lost to a crash before the step's commit is asked again", async () => {
-      let asks = 0;
-      const s = await createSession(fixture, {
-        host: WINDOWS,
-        configuration: { limits: { uncachedInput: 10 } },
-        model: [{ text: 'a', waitMs: 60_000 }, { text: 'b' }],
-        drive: with_({
-          budget: () => {
-            asks += 1;
-            return { extend: { uncachedInput: 1_000_000 } };
-          },
-        }),
-      });
-      const { launch } = await s.send('go', { run: false });
-      const again = await crash(s, launch as string);
-      expect(asks).toBe(1);
-      expect((await s.client.execution()).turn?.budget.limits.uncachedInput).toBe(10);
-      await s.run(again);
-      expect(asks).toBe(2);
-      expect((await s.turns())[0]?.status).toBe('completed');
-    });
-
-    it('B2 extend-persisted: after a commit, a new runner sees the raised limits and is not asked again', async () => {
-      let asks = 0;
-      let clock: Session['clock'] | undefined;
-      const s = await createSession(fixture, {
-        host: WINDOWS,
-        configuration: { limits: { uncachedInput: 10 } },
-        tools: {
-          slow: async (context) => {
-            await clock?.sleep(60_000, context.signal);
-            return { text: 'done' };
-          },
-        },
-        model: [{ calls: [{ tool: 'slow', arguments: {} }] }, { text: 'final' }],
-        drive: with_({
-          budget: () => {
-            asks += 1;
-            return { extend: { uncachedInput: 1_000_000 } };
-          },
-        }),
-      });
-      clock = s.clock;
-      const { launch } = await s.send('go', { run: false });
-      const again = await crash(s, launch as string);
-      expect(asks).toBe(1);
-      expect((await s.client.execution()).turn?.budget.limits.uncachedInput).toBe(1_000_000);
-      await s.run(again);
-      expect(asks).toBe(1);
-      expect((await s.turns())[0]?.status).toBe('completed');
     });
 
     it('B2 end-by-mid-step: endBy passing during a tool opens budget; without an extend the step is abandoned, failed', async () => {

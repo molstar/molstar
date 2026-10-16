@@ -8,7 +8,6 @@
 
 import { hashMessage, type Json, type Message } from '@molstar/ai-agent';
 import type { ItemView } from '../contracts/drive.js';
-import type { RetentionSnapshot } from '../contracts/inspect.js';
 import type { Move, RunnerPort } from '../contracts/ports.js';
 import type {
   AttemptRecord,
@@ -254,12 +253,6 @@ export class WorkingSet {
       if (oldest.startsWith('m:')) this.stored.delete(oldest.slice(2));
     }
     return this.spill.has(key);
-  }
-
-  retention(): RetentionSnapshot {
-    let bytes = 0;
-    for (const message of this.messages.values()) bytes += JSON.stringify(message).length;
-    return { entries: this.messages.size, segments: this.segments.size, bytes, spillBytes: this.spillBytes };
   }
 }
 

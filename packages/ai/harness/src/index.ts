@@ -7,7 +7,6 @@
  */
 
 export type * from './contracts/drive.js';
-export type * from './contracts/inspect.js';
 export type * from './contracts/observe.js';
 export * from './contracts/ports.js';
 export * from './contracts/records.js';

@@ -6,6 +6,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { difference, emptyCounts, meterStorage, type StorageCounts, totalReads, totalWrites } from './meter.js';
 export { type ConformanceFixture, createSession, type Session, type SessionSetup } from './session.js';
 export { runHarnessConformance } from './suite.js';
