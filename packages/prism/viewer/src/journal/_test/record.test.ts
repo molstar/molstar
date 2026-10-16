@@ -42,6 +42,16 @@ describe('the session record', () => {
     record.dispose();
   });
 
+  it('reads only the definition of each finished run (hover runs pass by at pointer rate)', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const record = await createSessionRecord({ api: v.api });
+    const describe = vi.spyOn(v.api, 'describe');
+    expectOk(await v.api.highlight.set({ target: 'ligand' }));
+    expectOk(await v.api.structure.get());
+    expect(describe).not.toHaveBeenCalled();
+    record.dispose();
+  });
+
   it('records an undo as an entry naming the step, and a turn begun then settled', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });

@@ -14,7 +14,7 @@ import type { RunRecord } from '../../api/run.js';
 export function fakeApi() {
   const finished = new Subject<RunRecord>();
   let id = 0;
-  const api = { events: { finished }, describe: () => undefined } as unknown as ViewerApi;
+  const api = { events: { finished }, definitions: { value: new Map() } } as unknown as ViewerApi;
   /** A person's change, finished. */
   const run = (did = `Change ${id + 1}`, origin: RunRecord['origin'] = { kind: 'person' }) =>
     finished.next({

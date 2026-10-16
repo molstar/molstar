@@ -312,7 +312,8 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
 
   const sub = o.api.events.finished.subscribe((r) => {
     if (r.nested || !r.result) return;
-    const def = o.api.describe(r.operation)?.definition;
+    // The definition only (not `describe`, which resolves params and availability): this runs for every hover.
+    const def = o.api.definitions.value.get(r.operation);
     if (isQuiet(r, !!def?.read)) return;
     const at = r.started;
     const origin = r.origin.kind === 'agent' ? { kind: r.origin.kind, turn: r.origin.turn } : { kind: r.origin.kind };
