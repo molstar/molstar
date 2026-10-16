@@ -140,7 +140,9 @@ export const CameraParams = {
       PD.arrayToOptions(['perspective', 'orthographic'] as const),
     ),
   ),
-  fov: OptionalParam(PD.Numeric(45, { min: 10, max: 130, step: 1 }, { description: 'Field of view in degrees' })),
+  fov: OptionalParam(
+    PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of view', description: 'Field of view in degrees' }),
+  ),
 };
 export const XrParams = {
   on: PD.Boolean(true, { description: 'Enter (true) or leave (false) the headset view' }),
@@ -148,9 +150,13 @@ export const XrParams = {
 export const ClippingParams = {
   // As Canvas3D's `cameraClipping.radius`: how much is clipped away, around the camera's target.
   clip: OptionalParam(
-    PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
+    PD.Numeric(
+      0,
+      { min: 0, max: 99, step: 1 },
+      { label: 'Clip (%)', description: 'Percent of the scene clipped away (0: none)' },
+    ),
   ),
-  far: OptionalParam(PD.Boolean(true, { description: 'Hide the scene in the distance' })),
+  far: OptionalParam(PD.Boolean(true, { label: 'Hide distant scene', description: 'Hide the scene in the distance' })),
 };
 
 const canvasModule = ['canvas'] as const;

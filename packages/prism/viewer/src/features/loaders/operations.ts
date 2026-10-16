@@ -173,7 +173,14 @@ async function guarded<T>(ctx: ApiContext, work: () => Promise<T>): Promise<T> {
     if (e.type === 'error') logged.push(String(e.message));
   });
   try {
-    const out = await work();
+    let out: T;
+    try {
+      out = await work();
+    } catch (e) {
+      // A failed download reverts and the work then fails on what is missing; the log has the reason (the fetch).
+      if (logged[0]) throw new Error(logged[0]);
+      throw e;
+    }
     let reason: string | undefined = logged[0];
     plugin.state.data.cells.forEach((c) => {
       if (c.status === 'error' && !known.has(c.transform.ref)) reason ??= c.errorText;
@@ -183,6 +190,13 @@ async function guarded<T>(ctx: ApiContext, work: () => Promise<T>): Promise<T> {
   } finally {
     sub.unsubscribe();
   }
+}
+
+/** The data object of a download or read. A failed download reverts, so there may be no cell at all. */
+function objOf<O>(selector: { cell?: { obj?: O } } | undefined, what: string): O {
+  const obj = selector?.cell?.obj;
+  if (!obj) throw new Error(`could not read ${what}`);
+  return obj;
 }
 
 function pluginFailure(what: string, e: unknown, hint = 'Check the address and the network connection.') {
@@ -476,7 +490,7 @@ async function loadContent(
       plugin.dataTransaction(
         async () => {
           const cell = await dataCellOf(ctx, input, choice.binary, label);
-          const provider = providerFor(ctx, choice, name, cell.cell!.obj!);
+          const provider = providerFor(ctx, choice, name, objOf(cell, what));
           if (!provider) throw new Error(`could not tell the format of ${what}`);
           const problem = structureOptionsProblem(provider, options);
           if (problem) throw new Error(problem.message);
@@ -890,7 +904,7 @@ async function loadTrajectory(
         isBinary: p.modelFormat.binary,
         label: modelName,
       });
-      const modelProvider = providerFor(ctx, p.modelFormat, modelName, modelData.cell!.obj!);
+      const modelProvider = providerFor(ctx, p.modelFormat, modelName, objOf(modelData, modelName));
       if (!modelProvider) throw new Error(`could not tell the format of ${modelName}`);
       let model: StateObjectSelector;
       if (modelProvider.category === TopologyFormatCategory) {
@@ -905,7 +919,12 @@ async function loadTrajectory(
         isBinary: p.coordinatesFormat.binary,
         label: coordinatesName,
       });
-      const coordinatesProvider = providerFor(ctx, p.coordinatesFormat, coordinatesName, coordData.cell!.obj!);
+      const coordinatesProvider = providerFor(
+        ctx,
+        p.coordinatesFormat,
+        coordinatesName,
+        objOf(coordData, coordinatesName),
+      );
       if (!coordinatesProvider) throw new Error(`could not tell the format of ${coordinatesName}`);
       const coords = await coordinatesProvider.parse(plugin, coordData);
       const trajectory = await plugin
@@ -1039,7 +1058,7 @@ async function loadVolume(
   await plugin.dataTransaction(
     async () => {
       const data = await dataCellOf(ctx, input, choice.binary, '');
-      const provider = providerFor(ctx, choice, input.name, data.cell!.obj!);
+      const provider = providerFor(ctx, choice, input.name, objOf(data, input.name || 'the data'));
       if (!provider) throw new Error(`could not tell the format of ${input.name || 'the data'}`);
       const parsed = await provider.parse(plugin, data, { entryId });
       const first = (parsed.volume || parsed.volumes?.[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;

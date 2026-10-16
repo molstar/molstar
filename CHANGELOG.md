@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix the help panel's click-toggle binding (`clickToggle`), the Kinemage extension's registration of controls on
+  nonexistent registries, and the Zenodo import extension's display name
 - Fix `murmurHash3_128`, which was not MurmurHash3_x86_128 (one lane rotated by 13 instead of 18), and hash strings as
   their UTF-8 bytes in `murmurHash3_32`, `murmurHash3_128`, `hashMurmur32o` and `hashMurmur128o` (they hashed each
   UTF-16 code unit's low byte, so texts differing in characters above U+00FF could collide, e.g. in state transform

@@ -146,7 +146,7 @@ export class HelpContent extends PluginUIComponent {
   }
 
   render() {
-    const selectToggleTriggers = this.getTriggerFor(SelectLoci, 'clickSelectToggle');
+    const selectToggleTriggers = this.getTriggerFor(SelectLoci, 'clickToggle');
     const focusTriggers = this.getTriggerFor(FocusLoci, 'clickFocus');
 
     // TODO: interactive help, for example for density

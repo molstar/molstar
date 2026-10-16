@@ -96,6 +96,69 @@ function legendSwatch(legend: ScaleLegend | TableLegend | undefined): string | u
   return undefined;
 }
 
+/** The common choices that apply, and the current one when it is not among them. */
+function choices(
+  common: readonly [string, string][],
+  current: string,
+  ok: (id: string) => boolean,
+  label: (id: string) => string,
+  extra: (id: string) => Partial<QuickChoice>,
+) {
+  const list: QuickChoice[] = common.filter(([id]) => ok(id)).map(([id, l]) => ({ id, label: l, ...extra(id) }));
+  if (current && !list.some((c) => c.id === current)) {
+    list.push({ id: current, label: label(current), ...extra(current) });
+  }
+  return list;
+}
+
+function typeApplies(plugin: PluginContext, s: Structure | undefined, id: string) {
+  const registry = plugin.representation.structure.registry;
+  return registry.has(id) && !!s && registry.get(id).isApplicable(s);
+}
+
+function themeApplies(plugin: PluginContext, s: Structure | undefined, id: string) {
+  const themes = plugin.representation.structure.themes;
+  if (!themes.colorThemeRegistry.has(id) || !s || !themes.colorThemeRegistry.get(id).isApplicable({ structure: s })) {
+    return false;
+  }
+  // pLDDT only for a prediction: the theme takes any B-factors of a model not marked experimental, and an older file
+  // (no determination methodology) of an X-ray structure passes; its B-factors are not confidences.
+  return id !== 'plddt-confidence' || s.models.some(isPredicted);
+}
+
+/**
+ * The types and color themes offered for a representation, without the swatches and the gesture machinery of the quick
+ * settings: for a menu (the row's ⋯). Absent when the node is not a structure representation.
+ */
+export function representationChoices(
+  plugin: PluginContext,
+  ref: string,
+): { types: QuickChoice[]; themes: QuickChoice[]; type: string; theme: string } | undefined {
+  const cell = plugin.state.data.cells.get(ref);
+  const p = cell?.transform.params as Params | undefined;
+  const s = plugin.state.data.cells.get(cell?.transform.parent ?? '')?.obj?.data as Structure | undefined;
+  if (!p?.type || !s) return undefined;
+  const { registry, themes } = plugin.representation.structure;
+  return {
+    type: p.type.name,
+    theme: p.colorTheme.name,
+    types: choices(
+      CommonTypes,
+      p.type.name,
+      (id) => typeApplies(plugin, s, id),
+      (id) => registry.get(id)?.label ?? id,
+      () => ({}),
+    ),
+    themes: choices(
+      CommonThemes,
+      p.colorTheme.name,
+      (id) => themeApplies(plugin, s, id),
+      (id) => themes.colorThemeRegistry.get(id)?.label ?? id,
+      () => ({}),
+    ),
+  };
+}
+
 export function createRepresentationQuick(
   plugin: PluginContext,
   api: ViewerApi,
@@ -131,20 +194,6 @@ export function createRepresentationQuick(
     const provider = themes.colorThemeRegistry.get(name);
     return s && provider ? (PD.getDefaultValues(provider.getParams({ structure: s })) as Record<string, unknown>) : {};
   };
-  /** The common choices that apply, and the current one when it is not among them. */
-  const choices = (
-    common: readonly [string, string][],
-    current: string,
-    ok: (id: string) => boolean,
-    label: (id: string) => string,
-    extra: (id: string) => Partial<QuickChoice>,
-  ) => {
-    const list: QuickChoice[] = common.filter(([id]) => ok(id)).map(([id, l]) => ({ id, label: l, ...extra(id) }));
-    if (current && !list.some((c) => c.id === current)) {
-      list.push({ id: current, label: label(current), ...extra(current) });
-    }
-    return list;
-  };
   /** A theme's colors on this structure (its legend, with its defaults), once each. */
   const swatches = new Map<string, string | undefined>();
   const swatchOf = (id: string): Partial<QuickChoice> => {
@@ -166,19 +215,8 @@ export function createRepresentationQuick(
   // Another type (the current one, not among the common: interactions, putty, …): a generic glyph; its name is the tooltip
   // and the setting's head.
   const iconOf = (id: string): Partial<QuickChoice> => ({ icon: TypeIcons[id] ?? 'shapes' });
-  const typeOk = (id: string) => {
-    const s = structure();
-    return registry.has(id) && !!s && registry.get(id).isApplicable(s);
-  };
-  const themeOk = (id: string) => {
-    const s = structure();
-    if (!themes.colorThemeRegistry.has(id) || !s || !themes.colorThemeRegistry.get(id).isApplicable({ structure: s })) {
-      return false;
-    }
-    // pLDDT only for a prediction: the theme takes any B-factors of a model not marked experimental, and an older file
-    // (no determination methodology) of an X-ray structure passes; its B-factors are not confidences.
-    return id !== 'plddt-confidence' || s.models.some(isPredicted);
-  };
+  const typeOk = (id: string) => typeApplies(plugin, structure(), id);
+  const themeOk = (id: string) => themeApplies(plugin, structure(), id);
 
   const types = observableState<readonly QuickChoice[]>([]);
   const themeChoices = observableState<readonly QuickChoice[]>([]);

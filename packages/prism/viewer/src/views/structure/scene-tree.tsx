@@ -411,7 +411,8 @@ function MenuItem(props: { item: SceneMenuItem; onDone(): void }) {
   return (
     <button
       type="button"
-      role="menuitem"
+      role={item.checked !== undefined ? 'menuitemradio' : 'menuitem'}
+      aria-checked={item.checked !== undefined ? item.checked : undefined}
       class={classes.menuItem}
       data-danger={item.danger ? '' : undefined}
       onClick={() => {
@@ -419,8 +420,8 @@ function MenuItem(props: { item: SceneMenuItem; onDone(): void }) {
         props.onDone();
       }}
     >
-      {/* The column a submenu's chevron takes; items carry no icons. */}
-      <span />
+      {/* The column a submenu's chevron takes: a choice's check mark. */}
+      <span>{item.checked ? <Icon name="check" size={12} /> : null}</span>
       <span>{item.label}</span>
     </button>
   );

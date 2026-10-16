@@ -88,6 +88,8 @@ export interface SceneMenuItem {
   items?: readonly SceneMenuItem[];
   /** Its items are icons on its own row, always shown (Modify by selection: include, subtract, intersect), not a fold. */
   inline?: true;
+  /** Marked as the current choice (the representation's type in its Type menu). */
+  checked?: boolean;
   /** Unavailable while true (an action on the selection with nothing selected). */
   disabled?: Observable<boolean>;
 }

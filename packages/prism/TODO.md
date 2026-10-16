@@ -101,14 +101,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
-- Small bugs in Mol\*'s own code: the classic Help reads `clickSelectToggle` where the binding is `clickToggle`
-  (`plugin/ui/src/viewport/help.tsx`); kinemage probes a `ctx.customControls` that does not exist
-  (`extensions/kinemage/src/behavior.ts`); Zenodo's import behavior is named "Zenodo Export"
-  (`extensions/zenodo/src/index.ts`).
 - CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
   (`.github/workflows/node.yml`).
-- A load from a URL that does not answer fails with `Cannot read properties of undefined (reading 'cell')` instead of
-  saying so (`api/load`; found in the AI simplification's gate).
 
 ## Missing: prism-ui
 

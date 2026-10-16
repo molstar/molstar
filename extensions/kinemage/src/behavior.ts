@@ -39,11 +39,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
       // Register right-panel controls for Kinemage (show in the right-hand inspector)
       this.ctx.customStructureControls.set(Tag.Representation, KinemageControls as any);
-      // Some app hosts expose a global customControls registry; register there too so the card is visible
-      // even when no structure is loaded. Use `any` guards to avoid type errors if customControls isn't present.
-      if ((this.ctx as any).customControls && typeof (this.ctx as any).customControls.set === 'function') {
-        (this.ctx as any).customControls.set('kinemage', KinemageControls as any);
-      }
 
       // Register the .kin file handler so opening/dropping .kin is supported via the data formats system
       const entry: PluginRegistryEntry = {
@@ -65,8 +60,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
       this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-      this.ctx.genericRepresentationControls.delete(Tag.Representation);
-
       // Unregister the .kin data format provider and drag-and-drop handler
       this.unregisterEntry?.();
       this.unregisterEntry = undefined;
@@ -75,11 +68,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
       try {
         this.ctx.customStructureControls.delete(Tag.Representation);
       } catch {}
-      if ((this.ctx as any).customControls && typeof (this.ctx as any).customControls.delete === 'function') {
-        try {
-          (this.ctx as any).customControls.delete('kinemage');
-        } catch {}
-      }
     }
   },
   params: () => ({

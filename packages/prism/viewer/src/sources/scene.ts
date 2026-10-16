@@ -75,7 +75,12 @@ import { fromChanged, type SourceScope } from './state.js';
 import type { Observable } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
-import { createRepresentationQuick, type RepresentationQuickSource } from './representation-quick.js';
+import {
+  createRepresentationQuick,
+  representationChoices,
+  type RepresentationQuickSource,
+} from './representation-quick.js';
+import type { RepresentationQuickChange } from '../model/representation-quick.js';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -112,7 +117,9 @@ class Node implements SceneNode {
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
   icon: IconName;
-  menu?: readonly SceneMenuItem[];
+  #menu?: readonly SceneMenuItem[];
+  /** Builds the menu when read, for one that follows the state (a representation's current type marked). */
+  menuSource?: () => readonly SceneMenuItem[] | undefined;
   removable?: boolean;
   lazy?: boolean;
   load?: (peek?: boolean) => void;
@@ -135,6 +142,12 @@ class Node implements SceneNode {
     this.#expanded = observableState(expanded);
   }
 
+  get menu(): readonly SceneMenuItem[] | undefined {
+    return this.menuSource?.() ?? this.#menu;
+  }
+  set menu(items: readonly SceneMenuItem[] | undefined) {
+    this.#menu = items;
+  }
   get label(): ReadonlyState<string> {
     return this.#label.asReadonly;
   }
@@ -400,6 +413,8 @@ export function createSceneSource(
         remove: () => void api.run('representation.remove', { node: ref }),
       });
       n.removable = true;
+      const node = n;
+      n.menuSource = () => representationMenu(plugin, api, ref, () => picked.set(node));
       nodes.set(ref, n);
     }
     n.icon = ReprIcons[type] ?? 'cartoon';
@@ -1488,6 +1503,49 @@ function sourceChanges(
     if (name === 'radius' || name === 'cells') timer = setTimeout(run, 150);
     else run();
   };
+}
+
+/**
+ * A structure representation's row menu: its type and color (what people change most; the current ones checked), then
+ * the whole form in the inspector. Remove follows from the tree.
+ */
+function representationMenu(plugin: PluginContext, api: ViewerApi, ref: string, edit: () => void): SceneMenuItem[] {
+  const choices = representationChoices(plugin, ref);
+  // One change, one undo step: through the quick settings' own path (the params of another type keep the opacity).
+  const change = (c: RepresentationQuickChange) => {
+    const quick = createRepresentationQuick(plugin, api, ref);
+    quick?.change(c);
+    quick?.settle();
+  };
+  return [
+    ...(choices
+      ? [
+          {
+            id: 'type',
+            label: 'Type',
+            icon: 'shapes' as const,
+            items: choices.types.map((t) => ({
+              id: t.id,
+              label: t.label,
+              checked: t.id === choices.type,
+              run: () => change({ type: t.id }),
+            })),
+          },
+          {
+            id: 'color',
+            label: 'Color',
+            icon: 'palette' as const,
+            items: choices.themes.map((t) => ({
+              id: t.id,
+              label: t.label,
+              checked: t.id === choices.theme,
+              run: () => change(t.id === 'uniform' ? { theme: 'uniform' } : { theme: t.id, color: undefined }),
+            })),
+          },
+        ]
+      : []),
+    { id: 'edit', label: 'Edit…', icon: 'sliders-horizontal' as const, run: edit },
+  ];
 }
 
 /** The structure row's menu: presets, assemblies, crystal symmetry, density streaming, and the transform's reset. */

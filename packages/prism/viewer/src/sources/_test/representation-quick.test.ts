@@ -127,3 +127,26 @@ describe('the quick settings of a structure representation', () => {
     await until(() => v.api.history.steps.value.length === steps + 1);
   });
 });
+
+describe('the representation row menu', () => {
+  it('offers Type and Color (the current ones checked), Edit…, and changes the type as one step', async () => {
+    const { v, row } = await cartoon();
+    const menu = row.menu!;
+    expect(menu.map((m) => m.id)).toEqual(['type', 'color', 'edit']);
+    const type = menu.find((m) => m.id === 'type')!;
+    expect(type.items!.filter((i) => i.checked).map((i) => i.id)).toEqual(['cartoon']);
+    expect(menu.find((m) => m.id === 'color')!.items!.filter((i) => i.checked)).toHaveLength(1);
+
+    type.items!.find((i) => i.id === 'spacefill')!.run!();
+    await until(() => params(v, row.id).type.name === 'spacefill');
+    await idle(v);
+    // The menu follows the state.
+    expect(row.menu!.find((m) => m.id === 'type')!.items!.find((i) => i.checked)!.id).toBe('spacefill');
+
+    row.menu!.find((m) => m.id === 'color')!.items!.find((i) => i.id === 'element-symbol')!.run!();
+    await until(() => params(v, row.id).colorTheme.name === 'element-symbol');
+
+    row.menu!.find((m) => m.id === 'edit')!.run!();
+    expect(v.views.scene.picked.value?.id).toBe(row.id);
+  });
+});

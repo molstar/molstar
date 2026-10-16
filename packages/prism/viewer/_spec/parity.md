@@ -18,21 +18,21 @@ state behind a row: [state.md](state.md). The code is the truth for how.
 
 ## 2. The scene
 
-| v5                                         | Prism                                                                                                          | API                                                 |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Structure source (model, type, assembly)   | structure inspector's Model and Type; row menu                                                                 | `trajectory.frame`, `structure.assembly`, `.preset` |
-| crystal symmetry, unit cell                | inspector's Type; a Unit cell row                                                                              | `structure.symmetry`, `.unit-cell`                  |
-| Conformation Transform                     | inspector's Transform; row menu's Reset transform                                                              | `structure.transform`, `.transform-reset`           |
-| (new) contents                             | "Structure" group: entities, chains, built on expand                                                           | `contents.*`                                        |
-| Components, representations                | scene rows, menus, inspectors; quick settings (`model/representation-quick.ts`)                                | `component.*`, `representation.*`                   |
-| Quick styles                               | Structure tab styles; command menu                                                                             | `styles.apply`                                      |
-| generic representation controls            | extension rows in the scene tree (`ViewerExtensionUI.rows`)                                                    | the extension's (§6)                                |
-| Volume, density controls, volume streaming | volume nodes; levels (`model/volume-levels.ts`); transfer function (`model/volume-transfer.ts`); streaming row | `volume.*`                                          |
-| Particles                                  | particle nodes                                                                                                 | `particles.*`                                       |
-| Measurements                               | Selection › Measure; measurement nodes                                                                         | `measure.*`                                         |
-| Superposition                              | Selection › Superpose; Superposed list (new)                                                                   | `superpose.*` (lazy)                                |
-| State tree                                 | State tree tab (lazy)                                                                                          | `state.*`                                           |
-| Undo                                       | the viewer's history; History tab                                                                              | `history.*`                                         |
+| v5                                         | Prism                                                                                                                                            | API                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| Structure source (model, type, assembly)   | structure inspector's Model and Type; row menu                                                                                                   | `trajectory.frame`, `structure.assembly`, `.preset` |
+| crystal symmetry, unit cell                | inspector's Type; a Unit cell row                                                                                                                | `structure.symmetry`, `.unit-cell`                  |
+| Conformation Transform                     | inspector's Transform; row menu's Reset transform                                                                                                | `structure.transform`, `.transform-reset`           |
+| (new) contents                             | "Structure" group: entities, chains, built on expand                                                                                             | `contents.*`                                        |
+| Components, representations                | scene rows, menus, inspectors; quick settings (`model/representation-quick.ts`); a representation's ⋯ menu: Type, Color (current checked), Edit… | `component.*`, `representation.*`                   |
+| Quick styles                               | Structure tab styles; command menu                                                                                                               | `styles.apply`                                      |
+| generic representation controls            | extension rows in the scene tree (`ViewerExtensionUI.rows`)                                                                                      | the extension's (§6)                                |
+| Volume, density controls, volume streaming | volume nodes; levels (`model/volume-levels.ts`); transfer function (`model/volume-transfer.ts`); streaming row                                   | `volume.*`                                          |
+| Particles                                  | particle nodes                                                                                                                                   | `particles.*`                                       |
+| Measurements                               | Selection › Measure; measurement nodes                                                                                                           | `measure.*`                                         |
+| Superposition                              | Selection › Superpose; Superposed list (new)                                                                                                     | `superpose.*` (lazy)                                |
+| State tree                                 | State tree tab (lazy)                                                                                                                            | `state.*`                                           |
+| Undo                                       | the viewer's history; History tab                                                                                                                | `history.*`                                         |
 
 ## 3. Selection and focus
 

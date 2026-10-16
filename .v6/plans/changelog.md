@@ -341,6 +341,10 @@ the [API change ledger](breaking-v6-changes.md).
   a buffer stop at its end and return what they inflated. New optional `UnzipLimits` (`maxEntries`, `maxBytes`) as the
   fourth argument of `unzip`. Invalid or damaged archives that were read before now throw
 
+- Prism viewer: a representation's row menu (⋯) offers Type and Color (the current ones checked) and Edit…; a load
+  from an address that does not answer reports the failed fetch, not an internal error; the camera's field of view
+  and clipping fields have readable labels.
+
 ## Seq\* input streams
 
 - The Seq\* viewer's input for consumers is `ctx.interaction`: rxjs streams (`hover`, `press`, `click`, `drag`, `menu`,
@@ -367,3 +371,8 @@ the [API change ledger](breaking-v6-changes.md).
   downloaded once whoever asks first, concurrent requests share the download, the bytes are held while any resolved
   asset is held and dropped with the last `dispose`, and a failed download is not cached. Requests with a body and
   `store: false` bypass it
+
+## Prism UI cleanups
+
+- Duplicate command ids throw when registered, naming the id (they replaced the earlier command silently).
+- `ReactiveModel` has a `mountSignal`: an `AbortSignal` that aborts when the mount ends.
