@@ -3,27 +3,36 @@
 What is missing, and what was considered and deferred. One entry each, with a pointer; an entry leaves when it is done
 (its design or plan says so then). Gathered 2026-10-16 from the branch review
 ([2026-10-16-branch-review.md](../../.v6/prism-ui/reviews/2026-10-16-branch-review.md)), the specs
-([.v6/prism-ui/spec](../../.v6/prism-ui/spec/README.md)) and the code. The AI packages have their own:
-[../ai/TODO.md](../ai/TODO.md).
+([.v6/prism-ui/spec](../../.v6/prism-ui/spec/README.md)) and the code. The AI package (`@molstar/ai`) has its own:
+[../ai/TODO.md](../ai/TODO.md); Seq\*'s is [../sequences/todo.md](../sequences/todo.md).
 
 ## Decisions open
 
-- **Reconsider zod** (David). The agent's tools are field shapes (`paramsShape`, `viewer/src/agent/params.ts`, from each
-  operation's `ParamDefinition`) that `@molstar/ai` turns into zod, then into the JSON Schema the model sees and the
-  validator. zod is never in the page's startup bundle (the declarations are plain data, `viewer/src/agent/skills.ts`;
-  the assistant is a chunk, `assistant/src/spec.ts`), but it is ~192 kB minified in the assistant's chunk (English only,
-  as `scripts/esbuild/app.mjs` builds it; ~453 kB with every locale, 95 kB gzipped). Alternatives: JSON Schema straight
-  from `ParamDefinition` (operations already have it) or from the field shapes, with a small validator over that closed
-  vocabulary; a smaller validator. The AI SDK's providers import zod too, so it leaves the page only with adapters of
-  our own. The harness side: [../ai/TODO.md](../ai/TODO.md).
+- **One schema vocabulary; reconsider zod** (David). The workspace describes and checks data three ways: Mol\*'s
+  `ParamDefinition` (operations, options, Settings: `viewer/src/options.ts`, the API areas), io-ts in MolViewSpec
+  (`mvs/builder/src/tree/generic/field-schema.ts`, the builder and the runtime) and zod in `@molstar/ai` (the agent's
+  tools: field shapes from each operation's `ParamDefinition`, `viewer/src/agent/params.ts`, turned into zod, then into
+  the JSON Schema the model sees and the validator). The question is the workspace's, not the agent's: one vocabulary
+  that gives types, validation with good messages and JSON Schema (for the model, for MolViewSpec's published schema,
+  for SeqViewSpec), or each kept where it is. zod is never in the page's startup bundle (the tool declarations are plain
+  data, `viewer/src/agent/skills.ts`; the assistant is a chunk, `assistant/src/spec.ts`), but it is ~192 kB minified in
+  the assistant's chunk (English only, as `scripts/esbuild/app.mjs` builds it; ~453 kB with every locale, 95 kB
+  gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
+  Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
+  JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
+- **The splash: the light or the light as a wave** (2026-10-16). The empty canvas runs the light (`prism-field.ts`, with
+  its air, `fluid.ts`); the light as a wave (`quantum-field.ts`: Schrödinger by split-step FFT, Bohmian specks) is in
+  Storybook only (Components / Splash: Quantum, Side by side). Pick one, or offer both
+  (`ui.splash: 'light' | 'quantum'`).
 - **Duplicates** (review B11): `StatusModel` and `NotificationsManager`; `ShellModel.layout` beside `viewState.save()`;
   `persist.key` that namespaces nothing; three ways to run Preset and Styles in `StructureTab`.
 - **The query languages' registry is page-wide** (review B12): two viewers on a page offer each other's languages.
   Recommended: page-wide until pages with several viewers matter (plan.md phase 6).
 - **Size** (review C14–C18; C13 was a no-op: esbuild minifies identifiers under `minify: true`): MolViewSpec in the
-  startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk built from Seq\*'s whole
-  default spec (a Prism composition); eager extensions in the app (~190 kB, lazy stubs owning their formats); panels
-  shown on demand as static imports (command menu, History, Settings with the params form, volume inspectors);
+  startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk (one default for now,
+  everything but streaming; its floor of ~721 kB is aligners, SeqQL, streams and palettes:
+  [../sequences/todo.md](../sequences/todo.md)); eager extensions in the app (~190 kB, lazy stubs owning their formats);
+  panels shown on demand as static imports (command menu, History, Settings with the params form, volume inspectors);
   `sideEffects` declared almost nowhere.
 - **Build budgets** (2026-10-16, app.md §1): the `index.js` budget no longer bounds the start (the start code is in
   shared chunks since `lib`'s lazy import): a budget over the start closure (65 files, 4.4 MB, 1.29 MB gzipped); lower
@@ -49,11 +58,11 @@ What is missing, and what was considered and deferred. One entry each, with a po
   the index's size and folding, the record inside a `.molx` ([journal.md §1–2](../../.v6/prism-ui/spec/journal.md)).
 - The sequence's caches and its edits overlay ([sequence.md](../../.v6/prism-ui/spec/sequence.md) §2, §7).
 - No redo in the history (`ui/src/managers/history.ts`).
-- The app: hashed entry names, publishing the single file to Pages, a CI smoke of it
-  ([app.md §1–2](../../.v6/prism-ui/spec/app.md)).
+- The app: hashed entry names, the single file published to Pages beside the app (`pnpm deploy:remote` publishes the app
+  at `prism/` and Storybook at `ui-storybook/`), a CI smoke of it ([app.md §1–2](../../.v6/prism-ui/spec/app.md)).
 - Phase 6 and the switch: accessibility and touch, compact mode, several viewers on a page, performance budgets, and
   parity.md's missing rows ([plan.md](../../.v6/prism-ui/spec/plan.md) phases 6–7).
-- The story mode (`stories`) is not built.
+- Stories, its own app on prism-ui (there are no modes; `ModeChooser` is gone), is not built.
 
 ## Missing: the agent and the assistant
 
