@@ -146,7 +146,7 @@ kept record survives a reload.
    As built: `apps/prism-viewer` builds `prism-viewer.js` (every lazy part inlined) beside the app, exporting
    `createPrismViewer` and `FullPrismViewerSpec()`; checked in a browser on a plain page. Published with the rest: the
    `molstar` distribution carries `build/prism-viewer/` (the page, chunks, images and the single file) and
-   `scripts/deploy.js` copies it to Pages' `prism-viewer/`; the browser smoke (`node smoke/run.mjs browser`, run by
+   `scripts/deploy.js` copies it to Pages' `prism/`; the browser smoke (`node smoke/run.mjs browser`, run by
    CI's build job on the packed distribution) loads the single file on a plain page (a PDB, a lazy extension inlined,
    one script request).
 
@@ -173,7 +173,7 @@ snapshots' descriptions in the Playback card) are registered too. The assistant'
 real assistant on the real viewer over a scripted model (`createAssistantWith({ provided })`, its keys and choice in
 memory): the setup, turns done, waiting, running and failed, the Inspector's trace, tools and limits. prism-ui's own
 stories (Components) use stand-in models. Story mode has no stories (it is not built). The distribution stages the app for GitHub Pages in
-`build/prism-viewer/` (its page, chunks, images and the single file); `deploy.js` copies it to `prism-viewer/`.
+`build/prism-viewer/` (its page, chunks, images and the single file); `deploy.js` copies it to `prism/`.
 
 ## 4. Lanes and review gates
 
