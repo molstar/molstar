@@ -28,6 +28,8 @@ vi.mock('@molstar/seq-viewer/canvas', () => ({
     return { dispose: () => void (s.disposed = true) };
   },
 }));
+// The control mounts a section only where Seq*'s canvas can draw (it draws through OffscreenCanvas).
+vi.stubGlobal('OffscreenCanvas', class {});
 
 afterEach(() => {
   surfaces.length = 0;

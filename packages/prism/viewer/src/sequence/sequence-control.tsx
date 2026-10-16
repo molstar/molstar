@@ -90,9 +90,11 @@ export function SequenceControl(props: SequenceControlProps) {
   const band = bandState.asReadonly;
   const bandSub = viewer.structure.subscribe((s) => s && bandState.set(s.section));
   let section: Surface | undefined;
+  // Seq*'s canvas draws through OffscreenCanvas: where there is none (jsdom, Node) the band stays empty.
+  const drawable = typeof OffscreenCanvas === 'function';
   const mounted = band.subscribe((ref) => {
     section?.dispose();
-    section = mountSection(seq, ref, surface);
+    section = drawable ? mountSection(seq, ref, surface) : undefined;
   });
   onCleanup(() => {
     bandSub.unsubscribe();
