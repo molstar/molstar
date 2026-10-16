@@ -16,9 +16,11 @@ import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { flattenTree, VirtualList } from '@molstar/prism-ui';
 import { StateTreeTab } from '../views/state-tree/state-tree-tab.js';
+import { SceneTree } from '../views/structure/scene-tree.js';
+import { makeScene } from './performance-fixtures.js';
 import { story } from '@molstar/prism-ui/testing/index';
 
-const meta: Meta = { title: 'Internals/State tree performance' };
+const meta: Meta = { title: 'Internals/Performance/Trees' };
 export default meta;
 
 // The renderer check: the state tree at 5,000 cells under bursts of updates, in the `dom` runtime.
@@ -192,6 +194,79 @@ async function realTab(host: HTMLElement, out: Result[]) {
       () => {
         toggleAll(true);
         toggleAll(false);
+      },
+      host,
+    ),
+  );
+  dispose();
+}
+
+/** The real Scene tree (its rows, CSS, subscriptions) at 1,000 components, each with 3 representations. */
+async function sceneTree(host: HTMLElement, out: Result[]) {
+  const fixture = makeScene(1000, 3);
+  host.replaceChildren();
+  const box = document.createElement('div');
+  box.style.cssText = 'height: 600px; width: 320px; display: flex; flex-direction: column;';
+  host.append(box);
+  const dispose = render(() => <SceneTree scene={fixture.scene} />, box);
+  const shown = () => box.querySelectorAll('[role=treeitem]').length > 10;
+  // The structure is open from the start: 1,001 rows (+ Contents), the representations closed under their components.
+  out.push(
+    await time(
+      `Scene tree: first render, ${fixture.components.length} components`,
+      () => {},
+      host,
+      'only the window is rendered',
+      shown,
+    ),
+  );
+  out.push(await time('Scene tree: pick a component', () => fixture.scene.pick(fixture.components[500].node), host));
+  out.push(
+    await time(
+      `Scene tree: ${Burst} relabels`,
+      () => {
+        for (let i = 0; i < Burst; i++) fixture.components[i * 7].label.set(`Renamed ${i}`);
+      },
+      host,
+    ),
+  );
+  out.push(
+    await time(
+      'Scene tree: open and close 100 components',
+      () => {
+        for (const c of fixture.components.slice(0, 100)) c.expanded.set(true);
+        for (const c of fixture.components.slice(0, 100)) c.expanded.set(false);
+      },
+      host,
+      'each a flattening of the shown rows',
+    ),
+  );
+  out.push(
+    await time(
+      `Scene tree: open all ${fixture.components.length} components (${fixture.representations} representation rows)`,
+      () => {
+        for (const c of fixture.components) c.expanded.set(true);
+      },
+      host,
+      undefined,
+      shown,
+    ),
+  );
+  const viewport = box.querySelector<HTMLElement>('[data-axis] > div')!;
+  out.push(
+    await time(
+      'Scene tree: scroll to the bottom',
+      () => {
+        viewport.scrollTop = viewport.scrollHeight;
+      },
+      host,
+    ),
+  );
+  out.push(
+    await time(
+      'Scene tree: close all components',
+      () => {
+        for (const c of fixture.components) c.expanded.set(false);
       },
       host,
     ),
@@ -377,62 +452,148 @@ async function virtualTree(host: HTMLElement, out: Result[]) {
   dispose();
 }
 
+/** A button that runs `cases` in the fixed host and the table of their results. */
+function benchmark(cases: (host: HTMLElement, out: Result[]) => Promise<void>) {
+  return story(() => {
+    const results = observableState<readonly Result[]>([]);
+    const running = observableState(false);
+    // A fixed, contained area like the dock's panel, outside Storybook's root (whose addons watch every change there),
+    // themed like the story.
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 320px; height: 600px; contain: strict;';
+    const run = async () => {
+      document.body.append(host);
+      running.set(true);
+      const out: Result[] = [];
+      log.length = 0;
+      await cases(host, out);
+      host.replaceChildren();
+      host.remove();
+      results.set(out);
+      running.set(false);
+      (window as any).__mspPerf = { hidden: document.hidden, results: out, done: true };
+    };
+    return (
+      <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
+        <button
+          type="button"
+          style="justify-self: start; height: 28px; padding: 0 var(--msp-space-4); border-radius: 6px; background: var(--msp-color-control);"
+          disabled={running.asReadonly}
+          onClick={run}
+        >
+          {running.asReadonly.pipe(map((r) => (r ? 'Running…' : 'Run')))}
+        </button>
+        <table style="border-collapse: collapse;">
+          <For each={results.asReadonly}>
+            {(r) => (
+              <tr>
+                <td style="padding: var(--msp-space-1) var(--msp-space-4) var(--msp-space-1) 0">{r.case}</td>
+                <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
+                  {r.ms} ms
+                </td>
+                <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
+                  {r.longestTask ? `longest task ${r.longestTask} ms` : 'no long task'}
+                </td>
+                <td style="padding: var(--msp-space-1) 0; color: var(--msp-color-text-subtle)">{r.note ?? ''}</td>
+              </tr>
+            )}
+          </For>
+        </table>
+      </div>
+    );
+  });
+}
+
+// Storybook's accessibility checks run on every change in the story: at 5,000 rows they, not the UI, would be timed.
+const noA11y = { a11y: { disable: true, test: 'off' } };
+
 /**
  * The renderer check: the state tree at 5,025 cells in the `dom` runtime. Run it, then read the table (wall time in
  * this browser, layout forced).
  */
 export const StateTree: StoryObj = {
-  // Storybook's accessibility checks run on every change in the story: at 5,000 rows they, not the UI, would be timed.
-  parameters: { a11y: { disable: true, test: 'off' } },
+  name: 'State tree',
+  parameters: noA11y,
+  render: () =>
+    benchmark(async (host, out) => {
+      await realTab(host, out);
+      await stableRows(host, out);
+      await virtualTree(host, out);
+    }),
+};
+
+/** The same check for the scene tree: 1,000 components (3,000 representation rows when open), bursts of changes. */
+export const SceneTreeBenchmark: StoryObj = {
+  name: 'Scene tree',
+  parameters: noA11y,
+  render: () => benchmark(sceneTree),
+};
+
+/**
+ * Both real trees at their largest, to use by hand: scroll, and the keyboard (Up/Down, Home/End, Left/Right to close
+ * and open, Enter to select). The readout counts the rows in the DOM against the rows of the tree. Storybook's
+ * accessibility checks stay on: a window of rows is all they see.
+ */
+export const Interactive: StoryObj = {
+  name: 'Virtualized trees (interactive)',
   render: () =>
     story(() => {
-      const results = observableState<readonly Result[]>([]);
-      const running = observableState(false);
-      // A fixed, contained area like the dock's panel, outside Storybook's root (whose addons watch every change there),
-      // themed like the story.
-      const host = document.createElement('div');
-      host.className = 'msp-root';
-      host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 320px; height: 600px; contain: strict;';
-      const run = async () => {
-        document.body.append(host);
-        running.set(true);
-        const out: Result[] = [];
-        log.length = 0;
-        await realTab(host, out);
-        await stableRows(host, out);
-        await virtualTree(host, out);
-        host.replaceChildren();
-        host.remove();
-        results.set(out);
-        running.set(false);
-        (window as any).__mspPerf = { hidden: document.hidden, results: out, done: true };
+      const fixture = makeScene(1000, 3);
+      const roots = observableState<readonly StateTreeNode[]>(makeTree());
+      const model = treeModel(roots);
+      const cells = count(roots.value);
+      const panel = (title: string, body: () => HTMLElement) => {
+        const readout = document.createElement('div');
+        readout.style.cssText = 'font-variant-numeric: tabular-nums; color: var(--msp-color-text-subtle);';
+        const box = document.createElement('div');
+        box.style.cssText =
+          'height: 600px; width: 320px; display: flex; flex-direction: column; border: 1px solid var(--msp-color-border, #8884);';
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display: grid; gap: var(--msp-space-2); align-content: start;';
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        wrap.append(heading, readout, box);
+        const el = body();
+        box.append(el);
+        const update = () => {
+          const tree = box.querySelector<HTMLElement>('[role=tree]');
+          if (!tree) return;
+          const rendered = tree.querySelectorAll('[role=treeitem]').length;
+          const total = Math.round((parseFloat(tree.style.height) || 0) / 26);
+          readout.textContent = `${rendered} rows rendered of ${total}`;
+        };
+        const timer = setInterval(update, 250);
+        const stop = new MutationObserver(() => {
+          if (!wrap.isConnected) {
+            clearInterval(timer);
+            stop.disconnect();
+          }
+        });
+        stop.observe(document.body, { childList: true, subtree: true });
+        update();
+        return wrap;
+      };
+      const mount = (view: () => Node) => () => {
+        const el = document.createElement('div');
+        el.style.cssText = 'display: contents;';
+        // Rendered into a node of its own, the tree fills the box.
+        render(view, el);
+        return el;
       };
       return (
-        <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
-          <button
-            type="button"
-            style="justify-self: start; height: 28px; padding: 0 var(--msp-space-4); border-radius: 6px; background: var(--msp-color-control);"
-            disabled={running.asReadonly}
-            onClick={run}
-          >
-            {running.asReadonly.pipe(map((r) => (r ? 'Running…' : 'Run')))}
-          </button>
-          <table style="border-collapse: collapse;">
-            <For each={results.asReadonly}>
-              {(r) => (
-                <tr>
-                  <td style="padding: var(--msp-space-1) var(--msp-space-4) var(--msp-space-1) 0">{r.case}</td>
-                  <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
-                    {r.ms} ms
-                  </td>
-                  <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
-                    {r.longestTask ? `longest task ${r.longestTask} ms` : 'no long task'}
-                  </td>
-                  <td style="padding: var(--msp-space-1) 0; color: var(--msp-color-text-subtle)">{r.note ?? ''}</td>
-                </tr>
-              )}
-            </For>
-          </table>
+        <div
+          class="msp-root"
+          style="display: flex; gap: var(--msp-space-5); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);"
+        >
+          {panel(
+            `Scene tree: ${fixture.components.length} components, ${fixture.representations} representations`,
+            mount(() => <SceneTree scene={fixture.scene} />),
+          )}
+          {panel(
+            `State tree: ${cells} cells`,
+            mount(() => <StateTreeTab model={model} />),
+          )}
         </div>
       );
     }),
