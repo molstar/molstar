@@ -532,18 +532,16 @@ export function PaePlot(props: PaePlotProps) {
       <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--msp-space-2)">
         <span style={Quiet}>Expected position error (Å)</span>
         {plddt ? (
-          // Its label flush with the plot's right edge, as the line above ends (the button's padding past it).
-          <span style="margin: -4px calc(-1 * var(--msp-space-2)) -4px 0">
-            <Button
-              variant="ghost"
-              size="xs"
-              pressed={showPlddt.asReadonly}
-              title="Show each residue's pLDDT along the axes"
-              onClick={() => showPlddt.set(!showPlddt.value)}
-            >
-              pLDDT
-            </Button>
-          </span>
+          // Inside the card's edge, as everything else: pressed, its background ends where the plot does.
+          <Button
+            variant="ghost"
+            size="xs"
+            pressed={showPlddt.asReadonly}
+            title="Show each residue's pLDDT along the axes"
+            onClick={() => showPlddt.set(!showPlddt.value)}
+          >
+            pLDDT
+          </Button>
         ) : null}
       </div>
       {plddt ? plddtLegend : null}

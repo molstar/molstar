@@ -59,8 +59,9 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
             map(([list, ref]) => list.find((s) => s.ref === ref) ?? list[0]),
             distinctUntilChanged((a, b) => a?.ref === b?.ref),
           );
+          // The card's text column (its title's: the card's inset and a row's own), on both sides: the plot is no row.
           return (
-            <div style="display: grid; gap: var(--msp-space-3); min-width: 0; padding: 0 var(--msp-panel-inset) var(--msp-panel-inset)">
+            <div style="display: grid; gap: var(--msp-space-3); min-width: 0; padding: 0 calc(var(--msp-panel-inset) + var(--msp-inset)) calc(var(--msp-panel-inset) + var(--msp-inset))">
               <Show when={withPae.pipe(map((l) => (l.length > 1 ? l : undefined)))}>
                 {(list) => (
                   <Select
