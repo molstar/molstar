@@ -111,7 +111,8 @@ export function createMarksSource(scope: SourceScope, plugin: PluginContext): Ma
 /** The overpaint a representation has of its own (its overpaint cells'), without the marks. */
 function ownOverpaint(plugin: PluginContext, reprRef: string): Overpaint {
   const tree = plugin.state.data.tree;
-  for (const child of tree.children.get(reprRef).values()) {
+  // A representation that is gone has no children in the tree.
+  for (const child of tree.children.get(reprRef)?.values() ?? []) {
     const obj = plugin.state.data.cells.get(child)?.obj;
     if (!SO.Molecule.Structure.Representation3DState.is(obj)) continue;
     const state = (obj.data as SO.Molecule.Structure.Representation3DStateData).state as { overpaint?: Overpaint };
@@ -196,9 +197,9 @@ function paintMarks(
         }
       }
     }
-    // What it painted before and does not now: its own overpaint back.
+    // What it painted before and does not now: its own overpaint back (nothing for a representation that is gone).
     for (const [repr, ref] of painted) {
-      if (next.has(repr)) continue;
+      if (next.has(repr) || !plugin.state.data.tree.transforms.has(ref)) continue;
       repr.setState({ overpaint: ownOverpaint(plugin, ref) });
       plugin.canvas3d?.update(repr);
     }
@@ -233,7 +234,9 @@ function paintMarks(
   return () => {
     for (const s of subs) s.unsubscribe();
     if (frame > 0) cancelAnimationFrame(frame);
-    for (const [repr, ref] of painted) repr.setState({ overpaint: ownOverpaint(plugin, ref) });
+    for (const [repr, ref] of painted) {
+      if (plugin.state.data.tree.transforms.has(ref)) repr.setState({ overpaint: ownOverpaint(plugin, ref) });
+    }
     painted.clear();
   };
 }

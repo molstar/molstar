@@ -32,20 +32,28 @@ export function createHomeActions(
   api: ViewerApi,
 ): ReadonlyState<readonly HomeAction[]> {
   const state = observableState<readonly HomeAction[]>([]);
+  // A form keeps what was typed in it and its busy flag: an action registered or removed rebuilds only its own.
+  let made = new Map<string, { source: unknown; action: HomeAction }>();
   const build = () => {
     const root = plugin.state.data.cells.get(StateTransform.RootRef);
     if (!root?.obj) return;
     const list = plugin.state.data.actions.fromCell(root, plugin);
+    const next = new Map<string, { source: unknown; action: HomeAction }>();
     state.set(
       list
         // Opening files is the drop area's and the picker's (load.files); sessions are their own.
         .filter((a) => actionName(a) !== 'open-files')
         .map((a): HomeAction => {
+          const key = actionName(a);
+          const kept = made.get(key);
+          if (kept && kept.source === a) {
+            next.set(key, kept);
+            return kept.action;
+          }
           const params = a.definition.params?.(root.obj!, plugin) as PD.Params | undefined;
           const form = params ? new ParamsFormModel(params) : undefined;
           const busy = observableState(false);
-          const key = actionName(a);
-          return {
+          const action: HomeAction = {
             id: key,
             title: a.definition.display.name,
             icon: Icons[key] ?? 'download',
@@ -62,8 +70,11 @@ export function createHomeActions(
               }
             },
           };
+          next.set(key, { source: a, action });
+          return action;
         }),
     );
+    made = next;
   };
   build();
   scope.add(plugin.state.data.actions.events.added.subscribe(build));

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Representation } from '@molstar/graphics/repr/representation';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -72,6 +73,8 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   /** What was there when `show` was called: a structure added since, or another focus, ends it. */
   let showsSince: { refs: ReadonlySet<string>; focus: unknown } | undefined;
   let latestSelected: string | undefined;
+  /** What each structure had selected at the last change, to see which selection grew. */
+  const selectedSizes = new Map<string, number>();
   const keys = new WeakMap<Structure, number>();
   let serial = 0;
   const keyOf = (ref: string, s: Structure) => {
@@ -141,14 +144,21 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
 
   scope.add(
     plugin.managers.structure.selection.events.changed.subscribe(() => {
-      // The structure whose selection changed last (an addition, not a clear).
+      // The structure whose selection grew in this change (an addition, not a clear); the last of them if several.
       const list = plugin.managers.structure.hierarchy.current.structures;
+      const seen = new Set<string>();
       for (const s of list) {
         const data = s.cell.obj?.data;
         if (!data) continue;
+        const ref = s.cell.transform.ref;
         const loci = plugin.managers.structure.selection.getLoci(data);
-        if (StructureElement.Loci.is(loci) && loci.elements.length) latestSelected = s.cell.transform.ref;
+        const size = StructureElement.Loci.is(loci) ? StructureElement.Loci.size(loci) : 0;
+        if (size > (selectedSizes.get(ref) ?? 0)) latestSelected = ref;
+        else if (size === 0 && latestSelected === ref) latestSelected = undefined;
+        selectedSizes.set(ref, size);
+        seen.add(ref);
       }
+      for (const ref of [...selectedSizes.keys()]) if (!seen.has(ref)) selectedSizes.delete(ref);
       update();
     }),
   );
@@ -163,9 +173,13 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
 
   const actions: HostActions = {
     coloring() {
-      // The polymer's representations (not the ligands' ball and stick): one color theme among them, or none of the three.
+      // The followed structure's polymer representations (not the ligands' ball and stick): one color theme among them,
+      // or none of the three.
+      const ref = structure.value?.ref;
+      if (!ref) return undefined;
       let name: string | undefined;
       for (const st of plugin.managers.structure.hierarchy.current.structures) {
+        if (st.cell.transform.ref !== ref) continue;
         for (const c of st.components) {
           for (const r of c.representations) {
             const params = r.cell.transform.params as { type?: { name: string }; colorTheme?: { name: string } };
@@ -181,12 +195,11 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     },
     async colorStructure(coloring: StructureColoring) {
       // sequence.md §5: a track's "Color by this track" is `representation.color` on the polymer, as the link.
+      // Of the structure the sequence shows; with none, nothing (an empty structure would mean every one).
+      const ref = structure.value?.ref;
+      if (!ref) return;
       const theme = coloring === 'default' ? 'chain-id' : coloring;
-      await link.representation.color({
-        target: 'polymer',
-        theme,
-        structure: structure.value?.key.split(':')[0] ?? '',
-      });
+      await link.representation.color({ target: 'polymer', theme, structure: ref });
     },
   };
 
@@ -227,7 +240,13 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
           ),
         focus: (loci) => focus(() => link.camera.frame({ target: { loci } })),
         onHover: (fn) => {
-          const sub = plugin.behaviors.interaction.hover.subscribe((e) => fn(onto(e.current.loci)));
+          // Mol* emits the hover after every pick while the pointer moves: the same element again is not passed on.
+          let last: Representation.Loci | undefined;
+          const sub = plugin.behaviors.interaction.hover.subscribe((e) => {
+            if (last && Representation.Loci.areEqual(last, e.current)) return;
+            last = e.current;
+            fn(onto(e.current.loci));
+          });
           return () => sub.unsubscribe();
         },
         onSelect: (fn) => {

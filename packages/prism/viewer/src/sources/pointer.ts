@@ -6,10 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Representation } from '@molstar/graphics/repr/representation';
 import { StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { map, type Observable, share } from 'rxjs';
+import { distinctUntilChanged, map, type Observable, share } from 'rxjs';
 import { summarize } from '../targets/index.js';
 import { hoverLines } from './hover-lines.js';
 import { structureNames } from './naming.js';
@@ -74,9 +75,26 @@ export function createPointerSources(scope: SourceScope, plugin: PluginContext):
   };
   return {
     hoverLines: lines,
-    hover: plugin.behaviors.interaction.hover.pipe(map(toEvent), share()),
+    // Mol* emits the hover after every pick while the pointer moves: the same element under the same keys is one event.
+    hover: plugin.behaviors.interaction.hover.pipe(distinctUntilChanged(sameHover), map(toEvent), share()),
     click: plugin.behaviors.interaction.click.pipe(map(toEvent), share()),
   };
+}
+
+type Modifiers = ViewerPointerEvent['modifiers'];
+
+function sameHover(
+  a: { current: Representation.Loci; button: number; modifiers: Modifiers },
+  b: { current: Representation.Loci; button: number; modifiers: Modifiers },
+): boolean {
+  return (
+    a.button === b.button &&
+    a.modifiers.shift === b.modifiers.shift &&
+    a.modifiers.control === b.modifiers.control &&
+    a.modifiers.alt === b.modifiers.alt &&
+    a.modifiers.meta === b.modifiers.meta &&
+    Representation.Loci.areEqual(a.current, b.current)
+  );
 }
 
 function sameLines(a: readonly string[], b: readonly string[]): boolean {

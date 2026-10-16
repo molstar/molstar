@@ -60,4 +60,33 @@ describe('the marks on the representations', () => {
     ).toBe(true);
     expect(first.repr.state.overpaint.layers.length).toBeGreaterThan(0);
   });
+
+  it('keeps painting, and clears, after a marked representation is removed', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expectOk(
+      await v.api.highlight.mark({
+        owner: 'plot',
+        dimRest: true,
+        marks: [{ id: 'a', tone: 'accent', target: 'A:1-10' }],
+      }),
+    );
+    await frame();
+    const reprs = representations(v);
+    const failures: unknown[] = [];
+    const onError = (e: unknown) => failures.push(e);
+    process.on('uncaughtException', onError);
+    try {
+      await v.plugin.build().delete(reprs[0].ref).commit();
+      await frame();
+      // Another cell changes after it (it painted again), then the owner clears: neither throws.
+      await v.plugin.builders.data.rawData({ data: 'nothing', label: 'Unrelated' });
+      expectOk(await v.api.highlight.unmark({ owner: 'plot' }));
+      await frame();
+    } finally {
+      process.off('uncaughtException', onError);
+    }
+    expect(failures).toEqual([]);
+    // What is still there has its own overpaint back.
+    expect(reprs[1].repr.state.overpaint.layers.length).toBe(0);
+  });
 });

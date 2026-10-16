@@ -10,6 +10,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
 import type { HistoryManager } from '@molstar/prism-ui/core';
 import type { PrismStore } from '../spec.js';
+import { skip } from 'rxjs';
 import type { SourceScope } from './state.js';
 
 // The light restore (journal.md §6): after each step, debounced, this tab's scene without its data (the state tree's
@@ -90,7 +91,8 @@ export function createLightRestore(
     if (timer !== undefined) clearTimeout(timer);
     timer = setTimeout(write, wait);
   };
-  scope.add(history.steps.subscribe(() => schedule()));
+  // Not the steps it starts with: an empty scene before the host has run the restore would drop what is kept.
+  scope.add(history.steps.pipe(skip(1)).subscribe(() => schedule()));
   scope.add(() => {
     if (timer !== undefined) clearTimeout(timer);
   });

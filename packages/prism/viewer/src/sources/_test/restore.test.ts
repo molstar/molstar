@@ -58,6 +58,25 @@ describe('the light restore', () => {
     expect(said.filter((t) => /not kept across a reload/.test(t)).length).toBeGreaterThan(0);
   });
 
+  it('does not drop the kept scene while the viewer is made and the host has not yet run it', async () => {
+    vi.stubGlobal('fetch', async () => new Response(cif));
+    const store = memoryStore({ version: 'test', budget: 256 * 1024 });
+    const first = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
+    expectOk(await first.api.load.url!({ url: Url, format: 'mmcif' }));
+    first.restore!.flush();
+    expect(first.restore!.available).toBe(true);
+
+    vi.useFakeTimers();
+    try {
+      // The second viewer's scene is empty until the host runs the restore: no write may take the kept one away.
+      const second = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(second.restore!.available).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('drops what another version wrote, and anything over the budget', () => {
     const a = memoryStore({ version: '1', budget: 100 });
     a.set('x', { small: true });
