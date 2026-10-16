@@ -14,13 +14,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `animation.wiggle` | Wiggle |  | mode, amplitude |
 | `annotations.apply` | Show what a structure carries | network (addresses) | annotation, structure |
 | `annotations.list` | List what the structures carry | read | structure |
-| `camera.frame` | Frame | view; needs canvas | target, structure, language |
+| `camera.frame` | Frame | view; needs canvas | target, structure, language, animate |
 | `camera.get` | Describe the camera | read |  |
-| `camera.orient` | Orient along the principal axes | view; needs canvas | structure |
+| `camera.orient` | Orient along the principal axes | view; needs canvas | structure, animate |
 | `camera.reset` | Reset the camera | view; needs canvas | animate |
-| `camera.reset-axes` | Align the view with the x, y and z axes | view; needs canvas |  |
-| `camera.set` | Set the camera | view; needs canvas | position, target, up, fov, mode, animate |
-| `camera.zoom` | Zoom | view; needs canvas | factor |
+| `camera.reset-axes` | Align the view with the x, y and z axes | view; needs canvas | animate |
+| `camera.set` | Set the camera | view; needs canvas | position, target, up, fov, mode, animate, distance, radius, sceneRadius, showsAll |
+| `camera.zoom` | Zoom | view; needs canvas | factor, animate |
 | `canvas.background` | Set the background | needs canvas | color |
 | `canvas.camera` | Set the camera | needs canvas | mode, fov |
 | `canvas.clipping` | Clip the scene | needs canvas | clip, far |
@@ -89,7 +89,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `representation.layer-update` | Change a style layer |  | layer, value |
 | `representation.layers` | List the style layers | read | structure |
 | `representation.material` | Set material |  | material, component, structure |
-| `representation.remove` | Remove a representation | destructive | component, type, structure |
+| `representation.remove` | Remove a representation | destructive | component, type, structure, representation |
 | `representation.reset` | Reset a style layer |  | layer, structure |
 | `representation.set` | Show a component as… |  | component, type, params, structure |
 | `representation.size` | Set size |  | target, theme, factor, structure, language |
@@ -140,7 +140,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `state.visibility` | Show or hide a state cell |  | ref, visible |
 | `structure.assembly` | Show an assembly |  | id, structure |
 | `structure.get` | Describe the scene | read |  |
-| `structure.model` | Show another model |  | index, structure |
+| `structure.model` | Show another model | view | index, structure |
 | `structure.preset` | Apply a representation preset |  | preset, structure |
 | `structure.remove` | Remove a structure | destructive | structure |
 | `structure.symmetry` | Show crystal symmetry |  | kind, radius, cells, structure |
@@ -149,13 +149,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `structure.unit-cell` | Show the unit cell |  | visible, color, opacity, structure |
 | `structure.visibility` | Show or hide a structure |  | visible, structure |
 | `styles.apply` | Apply a style |  | style |
-| `superpose.atoms` | Superpose by atoms |  | targets |
-| `superpose.chains` | Superpose by chains |  | targets, alignSequences, traceOnly |
+| `superpose.atoms` | Superpose by atoms |  | language, targets |
+| `superpose.chains` | Superpose by chains |  | language, targets, alignSequences, traceOnly |
 | `superpose.db` | Superpose by UniProt (SIFTS) |  | structures, traceOnly |
-| `superpose.ligands` | Superpose by ligands |  | targets |
+| `superpose.ligands` | Superpose by ligands |  | language, targets |
 | `superpose.list` | List the superpositions | read |  |
 | `superpose.remove` | Remove a superposition |  | structure |
-| `superpose.tm-align` | Superpose by TM-align |  | targets, traceOnly |
+| `superpose.tm-align` | Superpose by TM-align |  | language, targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |
 | `trajectory.play` | Play the frames | view; needs canvas | mode, seconds |

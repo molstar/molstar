@@ -29,12 +29,12 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResult } from '../../api/area.js';
 import { isFailure, labelOf, loadedStructures, pickNamed } from '../../api/scope.js';
 import type { ResolvedPart } from '../../api/targets.js';
-import type { TargetValue } from '../../api/target-param.js';
+import { LanguageParam, type TargetValue } from '../../api/target-param.js';
 import { structureNames } from '../../sources/naming.js';
 import { polymerPart } from '../../sources/selection.js';
 import { sameItems } from '../../sources/state.js';
 import { watchedState } from '../../sources/watched.js';
-import type { Scoped } from '../../targets/types.js';
+import type { QueryLanguage, Scoped } from '../../targets/types.js';
 
 // The `superpose` area (operations.md §2, state.md: "the algorithms move out of the view into the API"): each operation
 // superposes structures onto a reference (the first) and records the transforms as one history step, so Undo puts them
@@ -135,6 +135,7 @@ async function members(
   ctx: ApiContext,
   targets: readonly SuperposeTarget[],
   wanted: Wanted,
+  language?: QueryLanguage,
 ): Promise<Member[] | ApiFailure> {
   const all = loadedStructures(ctx);
   let items: readonly SuperposeTarget[] = targets;
@@ -167,7 +168,7 @@ async function members(
     const s = scoped(items[i]);
     const target = s ? s.target : (items[i] as TargetValue);
     const structure = s?.structure || all[i].cell.transform.ref;
-    const resolved = await ctx.targets.resolve(target, { structure });
+    const resolved = await ctx.targets.resolve(target, { structure, ...(language ? { language } : {}) });
     if (isFailure(resolved)) return resolved;
     const part = resolved.parts.find((p) => p.selected.atoms > 0);
     if (!part) {
@@ -537,15 +538,21 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.chains',
     title: 'Superpose by chains',
     params: {
+      language: LanguageParam(),
       targets: TargetsParam('The polymer chain (or residues within it) to superpose'),
       ...SuperpositionOptions,
     },
     when: needsTwo,
-    async run({ targets, alignSequences, traceOnly }, ctx) {
-      const ms = await members(ctx, targets, {
-        what: 'a polymer chain',
-        hint: 'Select one polymer chain (or residues within it) in each of two or more structures.',
-      });
+    async run({ targets, alignSequences, traceOnly, language }, ctx) {
+      const ms = await members(
+        ctx,
+        targets,
+        {
+          what: 'a polymer chain',
+          hint: 'Select one polymer chain (or residues within it) in each of two or more structures.',
+        },
+        language,
+      );
       if (isFailure(ms)) return ms;
       const locis = chainLoci(ms, traceOnly);
       if (isFailure(locis)) return locis;
@@ -565,6 +572,7 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.tm-align',
     title: 'Superpose by TM-align',
     params: {
+      language: LanguageParam(),
       targets: TargetsParam(
         'The polymer chain to superpose',
         ' Sequence-independent: for chains of low sequence identity.',
@@ -572,11 +580,16 @@ export class SuperposeApi extends ApiArea {
       traceOnly: SuperpositionOptions.traceOnly,
     },
     when: needsTwo,
-    async run({ targets, traceOnly }, ctx) {
-      const ms = await members(ctx, targets, {
-        what: 'a polymer chain',
-        hint: 'Select one polymer chain in each of two or more structures.',
-      });
+    async run({ targets, traceOnly, language }, ctx) {
+      const ms = await members(
+        ctx,
+        targets,
+        {
+          what: 'a polymer chain',
+          hint: 'Select one polymer chain in each of two or more structures.',
+        },
+        language,
+      );
       if (isFailure(ms)) return ms;
       const locis = chainLoci(ms, traceOnly);
       if (isFailure(locis)) return locis;
@@ -614,17 +627,23 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.ligands',
     title: 'Superpose by ligands',
     params: {
+      language: LanguageParam(),
       targets: TargetsParam(
         'The ligand (one residue) to superpose',
         ' Matched by atom names when the compound is the same, else by the maximum common connected subgraph.',
       ),
     },
     when: needsTwo,
-    async run({ targets }, ctx) {
-      const ms = await members(ctx, targets, {
-        what: 'a ligand',
-        hint: 'Select one ligand residue in each of two or more structures.',
-      });
+    async run({ targets, language }, ctx) {
+      const ms = await members(
+        ctx,
+        targets,
+        {
+          what: 'a ligand',
+          hint: 'Select one ligand residue in each of two or more structures.',
+        },
+        language,
+      );
       if (isFailure(ms)) return ms;
       for (const m of ms) {
         if (!isSingleLigandLoci(m.loci)) {
@@ -676,17 +695,23 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.atoms',
     title: 'Superpose by atoms',
     params: {
+      language: LanguageParam(),
       targets: TargetsParam(
         'The atoms to superpose',
         ` The same number in each, paired in the order the structure holds them; at least ${MinAtoms}.`,
       ),
     },
     when: needsTwo,
-    async run({ targets }, ctx) {
-      const ms = await members(ctx, targets, {
-        what: 'atoms',
-        hint: `Select the same atoms, in the same order, in each of two or more structures (at least ${MinAtoms}).`,
-      });
+    async run({ targets, language }, ctx) {
+      const ms = await members(
+        ctx,
+        targets,
+        {
+          what: 'atoms',
+          hint: `Select the same atoms, in the same order, in each of two or more structures (at least ${MinAtoms}).`,
+        },
+        language,
+      );
       if (isFailure(ms)) return ms;
       const counts = ms.map((m) => StructureElement.Loci.size(m.loci));
       if (counts.some((n) => n !== counts[0])) {
