@@ -8,9 +8,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable } from 'rxjs';
+import { map } from 'rxjs';
 import { formatChord } from '@molstar/prism-ui/commands/keys';
-import { ActionFooter, type ModeChoice, ModeChooser } from '@molstar/prism-ui';
+import { ActionFooter } from '@molstar/prism-ui';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
@@ -29,8 +29,6 @@ export interface HomeTabProps {
   more?: () => Child;
   /** Opens the command menu (the hint at the bottom). */
   onOpenCommandMenu?: () => void;
-  /** The app's modes, when it has more than one: offered while nothing is loaded (design/modes.md). */
-  modes?: { list: readonly ModeChoice[]; active: Observable<string>; choose(id: string): void };
 }
 
 /**
@@ -46,21 +44,6 @@ export function HomeTab(props: HomeTabProps) {
       <ScrollArea class={classes.content} contentClass={classes.contentInner}>
         {home.session ? <Session session={home.session} /> : null}
         {home.annotationOffer ? <AnnotationOfferLine model={home.annotationOffer} /> : null}
-        {props.modes && props.modes.list.length > 1 ? (
-          <Show when={home.session?.isEmpty ?? true}>
-            {() => (
-              <section class={classes.group} aria-label="Mode">
-                <h3 class={classes.caption}>Mode</h3>
-                <ModeChooser
-                  variant="rows"
-                  modes={props.modes!.list}
-                  active={props.modes!.active}
-                  onChoose={(id) => props.modes!.choose(id)}
-                />
-              </section>
-            )}
-          </Show>
-        ) : null}
         <section class={classes.group} aria-label="Actions">
           {/* The first action (Download Structure, open), then Open Files, then the rest (folded). */}
           <For each={home.actions.pipe(map((a) => a.slice(0, 1)))} key={(a) => a.id}>
