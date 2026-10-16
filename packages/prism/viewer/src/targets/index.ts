@@ -25,10 +25,7 @@ export {
   type SummarizeOptions,
   evaluateExpression,
   evaluateTarget,
-  project,
   queryLoci,
-  selectionBounds,
-  selectionItems,
   selectLoci,
   summarize,
 } from './evaluate.js';

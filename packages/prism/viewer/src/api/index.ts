@@ -7,7 +7,7 @@
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
-import type { ViewerSources } from '../sources/viewer-sources.js';
+import type { ApiSources } from '../sources/viewer-sources.js';
 import {
   type ApiArea,
   type ApiAreaContext,
@@ -67,7 +67,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
 
 export interface ViewerApiDeps {
   readonly plugin: PluginContext;
-  readonly sources: ViewerSources;
+  readonly sources: ApiSources;
   readonly targets: TargetResolver;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
@@ -361,6 +361,6 @@ export * from './area.js';
 export type { NodeAttrs, NodeKind, NodeQuery } from './nodes.js';
 export { node, NodeKinds, parseNodeSelector, selectNodes } from './nodes.js';
 export type { RunRecord } from './run.js';
-export { ApiRunner, checkValues } from './run.js';
+export { checkValues } from './run.js';
 export type { ViewerCommandContext, ViewerManagers } from './managers.js';
 export type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from './targets.js';

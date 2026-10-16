@@ -47,13 +47,6 @@ export interface ComponentExpression {
   instance_id?: string;
 }
 
-/**
- * MVS schema items as a Struct of Arrays (as MVS's JSON annotations take them): one column per component-expression
- * field, one row per item, `null` where a row has no value. What a selection holds is stored this way: rows identify
- * residues or atoms in the file, never by author address.
- */
-export type SchemaItems = { [K in keyof ComponentExpression]?: (NonNullable<ComponentExpression[K]> | null)[] };
-
 /** A MolScript expression as JSON: the one form in which a target is kept (targets.md §2). */
 export interface MolQLSelector {
   molql: unknown;
@@ -109,69 +102,6 @@ export interface CompileOptions {
 
 export type CompiledTarget = { ok: true; molql: Expression; parsed: ParsedTarget } | Failure;
 
-/** The level a selection is projected to. */
-export type Level = 'atoms' | 'residues' | 'chains' | 'molecules';
-
-export interface SelectionCounts {
-  atoms: number;
-  residues: number;
-  chains: number;
-}
-
-/** What a selection selects: counts, the author chains, and rows at the level asked for. */
-export interface Projection extends SelectionCounts {
-  level: Level;
-  /** Author chain ids, in structure order. */
-  chainIds: string[];
-  /** Up to `limit` rows (see the row types). */
-  rows: ProjectedRow[];
-  /** Rows left out past the limit. */
-  more: number;
-  /** One line for a person or a model ("24 residues (180 atoms) in chain A"). */
-  line: string;
-}
-
-export type ProjectedRow = AtomRow | ResidueRow | ChainRow | MoleculeRow;
-
-export interface AtomRow {
-  kind: 'atom';
-  /** `A:315@OG1` (author chain, author residue, atom name). */
-  address: string;
-  element: string;
-  comp: string;
-  xyz: [number, number, number];
-}
-
-export interface ResidueRow {
-  kind: 'residue';
-  /** `A:315` (author numbering, insertion code if any). */
-  address: string;
-  comp: string;
-  atoms: number;
-}
-
-export interface ChainRow {
-  kind: 'chain';
-  auth: string;
-  label: string;
-  entity: string;
-  molecule: string;
-  residues: number;
-  atoms: number;
-  /** Author residue range, `A:229-500`, when the chain has numbered residues. */
-  range?: string;
-}
-
-export interface MoleculeRow {
-  kind: 'molecule';
-  entity: string;
-  molecule: string;
-  type: string;
-  chains: string[];
-  residues: number;
-  atoms: number;
-}
-
 /** What a selection selected in one author chain. */
 export interface SelectedChain {
   /** Author chain id. */
@@ -202,11 +132,4 @@ export interface Selected {
   instances: string[];
   /** One line for a person or a model: "42 residues (350 atoms) in chains A and B". */
   line: string;
-}
-
-/** Where a selection sits: the box its atoms span and their bounding sphere, both widened by a margin (A). */
-export interface SelectionBounds {
-  box: { min: [number, number, number]; max: [number, number, number] };
-  sphere: { center: [number, number, number]; radius: number };
-  atoms: number;
 }

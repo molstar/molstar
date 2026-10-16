@@ -10,7 +10,7 @@ import { type Structure, StructureElement } from '@molstar/model/model/structure
 import { Extents } from '@molstar/seq-core/model';
 import { StructureLink } from '@molstar/seq-molstar-poc';
 import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from '@molstar/seq-molstar-poc/viewer';
-import type { MarksSource } from '../sources/marks.js';
+import type { MarksView } from '../sources/marks.js';
 import { lociSize } from '@molstar/seq-viewer';
 import type { SequenceViewer } from './model.js';
 
@@ -34,7 +34,7 @@ const FromSequence: ReadonlySet<string> = new Set(['pointer', 'keyboard']);
 export function linkSequence(
   viewer: SequenceViewer,
   view3d: (structure: Structure) => SequenceView3D | undefined,
-  options?: LinkViewsOptions & { readonly marks?: MarksSource },
+  options?: LinkViewsOptions & { readonly marks?: MarksView },
 ): () => void {
   const seq = viewer.seq;
   let unlink: (() => void) | undefined;
@@ -84,7 +84,7 @@ export function linkSequence(
  * the structure shown; the hover as the 3D view's hover is (so it is not sent back to the 3D view, which lit it).
  * Returns the stop, which clears what it set.
  */
-function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: Structure, marks: MarksSource) {
+function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: Structure, marks: MarksView) {
   const scratch = Extents.create(16);
   const coordsOf = (loci: StructureElement.Loci) => {
     // Another structure's loci would remap by unit id and atom index onto whatever residues share them.

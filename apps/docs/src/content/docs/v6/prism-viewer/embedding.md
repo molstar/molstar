@@ -14,8 +14,7 @@ The packages are not published yet, so the import paths are the workspace's. The
 ## createPrismViewer
 
 ```ts
-import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
-import { createPrismViewer } from '@molstar/prism-viewer/page';
+import { createPrismViewer, DefaultPrismViewerSpec } from '@molstar/prism-viewer';
 
 const viewer = await createPrismViewer({
   target: document.getElementById('viewer')!,

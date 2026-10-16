@@ -39,8 +39,7 @@ and the result is the same.
 ## Using it
 
 ```ts
-import { createPrismViewer } from '@molstar/prism-viewer/page';
-import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
+import { createPrismViewer, DefaultPrismViewerSpec } from '@molstar/prism-viewer';
 
 const viewer = await createPrismViewer({ target: document.getElementById('app')!, spec: DefaultPrismViewerSpec() });
 await viewer.api.load.entry({ source: 'pdb', id: '1cbs' });

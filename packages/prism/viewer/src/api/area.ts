@@ -10,7 +10,7 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import type { PluginContext } from '@molstar/plugin/context';
 import type { HistoryContext, ReadonlyState } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
-import type { ViewerSources } from '../sources/viewer-sources.js';
+import type { ApiSources } from '../sources/viewer-sources.js';
 import type { ViewerManagers } from './managers.js';
 import type { RunRecord } from './run.js';
 import type { TargetResolver } from './targets.js';
@@ -114,7 +114,7 @@ export interface Projection<T = unknown> {
 export interface ApiAreaContext {
   /** Only `api/` and `sources/` use it (contexts.md §7). */
   readonly plugin: PluginContext;
-  readonly sources: ViewerSources;
+  readonly sources: ApiSources;
   readonly targets: TargetResolver;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;

@@ -170,6 +170,15 @@ type ViewerApi = CoreApi & Partial<ExtensionApis> & {       // CoreApi: the area
 
 ## 6. Extensions
 
+- **What is public** (2026-10-16): `@molstar/prism-viewer` is the embedder's entry (`createPrismViewer`,
+  `DefaultPrismViewerSpec`, the spec's, viewer's and API's types, `ApiResult`, `node`); `/api` is a curated list for
+  scripts and extensions (an area's base class, the result and operation types, `checkValues`, node selectors; the
+  runner and the API's construction stay inside); the other subpaths are listed one by one in `package.json`'s exports
+  (no `./*`): `/page`, `/headless`, `/spec`, `/default-spec`, `/features/<name>`, the views an extension draws with,
+  and the test helpers other packages' tests use. `viewer.sources` is read-only: every source is a state, and the
+  marks' writers are the API's (`highlight.mark`, `unmark`). `/agent/*` stays a pattern while the agent's API is
+  reworked.
+
 - **An extension's areas** come from `ViewerExtension.api`, a record of area factories by area id (viewer-spec.md §3),
   each made once: `viewer.api['geo-export'].export({ format: 'glb' })`, operation `geo-export.export`. An operation's id
   starts with its area's id (checked). A built-in feature's areas may be named for what they do (`measure`,

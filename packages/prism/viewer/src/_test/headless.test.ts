@@ -126,4 +126,13 @@ describe('the headless viewer', () => {
     await v.api.load.files({ files: [crambin()] as never });
     expect(seen).toEqual(['person:structure.list:true', 'script:load.files:true']);
   });
+
+  it('gives sources to read only (api.md §6): marks are set through highlight.mark, formats read when asked', async () => {
+    const v = await create();
+    expect('set' in v.sources.marks).toBe(false);
+    expect('setHover' in v.sources.marks).toBe(false);
+    expect(v.sources.marks.marks.value).toEqual([]);
+    expect(v.sources.formats.length).toBeGreaterThan(0);
+    expect(v.sources.structures).toBe(v.api.structure.loaded);
+  });
 });

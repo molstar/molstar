@@ -23,7 +23,7 @@ import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
 import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
-import type { MarksSource } from '../sources/marks.js';
+import type { MarksView } from '../sources/marks.js';
 import { linkSequence, type SequenceView3D } from './link.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
@@ -48,7 +48,7 @@ export interface SequenceControlProps {
   /** The Seq* hover label as lines for the shell's hover label (`[]`: none), once a frame and only when it changes. */
   onHover?: (lines: readonly string[]) => void;
   /** A view's marks and hover (marks.md): shown here too, through the link. */
-  marks?: MarksSource;
+  marks?: MarksView;
 }
 
 /** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */

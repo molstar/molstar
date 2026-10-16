@@ -138,8 +138,6 @@ Each is confirmed, but a public API shape, a recorded design decision or a packa
 ## Not done
 
 - A fast path in the runner for pointer-rate view operations (measure first: the hover is per element, not per frame).
-- `project()` and `selectionItems()` in `targets/evaluate.ts` still read atomic-only properties (nothing calls them; see
-  B9).
 - `sources.formats` is read when asked, but the drop overlay and Home read it once when the shell mounts.
 - The PAE row's size before the matrix is read is the model's polymer residues: right for a full ModelCIF PAE, not for a
   partial metric.

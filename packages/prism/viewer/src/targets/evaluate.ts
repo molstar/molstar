@@ -20,24 +20,7 @@ import { compactNumbers } from './addresses.js';
 import { compiledQuery, failure, messageOf } from './compile.js';
 import { compileTarget } from './target.js';
 import { selectorExpression } from './selector.js';
-import type {
-  AtomRow,
-  ChainRow,
-  CompileOptions,
-  CompiledTarget,
-  Failure,
-  Level,
-  MoleculeRow,
-  ProjectedRow,
-  Projection,
-  ResidueRow,
-  SchemaItems,
-  Selected,
-  SelectedChain,
-  SelectionBounds,
-  SelectorT,
-  Target,
-} from './types.js';
+import type { CompileOptions, CompiledTarget, Failure, Selected, SelectedChain, SelectorT, Target } from './types.js';
 
 // Evaluating a compiled target against a structure (targets.md §2): one evaluator, one set of semantics, whoever asked.
 // Ported from Stories Untold's `any-molql` (evaluate.ts).
@@ -88,25 +71,7 @@ export function evaluateTarget(
   return evaluated.ok ? { ...evaluated, target: compiled } : evaluated;
 }
 
-/** The bounds of what a selection selects (Mol*'s boundary of the loci); undefined when it selects nothing. */
-export function selectionBounds(loci: StructureElement.Loci, margin = 0): SelectionBounds | undefined {
-  const atoms = StructureElement.Loci.size(loci);
-  if (atoms === 0) return undefined;
-  const { box, sphere } = StructureElement.Loci.getBoundary(loci);
-  const v = (a: ArrayLike<number>, d: number): [number, number, number] => [
-    (a[0] as number) + d,
-    (a[1] as number) + d,
-    (a[2] as number) + d,
-  ];
-  return {
-    box: { min: v(box.min, -margin), max: v(box.max, margin) },
-    sphere: { center: v(sphere.center, 0), radius: sphere.radius + margin },
-    atoms,
-  };
-}
-
 const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-const round = (v: number) => Math.round(v * 10) / 10;
 
 /** "in chain A", "in chains A and B", "in chains A, B and C", "in 12 chains". */
 function inChains(chains: readonly string[]): string {
@@ -223,141 +188,4 @@ export function summarize(loci: StructureElement.Loci, options: SummarizeOptions
     instances: instances.size > 1 ? [...instances] : [],
     line: describe(atoms, residues, chainIds),
   };
-}
-
-/**
- * What a selection selects, projected to a level: atoms, residues, chains or molecules (entities), with counts at
- * every level and up to `limit` rows at the one asked for. (Ported from Stories; `summarize` is the cheaper account.)
- */
-export function project(loci: StructureElement.Loci, level: Level = 'residues', limit = 80): Projection {
-  const atoms: AtomRow[] = [];
-  const residues = new Map<string, ResidueRow>();
-  const chains = new Map<string, ChainRow & { min?: number; max?: number; residueKeys: Set<string> }>();
-  const molecules = new Map<string, MoleculeRow & { residueKeys: Set<string> }>();
-  let atomCount = 0;
-  StructureElement.Loci.forEachLocation(loci, (l) => {
-    atomCount++;
-    const chain = P.chain.auth_asym_id(l);
-    const seq = P.residue.auth_seq_id(l);
-    const ins = P.residue.pdbx_PDB_ins_code(l);
-    const comp = P.atom.label_comp_id(l);
-    const residueAddress = `${chain}:${seq}${ins ?? ''}`;
-    // Units of one chain under several operators (assemblies) are told apart by the unit id.
-    const unitKey = `${l.unit.id}|${residueAddress}`;
-    const residue = residues.get(unitKey);
-    if (residue) residue.atoms++;
-    else residues.set(unitKey, { kind: 'residue', address: residueAddress, comp, atoms: 1 });
-    if (level === 'atoms' && atoms.length < limit) {
-      atoms.push({
-        kind: 'atom',
-        address: `${residueAddress}@${P.atom.auth_atom_id(l)}`,
-        element: String(P.atom.type_symbol(l)),
-        comp,
-        xyz: [round(P.atom.x(l)), round(P.atom.y(l)), round(P.atom.z(l))],
-      });
-    }
-    const label = P.chain.label_asym_id(l);
-    const entity = P.entity.id(l);
-    const molecule = P.entity.pdbx_description(l).join(', ') || comp;
-    const chainKey = `${l.unit.id}|${chain}|${label}`;
-    let c = chains.get(chainKey);
-    if (!c) {
-      c = { kind: 'chain', auth: chain, label, entity, molecule, residues: 0, atoms: 0, residueKeys: new Set() };
-      chains.set(chainKey, c);
-    }
-    c.atoms++;
-    if (!c.residueKeys.has(unitKey)) {
-      c.residueKeys.add(unitKey);
-      c.residues++;
-      c.min = c.min === undefined ? seq : Math.min(c.min, seq);
-      c.max = c.max === undefined ? seq : Math.max(c.max, seq);
-    }
-    let m = molecules.get(entity);
-    if (!m) {
-      m = {
-        kind: 'molecule',
-        entity,
-        molecule,
-        type: P.entity.type(l),
-        chains: [],
-        residues: 0,
-        atoms: 0,
-        residueKeys: new Set(),
-      };
-      molecules.set(entity, m);
-    }
-    m.atoms++;
-    if (!m.chains.includes(chain)) m.chains.push(chain);
-    if (!m.residueKeys.has(unitKey)) {
-      m.residueKeys.add(unitKey);
-      m.residues++;
-    }
-  });
-  const chainIds = [...new Set([...chains.values()].map((c) => c.auth))];
-  const all: ProjectedRow[] =
-    level === 'atoms'
-      ? atoms
-      : level === 'residues'
-        ? [...residues.values()]
-        : level === 'chains'
-          ? [...chains.values()].map(({ residueKeys: _k, min, max, ...c }) => ({
-              ...c,
-              ...(min !== undefined && max !== undefined
-                ? { range: `${c.auth}:${min}${max !== min ? `-${max}` : ''}` }
-                : {}),
-            }))
-          : [...molecules.values()].map(({ residueKeys: _k, ...m }) => m);
-  const total = level === 'atoms' ? atomCount : all.length;
-  const rows = all.slice(0, limit);
-  const counts = { atoms: atomCount, residues: residues.size, chains: chains.size };
-  return {
-    level,
-    ...counts,
-    chainIds,
-    rows,
-    more: Math.max(0, total - rows.length),
-    line: describe(atomCount, counts.residues, chainIds),
-  };
-}
-
-/**
- * What a selection holds, as MVS schema items (Struct of Arrays): one row per residue, keyed by `label_asym_id`,
- * `auth_seq_id` and `pdbx_PDB_ins_code` (the column only when the file uses insertion codes), with `instance_id` in an
- * assembly (several operators); one row per atom (`atom_id`) when the selection cuts through residues. `auth_asym_id`
- * and `label_comp_id` (and `auth_atom_id`) are there to name rows for people, not to key them.
- */
-export function selectionItems(loci: StructureElement.Loci): SchemaItems {
-  const whole = StructureElement.Loci.extendToWholeResidues(loci);
-  const atomLevel = StructureElement.Loci.size(whole) !== StructureElement.Loci.size(loci);
-  const instances = new Set(loci.structure.units.map((u) => u.conformation.operator.instanceId));
-  const assembly = instances.size > 1;
-  const cols: Required<Pick<SchemaItems, 'label_asym_id' | 'auth_seq_id' | 'auth_asym_id' | 'label_comp_id'>> &
-    SchemaItems = { label_asym_id: [], auth_seq_id: [], pdbx_PDB_ins_code: [], auth_asym_id: [], label_comp_id: [] };
-  if (assembly) cols.instance_id = [];
-  if (atomLevel) {
-    cols.atom_id = [];
-    cols.auth_atom_id = [];
-  }
-  let insertions = false;
-  const seen = new Set<string>();
-  StructureElement.Loci.forEachLocation(loci, (l) => {
-    const ins = P.residue.pdbx_PDB_ins_code(l) || null;
-    const instance = P.unit.instance_id(l);
-    if (!atomLevel) {
-      const key = `${instance}|${P.chain.label_asym_id(l)}|${P.residue.auth_seq_id(l)}|${ins ?? ''}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-    }
-    if (ins) insertions = true;
-    cols.label_asym_id.push(P.chain.label_asym_id(l));
-    cols.auth_seq_id.push(P.residue.auth_seq_id(l));
-    cols.pdbx_PDB_ins_code?.push(ins);
-    cols.auth_asym_id.push(P.chain.auth_asym_id(l));
-    cols.label_comp_id.push(P.atom.label_comp_id(l));
-    cols.instance_id?.push(instance);
-    cols.atom_id?.push(P.atom.id(l));
-    cols.auth_atom_id?.push(P.atom.auth_atom_id(l));
-  });
-  if (!insertions) delete cols.pdbx_PDB_ins_code;
-  return cols;
 }

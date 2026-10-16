@@ -62,11 +62,16 @@ export const MarkRest: Readonly<Record<'light' | 'dark', number>> = { light: 0xc
 
 export type MarkColors = Readonly<Record<MarkTone | 'rest', number>>;
 
-export interface MarksSource {
+/** The marks to read (`viewer.sources.marks`): a view sets its marks through `highlight.mark` and `unmark`. */
+export interface MarksView {
   readonly marks: ReadonlyState<readonly Mark[]>;
   readonly hover: ReadonlyState<MarkHover | undefined>;
   /** The tones' colors on the canvas as it is (light or dark): what a view draws its own marks in. */
   readonly colors: ReadonlyState<MarkColors>;
+}
+
+/** The marks and their writers, which only the API's `highlight` uses. */
+export interface MarksSource extends MarksView {
   /** An owner's marks, replacing the ones it had. */
   set(owner: string, marks: readonly Omit<Mark, 'owner'>[]): void;
   clear(owner: string): void;
@@ -239,4 +244,9 @@ function paintMarks(
     }
     painted.clear();
   };
+}
+
+/** The read side of the marks, for `viewer.sources` (read-only: api.md §6). */
+export function marksView(m: MarksView): MarksView {
+  return { marks: m.marks, hover: m.hover, colors: m.colors };
 }

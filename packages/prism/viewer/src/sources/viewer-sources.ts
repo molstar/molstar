@@ -14,7 +14,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
 import { createInteractionSources, type InteractionSources } from './interaction.js';
-import { createMarksSource, type MarksSource } from './marks.js';
+import { createMarksSource, type MarksSource, type MarksView, marksView } from './marks.js';
 import { structureNames } from './naming.js';
 import { createPointerSources, type PointerSources } from './pointer.js';
 import { createSettingsSources, type SettingsSources } from './settings.js';
@@ -82,12 +82,25 @@ export interface ViewerSources {
    */
   readonly layers: ReadonlyState<readonly StyleLayerInfo[]>;
   /** A view's marks and hover on the scene (marks.md): in the 3D view and the sequence, never a history step. */
+  readonly marks: MarksView;
+}
+
+/** The sources as the API's areas have them: the marks with their writers (`highlight`). */
+export interface ApiSources extends ViewerSources {
   readonly marks: MarksSource;
+}
+
+/**
+ * The sources as `viewer.sources` gives them: every one a state to read (api.md §6), the marks without their writers.
+ * Getters stay getters (`formats` is read when asked).
+ */
+export function publicSources(sources: ApiSources): ViewerSources {
+  return Object.create(sources, { marks: { value: marksView(sources.marks), enumerable: true } }) as ViewerSources;
 }
 
 /** The sources and their disposer, kept by whoever made them. */
 export interface ViewerSourcesHost {
-  readonly sources: ViewerSources;
+  readonly sources: ApiSources;
   dispose(): void;
 }
 

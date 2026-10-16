@@ -17,7 +17,7 @@ import type { SequenceSource } from '../sources/sequence.js';
 import { LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
 import { LegendCard } from './legend-card.js';
 import type { SequenceViewers } from './model.js';
-import type { MarksSource } from '../sources/marks.js';
+import type { MarksView } from '../sources/marks.js';
 import { SequenceControl } from './sequence-control.js';
 
 // The sequence's parts in the page's shell (prism-sequence.md §2.2): its commands, the legend card, the band (a tab of
@@ -38,7 +38,7 @@ export interface SequenceShellDeps {
   /** The band's hover label, as lines (the shell merges it with the canvas's). */
   readonly onHover: (lines: readonly string[]) => void;
   /** A view's marks and hover (marks.md), shown in the sequence too. */
-  readonly marks?: MarksSource;
+  readonly marks?: MarksView;
 }
 
 /** Mounts the sequence's parts; returns their removal. */

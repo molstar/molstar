@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Structure } from '@molstar/model/model/structure';
+import { type Structure, StructureElement, StructureProperties as P } from '@molstar/model/model/structure';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   type SelectorT,
@@ -15,9 +15,7 @@ import {
   compileQuery,
   formatMolQL,
   joinSelectors,
-  project,
   selectLoci,
-  selectionItems,
 } from '../index.js';
 import { tinyStructure } from './fixture.js';
 import { registerQueryLanguages } from '../languages.js';
@@ -37,8 +35,16 @@ const pymol = (text: string): SelectorT => {
   if (!r.ok) throw new Error(r.message);
   return { molql: r.molql };
 };
-const residuesOf = (s: SelectorT) =>
-  project(selectLoci(structure, s), 'residues', 1000).rows.map((r) => (r.kind === 'residue' ? r.address : ''));
+/** The residues a selection holds, in order: their addresses and names. */
+function residues(loci: StructureElement.Loci): { address: string; comp: string }[] {
+  const out = new Map<string, string>();
+  StructureElement.Loci.forEachLocation(loci, (l) => {
+    const address = `${P.chain.auth_asym_id(l)}:${P.residue.auth_seq_id(l)}${P.residue.pdbx_PDB_ins_code(l) || ''}`;
+    if (!out.has(address)) out.set(address, P.atom.label_comp_id(l));
+  });
+  return [...out].map(([address, comp]) => ({ address, comp }));
+}
+const residuesOf = (s: SelectorT) => residues(selectLoci(structure, s)).map((r) => r.address);
 
 describe('compiling selection text to MolQL', () => {
   it('reads PyMOL, VMD, Jmol and MolScript', () => {
@@ -100,9 +106,9 @@ describe('evaluating selections (a tiny structure with a heme beside CYS 104)', 
     expect(around.length).toBeGreaterThan(2);
     expect(around).not.toContain('A:500');
     expect(around).not.toContain('A:119');
-    const cys = project(selectLoci(structure, pymol('resn CYS and chain A')), 'residues');
-    expect(cys.rows.every((r) => r.kind === 'residue' && r.comp === 'CYS')).toBe(true);
-    expect(cys.residues).toBe(3);
+    const cys = residues(selectLoci(structure, pymol('resn CYS and chain A')));
+    expect(cys.every((r) => r.comp === 'CYS')).toBe(true);
+    expect(cys).toHaveLength(3);
   });
 
   it('joins selections: items stay a list, anything else becomes one MolQL', () => {
@@ -113,27 +119,6 @@ describe('evaluating selections (a tiny structure with a heme beside CYS 104)', 
     expect(residuesOf(mixed as SelectorT)).toEqual(['A:104', 'A:500']);
     expect(joinSelectors(['ligand'])).toBe('ligand');
     expect(joinSelectors([])).toBeUndefined();
-  });
-
-  it('projects a selection to atoms, residues, chains and molecules', () => {
-    const loci = selectLoci(structure, pymol('resn HEM or (chain A and resi 104)'));
-    const atoms = project(loci, 'atoms', 5);
-    expect(atoms.rows[0]).toMatchObject({ kind: 'atom', element: expect.any(String) });
-    expect(atoms.more).toBe(atoms.atoms - 5);
-    const iron = project(selectLoci(structure, pymol('resn HEM and name FE')), 'atoms');
-    expect(iron.rows).toEqual([
-      { kind: 'atom', address: 'A:500@FE', element: 'FE', comp: 'HEM', xyz: expect.any(Array) },
-    ]);
-    const chains = project(loci, 'chains');
-    // The heme sits on author chain A but in its own label chain.
-    expect(chains.rows.map((r) => (r.kind === 'chain' ? `${r.auth}/${r.label}` : ''))).toEqual(['A/A', 'A/D']);
-    const molecules = project(loci, 'molecules');
-    expect(molecules.rows.map((r) => (r.kind === 'molecule' ? r.type : ''))).toEqual(['polymer', 'non-polymer']);
-    expect(project(loci).line).toBe(`2 residues (${atoms.atoms} atoms) in chain A`);
-  });
-
-  it('says when it selects nothing', () => {
-    expect(project(selectLoci(structure, pymol('chain Z'))).line).toBe('selects nothing');
   });
 });
 
@@ -146,33 +131,5 @@ describe('residue addresses', () => {
       'A:100A',
       'A:101',
     ]);
-  });
-});
-
-describe('what a selection holds, as schema items', () => {
-  it('keys residues by label chain and author number, apart from the author chain they share', () => {
-    const heme = selectionItems(selectLoci(structure, pymol('resn HEM')));
-    expect(heme.label_comp_id).toEqual(['HEM']);
-    // The heme is in author chain A with the protein, but in its own label chain.
-    expect(heme.auth_asym_id).toEqual(['A']);
-    expect(heme.label_asym_id?.[0]).not.toBe('A');
-    expect(heme.atom_id).toBeUndefined();
-    const pocket = selectionItems(selectLoci(structure, pymol('byres polymer within 4 of resn HEM')));
-    expect(pocket.label_asym_id?.length).toBe(pocket.auth_seq_id?.length);
-    expect(new Set(pocket.label_asym_id)).toEqual(new Set(['A']));
-  });
-
-  it('keeps insertion codes when the selection has one', () => {
-    const items = selectionItems(
-      selectLoci(structure, { auth_asym_id: 'A', beg_auth_seq_id: 109, end_auth_seq_id: 111 }),
-    );
-    expect(items.auth_seq_id).toContain(110);
-    expect(items.pdbx_PDB_ins_code).toContain('A');
-  });
-
-  it('lists atoms when the selection cuts through residues', () => {
-    const iron = selectionItems(selectLoci(structure, pymol('resn HEM and name FE')));
-    expect(iron.atom_id?.length).toBe(1);
-    expect(iron.auth_atom_id).toEqual(['FE']);
   });
 });

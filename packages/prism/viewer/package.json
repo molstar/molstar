@@ -9,15 +9,135 @@
     "node": ">=22.13.0"
   },
   "exports": {
-    "./*": {
-      "molstar-src": "./src/*.ts",
-      "types": "./lib/*.d.ts",
-      "import": "./lib/*.js"
-    },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
+    },
+    "./page": {
+      "molstar-src": "./src/page.ts",
+      "types": "./lib/page.d.ts",
+      "import": "./lib/page.js"
+    },
+    "./headless": {
+      "molstar-src": "./src/headless.ts",
+      "types": "./lib/headless.d.ts",
+      "import": "./lib/headless.js"
+    },
+    "./viewer": {
+      "molstar-src": "./src/viewer.ts",
+      "types": "./lib/viewer.d.ts",
+      "import": "./lib/viewer.js"
+    },
+    "./spec": {
+      "molstar-src": "./src/spec.ts",
+      "types": "./lib/spec.d.ts",
+      "import": "./lib/spec.js"
+    },
+    "./default-spec": {
+      "molstar-src": "./src/default-spec.ts",
+      "types": "./lib/default-spec.d.ts",
+      "import": "./lib/default-spec.js"
+    },
+    "./spec-check": {
+      "molstar-src": "./src/spec-check.ts",
+      "types": "./lib/spec-check.d.ts",
+      "import": "./lib/spec-check.js"
+    },
+    "./options": {
+      "molstar-src": "./src/options.ts",
+      "types": "./lib/options.d.ts",
+      "import": "./lib/options.js"
+    },
+    "./element": {
+      "molstar-src": "./src/element.ts",
+      "types": "./lib/element.d.ts",
+      "import": "./lib/element.js"
+    },
+    "./api": {
+      "molstar-src": "./src/api.ts",
+      "types": "./lib/api.d.ts",
+      "import": "./lib/api.js"
+    },
+    "./api/area": {
+      "molstar-src": "./src/api/area.ts",
+      "types": "./lib/api/area.d.ts",
+      "import": "./lib/api/area.js"
+    },
+    "./api/params": {
+      "molstar-src": "./src/api/params.ts",
+      "types": "./lib/api/params.d.ts",
+      "import": "./lib/api/params.js"
+    },
+    "./api/scope": {
+      "molstar-src": "./src/api/scope.ts",
+      "types": "./lib/api/scope.d.ts",
+      "import": "./lib/api/scope.js"
+    },
+    "./api/run": {
+      "molstar-src": "./src/api/run.ts",
+      "types": "./lib/api/run.d.ts",
+      "import": "./lib/api/run.js"
+    },
+    "./api/annotations": {
+      "molstar-src": "./src/api/annotations.ts",
+      "types": "./lib/api/annotations.d.ts",
+      "import": "./lib/api/annotations.js"
+    },
+    "./commands/operations": {
+      "molstar-src": "./src/commands/operations.ts",
+      "types": "./lib/commands/operations.d.ts",
+      "import": "./lib/commands/operations.js"
+    },
+    "./ui/download": {
+      "molstar-src": "./src/ui/download.ts",
+      "types": "./lib/ui/download.d.ts",
+      "import": "./lib/ui/download.js"
+    },
+    "./storage/model": {
+      "molstar-src": "./src/storage/model.ts",
+      "types": "./lib/storage/model.d.ts",
+      "import": "./lib/storage/model.js"
+    },
+    "./sources/watched": {
+      "molstar-src": "./src/sources/watched.ts",
+      "types": "./lib/sources/watched.d.ts",
+      "import": "./lib/sources/watched.js"
+    },
+    "./sequence/index": {
+      "molstar-src": "./src/sequence/index.ts",
+      "types": "./lib/sequence/index.d.ts",
+      "import": "./lib/sequence/index.js"
+    },
+    "./sequence/runtime": {
+      "molstar-src": "./src/sequence/runtime.ts",
+      "types": "./lib/sequence/runtime.d.ts",
+      "import": "./lib/sequence/runtime.js"
+    },
+    "./persist/stores": {
+      "molstar-src": "./src/persist/stores.ts",
+      "types": "./lib/persist/stores.d.ts",
+      "import": "./lib/persist/stores.js"
+    },
+    "./model/scene": {
+      "molstar-src": "./src/model/scene.ts",
+      "types": "./lib/model/scene.d.ts",
+      "import": "./lib/model/scene.js"
+    },
+    "./journal/history-model": {
+      "molstar-src": "./src/journal/history-model.ts",
+      "types": "./lib/journal/history-model.d.ts",
+      "import": "./lib/journal/history-model.js"
+    },
+    "./testing/real-viewer": {
+      "molstar-src": "./src/testing/real-viewer.ts",
+      "types": "./lib/testing/real-viewer.d.ts",
+      "import": "./lib/testing/real-viewer.js"
+    },
+    "./agent/*": {
+      "molstar-src": "./src/agent/*.ts",
+      "types": "./lib/agent/*.d.ts",
+      "import": "./lib/agent/*.js"
     },
     "./features/*": {
       "molstar-src": "./src/features/*/index.ts",

@@ -45,7 +45,7 @@ import type { SavedSequence } from './sequence/runtime.js';
 import { SourceScope } from './sources/state.js';
 import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
-import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
+import { createViewerSources, publicSources, type ViewerSources } from './sources/viewer-sources.js';
 import {
   type BuiltInViews,
   isLazyExtension,
@@ -469,7 +469,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         ),
       managers,
       views: viewsOf({ ...builtInViews, ...(sequence ? { sequence } : {}) }),
-      sources,
+      // Read-only (api.md §6): the marks' writers are the API's (`highlight.mark`).
+      sources: publicSources(sources),
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
