@@ -18,8 +18,8 @@ folder rules (§5).
 | Folder (`packages/ai/src/`) | From                                                                  | Notes                                                                 |
 | --------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `messages/`                 | `agent/src/{messages,values,hash}.ts`                                 | `models.ts` (the port) moves to `providers/port.ts`                    |
-| `harness/`                  | `harness/src/**`; `components/src/harness/storage/memory.ts`, `components/src/harness/supervisor/in-process.ts` | storage port and its one backend in one place |
-| `harness/_test/`            | the kept conformance cases (`conformance.md`), `harness/src/_test/head.test.ts`, `components/src/harness/_test/{memory,supervisor}.test.ts` | plain tests on memory storage |
+| `harness/`                  | `harness/src/**`, rewritten as the in-memory loop (harness.md); `components/src/harness/` goes | no storage port, no supervisor |
+| `harness/_test/`            | the kept conformance cases (`conformance.md`), a short state test (harness.md §6) | plain tests |
 | `providers/`                | `model-adapters/src/**` rewritten (`providers.md`); `model-catalog.ts` → `providers/models.ts` |                                  |
 | `tools/`                    | `tools/src/**`                                                        | `zod.ts` per open question 7                                          |
 | `session/`                  | `session/src/**` (with `compaction/`)                                 | minus `once.ts`, `prices.ts` (dead-code.md)                           |
@@ -55,15 +55,15 @@ Proposed `package.json` `exports` (explicit; no `./*`):
 - **`./trace` is separate** because only the Inspector needs it; `./trace` absorbs `./format` (57 lines, no
   dependencies).
 - **`./testing`** replaces `@molstar/ai-conformance/testing` for the Prism tests and stories that use `scriptedModel`.
-- **`./harness`** is for code that drives the host and runner directly (the tests, a future server host); the root
-  re-exports only the harness types a host names (`HarnessStorage`, `TurnConfiguration`, `Limits`, …).
+- **`./harness`** is for code that drives `createHarness` directly (the tests, compaction-like helpers); the root
+  re-exports only the harness types a host names (`TurnConfiguration`, `Limits`, the reader, …).
 - Add `"sideEffects": false` (no AI package sets it today, inferred from the ten `package.json`s): the minimal viewer's
   bundle today carries `@molstar/ai-fibers` although `agent: false` (`examples/minimal-prism-viewer/README.md:107`); one
   package must not make that worse.
 
 Dependencies of `@molstar/ai`: `ai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`,
-`@ai-sdk/openai-compatible`, `zod`, `tslib` (+ `mediabunny` only if narration stays). Dev: `fast-check`
-(`harness/src/_test/head.test.ts`, the S1 liveness case), `vitest` (root already has it). `fake-indexeddb` leaves the AI
+`@ai-sdk/openai-compatible`, `zod`, `tslib` (+ `mediabunny` only if narration stays). Dev: `vitest` (root already has it); `fast-check`
+leaves with `head.test.ts` and the S1 case (harness.md §6). `fake-indexeddb` leaves the AI
 package (it stays in the catalog: prism-viewer and prism-assistant tests use it, `pnpm-workspace.yaml:110`).
 
 ## 3. Name collisions on one root entry

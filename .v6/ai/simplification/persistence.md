@@ -19,8 +19,8 @@ repository lives in memory today.
 
 **Migrations**: there are none. `.v6/ai/README.md` decision 9 ("No data migration") and the schema version
 (`SCHEMA_VERSION = 1`, `harness/src/contracts/records.ts`; a claim from another version blocks the turn,
-`stale-schema`) are the whole story. So "remove its migrations" removes nothing; the schema-version check is option B
-(§4).
+`stale-schema`) are the whole story. So "remove its migrations" removes nothing; the schema-version check goes with the
+durability machinery (§4).
 
 ## 2. What goes (the harness's IndexedDB)
 
@@ -58,31 +58,17 @@ The fibers' IndexedDB rows back a real feature: History's **Keep** copies the se
 A meets "only the in-memory store stays" for the library and keeps the feature: the viewer owns its one persistent
 store. It touches files other sessions are editing (`packages/prism/**`), so it is its own slice (plan.md).
 
-## 4. Option B: the durability machinery behind the storage port
+## 4. The durability machinery behind the storage port: removed too (decided)
 
 IndexedDB was the reason for much of the harness's protocol: a turn that survives a reload, a runner in another tab
-taking over, two tabs writing one harness. With memory only, a harness dies with its page. What exists only for that
-(read in the code; sizes partly inferred):
+taking over, two tabs writing one harness. With memory only, a harness dies with its page. The owner decided
+(2026-10-16) that this goes as well: "just basic in memory harness for now for driving an app". What goes, what stays
+and the new shape are in [harness.md](harness.md): the host protocol, the storage port and its memory backend, leases
+and launches, the supervisor, schema versions, crash re-runs, the runner's cache and spill, segment heads, steering and
+interrupts. About 2,750 of the harness's and components' ~4,950 source lines go, and ~300 of the session's.
 
-| Mechanism                                   | Where                                                                                       | Lines (approx.)  |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------- |
-| Supervisor (liveness, takeover after a lease or launch window) | `components/src/harness/supervisor/in-process.ts` (233), `harness/src/contracts/supervisor.ts` (33), `conformance/src/testing/supervisor.ts` (48) | 314 |
-| Leases and launch keys: `claim`, `renew`, `release`, `check`, `launching`/`live` runner state | `harness/src/host/runner.ts` (`hold`, `currentLease`), `host/client.ts` (`launchResult`, `withLaunch`), `runner/index.ts` (21 lines name them), `contracts/{ports,records}.ts` | ~400 (inferred) |
-| Schema version and `blocked: 'stale-schema'` | `contracts/records.ts`, `host/{index,runner,writer}.ts`, `runner/index.ts` (21 mentions)   | ~60              |
-| Runner cache with a spill under `cacheBytes` (to avoid store reads) | `harness/src/runner/state.ts` `WorkingSet` (`:91–262`), `contracts/inspect.ts`           | ~200             |
-| Heads as content-addressed segments in size classes (constant-cost appends to a store) | `harness/src/head/index.ts` (88), `Segment`/`HeadRecord` records, the `segments` store | ~200 with callers |
-| Tombstones (a removed id is never reused)   | `contracts/storage.ts`, `host/index.ts`, `memory.ts`                                        | ~40              |
-| The session's takeover path (`interrupted()`, resume after the old lease, `leaseMs`) | `session/src/session.ts:114–115,396–397,705–771`                                  | ~100             |
-
-Taken together ~1,200–1,800 source lines and, beyond what conformance.md already cuts, ~600 test lines
-(`components/src/harness/_test/supervisor.test.ts` 173, the remaining T/S cases on leases). The loop would become: a
-session submits, a runner in the same process runs the turn to its end or its park, and storage is a plain in-memory
-journal and event log.
-
-**Recommendation: keep it for this round.** The owner's words are IndexedDB removed "for now"; with the storage port,
-leases and the supervisor intact, persistence comes back as one backend plus the conformance cases on it. Stripping
-them is a redesign of the harness (its §4, §12, §14, §15 in `.v6/ai/harness.md`) and would have to be rebuilt for a
-durable or remote host (§15 "Remote deployments"). Open question 2.
+Consequence for later: persistence, a remote runner or a second tab are no longer "add a backend"; they are a redesign
+that can start from git (`packages/ai/{harness,components}` at `e91cf9bc0`) and the dropped conformance cases.
 
 ## 5. Legacy fallbacks that go with persistence
 

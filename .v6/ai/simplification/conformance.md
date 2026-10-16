@@ -46,18 +46,21 @@ used here:
 - **drop** what only a durable or shared store, or a second runner, makes reachable: backend faults
   (`unknown-outcome`, late faults, integrity of rewrites), lease and launch races, takeover after expiry, schema
   versions, tombstones, storage cost (the P cases and `meterStorage`), liveness under a supervisor (S), and crash
-  re-runs. With memory only a lease never expires with work pending unless a runner dies inside the page (persistence.md
-  §4); those paths are unreachable in production today. If durability returns, these cases come back from git with the
-  backend (plan.md, "Later").
+  re-runs. With memory only those paths are unreachable in production today;
+- **and drop** what tests a mechanism the basic in-memory harness no longer has (decided 2026-10-16,
+  [harness.md](harness.md) §3): keyed idempotent operations, the commit protocol and compare-and-set moves, the inbox's
+  steering and interrupts.
 
-### Kept (70 of 219)
+If durability returns, the dropped cases come back from git (plan.md, "Later").
+
+### Kept (59 of 219)
 
 | Group | Kept | Cases                                                                                                                                                       |
 | ----- | ---: | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| J     | 4/11 | J2 stale-move, J3 stop-during-tools, J3 interrupt-model-step, J4 hash-stable                                                                               |
-| T     | 10/34 | T1 begin-while-active, T1 wrong-step, T2 same-key-same-result, T2 same-key-other-input, T3 begin-order, T4 stop-live-runner, T4 stop-beats-settlement, T4 stop-item-waiting, T5 reset-default, T6 catch-up |
+| J     | 2/11 | J3 stop-during-tools, J4 hash-stable                                                                                                                        |
+| T     | 5/34 | T1 begin-while-active, T4 stop-live-runner (as "stop during a step"), T4 stop-beats-settlement, T5 reset-default, T6 catch-up |
 | H     | 3/8  | H1 contribution-like-answer, H1 contribution-with-calls, H1 redeclared                                                                                     |
-| E     | 10/25 | E1 invalid-answer, E2 round-order, E2 no-calls-round, E2 skill-twice, E2 label-not-counted, E4 retry-same-digest, E4 retry-after, E4 replace-new-call, E5 completing-steer, E6 park-resume |
+| E     | 9/25 | E1 invalid-answer, E2 round-order, E2 no-calls-round, E2 skill-twice, E2 label-not-counted, E4 retry-same-digest, E4 retry-after, E4 replace-new-call, E6 park-resume |
 | X     | 9/20 | X1 denied, X1 unbound-report, X1 failure-report, X1 invalid-arguments, X1 skip-rest, X1 no-result, X2 park-no-effects, X3 key-across-retry, X5 sibling-failure |
 | N     | 5/12 | N1 nested-records, N2 depth-exceeded, N2 pointer-busy (main), N2 tool-journal, N3 nested-usage (the running budget excludes it)                            |
 | B     | 4/8  | B1 missing-usage, B1 cache-categories, B2 token-shortfall, B2 end-by-mid-step                                                                              |
@@ -66,13 +69,14 @@ used here:
 | O     | 1/2  | O1 throwing-subscriber                                                                                                                                      |
 | P     | 1/33 | P11 hash-once ("no round hashes more than the first"): hashing is real CPU in memory too                                                                   |
 | V     | 12/37 | V1 not-loaded, V2 drive-throws, V3 reset-clears-park, V4 nested-fail, V4 nested-stop, V4 nested-pass, V5 resume-not-parked, V6 tool-calls-limit, V7 schedule-invalid, V7 default-model-retry, V7 default-tool-retry, V8 filtered |
-| R     | 6/12 | R2 interrupt-already-stored, R3 drive-run-in-model-result, R4 stop-refuses-exit, R5 extend-in-interrupted-step, R6 interrupted-stored-marks, R12 no-adapter |
+| R     | 3/12 | R3 drive-run-in-model-result, R4 stop-refuses-exit, R12 no-adapter                                                                                         |
 
 The case names are the suite's (`conformance/src/cases/*.ts`); the list is a proposal to argue with, case by case.
-Borderline drops worth a second look: T4 stop-item-begun and stop-parked-with-items, E6 nested-park, X1 skip-calls,
-N2 fork, V7 max-concurrency, R8–R11 (interrupt and withdraw races inside one runner, which memory can still hit).
+Most kept cases need rewriting onto `createHarness` (harness.md §4): the `createSession` fixture drives a host, a client
+and a runner port today. Borderline drops worth a second look: E6 nested-park, X1 skip-calls, N2 fork, V7
+max-concurrency.
 
-### Dropped (149), by reason
+### Dropped (160), by reason
 
 | Reason                                     | Cases                                                                                                                         |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -82,33 +86,34 @@ N2 fork, V7 max-concurrency, R8–R11 (interrupt and withdraw races inside one r
 | schema version, tombstones                 | T1 schema-differs, T2 remove-tombstone, V3 reset-ends-blocked                                                                 |
 | crash re-runs                              | J3 crash-after-model-step, T3 steer-across-crash, E1 crash-before-decision, E3 crash-nothing, X3 key-across-crash, N1 nested-crash, B1 usage-once, B2 extend-persisted (lost to a crash) |
 | a second case of a clause already kept     | the rest (e.g. the second C1 append-prefix, the second N3, the second V7 fail-beats-park, E1's commit-shape checks, which `.v6/ai/README.md` decision 4 says the host does not police) |
+| the mechanism is gone (harness.md §3)      | J2 stale-move, J3 interrupt-model-step, T1 wrong-step, T2 same-key-same-result, T2 same-key-other-input, T3 begin-order, T4 stop-item-waiting, T4 stop-item-begun, T4 stop-parked-with-items, E5 (all), the inbox and interrupt cases in V9 and R2, R5, R6, R8–R11 |
 | `it.todo`                                  | H1 import-rule (Biome checks it), the S3 policy-hooks todo                                                                    |
 
 ## 3. Where the cases go, and sizes
 
-- The 70 cases become `packages/ai/src/harness/_test/*.test.ts` (one file per group or per theme), calling
+- The 59 cases become `packages/ai/src/harness/_test/*.test.ts` (one file per group or per theme), calling
   `createSession` from `testing/` directly. No `ConformanceFixture`, no `runHarnessConformance`, no `suite.ts`, and
   `vitest`/`fast-check` leave the shipped code (`conformance/package.json` lists them as dependencies today).
 - `meter.ts` (158) goes with P; `createSession`'s metering (`session.ts:30`) goes with it.
 - `testing/` stays the public `./testing` entry: `scriptedModel` (163), `SimulatedClock` (197), ids, messages, tools;
-  `testing/supervisor.ts` (48, `simulatedSupervisor`) goes with S unless option A's supervisor test keeps it.
-- `components/src/harness/_test/supervisor.test.ts` (173, 1.5 s): keep two of six (one runner per launch key; a lost
-  runner relaunched) while the supervisor stays (persistence.md §4).
+  `testing/supervisor.ts` (48, `simulatedSupervisor`) goes with the supervisor.
+- `components/src/harness/_test/supervisor.test.ts` (173, 1.5 s) goes with the supervisor (harness.md §6).
 - The fibers' suite becomes the threads' tests (threads.md §4).
 
 | Part                         | Today | After (estimate) |
 | ---------------------------- | ----: | ---------------: |
-| harness cases + helpers      | 7,213 | ~2,300 (70 cases at the ~30 lines a case the non-P files average) |
+| harness cases + helpers      | 7,213 | ~1,950 (59 cases at the ~30 lines a case the non-P files average) |
 | fibers suite                 |   705 | ~350 (no delta cases, no generators) |
 | meter, suite, index          |   208 | 0                |
 | fixture (`session.ts`)       |   186 | ~150             |
-| testing doubles              |   602 | ~550             |
-| **total**                    | 8,914 | **~3,350**       |
+| testing doubles              |   602 | ~500             |
+| **total**                    | 8,914 | **~2,950**       |
 
 ## 4. CI after
 
 - The IndexedDB run goes: −25.9 s in CI.
-- P, S and J4 were 3.3 of the memory run's 4.1 s; 70 cases of the rest take an estimated 0.4 s locally, ~1 s in CI.
+- P, S and J4 were 3.3 of the memory run's 4.1 s; 59 cases of the rest take an estimated 0.35 s locally, ~1 s in CI;
+  the supervisor test's 1.4 s goes too.
 - Estimated AI tail in CI: ~52 s → **~15 s** (the 46 other files' share stays, minus the files deleted with narration,
   `compatibility.test.ts`, the IndexedDB rows). Inferred, from the per-file timings above.
 - The `serial` project may then go: its reason was the P, S and IndexedDB cases losing races under load

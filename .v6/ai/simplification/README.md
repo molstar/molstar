@@ -19,6 +19,7 @@ one local run (`vitest run packages/ai --project serial`, Apple silicon) and one
 | [packaging.md](packaging.md)       | ten packages into one: the folders, the exports map, name collisions, every caller to update |
 | [threads.md](threads.md)           | fibers → threads: the rename map, what of the fiber machinery an in-memory thread still needs |
 | [providers.md](providers.md)       | model adapters → providers over the AI SDK: what the layer does today, what stays, what goes |
+| [harness.md](harness.md)           | the basic in-memory harness (decided): what stays, what goes, its API, the session over it   |
 | [persistence.md](persistence.md)   | IndexedDB removed: what goes, the viewer's kept records, the durability machinery behind it  |
 | [conformance.md](conformance.md)   | the suite: what it costs in CI, the essential cases, what goes                                |
 | [dead-code.md](dead-code.md)       | exports nobody imports, speculative features, legacy fallbacks                               |
@@ -53,7 +54,7 @@ packages/ai/                  @molstar/ai (pnpm-workspace.yaml: 'packages/ai' in
   src/
     index.ts                  the host's surface: session, tools, threads, messages
     messages/                 was ai-agent: Message, parts, hashing, Json (the port moves to providers/)
-    harness/                  was ai-harness + ai-components' memory storage and in-process supervisor
+    harness/                  was ai-harness, rewritten as a basic in-memory loop (harness.md); ai-components goes
       _test/                  the essential conformance cases, as plain tests (conformance.md)
     providers/                was ai-model-adapters, rewritten (providers.md); models.ts is the catalog
     tools/                    was ai-tools
@@ -68,7 +69,7 @@ Exports map (packaging.md §2 has the reasoning):
 | Entry                    | Holds                                                                            | Who needs it                                       |
 | ------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------- |
 | `.`                      | session, tools, threads, messages, the drive and harness contracts a host names  | prism-viewer, prism-assistant                      |
-| `./harness`              | `createHarnessHost`, `createRunner`, `defaultDrive`, the storage port            | tests, an advanced host                            |
+| `./harness`              | `createHarness`, `defaultDrive`, `drive`, the reader                             | tests, helpers that drive a harness directly       |
 | `./providers`            | `createAnthropicProvider`, `createOpenAIProvider`, `createGoogleProvider`        | prism-assistant (lazy), live tests                 |
 | `./providers/anthropic`, `./providers/openai`, `./providers/google` | one provider each, so a lazy import loads one SDK | prism-assistant `settings-model.ts:207–218` |
 | `./models`               | the model catalog (data, no dependencies)                                        | prism-assistant `settings-model.ts:10`             |
@@ -85,15 +86,15 @@ No `./*` wildcard: every deep import that exists today is one of the entries abo
 | Collapse                   | ten packages into folders of one; one `package.json`, tsconfig, Biome block, inventory entry | ~1,000 of plumbing (package.json, tsconfig, Biome) | all 37,171 lines move; 57 external import sites, 196 internal import lines (126 files) rewritten | packaging.md |
 | Replace                    | model adapters → providers: retained neutral payload, its decode and native projection go | ~1,700 / ~2,500 (inferred estimate) | ~900 new provider lines (inferred) | providers.md    |
 | Remove: IndexedDB          | the durable core, IndexedDB storage and rows, their tests and conformance run            | 557 / 210                        | the viewer's kept records (decision) | persistence.md |
-| Remove: durability (option B) | leases, launch keys, supervisor, schema version, spill cache: what only a durable store needs | ~1,200–1,800 / ~600 beyond the conformance cut (inferred) | the session's takeover path | persistence.md §4 |
-| Simplify: conformance      | 219 harness cases → 70; no second backend; no performance suite or storage meter        | ~5,550 of 8,914 (to ~3,350)      | the cases left become `harness/_test/` | conformance.md |
+| Remove: durability (decided) | host protocol, storage port, leases, launches, supervisor, schema version, crash re-runs, cache, segment heads, steering | ~3,050 / ~1,300 beyond the conformance cut (inferred) | the session's takeover path | persistence.md §4 |
+| Simplify: conformance      | 219 harness cases → 59; no second backend; no performance suite or storage meter        | ~5,950 of 8,914 (to ~2,950)      | the cases left become `harness/_test/` | conformance.md |
 | Dead or speculative        | narration, `runOnce`, session prices, `callTool`, fiber deltas, `./zod`, pre-label fallbacks | ~1,600 / ~1,250             | —                                  | dead-code.md    |
 | Duplicates                 | markers, token estimates, prices, canonical JSON, two storage ports, three model-limit sources | ~150 (and two concepts fewer) | —                                | duplicates.md   |
 
-Totals, if every recommendation is taken but option B is not, counting each line once: about **14,000 of 38,400
-lines go** (source, tests and package plumbing; ~37%), the package count goes from ten to one, and the AI tests' serial
-tail in CI goes from about 52 s to an estimated 15 s (conformance.md §4), or to almost nothing if they can leave the
-serial Vitest project. With option B, roughly 2,000 more.
+Totals, if every recommendation is taken (the durability machinery included, as decided), counting each line once:
+about **18,000 of 38,400 lines go** (source, tests and package plumbing; ~47%), the package count goes from ten to one,
+and the AI tests' serial tail in CI goes from about 52 s to an estimated 15 s (conformance.md §4), or to almost nothing
+if they can leave the serial Vitest project.
 
 ## Top findings
 
@@ -118,14 +119,17 @@ serial Vitest project. With option B, roughly 2,000 more.
    `REQUEST_MARKER`, `FOCUS_MARKER`, `ToolSpec`, `ToolOutcome` (packaging.md §3).
 8. **The test doubles ship vitest as a dependency** (`conformance/package.json`): the suite imports vitest. Once the
    cases are `_test/` files, `./testing` needs neither vitest nor fast-check.
+9. **The session uses a fraction of the harness's protocol** (harness.md §1): one item per turn, no steering, no
+   interrupts, no withdraw, one runner; the host protocol, leases, launches and the supervisor serve durability and
+   multiple runners only. The basic in-memory loop keeps the journal, the event log, the drive and the tools step,
+   and the trace and the Inspector read it unchanged.
 
 ## Open questions for the owner
 
 1. **Kept records** (finding 2): move the IndexedDB rows into prism-viewer (recommended: the viewer owns its one
    persistent store; `@molstar/ai` stays memory-only), drop Keep for now, or keep IndexedDB rows in `@molstar/ai`?
-2. **Durability machinery** (persistence.md §4): keep leases, launch keys, the supervisor, schema versions and crash
-   re-runs, so IndexedDB can come back "later" by adding a backend (recommended for this round), or strip them to an
-   in-process loop (option B, ~3,000 lines more, and persistence later means rebuilding them)?
+2. ~~Durability machinery~~: **decided 2026-10-16, removed**: "just basic in memory harness for now for driving an
+   app" ([harness.md](harness.md)).
 3. **Narration**: delete (recommended: no consumer; the story mode can bring it back from git), a `./narration` entry
    of `@molstar/ai` (then `mediabunny` becomes its dependency), or its own package?
 4. **Tool additions mid-conversation** (providers.md §3): keep the native `tool_addition` / `additional_tools` path for
@@ -140,3 +144,7 @@ serial Vitest project. With option B, roughly 2,000 more.
 8. **Folder rules**: the Biome per-package import rules become per-folder rules on relative paths (inferred to be
    expressible with `noRestrictedImports` patterns; not verified), or a check in `scripts/workspace/`?
 9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
+10. **Hashing** (harness.md §7): keep WebCrypto SHA-256 (async) for entry ids and payload digests, or a synchronous
+    hash now that nothing is stored (simpler step code, no `settle()` for digests in tests)?
+11. **Blobs** (harness.md §4): keep request and result bodies as blob refs (the trace unchanged), or inline them in
+    the call records?
