@@ -384,6 +384,9 @@ export interface GroupOptions {
 /** A group's result: the work's value, what changed (the union of its calls'), and its calls. */
 export type GroupResult<T> = ApiResult<T> & { readonly runs: readonly RunRecord[] };
 
+/** Every area by id, core, built-in and extensions', as `api.area(id)` types them. */
+type AllApis = CoreApi & BuiltInApis & ExtensionApis;
+
 /** Every operation, as commands, tools, scripts and view models call them. */
 export type ViewerApi = CoreApi &
   BuiltInApis &
@@ -398,6 +401,7 @@ export type ViewerApi = CoreApi &
      */
     group<T>(label: string, work: (api: ViewerApi) => Promise<T>, options?: GroupOptions): Promise<GroupResult<T>>;
     /** An area by id, core or an extension's (bound like this API). */
+    area<K extends keyof AllApis>(id: K): NonNullable<AllApis[K]> | undefined;
     area(id: string): ApiArea | undefined;
     /** An operation by id, as commands and tools see it. */
     describe(id: string): OperationDescription | undefined;

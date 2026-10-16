@@ -165,6 +165,37 @@ describe('the run path', () => {
     // The first failure inside is the group's: 1CRN was cleared before it was asked for.
     expect(bad).toMatchObject({ ok: false, code: 'not-found' });
     expect(v.api.structure.list.value).toHaveLength(2);
+
+    // A call refused before it ran (invalid values: no history step of its own) fails the group too, and what came
+    // before it in the group is undone.
+    const refused = await v.api.group('Refused', async (api) => {
+      await api.session.clear();
+      await api.structure.preset({ preset: 'no-such-preset' as never });
+    });
+    expect(refused.ok).toBe(false);
+    expect(v.api.structure.list.value).toHaveLength(2);
+    // So does a call to an operation that does not exist.
+    const unknown = await v.api.group('Unknown', async (api) => {
+      await api.session.clear();
+      await api.run('no.such-operation', {});
+    });
+    expect(unknown).toMatchObject({ ok: false, code: 'not-found' });
+    expect(v.api.structure.list.value).toHaveLength(2);
+    // With onFailure 'continue', a refused call is passed over.
+    const goesOn = await v.api.group(
+      'Goes on',
+      async (api) => {
+        await api.run('no.such-operation', {});
+      },
+      { onFailure: 'continue' },
+    );
+    expect(goesOn.ok).toBe(true);
+  });
+
+  it('reads Object members on the API as what they are, not as missing areas', async () => {
+    const v = await create();
+    expect(() => String(v.api)).not.toThrow();
+    expect((v.api as unknown as { hasOwnProperty: unknown }).hasOwnProperty).toBeTypeOf('function');
   });
 
   it('runs viewer.run as one opaque step, its API calls inside it', async () => {

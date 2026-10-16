@@ -134,8 +134,12 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
   };
 
   const bind = (input: RunInput): ViewerApi => {
-    // Plain origins are kept (one per kind); turns, groups and runs in progress are made each time (they are cheap).
-    const key = !input.within && !input.group && input.origin.kind !== 'agent' ? input.origin.kind : undefined;
+    // Plain origins are kept (one per kind); turns, groups, runs in progress, and calls with a signal or a copy are made
+    // each time (they are cheap), so a nested call keeps its caller's signal and copy.
+    const key =
+      !input.within && !input.group && !input.signal && !input.copy && input.origin.kind !== 'agent'
+        ? input.origin.kind
+        : undefined;
     if (key) {
       const cached = cache.get(key);
       if (cached) return cached;
@@ -153,13 +157,24 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
       run: (id: string, values?: Readonly<Record<string, unknown>>, options?: RunOptions) => {
         const def = runner.definitions.value.get(id);
         if (!def) {
-          return Promise.resolve(
-            ApiResult.fail(
-              'not-found',
-              `There is no operation '${id}'.`,
-              'List the operations with the tools or the command menu.',
-            ),
+          const result = ApiResult.fail(
+            'not-found',
+            `There is no operation '${id}'.`,
+            'List the operations with the tools or the command menu.',
           );
+          // In a group, a call to nothing is a failed call of the group (api.md §5: all or nothing).
+          input.group?.runs.push({
+            id: 0,
+            operation: id,
+            title: id,
+            values: values ?? {},
+            origin: input.origin,
+            started: Date.now(),
+            result,
+            ms: 0,
+            group: { id: input.group.id, label: input.group.label },
+          });
+          return Promise.resolve(result);
         }
         return runner.run(def, values ?? {}, { ...input, ...options });
       },
@@ -181,7 +196,9 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
           const area = areas.get(prop);
           if (area) return facade(area);
           // A built-in feature's area this viewer's spec left out: say which feature brings it (`BuiltInApis`).
-          const feature = BuiltInAreaFeatures[prop as keyof typeof BuiltInAreaFeatures];
+          const feature = Object.hasOwn(BuiltInAreaFeatures, prop)
+            ? BuiltInAreaFeatures[prop as keyof typeof BuiltInAreaFeatures]
+            : undefined;
           if (feature) {
             throw new Error(
               `The '${prop}' area is not in this viewer: add ${feature} to its spec's extensions (DefaultPrismViewerSpec has it).`,
@@ -214,6 +231,7 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
     options: GroupOptions,
   ): Promise<GroupResult<T>> => {
     const group = runner.newGroup(label);
+    const rollback = (options.onFailure ?? 'rollback') === 'rollback';
     const history = deps.managers.history;
     const within = history.isActive(input.within) ? input.within : undefined;
     const failure = (f: Extract<ApiResult, { ok: false }>, restored: boolean): GroupResult<T> => ({
@@ -228,7 +246,12 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
         (context) =>
           work(bind({ ...input, within: context, group, ...(options.signal ? { signal: options.signal } : {}) })),
         {
-          failed: (v) => ApiResult.isFailure(v),
+          // All or nothing (api.md §5): the work's own failure, and any call of the group that failed, also one that
+          // never reached the history (refused before it ran: invalid values, blocked, unavailable; a read or a view
+          // call). Calls an operation made itself (nested) are its own business.
+          failed: (v) =>
+            ApiResult.isFailure(v) ||
+            (rollback && group.runs.some((r) => !r.nested && r.result !== undefined && !r.result.ok)),
           onFailure: options.onFailure ?? 'rollback',
           ...(within ? { within } : {}),
         },
@@ -249,7 +272,15 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
         ...(outcome.runs.length ? {} : { unchanged: true as const }),
       };
     } catch (e) {
-      return failure(ApiResult.fail('failed', `${label} failed: ${messageOf(e)}`), true);
+      // The history restored the group's checkpoint, where it had one (not past the hard limit, when undo is off).
+      return {
+        ...ApiResult.fail(
+          'failed',
+          `${label} failed: ${messageOf(e)}`,
+          'Its calls were undone, unless the scene is too large for undo.',
+        ),
+        runs: group.runs,
+      };
     }
   };
 
