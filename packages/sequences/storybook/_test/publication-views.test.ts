@@ -10,9 +10,11 @@
 // presets of one section (`ctx.ui.setStyle`), so switching rebuilds nothing: the document object is the same, every
 // track is laid out and drawn in both, and an annotation added in one is in the other. The Annotations panel's two
 // sets (Above and Below) each have their own ranges track, one before the letters and one after: an annotation of
-// either is drawn in both views, above or below the letters' line, one undo step each.
+// either is drawn in both views, above or below the letters' line, one undo step each. A Frame (a `frame` track's set)
+// and Markers (a `points` track's, a glyph each) are drawn in both views too; so is the Alignment figure story's
+// document, whose places add a frame over columns, a box on a row and markers.
 
-import { type SeqSet } from '@molstar/seq-core/model';
+import { type Loci, OrderedSet, type SeqSet } from '@molstar/seq-core/model';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -23,18 +25,39 @@ import {
 import { renderSvg } from '@molstar/seq-viewer/svg';
 import { fixtureMeasurer } from '@molstar/seq-viewer/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { seqLoci } from '../../viewer/_test/overlay-docs.js';
+import { rowLoci, seqLoci } from '../../viewer/_test/overlay-docs.js';
+import {
+  alignmentFigureDoc,
+  FIGURE_FRAMES,
+  FIGURE_MARKERS_BELOW,
+  FIGURE_PRESETS,
+  FIGURE_SECTION,
+} from '../src/_stories/support/seqstar-figure.js';
 import {
   annotationRows,
   PUBLICATION_ANNOTATIONS,
   PUBLICATION_ANNOTATIONS_ABOVE,
+  PUBLICATION_FRAMES,
+  PUBLICATION_MARKERS,
   PUBLICATION_PLACES,
   PUBLICATION_PRESETS,
   PUBLICATION_SECTION,
   publicationTracksDoc,
 } from '../src/_stories/support/seqstar-publication.js';
 
-const TRACKS = ['annotations-above', 'letters', 'annotations-track', 'hyd', 'conf', 'zn', 'regions-track', 'ss'];
+const TRACKS = [
+  'markers',
+  'annotations-above',
+  'letters',
+  'annotations-track',
+  'hyd',
+  'conf',
+  'zn',
+  'regions-track',
+  'ss',
+];
+/** The frames' track: a row in tracks; in the text a title's row only on a line where a titled frame starts (none yet). */
+const TRACKS_LINEAR = ['frames', ...TRACKS];
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
 };
@@ -83,7 +106,7 @@ describe('the publication story: Text and Tracks are one document', () => {
 
     await show('tracks');
     expect(layout()?.geometry).toBe(0);
-    expect(laid().sort()).toEqual([...TRACKS].sort());
+    expect(laid().sort()).toEqual([...TRACKS_LINEAR].sort());
     const tracks = await renderSvg(ctx, { width: 1000 });
     expect(tracks).not.toBe(text);
     // The tracks keep their heights: the values and the area are taller than the one-row tracks.
@@ -120,9 +143,11 @@ describe('the publication story: Text and Tracks are one document', () => {
 
   it('the panel offers Above (before the letters) and Below (after), each a set with its own track in both views', async () => {
     const { ctx, layout, show } = await story();
-    expect(PUBLICATION_PLACES.map((p) => [p.label, p.data])).toEqual([
-      ['Above', PUBLICATION_ANNOTATIONS_ABOVE],
-      ['Below', PUBLICATION_ANNOTATIONS],
+    expect(PUBLICATION_PLACES.map((p) => [p.label, p.data, p.kind])).toEqual([
+      ['Above', PUBLICATION_ANNOTATIONS_ABOVE, 'ranges'],
+      ['Below', PUBLICATION_ANNOTATIONS, 'ranges'],
+      ['Frame', PUBLICATION_FRAMES, 'frame'],
+      ['Markers', PUBLICATION_MARKERS, 'points'],
     ]);
     const set = () => ctx.graph.assembled.value?.set as SeqSet;
     const rowsOf = (data: string) => annotationRows(ctx.document.shown.value, data);
@@ -223,5 +248,69 @@ describe('the publication story: Text and Tracks are one document', () => {
     expect(add()).toBe(true);
     await flush();
     expect(ctx.issues.current.value.filter((i) => i.severity === 'error' || i.severity === 'warning')).toEqual([]);
+  });
+});
+
+describe('frames and markers from the panel, in both views', () => {
+  it("publication: a Frame titled with its label and a Marker's glyph, drawn in the text and in the tracks", async () => {
+    const { ctx, show } = await story();
+    const set = () => ctx.graph.assembled.value?.set as SeqSet;
+    const add = (data: string, extra: Record<string, unknown>) =>
+      ctx.actions.run('bookmark.add', {
+        section: PUBLICATION_SECTION,
+        loci: seqLoci(set(), 'p53', 100, 130),
+        color: '#2a9d8f',
+        data,
+        ...extra,
+      });
+    expect(add(PUBLICATION_FRAMES, { label: 'Core domain' })).toBe(true);
+    await flush();
+    expect(add(PUBLICATION_MARKERS, { label: 'Site', glyph: 'star' })).toBe(true);
+    await flush();
+    expect(annotationRows(ctx.document.shown.value, PUBLICATION_MARKERS)).toEqual([
+      expect.objectContaining({ glyph: 'star', color: '#2a9d8f' }),
+    ]);
+    for (const view of ['text', 'tracks'] as const) {
+      await show(view);
+      const svg = await renderSvg(ctx, { width: 1000 });
+      expect(svg, view).toContain('Core domain');
+      expect(svg, view).toMatch(/#2a9d8f|rgb\(42,\s*157,\s*143\)/i);
+      expect(svg, view).not.toMatch(/NaN|undefined/);
+    }
+  });
+
+  it('the alignment figure: a frame over columns, markers below; the rows as text and as tracks', async () => {
+    const ctx = createSeqViewer(
+      { ...DefaultSeqViewerSpec(), registry: [DefaultRegistry] },
+      { scheduler: manualScheduler(), text: fixtureMeasurer() },
+    );
+    open.push(ctx);
+    const done = ctx.setDocument(alignmentFigureDoc());
+    ctx.viewports.get(FIGURE_SECTION)?.setSize(1000, 700, 1);
+    expect((await done).ok).toBe(true);
+    await ctx.graph.update();
+    expect(ctx.issues.current.value.filter((i) => i.severity !== 'info').map((i) => i.code)).toEqual([]);
+    expect(ctx.layout.get(FIGURE_SECTION)?.current.textRows.count).toBe(8);
+    const set = ctx.graph.assembled.value?.set as SeqSet;
+    const columns = { kind: 'column-loci', set, alignment: 0, columns: OrderedSet.ofRange(30, 44) } as unknown as Loci;
+    const add = (data: string, loci: Loci, extra: Record<string, unknown>) =>
+      ctx.actions.run('bookmark.add', { section: FIGURE_SECTION, loci, color: '#2a9d8f', data, ...extra });
+    expect(add(FIGURE_FRAMES, columns, { label: 'Added frame' })).toBe(true);
+    await flush();
+    // The loci of the set as it is now (an add builds it again).
+    const now = ctx.graph.assembled.value?.set as SeqSet;
+    expect(add(FIGURE_MARKERS_BELOW, rowLoci(now, 2, 20, 21), { label: 'Added marker', glyph: 'triangle' })).toBe(true);
+    await flush();
+    expect(annotationRows(ctx.document.shown.value, FIGURE_FRAMES).at(-1)).toEqual(
+      expect.objectContaining({ target: 'globins', label: 'Added frame' }),
+    );
+    for (const preset of [FIGURE_PRESETS.text, FIGURE_PRESETS.tracks]) {
+      ctx.ui.setStyle(FIGURE_SECTION, preset);
+      ctx.viewports.get(FIGURE_SECTION)?.setSize(1000, 700, 1);
+      await ctx.graph.update();
+      const svg = await renderSvg(ctx, { width: 1000 });
+      expect(svg, String(preset)).toContain('Added frame');
+      expect(svg, String(preset)).toContain('HBA_HUMAN/27-137');
+    }
   });
 });

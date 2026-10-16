@@ -474,3 +474,23 @@ the [API change ledger](breaking-v6-changes.md).
   the Snapshots list is a list of items (a button applies a snapshot, its buttons are beside it) and its buttons are 24px,
   44px in compact mode; a volume's iso slider gives ARIA a plain number.
 - CI: the Prism packages' `styles:check`, `icons:check` and `typecheck:storybook` run in a job of their own.
+
+## Seq\*: alignment figures (ESPript-style), frames across tracks
+
+- An alignment's `rows` draw in the text view: a block of text rows on every line, each row named on the left and
+  numbered on the right in its own numbering, the group numbers above each line the reference row's. A streamed
+  alignment's rows keep their fallback (the reference row's letters) in text.
+- The style key `text_cells` (render prop `wrappedCells`): letters and rows drawn on their theme's cells in text, each
+  letter in the ink that reads on its cell.
+- The `espript` color theme and scheme: identical columns black, residues whose group holds 70% of the column grey
+  (by groups, gaps not counted); its dark variant on a dark skin.
+- A new layer type, `frame`: named regions outlined across the tracks `span` names (`from`, `to`), titled with each
+  item's label, open on the side where a line break or the view cuts the item; over a rows track, the rows the item
+  targets. In text and tracks, the SVG export alike; `svs.layer.span` for a span outside the section.
+- `secondary`: helices are cylinders (rounded where the helix ends, square where it is cut); `labels: true` draws each
+  item's label (α1, β2) over its shape.
+- A range's `box` or `highlight` on an alignment row draws on that row in the text.
+- The Annotations part: a place's `kind` (`ranges`, `points`, `frame`); a place of markers takes a glyph (the row's
+  `glyph` column, `bookmark.add`'s `glyph`) instead of a line style.
+- Stories: Text view › Alignment figure (the core's globins as an ESPript-like figure, with the panel's Frame, Box on a
+  row and Markers places); Publication tracks gains a Frame and Markers.

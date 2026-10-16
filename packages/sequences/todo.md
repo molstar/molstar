@@ -34,6 +34,26 @@ part (add from the selection with a label and a color, list, delete, from the bo
 their `color` column (`field_color`), drawn in text as underlines or, with a height, in full. _Trigger:_ Prism's
 sequence panel beyond its first slice, or a figure workflow asking for it.
 
+**A row's own band in an alignment's text** (David, 2026-10-17, from rows in text: `seqspec:viewer#rows-in-text`). The
+hover and the selection over the rows drawn as text light columns over the line's bands, as on letters; a rows track in
+tracks lights the hovered row's band and draws a selection on rows as rectangles. In text: the hovered row's text row on
+the line (`hoverRow`'s band) and a selection's rows alone (the marks' runs per row, drawn on the rows' text rows).
+_Trigger:_ a figure read closely by hovering, or a selection on rows wanted visible in text.
+
+**A row drag in an alignment's text** (David, 2026-10-17). A drag in text selects positions (an alignment's columns), so
+a frame over chosen rows is made in the Tracks view (a rectangle over rows) or as data. In text: a drag starting on a
+row selecting that row's residues line by line, Alt for a rectangle over rows (as in tracks), so the Annotations panel's
+Frame and Box on a row take chosen rows there too. _Trigger:_ the alignment figure's frames made by hand in text.
+
+**Tracks between an alignment's rows in text** (David, 2026-10-17). Other tracks sit before or after the rows track,
+above or below the whole block; a track drawn under one row (a row's own secondary structure inside the block) is not
+designed. _Trigger:_ a figure that needs a per-row track inside the block (ESPript's own figures do not).
+
+**Gaps in the `espript` shading.** The theme's shares are of a column's residues (`rules`' `share`), so a column of one
+residue and seven gaps reads as identical (black); ESPript's identity counts the sequences. A measure of the column's
+gap share (or of its residues' count) would let a rule require most rows. _Trigger:_ a figure of a gappy alignment read
+as wrongly conserved.
+
 **An item coordinate system's own letters.** A letters track on a transcript's block, derived lazily from the source's
 streamed letters through its map (as the codon label reads them); until then a `letters` layer on an item block draws
 nothing. Context: `seqspec:sources#item-coordinate-systems`. _Trigger:_ a story that needs a letters track on a

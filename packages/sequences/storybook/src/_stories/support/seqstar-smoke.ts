@@ -18,18 +18,19 @@
 //   - `skip`: why it has no document to open (a live source, a page of text).
 
 import type { Loaders, Patch, SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { SeqSet } from '@molstar/seq-core/model';
+import { type Loci, OrderedSet, type SeqSet } from '@molstar/seq-core/model';
 import { type SeqViewerContext, type SeqViewerRegistryEntry, sectionInfo } from '@molstar/seq-viewer';
 import { renderSvg } from '@molstar/seq-viewer/svg';
 import pf00042 from '../../../../core/_test/fixtures/pf00042.json?raw';
 import { CASES } from '../../../../core/_test/format/cases.js';
 import { genomeDoc, synthGenome } from '../../../../core/_test/format/genome-fixture.js';
-import { seqLoci } from '../../../../viewer/_test/overlay-docs.js';
+import { rowLoci, seqLoci } from '../../../../viewer/_test/overlay-docs.js';
 import { familyWithTree, syntheticFamily } from '../../../../viewer/_test/families.js';
 import { keyedFamilyDoc, MODES, modePatch } from '../../../../viewer/_test/keyed-family.js';
 import { lazyStoryDoc, lazyStoryLoaders } from '../../../../viewer/_test/lazy-story-fixtures.js';
 import { splitUnitsDoc } from '../../../../viewer/_test/split-units-fixtures.js';
 import { described, hideEmpty, textStyled } from './seqstar-cases.js';
+import { alignmentFigureDoc, FIGURE_PLACES, FIGURE_PRESETS, FIGURE_SECTION } from './seqstar-figure.js';
 import {
   annotationRows,
   PUBLICATION_PLACES,
@@ -521,6 +522,58 @@ export const SMOKE: readonly SmokeStory[] = [
               );
               await ctx.graph.update();
               return ok && annotationRows(ctx.document.shown.value, place.data).length === 0;
+            },
+          })),
+        ],
+      },
+    ],
+  },
+  {
+    key: 'text-view.stories.tsx#AlignmentFigure',
+    cases: () => [
+      {
+        label: 'globins, an ESPript-like figure',
+        doc: alignmentFigureDoc(),
+        // The View choices and the Annotations panel's places, each a `bookmark.add` to its set (a frame over columns,
+        // a box on a row's residues, markers with a glyph), then their `bookmark.remove`: one patch each.
+        steps: [
+          presetStep('Tracks', FIGURE_SECTION, FIGURE_PRESETS.tracks),
+          ...FIGURE_PLACES.map((place, k) => ({
+            label: `Add from selection: bookmark.add (${place.label})`,
+            run: async (ctx: SeqViewerContext) => {
+              const set = ctx.graph.assembled.value?.set as SeqSet;
+              const columns = { kind: 'column-loci', set, alignment: 0, columns: OrderedSet.ofRange(30, 44) };
+              const loci = k === 0 || k === 3 ? (columns as unknown as Loci) : rowLoci(set, 1 + k, 20, 26);
+              const before = annotationRows(ctx.document.shown.value, place.data).length;
+              const ok = ctx.actions.run(
+                'bookmark.add',
+                {
+                  section: FIGURE_SECTION,
+                  loci,
+                  label: place.label,
+                  color: '#2a9d8f',
+                  data: place.data,
+                  ...(place.kind === 'points' ? { glyph: 'star' } : { line_style: k === 1 ? 'box' : 'dotted' }),
+                },
+                'host:smoke',
+              );
+              await ctx.graph.update();
+              return ok && annotationRows(ctx.document.shown.value, place.data).length > before;
+            },
+          })),
+          presetStep('Text', FIGURE_SECTION, FIGURE_PRESETS.text),
+          ...FIGURE_PLACES.map((place) => ({
+            label: `Delete: bookmark.remove (${place.label})`,
+            run: async (ctx: SeqViewerContext) => {
+              const rows = annotationRows(ctx.document.shown.value, place.data);
+              const id = rows.at(-1)?.id ?? '';
+              const ok = ctx.actions.run(
+                'bookmark.remove',
+                { section: FIGURE_SECTION, item: id, data: place.data },
+                'host:smoke',
+              );
+              await ctx.graph.update();
+              return ok && annotationRows(ctx.document.shown.value, place.data).length === rows.length - 1;
             },
           })),
         ],

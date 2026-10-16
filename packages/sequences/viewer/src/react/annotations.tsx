@@ -14,6 +14,8 @@ import type { LineStyle } from '@molstar/seq-core/format';
 import { useMemo, useRef, useState } from 'react';
 import {
   ANNOTATION_COLOR,
+  ANNOTATION_GLYPH,
+  ANNOTATION_GLYPHS,
   ANNOTATION_STYLE,
   ANNOTATION_STYLES,
   type AnnotationEntry,
@@ -24,6 +26,7 @@ import {
   annotationStates,
   annotationTarget,
   deleteName,
+  placeGlyphs,
   removeAnnotation,
   revealAnnotation,
   showName,
@@ -61,7 +64,11 @@ function Annotation({ a, onGo, onDelete }: { a: AnnotationEntry; onGo(): void; o
       >
         <span className="seqv-swatch" aria-hidden="true" style={{ background: a.color }} />
         <span className="seqv-annotation-label">{a.label}</span>
-        {a.lineStyle !== ANNOTATION_STYLE && <span className="seqv-quiet seqv-annotation-style">{a.lineStyle}</span>}
+        {a.glyph ? (
+          <span className="seqv-quiet seqv-annotation-style">{a.glyph}</span>
+        ) : (
+          a.lineStyle !== ANNOTATION_STYLE && <span className="seqv-quiet seqv-annotation-style">{a.lineStyle}</span>
+        )}
         {a.place && <span className="seqv-quiet seqv-annotation-place">{a.place}</span>}
         <span className="seqv-quiet">{a.span}</span>
       </button>
@@ -86,22 +93,26 @@ export function AnnotationsPanel({ context, section, data, places: given }: Anno
   const [label, setLabel] = useState('');
   const [color, setColor] = useState(ANNOTATION_COLOR);
   const [lineStyle, setLineStyle] = useState<LineStyle>(ANNOTATION_STYLE);
+  const [glyphChosen, setGlyph] = useState(ANNOTATION_GLYPH);
   const [chosen, setChosen] = useState('');
-  const key = given?.map((x) => `${x.data}\n${x.label}`).join('\n');
+  const key = given?.map((x) => `${x.data}\n${x.label}\n${x.kind ?? ''}`).join('\n');
   // The places as given, kept while their content is the same (a host may pass a new array each render).
   const places = useMemo(() => annotationPlaces(section, data, given), [section, data, key]);
-  const to = (places.find((x) => x.data === chosen) ?? places[0]).data;
+  const place = places.find((x) => x.data === chosen) ?? places[0];
+  const to = place.data;
+  // A place of markers takes a glyph, the others a line style.
+  const glyph = placeGlyphs(place) ? glyphChosen : undefined;
   const entries = useDerived([context.document.shown], () => annotationEntries(context, places), {
     compare: sameData,
     deps: [context, places],
   });
   const idle = useDerived(
     annotationStates(context),
-    () => annotationTarget(context, section, label, color, to, lineStyle) === null,
-    { deps: [context, section, to, label, color, lineStyle] },
+    () => annotationTarget(context, section, label, color, to, lineStyle, glyph) === null,
+    { deps: [context, section, to, label, color, lineStyle, glyph] },
   );
   const run = () => {
-    if (!idle && addAnnotation(context, section, label, color, to, lineStyle)) setLabel('');
+    if (!idle && addAnnotation(context, section, label, color, to, lineStyle, glyph)) setLabel('');
   };
   return (
     <div className="seqv-annotations" data-seqv-part="annotations">
@@ -132,19 +143,35 @@ export function AnnotationsPanel({ context, section, data, places: given }: Anno
           value={color}
           onChange={(e) => setColor(e.target.value)}
         />
-        <select
-          className="seqv-annotations-style"
-          aria-label="Annotation line style"
-          data-seqv-key="style"
-          value={lineStyle}
-          onChange={(e) => setLineStyle(e.target.value as LineStyle)}
-        >
-          {ANNOTATION_STYLES.map((x) => (
-            <option key={x} value={x}>
-              {x}
-            </option>
-          ))}
-        </select>
+        {glyph === undefined ? (
+          <select
+            className="seqv-annotations-style"
+            aria-label="Annotation line style"
+            data-seqv-key="style"
+            value={lineStyle}
+            onChange={(e) => setLineStyle(e.target.value as LineStyle)}
+          >
+            {ANNOTATION_STYLES.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            className="seqv-annotations-style"
+            aria-label="Annotation glyph"
+            data-seqv-key="glyph"
+            value={glyph}
+            onChange={(e) => setGlyph(e.target.value)}
+          >
+            {ANNOTATION_GLYPHS.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           type="text"
           className="seqv-annotations-label"

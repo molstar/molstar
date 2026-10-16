@@ -1117,7 +1117,9 @@ fieldset:where(.seqv-player, .seqv-switch, .seqv-chips) {
   gap: 4px;
 }
 .seqv-annotations-place {
-  flex: none;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 .seqv-annotations-label {
   flex: 1 1 6em;

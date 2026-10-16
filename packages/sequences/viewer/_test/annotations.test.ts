@@ -169,7 +169,10 @@ function shape(n: Element, out: string[] = []): string[] {
   return out;
 }
 
-async function domPart(ctx: SeqViewerContext, places?: typeof PLACES) {
+async function domPart(
+  ctx: SeqViewerContext,
+  places?: readonly { data: string; label: string; kind?: 'ranges' | 'points' | 'frame' }[],
+) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   const part = D.AnnotationsPanel(host, ctx, { section: SECTION, places });
@@ -179,7 +182,10 @@ async function domPart(ctx: SeqViewerContext, places?: typeof PLACES) {
   });
   return host;
 }
-async function reactPart(ctx: SeqViewerContext, places?: typeof PLACES) {
+async function reactPart(
+  ctx: SeqViewerContext,
+  places?: readonly { data: string; label: string; kind?: 'ranges' | 'points' | 'frame' }[],
+) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -464,5 +470,44 @@ describe('the Annotations part: the line style', () => {
     });
     expect(rows()?.map((r) => r.line_style)).toEqual(['highlight']);
     expect(react.querySelector('.seqv-annotation-style')?.textContent).toBe('highlight');
+  });
+});
+
+describe('the Annotations part: markers (a place of `kind` points)', () => {
+  /** Below's set as markers: a glyph each, no line style. */
+  const MARKERS = [
+    { data: ABOVE, label: 'Above' },
+    { data: SET, label: 'Markers', kind: 'points' as const },
+  ];
+  it("DOM and React: the glyph's picker in the line style's place; the pick is the row's `glyph`, listed", async () => {
+    const { ctx, select, rows } = await open(doc(true, true));
+    const host = await domPart(ctx, MARKERS);
+    expect(q(host, 'glyph')).toBeNull();
+    q(host, 'place:1').click();
+    expect(q(host, 'style')).toBeNull();
+    const picker = q(host, 'glyph') as HTMLSelectElement;
+    expect([...picker.options].map((o) => o.value)).toEqual(['circle', 'triangle', 'star', 'diamond', 'square']);
+    picker.value = 'star';
+    picker.dispatchEvent(new Event('change', { bubbles: true }));
+    select(4, 5);
+    q(host, 'add').click();
+    await flush();
+    expect(rows()).toEqual([{ target: 'a/unit', start: 4, stop: 5, id: 'b1', color: '#e76f51', glyph: 'star' }]);
+    expect(host.querySelector('.seqv-annotation-style')?.textContent).toBe('star');
+    // Back to a place of ranges: the line style's picker again.
+    q(host, 'place:0').click();
+    expect(q(host, 'glyph')).toBeNull();
+    expect(q(host, 'style')).not.toBeNull();
+    const react = await reactPart(ctx, MARKERS);
+    await act(async () => q(react, 'place:1').click());
+    expect(q(react, 'style')).toBeNull();
+    expect((q(react, 'glyph') as HTMLSelectElement).value).toBe('circle');
+    select(8, 9);
+    await act(async () => flush());
+    await act(async () => {
+      q(react, 'add').click();
+      await flush();
+    });
+    expect(rows()?.[1]).toEqual({ target: 'a/unit', start: 8, stop: 9, id: 'b2', color: '#e76f51', glyph: 'circle' });
   });
 });

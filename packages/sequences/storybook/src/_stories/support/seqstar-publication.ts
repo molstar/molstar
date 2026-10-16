@@ -112,10 +112,18 @@ export const PUBLICATION_SECTION = 'text.main';
  */
 export const PUBLICATION_ANNOTATIONS = `${PUBLICATION_SECTION}.bookmarks`;
 export const PUBLICATION_ANNOTATIONS_ABOVE = `${PUBLICATION_ANNOTATIONS}.above`;
-/** The Annotations panel's choice (its `places`): the sets by name, the first the panel starts on. */
+/**
+ * Two more sets: frames (seqspec:viewer#frames, a `frame` track whose span runs from the sequence's track to the
+ * secondary structure's, its titles over the letters) and markers above the sequence (a `points` track, a glyph each).
+ */
+export const PUBLICATION_FRAMES = `${PUBLICATION_SECTION}.frames`;
+export const PUBLICATION_MARKERS = `${PUBLICATION_SECTION}.markers`;
+/** The Annotations panel's choice (its `places`): the sets by name and kind, the first the panel starts on. */
 export const PUBLICATION_PLACES = [
-  { data: PUBLICATION_ANNOTATIONS_ABOVE, label: 'Above' },
-  { data: PUBLICATION_ANNOTATIONS, label: 'Below' },
+  { data: PUBLICATION_ANNOTATIONS_ABOVE, label: 'Above', kind: 'ranges' },
+  { data: PUBLICATION_ANNOTATIONS, label: 'Below', kind: 'ranges' },
+  { data: PUBLICATION_FRAMES, label: 'Frame', kind: 'frame' },
+  { data: PUBLICATION_MARKERS, label: 'Markers', kind: 'points' },
 ] as const;
 
 /** The annotations' line style: each row's own `line_style` column (what the panel's picker writes; none is solid). */
@@ -193,10 +201,33 @@ export function publicationTracksDoc(): SeqViewSpecDoc {
     geometry: 'ranges',
     value: [],
   } as never);
+  const frames = b.data.annotation({
+    ref: PUBLICATION_FRAMES,
+    label: 'Frames',
+    geometry: 'ranges',
+    value: [],
+  } as never);
+  const markers = b.data.annotation({
+    ref: PUBLICATION_MARKERS,
+    label: 'Markers',
+    geometry: 'ranges',
+    value: [],
+  } as never);
   const view = b.view({ ref: 'text', label: 'Text', layout: 'text' });
   const sec = view.section({
     ref: PUBLICATION_SECTION,
     style: 'figure',
+  } as never);
+  sec.track({ ref: 'frames', label: 'Frames' }).frame({
+    data: frames,
+    span: { from: 'letters', to: 'ss' },
+    color: { theme: 'field_color' },
+    line_style: LINE_STYLE,
+  } as never);
+  sec.track({ ref: 'markers', label: 'Markers', height: 1 }).points({
+    data: markers,
+    glyph: { theme: 'field_glyph', params: { field: 'glyph' } },
+    color: { theme: 'field_color' },
   } as never);
   sec
     .track({ ref: 'annotations-above', label: 'Annotations (above)' })
