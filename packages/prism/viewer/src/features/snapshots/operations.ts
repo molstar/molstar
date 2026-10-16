@@ -499,6 +499,8 @@ export class SnapshotApi extends ApiArea {
     surface: { kind: 'ui-only', reason: "A description's command links: the person clicks or points at them." },
     params: LinkParams,
     history: false,
+    // Pointer-rate (enter and leave): the commands a link runs are recorded as themselves.
+    record: false,
     async run({ href, event }, ctx) {
       const extensions = ctx.plugin.managers.markdownExtensions;
       const args = extensions.parseArgs(href);
@@ -539,6 +541,8 @@ export class SnapshotApi extends ApiArea {
     params: SeekParams,
     surface: { kind: 'agent-only', reason: "The playback card's transition scrubber." },
     history: false,
+    // A scrubber's steps: not a record entry each.
+    record: false,
     when: (ctx) =>
       ctx.plugin.managers.snapshot.current?.snapshot.transition ? true : 'The snapshot has no transition.',
     async run({ time }, ctx) {

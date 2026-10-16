@@ -210,6 +210,11 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
    */
   readonly quiet?: true;
   /**
+   * Not written in the session record (journal.md §1): view state set at pointer rate (a scrubber's steps, a link the
+   * pointer enters), which would flood History; what it leads to is recorded as itself.
+   */
+  readonly record?: false;
+  /**
    * Asks before it runs, from the agent (agent.md §4). One value: `destructive` (it removes something, or replaces the
    * scene) wins over `network` (it reaches an address; which addresses ask is the agent's policy at call time);
    * `upload` sends something out.

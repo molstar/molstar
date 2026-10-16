@@ -26,7 +26,7 @@ import {
 import type { Json } from '@molstar/ai-agent';
 import type { HistoryStep } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
-import type { RunOrigin, ViewerApi } from '../api/area.js';
+import type { RunOrigin, ViewerApi, OperationDefinition } from '../api/area.js';
 import type { RunRecord } from '../api/run.js';
 
 // The session's record (journal.md): what the person did and what the agent did, in order, in a fiber
@@ -158,8 +158,12 @@ export interface SessionRecord {
 }
 
 /** Operations whose runs are not changes worth a line: reads, hover, panels. */
-const isQuiet = (r: RunRecord, read: boolean) =>
-  read || r.operation.startsWith('highlight.') || r.operation.startsWith('view.') || r.operation === 'export.preview';
+const isQuiet = (r: RunRecord, def: OperationDefinition<any, any> | undefined) =>
+  !!def?.read ||
+  def?.record === false ||
+  r.operation.startsWith('highlight.') ||
+  r.operation.startsWith('view.') ||
+  r.operation === 'export.preview';
 
 /** A URL anywhere in a text: a scheme, `//` and what follows up to a space or a quote. */
 const UrlIn = /(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]*/gi;
@@ -339,7 +343,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     if (r.nested || !r.result) return;
     // The definition only (not `describe`, which resolves params and availability): this runs for every hover.
     const def = o.api.definitions.value.get(r.operation);
-    if (isQuiet(r, !!def?.read)) return;
+    if (isQuiet(r, def)) return;
     const at = r.started;
     const origin = r.origin.kind === 'agent' ? { kind: r.origin.kind, turn: r.origin.turn } : { kind: r.origin.kind };
     // Undos are written from the history's own event, naming the step (below).

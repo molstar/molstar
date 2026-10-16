@@ -52,6 +52,29 @@ describe('the session record', () => {
     record.dispose();
   });
 
+  it('writes no entry for an operation that says so (record: false), however often it runs', async () => {
+    const { api, run } = fakeApi();
+    (api.definitions.value as Map<string, unknown>).set('snapshot.seek', { id: 'snapshot.seek', record: false });
+    const record = await createSessionRecord({ api });
+    const finished = api.events.finished as unknown as { next(r: unknown): void };
+    for (let i = 0; i < 20; i++) {
+      finished.next({
+        id: 1000 + i,
+        operation: 'snapshot.seek',
+        title: 'Seek',
+        values: { time: i },
+        origin: { kind: 'person' },
+        started: i,
+        result: { ok: true, did: `At ${i} ms.` },
+        ms: 1,
+      });
+    }
+    run('A change');
+    await record.flush();
+    expect((await record.read(50)).items.map((i) => i.entry.kind)).toEqual(['run']);
+    record.dispose();
+  });
+
   it('records an undo as an entry naming the step, and a turn begun then settled', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });
