@@ -25,7 +25,7 @@ import {
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { Show } from '../../dom/control-flow.js';
 import { classes } from './_generated/empty-canvas.module.css.js';
-import { type PrismFieldOptions, PrismSplash } from './prism-splash.js';
+import { type PrismFieldOptions, PrismSplash, type SplashKind } from './prism-splash.js';
 
 /**
  * How long the canvas stays empty, the viewer idle, before the mark (and its splash) shows: clearing a scene to load the
@@ -41,13 +41,18 @@ type Phase = 'in' | 'out' | 'gone';
  * The Mol* wordmark in the middle of an empty canvas, once it has been empty and the viewer idle a while (work restarts
  * the wait): it fades in as the logo's colors wipe in along the outline (and stay); when something loads it fades out,
  * faster (and if it never showed, nothing shows). With `splash`, light through the Mol* star comes with it
- * (`PrismSplash`). Once shown, work alone does not hide it (a load that fills the canvas does). Never in the way of the
+ * (`PrismSplash`), as particles or as a wave, picked at random each time it shows (`field`). Once shown, work alone does not hide it (a load that fills the canvas does). Never in the way of the
  * canvas.
  */
 export function EmptyCanvas(props: {
   empty: Observable<boolean>;
-  /** The splash with the mark (on by default); its options, to tune it. */
+  /** The splash with the mark (on by default); its options, to tune it (the light's: they pick the light). */
   splash?: boolean | Partial<PrismFieldOptions>;
+  /**
+   * Which splash: the light (`prism-field.ts`), the light as a wave (`quantum-field.ts`), or either, picked at random
+   * each time it shows (the default: one time particles, another waves).
+   */
+  field?: SplashKind | 'random';
   /** The viewer is working (a load, a task): the wait for the mark starts over while it is. */
   busy?: Observable<boolean>;
 }) {
@@ -68,6 +73,12 @@ export function EmptyCanvas(props: {
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   const splash = props.splash ?? true;
+  const field = (): SplashKind => {
+    // Options are the light's: with them, the light.
+    if (typeof splash === 'object') return 'light';
+    const f = props.field ?? 'random';
+    return f === 'random' ? (Math.random() < 0.5 ? 'light' : 'quantum') : f;
+  };
   return (
     <Show when={phase.pipe(map((p) => p !== 'gone'))}>
       {() => {
@@ -80,6 +91,7 @@ export function EmptyCanvas(props: {
             {splash ? (
               <div class={classes.splash}>
                 <PrismSplash
+                  field={field()}
                   mark={() => mark}
                   // The viewport: the pointer over the canvas (which keeps it) moves the light too.
                   pointer={() => mark.closest('[data-msp-viewport]') ?? mark.parentElement}

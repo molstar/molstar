@@ -91,4 +91,34 @@ describe('EmptyCanvas', () => {
     expect(container.querySelector('[role=img]')).not.toBeNull();
     expect(container.querySelector('canvas')).toBeNull();
   });
+
+  it('shows particles one time and waves another: a fresh draw each time it shows', () => {
+    const random = vi.spyOn(Math, 'random');
+    const empty = observableState(true);
+    const container = document.createElement('div');
+    render(() => <EmptyCanvas empty={empty.asReadonly} />, container);
+    random.mockClear();
+    vi.advanceTimersByTime(800);
+    expect(container.querySelector('canvas')).not.toBeNull();
+    const draws = random.mock.calls.length;
+    expect(draws).toBeGreaterThan(0);
+    // Gone and back: drawn again.
+    empty.set(false);
+    vi.advanceTimersByTime(300);
+    empty.set(true);
+    vi.advanceTimersByTime(800);
+    expect(container.querySelector('canvas')).not.toBeNull();
+    expect(random.mock.calls.length).toBeGreaterThan(draws);
+    random.mockRestore();
+  });
+
+  it('runs either splash when asked for it', () => {
+    for (const field of ['light', 'quantum'] as const) {
+      const empty = observableState(true);
+      const container = document.createElement('div');
+      render(() => <EmptyCanvas empty={empty.asReadonly} field={field} />, container);
+      vi.advanceTimersByTime(800);
+      expect(container.querySelector('canvas')).not.toBeNull();
+    }
+  });
 });
