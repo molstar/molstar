@@ -83,7 +83,7 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`, `viewport`.                             |
 | `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.                                                     |
-| `structure`           | `preset`, `model`, `assembly`, `symmetry`, `visibility`, `remove`, `get`, `transform`, `transform-reset`, `unit-cell`.                                           |
+| `structure`           | `preset`, `model`, `assembly`, `symmetry`, `visibility`, `remove`, `list`, `transform`, `transform-reset`, `unit-cell`.                                          |
 | `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                                                              |
 | `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                                                            |
 | `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`, `layers`, `layer-update`, `layer-remove`. |
@@ -95,12 +95,12 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `set`, `get`.                                                                                                  |
 | `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting` (its switches, illumination among them), `camera`, `clipping`.              |
 | `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                  |
-| `volume`, `particles` | `get`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                      |
+| `volume`, `particles` | `list`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                     |
 | `sequence`            | `style`, `colors`, `follow`, `get`. Present when the spec has a sequence.                                                                                        |
 | `settings`            | `get`, `set`.                                                                                                                                                    |
 | `history`             | `undo`, `redo`, `undo-turn`, `list`.                                                                                                                             |
 | `view`                | `open`, `close`, `expand`, `fullscreen`: open a tab, a card or a section, reveal a node, or expand or fullscreen the viewer. No history step.                    |
-| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `get`, `remove`, `visibility`, `options`.                                                      |
+| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `list`, `remove`, `visibility`, `options`.                                                     |
 | `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`, `list`, `remove`.                                                                                                |
 | `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                        |
 | `animation`           | `play`, `stop`, `wiggle`, `get`.                                                                                                                                 |
@@ -144,9 +144,9 @@ a preset id or a color theme, the failure message and hint list the choices.
 ### Reading
 
 A read is an operation with a `value` and no history step. `api.select.get()`, `api.component.list()` and
-`api.structure.get()` return text in `did` and data in `value`. A few areas also expose a `ReadonlyState` to subscribe
-to: `structure.list`, `canvas.state`, `history.steps`, `annotations.providers` and `animation.state`. For the selection
-and the focus as states, use `viewer.sources.interaction`.
+`api.structure.list()` return text in `did` and data in `value`. A few areas also expose a `ReadonlyState` to subscribe
+to: `structure.loaded`, `canvas.state`, `history.steps`, `annotations.providers` and `animation.state`. For the
+selection and the focus as states, use `viewer.sources.interaction`.
 
 ```ts
 const sel = await api.select.get();

@@ -107,7 +107,7 @@ class ComponentApi extends ApiArea {
 - **Values are partial**: a missing value is the param's default, so `add({ target: 'resn HEM' })` is a whole call.
 - **Results, never throws** (operations.md §1). The code skill's sandbox throws an `ApiError { code, message, hint }`
   instead, as Stories' story code does (§7).
-- **Reads** are the states (for views and scripts) and `read: true` operations (`structure.get`, `select.get`), which
+- **Reads** are the states (for views and scripts) and `read: true` operations (`structure.list`, `select.get`), which
   return the same thing as text and data for commands and tools.
 
 ## 4. The types around it

@@ -83,7 +83,7 @@ describe('structure', () => {
 
   it('asks which one when a label names several structures, and takes a state ref', async () => {
     const v = await setup(['1cbs_updated.cif', '1cbs.cif'], ['1cbs_updated.cif', '1cbs-copy.cif']);
-    const refs = v.api.structure.list.value.map((x) => x.ref);
+    const refs = v.api.structure.loaded.value.map((x) => x.ref);
     expect(refs).toHaveLength(2);
     const r = await v.api.structure.visibility({ visible: false, structure: '1cbs' });
     expect(r).toMatchObject({ ok: false, code: 'ambiguous' });
@@ -98,16 +98,16 @@ describe('structure', () => {
     const v = await setup(['1crn.cif', '1crn.cif'], ['1cbs_updated.cif', '1cbs.cif']);
     const hidden = await v.api.structure.visibility({ visible: false, structure: '1crn' });
     expect(hidden.ok).toBe(true);
-    const ref = v.api.structure.list.value.find((x) => x.label === '1CRN')!.ref;
+    const ref = v.api.structure.loaded.value.find((x) => x.label === '1CRN')!.ref;
     expect(v.plugin.state.data.cells.get(ref)!.state.isHidden).toBe(true);
     const again = await v.api.structure.visibility({ visible: false, structure: '1crn' });
     expect(again.ok && again.did).toMatch(/already/);
 
     const removed = await v.api.structure.remove({ structure: '1crn' });
     expect(removed).toMatchObject({ ok: true });
-    expect(v.api.structure.list.value.map((x) => x.label)).toEqual(['1CBS']);
+    expect(v.api.structure.loaded.value.map((x) => x.label)).toEqual(['1CBS']);
     await v.api.history.undo();
-    expect(v.api.structure.list.value).toHaveLength(2);
+    expect(v.api.structure.loaded.value).toHaveLength(2);
   });
 });
 

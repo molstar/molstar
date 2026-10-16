@@ -175,7 +175,7 @@ describe('volume.streaming-view', () => {
     expectOk(same);
     expect(same.unchanged).toBe(true);
 
-    const got = await v.api.volume.get();
+    const got = await v.api.volume.list();
     expectOk(got);
     expect(got.did).toMatch(/Density is streamed for .*\(Whole Structure, detail 2 of 7;/);
 

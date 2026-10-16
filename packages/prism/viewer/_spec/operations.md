@@ -69,14 +69,14 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `measure.angle` | Measure an angle |  | a, b, c, text, structure, language |
 | `measure.dihedral` | Measure a dihedral angle |  | a, b, c, d, text, structure, language |
 | `measure.distance` | Measure a distance |  | a, b, text, structure, language |
-| `measure.get` | Describe the measurements | read |  |
 | `measure.label` | Add a label |  | a, text, structure, language |
+| `measure.list` | Describe the measurements | read |  |
 | `measure.options` | Set the measurement options |  | distanceUnitLabel, textColor |
 | `measure.orientation` | Show the principal axes |  | target, structure, language |
 | `measure.plane` | Show the best-fit plane |  | target, structure, language |
 | `measure.remove` | Remove a measurement | destructive | measurement |
 | `measure.visibility` | Show or hide a measurement |  | visible, measurement |
-| `particles.get` | Describe the particles | read |  |
+| `particles.list` | Describe the particles | read |  |
 | `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
 | `particles.update` | Update a particle representation | ui-only | node, params |
@@ -140,7 +140,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `state.update` | Update state cells | agent-only | node, params |
 | `state.visibility` | Show or hide state cells |  | node, visible |
 | `structure.assembly` | Show an assembly |  | id, structure |
-| `structure.get` | Describe the scene | read |  |
+| `structure.list` | Describe the scene | read |  |
 | `structure.model` | Show another model | view | index, structure |
 | `structure.preset` | Apply a representation preset |  | preset, structure |
 | `structure.remove` | Remove a structure | destructive | structure |
@@ -165,8 +165,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `view.expand` | Expand the viewport | view | on |
 | `view.fullscreen` | Fullscreen | view; needs page | on |
 | `view.open` | Open a panel | view; agent-only | tab, card, section |
-| `volume.get` | Describe the volumes | read |  |
 | `volume.isovalue` | Set the iso value |  | value, kind, volume, representation, node |
+| `volume.list` | Describe the volumes | read |  |
 | `volume.remove` | Remove a volume | destructive | volume, representation, node |
 | `volume.representation` | Show a volume as… |  | type, params, volume |
 | `volume.streaming` | Stream density for a structure | network (addresses); needs network | on, structure |

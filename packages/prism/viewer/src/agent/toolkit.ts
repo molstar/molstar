@@ -167,10 +167,10 @@ export const Skills: readonly SkillDeclaration[] = [
     title: 'Canvas',
     summary: 'lighting, illumination, camera mode, clipping',
     feature: 'canvas-settings',
-    guidance: 'Skill canvas: set_lighting turns shadows, ambient occlusion, outlines and fog on or off.',
+    guidance:
+      "Skill canvas: set_lighting turns shadows, ambient occlusion, outlines, fog and illumination on ({ name: 'on', params }) or off ({ name: 'off' }); what it leaves out stays.",
     tools: [
       { id: 'set_lighting', operation: 'canvas.lighting' },
-      { id: 'set_illumination', operation: 'canvas.illumination' },
       { id: 'set_camera_mode', operation: 'canvas.camera' },
       { id: 'set_clipping', operation: 'canvas.clipping' },
     ],
@@ -201,7 +201,7 @@ export const Skills: readonly SkillDeclaration[] = [
       { id: 'measure_angle', operation: 'measure.angle' },
       { id: 'measure_dihedral', operation: 'measure.dihedral' },
       { id: 'add_label', operation: 'measure.label' },
-      { id: 'list_measurements', operation: 'measure.get' },
+      { id: 'list_measurements', operation: 'measure.list' },
       { id: 'remove_measurement', operation: 'measure.remove' },
     ],
   },

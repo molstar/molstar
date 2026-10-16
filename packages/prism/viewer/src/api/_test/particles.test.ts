@@ -15,7 +15,7 @@ import { particlesFile } from './volume-fixtures.js';
 // `particles` (operations.md §2, plan 2.5) on a headless viewer, over a small CryoET NDJSON file made in memory.
 
 const infos = async (v: PrismViewer) => {
-  const r = await v.api.particles.get();
+  const r = await v.api.particles.list();
   expectOk(r);
   return r.value as ParticleListInfo[];
 };
@@ -28,7 +28,7 @@ const reps = (v: PrismViewer) =>
 describe('particles', () => {
   it('has nothing to act on where no particles are loaded', async () => {
     const v = await headlessViewer();
-    const none = await v.api.particles.get();
+    const none = await v.api.particles.list();
     expectOk(none);
     expect(none.did).toMatch(/No particles/);
     for (const r of [
@@ -46,7 +46,7 @@ describe('particles', () => {
     const [list] = await infos(v);
     expect(list.count).toBe(5);
     expect(list.representations.map((r) => r.type)).toEqual(['spacefill']);
-    const r = await v.api.particles.get();
+    const r = await v.api.particles.list();
     expectOk(r);
     expect(r.did).toMatch(/5 particles; spacefill/);
   });

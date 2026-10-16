@@ -36,7 +36,7 @@ describe('focus history', () => {
 
     // A listed target focuses the same again.
     const ligand = list.value![1];
-    const back = await v.api.focus.set({ target: ligand.target, structure: ligand.structure });
+    const back = await v.api.focus.set({ target: ligand.target, structure: ligand.structure.ref });
     expectOk(back);
     expect(await targets(v)).toEqual(['A:200', 'A:10-12']);
   });

@@ -929,16 +929,16 @@ function modifyBySelection(
     icon: 'squares-unite',
     // Three icons on its row, there at all times, unavailable with nothing selected (David, 2026-10-15).
     inline: true,
-    items: (['union', 'subtract', 'intersect'] as const).map((mode) => ({
+    items: (['add', 'remove', 'intersect'] as const).map((mode) => ({
       disabled: noSelection,
       id: mode,
       label:
-        mode === 'union'
+        mode === 'add'
           ? 'Include the selection'
-          : mode === 'subtract'
+          : mode === 'remove'
             ? 'Subtract the selection'
             : 'Intersect with the selection',
-      icon: mode === 'union' ? 'squares-unite' : mode === 'subtract' ? 'squares-subtract' : 'squares-intersect',
+      icon: mode === 'add' ? 'squares-unite' : mode === 'remove' ? 'squares-subtract' : 'squares-intersect',
       run: () =>
         void api.run('component.modify', { component: ref, structure: structureRef, target: 'selection', mode }),
     })),

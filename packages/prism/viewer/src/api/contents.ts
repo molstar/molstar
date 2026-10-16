@@ -29,7 +29,7 @@ import {
 } from '@molstar/plugin/state/queries/structure/type';
 import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area.js';
 import { EveryStructureParam, StructureParam } from './params.js';
-import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
+import { isFailure, labelOf, type StructureId, structureId, loadedStructures, oneStructure } from './scope.js';
 
 // `contents` (operations.md §2; README decision 18): hiding part of a structure at the entity and chain level, so what
 // is hidden is left out of every component (and so of every representation) of the structure, not just made
@@ -214,7 +214,7 @@ export class ContentsApi extends ApiArea {
       const list = structure ? [oneStructure(ctx, structure)] : loadedStructures(ctx);
       const lines: string[] = [];
       const value: {
-        structure: string;
+        structure: StructureId;
         entities: string[];
         chains: string[];
         hidden: { entities: readonly string[]; chains: readonly string[] };
@@ -223,7 +223,7 @@ export class ContentsApi extends ApiArea {
         if (isFailure(s)) return s;
         const c = contentsOf(s);
         const hidden = stateOf(ctx).value.hidden[s.cell.transform.ref] ?? { entities: [], chains: [] };
-        value.push({ structure: labelOf(ctx, s), entities: [...c.entities], chains: [...c.chains], hidden });
+        value.push({ structure: structureId(ctx, s), entities: [...c.entities], chains: [...c.chains], hidden });
         const h = [...hidden.entities.map((e) => `entity ${e}`), ...hidden.chains.map((x) => `chain ${x}`)];
         lines.push(
           `${labelOf(ctx, s)}: entities ${[...c.entities].join(', ')}; chains ${[...c.chains].join(', ')}${h.length ? `; hidden: ${h.join(', ')}` : ''}`,

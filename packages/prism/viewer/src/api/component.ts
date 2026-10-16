@@ -25,7 +25,15 @@ import { compileTarget, fromMolqlJson, PERSON_KEYWORDS, readKeyword, type Target
 import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area.js';
 import { type ComponentParams, expressionOf, ownParams, reapplyContents, setOwnParams } from './contents.js';
 import { ComponentParam, EveryStructureParam, InStructure, StructureParam } from './params.js';
-import { componentName, inStructures, isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
+import {
+  componentName,
+  inStructures,
+  isFailure,
+  labelOf,
+  type StructureId,
+  loadedStructures,
+  someStructures,
+} from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
 // `component` (operations.md §2, plan 2.2): the components of a structure, which are the unit the representations hang
@@ -70,15 +78,16 @@ const OptionKeys = {
   animation: 'animation',
 } as const satisfies Record<string, keyof StructureComponentManager.Options>;
 
+// The selection's words (operations.md §1 "Words"): add, remove, intersect.
 const ModeParam = () =>
   PD.Select(
-    'union',
+    'add',
     [
-      ['union', 'Add'],
-      ['subtract', 'Remove'],
+      ['add', 'Add'],
+      ['remove', 'Remove'],
       ['intersect', 'Keep only'],
     ] as const,
-    { description: 'union: add the target to the component; subtract: take it out; intersect: keep what both hold' },
+    { description: 'add: the target to the component; remove: take it out; intersect: keep what both hold' },
   );
 
 export class ComponentApi extends ApiArea {
@@ -168,7 +177,7 @@ export class ComponentApi extends ApiArea {
 
       const person = isPerson(target);
       const stored = person || isLociTarget(target) ? undefined : fromMolqlJson(resolved.stored);
-      const created: { ref: string; label: string; structure: string; type: string; atoms: number }[] = [];
+      const created: { ref: string; label: string; structure: StructureId; type: string; atoms: number }[] = [];
       const existing: string[] = [];
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
@@ -199,7 +208,7 @@ export class ComponentApi extends ApiArea {
         created.push({
           ref: component.ref,
           label: label || text,
-          structure: part.structure.label,
+          structure: part.structure,
           type,
           atoms: part.selected.atoms,
         });
@@ -214,10 +223,10 @@ export class ComponentApi extends ApiArea {
             );
       }
       // What the person hid (entities, chains) stays out of the new components too (decision 18).
-      const touched = new Set(created.map((c) => c.structure));
+      const touched = new Set(created.map((c) => c.structure.ref));
       await reapplyContents(
         ctx,
-        loadedStructures(ctx).filter((x) => touched.has(labelOf(ctx, x))),
+        loadedStructures(ctx).filter((x) => touched.has(x.cell.transform.ref)),
       );
       const did = created
         .map(
@@ -333,25 +342,25 @@ export class ComponentApi extends ApiArea {
       // component's atoms, then the component holds exactly those atoms.
       const by = StructureElement.Loci.toStructure(part.loci);
       const overlaps = structureAreIntersecting(current, by);
-      if (mode === 'subtract' && !overlaps) {
+      if (mode === 'remove' && !overlaps) {
         return ApiResult.already(`'${name}' holds none of ${part.selected.line}.`);
       }
       if (mode === 'intersect' && !overlaps) {
         return ApiResult.fail(
           'invalid',
           `'${name}' and ${part.selected.line} do not overlap, so nothing would be left.`,
-          "Use mode 'union' to add it, or remove the component.",
+          "Use mode 'add' to add it, or remove the component.",
         );
       }
       const modified =
-        mode === 'union'
+        mode === 'add'
           ? structureUnion(parent, [current, by])
           : mode === 'intersect'
             ? structureIntersect(current, by)
             : structureSubtract(current, by);
       if (structureAreEqual(modified, current)) {
         return ApiResult.already(
-          mode === 'union' ? `'${name}' already holds ${part.selected.line}.` : `'${name}' is already so.`,
+          mode === 'add' ? `'${name}' already holds ${part.selected.line}.` : `'${name}' is already so.`,
         );
       }
       const ref = c.cell.transform.ref;
@@ -362,7 +371,7 @@ export class ComponentApi extends ApiArea {
         const mine = expressionOf(own)!;
         const byExpression = StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(part.loci));
         const expression =
-          mode === 'union'
+          mode === 'add'
             ? MS.struct.combinator.merge([mine, byExpression])
             : mode === 'intersect'
               ? MS.struct.modifier.intersectBy({ 0: mine, by: byExpression })

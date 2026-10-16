@@ -76,8 +76,9 @@ export interface VolumeInfo {
 export class VolumeApi extends ApiArea {
   readonly id = 'volume';
 
-  readonly get = this.operation({
-    id: 'volume.get',
+  readonly list = this.operation({
+    id: 'volume.list',
+    aliases: ['volume.get'],
     title: 'Describe the volumes',
     params: {},
     read: true,
@@ -106,6 +107,9 @@ export class VolumeApi extends ApiArea {
       return ApiResult.ok([...lines, ...(streaming ? [streaming] : [])].join('\n'), {}, { value: infos });
     },
   });
+
+  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  readonly get = this.list;
 
   // operations.md §2: the iso value of a representation (σ above the mean when relative).
   readonly isovalue = this.operation({

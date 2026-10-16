@@ -37,13 +37,14 @@ import { defaultPreset } from './styles.js';
 export class StructureApi extends ApiArea {
   readonly id = 'structure';
 
-  /** The loaded structures. */
-  get list(): ReadonlyState<readonly StructureInfo[]> {
+  /** The loaded structures, as a state to subscribe to. */
+  get loaded(): ReadonlyState<readonly StructureInfo[]> {
     return this.ctx.sources.structures;
   }
 
-  readonly get = this.operation({
-    id: 'structure.get',
+  readonly list = this.operation({
+    id: 'structure.list',
+    aliases: ['structure.get'],
     title: 'Describe the scene',
     params: {},
     read: true,
@@ -57,6 +58,9 @@ export class StructureApi extends ApiArea {
       return ApiResult.ok(lines.join('\n'), {}, { value: list });
     },
   });
+
+  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  readonly get = this.list;
 
   readonly preset = this.operation({
     id: 'structure.preset',

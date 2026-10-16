@@ -266,8 +266,9 @@ export class MeasureApi extends ApiArea {
     },
   });
 
-  readonly get = this.operation({
-    id: 'measure.get',
+  readonly list = this.operation({
+    id: 'measure.list',
+    aliases: ['measure.get'],
     title: 'Describe the measurements',
     params: {},
     read: true,
@@ -280,6 +281,9 @@ export class MeasureApi extends ApiArea {
       return ApiResult.ok(lines.join('\n'), {}, { value: list });
     },
   });
+
+  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  readonly get = this.list;
 }
 
 /** Said to callers: the measurement without the cell. */

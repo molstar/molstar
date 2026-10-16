@@ -36,7 +36,7 @@ describe('load.files', () => {
     expect(r.did).toMatch(/Opened 1crn\.cif \(1 structure\)/);
     expect(r.did).not.toMatch(/broken/);
     expect(r.warnings).toEqual(['Could not open broken.cif.']);
-    expect(v.api.structure.list.value).toHaveLength(1);
+    expect(v.api.structure.loaded.value).toHaveLength(1);
     expect(rootChildren(v)).toBe(1);
   });
 });

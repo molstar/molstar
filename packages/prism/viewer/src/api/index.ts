@@ -165,7 +165,7 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
     };
     const members = {
       run: (id: string, values?: Readonly<Record<string, unknown>>, options?: RunOptions) => {
-        const def = runner.definitions.value.get(id);
+        const def = runner.definition(id);
         if (!def) {
           const result = ApiResult.fail(
             'not-found',

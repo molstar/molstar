@@ -248,3 +248,13 @@ describe('the viewer agent between turns', () => {
     agent.dispose();
   });
 });
+
+describe('the toolkit', () => {
+  it("names only operations the default viewer has (a renamed or removed one fails here, not in a person's turn)", async () => {
+    const { CoreTools, Skills } = await import('../toolkit.js');
+    const v = await headlessViewer();
+    const ops = [...CoreTools, ...Skills.flatMap((s) => s.tools)].map((t) => t.operation);
+    const missing = ops.filter((id) => !v.api.definitions.value.has(id));
+    expect(missing).toEqual([]);
+  });
+});

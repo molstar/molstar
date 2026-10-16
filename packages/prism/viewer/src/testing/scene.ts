@@ -433,8 +433,8 @@ export function mockScene(
       label: 'Modify by selection',
       icon: 'mouse-pointer-click',
       items: [
-        { id: 'include', label: 'Include', icon: 'squares-unite', run: act(`${label}: include the selection`) },
-        { id: 'subtract', label: 'Subtract', icon: 'squares-subtract', run: act(`${label}: subtract the selection`) },
+        { id: 'add', label: 'Include', icon: 'squares-unite', run: act(`${label}: include the selection`) },
+        { id: 'remove', label: 'Subtract', icon: 'squares-subtract', run: act(`${label}: subtract the selection`) },
         {
           id: 'intersect',
           label: 'Intersect',

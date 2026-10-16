@@ -34,7 +34,7 @@ describe("a component's actions", () => {
     // Modify by selection acts at once (three icons on its row), with no form; unavailable with nothing selected.
     const modify = polymer.menu!.find((m) => m.id === 'modify')!;
     expect(modify.inline).toBe(true);
-    expect(modify.items?.map((m) => m.id)).toEqual(['union', 'subtract', 'intersect']);
+    expect(modify.items?.map((m) => m.id)).toEqual(['add', 'remove', 'intersect']);
     const disabled = () => {
       let d: boolean | undefined;
       modify.items![0].disabled!.subscribe((x) => (d = x)).unsubscribe();

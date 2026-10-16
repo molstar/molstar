@@ -191,7 +191,7 @@ describe('measure', () => {
 
   it('describes the measurements, shows or hides and removes them', async () => {
     const v = await setup();
-    const none = await v.api.measure!.get();
+    const none = await v.api.measure!.list();
     expectOk(none);
     expect(none.value).toEqual([]);
     expect(await v.api.measure!.remove({})).toMatchObject({ ok: false, code: 'not-found' });
@@ -200,14 +200,14 @@ describe('measure', () => {
     expectOk(d);
     const l = await v.api.measure!.label({ a: A(10), text: 'x' });
     expectOk(l);
-    const got = await v.api.measure!.get();
+    const got = await v.api.measure!.list();
     expectOk(got);
     expect(got.value?.map((m) => m.kind)).toEqual(['label', 'distance']);
     expect(got.value?.[1]).toMatchObject({ ref: d.value?.ref, hidden: false });
 
     const hidden = await v.api.measure!.visibility({ measurement: d.value!.ref, visible: false });
     expectOk(hidden);
-    expect((await v.api.measure!.get()).ok && (await v.api.measure!.get())).toMatchObject({
+    expect((await v.api.measure!.list()).ok && (await v.api.measure!.list())).toMatchObject({
       value: [{ hidden: false }, { hidden: true }],
     });
     expect(await v.api.measure!.visibility({ measurement: d.value!.ref, visible: false })).toMatchObject({
@@ -218,11 +218,11 @@ describe('measure', () => {
 
     // Hidden through its representation cell alone (the State tree's eye): showing it shows it.
     expectOk(await v.api.state!.visibility({ node: d.value!.ref, visible: false }));
-    const viaRepresentation = await v.api.measure!.get();
+    const viaRepresentation = await v.api.measure!.list();
     expectOk(viaRepresentation);
     expect(viaRepresentation.value?.[1]).toMatchObject({ hidden: true });
     expectOk(await v.api.measure!.visibility({ measurement: d.value!.ref, visible: true }));
-    const shownAgain = await v.api.measure!.get();
+    const shownAgain = await v.api.measure!.list();
     expectOk(shownAgain);
     expect(shownAgain.value?.[1]).toMatchObject({ hidden: false });
 
@@ -258,7 +258,7 @@ describe('measure', () => {
     expectOk(r);
     expect(manager(v).state.options.distanceUnitLabel).toBe('nm');
     expect(manager(v).state.options.textColor).toBe(0xff8800);
-    const got = await v.api.measure!.get();
+    const got = await v.api.measure!.list();
     expectOk(got);
     expect(got.value?.[0].value).toMatch(/ nm$/);
 

@@ -77,12 +77,22 @@ export function pickNamed<T>(list: readonly T[], name: string | undefined, rule:
 
 // --- structures -------------------------------------------------------------------------------------------------
 
-export function loadedStructures(ctx: ApiContext): readonly StructureRef[] {
+export function loadedStructures(ctx: Pick<ApiContext, 'plugin'>): readonly StructureRef[] {
   return ctx.plugin.managers.structure.hierarchy.current.structures;
 }
 
+/** A structure as every read names it (operations.md §1 "Words"): its state ref and its name for people. */
+export interface StructureId {
+  readonly ref: string;
+  readonly label: string;
+}
+
+export function structureId(ctx: Pick<ApiContext, 'plugin'>, s: StructureRef): StructureId {
+  return { ref: s.cell.transform.ref, label: labelOf(ctx, s) };
+}
+
 /** The structure's name for people (`sources/naming.ts`): its entry, told apart when two share one. */
-export function labelOf(ctx: ApiContext, s: StructureRef): string {
+export function labelOf(ctx: Pick<ApiContext, 'plugin'>, s: StructureRef): string {
   return structureNames(loadedStructures(ctx)).get(s.cell.transform.ref) ?? s.cell.transform.ref;
 }
 

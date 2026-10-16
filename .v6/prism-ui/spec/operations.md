@@ -53,6 +53,12 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   selector compiled to Mol*'s `StateSelection` (`component[type=ligand] > representation`, `#ref`, a ref alone); one
   that acts on several acts on every match as one step, one that acts on one fails `ambiguous` with the matches.
   Friendly scopes (a component by label, a volume by name, a representation type) stay beside it.
+- **Words** (2026-10-16): `list` reads a collection (`structure.list`, `volume.list`, `particles.list`,
+  `measure.list`, `component.list`), `get` one thing or a state (`canvas.get`, `select.get`, `state.get`); a set
+  operation's modes are `add`, `remove`, `intersect` (and `set` where it replaces: `select.set`); a read names a
+  structure `{ ref, label }`. A renamed operation keeps its old id as an alias until the release (`aliases`:
+  `api.run('structure.get')` runs `structure.list`; only the new id is listed). An area's state to subscribe to is a
+  noun (`structure.loaded`, `canvas.state`, `history.steps`).
 - **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
   (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
   order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already

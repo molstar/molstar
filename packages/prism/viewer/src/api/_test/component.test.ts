@@ -207,22 +207,22 @@ describe('component.modify', () => {
     const all = atoms(v, 'Chain')!;
     const stepsBefore = steps(v);
 
-    const sub = await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'subtract' });
+    const sub = await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'remove' });
     expectOk(sub);
     const less = atoms(v, 'Chain')!;
     expect(less).toBeLessThan(all);
     expect(steps(v)).toBe(stepsBefore + 1);
 
     // taking out what is not there changes nothing
-    expect(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'subtract' })).toMatchObject({
+    expect(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'remove' })).toMatchObject({
       ok: true,
       unchanged: true,
     });
     expect(steps(v)).toBe(stepsBefore + 1);
 
-    expectOk(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'union' }));
+    expectOk(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'add' }));
     expect(atoms(v, 'Chain')).toBe(all);
-    expect(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'union' })).toMatchObject({
+    expect(await v.api.component.modify({ component: 'Chain', target: 'resi 1-10', mode: 'add' })).toMatchObject({
       ok: true,
       unchanged: true,
     });
@@ -245,7 +245,7 @@ describe('component.modify', () => {
 
   it('fails when the target selects nothing', async () => {
     const { v } = await withLigand();
-    const r = await v.api.component.modify({ component: 'Retinoic acid', target: 'resn ZZZ', mode: 'union' });
+    const r = await v.api.component.modify({ component: 'Retinoic acid', target: 'resn ZZZ', mode: 'add' });
     expect(r).toMatchObject({ ok: false, code: 'not-found' });
   });
 });

@@ -29,7 +29,7 @@ describe('the session record', () => {
     const record = await createSessionRecord({ api: v.api });
     const person = v.api.as({ kind: 'person' });
     expectOk(await person.styles.apply({ style: 'surface' }));
-    expectOk(await v.api.structure.get());
+    expectOk(await v.api.structure.list());
     expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'cartoon' }));
     await record.flush();
     const { items } = await record.read(10);
@@ -47,7 +47,7 @@ describe('the session record', () => {
     const record = await createSessionRecord({ api: v.api });
     const describe = vi.spyOn(v.api, 'describe');
     expectOk(await v.api.highlight.set({ target: 'ligand' }));
-    expectOk(await v.api.structure.get());
+    expectOk(await v.api.structure.list());
     expect(describe).not.toHaveBeenCalled();
     record.dispose();
   });

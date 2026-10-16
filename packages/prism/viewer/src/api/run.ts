@@ -71,6 +71,7 @@ export interface ApiRunnerDeps {
 }
 
 export class ApiRunner implements OperationPort {
+  readonly #aliases = new Map<string, string>();
   readonly #definitions = observableState<ReadonlyMap<string, OperationDefinition<any, any>>>(new Map(), {
     compare: Object.is,
   });
@@ -120,12 +121,23 @@ export class ApiRunner implements OperationPort {
       throw new Error(`Operation '${def.id}' is defined twice`);
     }
     this.#owners.set(def.id, area);
+    for (const alias of def.aliases ?? []) {
+      if (!alias.startsWith(`${area}.`)) throw new Error(`Alias '${alias}' must start with its area's id, '${area}.'`);
+      this.#aliases.set(alias, def.id);
+    }
     this.#definitions.set(new Map([...this.#definitions.value, [def.id, def]]));
+  }
+
+  /** An operation by id or by a former id (`aliases`). */
+  definition(id: string): OperationDefinition<any, any> | undefined {
+    const defs = this.#definitions.value;
+    return defs.get(id) ?? defs.get(this.#aliases.get(id) ?? '');
   }
 
   /** Removes an operation (its extension was removed, or a stub was replaced). */
   undefine(id: string): void {
     if (!this.#owners.delete(id)) return;
+    for (const [alias, to] of this.#aliases) if (to === id) this.#aliases.delete(alias);
     const next = new Map(this.#definitions.value);
     next.delete(id);
     this.#definitions.set(next);
@@ -133,7 +145,7 @@ export class ApiRunner implements OperationPort {
 
   /** An operation as commands and tools see it: params resolved, whether it can run now. */
   describe(id: string): OperationDescription | undefined {
-    const definition = this.#definitions.value.get(id);
+    const definition = this.definition(id);
     const ctx = this.#areaContext;
     if (!definition || !ctx) return undefined;
     try {

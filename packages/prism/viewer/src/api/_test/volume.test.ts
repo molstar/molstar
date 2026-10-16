@@ -15,7 +15,7 @@ import { mapFile } from './volume-fixtures.js';
 // `volume` (operations.md §2, plan 2.5) on a headless viewer, over small CCP4 maps made in memory.
 
 const infos = async (v: PrismViewer) => {
-  const r = await v.api.volume.get();
+  const r = await v.api.volume.list();
   expectOk(r);
   return r.value as VolumeInfo[];
 };
@@ -28,7 +28,7 @@ const reps = (v: PrismViewer) =>
 describe('volume', () => {
   it('describes the volumes: label, grid facts, representations with their iso values', async () => {
     const v = await headlessViewer();
-    const none = await v.api.volume.get();
+    const none = await v.api.volume.list();
     expectOk(none);
     expect(none.did).toMatch(/No volumes/);
 
@@ -41,7 +41,7 @@ describe('volume', () => {
     expect(map.representations).toHaveLength(1);
     expect(map.representations[0].type).toBe('isosurface');
     expect(map.representations[0].isoValue?.kind).toBe('relative');
-    const r = await v.api.volume.get();
+    const r = await v.api.volume.list();
     expectOk(r);
     expect(r.did).toMatch(/test\.ccp4 .*12 × 12 × 12 grid.*isosurface/);
   });

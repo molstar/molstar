@@ -45,8 +45,9 @@ export interface ParticleListInfo {
 export class ParticlesApi extends ApiArea {
   readonly id = 'particles';
 
-  readonly get = this.operation({
-    id: 'particles.get',
+  readonly list = this.operation({
+    id: 'particles.list',
+    aliases: ['particles.get'],
     title: 'Describe the particles',
     params: {},
     read: true,
@@ -73,6 +74,9 @@ export class ParticlesApi extends ApiArea {
       return ApiResult.ok(lines.join('\n'), {}, { value: infos });
     },
   });
+
+  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  readonly get = this.list;
 
   // operations.md §2: on a particle list, the representation of a type: added if absent, its params updated if present.
   readonly representation = this.operation({

@@ -13,7 +13,7 @@ import type { Selected } from '../targets/types.js';
 import { summarize } from '../targets/index.js';
 import { ApiArea, ApiResult } from './area.js';
 import { StructureParam } from './params.js';
-import { isFailure } from './scope.js';
+import { isFailure, type StructureId, structureId } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 import { duration as cameraDuration } from './camera.js';
 import type { ApiAreaContext } from './area.js';
@@ -24,7 +24,7 @@ import type { ApiAreaContext } from './area.js';
 
 /** What `focus.get` gives back. */
 export interface FocusValue {
-  readonly structure: string;
+  readonly structure: StructureId;
   readonly label: string;
   readonly selected: Selected;
 }
@@ -32,8 +32,8 @@ export interface FocusValue {
 /** One of the recent foci (`focus.history`): a target `focus.set` takes back, with the structure it is on. */
 export interface FocusHistoryEntry {
   readonly label: string;
-  /** The structure's ref (what `focus.set`'s `structure` takes). */
-  readonly structure: string;
+  /** The structure (its `ref` is what `focus.set`'s `structure` takes). */
+  readonly structure: StructureId;
   /** The focus as addresses (`A:120-130, A:135`): residue-level, so an atom-level focus comes back as its residues. */
   readonly target: string;
   readonly selected: Selected;
@@ -109,7 +109,7 @@ export class FocusApi extends ApiArea {
       );
       const selected = summarize(loci);
       const value: FocusValue = {
-        structure: cell?.cell.transform.ref ?? '',
+        structure: cell ? structureId(ctx, cell) : { ref: '', label: '' },
         label: ctx.plugin.managers.structure.focus.current?.label ?? selected.line,
         selected,
       };
@@ -166,12 +166,12 @@ export class FocusApi extends ApiArea {
 }
 
 /** The plugin's focus history with each entry's structure; entries whose structure is gone are left out. */
-function recentFoci(ctx: ApiAreaContext): { entry: FocusEntry; structure: string }[] {
+function recentFoci(ctx: ApiAreaContext): { entry: FocusEntry; structure: StructureId }[] {
   const structures = ctx.plugin.managers.structure.hierarchy.current.structures;
-  const out: { entry: FocusEntry; structure: string }[] = [];
+  const out: { entry: FocusEntry; structure: StructureId }[] = [];
   for (const entry of ctx.plugin.managers.structure.focus.history) {
     const cell = structures.find((s) => s.cell.obj?.data.root === entry.loci.structure.root);
-    if (cell) out.push({ entry, structure: cell.cell.transform.ref });
+    if (cell) out.push({ entry, structure: structureId(ctx, cell) });
   }
   return out;
 }
@@ -179,9 +179,9 @@ function recentFoci(ctx: ApiAreaContext): { entry: FocusEntry; structure: string
 function historyOptions(ctx: ApiAreaContext): [string, string][] {
   const list = recentFoci(ctx);
   if (!list.length) return [['1', 'Nothing was focused yet']];
-  const several = new Set(list.map((e) => e.structure)).size > 1;
+  const several = new Set(list.map((e) => e.structure.ref)).size > 1;
   return list.map(({ entry, structure }, i) => {
-    const on = several ? ` (${structureLabel(ctx, structure)})` : '';
+    const on = several ? ` (${structure.label})` : '';
     return [`${i + 1}`, `${entry.label}${on}`];
   });
 }
@@ -192,9 +192,4 @@ function defaultEntry(ctx: ApiAreaContext): string {
   const current = ctx.plugin.managers.structure.focus.current?.loci;
   const i = list.findIndex((e) => !current || !StructureElement.Loci.areEqual(current, e.entry.loci));
   return `${i < 0 ? 1 : i + 1}`;
-}
-
-function structureLabel(ctx: ApiAreaContext, ref: string): string {
-  const s = ctx.plugin.managers.structure.hierarchy.current.structures.find((x) => x.cell.transform.ref === ref);
-  return s?.cell.obj?.label ?? ref;
 }

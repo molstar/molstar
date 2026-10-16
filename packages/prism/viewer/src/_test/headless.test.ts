@@ -45,16 +45,16 @@ describe('the headless viewer', () => {
     const loaded = await v.api.load.files({ files: [crambin()] as never });
     expect(loaded.ok).toBe(true);
     expect(v.state.empty.value).toBe(false);
-    expect(v.api.structure.list.value).toHaveLength(1);
+    expect(v.api.structure.loaded.value).toHaveLength(1);
 
-    const described = await v.api.structure.get();
+    const described = await v.api.structure.list();
     expect(described.ok && described.did).toMatch(/327 atoms/);
 
     expect(v.managers.history.steps.value).toHaveLength(1);
     const undone = await v.api.history.undo();
     expect(undone.ok).toBe(true);
     expect(v.state.empty.value).toBe(true);
-    expect(v.api.structure.list.value).toHaveLength(0);
+    expect(v.api.structure.loaded.value).toHaveLength(0);
   });
 
   it('checks values: unknown names and wrong types are refused with a hint', async () => {
@@ -73,7 +73,7 @@ describe('the headless viewer', () => {
       await api.load.files({ files: [cbs()] as never });
     });
     expect(r.ok).toBe(true);
-    expect(v.api.structure.list.value).toHaveLength(2);
+    expect(v.api.structure.loaded.value).toHaveLength(2);
     expect(v.managers.history.steps.value.map((s) => s.label)).toEqual(['Load two']);
 
     const failed = await v.api.group('Load and fail', async (api) => {
@@ -82,7 +82,7 @@ describe('the headless viewer', () => {
     });
     expect(failed.ok).toBe(false);
     // The clear inside the failed group was undone with it.
-    expect(v.api.structure.list.value).toHaveLength(2);
+    expect(v.api.structure.loaded.value).toHaveLength(2);
 
     await v.api.history.undo();
     expect(v.state.empty.value).toBe(true);
@@ -115,15 +115,15 @@ describe('the headless viewer', () => {
     const again = await v.api.session.clear();
     expect(again).toMatchObject({ ok: false, code: 'blocked' });
     await v.api.history.undo();
-    expect(v.api.structure.list.value).toHaveLength(1);
+    expect(v.api.structure.loaded.value).toHaveLength(1);
   });
 
   it('records runs with their origin', async () => {
     const v = await create();
     const seen: string[] = [];
     v.api.events.finished.subscribe((r) => seen.push(`${r.origin.kind}:${r.operation}:${r.result?.ok}`));
-    await v.api.as({ kind: 'person' }).structure.get();
+    await v.api.as({ kind: 'person' }).structure.list();
     await v.api.load.files({ files: [crambin()] as never });
-    expect(seen).toEqual(['person:structure.get:true', 'script:load.files:true']);
+    expect(seen).toEqual(['person:structure.list:true', 'script:load.files:true']);
   });
 });

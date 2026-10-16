@@ -194,6 +194,11 @@ export interface GroupRecord {
 export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknown> {
   /** `<area>.<verb>`: `component.add`, `canvas.background`. */
   readonly id: string;
+  /**
+   * Former ids that still run it (operations.md §1 "Words"): `api.run('structure.get')` runs `structure.list`. Until
+   * the release; describe, the spec, the commands and the tools list only `id`.
+   */
+  readonly aliases?: readonly string[];
   /** For people: the command's title, and the history entry when the result says nothing better. */
   readonly title: string;
   /** One definition: the command's form and the tool's schema derive from it; a function for registry-driven ones. */
@@ -297,7 +302,8 @@ export abstract class ApiArea {
 
   /** The operations this area declares, contributed ones included. */
   operations(): OperationFn<any, any>[] {
-    return Object.values(this).filter(isOperationFn);
+    // An alias property (`get = this.list`) is the same function: listed once.
+    return [...new Set(Object.values(this).filter(isOperationFn))];
   }
 
   /** Lets go of what the area holds (an extension's area when the extension goes). */

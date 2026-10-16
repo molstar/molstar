@@ -106,7 +106,7 @@ describe('representation rows', () => {
     expectOk(renamed);
     expect(renamed.did).toBe("Renamed 'Ligand' to 'Retinoic'.");
     // Residues of the hidden protein: added to its own params, not shown yet.
-    expectOk(await v.api.component.modify({ component: 'Retinoic', target: 'resi 10-20', mode: 'union' }));
+    expectOk(await v.api.component.modify({ component: 'Retinoic', target: 'resi 10-20', mode: 'add' }));
     expect(ligand()?.cell.obj?.data.elementCount).toBe(atoms);
     expectOk(await v.api.contents.visibility({ entity: '1', visible: true }));
     expect(ligand()?.cell.obj?.label).toBe('Retinoic');
