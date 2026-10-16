@@ -107,6 +107,10 @@ the [API change ledger](breaking-v6-changes.md).
   agent (`apps/prism-viewer` passes it: the person's own keys, kept scrambled)
 - Model Archive's quality in the Prism viewer (`@molstar/model-archive-extension/prism-viewer`): color by pLDDT or
   QMEAN (commands, `annotations.apply`), the pLDDT track in the sequence; sequence behaviors for extensions
+- Prism's own data palette, the default (`canvas.palette`: `prism`, `classic` for Mol*'s own Many-Distinct,
+  `colorblind`; `?palette=`): the categorical themes take the core's new `many-distinct-prism` list (Many-Distinct
+  redrawn in OKLCH, Mol*'s green and orange first); a spec gives the lists (`spec.palettes`: Prism's and the
+  colorblind-safe one, hex strings or numbers); a session without a palette opens on the classic one
 - A colorblind-safe data palette in the Prism viewer (`canvas.palette`, `?palette=colorblind`): the categorical themes
   take Okabe–Ito, the core's new `okabe-ito` color list; the light restore after a reload; touch targets of 44px in
   compact mode

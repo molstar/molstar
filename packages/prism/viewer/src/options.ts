@@ -51,11 +51,12 @@ export const PrismViewerOptions = {
       ['disabled', 'Off'],
     ]),
     /** README §3.7: the categorical themes' colors (`canvas.palette`). */
-    palette: PD.Select<'default' | 'colorblind'>(
-      'default',
+    palette: PD.Select<'prism' | 'classic' | 'colorblind'>(
+      'prism',
       [
-        ['default', 'Default'],
-        ['colorblind', 'Colorblind-safe (Okabe–Ito)'],
+        ['prism', 'Prism'],
+        ['classic', 'Classic (Mol*)'],
+        ['colorblind', 'Colorblind-safe'],
       ],
       { description: 'The colors of chains, entities and other categories' },
     ),

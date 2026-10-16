@@ -466,6 +466,15 @@ export const ColorLists = {
     'Diverging color scheme with red-white-blue',
     [0xbf2222, 0xffffff, 0x3361e1],
   ),
+  'many-distinct-prism': ColorList(
+    'Many-Distinct (Prism)',
+    'qualitative',
+    "Many-Distinct redrawn in OKLCH for Prism: Mol*'s green and orange first, even weight, distinct throughout",
+    [
+      0x07a57b, 0xe57434, 0x7b74c4, 0xd8588f, 0x78b248, 0xecb333, 0x915a23, 0x4cbadc, 0xcb4644, 0x2a61b1, 0x1a8390,
+      0xc793df, 0x7f8026, 0xf6a88d, 0x883f73, 0x9bdcb1,
+    ],
+  ),
   'many-distinct': ColorList(
     'Many-Distinct',
     'qualitative',

@@ -13,12 +13,20 @@ import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { PluginContext } from '@molstar/plugin/context';
 
 // The data palette (README §3.7, decision 31): the categorical color themes (chains, entities, polymers, operators,
-// models) take a colorblind-safe list (Okabe–Ito) as their default palette, so every new representation and preset
-// uses it; the representations that use a theme's default palette now are recolored with the new one. A theme's own
-// non-default palette (chosen by the person) is left alone. The registry keeps the themes' names: saved sessions read
-// the same.
+// models) take the chosen list as their default palette, so every new representation and preset uses it; the
+// representations that use a theme's default palette now are recolored with the new one. A theme's own non-default
+// palette (chosen by the person) is left alone. The registry keeps the themes' names: saved sessions read the same.
+// Prism's own list is the default choice; Mol*'s classic one is the themes' own; the lists are the spec's
+// (`spec.palettes`), else Many-Distinct (Prism) and Okabe–Ito.
 
-export type DataPalette = 'default' | 'colorblind';
+/** Prism's own list (many-distinct-prism), Mol*'s (the themes' own: many-distinct), or the colorblind-safe one. */
+export type DataPalette = 'prism' | 'classic' | 'colorblind';
+
+/** The lists the palettes take (0xRRGGBB), in the order categories take them; a choice not given keeps the default. */
+export interface DataPaletteLists {
+  readonly prism?: readonly number[];
+  readonly colorblind?: readonly number[];
+}
 
 /** The themes whose default palette follows the choice. */
 export const CategoryThemes: readonly string[] = [
@@ -35,14 +43,25 @@ export const CategoryThemes: readonly string[] = [
   'trajectory-index',
 ];
 
-/** Okabe–Ito's colors as a palette param's value (a set from the core's list). */
-const ColorblindPalette = {
+/** A spec's lists (`spec.palettes`, §2.8): `'#rrggbb'` strings read as colors. */
+export function paletteLists(
+  spec: { readonly prism?: readonly (number | string)[]; readonly colorblind?: readonly (number | string)[] } = {},
+): DataPaletteLists {
+  const read = (list?: readonly (number | string)[]) =>
+    list?.map((c) => (typeof c === 'number' ? c : Number.parseInt(c.replace(/^#/, ''), 16)));
+  return { prism: read(spec.prism), colorblind: read(spec.colorblind) };
+}
+
+/** A list as a palette param's value (a set). */
+const paletteOf = (colors: readonly number[]) => ({
   name: 'colors',
-  params: { list: { kind: 'set' as const, colors: [...ColorLists['okabe-ito'].list] } },
-};
+  params: { list: { kind: 'set' as const, colors: [...colors] } },
+});
 
 interface PaletteState {
   palette: DataPalette;
+  /** The palette param values the lists give. */
+  readonly values: { readonly prism: unknown; readonly colorblind: unknown };
   /** The registry's own providers, by name, while ours stand in. */
   readonly originals: Map<string, ColorTheme.Provider<any, any>>;
 }
@@ -50,18 +69,23 @@ interface PaletteState {
 const states = new WeakMap<PluginContext, PaletteState>();
 
 export function dataPaletteOf(plugin: PluginContext): DataPalette {
-  return states.get(plugin)?.palette ?? 'default';
+  return states.get(plugin)?.palette ?? 'classic';
 }
 
-/** A provider like `p` whose `palette` param defaults to the colorblind-safe list. */
-function withPalette(p: ColorTheme.Provider<any, any>): ColorTheme.Provider<any, any> {
+/** A palette a session names: an older one's `default` is the classic one; none (a session from before) too. */
+function readPalette(value: unknown): DataPalette {
+  return value === 'prism' || value === 'colorblind' ? value : 'classic';
+}
+
+/** A provider like `p` whose `palette` param defaults to `value`. */
+function withPalette(p: ColorTheme.Provider<any, any>, value: unknown): ColorTheme.Provider<any, any> {
   return {
     ...p,
     getParams: (ctx) => {
       const params = p.getParams(ctx);
       const palette = params.palette as PD.Any | undefined;
       if (!palette) return params;
-      return { ...params, palette: { ...palette, defaultValue: ColorblindPalette } };
+      return { ...params, palette: { ...palette, defaultValue: value } };
     },
   };
 }
@@ -83,7 +107,7 @@ function swapThemes(plugin: PluginContext, state: PaletteState, palette: DataPal
     const original = state.originals.get(name) ?? p;
     state.originals.set(name, original);
     registry.remove(p);
-    registry.add(palette === 'colorblind' ? withPalette(original) : original);
+    registry.add(palette === 'classic' ? original : withPalette(original, state.values[palette]));
   }
   state.palette = palette;
   return before;
@@ -92,25 +116,32 @@ function swapThemes(plugin: PluginContext, state: PaletteState, palette: DataPal
 const NoData = { structure: undefined } as never;
 
 /**
- * Registers the palette's custom state when a viewer is made, whatever its starting palette: a session or a checkpoint
- * from a colorblind viewer then brings the palette back in one that started with the default.
+ * Registers the palette's custom state when a viewer is made, with the lists the palettes take, whatever its starting
+ * palette: a session or a checkpoint from a viewer on another palette then brings that palette back.
  */
-export function initDataPalette(plugin: PluginContext): void {
-  stateOf(plugin);
+export function initDataPalette(plugin: PluginContext, lists: DataPaletteLists = {}): void {
+  stateOf(plugin, lists);
 }
 
 /** The palette's state for a plugin, registered once as its custom state: checkpoints and sessions carry it. */
-function stateOf(plugin: PluginContext): PaletteState {
+function stateOf(plugin: PluginContext, lists: DataPaletteLists = {}): PaletteState {
   let state = states.get(plugin);
   if (state) return state;
-  const made: PaletteState = { palette: 'default', originals: new Map() };
+  const made: PaletteState = {
+    palette: 'classic',
+    values: {
+      prism: paletteOf(lists.prism?.length ? lists.prism : (ColorLists['many-distinct-prism'].list as number[])),
+      colorblind: paletteOf(lists.colorblind?.length ? lists.colorblind : (ColorLists['okabe-ito'].list as number[])),
+    },
+    originals: new Map(),
+  };
   state = made;
   states.set(plugin, made);
   plugin.state.registerCustomState('prism-viewer.palette', {
     get: () => ({ version: 1, palette: made.palette }),
     // An undo or a session: the registry as it was then (the representations come back with their own params).
     set: (value) => {
-      const palette = (value as { palette?: DataPalette } | undefined)?.palette ?? 'default';
+      const palette = readPalette((value as { palette?: unknown } | undefined)?.palette);
       if (palette !== made.palette) swapThemes(plugin, made, palette);
     },
   });

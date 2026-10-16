@@ -18,6 +18,7 @@ interface PrismViewerSpec {
   readonly agent?: PrismViewerAgentSpec | false;         // §2.4: the tools and skills, and the assistant that runs them
   readonly ui?: PrismViewerUISpec;                       // §2.5: layout, theme, keybindings; ignored headless
   readonly persist?: PrismViewerPersist;                 // §2.6: light state in localStorage and sessionStorage; kept records
+  readonly palettes?: PrismViewerPalettes;               // §2.8: the lists the data palettes take
   readonly finalize?: (spec: PluginSpec) => PluginSpec;  // §2.1: the app's last word on the composed plugin spec
 }
 
@@ -178,6 +179,23 @@ lists all four (`AllQueryLanguages`, PyMOL first, the default for text); absent,
 are not in the bundle (`examples/minimal-prism-viewer`). The languages are registered when a viewer is made and are
 code a page has, not a per-viewer setting: two viewers on a page read what either listed. The operations' `language`
 parameter keeps its four values.
+
+### 2.8 `palettes`: the data palettes' lists
+
+```ts
+interface PrismViewerPalettes {
+  readonly prism?: readonly (number | string)[];       // Prism's own; Many-Distinct (Prism) when not given
+  readonly colorblind?: readonly (number | string)[];  // the colorblind-safe one; Okabe–Ito when not given
+}
+```
+
+The colors the categorical themes take (chains, entities, polymers, operators, models; README §3.7), in the order
+categories take them, each `0xRRGGBB` or `'#rrggbb'`. The option `canvas.palette` picks the one in use: `prism` (the
+default), `classic` (Mol*'s own Many-Distinct, the themes' unchanged) or `colorblind`; the person changes it in Settings,
+a page with `?palette=`, the API with `canvas.palette`. A spec switches Prism's colors with one list
+(`palettes: { prism: ['#07a57b', '#e57434', …] }`) and the default choice with `options: { canvas: { palette } }`. The
+choice is kept in sessions (`prism-viewer.palette`); a session without it (from v5 or before Prism's palette) opens on
+the classic one.
 
 ## 3. Extensions
 

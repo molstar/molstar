@@ -62,7 +62,7 @@ import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import { createLightRestore, type LightRestore } from './sources/restore.js';
-import { initDataPalette, setDataPalette } from './sources/palette.js';
+import { initDataPalette, paletteLists, setDataPalette } from './sources/palette.js';
 
 // The viewer (viewer-spec.md §6): created from a `PrismViewerSpec`, in a fixed order: validate the spec, compose the
 // plugin spec, create and `init()` the plugin, create the sources, managers and API, activate the extensions (lazy ones
@@ -355,8 +355,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     // The data palette the options ask for (README §3.7): before anything is loaded, so no step. Its state is
     // registered either way, so a session's palette comes back.
-    initDataPalette(plugin);
-    if (options.canvas.palette !== 'default') await setDataPalette(plugin, options.canvas.palette);
+    initDataPalette(plugin, paletteLists(spec.palettes));
+    if (options.canvas.palette !== 'classic') await setDataPalette(plugin, options.canvas.palette);
     // The light restore (journal.md §6), written after each step when the spec gives it a store.
     const restore = spec.persist?.restore
       ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {

@@ -46,7 +46,8 @@ export class CanvasApi extends ApiArea {
     },
   });
 
-  // README §3.7: the categorical themes' palette, colorblind-safe or not; the representations on the old default follow.
+  // README §3.7: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations on
+  // the old default follow.
   readonly palette = this.operation({
     id: 'canvas.palette',
     title: 'Set the data palette',
@@ -54,8 +55,9 @@ export class CanvasApi extends ApiArea {
       palette: PD.Select<DataPalette>(
         'colorblind',
         [
-          ['default', 'Default'],
-          ['colorblind', 'Colorblind-safe (Okabe–Ito)'],
+          ['prism', 'Prism'],
+          ['classic', 'Classic (Mol*)'],
+          ['colorblind', 'Colorblind-safe'],
         ],
         { description: 'The colors of chains, entities, polymers and other categories' },
       ),
@@ -66,7 +68,9 @@ export class CanvasApi extends ApiArea {
       return ApiResult.ok(
         palette === 'colorblind'
           ? 'Chains and entities now use colorblind-safe colors.'
-          : 'Chains and entities use the default colors.',
+          : palette === 'classic'
+            ? 'Chains and entities now use Mol*’s classic colors.'
+            : 'Chains and entities now use Prism’s colors.',
         { nodes },
       );
     },
