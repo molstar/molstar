@@ -55,14 +55,14 @@ import {
 } from './spec.js';
 import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
-import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
+import { Overrides, shellIdOf } from './extensions/overrides.js';
 import { createKeptRecordsModel, type KeptRecordsModel } from './journal/kept-records.js';
 import { createSessionRecord, recordFromLines, recordLines, type SessionRecord } from './journal/record.js';
 import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import { createLightRestore, type LightRestore } from './sources/restore.js';
-import { setDataPalette } from './sources/palette.js';
+import { initDataPalette, setDataPalette } from './sources/palette.js';
 
 // The viewer (viewer-spec.md §6): created from a `PrismViewerSpec`, in a fixed order: validate the spec, compose the
 // plugin spec, create and `init()` the plugin, create the sources, managers and API, activate the extensions (lazy ones
@@ -172,6 +172,11 @@ export interface ViewerCore extends PrismViewer {
   /** The spec's overrides, for the shell's own parts. */
   readonly overrides: Overrides;
   /** The page's shell takes the extensions' views. */
+  /**
+   * Throws for an override of a command nobody registered, and warns for a keybinding of one (viewer-spec.md §4):
+   * once every command is in. \`tolerate\`: ids only a page registers (headless).
+   */
+  checkSpecCommands(tolerate?: (id: string) => boolean): void;
   attachExtensionUI(port: ExtensionUIPort): () => void;
   /** Mounts the canvas in a page's element; false (and the `canvas` module dropped) when it cannot start. */
   mountCanvas(host: HTMLElement): Promise<boolean>;
@@ -340,7 +345,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       own.dispose();
       storage.dispose();
     });
-    // The data palette the options ask for (README §3.7): before anything is loaded, so no step.
+    // The data palette the options ask for (README §3.7): before anything is loaded, so no step. Its state is
+    // registered either way, so a session's palette comes back.
+    initDataPalette(plugin);
     if (options.canvas.palette !== 'default') await setDataPalette(plugin, options.canvas.palette);
     // The light restore (journal.md §6), written after each step when the spec gives it a store.
     const restore = spec.persist?.restore
@@ -368,17 +375,28 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       );
     }
     // An override of a command nobody registers is a mistake (viewer-spec.md §4); view parts are checked by spec-check.
-    const unknown = overrides
-      .unused()
-      .filter((k) => !isPartId(k) && !ShellCommandIds.includes(k) && !managers.commands.get(k));
-    if (unknown.length) {
-      throw new PrismViewerSpecError(unknown.map((k) => `override '${k}': there is no command '${k}'`));
-    }
+    // An override of a command nobody registers is a mistake (viewer-spec.md §4), and a keybinding of one is said:
+    // checked once every command is in, the page's after its shell (`checkSpecCommands`), headless at once.
+    const checkSpecCommands = (tolerate: (id: string) => boolean = () => false) => {
+      const unknown = overrides.unused().filter((k) => !isPartId(k) && !tolerate(k) && !managers.commands.get(k));
+      if (unknown.length) {
+        throw new PrismViewerSpecError(unknown.map((k) => `override '${k}': there is no command '${k}'`));
+      }
+      for (const id of keys.keys()) {
+        if (!tolerate(id) && !managers.commands.get(id)) {
+          console.warn(`ui.keybindings: there is no command '${id}' (its key is not bound).`);
+        }
+      }
+    };
 
     // What the person sees in the status column: results of the person's and the URL's runs, failures, the plugin's
     // errors, running tasks, undo turning off for a large scene.
     const error = new Subject<ViewerError>();
     const subs = [
+      // An extension that did not load, or whose views did not (the page also says it in the status column).
+      extensions.events.failed.subscribe((f) =>
+        error.next({ message: `${f.id} could not load: ${f.message}`, source: 'extension' }),
+      ),
       host.runner.finished.subscribe((r) => {
         const result = r.result;
         if (!result || r.nested || r.group) return;
@@ -457,6 +475,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       ready$: ready,
       registerCommands,
       overrides,
+      checkSpecCommands,
       attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
         const ok = await mountCanvas(plugin, el);

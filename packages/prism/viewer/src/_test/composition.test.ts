@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiResult } from '../api/area.js';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { AnnotationsFeature } from '../features/annotations/index.js';
@@ -91,5 +91,46 @@ describe('a viewer composed of fewer features', () => {
     expect(full.views.scene.roots.value).toEqual([]);
     expect(full.views.homeActions.value.length).toBeGreaterThan(0);
     await expect(viewer([StructurePanelFeature])).rejects.toThrow(/'structure-panel' needs 'structure'/);
+  });
+
+  it('checks overrides and keybindings against the commands once they are in; headless, the page-only ones pass', async () => {
+    // Preset's and Help's commands are the page's: overriding them headless is not a mistake.
+    const v = await createPrismViewerHeadless({
+      spec: { ...DefaultPrismViewerSpec(), overrides: { 'help.show': null, 'core.preset.auto': null } },
+    });
+    viewers.push(v);
+    await expect(
+      createPrismViewerHeadless({ spec: { ...DefaultPrismViewerSpec(), overrides: { 'no.such-command': null } } }),
+    ).rejects.toThrow("override 'no.such-command': there is no command 'no.such-command'");
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const k = await createPrismViewerHeadless({
+      spec: { ...DefaultPrismViewerSpec(), ui: { keybindings: [{ command: 'no.such-command', key: { key: 'x' } }] } },
+    });
+    viewers.push(k);
+    expect(warn).toHaveBeenCalledWith("ui.keybindings: there is no command 'no.such-command' (its key is not bound).");
+    warn.mockRestore();
+  });
+
+  it('says on viewer.events.error that an extension did not load', async () => {
+    const v = await viewer([StructureFeature]);
+    const errors: string[] = [];
+    const sub = v.events.error.subscribe((e) => errors.push(`${e.source}: ${e.message}`));
+    const broken = {
+      id: 'broken',
+      title: 'Broken',
+      stub: { parts: [] },
+      load: async () => {
+        throw new Error('no chunk');
+      },
+    };
+    await v.extensions.load('broken').catch(() => {});
+    // Not listed: nothing to load; listed lazily, its failure is said.
+    const w = await viewer([StructureFeature, broken as never]);
+    const later: string[] = [];
+    const sub2 = w.events.error.subscribe((e) => later.push(`${e.source}: ${e.message}`));
+    await w.extensions.load('broken');
+    expect(later.some((l) => l.startsWith('extension: broken could not load'))).toBe(true);
+    sub.unsubscribe();
+    sub2.unsubscribe();
   });
 });

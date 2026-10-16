@@ -91,6 +91,14 @@ function swapThemes(plugin: PluginContext, state: PaletteState, palette: DataPal
 
 const NoData = { structure: undefined } as never;
 
+/**
+ * Registers the palette's custom state when a viewer is made, whatever its starting palette: a session or a checkpoint
+ * from a colorblind viewer then brings the palette back in one that started with the default.
+ */
+export function initDataPalette(plugin: PluginContext): void {
+  stateOf(plugin);
+}
+
 /** The palette's state for a plugin, registered once as its custom state: checkpoints and sessions carry it. */
 function stateOf(plugin: PluginContext): PaletteState {
   let state = states.get(plugin);

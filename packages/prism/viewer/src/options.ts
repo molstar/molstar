@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { PartialOptions } from './spec.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
 // The viewer's options (viewer-spec.md §2.2): one PD definition with three readers, `createPrismViewer({ options })`,
@@ -113,11 +114,7 @@ export function defaultOptions(): PrismViewerOptionValues {
 }
 
 /** Options with every group filled in from the defaults (a partial group keeps the rest of its defaults). */
-export function resolveOptions(
-  partial?: {
-    readonly [G in keyof PrismViewerOptionValues]?: Partial<PrismViewerOptionValues[G]>;
-  },
-): PrismViewerOptionValues {
+export function resolveOptions(partial?: PartialOptions): PrismViewerOptionValues {
   const values = defaultOptions();
   if (!partial) return values;
   for (const group of Object.keys(values) as (keyof PrismViewerOptionValues)[]) {

@@ -67,8 +67,16 @@ export interface PrismViewerSpec {
   readonly finalize?: (spec: PluginSpec) => PluginSpec;
 }
 
-/** Options by group, each group partial. */
-export type PartialOptions = { readonly [G in keyof PrismViewerOptionValues]?: Partial<PrismViewerOptionValues[G]> };
+/** The options a spec gives: any group, any value in it, and any value of a nested group (`ui.buttons`), as `resolveOptions` merges them. */
+export type PartialOptions = {
+  readonly [G in keyof PrismViewerOptionValues]?: {
+    readonly [K in keyof PrismViewerOptionValues[G]]?: PrismViewerOptionValues[G][K] extends Readonly<
+      Record<string, boolean>
+    >
+      ? Partial<PrismViewerOptionValues[G][K]>
+      : PrismViewerOptionValues[G][K];
+  };
+};
 
 /** §2.1: the engine's base. */
 export interface PrismViewerPluginParts {

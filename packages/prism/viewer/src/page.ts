@@ -42,6 +42,8 @@ export async function createPrismViewer(o: CreatePrismViewerOptions): Promise<Pr
     const mounted = await mountShell(core, o.target);
     core.onDispose(() => mounted.dispose());
     (core.views as { shell?: unknown }).shell = mounted.shell;
+    // The spec's overrides and keybindings, now that the shell's commands are in too (viewer-spec.md §4).
+    core.checkSpecCommands();
     if (key) core.onDispose(() => void liveKeys.delete(key));
     core.ready$.set(true);
     return core;

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isPageCommandId } from './extensions/overrides.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import type { ApiModuleKey } from './api/area.js';
@@ -31,6 +32,8 @@ export async function createPrismViewerHeadless(o: HeadlessViewerOptions): Promi
     createPlugin: o.plugin ?? createDefaultPlugin,
     modules: o.modules ?? (o.plugin ? ['canvas', 'files', 'network'] : ['files', 'network']),
   });
+  // No shell: the page's commands are not an override's mistake here.
+  core.checkSpecCommands(isPageCommandId);
   core.ready$.set(true);
   return core;
 }

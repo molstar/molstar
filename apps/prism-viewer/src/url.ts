@@ -6,7 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { PrismViewerOptionValues } from '@molstar/prism-viewer/options';
 import type { PartialOptions } from '@molstar/prism-viewer/spec';
 
 // The URL's options (app.md §4, README §3.2): v5's names kept. The load parameters (`pdb`, `url`, …) are read by the
@@ -62,12 +61,10 @@ export function optionsFromUrl(search: string): PartialOptions {
       collapsed: flag('collapse-left-panel') ?? flag('hide-controls'),
       // v5 hides the button unless asked; Prism shows it: the parameter only says so when given. A partial group
       // keeps the other buttons' defaults (`resolveOptions`).
-      ...(fullscreen === undefined ? {} : { buttons: { fullscreen } as Partial<Buttons> as Buttons }),
+      ...(fullscreen === undefined ? {} : { buttons: { fullscreen } }),
     },
   };
 }
-
-type Buttons = PrismViewerOptionValues['ui']['buttons'];
 
 /** v5's `map-provider` values: the volume streaming server each names. */
 const MapProviderServers = {

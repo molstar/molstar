@@ -34,6 +34,19 @@ export const ShellCommandIds: readonly string[] = [
   'sequence.legend',
 ];
 
+/**
+ * A command only the page's shell registers (the shell's own, Preset's and Styles' in the Structure panel, Help's):
+ * headless, an override or a keybinding of one is not an error (viewer-spec.md §4).
+ */
+export function isPageCommandId(id: string): boolean {
+  return (
+    ShellCommandIds.includes(id) ||
+    id === 'record.keep' ||
+    id.startsWith('core.preset.') ||
+    id.startsWith('core.styles.')
+  );
+}
+
 /** A core part's id in the shell from its part id (`core.tab.home` → `home`); other ids are the shell's as they are. */
 export function shellIdOf(id: string): string {
   if (!id.startsWith('core.')) return id;
