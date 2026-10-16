@@ -69,7 +69,7 @@ export interface QuantumFieldOptions {
 }
 
 export const QuantumFieldDefaults: QuantumFieldOptions = {
-  rate: 2.4,
+  rate: 3.4,
   k: 1.1,
   spectrum: 0.4,
   speed: 64,
@@ -112,16 +112,33 @@ const PrismSoft = 1.5;
  * The light comes in from emitters, not all at once: each radiates one packet over `EmitTime` (the grid's time units),
  * its strength easing in and out, at the packet's own frequency (ω = k²/2) from a source `EmitAlong` × `EmitAcross`
  * cells (half sizes) whose phase runs along its way, so it radiates forward only. `EmitStrength` makes a packet about
- * as dense as a unit one. At most `Emitters` at once; the light comes in `Source` cells from the left edge, and shows
- * gradually over the next `BeamFade`.
+ * as dense as a unit one. At most `Emitters` at once; the light comes in `Source` cells from the left edge.
  */
 const Emitters = 12;
 const EmitTime = 20;
-const EmitAlong = 6;
-const EmitAcross = 4;
+const EmitAlong = 7;
+const EmitAcross = 8;
 const EmitStrength = 0.07;
+/**
+ * The light comes in as a broad front, not a beam: packets start anywhere within this many cells of the star's line
+ * (about the word's height) and all go straight right, so no one spot holds the light; the glass bends it.
+ */
+const FrontHalf = 14;
+/** A packet's amplitude in the front, and in the snap's burst (soft: no spike at the star). */
+const FrontAmplitude = 0.8;
+/**
+ * The start: the grid seeded with this many broad, faint waves (random places, ways and wavenumbers of the spectrum;
+ * half size `SeedSize` cells, amplitude `SeedAmplitude`), so the light is everywhere a little rather than in one spot
+ * as the front comes in; the picture comes in over `SeedFade` s.
+ */
+const Seeds = 14;
+const SeedSize = 22;
+const SeedAmplitude = 0.3;
+const SeedFade = 1.5;
+const BurstAmplitude = 0.45;
 const Source = Edge + 6;
-const BeamFade = 26;
+/** How much of the vignette's radius the wave fades over toward its rim. */
+const VignetteSoft = 0.45;
 /** How fast a cell's color follows its light's (1/s). */
 const TintEase = 5;
 /** How much stronger the wave shows on a dark canvas. */
@@ -244,10 +261,10 @@ for (let y = 0; y < N; y++) {
     const ex = Math.max(0, Edge - Math.min(x, N - 1 - x)) / Edge;
     const e = Math.max(ex, ey);
     edgeKeep[y * N + x] = 1 - Absorb * e * e;
-    const inside = 1 - e;
-    // The beam shows gradually from where it comes in, as the light's stream does.
-    const beam = Math.min(1, Math.max(0, (x - Source + 4) / BeamFade));
-    edgeShow[y * N + x] = inside * inside * (3 - 2 * inside) * beam * beam * (3 - 2 * beam);
+    // A round vignette, clear of the square absorbing edge: the grid's shape never shows.
+    const r = Math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N / 2 - Edge);
+    const inside = Math.min(1, Math.max(0, (1 - r) / VignetteSoft));
+    edgeShow[y * N + x] = inside * inside * (3 - 2 * inside);
   }
 }
 
@@ -272,6 +289,8 @@ export class QuantumField {
   #rhoMax = RhoFloor;
   /** How strong the flow from the left is now (0..1, the glass's assembly, eased). */
   #flow = 0;
+  /** Whether the start's waves are in (`#seed`). */
+  #seeded = false;
   #potential = true;
   #clock = 0;
   #emit = 0;
@@ -383,6 +402,7 @@ export class QuantumField {
       this.#amount = 0;
       this.#flow = 0;
       this.#rhoMax = RhoFloor;
+      this.#seeded = false;
     }
     this.#potential = true;
     if (this.#still) this.#drawStill();
@@ -448,7 +468,7 @@ export class QuantumField {
     const glass = new Glass(this.#options.seed + 8);
     // Back together: the prism is there again, and lets out a little of the light it held.
     glass.onSnap = () => {
-      this.#bursts += 4;
+      this.#bursts += 3;
     };
     this.#glass = glass;
     this.#footprint = new GlassFootprint();
@@ -541,6 +561,7 @@ export class QuantumField {
     this.#amount = 0;
     this.#flow = 0;
     this.#rhoMax = RhoFloor;
+    this.#seeded = false;
     this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < 6; t += 1 / 20) this.#step(1 / 20);
@@ -554,6 +575,35 @@ export class QuantumField {
   }
 
   /** An emitter at grid (cx, cy) radiating a packet going `angle` with wavenumber `k` (none if all are busy). */
+  /** The start's broad, faint waves, all over the grid (inside its absorbing edge). */
+  #seed(): void {
+    const o = this.#options;
+    const re = this.#re;
+    const im = this.#im;
+    const s2 = 2 * SeedSize * SeedSize;
+    for (let n = 0; n < Seeds; n++) {
+      const cx = Edge + this.#random() * (N - 2 * Edge);
+      const cy = Edge + this.#random() * (N - 2 * Edge);
+      const angle = this.#random() * Math.PI * 2;
+      const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
+      const kx = k * Math.cos(angle);
+      const ky = k * Math.sin(angle);
+      const phase0 = this.#random() * Math.PI * 2;
+      for (let y = 0; y < N; y++) {
+        const dy = y - cy;
+        for (let x = 0; x < N; x++) {
+          const dx = x - cx;
+          const g = SeedAmplitude * Math.exp(-(dx * dx + dy * dy) / s2);
+          if (g < 1e-4) continue;
+          const phase = kx * dx + ky * dy + phase0;
+          const i = y * N + x;
+          re[i] += g * Math.cos(phase);
+          im[i] += g * Math.sin(phase);
+        }
+      }
+    }
+  }
+
   #launch(cx: number, cy: number, angle: number, k: number, amplitude: number, flow: boolean): void {
     const e = this.#emitters;
     if (e >= Emitters) return;
@@ -882,19 +932,23 @@ export class QuantumField {
     // The light comes in: packets at the left, toward the star, each its own wavenumber (faster at the start).
     const sx = (this.#ox - this.#gx) / Cell;
     const sy = (this.#oy - this.#gy) / Cell;
+    if (!this.#seeded) {
+      this.#seeded = true;
+      this.#seed();
+    }
     this.#emit += dt * o.rate;
     while (this.#emit >= 1) {
       this.#emit -= 1;
-      const y = sy + (this.#random() * 2 - 1) * 2;
+      const y = sy + (this.#random() * 2 - 1) * FrontHalf;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#launch(Source, y, Math.atan2(sy - y, sx - Source), k, 1, true);
+      this.#launch(Source, y, 0, k, FrontAmplitude, true);
     }
     // The glass back together: a little of the light it held, out along its arms.
     while (this.#bursts >= 1) {
       this.#bursts -= 1;
       const arm = (Math.floor(this.#random() * 8) * Math.PI) / 4;
       const k = o.k * (1 + o.spectrum * (this.#random() * 2 - 1));
-      this.#launch(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, 0.8, false);
+      this.#launch(sx + Math.cos(arm) * 4, sy + Math.sin(arm) * 4, arm, k, BurstAmplitude, false);
     }
 
     // The evolution: as many steps as the time that passed takes.
@@ -967,7 +1021,7 @@ export class QuantumField {
     const data = image.data;
     const rho = this.#rho;
     const inv = 1 / this.#rhoMax;
-    const glow = Math.min(1, o.glow) * (this.#dark ? DarkGlow : 1) * 255;
+    const glow = Math.min(1, o.glow) * (this.#dark ? DarkGlow : 1) * 255 * Math.min(1, this.#time / SeedFade);
     const rgb = this.#rgb;
     const tr = this.#tintR;
     const tg = this.#tintG;
