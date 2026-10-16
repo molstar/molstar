@@ -29,7 +29,7 @@ The core is now what everything stands on; the rest are built-in features in `De
 
 ## Fixed (highlights)
 
-The full list is the branch's commits after `0ac47836f`; the most consequential:
+The full list is the branch's commits after `5dc085f7e`; the most consequential:
 
 - **`api.group` is all or nothing for every call in it**: a call refused before it ran (invalid values, blocked,
   unavailable), an unknown operation, and a read or view call that failed now fail the group and undo it (they never
