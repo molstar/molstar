@@ -14,6 +14,7 @@ import {
 } from '@molstar/plugin/state/helpers/structure-wiggle';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResult } from '../../api/area.js';
+import { OptionalParam } from '../../api/params.js';
 import { checkValues } from '../../api/run.js';
 import {
   type AnimationInfo,
@@ -21,6 +22,7 @@ import {
   animationInfos,
   createAnimationSource,
   paramsOf,
+  shortName,
   uncertaintyScale,
   wiggleCells,
   wiggleOf,
@@ -36,20 +38,59 @@ import {
 /** What `animation.get` gives back. */
 export type AnimationList = AnimationState;
 
-const animationOptions = (ctx: ApiAreaContext) =>
-  ctx.plugin.managers.animation.animations.map((a) => [a.name, a.display.name] as [string, string]);
+type RegisteredAnimation = PluginContext['managers']['animation']['animations'][number];
 
-/** `play`'s params: the animation is a choice among the registered ones (read when the operation is described). */
-const PlayParams = (ctx: ApiAreaContext) => {
-  const options = animationOptions(ctx);
-  return {
-    name: PD.Select<string>(options[0]?.[0] ?? '', options, { description: 'The animation, by its registered name' }),
-    params: PD.Value<Record<string, unknown>>(
-      {},
-      { description: "Some of that animation's params (`animation.get` lists them); the rest are its defaults" },
-    ),
-  };
-};
+/** The registered animations, as `name (Title)` for a hint. */
+const listed = (list: readonly RegisteredAnimation[]) =>
+  list.map((a) => `${shortName(a.name)} (${a.display.name})`).join(', ');
+
+/**
+ * The animation a name means (operations.md §2): its full id exactly (`built-in.animate-camera-spin`), else the id
+ * without its namespace (`animate-camera-spin`), else its display name ("Camera Spin"), the last two in any
+ * case. A name several animations answer to is `ambiguous`, one none does `not-found`. No name is the one playing, else
+ * the only one registered, else `invalid`: the manager's "current" is the first registered until something plays, so it
+ * does not say what a person chose.
+ */
+export function pickAnimation(plugin: PluginContext, given: string | undefined): RegisteredAnimation | ApiFailure {
+  const manager = plugin.managers.animation;
+  const all = manager.animations;
+  if (!all.length) return ApiResult.fail('not-found', 'No animations are registered.');
+  const name = given?.trim();
+  if (!name) {
+    const playing = manager.isAnimating ? manager.current?.anim : undefined;
+    if (playing) return playing;
+    if (all.length === 1) return all[0];
+    return ApiResult.fail('invalid', `Which animation? ${all.length} are registered.`, `Name one: ${listed(all)}.`);
+  }
+  const exact = all.find((a) => a.name === name);
+  if (exact) return exact;
+  const lower = name.toLowerCase();
+  for (const key of [(a: RegisteredAnimation) => shortName(a.name), (a: RegisteredAnimation) => a.display.name]) {
+    const found = all.filter((a) => key(a).toLowerCase() === lower);
+    if (found.length === 1) return found[0];
+    if (found.length > 1) {
+      return ApiResult.fail(
+        'ambiguous',
+        `Which '${name}'? ${found.length} animations have that name.`,
+        `Give its full id: ${found.map((a) => a.name).join(', ')}.`,
+      );
+    }
+  }
+  return ApiResult.fail('not-found', `There is no animation '${name}'.`, `Animations: ${listed(all)}.`);
+}
+
+/** `play`'s params: the animation by name (read when the operation is described, so it lists what is registered). */
+const PlayParams = (ctx: ApiAreaContext) => ({
+  name: OptionalParam(
+    PD.Text('', {
+      description: `The animation: its name without the namespace (animate-camera-spin), its title (Camera Spin) or its full id; absent: the one playing. Registered: ${listed(ctx.plugin.managers.animation.animations) || 'none'}`,
+    }),
+  ),
+  params: PD.Value<Record<string, unknown>>(
+    {},
+    { description: "Some of that animation's params (`animation.get` lists them); the rest are its defaults" },
+  ),
+});
 
 const WiggleParams = {
   mode: PD.Select<WiggleMode>(
@@ -103,9 +144,9 @@ export class AnimationApi extends ApiArea {
     return (this.#source ??= createAnimationSource(this.ctx.plugin)).state;
   }
 
-  /** An animation's params, by name (with their defaults), for the forms. */
-  paramsOf(name: string): PD.Params | undefined {
-    return paramsOf(this.ctx.plugin, name);
+  /** An animation's params, by its full id (with their defaults), for the forms. */
+  paramsOf(id: string): PD.Params | undefined {
+    return paramsOf(this.ctx.plugin, id);
   }
 
   dispose(): void {
@@ -125,7 +166,7 @@ export class AnimationApi extends ApiArea {
       const manager = ctx.plugin.managers.animation;
       const state: AnimationList = {
         animations,
-        ...(manager.isAnimating && manager.current ? { playing: manager.current.anim.name } : {}),
+        ...(manager.isAnimating && manager.current ? { playing: shortName(manager.current.anim.name) } : {}),
         wiggle: wiggleOf(ctx.plugin),
       };
       const line = (a: AnimationInfo) =>
@@ -148,14 +189,8 @@ export class AnimationApi extends ApiArea {
     modules: ['canvas'],
     async run({ name, params }, ctx) {
       const manager = ctx.plugin.managers.animation;
-      const anim = manager.animations.find((a) => a.name === name);
-      if (!anim) {
-        return ApiResult.fail(
-          'invalid',
-          `There is no animation '${name}'.`,
-          `Animations: ${manager.animations.map((a) => a.name).join(', ') || 'none'}.`,
-        );
-      }
+      const anim = pickAnimation(ctx.plugin, name);
+      if (ApiResult.isFailure(anim)) return anim;
       const can = anim.canApply?.(ctx.plugin);
       if (can && !can.canApply) {
         return ApiResult.fail(

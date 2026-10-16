@@ -9,21 +9,31 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { GraphResult } from '@molstar/seq-viewer';
 import type { SequenceArchive, SequenceOverride, SequenceViewer } from '../sequence/model.js';
+import type { TracksRail } from '../sequence/presets.js';
 import type { LoadedSequence } from '../viewer.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
 import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
-import { StructureParam } from './params.js';
+import { OptionalParam, StructureParam } from './params.js';
 import { isFailure, labelOf, oneStructure } from './scope.js';
 
 // `sequence` (operations.md §2, sequence.md §6): the one sequence viewer's style (Tracks or Text), the letters' colors,
-// which structure it follows. Its style and colors are the sequence's state, saved with snapshots
+// which structure it follows, the tracks' rail. Its style and colors are the sequence's state, saved with snapshots
 // (`prism-viewer.sequence`), so changing them is a step; following is view state. Present only when the spec has a
 // sequence (viewer-spec.md §2.3).
 
 const Schemes = LetterSchemes.map(
   (s) => [s ?? 'none', s === null ? 'None' : s.replace(/^prism:/, '')] as [string, string],
 );
+
+/** The tracks' rail navigators, as `sequence.rail` takes them (`TracksRail`). */
+const Rails: [TracksRail['navigator'], string][] = [
+  ['ruler', 'Ruler'],
+  ['strip', 'Strip'],
+  ['band', 'Band'],
+  ['rail', 'Rail'],
+  ['none', 'None'],
+];
 
 export class SequenceApi extends ApiArea {
   readonly id = 'sequence';
@@ -87,6 +97,57 @@ export class SequenceApi extends ApiArea {
     },
   });
 
+  readonly rail = this.operation({
+    id: 'sequence.rail',
+    title: "Set the tracks' rail",
+    surface: {
+      kind: 'agent-only',
+      reason: "The sequence's commands (sequence.rail.ruler, sequence.rail.strip, …) set it.",
+    },
+    // The rail is in the sequence's saved state (`savedOf`), so it is a step like the style and colors, and Undo
+    // restores it.
+    params: {
+      navigator: OptionalParam(
+        PD.Select<TracksRail['navigator']>('ruler', Rails, {
+          description:
+            "What the tracks' axis shows along the sequence: the ruler's own hairline, or a strip, a band or a rail row, or nothing; absent: kept",
+        }),
+      ),
+      height: OptionalParam(
+        PD.Numeric(
+          30,
+          { min: 10, max: 120, step: 1 },
+          {
+            description:
+              "The rail row's height in px (not the ruler's or none, which have no row); absent: kept while the navigator stays, else the navigator's own",
+          },
+        ),
+      ),
+    },
+    run: async ({ navigator, height }) => {
+      if (navigator === undefined && height === undefined) {
+        return ApiResult.fail('invalid', 'Change what?', 'It takes navigator and height.');
+      }
+      const viewer = await this.#viewer();
+      const now = viewer.rail.value;
+      const next = navigator ?? now.navigator;
+      if (height !== undefined && (next === 'ruler' || next === 'none')) {
+        return ApiResult.fail(
+          'invalid',
+          `The ${next === 'none' ? 'empty' : 'ruler'} rail has no row to give a height.`,
+          'Use the strip, band or rail navigator.',
+        );
+      }
+      // The height belongs to its navigator: a new navigator starts at its own unless one is given.
+      const h = height ?? (next === now.navigator ? now.height : undefined);
+      const label = Rails.find((r) => r[0] === next)?.[1].toLowerCase();
+      const said = `the ${label}${h === undefined ? '' : `, ${h} px`}`;
+      if (next === now.navigator && h === now.height) return ApiResult.already(`The tracks' rail is already ${said}.`);
+      viewer.setRail(h === undefined ? { navigator: next } : { navigator: next, height: h });
+      return ApiResult.ok(`The tracks' rail is ${said}.`, { sequence: true });
+    },
+  });
+
   readonly follow = this.operation({
     id: 'sequence.follow',
     title: 'Show the sequence of a structure',
@@ -138,6 +199,7 @@ export class SequenceApi extends ApiArea {
         structure: shown?.title,
         style,
         colors: viewer.theme.value.letters ?? 'none',
+        rail: viewer.rail.value,
         ...(document ? { document } : {}),
       };
       const what = document ? `The SeqViewSpec ${document} over ${shown?.title}` : `The sequence of ${shown?.title}`;

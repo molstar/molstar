@@ -34,7 +34,7 @@ const schemeLabel = (name: string | null) => (name === null ? 'No colors' : (col
 export function sequenceCommands(
   viewer: SequenceViewer,
   shell: ShellModel,
-  /** The viewer's API (the person's): style and colors change through it, as steps (sequence.md §7). */
+  /** The viewer's API (the person's): style, colors and the rail change through it, as steps (sequence.md §7). */
   api?: { run(id: string, values?: Readonly<Record<string, unknown>>): Promise<unknown> },
 ): CommandDefinition<any>[] {
   const hide = () => {
@@ -44,6 +44,11 @@ export function sequenceCommands(
     if (api) void api.run('sequence.style', { style: style === 'compact' ? 'text' : 'tracks' });
     else viewer.setStyle(style);
     shell.show('sequence');
+  };
+  const setRail = (rail: TracksRail) => {
+    if (api)
+      void api.run('sequence.rail', { navigator: rail.navigator, ...(rail.height ? { height: rail.height } : {}) });
+    else viewer.setRail(rail);
   };
   const color = (letters: string | null) => {
     if (api) void api.run('sequence.colors', { scheme: letters ?? 'none' });
@@ -80,7 +85,7 @@ export function sequenceCommands(
         title: `Sequence tracks rail: ${r.label.toLowerCase()}`,
         category: 'Sequence',
         icon: 'ruler',
-        run: () => (viewer.setRail(r.rail), show('tracks'), done(`Sequence rail: ${r.label.toLowerCase()}`)),
+        run: () => (setRail(r.rail), show('tracks'), done(`Sequence rail: ${r.label.toLowerCase()}`)),
       }),
     ),
     ...LetterSchemes.map(

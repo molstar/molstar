@@ -18,10 +18,16 @@ import { wiggleCells, wiggleOf } from '../source.js';
 // The `animation` feature (operations.md §2): the plugin's animations and the wiggle, on a headless viewer. The plugin
 // ticks its animations on the canvas's frames, so a test ticks by hand; the camera ones read a stand-in canvas.
 
+// The plugin's ids, and the names `animation.play` takes and `animation.get` gives back (the id without its namespace).
 const names = {
   spin: 'built-in.animate-camera-spin',
   models: 'built-in.animate-model-index',
   snapshots: 'built-in.animate-state-snapshots',
+};
+const short = {
+  spin: 'animate-camera-spin',
+  models: 'animate-model-index',
+  snapshots: 'animate-state-snapshots',
 };
 
 /** A viewer whose host says it has a canvas. */
@@ -50,15 +56,19 @@ describe('animation', () => {
     }
     const r = await v.api.animation!.get();
     expectOk(r);
+    // The names are the short ones people pass back to `animation.play`; the ids are the plugin's.
     const listed = r.value!.animations.map((a) => a.name);
-    expect(listed).toEqual(expect.arrayContaining([names.spin, names.models, names.snapshots]));
+    expect(listed).toEqual(expect.arrayContaining([short.spin, short.models, short.snapshots]));
+    expect(r.value!.animations.map((a) => a.id)).toEqual(expect.arrayContaining([names.spin, names.models]));
     // Nothing to animate yet: the trajectory's says why.
-    expect(r.value!.animations.find((a) => a.name === names.models)?.available).not.toBe(true);
+    expect(r.value!.animations.find((a) => a.name === short.models)?.available).not.toBe(true);
     expect(r.value!.playing).toBeUndefined();
-    expect(r.did).toContain(names.spin);
-    // The play operation's choice is the registered ones.
+    expect(r.did).toContain(`${short.spin}: `);
+    expect(r.did).not.toContain('built-in.');
+    // The play operation's name says which are registered.
     const play = v.api.describe('animation.play')!;
-    expect((play.params.name as any).options.map((o: string[]) => o[0])).toEqual(listed);
+    expect(play.params.name.isOptional).toBe(true);
+    expect(play.params.name.description).toContain(`${short.models} (Animate Trajectory)`);
   });
 
   it('says durations as "Duration (ms)", and listens to the plugin only while watched', async () => {
@@ -76,12 +86,10 @@ describe('animation', () => {
     expect(changed.observers.length).toBe(idle);
   });
 
-  it('has the commands: play, the presets, stop, wiggle, and the card', async () => {
+  it('has the commands: play, stop, wiggle, and the card', async () => {
     const v = await headlessViewer({ extensions: [AnimationFeature] });
     for (const id of [
       'animation.play',
-      'animation.play.camera-spin',
-      'animation.play.camera-rock',
       'animation.stop',
       'animation.wiggle',
       'animation.wiggle.off',
@@ -89,6 +97,22 @@ describe('animation', () => {
     ]) {
       expect(v.managers.commands.get(id), id).toBeDefined();
     }
+  });
+
+  it('has one play command whose form lists the animations registered when it is shown', async () => {
+    const v = await headlessViewer({ extensions: [AnimationFeature] });
+    const play = v.managers.commands.get('animation.play')!;
+    const options = () => ((play.params!({}) as any).name.options as [string, string][]).map((o) => o[0]);
+    expect(options()).toEqual(expect.arrayContaining([short.spin, short.models]));
+    // One registered later is in the form, with no command made for it.
+    const later = {
+      ...v.plugin.managers.animation.animations[0],
+      name: 'ext.animate-later',
+      display: { name: 'Later' },
+    };
+    v.plugin.managers.animation.register(later as never);
+    expect(options()).toContain('animate-later');
+    expect(play.defaults!({})).toMatchObject({ name: expect.any(String) });
   });
 
   it('cannot play without a canvas', async () => {
@@ -99,7 +123,7 @@ describe('animation', () => {
   it('refuses an animation that is not there, values it does not take, and one with nothing to animate', async () => {
     const v = await withCanvas([cbs()]);
     try {
-      expect(await v.api.animation!.play({ name: 'nope' })).toMatchObject({ ok: false, code: 'invalid' });
+      expect(await v.api.animation!.play({ name: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
       expect(await v.api.animation!.play({ name: names.spin, params: { nonsense: 1 } })).toMatchObject({
         ok: false,
         code: 'invalid',
@@ -130,7 +154,7 @@ describe('animation', () => {
       const r = await v.api.animation!.play({ name: names.spin, params: { durationInMs: 1000, speed: 2 } });
       expectOk(r);
       expect(v.plugin.managers.animation.current?.paramValues).toMatchObject({ durationInMs: 1000, speed: 2 });
-      expect(v.api.animation!.state.value.playing).toBe(names.spin);
+      expect(v.api.animation!.state.value.playing).toBe(short.spin);
       expect(await v.api.animation!.play({ name: names.spin, params: { durationInMs: 1000, speed: 2 } })).toMatchObject(
         {
           ok: true,
@@ -195,7 +219,7 @@ describe('animation', () => {
         }),
       );
       await frames();
-      expect(v.api.animation!.state.value.playing).toBe(names.models);
+      expect(v.api.animation!.state.value.playing).toBe(short.models);
       canApply.mockClear();
       for (let t = 0; t <= 1500; t += 250) await v.plugin.managers.animation.tick(t, true);
       await frames();
@@ -207,6 +231,106 @@ describe('animation', () => {
       expect(canApply).toHaveBeenCalled();
       expect(v.api.animation!.state.value.playing).toBeUndefined();
       watching.unsubscribe();
+    } finally {
+      await v.dispose();
+    }
+  });
+});
+
+describe('animation names', () => {
+  /** A canvas stand-in for the camera animations (the plugin reads its camera). */
+  const standIn = (v: PrismViewer) =>
+    Object.defineProperty(v.plugin, 'canvas3d', {
+      value: {
+        camera: { getSnapshot: () => ({ position: [0, 0, 10], target: [0, 0, 0], up: [0, 1, 0], radiusMax: 10 }) },
+        requestCameraReset: vi.fn(),
+        dispose() {},
+      },
+      configurable: true,
+    });
+  const registered = (v: PrismViewer, name: string, display: string) => {
+    const base = v.plugin.managers.animation.animations.find((a) => a.name === names.models)!;
+    v.plugin.managers.animation.register({ ...base, name, display: { name: display } } as never);
+  };
+
+  it('takes the id without its namespace, the title in any case, or the full id', async () => {
+    const v = await withCanvas([cbs()]);
+    standIn(v);
+    try {
+      for (const name of [short.spin, 'ANIMATE-CAMERA-SPIN', 'Camera Spin', 'camera spin', names.spin]) {
+        expectOk(await v.api.animation!.play({ name }));
+        expect(v.api.animation!.state.value.playing, name).toBe(short.spin);
+        expectOk(await v.api.animation!.stop());
+      }
+      // One with nothing to animate is found and then blocked, by any of its names.
+      for (const name of [short.models, 'Animate Trajectory', names.models]) {
+        const r = await v.api.animation!.play({ name });
+        expect(r, name).toMatchObject({ ok: false, code: 'blocked' });
+        if (!r.ok) expect(r.message).toMatch(/^Animate Trajectory cannot play now/);
+      }
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('says that an unknown name is not found, listing the short names to pass back', async () => {
+    const v = await withCanvas();
+    try {
+      const r = await v.api.animation!.play({ name: 'spin' });
+      expect(r).toMatchObject({ ok: false, code: 'not-found' });
+      if (!r.ok) {
+        expect(r.message).toContain("'spin'");
+        expect(r.hint).toContain(`${short.spin} (Camera Spin)`);
+        expect(r.hint).not.toContain('built-in.');
+      }
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('is ambiguous for a short name two namespaces share, and the full id tells them apart', async () => {
+    const v = await withCanvas();
+    try {
+      registered(v, 'a.twin', 'Twin A');
+      registered(v, 'b.twin', 'Twin B');
+      const both = await v.api.animation!.play({ name: 'twin' });
+      expect(both).toMatchObject({ ok: false, code: 'ambiguous' });
+      if (!both.ok) expect(both.hint).toContain('a.twin, b.twin');
+      // A title two animations share is ambiguous too.
+      registered(v, 'c.x', 'Same');
+      registered(v, 'd.y', 'same');
+      expect(await v.api.animation!.play({ name: 'SAME' })).toMatchObject({ ok: false, code: 'ambiguous' });
+      expect(await v.api.animation!.play({ name: 'a.twin' })).toMatchObject({ ok: false, code: 'blocked' });
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('asks which animation when none is given and none plays, listing them, never the first', async () => {
+    const v = await withCanvas();
+    try {
+      const r = await v.api.animation!.play({});
+      expect(r).toMatchObject({ ok: false, code: 'invalid' });
+      if (!r.ok) {
+        expect(r.message).toMatch(/^Which animation\?/);
+        expect(r.hint).toContain(short.models);
+      }
+      expect(v.api.animation!.state.value.playing).toBeUndefined();
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('plays the one playing when none is given, which is already so', async () => {
+    const v = await withCanvas([cbs()]);
+    standIn(v);
+    try {
+      expectOk(await v.api.animation!.play({ name: short.spin }));
+      expect(await v.api.animation!.play({})).toMatchObject({ ok: true, unchanged: true });
+      // With params, the one playing takes them.
+      expectOk(await v.api.animation!.play({ params: { speed: 3 } }));
+      expect(v.plugin.managers.animation.current?.paramValues).toMatchObject({ speed: 3 });
+      expectOk(await v.api.animation!.stop());
     } finally {
       await v.dispose();
     }

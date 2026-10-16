@@ -107,6 +107,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `sequence.colors` | Color the sequence's letters | agent-only | scheme |
 | `sequence.follow` | Show the sequence of a structure | view; agent-only | structure |
 | `sequence.get` | Describe the sequence view | read |  |
+| `sequence.rail` | Set the tracks' rail | agent-only | navigator, height |
 | `sequence.style` | Show the sequence as tracks or text | agent-only | style |
 | `session.clear` | Clear the session | destructive |  |
 | `session.open` | Open a session | destructive; needs files | file |

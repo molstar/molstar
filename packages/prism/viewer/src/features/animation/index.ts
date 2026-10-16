@@ -6,7 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CommandDefinition, IconName } from '@molstar/prism-ui/core';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { CommandDefinition } from '@molstar/prism-ui/core';
 import { ApiResult } from '../../api/area.js';
 import type { ViewerCommandContext } from '../../api/managers.js';
 import { operationCommand } from '../../commands/operations.js';
@@ -22,31 +23,8 @@ declare module '../../api/area.js' {
 
 // The `animation` feature (viewer-spec.md §3.1): the `animation` area and the Animation card (play, procedural
 // animation). The views are a chunk of their own. Stepping through the models of a trajectory is the core's
-// `trajectory` area.
-
-/** Animations with a command of their own, by registered name: a preset of `animation.play` with its title. */
-const Presets: readonly { name: string; title: string; icon: IconName; alias: readonly string[] }[] = [
-  {
-    name: 'built-in.animate-camera-spin',
-    title: 'Spin the camera',
-    icon: 'rotate-3d',
-    alias: ['spin', 'turntable', 'rotate'],
-  },
-  { name: 'built-in.animate-camera-rock', title: 'Rock the camera', icon: 'rotate-3d', alias: ['rock', 'sway'] },
-  {
-    name: 'built-in.animate-structure-spin',
-    title: 'Spin the structure',
-    icon: 'rotate-3d',
-    alias: ['spin structure'],
-  },
-  {
-    name: 'built-in.animate-assembly-unwind',
-    title: 'Unwind the assembly',
-    icon: 'play',
-    alias: ['unwind', 'assembly'],
-  },
-  { name: 'built-in.animate-units-explode', title: 'Explode the units', icon: 'play', alias: ['explode'] },
-];
+// `trajectory` area. One command plays an animation, its form listing those registered when it is shown (an animation
+// registered later is in it); there is no command per animation, which would be made once, as the feature starts.
 
 export const AnimationFeature: ViewerExtension = {
   id: 'animation',
@@ -56,27 +34,32 @@ export const AnimationFeature: ViewerExtension = {
   commands: (api) => {
     const a = api.animation;
     if (!a) return [];
-    const registered = new Set(a.state.value.animations.map((x) => x.name));
     const commands: CommandDefinition<ViewerCommandContext>[] = [
       operationCommand(api, a.play, {
         category: 'Animation',
         icon: 'play',
         title: 'Play an animation…',
-        alias: ['animate', 'animation'],
+        alias: ['animate', 'animation', 'spin', 'rock', 'turntable', 'rotate', 'unwind', 'explode', 'play animation'],
         action: 'Play',
-        // The form takes the animation; its params are the card's (`animation.section.play`).
+        // The form takes the animation, among those registered when it is shown (one registered later is in it); its
+        // params are the card's (`animation.section.play`).
         values: { params: {} },
+        form: (params) => {
+          const animations = a.state.value.animations;
+          if (!animations.length) return params;
+          const first = animations.find((x) => x.available === true) ?? animations[0];
+          return {
+            ...params,
+            name: PD.Select(
+              first.name,
+              animations.map(
+                (x) => [x.name, x.available === true ? x.title : `${x.title} (not now)`] as [string, string],
+              ),
+              { label: 'Animation' },
+            ),
+          };
+        },
       }),
-      ...Presets.filter((p) => registered.has(p.name)).map((p) =>
-        operationCommand(api, a.play, {
-          id: `animation.play.${p.name.replace('built-in.animate-', '')}`,
-          title: p.title,
-          category: 'Animation',
-          icon: p.icon,
-          alias: p.alias,
-          values: { name: p.name, params: {} },
-        }),
-      ),
       operationCommand(api, a.stop, { category: 'Animation', icon: 'square', alias: ['pause', 'stop animation'] }),
       operationCommand(api, a.wiggle, {
         category: 'Animation',

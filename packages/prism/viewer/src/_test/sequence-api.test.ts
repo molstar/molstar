@@ -6,7 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ShellModel } from '@molstar/prism-ui';
 import { describe, expect, it } from 'vitest';
+import { sequenceCommands } from '../sequence/commands.js';
 import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 
 // The `sequence` area's operations (api/sequence.ts, operations.md §2, sequence.md §6), headless.
@@ -31,6 +33,73 @@ describe('the sequence API', () => {
     expect(v.managers.history.steps.value).toHaveLength(steps);
   });
 
+  it("sets the tracks' rail as a step: the navigator and its height, already so, and Undo restores it", async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const viewer = (await v.views.sequence!.load()).viewers.get();
+    expect(viewer.rail.value).toEqual({ navigator: 'ruler' });
+    const steps = v.managers.history.steps.value.length;
+
+    const r = await v.api.sequence!.rail({ navigator: 'strip', height: 40 });
+    expectOk(r);
+    expect(viewer.rail.value).toEqual({ navigator: 'strip', height: 40 });
+    expect(r.did).toBe("The tracks' rail is the strip, 40 px.");
+    expect(v.managers.history.steps.value).toHaveLength(steps + 1);
+
+    const again = await v.api.sequence!.rail({ navigator: 'strip', height: 40 });
+    expect(again).toMatchObject({ ok: true, unchanged: true });
+    expect(v.managers.history.steps.value).toHaveLength(steps + 1);
+
+    // A value left out is kept: the height alone, the navigator alone (which keeps its own height).
+    expectOk(await v.api.sequence!.rail({ height: 50 }));
+    expect(viewer.rail.value).toEqual({ navigator: 'strip', height: 50 });
+    expect(await v.api.sequence!.rail({ navigator: 'strip' })).toMatchObject({ ok: true, unchanged: true });
+    // Another navigator starts at its own height.
+    expectOk(await v.api.sequence!.rail({ navigator: 'band' }));
+    expect(viewer.rail.value).toEqual({ navigator: 'band' });
+    expect((await v.api.sequence!.get()) as any).toMatchObject({ value: { rail: { navigator: 'band' } } });
+
+    expectOk(await v.api.history.undo());
+    expect(viewer.rail.value).toEqual({ navigator: 'strip', height: 50 });
+  });
+
+  it("the sequence's rail commands change the rail through the API, so it is a recorded step", async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const viewer = (await v.views.sequence!.load()).viewers.get();
+    const shell = new ShellModel();
+    shell.registerTabs([
+      {
+        id: 'sequence',
+        title: 'Sequence',
+        icon: 'sequence',
+        dock: 'top',
+        frame: 'none',
+        render: { mount: () => () => {} },
+      } as never,
+    ]);
+    const commands = sequenceCommands(viewer, shell, v.api);
+    const runs: string[] = [];
+    v.api.events.finished.subscribe((r) => runs.push(r.operation));
+    const steps = v.managers.history.steps.value.length;
+
+    await commands.find((c) => c.id === 'sequence.rail.band')!.run({}, {}, new AbortController().signal);
+    await until(() => viewer.rail.value.navigator === 'band' && runs.includes('sequence.rail'));
+    expect(runs).toContain('sequence.rail');
+    expect(v.managers.history.steps.value).toHaveLength(steps + 1);
+
+    expectOk(await v.api.history.undo());
+    expect(viewer.rail.value).toEqual({ navigator: 'ruler' });
+  });
+
+  it('refuses a rail call that changes nothing, a height for a rail without a row, and a navigator it does not know', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expect(await v.api.sequence!.rail({})).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.sequence!.rail({ height: 30 })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.sequence!.rail({ navigator: 'none', height: 30 })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.sequence!.rail({ navigator: 'wide' as never })).toMatchObject({ ok: false, code: 'invalid' });
+    const viewer = (await v.views.sequence!.load()).viewers.get();
+    expect(viewer.rail.value).toEqual({ navigator: 'ruler' });
+  });
+
   it("turns the letters' colors off with 'none'", async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const viewer = (await v.views.sequence!.load()).viewers.get();
@@ -49,13 +118,23 @@ describe('the sequence API', () => {
     };
     // The viewer takes the followed structure's document asynchronously.
     await until(() => viewer.structure.value?.title === '1CBS');
-    expect(await get()).toEqual({ structure: '1CBS', style: 'tracks', colors: 'prism:residues' });
+    expect(await get()).toEqual({
+      structure: '1CBS',
+      style: 'tracks',
+      colors: 'prism:residues',
+      rail: { navigator: 'ruler' },
+    });
 
     expectOk(await v.api.sequence!.style({ style: 'text' }));
     expectOk(await v.api.sequence!.colors({ scheme: 'taylor' }));
     expectOk(await v.api.sequence!.follow({ structure: '1crn' }));
     await until(() => viewer.structure.value?.title === '1CRN');
-    expect(await get()).toEqual({ structure: '1CRN', style: 'text', colors: 'taylor' });
+    expect(await get()).toEqual({
+      structure: '1CRN',
+      style: 'text',
+      colors: 'taylor',
+      rail: { navigator: 'ruler' },
+    });
 
     expectOk(await v.api.sequence!.colors({ scheme: 'none' }));
     expect((await get()).colors).toBe('none');

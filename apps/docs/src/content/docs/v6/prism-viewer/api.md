@@ -96,14 +96,14 @@ naming the feature. The lazy ones (`superpose`, `state`) and remote states are o
 | `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting` (its switches, illumination among them), `camera`, `clipping`.              |
 | `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                  |
 | `volume`, `particles` | `list`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                     |
-| `sequence`            | `style`, `colors`, `follow`, `get`. Present when the spec has a sequence.                                                                                        |
+| `sequence`            | `style`, `colors`, `rail`, `follow`, `get`. Present when the spec has a sequence.                                                                                |
 | `settings`            | `get`, `set`.                                                                                                                                                    |
 | `history`             | `undo`, `redo`, `undo-turn`, `list`.                                                                                                                             |
 | `view`                | `open`, `close`, `expand`, `fullscreen`: open a tab, a card or a section, reveal a node, or expand or fullscreen the viewer. No history step.                    |
 | `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `list`, `remove`, `visibility`, `options`.                                                     |
 | `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`, `list`, `remove`.                                                                                                |
 | `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                        |
-| `animation`           | `play`, `stop`, `wiggle`, `get`.                                                                                                                                 |
+| `animation`           | `play` (an animation by its name without the namespace, its title or its full id), `stop`, `wiggle`, `get`.                                                      |
 | `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                    |
 | `state`               | `get`, `select`, `visibility`, `update`, `apply`, `remove`, `action`: the raw state tree, by node selector. Lazy.                                                |
 

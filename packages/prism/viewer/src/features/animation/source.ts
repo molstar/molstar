@@ -22,8 +22,10 @@ import { watchedState } from '../../sources/watched.js';
 
 /** A registered animation. */
 export interface AnimationInfo {
-  /** Its registered name (`built-in.animate-camera-spin`). */
+  /** Its registered name without the namespace (`animate-camera-spin`): what `animation.play` takes. */
   readonly name: string;
+  /** Its registered name, the full id (`built-in.animate-camera-spin`): the plugin's, which `animation.play` also takes. */
+  readonly id: string;
   readonly title: string;
   readonly description?: string;
   /** True, or why it cannot play now (a trajectory to animate, snapshots to play). */
@@ -41,7 +43,7 @@ export interface WiggleState {
 
 export interface AnimationState {
   readonly animations: readonly AnimationInfo[];
-  /** The animation playing now, by name. */
+  /** The animation playing now, by its short name. */
   readonly playing?: string;
   readonly wiggle: WiggleState;
 }
@@ -51,11 +53,15 @@ export interface AnimationSource {
   dispose(): void;
 }
 
+/** An animation's name without its namespace: `built-in.animate-model-index` is `animate-model-index`. */
+export const shortName = (id: string) => id.slice(id.lastIndexOf('.') + 1);
+
 export function animationInfos(plugin: PluginContext): AnimationInfo[] {
   return plugin.managers.animation.animations.map((a) => {
     const can = a.canApply?.(plugin);
     return {
-      name: a.name,
+      name: shortName(a.name),
+      id: a.name,
       title: a.display.name,
       ...(a.display.description ? { description: a.display.description } : {}),
       available: !can || can.canApply ? true : (can.reason ?? 'It cannot play now.'),
@@ -82,9 +88,9 @@ export function relabel(params: PD.Params): PD.Params {
   return out;
 }
 
-/** An animation's params (with defaults), by name; undefined when none is registered under it. */
-export function paramsOf(plugin: PluginContext, name: string): PD.Params | undefined {
-  const params = plugin.managers.animation.animations.find((a) => a.name === name)?.params(plugin) as
+/** An animation's params (with defaults), by its full id; undefined when none is registered under it. */
+export function paramsOf(plugin: PluginContext, id: string): PD.Params | undefined {
+  const params = plugin.managers.animation.animations.find((a) => a.name === id)?.params(plugin) as
     | PD.Params
     | undefined;
   return params && relabel(params);
@@ -112,7 +118,7 @@ export function wiggleOf(plugin: PluginContext): WiggleState {
 }
 
 const sameInfo = (a: AnimationInfo, b: AnimationInfo) =>
-  a.name === b.name && a.title === b.title && a.description === b.description && a.available === b.available;
+  a.id === b.id && a.title === b.title && a.description === b.description && a.available === b.available;
 
 /**
  * The animation state, followed only while it is watched (a view bound to it, or a caller subscribed): the plugin is not
@@ -125,7 +131,7 @@ export function createAnimationSource(plugin: PluginContext): AnimationSource {
   const manager = plugin.managers.animation;
   const read = (): AnimationState => ({
     animations: animationInfos(plugin),
-    ...(manager.isAnimating && manager.current ? { playing: manager.current.anim.name } : {}),
+    ...(manager.isAnimating && manager.current ? { playing: shortName(manager.current.anim.name) } : {}),
     wiggle: wiggleOf(plugin),
   });
   const state = watchedState(

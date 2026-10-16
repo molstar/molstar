@@ -36,6 +36,11 @@ export interface OperationCommandOptions {
    */
   readonly toggle?: { readonly key: string; readonly current: () => boolean | Promise<boolean> };
   /**
+   * The form's params changed for the person (a text that takes a registry's name as a choice among what is registered
+   * now): called each time the form is shown, so it reads the registry then, not when the command was made.
+   */
+  readonly form?: (params: PD.Params) => PD.Params;
+  /**
    * Where it is in the UI ("Export › Models"): a card or a tab by part id, at a section; the command's form offers to go
    * there (`CommandDefinition.view`).
    */
@@ -79,7 +84,9 @@ export function operationCommand(
   const form = () => {
     const params = api.describe(def.id)?.params ?? {};
     const open = Object.keys(params).filter((k) => !(k in fixed));
-    return open.length ? formParams(Object.fromEntries(open.map((k) => [k, params[k]]))) : undefined;
+    if (!open.length) return undefined;
+    const built = formParams(Object.fromEntries(open.map((k) => [k, params[k]])));
+    return o.form ? o.form(built) : built;
   };
   // Target fields read and complete as targets (`sources/target-format.ts`).
   const fields = Object.fromEntries(

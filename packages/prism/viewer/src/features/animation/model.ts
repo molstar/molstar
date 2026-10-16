@@ -104,8 +104,8 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
   const refresh = () => {
     const animations = area.state.value.animations;
     const groups: Record<string, PD.Params> = {};
-    for (const a of animations) groups[a.name] = splitVectors(area.paramsOf(a.name) ?? {});
-    const key = json(animations.map((a) => [a.name, a.title, groups[a.name]]));
+    for (const a of animations) groups[a.id] = splitVectors(area.paramsOf(a.id) ?? {});
+    const key = json(animations.map((a) => [a.id, a.title, groups[a.id]]));
     if (key !== undefined && built?.key === key) return;
     const previous = current.value?.values.value.animation as
       | { name: string; params: Record<string, unknown> }
@@ -116,12 +116,12 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
     const first = animations.find((a) => a.available === true) ?? animations[0];
     if (!first) return current.set(undefined);
     const animation = PD.MappedStatic(
-      first.name,
-      Object.fromEntries(animations.map((a) => [a.name, PD.Group(groups[a.name], { isFlat: true })])),
+      first.id,
+      Object.fromEntries(animations.map((a) => [a.id, PD.Group(groups[a.id], { isFlat: true })])),
       {
         label: 'Animation',
         isEssential: true,
-        options: animations.map((a) => [a.name, a.title] as [string, string]),
+        options: animations.map((a) => [a.id, a.title] as [string, string]),
       },
     );
     let values: { animation: { name: string; params: Record<string, unknown> } } | undefined;
@@ -142,7 +142,7 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
 
   const reason = () => {
     const name = chosen();
-    const info = name ? area.state.value.animations.find((a) => a.name === name) : undefined;
+    const info = name ? area.state.value.animations.find((a) => a.id === name) : undefined;
     return info && info.available !== true ? info.available : undefined;
   };
   // Both what is available and the choice change it; as `mapState`, nothing is held until someone subscribes.
