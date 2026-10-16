@@ -346,7 +346,12 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       resolve: async (target) => {
         const found = this.providerFor(target.provider);
         if (!found) throw new Error(`No provider for ${target.provider}.`);
-        return { ...found, capabilities: (configuration) => this.capabilitiesOf(found, configuration) };
+        // Delegates rather than spreads: a provider made by a class keeps its methods on the prototype.
+        return {
+          capabilities: (configuration) => this.capabilitiesOf(found, configuration),
+          project: (input) => found.project(input),
+          invoke: (input) => found.invoke(input),
+        };
       },
     };
     const harness = createHarness({
@@ -714,13 +719,19 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       .map((c) => ({ callId: c.callId, tool: c.toolId, args: c.arguments }));
   }
 
+  /**
+   * A model's configuration: the output the session asks for, clamped to the model's maximum once its provider has
+   * given it (a nested run on the turn's model runs within it too).
+   */
   private modelConfiguration(choice: M | undefined): ModelConfiguration {
     const chosen = choice ?? this.options.models.default;
     const { provider, model } = chosen;
+    const wanted = this.options.maxOutputTokens ?? 16_384;
+    const cap = this.known.get(`${provider}:${model}`)?.maxOutputTokens;
     return {
       target: { provider, model },
       parameters: {
-        maxOutputTokens: this.options.maxOutputTokens ?? 16_384,
+        maxOutputTokens: cap !== undefined ? Math.min(wanted, cap) : wanted,
         ...reasoningFor(chosen, this.options.thinking),
       },
     };
@@ -728,19 +739,20 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
 
   /**
    * The configuration for this turn's model (the session's own, or the one chosen): its limits resolved, the output it
-   * asks for clamped to the model's maximum, its budget.
+   * asks for clamped to the model's maximum, its budget. The limits are asked without an output: a provider checks the
+   * output it is given against the model's maximum, and the clamp is what keeps it within.
    */
   private async configurationFor(choice: M | undefined): Promise<TurnConfiguration> {
     const chosen = choice ?? this.options.models.default;
     const found = this.providerFor(chosen.provider);
     if (!found) throw new Error(`No provider for ${chosen.provider}.`);
-    const model = this.modelConfiguration(choice);
-    const capabilities = await this.capabilitiesOf(found, model);
+    const { maxOutputTokens: _, ...unsized } = this.modelConfiguration(choice).parameters;
+    const capabilities = await this.capabilitiesOf(found, {
+      target: { provider: chosen.provider, model: chosen.model },
+      parameters: unsized,
+    });
     this.outputCap = capabilities.maxOutputTokens;
-    const wanted = this.options.maxOutputTokens ?? 16_384;
-    const maxOutputTokens =
-      capabilities.maxOutputTokens !== undefined ? Math.min(wanted, capabilities.maxOutputTokens) : wanted;
-    const configured = { ...model, parameters: { ...model.parameters, maxOutputTokens } };
+    const configured = this.modelConfiguration(choice);
     return { ...this.toolSet(), model: configured, limits: this.budgetFor(configured).initial };
   }
 

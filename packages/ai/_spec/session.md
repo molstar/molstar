@@ -29,7 +29,8 @@ const session = new AgentSession<MyApi>({
 
 Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` default, or `'all'`), `clock`, `compaction`
 (overrides or `false`), `compactionDomain`, `maxToolCalls` (200), `thinking` (one `ReasoningParameters` or per model;
-pass the catalog's `defaultReasoning`), `maxOutputTokens` (16384), `version()` (enables repeated-read answers),
+pass the catalog's `defaultReasoning`), `maxOutputTokens` (16384, clamped to each model's maximum: the session asks the
+provider's `capabilities()` without an output, then asks for at most that), `version()` (enables repeated-read answers),
 `afterWrite` (where a host saves after a write), `price`, `drive` (the host's own `DriveHandlers`, over the session's),
 and the `DrivePolicy` fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2),
 `toolRetryDelayMs` (1000), `providerNames`. Also `notesHeading` (heads the notes; default `NOTES_HEADING`).
