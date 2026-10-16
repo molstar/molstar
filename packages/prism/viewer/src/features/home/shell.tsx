@@ -71,8 +71,9 @@ export function homeShell({ shell, core, person, own, openCommandMenu, openFiles
         id: 'home',
         compactBar: true,
         title: 'Home',
-        // The wordmark as glass: it assembles as Home opens (prism-ui `GlassWordmark`).
-        heading: () => <GlassWordmark />,
+        // The wordmark as glass (prism-ui `GlassWordmark`): it assembles as Home opens, unless the canvas is empty (its
+        // splash has the stage then).
+        heading: () => <GlassWordmark assemble={() => !sources.empty.value} />,
         icon: 'prism',
         order: 0,
         place: 'head',

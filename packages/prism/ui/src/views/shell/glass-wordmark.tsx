@@ -15,6 +15,8 @@ import { Glass } from './glass.js';
 
 /** How far the pieces travel, as a factor of the empty canvas's: a heading has little room. */
 const Travel = 0.35;
+/** A heading's assembly: quicker than the splash's. */
+const Quick = { duration: 0.9, stagger: 0.3 };
 /** Room around the word for the pieces (px at 1×). */
 const Margin = 22;
 
@@ -23,12 +25,20 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * The Mol* wordmark as glass (`glass.ts`), without the light: Home's heading. It assembles from its pieces each time it
- * shows, its pieces lean under the pointer, and a press shatters it for a moment before it snaps back. It draws only
+ * The Mol* wordmark as glass (`glass.ts`), without the light: Home's heading. It assembles from its pieces (quickly) each
+ * time it shows, unless `assemble` says not, its pieces lean under the pointer, and a press shatters it for a moment before it snaps back. It draws only
  * while something moves: whole and still, nothing is repainted until the pointer comes. Under reduced motion, or where
  * there is nothing to draw it with, the word whole.
  */
-export function GlassWordmark(props: { scale?: number; class?: string }): Node {
+export function GlassWordmark(props: {
+  scale?: number;
+  class?: string;
+  /**
+   * Whether it assembles as it shows (asked each time); otherwise it shows whole. Home's: only when the canvas is not
+   * empty (an empty one has its splash, and the heading should not draw the eye from it).
+   */
+  assemble?: () => boolean;
+}): Node {
   const scale = Math.max(1, Math.round(props.scale ?? 1));
   const width = WordmarkGeometry.width * scale;
   const height = WordmarkGeometry.height * scale;
@@ -162,8 +172,8 @@ export function GlassWordmark(props: { scale?: number; class?: string }): Node {
     requestAnimationFrame(() => {
       if (!active) return;
       prepare();
-      if (glass) {
-        glass.scatter();
+      if (glass && (props.assemble?.() ?? true)) {
+        glass.scatter(Quick);
         wake();
       } else draw();
     });

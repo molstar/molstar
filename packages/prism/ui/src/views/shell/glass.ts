@@ -24,8 +24,12 @@ const Shards = Cols * Rows * 2;
  * out, no overshoot), over a while, their starts spread. After a press they snap back: quick, a little past home.
  * Seconds a shard takes, and how far apart their starts are.
  */
-const Gather = { duration: 2.4, stagger: 0.7 };
-const SnapBack = { duration: 0.45, stagger: 0.12 };
+export interface GlassTiming {
+  readonly duration: number;
+  readonly stagger: number;
+}
+const Gather: GlassTiming = { duration: 2.4, stagger: 0.7 };
+const SnapBack: GlassTiming = { duration: 0.45, stagger: 0.12 };
 /** Seconds the pieces stay apart before they come back. */
 const Hold = 0.8;
 /** How fast the pieces slow when apart (per second). */
@@ -86,7 +90,7 @@ export class Glass {
   readonly #hvy = new Float32Array(Shards);
   readonly #hvr = new Float32Array(Shards);
   /** The assembly under way: smooth (the first) or a snap back. */
-  #assembly = Gather;
+  #assembly: GlassTiming = Gather;
   #phase: GlassPhase = 'whole';
   #since = 0;
   #time = 0;
@@ -168,17 +172,17 @@ export class Glass {
     return this.#phase === 'whole';
   }
 
-  /** Scattered around the word, then flying in: the splash's start. */
-  scatter(): void {
+  /** Scattered around the word, then gathering smoothly (over `timing`: the splash's, by default). */
+  scatter(timing: GlassTiming = Gather): void {
     for (let i = 0; i < Shards; i++) {
       const a = this.#random() * Math.PI * 2;
       const d = (18 + this.#random() * 36) * this.#travel;
       this.#fx[i] = Math.cos(a) * d;
       this.#fy[i] = Math.sin(a) * d * 0.7;
       this.#fr[i] = (this.#random() * 2 - 1) * 1.6;
-      this.#delay[i] = this.#random() * Gather.stagger;
+      this.#delay[i] = this.#random() * timing.stagger;
     }
-    this.#assembly = Gather;
+    this.#assembly = timing;
     this.#fadeIn = true;
     this.#begin('assembling');
   }
@@ -256,7 +260,7 @@ export class Glass {
         const p = Math.min(1, Math.max(0, (since - this.#delay[i]) / this.#assembly.duration));
         if (p < 1) done = false;
         // Smooth: eased out (quintic), settling; a snap back: past home a little.
-        const k = this.#assembly === Gather ? (1 - p) ** 5 : 1 - snap(p);
+        const k = this.#assembly === SnapBack ? 1 - snap(p) : (1 - p) ** 5;
         this.#ox[i] = this.#fx[i] * k;
         this.#oy[i] = this.#fy[i] * k;
         this.#rot[i] = this.#fr[i] * k;
