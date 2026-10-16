@@ -57,7 +57,7 @@ export default meta;
 function Canvas(props: { theme: 'light' | 'dark'; options: Partial<PrismFieldOptions> }) {
   const markBox = (
     <div style="position: absolute; left: round(down, calc(50% - 85.5px), 1px); top: round(down, calc(50% - 33px), 1px); color: var(--msp-color-text-subtle)">
-      <MolstarWordmark scale={3} flash="reveal" live prism={false} />
+      <MolstarWordmark scale={3} flash="reveal" prism={false} />
     </div>
   ) as HTMLElement;
   const root = (

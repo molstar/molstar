@@ -221,7 +221,6 @@ export class PrismField {
   #wordY = 0;
   #wordScale = 1;
   #gradient: CanvasGradient | undefined;
-  #onWhole: (whole: boolean) => void = () => {};
   #burst = 0;
 
   constructor(canvas: HTMLCanvasElement, options: Partial<PrismFieldOptions> = {}, init: { still?: boolean } = {}) {
@@ -289,23 +288,23 @@ export class PrismField {
 
   /**
    * The wordmark the light goes through, as glass: its drawing origin (canvas CSS px) and px a unit. The first time, it
-   * starts in pieces and assembles (unless still); `onWhole` says when it is whole (the page's wordmark shows).
+   * starts in pieces and assembles. True if the canvas draws the word (the page's wordmark then only places it); false
+   * when still (reduced motion) or where there is nothing to draw it with (Node, jsdom).
    */
-  setWord(x: number, y: number, scale: number, onWhole: (whole: boolean) => void): void {
+  setWord(x: number, y: number, scale: number): boolean {
     this.#wordX = x;
     this.#wordY = y;
     this.#wordScale = scale;
-    this.#onWhole = onWhole;
-    // Not where there is nothing to draw it with (Node, jsdom).
-    if (this.#glass || this.#still || typeof Path2D !== 'function') return;
+    if (this.#glass) return true;
+    if (this.#still || typeof Path2D !== 'function') return false;
     const glass = new Glass(this.#options.seed + 8);
-    glass.onWhole = (whole) => this.#onWhole(whole);
     // Back together: the star splits the light again, with a pop of it.
     glass.onSnap = () => {
       this.#burst += this.#options.burst * 0.6;
     };
     this.#glass = glass;
     glass.scatter();
+    return true;
   }
 
   /**
@@ -348,11 +347,13 @@ export class PrismField {
     this.#py = y;
     this.#moved = now;
     this.#pointer = true;
+    this.#glass?.setPointer((x - this.#wordX) / this.#wordScale, (y - this.#wordY) / this.#wordScale);
   }
 
   /** The pointer left (or a touch ended). */
   pointerLeave(): void {
     this.#pointer = false;
+    this.#glass?.clearPointer();
     this.#pvx = 0;
     this.#pvy = 0;
   }
@@ -699,7 +700,7 @@ export class PrismField {
       }
     }
     ctx.globalAlpha = 1;
-    // The wordmark's glass, over the light (nothing while whole: the page's wordmark shows).
+    // The wordmark's glass, over the light.
     this.#glass?.draw(
       ctx,
       this.#wordX,

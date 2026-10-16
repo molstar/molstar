@@ -8,23 +8,37 @@
 
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 
-// The splash's wordmark as glass (`prism-field.ts` draws it): the word cut into triangular shards, which fly in and
-// snap together when the splash starts, and fly apart when it is pressed, spinning and slowing, then come back
-// together. The shards are drawn as the wordmark is (the same path data, line and the logo's gradient), each its piece
-// of it, its edges glinting while it moves; whole, the page's own wordmark shows instead (`onWhole`). In drawing units
+// The splash's wordmark as glass (`prism-field.ts` draws it): the word cut into triangular shards, which drift in from
+// around it and settle together when the splash starts, and fly apart when it is pressed, spinning and slowing, then snap
+// back; the pointer over it makes the pieces near it lean away and tilt a little, wobbling back on a spring. The
+// shards are drawn as the wordmark is (the same path data, line and the logo's gradient), each its piece of it, its
+// edges glinting while it moves; the canvas draws the word throughout (the page's wordmark only places it). In drawing units
 // (the wordmark's viewBox: 1 unit a pixel at 1×); everything per frame is preallocated.
 
 /** Columns and rows of the grid the word is cut on (each cell two triangles, the inner corners moved). */
 const Cols = 11;
 const Rows = 4;
 const Shards = Cols * Rows * 2;
-/** Seconds a shard takes to come home, and how far apart their starts are. */
-const Assemble = 1;
-const Stagger = 0.35;
+/**
+ * Two ways to come together. The first assembly is smooth: pieces drifting in from around the word and settling (eased
+ * out, no overshoot), over a while, their starts spread. After a press they snap back: quick, a little past home.
+ * Seconds a shard takes, and how far apart their starts are.
+ */
+const Gather = { duration: 2.4, stagger: 0.7 };
+const SnapBack = { duration: 0.45, stagger: 0.12 };
 /** Seconds the pieces stay apart before they come back. */
 const Hold = 0.8;
 /** How fast the pieces slow when apart (per second). */
 const Drag = 3;
+/**
+ * The pointer over the glass: how far it reaches (drawing units), how far a piece leans away from it at most (units) and
+ * how much it tilts (radians), and the spring the pieces wobble back on (stiffness, damping: a little bouncy).
+ */
+const HoverReach = 14;
+const HoverLean = 1.4;
+const HoverTilt = 0.1;
+const Stiffness = 140;
+const Damping = 11;
 
 export type GlassPhase = 'assembling' | 'whole' | 'broken';
 
@@ -64,10 +78,27 @@ export class Glass {
   readonly #fy = new Float32Array(Shards);
   readonly #fr = new Float32Array(Shards);
   readonly #delay = new Float32Array(Shards);
+  // The pointer's lean on each piece (units, radians) and its speed, on a spring.
+  readonly #hx = new Float32Array(Shards);
+  readonly #hy = new Float32Array(Shards);
+  readonly #hr = new Float32Array(Shards);
+  readonly #hvx = new Float32Array(Shards);
+  readonly #hvy = new Float32Array(Shards);
+  readonly #hvr = new Float32Array(Shards);
+  /** The assembly under way: smooth (the first) or a snap back. */
+  #assembly = Gather;
   #phase: GlassPhase = 'whole';
   #since = 0;
   #time = 0;
-  /** Told when the glass becomes whole (the page's wordmark shows) or stops being whole. */
+  /** An assembly that fades the pieces in as they start (the first one, from nothing; not a reassembly). */
+  #fadeIn = false;
+  /** The pointer over the glass (drawing units), if it is. */
+  #pointer = false;
+  #pu = 0;
+  #pv = 0;
+  /** Whether any piece is away from home or leaning (otherwise the word is drawn whole, in one go). */
+  #still = true;
+  /** Told when the glass becomes whole or stops being whole (the star splits the light only while whole). */
   onWhole: (whole: boolean) => void = () => {};
   /** Told when it snaps back together after a break (the light pops). */
   onSnap: () => void = () => {};
@@ -132,13 +163,26 @@ export class Glass {
   scatter(): void {
     for (let i = 0; i < Shards; i++) {
       const a = this.#random() * Math.PI * 2;
-      const d = 14 + this.#random() * 30;
+      const d = 18 + this.#random() * 36;
       this.#fx[i] = Math.cos(a) * d;
       this.#fy[i] = Math.sin(a) * d * 0.7;
-      this.#fr[i] = (this.#random() * 2 - 1) * 2.4;
-      this.#delay[i] = this.#random() * Stagger;
+      this.#fr[i] = (this.#random() * 2 - 1) * 1.6;
+      this.#delay[i] = this.#random() * Gather.stagger;
     }
+    this.#assembly = Gather;
+    this.#fadeIn = true;
     this.#begin('assembling');
+  }
+
+  /** The pointer over the glass at (x, y) (drawing units); none: it left. */
+  setPointer(x: number, y: number): void {
+    this.#pointer = true;
+    this.#pu = x;
+    this.#pv = y;
+  }
+
+  clearPointer(): void {
+    this.#pointer = false;
   }
 
   /** Pressed at (x, y) (drawing units): the pieces fly apart from there, faster the nearer, spinning. */
@@ -173,14 +217,18 @@ export class Glass {
       this.#fx[i] = this.#ox[i];
       this.#fy[i] = this.#oy[i];
       this.#fr[i] = this.#rot[i];
-      this.#delay[i] = this.#random() * Stagger;
+      this.#delay[i] = this.#random() * SnapBack.stagger;
     }
+    this.#assembly = SnapBack;
+    // From where the pieces are: they are all there to see, none fades in.
+    this.#fadeIn = false;
     this.#begin('assembling');
   }
 
   step(dt: number): void {
     this.#time += dt;
     const since = this.#time - this.#since;
+    this.#lean(dt);
     if (this.#phase === 'broken') {
       const drag = Math.exp(-Drag * dt);
       for (let i = 0; i < Shards; i++) {
@@ -195,9 +243,10 @@ export class Glass {
     } else if (this.#phase === 'assembling') {
       let done = true;
       for (let i = 0; i < Shards; i++) {
-        const p = Math.min(1, Math.max(0, (since - this.#delay[i]) / Assemble));
+        const p = Math.min(1, Math.max(0, (since - this.#delay[i]) / this.#assembly.duration));
         if (p < 1) done = false;
-        const k = 1 - snap(p);
+        // Smooth: eased out (quintic), settling; a snap back: past home a little.
+        const k = this.#assembly === Gather ? (1 - p) ** 5 : 1 - snap(p);
         this.#ox[i] = this.#fx[i] * k;
         this.#oy[i] = this.#fy[i] * k;
         this.#rot[i] = this.#fr[i] * k;
@@ -214,7 +263,48 @@ export class Glass {
   }
 
   /**
-   * Draws the pieces (nothing while whole: the page's wordmark shows): the word's line in `stroke` (the logo's gradient,
+   * The pointer's lean: each piece near it leans away and tilts a little (more the nearer), on a spring, so it wobbles
+   * back when the pointer moves on.
+   */
+  #lean(dt: number): void {
+    const h = Math.min(dt, 1 / 30);
+    let moving = false;
+    for (let i = 0; i < Shards; i++) {
+      let tx = 0;
+      let ty = 0;
+      let tr = 0;
+      if (this.#pointer) {
+        const dx = this.#cx[i] + this.#ox[i] - this.#pu;
+        const dy = this.#cy[i] + this.#oy[i] - this.#pv;
+        const d = Math.hypot(dx, dy);
+        if (d < HoverReach) {
+          const f = (1 - d / HoverReach) ** 2;
+          const inv = 1 / (d || 1);
+          tx = dx * inv * HoverLean * f;
+          ty = dy * inv * HoverLean * f;
+          // Turned away: a piece left of the pointer one way, right of it the other.
+          tr = (dx >= 0 ? 1 : -1) * HoverTilt * f;
+        }
+      }
+      this.#hvx[i] += (Stiffness * (tx - this.#hx[i]) - Damping * this.#hvx[i]) * h;
+      this.#hvy[i] += (Stiffness * (ty - this.#hy[i]) - Damping * this.#hvy[i]) * h;
+      this.#hvr[i] += (Stiffness * (tr - this.#hr[i]) - Damping * this.#hvr[i]) * h;
+      this.#hx[i] += this.#hvx[i] * h;
+      this.#hy[i] += this.#hvy[i] * h;
+      this.#hr[i] += this.#hvr[i] * h;
+      if (
+        Math.abs(this.#hx[i]) + Math.abs(this.#hy[i]) > 0.01 ||
+        Math.abs(this.#hr[i]) > 0.001 ||
+        Math.abs(this.#hvx[i]) + Math.abs(this.#hvy[i]) > 0.02
+      ) {
+        moving = true;
+      }
+    }
+    this.#still = this.#phase === 'whole' && !moving;
+  }
+
+  /**
+   * Draws the glass: the word whole in one go while at rest, else piece by piece: the word's line in `stroke` (the logo's gradient,
    * made in drawing units), each piece its part of it, and the piece's edges in `edge`, glinting while it moves. The
    * context is in canvas CSS pixels; the word's drawing origin is at (x, y), `scale` px a unit.
    */
@@ -227,22 +317,41 @@ export class Glass {
     edge: string,
     alpha: number,
   ): void {
-    if (this.#phase === 'whole') return;
     const since = this.#time - this.#since;
     const line = WordmarkGeometry.stroke(scale);
+    if (this.#still) {
+      // Whole and at rest: the word in one go, as the wordmark draws it.
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = line;
+      ctx.lineJoin = 'miter';
+      for (let w = 0; w < this.#word.length; w++) ctx.stroke(this.#word[w]);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      return;
+    }
     for (let i = 0; i < Shards; i++) {
+      const ox = this.#ox[i] + this.#hx[i];
+      const oy = this.#oy[i] + this.#hy[i];
+      const rot = this.#rot[i] + this.#hr[i];
       const off = Math.hypot(this.#ox[i], this.#oy[i]) + Math.abs(this.#rot[i]) * 6;
-      // A shard flying in fades in as it starts.
+      // A shard flying in (the first assembly) fades in as it starts.
       const shown =
-        this.#phase === 'assembling' ? Math.min(1, Math.max(0, (since - this.#delay[i]) / (Assemble * 0.3))) : 1;
+        this.#phase === 'assembling' && this.#fadeIn
+          ? Math.min(1, Math.max(0, (since - this.#delay[i]) / (this.#assembly.duration * 0.35)))
+          : 1;
       if (shown <= 0) continue;
       ctx.save();
-      ctx.translate(x + (this.#cx[i] + this.#ox[i]) * scale, y + (this.#cy[i] + this.#oy[i]) * scale);
-      ctx.rotate(this.#rot[i]);
+      ctx.translate(x + (this.#cx[i] + ox) * scale, y + (this.#cy[i] + oy) * scale);
+      ctx.rotate(rot);
       ctx.scale(scale, scale);
       const shard = this.#shard[i];
       // Its edges: a glint while it is away from home.
-      const glint = Math.min(1, off / 8) * 0.22 * alpha * shown;
+      const lean = Math.hypot(this.#hx[i], this.#hy[i]) + Math.abs(this.#hr[i]) * 6;
+      const glint = Math.min(1, off / 8 + lean / 3) * 0.22 * alpha * shown;
       if (glint > 0.01) {
         ctx.globalAlpha = glint;
         ctx.strokeStyle = edge;

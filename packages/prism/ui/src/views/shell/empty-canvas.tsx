@@ -80,7 +80,7 @@ export function EmptyCanvas(props: {
       {() => {
         // The word alone: with the splash, its star is the prism.
         const mark = (
-          <MolstarWordmark scale={3} flash="reveal" live prism={!splash} class={classes.mark} />
+          <MolstarWordmark scale={3} flash="reveal" live={!splash} prism={!splash} class={classes.mark} />
         ) as Element;
         return (
           <div class={classes.empty} data-phase={phase}>

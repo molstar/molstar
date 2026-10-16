@@ -22,8 +22,9 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Light through the Mol* star (`prism-field.ts`): a canvas filling what holds it, the light splitting at the star of the
- * wordmark `mark` finds (its `[data-part="star"]`), else at the middle. The wordmark is glass (`glass.ts`): it assembles
- * from pieces as the splash starts, and a press on it shatters it for a moment (the page's wordmark hides meanwhile). It answers the pointer over `pointer` (the
+ * wordmark `mark` finds (its `[data-part="star"]`), else at the middle. The canvas draws the wordmark, as glass
+ * (`glass.ts`): it assembles from pieces as the splash starts, its pieces lean under the pointer, and a press on it
+ * shatters it for a moment; the page's wordmark only places it. It answers the pointer over `pointer` (the
  * viewport: the canvas keeps its clicks and drags, the splash only listens), mouse, pen and touch alike. It runs while it
  * is on the screen, the page is visible and its view active; under reduced motion it is one still frame.
  */
@@ -59,15 +60,13 @@ export function PrismSplash(props: {
     const at = star?.getBoundingClientRect();
     if (at?.width) field.setOrigin(at.left + at.width / 2 - box.left, at.top + at.height / 2 - box.top);
     else field.setOrigin(box.width / 2, box.height / 2);
-    // The word as glass: where its drawing origin is (its viewBox runs from -1) and px a unit; the page's wordmark shows
-    // only while the glass is whole.
+    // The word as glass: where its drawing origin is (its viewBox runs from -1) and px a unit. While the canvas draws it,
+    // the page's wordmark only places it (hidden: no hover colors, nothing to hand over to).
     const word = wordOf();
     const w = word?.getBoundingClientRect();
     if (word && w?.width) {
       const scale = w.width / WordmarkGeometry.width;
-      field.setWord(w.left - box.left + scale, w.top - box.top + scale, scale, (whole) => {
-        word.style.visibility = whole ? '' : 'hidden';
-      });
+      if (field.setWord(w.left - box.left + scale, w.top - box.top + scale, scale)) word.style.visibility = 'hidden';
     }
   };
   // The wordmark itself (`role=img`), in or as what `mark` gives.

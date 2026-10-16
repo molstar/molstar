@@ -35,6 +35,9 @@ describe('the wordmark as glass', () => {
     glass.scatter();
     expect(glass.phase).toBe('assembling');
     expect(glass.whole).toBe(false);
+    // Smooth: a while (its pieces' starts spread).
+    run(glass, 1.5);
+    expect(glass.whole).toBe(false);
     run(glass, 2);
     expect(glass.whole).toBe(true);
     // In pieces first (the page's wordmark hides), then whole.
@@ -47,7 +50,7 @@ describe('the wordmark as glass', () => {
     const whole: boolean[] = [];
     glass.onWhole = (w) => whole.push(w);
     glass.scatter();
-    run(glass, 2);
+    run(glass, 3.5);
     expect(glass.hits(20, 10)).toBe(true);
     expect(glass.hits(200, 10)).toBe(false);
     glass.shatter(20, 10);
@@ -57,7 +60,8 @@ describe('the wordmark as glass', () => {
     expect(glass.phase).toBe('broken');
     run(glass, 0.5);
     expect(glass.phase).toBe('assembling');
-    run(glass, 2);
+    // A snap back: quick.
+    run(glass, 0.6);
     expect(glass.whole).toBe(true);
     expect(whole).toEqual([false, true, false, true]);
   });
