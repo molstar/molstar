@@ -89,6 +89,9 @@ export interface ShellViewProps {
 }
 
 /** The frame: docks around the canvas, chrome over it. */
+/** How long a structure takes to come in after the empty canvas's mark (ms). */
+const RevealMs = 900;
+
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
@@ -178,6 +181,18 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
+  // The canvas, and its reveal: what loads after the empty canvas's mark showed (the canvas empty, the viewer idle)
+  // comes in gradually over the canvas's own color; a load the mark never showed for appears at once.
+  const canvasBox = (
+    <div class={classes.canvas} data-msp-canvas="">
+      {props.canvas}
+    </div>
+  ) as HTMLElement;
+  const reveal = () => {
+    if (typeof canvasBox.animate !== 'function') return;
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    canvasBox.animate([{ opacity: 0 }, { opacity: 1 }], { duration: RevealMs, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+  };
   const root = (
     <div class={classes.shell} data-mode={shell.mode} data-expanded={expanded.pipe(map((e) => (e ? '' : undefined)))}>
       <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => !f && !e))}>
@@ -208,11 +223,11 @@ export function ShellView(props: ShellViewProps) {
           '--msp-canvas-panel-right': railPx.pipe(map((px) => `${px + Edge}px`)),
           // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
           '--msp-canvas-pinned': pinnedWidth.pipe(map((px) => `${px}px`)),
+          // The canvas's own color under it: a canvas fading in (`reveal`) shows the structure coming, not the shell.
+          background: props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
         }}
       >
-        <div class={classes.canvas} data-msp-canvas="">
-          {props.canvas}
-        </div>
+        {canvasBox}
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}
@@ -229,6 +244,7 @@ export function ShellView(props: ShellViewProps) {
             <EmptyCanvas
               empty={props.empty}
               splash={props.splash ?? true}
+              onReveal={reveal}
               {...(props.busy ? { busy: props.busy } : {})}
             />
           ) : null}

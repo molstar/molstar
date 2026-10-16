@@ -121,4 +121,32 @@ describe('EmptyCanvas', () => {
       expect(container.querySelector('canvas')).not.toBeNull();
     }
   });
+
+  it('reveals what loads after the mark showed, and nothing it never showed for', () => {
+    const empty = observableState(true);
+    const busy = observableState(false);
+    const onReveal = vi.fn();
+    const container = document.createElement('div');
+    render(
+      () => <EmptyCanvas empty={empty.asReadonly} busy={busy.asReadonly} splash={false} onReveal={onReveal} />,
+      container,
+    );
+    // Cleared to load the next at once: no mark, no reveal.
+    vi.advanceTimersByTime(300);
+    empty.set(false);
+    expect(onReveal).not.toHaveBeenCalled();
+    // Empty while working (a long load), then loaded: still none.
+    empty.set(true);
+    busy.set(true);
+    vi.advanceTimersByTime(3000);
+    empty.set(false);
+    busy.set(false);
+    expect(onReveal).not.toHaveBeenCalled();
+    // Empty and idle the whole delay: the mark; what loads now comes in gradually.
+    empty.set(true);
+    vi.advanceTimersByTime(800);
+    expect(container.querySelector('[role=img]')).not.toBeNull();
+    empty.set(false);
+    expect(onReveal).toHaveBeenCalledTimes(1);
+  });
 });

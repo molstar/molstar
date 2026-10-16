@@ -20,6 +20,7 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  tap,
   timer,
 } from 'rxjs';
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
@@ -32,6 +33,8 @@ import { type PrismFieldOptions, PrismSplash, type SplashKind } from './prism-sp
  * next never flashes it, and any work restarts the wait (a long load or a session opening shows nothing meanwhile).
  */
 const Delay = 700;
+/** How often the random splash is the wave (`quantum-field.ts`); the rest, the light's particles. */
+const QuantumShare = 0.8;
 /** How long it takes to fade out when something loads (faster than it came). */
 const FadeOut = 250;
 
@@ -50,11 +53,16 @@ export function EmptyCanvas(props: {
   splash?: boolean | Partial<PrismFieldOptions>;
   /**
    * Which splash: the light (`prism-field.ts`), the light as a wave (`quantum-field.ts`), or either, picked at random
-   * each time it shows (the default: one time particles, another waves).
+   * each time it shows (the default: the wave four times in five, `QuantumShare`).
    */
   field?: SplashKind | 'random';
   /** The viewer is working (a load, a task): the wait for the mark starts over while it is. */
   busy?: Observable<boolean>;
+  /**
+   * Something loaded while the mark showed (the canvas had been empty and the viewer idle): the host reveals it
+   * gradually. Never for a load the mark never showed for (a scene cleared to load the next, work in progress).
+   */
+  onReveal?: () => void;
 }) {
   const phase = combineLatest([props.empty.pipe(distinctUntilChanged()), props.busy ?? of(false)]).pipe(
     switchMap(
@@ -70,6 +78,7 @@ export function EmptyCanvas(props: {
     // Fading out only what showed.
     scan((prev: Phase, next: Phase): Phase => (next === 'out' && prev !== 'in' ? 'gone' : next)),
     distinctUntilChanged(),
+    tap((p) => p === 'out' && props.onReveal?.()),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   const splash = props.splash ?? true;
@@ -77,7 +86,7 @@ export function EmptyCanvas(props: {
     // Options are the light's: with them, the light.
     if (typeof splash === 'object') return 'light';
     const f = props.field ?? 'random';
-    return f === 'random' ? (Math.random() < 0.5 ? 'light' : 'quantum') : f;
+    return f === 'random' ? (Math.random() < QuantumShare ? 'quantum' : 'light') : f;
   };
   return (
     <Show when={phase.pipe(map((p) => p !== 'gone'))}>
