@@ -92,11 +92,11 @@ function standIn() {
       const { width, height } = frame();
       return { canvas: { toDataURL: () => 'data:image/png;base64,UFJFVklFVw==' }, width, height };
     },
-    async getImageDataUri() {
+    async getImageBlob() {
       // A render takes time: what another export would do to the helper meanwhile is what the queue prevents.
       await new Promise((r) => setTimeout(r, 5));
       note('image');
-      return 'data:image/png;base64,SU1BR0U=';
+      return new Blob(['IMAGE'], { type: `image/${behaviors.values.value.format.name}` });
     },
     copyToClipboard() {
       note('copy');
@@ -273,7 +273,7 @@ describe('export image', () => {
 
   it('goes on after a failed export, and skips one stopped before it started', async () => {
     const { v, calls, helper } = await track(withHelper());
-    (helper as { getImageDataUri: unknown }).getImageDataUri = () => Promise.reject(new Error('lost context'));
+    (helper as { getImageBlob: unknown }).getImageBlob = () => Promise.reject(new Error('lost context'));
     const controller = new AbortController();
     const failing = v.api.export!.image({ crop: 'none' });
     const stopped = v.api.export!.image({ crop: 'none' }, { signal: controller.signal });

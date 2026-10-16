@@ -224,19 +224,6 @@ const dims = (helper: ViewportScreenshotHelper) => {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** A `data:` URI as a Blob (the helper gives the image as one; there is no blob getter). */
-function dataUriToBlob(uri: string): Blob {
-  const comma = uri.indexOf(',');
-  const head = uri.slice(5, comma);
-  const type = head.split(';')[0] || 'application/octet-stream';
-  const body = uri.slice(comma + 1);
-  if (!head.endsWith(';base64')) return new Blob([decodeURIComponent(body)], { type });
-  const binary = atob(body);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type });
-}
-
 const Extensions: Record<ImageFormat, string> = { png: '.png', jpeg: '.jpg', webp: '.webp' };
 
 /** The file name: the person's, with the format's extension unless it has an image one; else the helper's. */
@@ -325,7 +312,7 @@ export class ExportApi extends ApiArea {
           await settleCrop(ctx, helper);
           const size = dims(helper);
           const filename = fileNameOf(helper, v);
-          const blob = dataUriToBlob(await helper.getImageDataUri());
+          const blob = await helper.getImageBlob();
           return ApiResult.ok(
             `Rendered ${filename} (${size.width} × ${size.height}).`,
             {},
@@ -473,8 +460,12 @@ export const LoadViewport: OperationDefinition<typeof ViewportLoadParams, unknow
       return ApiResult.fail('invalid', `${f ? f.name : 'The text'} is not JSON.`);
     }
     // A .molj holds entries of snapshots: the current one's, else the first.
-    const entries = (parsed as { entries?: { snapshot?: unknown }[] } | undefined)?.entries;
-    if (Array.isArray(entries) && entries.length) parsed = entries[0]?.snapshot ?? parsed;
+    const saved = parsed as { entries?: { snapshot?: { id?: unknown } }[]; current?: unknown } | undefined;
+    const entries = saved?.entries;
+    if (Array.isArray(entries) && entries.length) {
+      const shown = entries.find((e) => e?.snapshot?.id !== undefined && e.snapshot.id === saved?.current);
+      parsed = (shown ?? entries[0])?.snapshot ?? parsed;
+    }
     const read = readViewport(parsed);
     if (typeof read === 'string') return ApiResult.fail('invalid', `${f ? `${f.name}: ` : ''}${read}`);
     if (read.canvas) ctx.plugin.setCanvas3DProps(read.canvas);

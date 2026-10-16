@@ -106,6 +106,18 @@ describe('the viewport state', () => {
     const v5 = { entries: [{ snapshot: { camera: { current: snapshot([5, 0, 0]) } } }] };
     expectOk(await v.api.load.viewport!({ json: JSON.stringify(v5) }));
     expect(Array.from(cameras[0].position!)).toEqual([5, 0, 0]);
+    // A file of several snapshots has the camera of the one that was showing, else the first.
+    const two = (current: string | undefined) => ({
+      current,
+      entries: [
+        { snapshot: { id: 'a', camera: { current: snapshot([1, 0, 0]) } } },
+        { snapshot: { id: 'b', camera: { current: snapshot([2, 0, 0]) } } },
+      ],
+    });
+    expectOk(await v.api.load.viewport!({ json: JSON.stringify(two('b')) }));
+    expect(Array.from(cameras[1].position!)).toEqual([2, 0, 0]);
+    expectOk(await v.api.load.viewport!({ json: JSON.stringify(two('gone')) }));
+    expect(Array.from(cameras[2].position!)).toEqual([1, 0, 0]);
     const mvs = { position: [1, 2, 3], target: [0, 0, 0], up: [0, 0, 1] };
     const r = await v.api.load.viewport!({ json: JSON.stringify(mvs) });
     expectOk(r);
@@ -125,6 +137,24 @@ describe('the viewport state', () => {
     const next = firstValueFrom(v.api.export!.camera.pipe(skip(1)));
     await v.api.camera.set({ position: '0, 0, 50' });
     expect((await next)?.position).toEqual([0, 0, 50]);
+  });
+
+  it('reads the camera again only when it moved', async () => {
+    const { v, didDraw } = await withCanvas();
+    (v.plugin.behaviors.canvas3d.initialized as BehaviorSubject<boolean>).next(true);
+    const seen: unknown[] = [];
+    const sub = v.api.export!.camera.subscribe((c) => seen.push(c));
+    try {
+      // Redraws with the camera still (accumulating samples, an animation).
+      for (let i = 0; i < 3; i++) didDraw.next(didDraw.value + 1);
+      await new Promise((r) => setTimeout(r, 400));
+      expect(seen).toHaveLength(1);
+      await v.api.camera.set({ position: '0, 0, 50' });
+      await new Promise((r) => setTimeout(r, 400));
+      expect(seen).toHaveLength(2);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('needs a canvas; its commands are there', async () => {

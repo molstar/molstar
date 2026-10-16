@@ -7,7 +7,7 @@
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
-import { auditTime, EMPTY, map, merge, type Observable, of, startWith, switchMap } from 'rxjs';
+import { auditTime, distinctUntilChanged, EMPTY, map, merge, type Observable, of, startWith, switchMap } from 'rxjs';
 import { type CameraValue, cameraValueOf } from '../../api/camera.js';
 
 // The camera as the Export card's Viewport section reads it (v5's camera info, parity.md; state.md §4, a feature's
@@ -15,6 +15,19 @@ import { type CameraValue, cameraValueOf } from '../../api/camera.js';
 // hidden UI does no updates), at most a few times a second.
 
 const EveryMs = 150;
+
+const same3 = (a: readonly number[], b: readonly number[]) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+
+const sameCamera = (a: CameraValue, b: CameraValue) =>
+  a.mode === b.mode &&
+  a.fov === b.fov &&
+  same3(a.position, b.position) &&
+  same3(a.target, b.target) &&
+  same3(a.up, b.up) &&
+  a.distance === b.distance &&
+  a.radius === b.radius &&
+  a.sceneRadius === b.sceneRadius &&
+  a.showsAll === b.showsAll;
 
 export function cameraUpdates(plugin: PluginContext): Observable<CameraValue | undefined> {
   return plugin.behaviors.canvas3d.initialized.pipe(
@@ -25,6 +38,8 @@ export function cameraUpdates(plugin: PluginContext): Observable<CameraValue | u
         auditTime(EveryMs),
         startWith(0),
         map(() => cameraValueOf(canvas)),
+        // A redraw with the camera still (accumulating samples, an animation, a hover) changes nothing to show.
+        distinctUntilChanged(sameCamera),
       );
     }),
   );
