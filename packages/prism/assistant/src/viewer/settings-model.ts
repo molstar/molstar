@@ -28,6 +28,8 @@ interface OwnProvider {
   readonly baseURL: string;
   readonly api: 'chat' | 'responses';
   readonly models: readonly string[];
+  /** Added with no key (a local server takes none): the scope chosen, since no key is kept to say it. */
+  readonly keyless?: KeyScope;
 }
 
 export interface ViewerAISettings extends AISettingsModel {
@@ -150,6 +152,7 @@ export function createAISettings(
       const listed = await keys.list();
       scopes.clear();
       for (const { provider, scope } of listed) scopes.set(provider, scope);
+      for (const o of own.values()) if (o.keyless && !scopes.has(o.id)) scopes.set(o.id, o.keyless);
     } catch (e) {
       report(`The stored keys could not be read: ${messageOf(e)}`);
     }
@@ -160,13 +163,23 @@ export function createAISettings(
   const adapters = new Map<string, ModelAdapter>();
   const resolveApiKey = (provider: string) => async () => {
     const key = await keys.get(provider);
-    if (!key) throw new Error(`No key for ${provider}.`);
-    return key;
+    if (key) return key;
+    // The adapters refuse an empty key; a local server given none ignores what is sent.
+    if (own.get(provider)?.keyless) return KeylessPlaceholder;
+    throw new Error(`No key for ${provider}.`);
   };
 
   const labelOf = (provider: string) =>
     own.get(provider)?.label ?? Builtin.find((b) => b.id === provider)?.label ?? provider;
+  /** An own endpoint no longer without a key (one given, or the endpoint's removed). */
+  const keyed = (provider: string) => {
+    const o = own.get(provider);
+    if (!o?.keyless) return;
+    own.set(provider, { id: o.id, label: o.label, baseURL: o.baseURL, api: o.api, models: o.models });
+    prefs.set('providers', JSON.stringify([...own.values()]));
+  };
   const setKey = (provider: string, key: string, scope: KeyScope) => {
+    keyed(provider);
     scopes.set(provider, scope);
     adapters.delete(provider);
     publish();
@@ -213,6 +226,7 @@ export function createAISettings(
     },
     setKey,
     removeKey(provider) {
+      keyed(provider);
       scopes.delete(provider);
       adapters.delete(provider);
       publish();
@@ -244,12 +258,31 @@ export function createAISettings(
       const base = `own-${p.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
       let id = base;
       for (let n = 2; own.has(id) && own.get(id)!.label !== p.label; n++) id = `${base}-${n}`;
-      own.set(id, { id, label: p.label, baseURL: p.baseURL, api: p.api, models: p.models });
+      // A local server takes no key: none is kept (an empty one would show as kept, and fail every turn).
+      const keyless = p.key.trim().length === 0;
+      own.set(id, {
+        id,
+        label: p.label,
+        baseURL: p.baseURL,
+        api: p.api,
+        models: p.models,
+        ...(keyless ? { keyless: p.scope } : {}),
+      });
       prefs.set('providers', JSON.stringify([...own.values()]));
-      setKey(id, p.key, p.scope);
+      if (!keyless) return setKey(id, p.key, p.scope);
+      scopes.set(id, p.scope);
+      adapters.delete(id);
+      publish();
+      // A key this endpoint had before is dropped.
+      keys.remove(id).catch((e) => {
+        report(`The key for ${labelOf(id)} could not be removed: ${messageOf(e)}`);
+        void resync();
+      });
     },
   };
 }
+
+const KeylessPlaceholder = 'no-key';
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 

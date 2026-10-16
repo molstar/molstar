@@ -10,13 +10,14 @@ import { PLUGIN_VERSION } from '@molstar/plugin/version';
 import { webStore } from '@molstar/prism-viewer/persist/stores';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
 import { FullPrismViewerSpec } from './full-spec.js';
-import { LoadUrlParameters } from '@molstar/prism-viewer/features/loaders';
+import { LoadUrlParameters, parseSearch } from '@molstar/prism-viewer/features/loaders';
 import { optionsFromUrl } from './url.js';
 
 /** The spec the app ships (viewer-spec.md §5): the viewer's defaults, Mol*'s extensions and the URL's options. */
 export function createAppSpec(search: string): PrismViewerSpec {
   const base = FullPrismViewerSpec();
-  const params = new URLSearchParams(search);
+  // Names lowercased, as the loads read them (v5's matched case-insensitively).
+  const params = parseSearch(search);
   // `?assistant`: the Assistant tab open at start, which loads it (otherwise it loads on first use: the tab, the Ask row).
   const assistant = params.has('assistant');
   // `?restore`: this tab's scene comes back after a reload (journal.md §6). Off by default: a session lives in memory.

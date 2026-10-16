@@ -41,9 +41,6 @@
       "path": "../../query-language"
     },
     {
-      "path": "../../plugin/headless"
-    },
-    {
       "path": "../../ai/agent"
     },
     {

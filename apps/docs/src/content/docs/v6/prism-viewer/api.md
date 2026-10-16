@@ -77,33 +77,35 @@ there. The scene's (`structure`, `contents`, `component`, `representation`, `sty
 whose spec left its feature out throws, naming the feature. Other features' areas are optional in the type, so check for
 them (`api.measure?.distance(...)`) when you do not control the spec; `api.area(id)` asks for any.
 
-| Area                  | Operations                                                                                                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `mvs`, `snapshot`, `trajectory`, `volume`.              |
-| `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.           |
-| `structure`           | `preset`, `model`, `assembly`, `symmetry`, `visibility`, `remove`, `get`.                                              |
-| `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                    |
-| `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                  |
-| `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`. |
-| `styles`              | `apply`: a quick style, `default`, `cartoon`, `spacefill`, `surface`, `plain` or `illustrative`.                       |
-| `annotations`         | `list`, `apply`: show what a structure carries (B-factors, secondary structure, and what extensions add).              |
-| `select`              | `set`, `all`, `clear`, `invert`, `around`, `expand`, `mode`, `granularity`, `get`.                                     |
-| `focus`               | `set`, `clear`, `get`.                                                                                                 |
-| `highlight`           | `set`, `clear`.                                                                                                        |
-| `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `get`.                                                               |
-| `canvas`              | `background`, `get`; with `canvas-settings`: `settings`, `lighting`, `illumination`, `camera`, `clipping`.             |
-| `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                        |
-| `volume`, `particles` | `get`, `representation`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`.                        |
-| `sequence`            | `style`, `colors`, `follow`, `get`. Present when the spec has a sequence.                                              |
-| `settings`            | `get`, `set`.                                                                                                          |
-| `history`             | `undo`, `undo-turn`, `list`.                                                                                           |
-| `view`                | `open`, `close`: open a tab, a card or a section, or reveal a node. No history step.                                   |
-| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `get`, `remove`, `visibility`, `options`.            |
-| `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`.                                                                        |
-| `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`.            |
-| `animation`           | `play`, `stop`, `wiggle`, `get`.                                                                                       |
-| `export`              | `image`, `image-copy`, `preview`.                                                                                      |
-| `state`               | `get`, `visibility`, `update`, `remove`, `action`: the raw state tree. Lazy.                                           |
+| Area                  | Operations                                                                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`, `viewport`.                             |
+| `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.                                                     |
+| `structure`           | `preset`, `model`, `assembly`, `symmetry`, `visibility`, `remove`, `get`, `transform`, `transform-reset`, `unit-cell`.                                           |
+| `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                                                              |
+| `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                                                            |
+| `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`, `layers`, `layer-update`, `layer-remove`. |
+| `styles`              | `apply`: a quick style, `default`, `cartoon`, `spacefill`, `surface`, `plain` or `illustrative`.                                                                 |
+| `annotations`         | `list`, `apply`: show what a structure carries (B-factors, secondary structure, and what extensions add).                                                        |
+| `select`              | `set`, `all`, `clear`, `invert`, `around`, `expand`, `mode`, `granularity`, `get`.                                                                               |
+| `focus`               | `set`, `clear`, `get`, `again`, `history`.                                                                                                                       |
+| `highlight`           | `set`, `clear`, `mark`, `unmark`.                                                                                                                                |
+| `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `set`, `get`.                                                                                                  |
+| `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting`, `illumination`, `camera`, `clipping`.                                      |
+| `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                  |
+| `volume`, `particles` | `get`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                      |
+| `sequence`            | `style`, `colors`, `follow`, `get`. Present when the spec has a sequence.                                                                                        |
+| `settings`            | `get`, `set`.                                                                                                                                                    |
+| `history`             | `undo`, `redo`, `undo-turn`, `list`.                                                                                                                             |
+| `view`                | `open`, `close`, `expand`, `fullscreen`: open a tab, a card or a section, reveal a node, or expand or fullscreen the viewer. No history step.                    |
+| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `get`, `remove`, `visibility`, `options`.                                                      |
+| `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`, `list`, `remove`.                                                                                                |
+| `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                        |
+| `animation`           | `play`, `stop`, `wiggle`, `get`.                                                                                                                                 |
+| `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                    |
+| `state`               | `get`, `visibility`, `update`, `remove`, `action`: the raw state tree. Lazy.                                                                                     |
+
+`packages/prism/viewer/_spec/operations.md` lists every operation with its parameters and flags, written from the code.
 
 Extensions add areas of their own, under their id. A script that imports an extension gets its area typed. See
 [Extensions](/docs/v6/prism-viewer/extensions/).
@@ -206,13 +208,14 @@ it. Undo restores the latest checkpoint.
 - A result that is `unchanged` makes no step. An operation that cannot be restored, such as an upload, makes no step
   either and is only recorded.
 - A run that fails or is aborted restores its checkpoint, so a load that fails half way leaves nothing behind.
-- Undo is not available while a run is in flight. There is no redo.
+- Undo is not available while a run is in flight. Redo puts back what Undo took back, until a new step is made.
 - Changing the plugin outside the API (a script that calls a loader on `viewer.plugin` without `run`) still shows, but
   makes the steps before it unsafe: History marks them, and they can no longer be undone.
 - For a very large scene, the viewer turns per-step undo off and says so once.
 
 ```ts
 await api.history.undo();            // undoes the latest step; { ok: false, code: 'blocked' } when it cannot
+await api.history.redo();            // puts back what Undo took back
 const list = await api.history.list();   // list.value: the undoable steps, newest first
 ```
 

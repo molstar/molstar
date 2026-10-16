@@ -25,6 +25,10 @@ describe('unknownUrlParameters', () => {
     expect(unknownUrlParameters('', load)).toEqual([]);
   });
 
+  it('knows the restore option', () => {
+    expect(unknownUrlParameters('?restore&assistant', load)).toEqual([]);
+  });
+
   it('knows the structure load options', () => {
     expect(unknownUrlParameters('?pdb=1cbs&assembly=1&all-models=1', load)).toEqual([]);
   });

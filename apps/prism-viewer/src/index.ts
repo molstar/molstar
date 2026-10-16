@@ -9,7 +9,7 @@
 import './favicon.ico';
 import './index.html';
 import { setDebugMode, setTimingMode } from '@molstar/core/util/debug';
-import { LoadUrlParameters, runUrlLoads } from '@molstar/prism-viewer/features/loaders';
+import { LoadUrlParameters, parseSearch, runUrlLoads } from '@molstar/prism-viewer/features/loaders';
 import { createPrismViewer } from '@molstar/prism-viewer/page';
 import { createAppSpec } from './spec.js';
 import { modesFromUrl, unknownUrlParameters } from './url.js';
@@ -31,7 +31,7 @@ async function main() {
   const unknown = unknownUrlParameters(location.search, LoadUrlParameters);
   if (unknown.length) console.info(`Ignored URL parameters (not known to the viewer): ${unknown.join(', ')}`);
   // Without the loaders feature in the spec there is nothing to run them with.
-  const params = new URLSearchParams(location.search);
+  const params = parseSearch(location.search);
   const urlLoads = LoadUrlParameters.some((p) => params.has(p));
   if (urlLoads && viewer.api.describe('load.entry')) {
     runUrlLoads(viewer.api, location.search).catch((e: unknown) => console.error(e));

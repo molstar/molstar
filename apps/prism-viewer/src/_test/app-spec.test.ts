@@ -19,4 +19,9 @@ describe('the app spec', () => {
     expect(createAppSpec('').persist?.restore).toBeUndefined();
     expect(createAppSpec('?restore').persist?.restore).toBeDefined();
   });
+
+  it("reads parameter names case-insensitively, as v5's links are written", () => {
+    expect(createAppSpec('?PDB=1cbs').options?.ui?.homeWhenEmpty).toBe(false);
+    expect(createAppSpec('?Restore').persist?.restore).toBeDefined();
+  });
 });

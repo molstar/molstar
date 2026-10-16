@@ -11,7 +11,7 @@ import type { HistoryStep, ReadonlyState } from '@molstar/prism-ui/core';
 import { ApiArea, ApiResult } from './area.js';
 
 // `history` (operations.md §2, sequence.md §7.3): undo the latest step, or an agent's turn. Not history steps
-// themselves. No redo yet.
+// themselves. Redo puts back what Undo took back.
 
 export class HistoryApi extends ApiArea {
   readonly id = 'history';

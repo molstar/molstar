@@ -7,7 +7,7 @@ A page creates a viewer from a spec. The spec is plain data: lists of extensions
 
 <!-- prettier-ignore-start -->
 :::caution[Work in progress]
-The packages are not published yet, so the import paths are the workspace's. The `<prism-viewer>` element and viewport-only embedding that the design describes are not built.
+The packages are not published yet, so the import paths are the workspace's. The `<prism-viewer>` element is built, in the single-file build only; the viewport-only embedding that the design describes is not.
 :::
 <!-- prettier-ignore-end -->
 
@@ -81,8 +81,21 @@ it and needs no build step:
 </script>
 ```
 
-The module exports `createPrismViewer`, `FullPrismViewerSpec` and `DefaultPrismViewerSpec`. It has no assistant (see
-below) and does not read the URL.
+The module exports `createPrismViewer`, `FullPrismViewerSpec`, `DefaultPrismViewerSpec` and the element's
+`createPrismViewerElementClass` and `definePrismViewerElement`. It has no assistant (see below) and does not read the
+URL.
+
+Importing it also defines the `<prism-viewer>` element, which wraps `createPrismViewer` with `FullPrismViewerSpec()`
+until its `spec` property is set:
+
+```html
+<prism-viewer pdb="1cbs" theme="dark" style="height: 480px"></prism-viewer>
+```
+
+The attributes are `pdb` (an entry to load; a new value loads that one too), `theme` (`light`, `dark`, `blue`,
+`contrast` or `auto`) and `hide-controls`; `theme` and `hide-controls` are read when the viewer is made.
+`element.viewer` is the viewer once it is made, and `element.ready` a promise of it. Setting `element.spec` makes the
+viewer again. Several on a page each own their viewer, and one leaving the page disposes its viewer.
 
 `pnpm build:apps` writes it to `apps/prism-viewer/build/prism-viewer.js`. Nothing publishes it yet: it is not deployed
 and not part of the `molstar` distribution.

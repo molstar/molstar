@@ -167,6 +167,21 @@ const sourceJsExtensionPlugin = {
     });
   },
 };
+/**
+ * zod's `locales` namespace (62 translations, ~260 kB) is re-exported whole and the AI SDKs import zod as a namespace, so
+ * the assistant's chunk would carry all of them. Nothing here picks a locale: the namespace is English only (the
+ * default locale zod registers itself imports `en.js` directly).
+ */
+const zodEnglishOnlyPlugin = {
+  name: 'molstar-zod-english-only',
+  setup(build) {
+    build.onLoad({ filter: /[\\/]zod[\\/]v4[\\/]locales[\\/]index\.js$/ }, ({ path: input }) => ({
+      contents: 'export { default as en } from "./en.js";',
+      resolveDir: path.dirname(input),
+      loader: 'js',
+    }));
+  },
+};
 function entryFor(pkg, config) {
   const raw = path.resolve(root, pkg.path, config.entry ?? 'src/index.ts');
   if (fs.existsSync(raw)) return raw;
@@ -212,6 +227,7 @@ async function buildPackage(rawPkg) {
     external: ['crypto', 'fs', 'path', 'stream'],
     plugins: [
       sourceJsExtensionPlugin,
+      zodEnglishOnlyPlugin,
       staticAssetsPlugin(outdir),
       sassPlugin({ type: 'css', embedded: false, importers: [sassImporter], silenceDeprecations: ['import'] }),
     ],
