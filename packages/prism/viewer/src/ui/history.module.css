@@ -137,8 +137,12 @@
 .keptTitle {
   overflow: hidden;
   font-weight: 600;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
 }
 
 .more {

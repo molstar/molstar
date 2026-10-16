@@ -33,6 +33,8 @@ export const classes = {
   'rail-menu-in': 'msp-shell-dock-rail-menu-in',
   'railFoot': 'msp-shell-dock-railFoot',
   'railMenu': 'msp-shell-dock-railMenu',
+  'railMenuRows': 'msp-shell-dock-railMenuRows',
+  'railMenuScroll': 'msp-shell-dock-railMenuScroll',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -427,8 +429,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   position: absolute;
 
   & > * {
-    overflow-y: auto;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
   }
+}
+
+.msp-shell-dock-railMenuScroll {
+  min-height: 0;
+}
+
+.msp-shell-dock-railMenuRows {
+  display: grid;
 }
 
 @keyframes msp-shell-dock-rail-menu-in {

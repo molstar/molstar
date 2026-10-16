@@ -441,9 +441,19 @@
   max-height: 100%;
   animation: rail-menu-in var(--msp-motion-fast) var(--msp-ease);
 
+  /* The card shrinks to the room there is; its rows scroll in a ScrollArea (styling.md §4). */
   & > * {
-    overflow-y: auto;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
   }
+}
+
+.railMenuScroll {
+  min-height: 0;
+}
+
+.railMenuRows {
+  display: grid;
 }
 
 @keyframes rail-menu-in {

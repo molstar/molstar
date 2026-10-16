@@ -146,10 +146,12 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   uploads and clearing ask each time ([agent.md](agent.md) §4).
 - **27. Extensions register commands first**: operations with commands and tools, UI only where a view is needed; v5
   conveniences become commands ([parity.md](parity.md) §6).
-- **28. No changes to the GL layer** (WebGPU is being built): resizes improve at the shell and plugin level. Panels
-  float over the canvas and do not resize it (framing keeps the scene in the visible area, `sources/framing.ts`); only
-  the viewer's own size does. A ResizeObserver on the viewer's element sizes and draws the canvas in the same callback,
-  and an unchanged size is not set again (`sources/canvas-host.ts`).
+- **28. No changes to the GL layer** (WebGPU is being built): resizes improve at the shell and plugin level. Floating
+  panels float over the canvas and do not resize it; a pinned panel sits beside it (the canvas ends where it begins: a
+  resize only as it is pinned, unpinned, opened or closed). Camera resets frame the scene below the sequence band
+  (`sources/framing.ts` `frameBelowTop`, `paddedFocus`); Mol*'s own first framing of a scene does not (no hook without
+  changing the graphics package). A ResizeObserver on the viewer's element sizes and draws the canvas in the same
+  callback, and an unchanged size is not set again (`sources/canvas-host.ts`).
 - **29. Several viewers on a page**: keys go to the viewer that has focus (`ownsKey`, never the window); stored state is
   namespaced by `persist.key`, two live viewers with one key are refused (`src/page.ts`).
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`

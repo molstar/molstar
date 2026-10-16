@@ -9,6 +9,7 @@
  */
 
 import {
+  BandFadePx,
   type CanvasBackgroundProps,
   CommandMenu,
   type CommandMenuAssistant,
@@ -47,6 +48,7 @@ import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } 
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
+import { frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
@@ -682,6 +684,17 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     });
     const mounted = await core.mountCanvas(canvasHost);
     if (!mounted) managers.notifications.post('The canvas could not start: WebGL is not available.', 'error');
+    // Resets frame the scene below the sequence band (a frameless top tab; its faded bottom lets the scene through), not
+    // under it (sequence.md §8, README decision 28).
+    const canvas3d = core.plugin.canvas3d;
+    if (canvas3d) {
+      const top = shell.dock('top');
+      steps.push(
+        frameBelowTop(canvas3d, canvasHost, () =>
+          top.active.value?.frame === 'none' ? Math.max(0, top.state.value.size - BandFadePx) : 0,
+        ),
+      );
+    }
 
     return {
       shell,

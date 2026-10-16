@@ -64,10 +64,9 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - The record: a run's targets and `changed`, the turn's model, reply deltas, who undid a step, one entry per Undo turn,
   the index's size and folding, the record inside a `.molx` ([journal.md §1–2](viewer/_spec/journal.md)).
 - The sequence's caches and its edits overlay ([sequence.md](viewer/_spec/sequence.md) §2, §7).
-- Framing around the panels: a pinned panel and the rail still narrow the canvas (`--msp-canvas-pinned`,
-  `ui/src/views/shell/shell.module.css`); the camera's framing should keep the scene clear of them and of the sequence
-  band instead (`paddedFocus`, `viewer/src/sources/framing.ts`, unused so far; [README](viewer/_spec/README.md) decision
-  28).
+- Mol*'s first framing of a scene (on load) frames it in the whole canvas, partly under the sequence band; resets frame
+  below it (`viewer/src/sources/framing.ts`, [README](viewer/_spec/README.md) decision 28). Needs a reset hook in the
+  graphics package's camera reset, after the WebGPU work.
 - The generated form in a dialog ("open as form") for command params that are not flat; today they run at their defaults
   from the inline sentence (`ui/src/forms/flat-fields.ts`, [commands.md](ui/_spec/commands.md)).
 - The app: hashed entry names; publishing from the release workflow (today `pnpm deploy:remote` publishes the app and
@@ -131,9 +130,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - The viewer's scene and state trees are not virtualized (`VirtualList` only in
   `viewer/src/_stories/performance.stories.tsx`; [view-models.md §3](ui/_spec/view-models.md)).
 - The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.
-- [styling.md §4](ui/_spec/styling.md) broken: `text-overflow: ellipsis` in `viewer/src/ui/history.module.css` and
-  `viewer/src/views/home/home-tab.module.css`; `overflow-y: auto` outside a ScrollArea in
-  `ui/src/views/shell/dock.module.css`. The `--msp-ink` tokens are unused outside the canvas layer.
+- The `--msp-ink` tokens are unused outside the canvas layer.
 
 ## Missing: the agent and the assistant
 

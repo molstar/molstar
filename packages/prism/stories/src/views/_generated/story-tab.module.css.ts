@@ -12,6 +12,8 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
   'caption': 'msp-stories-story-tab-caption',
+  'captionContent': 'msp-stories-story-tab-captionContent',
+  'captionScroll': 'msp-stories-story-tab-captionScroll',
   'empty': 'msp-stories-story-tab-empty',
   'header': 'msp-stories-story-tab-header',
   'number': 'msp-stories-story-tab-number',
@@ -92,11 +94,18 @@ defineStyles('stories/views/story-tab.module.css', `@layer msp.components {
 }
 
 .msp-stories-story-tab-caption {
-  max-height: 40%;
-  padding: var(--msp-space-3);
   border-top: 1px solid var(--msp-glass-edge);
   flex: none;
-  overflow: auto;
+  max-height: 40%;
+  display: grid;
+}
+
+.msp-stories-story-tab-captionScroll {
+  min-height: 0;
+}
+
+.msp-stories-story-tab-captionContent {
+  padding: var(--msp-space-3);
 }
 
 .msp-stories-story-tab-empty {

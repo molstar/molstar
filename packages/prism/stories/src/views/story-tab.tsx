@@ -50,7 +50,9 @@ export function StoryTab(props: { story: StoryModel }) {
       <Show when={current}>
         {(scene) => (
           <section class={classes.caption} aria-label="Caption">
-            {scene.caption ? <Markdown source={scene.caption} /> : <p class={classes.empty}>No caption yet.</p>}
+            <ScrollArea class={classes.captionScroll} contentClass={classes.captionContent}>
+              {scene.caption ? <Markdown source={scene.caption} /> : <p class={classes.empty}>No caption yet.</p>}
+            </ScrollArea>
           </section>
         )}
       </Show>

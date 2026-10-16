@@ -296,26 +296,32 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
                 queueMicrotask(() => focusFirstItem(el));
               }}
             >
-              {m.item ? (
-                <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
-              ) : (
-                <For each={rail.overflow} key={(e) => e.id}>
-                  {(entry) => (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      class={canvasClasses.toolMenuRow}
-                      onClick={(e) => run(entry, m.anchor)}
-                    >
-                      {entry.tab ? <Icon name={entry.tab.icon} size={16} /> : <ItemIcon item={entry.item!} size={16} />}
-                      <span class={canvasClasses.toolMenuLabel}>
-                        {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
-                      </span>
-                      <span />
-                    </button>
-                  )}
-                </For>
-              )}
+              <ScrollArea class={classes.railMenuScroll} contentClass={classes.railMenuRows}>
+                {m.item ? (
+                  <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
+                ) : (
+                  <For each={rail.overflow} key={(e) => e.id}>
+                    {(entry) => (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        class={canvasClasses.toolMenuRow}
+                        onClick={(e) => run(entry, m.anchor)}
+                      >
+                        {entry.tab ? (
+                          <Icon name={entry.tab.icon} size={16} />
+                        ) : (
+                          <ItemIcon item={entry.item!} size={16} />
+                        )}
+                        <span class={canvasClasses.toolMenuLabel}>
+                          {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
+                        </span>
+                        <span />
+                      </button>
+                    )}
+                  </For>
+                )}
+              </ScrollArea>
             </div>
           </div>
         );

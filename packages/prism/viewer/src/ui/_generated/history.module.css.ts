@@ -164,9 +164,12 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 }
 
 .msp-viewer-history-keptTitle {
-  text-overflow: ellipsis;
   white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   font-weight: 600;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

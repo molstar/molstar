@@ -76,13 +76,20 @@
   animation-timeline: scroll(self inline);
 }
 
-/* The current scene's caption: what the reader reads with it. */
+/* The current scene's caption: what the reader reads with it; it scrolls in a ScrollArea (styling.md §4). */
 .caption {
+  display: grid;
   flex: none;
   max-height: 40%;
-  overflow: auto;
-  padding: var(--msp-space-3);
   border-top: 1px solid var(--msp-glass-edge);
+}
+
+.captionScroll {
+  min-height: 0;
+}
+
+.captionContent {
+  padding: var(--msp-space-3);
 }
 
 .empty {
