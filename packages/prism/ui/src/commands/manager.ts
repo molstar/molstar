@@ -381,9 +381,16 @@ export class CommandManager<Ctx> {
    */
   handleKey(e: KeyEventLike, mac = true): boolean {
     if (e.defaultPrevented || e.repeat || e.isComposing || e.key === 'Process') return false;
-    const typing = typesText(e.composedPath?.()[0] ?? e.target);
+    const target = e.composedPath?.()[0] ?? e.target;
+    const typing = typesText(target);
+    // A control that steps with the arrows (a slider, a radio group, a tab strip) keeps the plain keys too.
+    const owns = !typing && usesKeys(target);
     const hits = this.#commands.asReadonly.value.filter(
-      (c) => c.shortcut && (!typing || typesNothing(c.shortcut)) && chordMatches(c.shortcut, e, mac),
+      (c) =>
+        c.shortcut &&
+        (!typing || typesNothing(c.shortcut)) &&
+        (!owns || !isPlain(c.shortcut)) &&
+        chordMatches(c.shortcut, e, mac),
     );
     const command = hits.find((c) => !this.blocked(c)) ?? hits[0];
     if (!command) return false;
@@ -489,6 +496,20 @@ function typesText(target: unknown): boolean {
   const tag = t.tagName?.toUpperCase();
   if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
   return tag === 'INPUT' && !NOT_TEXT.has((t.type ?? 'text').toLowerCase());
+}
+
+const KEY_ROLES = new Set(['slider', 'spinbutton', 'radio', 'tab', 'menuitem', 'option', 'treeitem', 'listbox']);
+
+/** Does the target move with the arrow keys itself (a range or radio input, a widget with a role that does)? */
+function usesKeys(target: unknown): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const t = target as { tagName?: string; type?: string; getAttribute?(name: string): string | null };
+  if (t.tagName?.toUpperCase() === 'INPUT') {
+    const type = (t.type ?? '').toLowerCase();
+    if (type === 'range' || type === 'radio') return true;
+  }
+  const role = typeof t.getAttribute === 'function' ? t.getAttribute('role') : null;
+  return role !== null && KEY_ROLES.has(role);
 }
 
 /** No modifier at all (an arrow, a letter alone). */

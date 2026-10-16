@@ -51,4 +51,26 @@ describe('an option list with groups', () => {
     container.querySelectorAll<HTMLButtonElement>('[role="option"]')[1].click();
     expect(pick).toHaveBeenCalledWith('element-symbol');
   });
+
+  it('focuses the current option when the groups interleave with the loose options', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(
+      () => (
+        <OptionList
+          options={[
+            ['atom', 'Atom', 'Atom Property'],
+            ['uniform', 'Uniform'],
+            ['chain', 'Chain', 'Chain Property'],
+          ]}
+          value={observableState('uniform').asReadonly}
+          onPick={() => {}}
+          onClose={() => {}}
+        />
+      ),
+      container,
+    );
+    await Promise.resolve();
+    expect(document.activeElement?.textContent).toBe('Uniform');
+  });
 });

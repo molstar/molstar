@@ -43,6 +43,22 @@ describe('ShellModel', () => {
     expect(shell.tabFocus.value).toBeUndefined();
   });
 
+  it('asking again for the same tab section or card section emits again', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('selection')]);
+    shell.registerOverlays([{ id: 'export', title: 'Export', render: view }]);
+    const focus: unknown[] = [];
+    const overlay: unknown[] = [];
+    shell.tabFocus.subscribe((f) => focus.push(f));
+    shell.overlay.subscribe((o) => overlay.push(o));
+    shell.show('selection', 'measure');
+    shell.show('selection', 'measure');
+    expect(focus.filter(Boolean)).toHaveLength(2);
+    shell.openOverlay('export', undefined, 'mp4');
+    shell.openOverlay('export', undefined, 'mp4');
+    expect(overlay.filter(Boolean)).toHaveLength(2);
+  });
+
   it('places a tab registered later by its order among the tabs already there', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('home', { order: 0 }), tab('structure', { order: 1 }), tab('tree', { order: 2 })]);

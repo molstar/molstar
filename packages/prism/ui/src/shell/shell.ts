@@ -297,10 +297,13 @@ export class ShellModel extends ReactiveModel {
   readonly #railShown = observableState(true);
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
-  readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
+  // Compared by identity: each request is a new object, so asking again for the same section is not swallowed.
+  readonly #overlay = observableState<OpenOverlay | undefined>(undefined, { compare: Object.is });
   /** The element the open card is anchored to: a view's, not state. */
   #anchor: { id: string; element: Element } | undefined;
-  readonly #tabFocus = observableState<{ tab: string; section: string } | undefined>(undefined);
+  readonly #tabFocus = observableState<{ tab: string; section: string } | undefined>(undefined, {
+    compare: Object.is,
+  });
   readonly #compactRail = observableState(false);
   readonly #railOpen = observableState(false);
   /** Every registered item, and the shown ones (`buttons` applied). */
@@ -599,9 +602,10 @@ export class ShellModel extends ReactiveModel {
   openOverlay(id: string, anchor?: Element, focus?: string): void {
     if (!this.#overlays.has(id)) return;
     this.#anchor = anchor ? { id, element: anchor } : this.#anchor?.id === id ? this.#anchor : undefined;
+    const before = this.#overlay.value;
     this.#navigation.setCard({ id, ...(focus ? { section: focus } : {}) });
-    // Asked again at the same section: the card brings it into view again.
-    this.#syncOverlay(true);
+    // Asked again at the same section (the sync found nothing new): the card brings it into view again.
+    if (this.#overlay.value === before) this.#syncOverlay(true);
   }
 
   /** Opens the overlay, or closes it when it is the open one. */

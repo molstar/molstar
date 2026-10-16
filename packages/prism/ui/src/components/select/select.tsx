@@ -123,7 +123,8 @@ export function OptionList(props: {
   bind(props.value, (v) => {
     current = v;
   });
-  const buttons: HTMLButtonElement[] = [];
+  // Each option's button by its value (the render order is the loose options, then each group's).
+  const buttons = new Map<string, HTMLButtonElement>();
   // What the arrows move over: the options and the group heads that show (not inside a closed group).
   const navigable = () =>
     [...list.querySelectorAll<HTMLElement>('[role="option"], [data-group-head]')].filter((b) => !b.closest('[hidden]'));
@@ -147,7 +148,7 @@ export function OptionList(props: {
         <Icon name="check" size={14} class={classes.check} />
       </button>
     ) as HTMLButtonElement;
-    buttons.push(button);
+    buttons.set(value, button);
     return button;
   };
   const groups = new Map<string, SelectOption[]>();
@@ -203,8 +204,8 @@ export function OptionList(props: {
   // Focus the current option once placed (else the first that shows); close on a press outside the list (its scrollbar
   // too) and its button.
   queueMicrotask(() => {
-    const at = buttons.find((b, i) => props.options[i]?.[0] === current && !b.closest('[hidden]'));
-    if (at) at.focus();
+    const at = current === undefined ? undefined : buttons.get(current);
+    if (at && !at.closest('[hidden]')) at.focus();
     else focus(0);
   });
   const onDown = (e: PointerEvent) => {

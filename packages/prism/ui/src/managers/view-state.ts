@@ -17,6 +17,7 @@ export type DockId = 'left' | 'right' | 'top' | 'bottom';
 export const DockIds: readonly DockId[] = ['left', 'right', 'top', 'bottom'];
 
 export type ShellMode = 'desktop' | 'compact' | 'embedded';
+const ShellModes: readonly ShellMode[] = ['desktop', 'compact', 'embedded'];
 
 /** One dock's layout: what it holds and how it sits. */
 export interface DockLayout {
@@ -109,7 +110,14 @@ export class ViewStateManager {
    */
   restore(stored: unknown): boolean {
     if (!isStoredLayout(stored)) return false;
-    this.#layout.set(mergeLayout(this.#layout.value, stored.layout));
+    const docks: Partial<Record<DockId, Partial<DockLayout>>> = {};
+    for (const id of DockIds) {
+      const d = stored.layout.docks?.[id];
+      // Sizes keep setDock's floor, as a stored value did not come through it.
+      if (d)
+        docks[id] = { ...d, ...(d.size === undefined ? {} : { size: Math.max(MinDockSizes[id], Math.round(d.size)) }) };
+    }
+    this.#layout.set(mergeLayout(this.#layout.value, { ...stored.layout, docks }));
     return true;
   }
 }
@@ -144,8 +152,19 @@ function isStoredLayout(value: unknown): value is StoredViewLayout {
   if (v.version !== 1 || !v.layout || typeof v.layout !== 'object') return false;
   const docks = v.layout.docks as Record<string, unknown> | undefined;
   if (!docks || typeof docks !== 'object') return false;
+  const { mode, compactRail, buttons } = v.layout;
+  if (mode !== undefined && !(mode === 'auto' || (ShellModes as readonly unknown[]).includes(mode))) return false;
+  if (compactRail !== undefined && typeof compactRail !== 'boolean') return false;
+  if (buttons !== undefined && (!buttons || typeof buttons !== 'object')) return false;
   return DockIds.every((id) => {
     const d = docks[id] as Partial<DockLayout> | undefined;
-    return !d || (Array.isArray(d.tabs) && typeof d.size === 'number');
+    if (!d) return true;
+    const flag = (f: unknown) => f === undefined || typeof f === 'boolean';
+    return (
+      Array.isArray(d.tabs) &&
+      (d.size === undefined || (typeof d.size === 'number' && Number.isFinite(d.size))) &&
+      flag(d.floating) &&
+      flag(d.pinned)
+    );
   });
 }

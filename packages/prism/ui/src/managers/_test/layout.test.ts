@@ -60,4 +60,17 @@ describe('viewState and navigation', () => {
     v.setDock('right', { size: 3 });
     expect(v.layout.value.docks.right.size).toBe(180);
   });
+
+  it('restores only a layout with known modes and finite sizes, and keeps the size floor', () => {
+    const v = new ViewStateManager();
+    const stored = (layout: object) => ({ version: 1, layout });
+    expect(v.restore(stored({ mode: 'foo', docks: {} }))).toBe(false);
+    expect(v.restore(stored({ docks: { right: { tabs: [], size: null } } }))).toBe(false);
+    expect(v.restore(stored({ docks: { right: { tabs: [], size: Number.NaN } } }))).toBe(false);
+    expect(v.restore(stored({ docks: { right: { tabs: [], size: 300, pinned: 'yes' } } }))).toBe(false);
+    expect(v.layout.value.mode).toBe('auto');
+    expect(v.restore(stored({ mode: 'compact', docks: { right: { tabs: ['a'], size: 5 } } }))).toBe(true);
+    expect(v.layout.value.mode).toBe('compact');
+    expect(v.layout.value.docks.right.size).toBe(180);
+  });
 });

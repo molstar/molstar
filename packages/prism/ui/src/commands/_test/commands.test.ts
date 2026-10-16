@@ -192,6 +192,26 @@ describe('CommandManager.query', () => {
     subscription.unsubscribe();
   });
 
+  it('leaves the plain arrows to a slider, a radio and a tab, and still takes them elsewhere', () => {
+    const { manager } = setup();
+    const run = vi.fn(() => ({}));
+    manager.register([
+      { id: 'story.prev', title: 'Previous snapshot', category: 'Story', shortcut: { key: 'ArrowLeft' }, run },
+    ]);
+    const element = (tagName: string, attrs: Record<string, string> = {}, type?: string) => ({
+      tagName,
+      type,
+      getAttribute: (name: string) => attrs[name] ?? null,
+    });
+    expect(manager.handleKey({ key: 'ArrowLeft', target: element('INPUT', {}, 'range') }, false)).toBe(false);
+    expect(manager.handleKey({ key: 'ArrowLeft', target: element('INPUT', {}, 'radio') }, false)).toBe(false);
+    expect(manager.handleKey({ key: 'ArrowLeft', target: element('DIV', { role: 'slider' }) }, false)).toBe(false);
+    expect(manager.handleKey({ key: 'ArrowLeft', target: element('BUTTON', { role: 'tab' }) }, false)).toBe(false);
+    expect(run).not.toHaveBeenCalled();
+    expect(manager.handleKey({ key: 'ArrowLeft', target: element('DIV') }, false)).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it('lists recently used first, then matches best first', async () => {
     const { manager } = setup();
     await (manager.open('view.focus') as { result: Promise<unknown> }).result;
