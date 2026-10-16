@@ -24,6 +24,9 @@ export const classes = {
   'confirmText': 'msp-viewer-home-tab-confirmText',
   'content': 'msp-viewer-home-tab-content',
   'contentInner': 'msp-viewer-home-tab-contentInner',
+  'drop': 'msp-viewer-home-tab-drop',
+  'dropLink': 'msp-viewer-home-tab-dropLink',
+  'dropText': 'msp-viewer-home-tab-dropText',
   'group': 'msp-viewer-home-tab-group',
   'hint': 'msp-viewer-home-tab-hint',
   'home': 'msp-viewer-home-tab-home',
@@ -150,6 +153,39 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   gap: var(--msp-space-2);
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
   display: grid;
+}
+
+.msp-viewer-home-tab-drop {
+  justify-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  padding: var(--msp-space-5) var(--msp-space-3);
+  border: 1px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  transition: background-color var(--msp-motion-fast) var(--msp-ease),
+    border-color var(--msp-motion-fast) var(--msp-ease);
+  display: grid;
+
+  &:hover {
+    border-color: var(--msp-color-text-subtle);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+
+  &[data-over] {
+    border-color: var(--msp-color-accent);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.msp-viewer-home-tab-dropText {
+  font-size: var(--msp-font-size-sm);
+}
+
+.msp-viewer-home-tab-dropLink {
+  color: var(--msp-color-accent);
 }
 
 .msp-viewer-home-tab-state {

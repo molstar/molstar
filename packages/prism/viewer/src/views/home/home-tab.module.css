@@ -120,6 +120,42 @@
   padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
 }
 
+/* Open Files' drop area: a quiet dashed well that browses on a click and lights while files are over it. */
+.drop {
+  display: grid;
+  justify-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  padding: var(--msp-space-5) var(--msp-space-3);
+  border: 1px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    border-color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    border-color: var(--msp-color-text-subtle);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+
+  /* Files over it: the accent (it is where they go). */
+  &[data-over] {
+    border-color: var(--msp-color-accent);
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.dropText {
+  font-size: var(--msp-font-size-sm);
+}
+
+.dropLink {
+  color: var(--msp-color-accent);
+}
+
 .state {
   /* A list, not actions: the name in regular weight on one line (fading when long), the date at the right, quiet. */
   display: grid;

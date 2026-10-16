@@ -80,8 +80,17 @@ export function HomeTab(props: HomeTabProps) {
   );
 }
 
-/** Open files: the file picker (parity.md §1); the files open as dropped ones do. */
+/**
+ * Open files: a block that folds, like the actions (parity.md §1), holding a drop area: drop files on it, or click it
+ * for the file picker; they open as files dropped anywhere do. Its hint says what it reads (the formats on hover).
+ */
 function OpenFiles(props: { home: HomeModel }) {
+  const { home } = props;
+  const open = observableState(false);
+  const over = observableState(false);
+  const pick = (files: readonly File[]) => {
+    if (files.length) home.openFiles(files);
+  };
   const input = (
     <input
       type="file"
@@ -91,16 +100,53 @@ function OpenFiles(props: { home: HomeModel }) {
         const el = e.currentTarget as HTMLInputElement;
         const files = [...(el.files ?? [])];
         el.value = '';
-        if (files.length) props.home.openFiles(files);
+        pick(files);
       }}
     />
   ) as HTMLInputElement;
+  // Only drags that carry files (the page's drop overlay, when it is on, takes them before this area does).
+  const carriesFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
   return (
-    <div>
-      <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => input.click()}>
-        Open files…
-      </Button>
-      {input}
+    <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+      <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
+        <span class={classes.actionTitle}>Open Files</span>
+        <span class={classes.actionDescription}>Structures, maps, trajectories and sessions from your computer</span>
+        <Icon name="chevron-down" size={14} class={classes.chevron} />
+      </button>
+      <Show when={open} reveal>
+        {() => (
+          <div class={classes.actionBody}>
+            <button
+              type="button"
+              class={classes.drop}
+              data-over={over.asReadonly.pipe(map((o) => (o ? '' : undefined)))}
+              title={home.formats.length ? `Reads ${home.formats.join(', ')}` : undefined}
+              onClick={() => input.click()}
+              onDragEnter={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                over.set(true);
+              }}
+              onDragOver={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+              }}
+              onDragLeave={() => over.set(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                over.set(false);
+                pick([...(e.dataTransfer?.files ?? [])]);
+              }}
+            >
+              <Icon name="folder-open" size={20} />
+              <span class={classes.dropText}>
+                Drop files here, or <span class={classes.dropLink}>browse</span>
+              </span>
+            </button>
+            {input}
+          </div>
+        )}
+      </Show>
     </div>
   );
 }
