@@ -17,7 +17,9 @@ extension UI) are placed.
   shows Structure, so what was loaded is in view (not if the person went to another tab meanwhile); the empty canvas
   shows the wordmark (without Prism's triangle: the star is the prism), and with it, once the viewer is idle, a splash:
   light drifting in behind the word and leaving the star along its arms as small spectra of the logo's colors, in
-  bubbles that answer the pointer (pushed, stirred, a burst on a press; `ui.splash` turns it off); the camera and rendering tools only once something is;
+  bubbles that answer the pointer (pushed, stirred, a burst on a press). The word is glass: it assembles from pieces as
+  the splash starts, and a press on it shatters it for a moment (the light thrown out, unsplit until it is whole again,
+  then a pop); `ui.splash` turns it off; the camera and rendering tools only once something is;
   trajectory controls only for multi-model trajectories; snapshot controls only when there are snapshots; the selection
   bar only while something is selected; the Sequence button only while there is a sequence and its card is hidden; the
   log as one fading line.

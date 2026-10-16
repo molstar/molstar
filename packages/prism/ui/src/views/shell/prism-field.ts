@@ -23,6 +23,9 @@
 // A 2D canvas: everything per frame is preallocated (memory: render paths stay allocation-free); it draws nothing while
 // hidden or stopped, and one still frame under reduced motion.
 
+import { WordmarkGeometry } from '../../components/icon/wordmark.js';
+import { Glass } from './glass.js';
+
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
   rate: number;
@@ -126,6 +129,10 @@ const Arms = [0, 1, 2, 3, 5, 6, 7].map((k) => (k * Math.PI) / 4);
 /** An arm's weight toward the pointer (cosine of its angle to it, raised: the facing arms take most). */
 const armWeights = new Float32Array(Arms.length);
 
+/** How far a shatter's shockwave reaches (px), and how hard it throws the specks (px/s at its middle). */
+const ShockRadius = 220;
+const ShockSpeed = 260;
+
 /** How much faster (and denser) the stream is at the very start of its intro. */
 const IntroBoost = 8;
 /** Seconds a speck's speed takes to settle back after a push or a burst. */
@@ -206,6 +213,15 @@ export class PrismField {
   /** Where the pointer is from the star (radians), and how much it draws the light (0..1, eased). */
   #toward = 0;
   #pull = 0;
+
+  // The wordmark as glass (`glass.ts`): where its drawing origin is (canvas px), px a unit, the logo's gradient for its
+  // line (in drawing units, made with the colors).
+  #glass: Glass | undefined;
+  #wordX = 0;
+  #wordY = 0;
+  #wordScale = 1;
+  #gradient: CanvasGradient | undefined;
+  #onWhole: (whole: boolean) => void = () => {};
   #burst = 0;
 
   constructor(canvas: HTMLCanvasElement, options: Partial<PrismFieldOptions> = {}, init: { still?: boolean } = {}) {
@@ -260,6 +276,62 @@ export class PrismField {
       if (v) this.#colors[i] = v;
     }
     el.style.color = before;
+    // The wordmark's gradient, as its outline has it (wordmark.tsx), in drawing units.
+    if (this.#ctx) {
+      const g = this.#ctx.createLinearGradient(0, 0, WordmarkGeometry.width - 2, 0);
+      g.addColorStop(0, this.#colors[1]);
+      g.addColorStop(0.35, this.#colors[2]);
+      g.addColorStop(0.6, this.#colors[3]);
+      g.addColorStop(1, this.#colors[4]);
+      this.#gradient = g;
+    }
+  }
+
+  /**
+   * The wordmark the light goes through, as glass: its drawing origin (canvas CSS px) and px a unit. The first time, it
+   * starts in pieces and assembles (unless still); `onWhole` says when it is whole (the page's wordmark shows).
+   */
+  setWord(x: number, y: number, scale: number, onWhole: (whole: boolean) => void): void {
+    this.#wordX = x;
+    this.#wordY = y;
+    this.#wordScale = scale;
+    this.#onWhole = onWhole;
+    // Not where there is nothing to draw it with (Node, jsdom).
+    if (this.#glass || this.#still || typeof Path2D !== 'function') return;
+    const glass = new Glass(this.#options.seed + 8);
+    glass.onWhole = (whole) => this.#onWhole(whole);
+    // Back together: the star splits the light again, with a pop of it.
+    glass.onSnap = () => {
+      this.#burst += this.#options.burst * 0.6;
+    };
+    this.#glass = glass;
+    glass.scatter();
+  }
+
+  /**
+   * A press at (x, y) (canvas CSS px) on the wordmark: it shatters, the light it held thrown out in a shockwave and a
+   * burst; true if it was on the word.
+   */
+  shatterAt(x: number, y: number): boolean {
+    const glass = this.#glass;
+    if (!glass || !this.#options.interactive || this.#still) return false;
+    const u = (x - this.#wordX) / this.#wordScale;
+    const v = (y - this.#wordY) / this.#wordScale;
+    if (!glass.hits(u, v) || glass.phase === 'broken') return false;
+    glass.shatter(u, v);
+    const r2 = ShockRadius * ShockRadius;
+    for (let i = 0; i < this.#alive; i++) {
+      const dx = this.#x[i] - x;
+      const dy = this.#y[i] - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= r2) continue;
+      const d = Math.sqrt(d2) + 1e-3;
+      const f = 1 - d / ShockRadius;
+      this.#vx[i] += (dx / d) * ShockSpeed * f;
+      this.#vy[i] += (dy / d) * ShockSpeed * f;
+    }
+    this.#burst += this.#options.burst;
+    return true;
   }
 
   /** The pointer moved, at (x, y) in the canvas's CSS pixels; `now` in ms. */
@@ -439,6 +511,9 @@ export class PrismField {
     this.#time += dt;
     const t = this.#time;
     this.#warmth = Math.max(0, this.#warmth - dt / WarmFade);
+    this.#glass?.step(dt);
+    // The star splits the light only while the glass is whole.
+    const prism = !this.#glass || this.#glass.whole;
     // The intro: the stream rushes in at full speed for its first half, then eases (smoothly) to its pace.
     const u = o.intro > 0 ? Math.min(1, Math.max(0, (t / o.intro - 0.5) * 2)) : 1;
     const boost = 1 + (IntroBoost - 1) * (1 - u * u * (3 - 2 * u));
@@ -521,7 +596,7 @@ export class PrismField {
       this.#y[i] = ny;
 
       if (this.#color[i] === 0) {
-        if (x < this.#ox && nx >= this.#ox && Math.abs(ny - this.#oy) <= SplitHalf) {
+        if (prism && x < this.#ox && nx >= this.#ox && Math.abs(ny - this.#oy) <= SplitHalf) {
           // Through the star: one of the logo's colors, bent its own way, split where it crossed.
           const c = 1 + Math.floor(this.#random() * 4);
           this.#color[i] = c;
@@ -624,5 +699,15 @@ export class PrismField {
       }
     }
     ctx.globalAlpha = 1;
+    // The wordmark's glass, over the light (nothing while whole: the page's wordmark shows).
+    this.#glass?.draw(
+      ctx,
+      this.#wordX,
+      this.#wordY,
+      this.#wordScale,
+      this.#gradient ?? this.#colors[1],
+      this.#colors[0],
+      1,
+    );
   }
 }

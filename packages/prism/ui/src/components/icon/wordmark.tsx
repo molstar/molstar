@@ -34,6 +34,23 @@ const WordWidth = 57;
 const StarX = 48;
 const StarY = 10;
 
+/** The o's two rounded rectangles as path data (the outline draws them as `rect`s), for drawing the word elsewhere. */
+const OOuter = 'M24.5 6.5H25.5A5 5 0 0 1 30.5 11.5V14.5A5 5 0 0 1 25.5 19.5H24.5A5 5 0 0 1 19.5 14.5V11.5A5 5 0 0 1 24.5 6.5Z';
+const OInner = 'M25 9.5A2.5 2.5 0 0 1 27.5 12V14A2.5 2.5 0 0 1 25 16.5A2.5 2.5 0 0 1 22.5 14V12A2.5 2.5 0 0 1 25 9.5Z';
+
+/**
+ * The word without Prism's mark as geometry, in drawing units (the viewBox's: x and y from -1, 1 unit a pixel at 1×),
+ * for drawing it elsewhere as the outline draws it: the empty canvas's splash shatters it into glass. The line is
+ * `stroke(scale)` units wide, as the outline's CSS has it.
+ */
+export const WordmarkGeometry = {
+  paths: [M, OOuter, OInner, LStar] as readonly string[],
+  width: WordWidth,
+  height: 22,
+  star: { x: StarX, y: StarY },
+  stroke: (scale: number) => 1.5 / Math.sqrt(scale),
+} as const;
+
 let gradients = 0;
 
 /** The outline's shapes. */
