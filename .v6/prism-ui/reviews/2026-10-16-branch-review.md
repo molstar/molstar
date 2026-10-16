@@ -102,7 +102,8 @@ Each is confirmed, but a public API shape, a recorded design decision or a packa
 10. **The agent's spec and API**: extending skills imports the toolkit (zod) into the page; `ViewerAgent.resume` has its
     arguments in the reverse order of the session it exposes; configuring the assistant needs a hand-written loader.
     **Recommend**: default skill lists in a dependency-free module, additive spec fields, options objects,
-    `assistant(options)`.
+    `assistant(options)`. **Done** (approved): `agent/skills.ts`, `agent.skills`/`agent.core` as `{ add, remove }`,
+    `resume({ decisions, hooks })` with `busy` and `inspect` in place of the session, `@molstar/prism-assistant/spec`.
 11. **Duplicates**: `StatusModel` = `NotificationsManager`; `ShellModel.layout` beside `viewState.save()`; `persist.key`
     namespaces nothing (each store repeats it); `StructureTab` has three ways to run Preset and Styles.
 12. **The query languages' registry is page-wide**: two viewers on a page read and offer each other's languages.

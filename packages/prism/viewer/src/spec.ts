@@ -35,8 +35,7 @@ import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, Viewer
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNode, SceneNodeKind } from './model/scene.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
-import type { SkillDeclaration } from './agent/toolkit.js';
-import type { OperationToolSpec } from './agent/tools.js';
+import type { AgentListChange, OperationToolSpec, SkillDeclaration } from './agent/skills.js';
 
 // What a Prism viewer is made from (viewer-spec.md): plain data, explicit ordered lists, nothing resolved by name, a
 // fresh default from a function. Types only: no DOM, no value import of the plugin.
@@ -111,14 +110,19 @@ export type {
 
 /** §2.4 */
 export interface PrismViewerAgentSpec {
-  /** The tools offered from the first turn, over operations (default the viewer's `CoreTools`, agent.md §3). */
-  readonly core?: readonly ViewerToolSpec[];
-  /** The viewer's skills (default its `Skills`); extensions add theirs. */
-  readonly skills?: readonly ViewerSkill[];
-  /** The UI: `() => import('@molstar/prism-assistant/viewer')` (its `createAssistant`). */
   /**
-   * Its module brings the agent too (`createViewerAgent`, from `@molstar/prism-viewer/agent/session`): the viewer itself
-   * never imports the agent's code (the AI SDK, zod), so a page without an assistant, the single file, is without it.
+   * The tools offered from the first turn, over operations: the viewer's `CoreTools` with these added or removed by id
+   * (`{ add: [tool], remove: ['load_url'] }`; agent.md §3). The declarations are plain data
+   * (`@molstar/prism-viewer/agent/skills`), so a spec that changes them does not bring the toolkit.
+   */
+  readonly core?: AgentListChange<ViewerToolSpec>;
+  /** The viewer's skills: its `Skills` with these added (an id of a default's replaces it) or removed; extensions add theirs. */
+  readonly skills?: AgentListChange<ViewerSkill>;
+  /**
+   * The UI, loaded lazily: `assistant({ provider, model })` from `@molstar/prism-assistant/spec` (or
+   * `() => import('@molstar/prism-assistant/viewer')`). Its module brings the agent too (`createViewerAgent`, from
+   * `@molstar/prism-viewer/agent/session`): the viewer itself never imports the agent's code (the AI SDK, zod), so a
+   * page without an assistant, the single file, is without it.
    */
   readonly assistant?: () => Promise<{
     readonly createAssistant: AssistantFactory;

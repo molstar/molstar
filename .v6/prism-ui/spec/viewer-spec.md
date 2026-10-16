@@ -96,10 +96,13 @@ initial load: 4.25 MB, 1.25 MB gzipped, from 5.46 and 1.68), and a spec that nam
 
 ```ts
 interface PrismViewerAgentSpec {
-  readonly core?: readonly ViewerToolSpec[];                  // the tools from the first turn (default the viewer's CoreTools)
-  readonly skills?: readonly ViewerSkill[];                    // the viewer's skills (default its Skills); extensions add theirs
-  readonly assistant?: () => Promise<{ createAssistant: AssistantFactory }>; // import('@molstar/prism-assistant/viewer')
+  readonly core?: AgentListChange<ViewerToolSpec>;   // the tools from the first turn: the viewer's CoreTools, with these added or removed
+  readonly skills?: AgentListChange<ViewerSkill>;     // the viewer's Skills, with these added (an id of a default's replaces it) or removed; extensions add theirs
+  readonly assistant?: () => Promise<{ createAssistant: AssistantFactory; createViewerAgent }>; // assistant(options) from '@molstar/prism-assistant/spec'
 }
+interface AgentListChange<T> { readonly add?: readonly T[]; readonly remove?: readonly string[] }
+// The declarations (CoreTools, Skills, their types) are plain data in `agent/skills.ts`, no imports: a spec that changes
+// them does not bring the toolkit (ai-tools, zod) into the page's startup bundle (review B10).
 // The assistant creates the agent itself: its models come from the person's keys, which the assistant keeps (agent.md §4).
 interface AssistantHost {
   readonly viewer: PrismViewer;
@@ -335,7 +338,7 @@ const spec: PrismViewerSpec = {
   ...DefaultPrismViewerSpec(),
   extensions: [...DefaultPrismViewerSpec().extensions!, ...MolstarViewerExtensions],   // built-ins, then Mol*'s
   options: optionsFromUrl(location.search),                    // v5's names kept
-  agent: { ...DefaultPrismViewerSpec().agent, assistant: () => import('@molstar/prism-assistant/viewer') },
+  agent: { ...DefaultPrismViewerSpec().agent, assistant: assistant() },  // from '@molstar/prism-assistant/spec'
   persist: { key: 'prism-viewer', preferences: localStore(), restore: sessionStore(), rows: createIndexedDbRows('prism-viewer-records') },
 };
 const viewer = await createPrismViewer({ target: document.getElementById('app')!, spec });

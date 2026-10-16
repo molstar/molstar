@@ -66,7 +66,7 @@ imports (`./*`) exist but a host should not need them.
    it declared. Results are rendered to text for the model; effects (`none`/`applied`/`unknown`) steer retries.
 6. **The session** follows `client.watch()` (level-triggered seq) and `runner.observe()` (live deltas) to fire
    `onText`/`onTool`/`onStatus`/`onTurn`, and resolves `TurnResult` when the turn ends or parks (`awaiting-approval`;
-   `session.resume(hooks, decisions)` goes on).
+   `session.resume({ decisions, hooks })` goes on).
 7. **Afterwards** anything can read the harness: `readTrace` (`ai-trace`) for the Inspector, `client.turns()` and
    `events()` for history. A reload with IndexedDB storage and the same `harnessId` finds the conversation; a turn whose
    runner died is taken up after its lease (`session.interrupted()`, `resume()`).

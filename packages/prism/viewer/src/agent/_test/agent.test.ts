@@ -103,7 +103,7 @@ describe('the viewer agent', () => {
     const r = await agent.turn('remove the ligand');
     expect(r.status).toBe('awaiting-approval');
     const pending = r.approval![0];
-    const done = await agent.resume({ [pending.callId]: 'allow' });
+    const done = await agent.resume({ decisions: { [pending.callId]: 'allow' } });
     expect(done?.status).toBe('completed');
     agent.dispose();
   });
@@ -121,7 +121,7 @@ describe('the viewer agent while undo is off', () => {
     const r = await agent.turn('surface, ligand red');
     expect(r.status).toBe('awaiting-approval');
     expect(r.approval?.[0].tool).toBe('apply_style');
-    const done = await agent.resume({ [r.approval![0].callId]: 'allow' });
+    const done = await agent.resume({ decisions: { [r.approval![0].callId]: 'allow' } });
     expect(done?.status).toBe('completed');
     expect(done?.tools.map((t) => [t.name, t.status])).toContainEqual(['color', 'succeeded']);
     agent.dispose();
@@ -147,7 +147,7 @@ describe('the viewer agent at G6', () => {
     expect(turn?.entry).toMatchObject({ outcome: 'stopped' });
     expect(turn?.open).toBe(false);
     // Nothing left waiting: resuming has nothing to go on with.
-    expect(await agent.resume({ [r.approval![0].callId]: 'allow' })).toBeUndefined();
+    expect(await agent.resume({ decisions: { [r.approval![0].callId]: 'allow' } })).toBeUndefined();
     agent.dispose();
   });
 
@@ -156,7 +156,7 @@ describe('the viewer agent at G6', () => {
     const { agent } = agentOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
     const running = agent.turn('surface');
     // Nothing is parked: the resume goes on with nothing, and does not settle the turn that runs.
-    expect(await agent.resume({ nope: 'allow' })).toBeUndefined();
+    expect(await agent.resume({ decisions: { nope: 'allow' } })).toBeUndefined();
     const r = await running;
     expect(r.status).toBe('completed');
     await v.record.flush();
@@ -213,6 +213,36 @@ describe('the viewer agent at G6', () => {
     agent.dispose();
   });
 
+  it("adds to the viewer's core and skills from the spec, without restating them", async () => {
+    const v = await headlessViewer({
+      spec: {
+        agent: {
+          // The camera skill's get_camera, moved into the core.
+          core: { add: [{ id: 'get_camera', operation: 'camera.get' }], remove: ['load_url'] },
+          skills: {
+            add: [
+              { id: 'probe', title: 'Probe', summary: 'a probe', guidance: 'Skill probe.', tools: [] },
+              { id: 'export', title: 'Export', summary: 'images', guidance: 'Skill export.', tools: [] },
+            ],
+            remove: ['camera'],
+          },
+        },
+      },
+    });
+    const { agent } = agentOn(v, []);
+    const { toolkit } = agent;
+    expect(toolkit.placementOf('get_camera').kind).toBe('core');
+    expect(toolkit.placementOf('load_entry').kind).toBe('core');
+    expect(toolkit.registration('load_url')).toBeUndefined();
+    const groups = toolkit.groups.map((g) => g.id);
+    // A skill with no tools is left out; the defaults stay but the removed one.
+    expect(groups).toContain('selections');
+    expect(groups).not.toContain('camera');
+    // `export` replaced by one with no tools: left out.
+    expect(groups).not.toContain('export');
+    agent.dispose();
+  });
+
   it("undoes its previous turn with undo_turn, never the person's later steps", async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const before = representationTypes(v);
@@ -251,7 +281,7 @@ describe('the viewer agent between turns', () => {
 
 describe('the toolkit', () => {
   it("names only operations the default viewer has (a renamed or removed one fails here, not in a person's turn)", async () => {
-    const { CoreTools, Skills } = await import('../toolkit.js');
+    const { CoreTools, Skills } = await import('../skills.js');
     const v = await headlessViewer();
     const ops = [...CoreTools, ...Skills.flatMap((s) => s.tools)].map((t) => t.operation);
     const missing = ops.filter((id) => !v.api.definitions.value.has(id));

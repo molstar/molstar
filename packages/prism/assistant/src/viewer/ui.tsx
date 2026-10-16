@@ -19,6 +19,8 @@ import { AgentTurnCard } from '../views/agent-turn.js';
 import { AssistantTab } from '../views/assistant-tab.js';
 import { createViewerAgentModel } from './agent-model.js';
 import { createInspectorSources } from './inspector-sources.js';
+import { listedModels } from '@molstar/ai-model-adapters/model-catalog';
+import type { AISetup } from '../model.js';
 import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs } from './settings-model.js';
 import { domainsStorageSource, keptDomains, keysStorageSource } from './storage.js';
 import { createDomainRules } from '@molstar/prism-viewer/agent/policies';
@@ -38,6 +40,25 @@ export interface AssistantOptions {
   readonly keys?: KeyStore;
   /** Where the choice of model is kept; default localStorage (`localPrefs`). */
   readonly prefs?: SettingsPrefs;
+  /**
+   * The model until the person chooses one (default Anthropic's `claude-sonnet-5-5`): a provider id (`anthropic`,
+   * `google`, `openai`, a provided one's) and a model id. Either may be left out: the provider is then the catalog's for
+   * the model (else Anthropic), the model the provider's first listed. In effect while its provider has a key.
+   */
+  readonly provider?: string;
+  readonly model?: string;
+}
+
+/** The host's model as `AssistantOptions` names it, with what it leaves out filled in (`Fallback` when nothing is). */
+export function preferredModel(options: Pick<AssistantOptions, 'provider' | 'model' | 'provided'>): AISetup {
+  const { model } = options;
+  if (!options.provider && !model) return Fallback;
+  const provider = options.provider ?? listedModels().find((m) => m.id === model)?.provider ?? Fallback.provider;
+  const first =
+    provider === Fallback.provider
+      ? Fallback.model
+      : (options.provided?.find((p) => p.id === provider)?.models[0] ?? listedModels(provider)[0]?.id);
+  return { provider, model: model ?? first ?? Fallback.model };
 }
 
 /** The assistant as the viewer's `AssistantFactory`, with a host's options (a story's scripted model). */
@@ -55,15 +76,17 @@ async function makeAssistant(host: AssistantHost, options: AssistantOptions): Pr
   const rules = createDomainRules(keptDomains(prefs.get('domains')), (browser) =>
     prefs.set('domains', JSON.stringify(browser)),
   );
+  const preferred = preferredModel(options);
   const settings = createAISettings(keys, prefs, {
     report: (text) => notifications.post(text, 'warning'),
     ...(options.provided ? { provided: options.provided } : {}),
+    ...(options.provider || options.model ? { preferred } : {}),
   });
   await settings.load();
   const agent = host.createAgent(
     {
       adapterFor: (provider) => settings.adapterFor(provider),
-      default: settings.setup.value ?? Fallback,
+      default: settings.setup.value ?? preferred,
     },
     { rules },
   );

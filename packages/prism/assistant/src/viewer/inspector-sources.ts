@@ -37,8 +37,8 @@ export interface ViewerInspectorSources extends InspectorSources {
   dispose(): void;
 }
 
-export function createInspectorSources(agent: Pick<ViewerAgent, 'session' | 'toolkit'>): ViewerInspectorSources {
-  const { session, toolkit } = agent;
+export function createInspectorSources(agent: Pick<ViewerAgent, 'inspect' | 'toolkit'>): ViewerInspectorSources {
+  const { inspect: session, toolkit } = agent;
   const trace = observableState<TraceData | undefined>(undefined);
   const tools = observableState<ToolsData>(toolsOf(agent, undefined));
   const limits = observableState<LimitsData>(limitsOf(agent, undefined));
@@ -163,8 +163,8 @@ function toolsOf(agent: Pick<ViewerAgent, 'toolkit'>, trace: TraceData | undefin
  * the session extends it), the context window and when compaction starts. Read-only: the session takes them at its
  * creation and has no setter.
  */
-function limitsOf(agent: Pick<ViewerAgent, 'session'>, trace: TraceData | undefined): LimitsData {
-  const { session } = agent;
+function limitsOf(agent: Pick<ViewerAgent, 'inspect'>, trace: TraceData | undefined): LimitsData {
+  const { inspect: session } = agent;
   const budget = session.budget();
   const latest = trace?.turns.at(-1);
   const tokens = latest?.tokens;

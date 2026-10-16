@@ -8,13 +8,21 @@
 
 import type { HarnessStorage } from '@molstar/ai-harness';
 import type { Toolkit } from '@molstar/ai-tools';
-import { AgentSession, type ModelChoice, type ModelSource, type TurnHooks, type TurnResult } from '@molstar/ai-session';
+import {
+  AgentSession,
+  type ApprovalDecision,
+  type ModelChoice,
+  type ModelSource,
+  type TurnHooks,
+  type TurnResult,
+} from '@molstar/ai-session';
 import type { PrismViewer } from '../viewer.js';
 import type { TurnWriter } from '../journal/record.js';
 import { createAccount, quoted } from './account.js';
 import { type AgentPolicy, addressesInRequest, createAgentPolicy, type DomainRules } from './policies.js';
-import { createViewerToolkit, type SkillDeclaration, Skills } from './toolkit.js';
-import type { AgentViewer, OperationToolSpec, ViewerAgentApi } from './tools.js';
+import { CoreTools, type OperationToolSpec, type SkillDeclaration, Skills, withChange } from './skills.js';
+import { createViewerToolkit } from './toolkit.js';
+import type { AgentViewer, ViewerAgentApi } from './tools.js';
 import { isLazyExtension, type PrismViewerSpec } from '../spec.js';
 
 // The viewer's agent (agent.md §1): an `AgentSession` (`@molstar/ai-session`) over the viewer's toolkit, its account
@@ -34,9 +42,25 @@ export interface ViewerAgentOptions<M extends ModelChoice = ModelChoice> {
   readonly rules?: DomainRules;
 }
 
+/** What the Inspector reads of the agent's session (agent.md §1): its harness, its budget and the model's window. */
+export type ViewerAgentInspection<M extends ModelChoice = ModelChoice> = Pick<
+  AgentSession<ViewerAgentApi, M>,
+  'client' | 'budget' | 'contextWindow'
+>;
+
+/** How a parked turn goes on (`ViewerAgent.resume`). */
+export interface ViewerAgentResume {
+  /** The person's answers to the calls that wait, by call id. */
+  readonly decisions: Readonly<Record<string, ApprovalDecision>>;
+  readonly hooks?: TurnHooks;
+}
+
 export interface ViewerAgent<M extends ModelChoice = ModelChoice> {
-  readonly session: AgentSession<ViewerAgentApi, M>;
   readonly toolkit: Toolkit<ViewerAgentApi>;
+  /** The session's harness, budget and window, read-only (the Inspector's); the session itself stays the agent's. */
+  readonly inspect: ViewerAgentInspection<M>;
+  /** A turn runs (or is being resumed). */
+  readonly busy: boolean;
   /**
    * Runs a turn: the request with the scene, the focus and the person's notes since the last turn. Throws while a turn
    * runs or waits for an approval (`busy`, `parked`): answer or stop that one first.
@@ -46,7 +70,7 @@ export interface ViewerAgent<M extends ModelChoice = ModelChoice> {
    * Goes on with a parked turn (an approval) with the person's decisions. Undefined: there was none to go on with (it
    * was stopped; a turn still open is then settled as stopped), or a turn is running already (left as it is).
    */
-  resume(decisions: Readonly<Record<string, 'allow' | 'deny'>>, hooks?: TurnHooks): Promise<TurnResult | undefined>;
+  resume(options: ViewerAgentResume): Promise<TurnResult | undefined>;
   /** Stops the running turn, or ends a parked one: either is settled as stopped (its record entry, its history group). */
   stop(): Promise<void>;
   /** A turn waits for the person's approval (`resume` or `stop` it). */
@@ -75,15 +99,21 @@ export const ViewerGuidance = [
   '- Load more tools with disclose_skills when a request needs them.',
 ].join('\n');
 
-/** The spec's core and skills, and every extension's skills over its own operations (viewer-spec.md §2.4, §3). */
-function toolsOfSpec(spec: PrismViewerSpec): { core?: readonly OperationToolSpec[]; skills: SkillDeclaration[] } {
+/**
+ * The viewer's core and skills with the spec's changes (added, replaced or removed by id), and every extension's skills
+ * over its own operations (viewer-spec.md §2.4, §3).
+ */
+function toolsOfSpec(spec: PrismViewerSpec): {
+  core: readonly OperationToolSpec[];
+  skills: readonly SkillDeclaration[];
+} {
   // `agent: false`: no tools at all.
   if (spec.agent === false) return { core: [], skills: [] };
-  const own = spec.agent?.skills ?? Skills;
+  const own = withChange(Skills, spec.agent?.skills);
   const extensions = (spec.extensions ?? []).flatMap((e) =>
     (isLazyExtension(e) ? (e.stub.skills ?? []) : (e.skills ?? [])).map((s) => ({ ...s, feature: s.feature ?? e.id })),
   );
-  return { ...(spec.agent?.core ? { core: spec.agent.core } : {}), skills: [...own, ...extensions] };
+  return { core: withChange(CoreTools, spec.agent?.core), skills: [...own, ...extensions] };
 }
 
 export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: ViewerAgentOptions<M>): ViewerAgent<M> {
@@ -178,10 +208,19 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
     return r;
   };
 
+  const inspect: ViewerAgentInspection<M> = {
+    client: () => session.client(),
+    budget: (choice) => session.budget(choice),
+    contextWindow: () => session.contextWindow(),
+  };
+
   return {
-    session,
     toolkit,
+    inspect,
     policy,
+    get busy() {
+      return session.busy;
+    },
     get lastTurn() {
       return last;
     },
@@ -210,14 +249,14 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       );
       return settle(r);
     },
-    async resume(decisions, hooks) {
+    async resume({ decisions, hooks }) {
       // A turn runs (or is being resumed) already: there is nothing parked to go on with, and its record entry and
       // history group stay open until it ends.
       if (session.busy) return undefined;
       // The person allowed a call: the turn's changes go for the rest of it (undo off asks once).
       if (Object.values(decisions).includes('allow')) policy.allowedForTurn();
       parked = false;
-      const r = await session.resume(wrap(hooks, 'Assistant'), decisions);
+      const r = await session.resume({ decisions, hooks: wrap(hooks, 'Assistant') });
       if (r) return settle(r);
       if (writer || endGroup) close('stopped');
       return undefined;

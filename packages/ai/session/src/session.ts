@@ -59,6 +59,7 @@ import type {
   ApprovalDecision,
   ModelChoice,
   PendingApproval,
+  ResumeOptions,
   StatusEvent,
   ToolEvent,
   TurnHooks,
@@ -742,10 +743,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
    * mid-turn: a runner takes it over once the old owner's lease runs out). Returns undefined when there is no such
    * turn.
    */
-  async resume(
-    hooks: TurnHooks = {},
-    decisions: Readonly<Record<string, ApprovalDecision>> = {},
-  ): Promise<TurnResult | undefined> {
+  async resume({ decisions = {}, hooks = {} }: ResumeOptions = {}): Promise<TurnResult | undefined> {
     if (this.activeTurn) return undefined;
     // Claimed before the first await, as `turn` does, so a turn, a resume or a forget cannot start meanwhile.
     this.activeTurn = RESUMING;

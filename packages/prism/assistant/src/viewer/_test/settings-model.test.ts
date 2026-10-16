@@ -66,6 +66,22 @@ describe('the assistant setup', () => {
     expect(settings.setup.value).toEqual(choice);
   });
 
+  it("takes the host's preferred model while the person has chosen none and its provider has a key", async () => {
+    const preferred = { provider: 'google', model: 'gemini-3.8-flash' };
+    const settings = createAISettings(memoryKeys({ anthropic: 'browser', google: 'browser' }), memoryPrefs(), {
+      preferred,
+    });
+    await settings.load();
+    expect(settings.setup.value).toEqual(preferred);
+    // No key for it: the first provider with one stands in.
+    const without = createAISettings(memoryKeys({ anthropic: 'browser' }), memoryPrefs(), { preferred });
+    await without.load();
+    expect(without.setup.value?.provider).toBe('anthropic');
+    // The person's choice wins.
+    settings.choose({ provider: 'anthropic', model: 'claude-haiku-5-5' });
+    expect(settings.setup.value?.provider).toBe('anthropic');
+  });
+
   it('says when a key cannot be kept, and shows what is kept', async () => {
     const said: string[] = [];
     const settings = createAISettings(memoryKeys({}, 'set'), memoryPrefs(), { report: (t) => said.push(t) });

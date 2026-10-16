@@ -109,7 +109,7 @@ describe('resume after the tab dies mid-turn', () => {
     );
     expect(await two.session.interrupted()).toBe(true);
     const turns: TurnEvent[] = [];
-    const result = await two.session.resume({ onTurn: (e) => turns.push(e) });
+    const result = await two.session.resume({ hooks: { onTurn: (e) => turns.push(e) } });
     expect(result?.status).toBe('completed');
     expect(result?.text).toBe('Read it.');
     expect(calls).toBe(1);

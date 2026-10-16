@@ -70,10 +70,10 @@ observe calls, `ModelBindings` over `adapterFor`, `createDrive(...)`, and a `cre
   `onStatus({ kind: model | tools | permission | budget | retrying | widened | budget-extended | compacting, detail? })`,
   `onTurn({ kind: 'begun', turnId, resumed? })` (before the first model call: where a host takes its undo checkpoint).
 - **Approval**: a turn parks at `permission`; the result is `awaiting-approval`.
-  `resume(hooks, { [callId]: 'allow' | 'deny' })` continues it. A denial is told to the model as `DENIED` ("The person
-  did not allow this call.").
+  `resume({ decisions: { [callId]: 'allow' | 'deny' }, hooks? })` continues it. A denial is told to the model as
+  `DENIED` ("The person did not allow this call.").
 - `stop()` (durable; changes already applied stay), `interrupted()` (an active turn: parked, or unowned after a reload),
-  `resume(hooks)` with no decisions takes over an interrupted turn once the old lease has run out, `forget()` (reset
+  `resume({ hooks })` with no decisions takes over an interrupted turn once the old lease has run out, `forget()` (reset
   `main` to the empty head: a fresh conversation, history kept in the log), `dispose()` (stops supervising; another
   session takes the harness up), `client()` (the `HarnessClient`, for a trace), `isFresh()`, `contextWindow()`,
   `budget(choice?)`.

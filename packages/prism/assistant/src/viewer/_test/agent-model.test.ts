@@ -202,7 +202,7 @@ describe('the assistant over the viewer agent', () => {
     // Approving after the stop is ignored: the card stays stopped, nothing resumes.
     m.approve(waiting.id, true);
     expect(m.turn.value?.status).toBe('stopped');
-    expect(agent.session.busy).toBe(false);
+    expect(agent.busy).toBe(false);
 
     // The group is closed: the next turn runs and ends on its own.
     m.ask('say hello');
@@ -218,7 +218,7 @@ describe('the assistant over the viewer agent', () => {
     let park!: (r: TurnResult) => void;
     const stop = vi.fn(async () => {});
     const agent = {
-      session: { busy: false },
+      busy: false,
       parked: false,
       policy: { hostsOf: () => [] },
       turn: () => new Promise<TurnResult>((resolve) => (park = resolve)),

@@ -145,14 +145,38 @@ record's object.
 ### Adding the assistant to your viewer
 
 ```ts
+import { assistant } from '@molstar/prism-assistant/spec';
+
 const spec = {
   ...FullPrismViewerSpec(),
-  agent: { assistant: () => import('@molstar/prism-assistant/viewer') },
+  agent: { assistant: assistant({ provider: 'google', model: 'gemini-3.8-flash' }) },
 };
 ```
 
-`agent` can also replace the skills (`agent: { skills }`) or the core tools (`agent: { core }`) of the viewer. With
-`agent: false` the viewer has no tools, and the agent keeps only `get_scene`, `ask` and `undo_turn`.
+`assistant(options)` returns a loader: the assistant, the agent and the AI SDK are a chunk of their own, loaded when the
+assistant is first used, never in the page's startup bundle. Its options are all optional:
+
+| Option              | What it is                                                                                                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`, `model` | The model until the person chooses one, when its provider has a key. By default Anthropic's `claude-sonnet-5-5`.                       |
+| `provided`          | Models the page brings with their adapters (a server's), used without a key of the person's. A function loads them with the assistant. |
+| `keys`, `prefs`     | Where the person's keys and their choice of model are kept (by default the browser's storage).                                         |
+
+The keys are always the person's, typed into the Assistant tab: a page never passes a key.
+
+`agent` can also change the viewer's skills and core tools. Each is a change to the defaults, by id, so you never
+restate them: `add` appends (an entry with a default's id replaces it) and `remove` takes defaults out.
+
+```ts
+agent: {
+  skills: { add: [mySkill], remove: ['export'] },
+  core: { add: [{ id: 'get_camera', operation: 'camera.get' }], remove: ['load_url'] },
+},
+```
+
+The declarations, `CoreTools` and `Skills` with their types, are plain data in `@molstar/prism-viewer/agent/skills`,
+which imports nothing. With `agent: false` the viewer has no tools, and the agent keeps only `get_scene`, `ask` and
+`undo_turn`.
 
 ### Running the agent headless
 
@@ -180,7 +204,7 @@ const agent = createViewerAgent({
 let result = await agent.turn('Color the ligand red.');
 while (result.status === 'awaiting-approval') {
   const decisions = Object.fromEntries((result.approval ?? []).map((p) => [p.callId, 'allow' as const]));
-  const next = await agent.resume(decisions);
+  const next = await agent.resume({ decisions });
   if (!next) break;                       // it was stopped meanwhile
   result = next;
 }
@@ -193,14 +217,15 @@ The options are `viewer`, `models` (an adapter per provider and a default model)
 conversation (memory by default), `guidance` (more instructions after the viewer's) and `rules` (the domains a person
 allowed). A key is the host's to provide: `resolveApiKey` here reads it from the environment.
 
-| Member                 | What it is                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `turn(prompt, hooks?)` | Runs a turn. Throws while one runs or waits.                                      |
-| `resume(decisions)`    | Continues a parked turn with `allow` or `deny` for each waiting call, by call id. |
-| `stop()`               | Stops the running turn, or ends a parked one.                                     |
-| `parked`, `lastTurn`   | Whether a turn waits for approval; the id of the last finished turn.              |
-| `policy`               | What goes without asking, and its domain rules (`policy.rules`).                  |
-| `toolkit`, `session`   | The tools, and the conversation.                                                  |
+| Member                          | What it is                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `turn(prompt, hooks?)`          | Runs a turn. Throws while one runs or waits.                                      |
+| `resume({ decisions, hooks? })` | Continues a parked turn with `allow` or `deny` for each waiting call, by call id. |
+| `stop()`                        | Stops the running turn, or ends a parked one.                                     |
+| `busy`, `parked`, `lastTurn`    | Whether a turn runs; whether one waits for approval; the last finished turn's id. |
+| `policy`                        | What goes without asking, and its domain rules (`policy.rules`).                  |
+| `toolkit`                       | The tools.                                                                        |
+| `inspect`                       | The conversation's harness, budget and context window, read-only.                 |
 
 ### Evaluations
 

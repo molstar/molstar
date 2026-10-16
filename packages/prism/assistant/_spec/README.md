@@ -9,11 +9,12 @@ keys, the turn card, the Assistant tab, the Inspector. Why it is so:
 
 ## Entries
 
-| Module                   | What it is                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `viewer.ts` (`./viewer`) | `createAssistant(host)`: the viewer's `AssistantFactory` (viewer-spec.md §2.4); the app passes its import |
-| `index.ts`               | the views and the model types, for stories and other hosts                                                |
-| `keys.ts`                | `createKeyStore()`: the person's keys, always scrambled when stored (memory, this tab, this browser)      |
+| Module                   | What it is                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `spec.ts` (`./spec`)     | `assistant(options)`: the spec's `agent.assistant`, a lazy loader (types only and one dynamic import)         |
+| `viewer.ts` (`./viewer`) | `createAssistant(host)`: the viewer's `AssistantFactory` (viewer-spec.md §2.4), the chunk `assistant()` loads |
+| `index.ts`               | the views and the model types, for stories and other hosts                                                    |
+| `keys.ts`                | `createKeyStore()`: the person's keys, always scrambled when stored (memory, this tab, this browser)          |
 
 ## Folders
 
@@ -23,7 +24,7 @@ keys, the turn card, the Assistant tab, the Inspector. Why it is so:
 | `views/`     | the Assistant tab, the setup form, the turn card, the history tab (Prism DOM JSX)                                                                                                                                                                                                                                                                                                                          |
 | `inspector/` | the Inspector's views (trace, tools, limits) over `@molstar/ai-trace`, its page and the Inspect rows (`links.ts`)                                                                                                                                                                                                                                                                                          |
 | `model.ts`   | the view models' contracts (`AgentModel`, `AISettingsModel`, `AgentTurn`, `CommandRun`)                                                                                                                                                                                                                                                                                                                    |
-| `testing/`   | the Inspector's mock data for its unit tests (the stories run the real assistant over a scripted model: `createAssistantWith({ provided })`)                                                                                                                                                                                                                                                               |
+| `testing/`   | the Inspector's mock data for its unit tests (the stories run the real assistant over a scripted model: `assistant({ provided })`)                                                                                                                                                                                                                                                                         |
 
 ## Contracts
 

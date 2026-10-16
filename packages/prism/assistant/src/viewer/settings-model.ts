@@ -69,6 +69,11 @@ export interface AISettingsOptions {
   readonly report?: (text: string) => void;
   /** Models the host brings with their own adapters (a story's scripted model): in effect without a key of the person's. */
   readonly provided?: readonly ProvidedModels[];
+  /**
+   * The host's choice of model until the person makes theirs: in effect when its provider has a key (or is the
+   * host's); else the first provider with a key stands in, as without it.
+   */
+  readonly preferred?: AISetup;
 }
 
 /** A provider the host brings, its adapter made already (no key asked for: its key is the host's). */
@@ -138,7 +143,10 @@ export function createAISettings(
     ]);
     // Which keys there are is known only once loaded: until then, nothing is in effect.
     if (!loaded) return;
-    if (chosen && (scopes.has(chosen.provider) || provided.has(chosen.provider))) setup.set(chosen);
+    const usable = (c: AISetup | undefined): c is AISetup =>
+      !!c && (scopes.has(c.provider) || provided.has(c.provider));
+    if (usable(chosen)) setup.set(chosen);
+    else if (usable(options.preferred)) setup.set(options.preferred);
     else {
       const first = providers.value.find((p) => p.key && p.models.length);
       setup.set(first ? { provider: first.id, model: first.models[0] } : undefined);

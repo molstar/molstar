@@ -103,7 +103,7 @@ export async function runEval<M extends ModelChoice>(
         rounds++;
         approvals += r.approval.length;
         const decision = task.approve ?? 'allow';
-        r = await agent.resume(Object.fromEntries(r.approval.map((p) => [p.callId, decision])), hooks);
+        r = await agent.resume({ decisions: Object.fromEntries(r.approval.map((p) => [p.callId, decision])), hooks });
       }
       // Still waiting (too many rounds, or nothing to answer): the turn is stopped, and fails.
       const gaveUp = r?.status === 'awaiting-approval';

@@ -226,8 +226,7 @@ export function createViewerAgentModel(
       }
       const t = turn.value;
       if (agent.parked || t?.status === 'waiting') return refuse('Answer or stop the waiting step first.');
-      if (agent.session.busy || (t && !isFinished(t.status)))
-        return refuse('A turn is running: stop it or wait for it.');
+      if (agent.busy || (t && !isFinished(t.status))) return refuse('A turn is running: stop it or wait for it.');
       const of = ++generation;
       const started = Date.now();
       pending = [];
@@ -265,7 +264,7 @@ export function createViewerAgentModel(
         });
       }
       // The agent ends a parked turn too (its record entry, its history group).
-      if (live || agent.session.busy || agent.parked) {
+      if (live || agent.busy || agent.parked) {
         agent.stop().catch((e) => notifications.post(`The turn could not be stopped: ${messageOf(e)}`, 'warning'));
       }
     },
@@ -295,7 +294,7 @@ export function createViewerAgentModel(
       update({ status: 'working' });
       try {
         agent
-          .resume(decisions, hooksFor(of))
+          .resume({ decisions, hooks: hooksFor(of) })
           .then((r) => settle(r, started, of))
           .catch(fail(of));
       } catch (e) {
@@ -319,7 +318,7 @@ export function createViewerAgentModel(
       if (disposed) return;
       const t = turn.value;
       // A turn running or parked ends with the model: nothing is left waiting for a card that is gone.
-      if (agent.session.busy || agent.parked || (t && !isFinished(t.status))) {
+      if (agent.busy || agent.parked || (t && !isFinished(t.status))) {
         agent.stop().catch((e) => console.error('[prism-assistant] stop:', e));
       }
       disposed = true;

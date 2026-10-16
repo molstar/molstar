@@ -49,6 +49,7 @@ export type {
   ApprovalDecision,
   ModelChoice,
   PendingApproval,
+  ResumeOptions,
   StatusEvent,
   ToolEvent,
   TurnEvent,

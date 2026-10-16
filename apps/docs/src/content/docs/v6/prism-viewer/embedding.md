@@ -200,16 +200,19 @@ not to the window.
 
 ## The assistant
 
-The assistant is not part of any default spec. The app adds it by passing a lazy import:
+The assistant is not part of any default spec. The app adds it with `assistant()`, which returns a lazy loader:
 
 ```ts
+import { assistant } from '@molstar/prism-assistant/spec';
+
 const spec = {
   ...FullPrismViewerSpec(),
-  agent: { assistant: () => import('@molstar/prism-assistant/viewer') },
+  agent: { assistant: assistant() },
 };
 ```
 
-The import becomes a chunk of its own, loaded after the viewer is up. See [Assistant](/docs/v6/prism-viewer/assistant/).
+The assistant becomes a chunk of its own, loaded when it is first used. See
+[Assistant](/docs/v6/prism-viewer/assistant/).
 
 ## Headless
 

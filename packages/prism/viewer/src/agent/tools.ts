@@ -19,6 +19,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ApiResult, Changed, OperationDefinition, OperationDescription, ViewerApi } from '../api/area.js';
 import { paramsShape } from './params.js';
 import { type AgentPolicy, mayAsk } from './policies.js';
+import type { OperationToolSpec } from './skills.js';
 
 // The agent's tools (agent.md §2): thin adapters over operations. A tool takes flat fields in the model's words, maps
 // them to an operation's values and runs it with the agent's origin (one run path: the history, the checkpoint and the
@@ -51,21 +52,8 @@ export interface AgentAccountModule {
 
 export const tool = toolFor<ViewerAgentApi>();
 
-/** A tool over an operation (agent.md §2). */
-export interface OperationToolSpec {
-  /** The tool's id, in the model's words (`load_entry`, `color`). */
-  readonly id: string;
-  /** The operation it runs. */
-  readonly operation: string;
-  /** What the model reads: when to use it, what it does; the operation's title when not given. */
-  readonly description?: string;
-  /** The operation's params offered, by name (default: all that JSON can carry). */
-  readonly fields?: readonly string[];
-  /** Values set for the model (`mode: 'add'`). */
-  readonly fixed?: Readonly<Record<string, unknown>>;
-  /** Field formats said in their descriptions (`target`: a target string, targets.md). */
-  readonly formats?: Readonly<Record<string, string>>;
-}
+/** A tool over an operation (agent.md §2): declared in `skills.ts`, plain data. */
+export type { OperationToolSpec } from './skills.js';
 
 /**
  * A tool over an operation. Its input is the operation's params as field shapes (`paramsShape`), described now: a

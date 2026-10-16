@@ -63,6 +63,13 @@ export interface PendingApproval {
 }
 export type ApprovalDecision = 'allow' | 'deny';
 
+/** How a parked or interrupted turn goes on (`AgentSession.resume`). */
+export interface ResumeOptions {
+  /** The person's answers to the calls that wait, by call id; none: an interrupted turn is taken up as it is. */
+  readonly decisions?: Readonly<Record<string, ApprovalDecision>>;
+  readonly hooks?: TurnHooks;
+}
+
 /** What a prompt carries beyond its words (tools-and-session.md §4); each part is the host's text. */
 export interface TurnRequest<M extends ModelChoice = ModelChoice> {
   prompt: string;

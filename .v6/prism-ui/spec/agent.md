@@ -10,20 +10,27 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 - **Tools, skills and the session factory**: the viewer's `agent/` folder (`packages/prism/viewer/src/agent/`),
   DOM-free, on `@molstar/ai-tools` and `@molstar/ai-session`. Extensions bring theirs as skills,
   `ViewerExtension.skills` (a lazy one's in its stub; never core tools); the spec's `agent.core` and `agent.skills`
-  replace the viewer's defaults (viewer-spec.md §2.4, §3). PD params become tool fields through `paramsShape`, which moves from
+  change the viewer's defaults by id (`{ add, remove }`; an added id of a default's replaces it), never restating them
+  (viewer-spec.md §2.4, §3). The declarations (`CoreTools`, `Skills`, their types) are plain data in `agent/skills.ts`,
+  which imports nothing, so a spec that reads or extends them does not bring the toolkit (ai-tools, zod) into the page
+  (review B10). PD params become tool fields through `paramsShape`, which moves from
   `@molstar/prism-assistant` into `agent/params.ts` (the viewer does not depend on the assistant; review F12).
 - **The session**: `createViewerAgent({ viewer, models, storage?, rules? })` in `agent/session.ts` makes the `AgentSession`
   (the viewer's toolkit, drive policies, account and focus, the record's hooks; [journal.md](journal.md)). The
-  assistant calls it, and so do headless evals and an MCP server, with no DOM (review F11).
+  assistant calls it, and so do headless evals and an MCP server, with no DOM (review F11). Its `ViewerAgent` keeps the
+  session to itself: `turn(prompt, hooks?)`, `resume({ decisions, hooks? })`, `stop()`, `busy`, `parked`, and
+  `inspect` (the harness client, budget and window, read-only, for the Inspector; review B10).
 - **The assistant** (the Assistant tab, the Ask bar, the turn card, the Inspector, the Storage view) is
-  `@molstar/prism-assistant`, loaded lazily when the app passes it: `AssistantFactory = (host: AssistantHost) =>
+  `@molstar/prism-assistant`, loaded lazily when the app passes it (`agent: { assistant: assistant({ provider, model })
+  }`, from `@molstar/prism-assistant/spec`, types only and one dynamic import; the model is the default until the
+  person chooses, in effect while its provider has a key): `AssistantFactory = (host: AssistantHost) =>
   AssistantUI`, the host giving the viewer and `createAgent(models)`, since the models come from the person's keys,
   which the assistant keeps (viewer-spec.md §2.4). As built: the Inspector is a page over the app
   (`assistant.page.inspector`, an extension view `pages` entry), opened by the Assistant tab's Inspect rows (Trace with
   its turns, Tools with its counts, Limits), the turn card's trace and the commands Assistant trace (⌥T), tools and
   limits (registered with the assistant, so only once it has loaded). Its data (`inspector-sources.ts`): the trace read
-  from the session's harness (`session.client()`, re-read on its `watch()`), the Tools view from the toolkit as it
-  changes, the limits from `session.budget()` and the model's window, read-only (the session takes them at creation and
+  from the session's harness (`agent.inspect.client()`, re-read on its `watch()`), the Tools view from the toolkit as it
+  changes, the limits from `agent.inspect.budget()` and the model's window, read-only (the session takes them at creation and
   has no setter).
 - **A turn at a time**: `turn()` refuses while one runs or waits for an approval (`parked`); `stop()` ends either, and a
   parked turn is then settled as stopped (its record entry, its history group).
@@ -108,7 +115,7 @@ As little in the way as is reasonable (decision 26):
   fence, escaped, capped in length (review F15). As built: quoted (`"…"`, controls, separators, bidi and zero-width
   marks removed, 80 characters) in the state block (labels and descriptions), the focus, and the person's notes; tool
   results still name data unquoted ("Loaded 1CBS."), which is next.
-- **A host's own models** (`createAssistantWith({ provided })`): a provider the host brings with its adapter, listed
+- **A host's own models** (`assistant({ provided })`; a function makes them when the assistant loads): a provider the host brings with its adapter, listed
   first with its key "from the server" and in effect without a key of the person's; the stories bring a scripted model
   this way (keys and the choice kept in memory, never the person's).
 - **Keys** are the person's, kept by the assistant for as long as they chose (the mocks' `KeyScope`): until a reload

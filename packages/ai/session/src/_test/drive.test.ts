@@ -120,7 +120,7 @@ describe('permission', () => {
       expect(statuses).toContain('permission');
       expect(await f.session.interrupted()).toBe(true);
       const callId = parked.approval?.[0]?.callId ?? '';
-      const done = await f.session.resume({}, { [callId]: answer });
+      const done = await f.session.resume({ decisions: { [callId]: answer } });
       expect(done?.status).toBe('completed');
       expect(outcomes(done as never)).toEqual([`ask_service:${answer === 'allow' ? 'succeeded' : 'failed'}`]);
       expect(f.api.log.lines).toEqual(answer === 'allow' ? ['ask_service'] : []);

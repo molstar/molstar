@@ -68,7 +68,7 @@ storage (memory by default; IndexedDB to keep it; a host may bring its own `Harn
 
 - `turn(request, hooks)` with `request = { prompt, state?, focus?, notes?, attachments?, model?, preamble? }` →
   `TurnResult` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval` with the calls; the last text and the
-  turn's, tool events, usage, context size, compactions). One turn at a time. `resume(hooks, decisions)`, `stop()`, `interrupted()`, `forget()` (back to an
+  turn's, tool events, usage, context size, compactions). One turn at a time. `resume({ decisions?, hooks? })`, `stop()`, `interrupted()`, `forget()` (back to an
   empty conversation), `dispose()`.
 - **Messages**: the first turn sends the guidance, then the tool definitions (core loaded, the rest declared), then the
   request; later turns send what changed since (new or changed definitions, changed guidance as a user message), then

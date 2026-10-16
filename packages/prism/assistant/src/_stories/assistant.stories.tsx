@@ -15,6 +15,7 @@ import { ExampleFiles, RealViewerStory } from '@molstar/prism-viewer/testing/rea
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { InspectorPageId } from '../inspector-access.js';
+import { assistant } from '../spec.js';
 import type { KeyScope, KeyStore } from '../keys.js';
 
 type Clock = NonNullable<NonNullable<Parameters<typeof scriptedModel>[1]>['clock']>;
@@ -77,21 +78,19 @@ function AssistantStory(props: AssistantStoryProps) {
     agent: {
       ...(base.agent || {}),
       assistant: async () => {
-        const m = await import('../viewer.js');
         const model = props.script ? scriptedModel(props.script, { clock: realClock }) : undefined;
-        const factory = m.createAssistantWith({
+        const m = await assistant({
           keys: memoryKeys(),
           prefs: memoryPrefs(),
           ...(model
             ? {
                 provided: [{ id: 'scripted', label: 'Scripted (story)', models: ['scripted'], adapter: model.adapter }],
+                provider: 'scripted',
               }
             : {}),
-        });
-        return {
-          createViewerAgent: m.createViewerAgent,
-          createAssistant: async (host) => (ui = await factory(host)),
-        };
+        })();
+        // The story keeps the assistant's parts, to drive them.
+        return { ...m, createAssistant: async (host) => (ui = await m.createAssistant(host)) };
       },
     },
   });
