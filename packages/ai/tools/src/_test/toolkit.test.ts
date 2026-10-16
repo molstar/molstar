@@ -195,6 +195,35 @@ describe('the disclosure tools’ catalog is generated from the toolkit', () => 
     expect(t?.definition.description).not.toContain('Tools:');
   });
 
+  it('their JSON Schemas are exactly these, byte for byte (what the model sees does not change with the input)', () => {
+    const k = createToolkit<Toy>({
+      tools: ['a', 'b', 'c', 'd'].map((id) => make(id)),
+      core: ['a'],
+      groups: [
+        { id: 'g1', title: 'G', summary: 's', guidance: 'g', tools: ['b'] },
+        { id: 'g2', title: 'G2', summary: 's2', guidance: 'g', tools: ['c'] },
+      ],
+    });
+    const [s, t] = k.disclosureTools();
+    expect(JSON.stringify(s?.definition.inputSchema)).toBe(
+      '{"type":"object","properties":{"skills":{"type":"array","items":{"type":"string","enum":["g1","g2"]},"description":"Skill names."}},"required":["skills"]}',
+    );
+    expect(JSON.stringify(t?.definition.inputSchema)).toBe(
+      '{"type":"object","properties":{"tools":{"type":"array","items":{"type":"string","enum":["d"]},"description":"Tool names."}},"required":["tools"]}',
+    );
+    const [bareSkills, bareTools] = createToolkit<Toy>({
+      tools: [make('a')],
+      core: ['a'],
+      groups: [],
+    }).disclosureTools();
+    expect(JSON.stringify(bareSkills?.definition.inputSchema)).toBe(
+      '{"type":"object","properties":{"skills":{"type":"array","items":{"type":"string"},"description":"Skill names."}},"required":["skills"]}',
+    );
+    expect(JSON.stringify(bareTools?.definition.inputSchema)).toBe(
+      '{"type":"object","properties":{"tools":{"type":"array","items":{"type":"string"},"description":"Tool names."}},"required":["tools"]}',
+    );
+  });
+
   it('the disclosure tools take the modules the groups’ availability reads', () => {
     expect(skills?.modules).toEqual(['disclosure', 'extra']);
     expect(tools?.modules).toEqual(['disclosure']);

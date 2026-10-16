@@ -12,8 +12,8 @@ import type { ArgsOf, FieldShape, ObjectShape } from './shape.js';
 
 /**
  * A tool's input as `ai-tools` holds it (tools-and-session.md §1): the shape its arguments are normalized against, the
- * JSON Schema the model sees, and the check. Made once, from a field shape (`shapeInput`) or a zod object
- * (`zodInput`, in `@molstar/ai-tools/zod`); zod is this package's own business, so no type here names it.
+ * JSON Schema the model sees, and the check. Made once, from a field shape (`shapeInput`); zod is this package's own
+ * business, so no type of this interface names it.
  */
 export interface ToolInput<A = unknown> {
   readonly shape: ObjectShape;

@@ -1,22 +1,23 @@
 # Tools (`@molstar/ai-tools`)
 
 How a host declares tools, what the model reads back, and how they become the harness's `ToolBindings`. Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this package.
+[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this package (and
+`ai-model-adapters`): no export names it, and a Biome rule keeps it out of the rest of the repository.
 
 ## Files (`tools/src/`)
 
-| File          | What                                                                                      |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`                                               |
-| `shape.ts`    | `FieldShape`, `ObjectShape`, `ArgsOf`, `normalize` (argument repair)                      |
-| `input.ts`    | `ToolInput` (shape, JSON Schema, `parse`), `shapeInput`; `zod.ts`: `zodInput`, `verbatim` |
-| `result.ts`   | `ToolResult`, `render`, `failed`, `toFrame`, `Effect`                                     |
-| `registry.ts` | `ToolRegistration`, `registered` (the handler pump), `createToolBindings`, `AfterWrite`   |
-| `toolkit.ts`  | `createToolkit`: core, groups (skills), entries, the disclosure tools                     |
-| `repeats.ts`  | `RepeatedReads`                                                                           |
-| `nest.ts`     | `NestedTools`, `Nest`, `NestRequest`: helper agents under a call                          |
-| `schedule.ts` | `toolSchedule`                                                                            |
-| `closest.ts`  | `suggest`, `closestHint` ("did you mean")                                                 |
+| File          | What                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`                                             |
+| `shape.ts`    | `FieldShape`, `ObjectShape`, `ArgsOf`, `normalize` (argument repair)                    |
+| `input.ts`    | `ToolInput` (shape, JSON Schema, `parse`), `shapeInput`                                 |
+| `result.ts`   | `ToolResult`, `render`, `failed`, `toFrame`, `Effect`                                   |
+| `registry.ts` | `ToolRegistration`, `registered` (the handler pump), `createToolBindings`, `AfterWrite` |
+| `toolkit.ts`  | `createToolkit`: core, groups (skills), entries, the disclosure tools                   |
+| `repeats.ts`  | `RepeatedReads`                                                                         |
+| `nest.ts`     | `NestedTools`, `Nest`, `NestRequest`: helper agents under a call                        |
+| `schedule.ts` | `toolSchedule`                                                                          |
+| `closest.ts`  | `suggest`, `closestHint` ("did you mean")                                               |
 
 ## Defining a tool
 
@@ -49,8 +50,8 @@ export const setColor = tool({
 
 `FieldShape`: `string` (`enum?`, `verbatim?`, `format?`), `number`/`integer` (`min?`, `max?`), `boolean`, `array`
 (`item`, `max?`), `object` (`fields`), `variant` (`tag`, `variants`), `json`; each with `optional?`, `description?`,
-`default?`. A tool's input is an `ObjectShape` or `zodInput(z.object(…))` from `@molstar/ai-tools/zod`. Either way the
-JSON Schema (draft 2020-12, without its `$schema`: the providers know the dialect) and the validator are made once.
+`default?`. A tool's input is an `ObjectShape`. The JSON Schema (draft 2020-12, without its `$schema`: the providers
+know the dialect) and the validator are made once.
 
 `normalize` repairs what small models send, before the check: `""` and `null` are absent; strings trimmed (not
 `verbatim`); `"3"` → number and `"true"` → boolean where asked; a number → string where a string is asked; a list of

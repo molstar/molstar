@@ -11,10 +11,9 @@ import { z } from 'zod';
 import { closestHint, suggest } from './closest.js';
 import { DISCLOSE_SKILLS, DISCLOSE_TOOLS, LABEL_DEFINITIONS, LABEL_ENTRY, LABEL_SKILL } from './names.js';
 import type { ToolRegistration } from './registry.js';
-import type { ToolInput } from './input.js';
+import { type ToolInput, zodBacked } from './input.js';
 import { failed } from './result.js';
 import { defineTool } from './tool.js';
-import { zodInput } from './zod.js';
 
 /**
  * What the agent sees of its tools, and when (tools-and-session.md §3): a small core from the first turn; everything
@@ -397,7 +396,8 @@ function disclosureTools<Api extends DisclosureApi>(
   const discloseSkills = defineTool<Api, keyof Api, ToolInput<{ skills: string[] }>>({
     id: names.skills,
     description: `Load skills: their guidance and their tools, all a request needs in one call, once per conversation. Skills: ${spec.groups.map((s) => `"${s.id}" (${s.summary})`).join('; ')}.${also}`,
-    input: zodInput(
+    input: zodBacked<{ skills: string[] }>(
+      { kind: 'object', fields: { skills: { kind: 'array', item: { kind: 'string' }, description: 'Skill names.' } } },
       z.object({
         // Ids as an enum in the schema (the groups only, so it never changes with entries), but any id parses: an
         // entry's id, or one it does not know, is answered.
@@ -485,7 +485,8 @@ function disclosureTools<Api extends DisclosureApi>(
   const discloseTools = defineTool<Api, keyof Api, ToolInput<{ tools: string[] }>>({
     id: names.tools,
     description: `Load tools by name, all you need in one call; they stay available for the rest of the conversation.${catalog} Tools that belong to a skill come with ${names.skills}; a skill's guidance names the ones it loads by name.`,
-    input: zodInput(
+    input: zodBacked<{ tools: string[] }>(
+      { kind: 'object', fields: { tools: { kind: 'array', item: { kind: 'string' }, description: 'Tool names.' } } },
       z.object({
         // The names as an enum in the schema, but any name parses: one in a skill, or none, is answered.
         tools: z.array(z.string().meta(enumOf(singleIds))).describe('Tool names.'),

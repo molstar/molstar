@@ -114,8 +114,8 @@ too. The references and the guidance are the agent's and ship only with it.
 | `@molstar/ai-fibers`  | §6                                                                                                                                                                                                                                                                                                                                                  | ~1700 |
 
 None imports Mol\*, Prism, rxjs or React (the existing rules). zod validates, inside `ai-tools` only: a tool's input is
-declared as a small field-shape interface (Prism maps PD to it) or, through `./zod`, as a zod schema; `ai-tools` turns
-either into its validator and the JSON Schema, and normalizes arguments over the field shape.
+declared as a small field-shape interface (Prism maps PD to it); `ai-tools` turns it into its validator and the JSON
+Schema, and normalizes arguments over the field shape. (No zod in the public API: decided 2026-10-16.)
 
 Fixes on the way, from reading the code:
 
@@ -201,8 +201,8 @@ the Prism UI's and for the sequence viewer.
 
 ## 8. Decided (2026-10-11)
 
-1. **Tool schemas**: a neutral field shape (Prism maps PD to it) or a zod schema through `ai-tools/zod`; zod validates,
-   isolated to `ai-tools`.
+1. **Tool schemas**: a neutral field shape (Prism maps PD to it); zod validates, isolated to `packages/ai` (the `./zod`
+   entry of 2026-10-11 was dropped on 2026-10-16).
 2. **Packages**: the generic layer as in §4. Each mode's agent parts (its tools' guidance and skills, its state and
    focus accounts, its drive overrides) live in an `agent` folder of the mode's package (`@molstar/prism-viewer/agent`,
    `@molstar/prism-stories/agent`), the only code there that imports `@molstar/ai-*` (an import rule checks it), and

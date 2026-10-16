@@ -11,7 +11,7 @@ The agent harness and what it needs: durable agent turns, model adapters, storag
 | `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation                      |
 | `@molstar/ai-components`     | storage (memory, IndexedDB) on one durable core; the in-process supervisor                                                                                |
 | `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`./model-catalog`, no dependencies) |
-| `@molstar/ai-tools`          | tools: input as field shapes (or zod), results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure     |
+| `@molstar/ai-tools`          | tools: input as field shapes, results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure     |
 | `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction; one-off runs                                                   |
 | `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)                           |
 

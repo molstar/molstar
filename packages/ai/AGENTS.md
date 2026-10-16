@@ -8,8 +8,8 @@ AI packages' own. Architecture and decisions: [.v6/ai](../../.v6/ai/README.md) (
 - **What is missing** and what was deferred: [TODO.md](TODO.md) (an entry leaves when it is done).
 - `agent`, `harness`, `components` (platform code: storage, the supervisor), `model-adapters`, `conformance` (the suite
   every backend runs, and test doubles), `tools`, `session`, `trace`, `fibers`.
-- Generic: no package imports Mol\*, Prism or rxjs; `node:*` only in `ai-components`; zod only in `ai-tools`. Biome
-  enforces these per package.
+- Generic: no package imports Mol\*, Prism or rxjs; `node:*` only in `ai-components`; zod only in `ai-tools` and
+  `ai-model-adapters`, and nowhere outside `packages/ai`. Biome enforces these per package.
 - A change to a harness contract comes with a conformance case.
 - Tests use the scripted model from `@molstar/ai-conformance/testing`. Anything that calls a real model costs money: ask
   before running it.

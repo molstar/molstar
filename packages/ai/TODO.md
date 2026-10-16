@@ -8,14 +8,14 @@ and the code. Prism's (the viewer's agent, the assistant): [../prism/TODO.md](..
 
 - **Reconsider zod** (David). Where it is: `ai-tools` only among our packages (`tools/src/input.ts`: a field shape
   becomes a zod object, then the JSON Schema the model sees and the validator with its error messages;
-  `tools/src/toolkit.ts`: the disclosure tools, through `zodInput`; `tools/src/zod.ts`: `zodInput` for hosts that
-  declare tools in zod). `ai-model-adapters` depends on it as the AI SDK's peer, and the SDK's providers import zod
-  themselves. Cost: ~192 kB minified in the assistant's chunk (English only, `scripts/esbuild/app.mjs`; ~453 kB and 95
-  kB gzipped with every locale); never in a page's startup bundle. Alternatives: JSON Schema straight from the field
-  shapes, with a small validator over their closed vocabulary (string, enum, number with bounds, boolean, array, object,
-  tagged union), keeping `zodInput` as an opt-in subpath; JSON Schema from Mol\*'s `ParamDefinition`, which the viewer's
-  operations already have (`paramsShape` maps it to field shapes today); a smaller validator. zod leaves the bundle only
-  if the adapters do not use the AI SDK ([tools-and-session.md §1–2](../../.v6/ai/tools-and-session.md)).
+  `tools/src/toolkit.ts`: the disclosure tools, through `zodBacked` over an explicit field shape; no zod in the public
+  API). `ai-model-adapters` depends on it as the AI SDK's peer, and the SDK's providers import zod themselves. Cost:
+  ~192 kB minified in the assistant's chunk (English only, `scripts/esbuild/app.mjs`; ~453 kB and 95 kB gzipped with
+  every locale); never in a page's startup bundle. Alternatives: JSON Schema straight from the field shapes, with a
+  small validator over their closed vocabulary (string, enum, number with bounds, boolean, array, object, tagged union);
+  JSON Schema from Mol\*'s `ParamDefinition`, which the viewer's operations already have (`paramsShape` maps it to field
+  shapes today); a smaller validator. zod leaves the bundle only if the adapters do not use the AI SDK
+  ([tools-and-session.md §1–2](../../.v6/ai/tools-and-session.md)).
 
 ## Missing
 

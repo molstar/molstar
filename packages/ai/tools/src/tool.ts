@@ -31,7 +31,7 @@ export interface RunInput<Api, K extends keyof Api, A, M = unknown> {
 export interface ToolSpec<Api, K extends keyof Api, I extends InputSpec, M = unknown> {
   id: string;
   description: string;
-  /** A field shape (tools-and-session.md §2), or an input made with `zodInput` from `@molstar/ai-tools/zod`. */
+  /** A field shape (tools-and-session.md §2). */
   input: I;
   modules: readonly K[];
   /** Of its modules, those it does without where the host lacks them. */

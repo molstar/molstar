@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* AI: Tools for the harness: a tool, its input (field shapes or zod), its result for the model, bindings, repeated reads, nested tools, schedules, tool groups (skills) and their disclosure",
+  "description": "Mol* AI: Tools for the harness: a tool, its input (a field shape), its result for the model, bindings, repeated reads, nested tools, schedules, tool groups (skills) and their disclosure",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
@@ -13,16 +13,6 @@
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./zod": {
-      "molstar-src": "./src/zod.ts",
-      "types": "./lib/zod.d.ts",
-      "import": "./lib/zod.js"
-    },
-    "./*": {
-      "molstar-src": "./src/*.ts",
-      "types": "./lib/*.d.ts",
-      "import": "./lib/*.js"
     },
     "./_test/*": null
   },

@@ -11,8 +11,9 @@ cut out ([analysis/viewer-mode.md](analysis/viewer-mode.md) §4). Code comments 
   is the host's object of modules (Stories' `StoryToolApi`, Prism's command context): a tool names the modules it uses
   and `run` gets only those, frozen. `run({ args, api, signal, progress, nest?, call })` gets its arguments normalized
   and checked, `call` (`callId`, `key`, `prior`) for idempotency, and returns a `ToolResult`.
-- **Input** is an object shape (`ObjectShape`, §2) or, through `@molstar/ai-tools/zod`, a zod object. Either way
-  `ai-tools` makes from it, once, the JSON Schema the model sees and the validator; zod is its own business.
+- **Input** is an object shape (`ObjectShape`, §2), a field shape: no zod in the public API (the owner's decision,
+  2026-10-16). `ai-tools` makes from it, once, the JSON Schema the model sees and the validator; zod is internal to
+  `packages/ai` (`ai-tools`, `ai-model-adapters`), and a Biome rule keeps it out of every file outside that folder.
 - **`ToolResult`** is `{ ok: true, did, changed?, view?, warnings?, body?, next?, contributions?, effect? }` or
   `{ ok: false, code, message, hint?, transient?, effect? }`, rendered for the model always in that order: what it did
   ("…: already so." when nothing had to change), `Changed: …`, `View: …`,
@@ -48,8 +49,7 @@ interface ObjectShape { kind: 'object'; fields: Readonly<Record<string, FieldSha
 Small models send sloppy arguments; before the check, against the shape: `""` and `null` are absent; strings are trimmed
 (not `verbatim` ones); `"3"` is a number and `"true"` a boolean where one is asked for, a number a string where a string
 is; a list of strings is one comma-joined string where one string is asked for, and `"A, B"` a list where a list of
-non-objects is; an enum matches in any case; objects in a list are read by their own fields. A zod object is read as a
-field shape for this. Prism maps PD params to field shapes.
+non-objects is; an enum matches in any case; objects in a list are read by their own fields. Prism maps PD params to field shapes.
 
 ## 3. Tool groups (skills)
 

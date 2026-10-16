@@ -91,6 +91,26 @@
       }
     },
     {
+      "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}", "!packages/ai/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/ai/agent/src/**", "!packages/ai/agent/src/**/_test/**"],
       "linter": {
         "rules": {
@@ -633,6 +653,10 @@
                   {
                     "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
@@ -666,6 +690,10 @@
                   {
                     "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
@@ -703,6 +731,10 @@
                   {
                     "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
@@ -732,6 +764,10 @@
                       "@molstar/seq-core/stream/gmod/**"
                     ],
                     "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
@@ -760,6 +796,10 @@
                       "../**"
                     ],
                     "message": "links is platform-free and imports only view-spec, for types."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
@@ -791,6 +831,10 @@
                   {
                     "group": ["@molstar/**", "react", "react-dom", "react/**", "react-dom/**", "../**"],
                     "message": "ql is the language definition: a leaf, platform-free."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI packages' own: declare tool inputs as field shapes (tools-and-session.md §2)."
                   }
                 ]
               }
