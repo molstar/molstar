@@ -97,6 +97,9 @@ Every padding, margin and gap is a step of the scale or a rule named after it:
   (essentials, then Advanced; on/off params as a switch); one `ColorPicker`; one `ActionFooter` ends every block applied
   by a button; `Choices` for a row of one-click actions.
 - **Focus rings** are a 2px `--msp-color-focus-ring` outline; fields, rows and footer buttons draw theirs inside.
+- **The canvas follows the theme when it is plain**: each theme has `--msp-canvas-bg`; choosing a theme sets it as the
+  3D canvas's background only while that background is a plain color (no image, gradient or skybox style), and at the
+  start unless the options give one (`viewer/src/ui/shell.tsx`).
 - **Colors, spacing and radii from tokens**; literals only for what must read whatever the theme. No inline styles
   except runtime values (positions, sizes, progress, data colors), often as custom properties.
 - **State is styled through attributes the DOM already carries** (`[aria-expanded]`, `[aria-selected]`,
