@@ -11,7 +11,14 @@
 // bookmarks, an inline `ranges` annotation the bookmark actions edit, stepped through `ctx.results`; and
 // `results.save`, a results set kept as a location set. Edge rate throughout.
 
-import { type DocNode, type LineStyle, LineStyles, type Op, sectionHighlights } from '@molstar/seq-core/format';
+import {
+  type DocNode,
+  GlyphShapes,
+  type LineStyle,
+  LineStyles,
+  type Op,
+  sectionHighlights,
+} from '@molstar/seq-core/format';
 import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from '@molstar/seq-core/model';
 import { SeqSelection } from '@molstar/seq-core/model/query';
 import { type ActionEntry, nodePath } from './actions.js';
@@ -69,7 +76,10 @@ export interface BookmarkAdd {
   readonly label?: string;
   readonly color?: string;
   readonly line_style?: LineStyle;
-  /** A marker's glyph (a shape name), written as the row's `glyph` column, which a layer shows through `field_glyph`. */
+  /**
+   * A marker's glyph (one of the format's shape names, `GlyphShapes`), written as the row's `glyph` column, which a
+   * layer shows through `field_glyph`.
+   */
   readonly glyph?: string;
   readonly data?: string;
 }
@@ -263,7 +273,7 @@ export const BookmarkActions: readonly ActionEntry[] = [
       if (!a || !isSection(ctx, a.section) || !set || a.loci?.set !== set) return false;
       if (a.color !== undefined && typeof a.color !== 'string') return false;
       if (a.line_style !== undefined && !LineStyles.includes(a.line_style)) return false;
-      if (a.glyph !== undefined && (typeof a.glyph !== 'string' || a.glyph === '')) return false;
+      if (a.glyph !== undefined && !GlyphShapes.includes(a.glyph as never)) return false;
       const node = nodeOf(ctx, bookmarksOf(a.section, a.data));
       return (node === null || rowsOf(node) !== null) && !SeqSelection.isEmpty(SeqSelection.fromLoci(set, [a.loci]));
     },

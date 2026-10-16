@@ -28,6 +28,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { rowLoci, seqLoci } from '../../viewer/_test/overlay-docs.js';
 import {
   alignmentFigureDoc,
+  FIGURE_BOXES,
   FIGURE_FRAMES,
   FIGURE_MARKERS_BELOW,
   FIGURE_PRESETS,
@@ -304,6 +305,19 @@ describe('frames and markers from the panel, in both views', () => {
     expect(annotationRows(ctx.document.shown.value, FIGURE_FRAMES).at(-1)).toEqual(
       expect.objectContaining({ target: 'globins', label: 'Added frame' }),
     );
+    // Box on a row: a row's residues, the row's own target and the box's line style, one patch.
+    const third = ctx.graph.assembled.value?.set as SeqSet;
+    expect(add(FIGURE_BOXES, rowLoci(third, 4, 30, 38), { label: 'Added box', line_style: 'box' })).toBe(true);
+    await flush();
+    expect(annotationRows(ctx.document.shown.value, FIGURE_BOXES).at(-1)).toEqual({
+      target: 'globins/4',
+      start: 30,
+      stop: 38,
+      id: 'b2',
+      label: 'Added box',
+      color: '#2a9d8f',
+      line_style: 'box',
+    });
     for (const preset of [FIGURE_PRESETS.text, FIGURE_PRESETS.tracks]) {
       ctx.ui.setStyle(FIGURE_SECTION, preset);
       ctx.viewports.get(FIGURE_SECTION)?.setSize(1000, 700, 1);

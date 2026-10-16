@@ -33,8 +33,9 @@ describe('an alignment as text with frames allocates nothing after warm-up', () 
     const d = await textRows('draw');
     const r = measure(d, d.step);
     // The frames drew the outlines and cylinders (paths) and the letters, labels and numbers (texts).
-    const { paths, texts } = d.state();
+    const { paths, texts, frames } = d.state();
     expect(paths).toBeGreaterThan(STEPS);
+    expect(frames).toBeGreaterThan(STEPS);
     expect(texts).toBeGreaterThan(STEPS);
     expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
   }, 300_000);

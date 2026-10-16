@@ -496,15 +496,16 @@ every row of an alignment, in text and in tracks.
   `v.top` and `v.height` its span), so a pan's strip, a scroll's band and an export draw what a full draw does. It runs
   from the top of `span.from`'s band to the bottom of `span.to`'s (wrapped, on each line, half `wrappedTrackGap` outside
   them; linear, over the span's scrolled entries, so it follows a row zoom without a rebuild). Where a rows band is that
-  edge, the edge is the topmost or bottommost row the item targets (an item on the columns spans every row).
+  edge, the edge is the topmost or bottommost row the item targets (an item on the columns spans every row; a row inside
+  a collapsed clade, its wedge's row).
 - **Open sides.** A side is drawn only at its item's own end: where a line break (or, in tracks, the view's edge) cuts
   the item, that side stays open and the top and bottom edges run to the line's end. The edges sit on the cells' edges,
-  1.5 px, in the item's color; `dashed` and `dotted` line styles are drawn so, the pattern fixed to the content, the
-  others solid.
+  1.5 CSS px rounded to whole device px, in the item's color; `dashed` and `dotted` line styles are drawn so, the
+  pattern fixed to the content, the others solid.
 - **Titles.** Each item's label is drawn in the frame's own track, at its left edge, on the line (or in the view) where
   the item starts, up to the next title or the line's end, cut with an ellipsis; in text the track takes a title's row
-  only on such lines. The title's band hits the frame's item over its columns; the outline takes no hits from the tracks
-  under it.
+  only on such lines, and in tracks a row; a frame without titles (`labels: false`) takes no band. The title's band hits
+  the frame's item over its columns; the outline takes no hits from the tracks under it.
 
 ## Performance
 

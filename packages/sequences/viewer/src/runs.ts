@@ -76,8 +76,8 @@ export const CHIP_PAD = 5;
 export interface GroupLabeler {
   /** Inline before the group's first letter, else above its last. */
   readonly inline: boolean;
-  /** Shown position k's label in the block's numbering; "": none. */
-  text(block: number, k: number): string;
+  /** Shown position k's label in the block's numbering, k in its group [start, stop) of shown positions; "": none. */
+  text(block: number, k: number, start: number, stop: number): string;
   /** Its width; inline, with `GROUP_LABEL_PAD`. */
   width(text: string): number;
 }
@@ -160,7 +160,7 @@ export function prepareRun(
   let x = 0;
   for (let g = 0; g < starts.length; g++) {
     const stop = g + 1 < starts.length ? starts[g + 1] : n;
-    const text = labeler ? labeler.text(block, inline ? starts[g] : stop - 1) : '';
+    const text = labeler ? labeler.text(block, inline ? starts[g] : stop - 1, starts[g], stop) : '';
     labels.push(text);
     labelWidths[g] = text && labeler ? labeler.width(text) : 0;
     const own = inline ? labelWidths[g] : 0;

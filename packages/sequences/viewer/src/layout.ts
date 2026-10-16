@@ -1861,10 +1861,10 @@ export class Layouts implements LayoutManager {
     const pad = e.props.wrappedGroupLabels === 'inlineStart' ? GROUP_LABEL_PAD : 0;
     // Rows as text: the reference row's numbers, as ESPript numbers its first sequence (seqspec:viewer#rows-in-text).
     const byRow = e.layout.textRows.layer >= 0;
-    const group = e.props.wrappedGroup;
     return {
       inline: pad > 0,
-      text: (b, k) => (byRow ? referenceLabel(ax, b, k, pad > 0 ? 1 : -1, group) : positionLabel(v, set, ax, b0, b, k)),
+      text: (b, k, start, stop) =>
+        byRow ? referenceLabel(ax, b, k, pad > 0 ? 1 : -1, start, stop) : positionLabel(v, set, ax, b0, b, k),
       width(text) {
         const a = tm.advances(font);
         let w = 0;
@@ -1957,6 +1957,8 @@ export class Layouts implements LayoutManager {
       }
       return floor;
     }
+    // Frames without titles take no band (seqspec:viewer#frames): their outlines are drawn over the tracks they span.
+    if (this.untitled(e, t)) return 0;
     const natural = v.sections.rowSizing[e.index] === RowSizing.natural;
     // The data area's width and a box's room for its rows, whole px (ints cross the call unboxed): a plot keeps its aspect.
     const l = e.layout;
@@ -1971,6 +1973,17 @@ export class Layouts implements LayoutManager {
       h = Math.max(h, fn ? fn(model.prepared[k]?.state, v.layers.params[k], p, e.built[2], width, room) : p.rowHeight);
     }
     return h || p.rowHeight;
+  }
+
+  /** Whether track t holds frames alone, none titled (`labels: false`). */
+  private untitled(e: SectionEntry, t: number): boolean {
+    const { resolved: v, set } = e.model as ViewModel;
+    let any = false;
+    for (let k = firstLayer(v, t); k >= 0 && k < v.layers.count && v.layers.track[k] === t; k++) {
+      if (!typeIs(v, set, k, 'frame') || v.layers.params[k].labels !== false) return false;
+      any = true;
+    }
+    return any;
   }
 
   /** Whether a track's height follows the row scale: a layer of it drawn by a renderer that `zooms`, with no height hint. */
@@ -2131,17 +2144,17 @@ function trackEntries(l: SectionLayout, tracks: number) {
 }
 /**
  * A group's label over an alignment's rows drawn as text (seqspec:viewer#rows-in-text): the reference row's residue
- * number at its last residue in the group (`dir` -1, from shown k back; inline, 1: its first, from k on); "" where the
- * group holds none of its residues.
+ * number at its last residue in the group [start, stop) (`dir` -1, from shown k back; inline, 1: its first, from k on);
+ * "" where the group holds none of its residues (a short group, the last or one a filter's break cuts, included).
  */
-function referenceLabel(ax: Axis, b: number, k: number, dir: number, group: number): string {
+function referenceLabel(ax: Axis, b: number, k: number, dir: number, start: number, stop: number): string {
   const aln = ax.set.alignments[ax.alignment[b]];
   if (!aln) return '';
   const row = Math.max(0, aln.referenceRow) as never;
   const slot = aln.rows.slotOf(row);
   if (slot < 0) return '';
   const first = aln.rows.rowFirst[slot] === NO_LABEL ? 1 : aln.rows.rowFirst[slot];
-  for (let n = 0, q = k; n < group && q >= 0 && q < ax.shown[b]; n++, q += dir) {
+  for (let q = k; q >= start && q < stop; q += dir) {
     const p = aln.rows.colToPos(row, ax.indexOf(b, q as ShownIndex) as never);
     if (p >= 0) return String(first + p);
   }

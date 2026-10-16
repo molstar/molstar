@@ -86,6 +86,10 @@ export async function textRows(kind: TextRowsKind) {
   let hovered = 0;
   let paths = 0;
   let texts = 0;
+  /** The frames' outlines drawn (paths in the figure's frame colors). */
+  let frames = 0;
+  const F1 = 0x9467bd;
+  const F2 = 0xff7f0e;
   const step = (i: number) => {
     be.reset();
     if (kind === 'hover') {
@@ -102,14 +106,17 @@ export async function textRows(kind: TextRowsKind) {
     composer.frame(be, Dirty.tracks);
     paths += be.pathItems.n;
     texts += be.textItems.n;
+    for (let q = 0; q < be.pathItems.n; q++) if (be.pathItems.color[q] === F1 || be.pathItems.color[q] === F2) frames++;
   };
   return {
     step,
-    /** What the steps drew: paths (frames, helices) and texts over the steps run, the hovers. */
-    state: () => ({ hovered, paths, texts }),
+    /** What the steps drew: paths (frames, helices), the frames' outlines and texts over the steps run, the hovers. */
+    state: () => ({ hovered, paths, texts, frames }),
+    /** The layout's builds and rescales so far (a row zoom rescales, never builds). */
+    stats: () => ({ builds: t.layouts.stats.builds, rescales: t.layouts.stats.rescales }),
     /** Counts anew (a guard counts over its measured steps alone). */
     resetCounts: () => {
-      hovered = paths = texts = 0;
+      hovered = paths = texts = frames = 0;
     },
   };
 }

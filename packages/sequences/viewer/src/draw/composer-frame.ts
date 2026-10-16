@@ -421,10 +421,18 @@ function frames(f: ComposerFrame, l: SectionLayout) {
       acrossSpan(f, l, k, -1);
       continue;
     }
-    for (let line = 0; line < l.lines.count; line++) {
+    // From the first line in view (a binary search over the lines' bottoms, in content y), to the last.
+    const from = y0 / dpr - l.scrolledTop + v.scrollY;
+    let line = 0;
+    for (let hi = l.lines.count; line < hi; ) {
+      const mid = (line + hi) >> 1;
+      if (l.lines.bottom[mid] <= from) line = mid + 1;
+      else hi = mid;
+    }
+    for (; line < l.lines.count; line++) {
       const top = l.scrolledTop + l.lines.top[line] - v.scrollY;
-      const bottom = l.scrolledTop + l.lines.bottom[line] - v.scrollY;
-      if (bottom * dpr > y0 && top * dpr < y1) acrossSpan(f, l, k, line);
+      if (top * dpr >= y1) break;
+      acrossSpan(f, l, k, line);
     }
   }
   v.backend.popClip();

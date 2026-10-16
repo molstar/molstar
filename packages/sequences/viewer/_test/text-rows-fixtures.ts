@@ -6,136 +6,53 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// An ESPript-like figure of the core's globin fixture (`pf00042-seed-8.aln`, Pfam's PF00042 seed, its first eight rows
-// in CLUSTAL W's layout): the rows as text (seqspec:viewer#rows-in-text) on `espript` cells, HBA_HUMAN's helices above
-// the block (approximate, after 2HHB's), an illustrative strand pair under it, glyph markers above and below, a box on
-// one row's range and two titled frames over the rows (seqspec:viewer#frames), one across a line break. Node only (the
-// fixture is read from disk).
+// The ESPript-like figure (figure-docs.ts) over the core's globin fixture read from disk (Node only), and the render
+// props of a line per 60 columns.
 
 import { readFileSync } from 'node:fs';
-import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { type AlnRow, type FigureOptions, figureFromRows, parseClustal } from './figure-docs.js';
+
+export { type AlnRow, FIGURE_FRAMES, type FrameRow, GLOBIN_NWK, sixtyColumns } from './figure-docs.js';
 
 /** The fixture's rows: name (`ID/first-last`), gapped residues, and each block's printed end numbers. */
-export interface AlnRow {
-  readonly name: string;
-  readonly gapped: string;
-  readonly ends: readonly number[];
-}
-/** CLUSTAL W's blocks, read back: a row per name, its segments joined, the number printed after each. */
 export function globinRows(): AlnRow[] {
-  const text = readFileSync(new URL('../../core/_test/fixtures/pf00042-seed-8.aln', import.meta.url), 'utf8');
-  const rows = new Map<string, { gapped: string; ends: number[] }>();
-  for (const line of text.split('\n')) {
-    const m = /^(\S+)\s+([A-Za-z.-]+)\s+(\d+)$/.exec(line);
-    if (!m || line.startsWith('CLUSTAL')) continue;
-    const r = rows.get(m[1]) ?? { gapped: '', ends: [] };
-    r.gapped += m[2];
-    r.ends.push(Number(m[3]));
-    rows.set(m[1], r);
-  }
-  return [...rows].map(([name, r]) => ({ name, gapped: r.gapped, ends: r.ends }));
+  return parseClustal(readFileSync(new URL('../../core/_test/fixtures/pf00042-seed-8.aln', import.meta.url), 'utf8'));
 }
 
-/** HBA_HUMAN's helices in UniProt numbering (2HHB chain A's, DSSP, +1; approximate), within the row's 27–137. */
-const HBA_HELICES: readonly (readonly [number, number])[] = [
-  [27, 36],
-  [37, 43],
-  [53, 72],
-  [81, 89],
-  [95, 112],
-  [119, 137],
-];
+/** The figure over the fixture's rows (`FigureOptions`). */
+export const figureDoc = (o: FigureOptions = {}): SeqViewSpecDoc => figureFromRows(globinRows(), o);
 
-/** A frame's row in the figure's frames set (a bookmark's: target, range, id, label, color, line style). */
-export interface FrameRow {
-  readonly target: string;
-  readonly start: number;
-  readonly stop: number;
-  readonly id: string;
-  readonly label: string;
-  readonly color: string;
-  readonly line_style?: string;
-}
-/** The figure's two frames: one over every row's first 20 columns, one dashed over columns 88 to 112. */
-export const FIGURE_FRAMES: readonly FrameRow[] = [
-  { target: 'globins', start: 0, stop: 20, id: 'f1', label: 'N-segment', color: '#9467bd' },
-  { target: 'globins', start: 88, stop: 112, id: 'f2', label: 'C–E region', color: '#ff7f0e', line_style: 'dashed' },
-];
-
-/** The figure's sets and tracks; `frames` in place of `FIGURE_FRAMES`; `style` over the section's. */
-export function figureDoc(o: { frames?: readonly FrameRow[]; style?: Record<string, unknown> } = {}): SeqViewSpecDoc {
-  const rows = globinRows();
-  const b = createSeqViewSpec({ title: 'Globins, ESPript-like' });
-  const aln = b.data.alignment({
-    ref: 'globins',
-    value: rows.map((r) => r.gapped),
-    labels: rows.map((r) => r.name),
-  } as never);
-  const ann = (ref: string, value: unknown) =>
-    b.data.annotation({ ref, label: ref, geometry: 'ranges', value } as never);
-  const first = 27;
-  const top = ann('ss.top', {
-    target: HBA_HELICES.map(() => 'globins/0'),
-    start: HBA_HELICES.map((h) => h[0] - first),
-    stop: HBA_HELICES.map((h) => h[1] - first + 1),
-    category: HBA_HELICES.map(() => 'helix'),
-    label: HBA_HELICES.map((_, k) => `α${k + 1}`),
-  });
-  const bottom = ann('ss.bottom', {
-    target: ['globins/3', 'globins/3', 'globins/3'],
-    start: [18, 28, 44],
-    stop: [24, 34, 64],
-    category: ['strand', 'strand', 'helix'],
-    label: ['β1', 'β2', 'α1'],
-  });
-  const above = ann('figure.markers.above', [
-    { target: 'globins/0', start: 32, stop: 33, id: 'm1', label: 'His58 (distal)', color: '#1f77b4', glyph: 'star' },
-    {
-      target: 'globins/0',
-      start: 61,
-      stop: 62,
-      id: 'm2',
-      label: 'His87 (proximal)',
-      color: '#d62728',
-      glyph: 'triangle',
-    },
-  ]);
-  const below = ann('figure.markers.below', [
-    { target: 'globins', start: 14, stop: 15, id: 'm3', label: 'Conserved', color: '#2ca02c', glyph: 'circle' },
-    { target: 'globins', start: 75, stop: 76, id: 'm4', label: 'Conserved', color: '#2ca02c', glyph: 'circle' },
-  ]);
-  const boxes = ann('figure.boxes', [
-    { target: 'globins/2', start: 10, stop: 18, id: 'b1', label: 'Motif', color: '#e3120b', line_style: 'box' },
-  ]);
-  const frames = ann('figure.frames', o.frames ?? FIGURE_FRAMES);
-  const view = b.view({ ref: 'figure', label: 'Figure', layout: 'text' });
-  const sec = view.section({
-    ref: 'figure.main',
-    style: { preset: 'figure', text_cells: true, track_axes: false, track_labels: false, ...o.style },
-  } as never);
-  sec.block({ alignment: aln } as never);
-  const glyph = { theme: 'field_glyph', params: { field: 'glyph' } };
-  const color = { theme: 'field_color' };
-  const style = { theme: 'field_line_style', params: { field: 'line_style' } };
-  sec
-    .track({ ref: 'ss.top.track', label: 'HBA_HUMAN (2HHB, approximate)', height: 1 })
-    .secondary({ data: top, labels: true } as never);
-  sec.track({ ref: 'markers.above', label: 'Markers above', height: 1 }).points({ data: above, glyph, color } as never);
-  sec
-    .track({ ref: 'frames', label: 'Regions' })
-    .frame({ data: frames, span: { from: 'msa' }, color, line_style: style } as never);
-  const msa = sec.track({ ref: 'msa', label: 'Globins' });
-  msa.rows({ letter_map: { '-': '.' }, color: { theme: 'espript' } } as never);
-  msa.ranges({ data: boxes, color, line_style: style } as never);
-  sec.track({ ref: 'markers.below', label: 'Markers below', height: 1 }).points({ data: below, glyph, color } as never);
-  sec
-    .track({ ref: 'ss.bottom.track', label: 'BRUPA (illustrative)', height: 1 })
-    .secondary({ data: bottom, labels: true } as never);
-  return b.getDocument();
+/**
+ * Whether the SVG's items ("x,y,w,h" rects or "x0,y0,x1,y1" segments) are the recording's, all moved by one (dx, dy)
+ * within a few px (an export places its section in its document; nothing else may differ).
+ */
+export function translated(svg: readonly string[], drawn: readonly string[], segments = false): boolean {
+  if (svg.length !== drawn.length || svg.length === 0) return false;
+  const key = (s: string) => s.split(',').map(Number);
+  const order = (a: number[], b: number[]) => a[1] - b[1] || a[0] - b[0] || a[3] - b[3] || a[2] - b[2];
+  const A = svg.map(key).sort(order);
+  const B = drawn.map(key).sort(order);
+  const dx = A[0][0] - B[0][0];
+  const dy = A[0][1] - B[0][1];
+  // A rect's size stays; a segment's other end moves with it.
+  const shift = segments ? [dx, dy, dx, dy] : [dx, dy, 0, 0];
+  return Math.abs(dx) <= 8 && Math.abs(dy) <= 8 && A.every((a, i) => a.every((v, j) => v === B[i][j] + shift[j]));
 }
 
-/** Render props giving the figure a line per 60 columns, as the fixture's own blocks: one group of 60 a line. */
-export function sixtyColumns(cell: number) {
-  return { wrappedGroup: 60, wrappedMaxWidth: Math.ceil(60 * cell) + 2, wrappedGroupLabels: 'none' as const };
+/** An SVG's rects of a fill (`<path fill="…" d="Mx yhWvHh-Wz…">`, the SVG backend's batches) as "x,y,w,h". */
+export function svgRects(xml: string, fill: string): string[] {
+  const out: string[] = [];
+  for (const m of xml.matchAll(new RegExp(`<path fill="${fill}"[^>]* d="([^"]*)"`, 'gi')))
+    for (const r of m[1].matchAll(/M(-?[\d.]+) (-?[\d.]+)h(-?[\d.]+)v(-?[\d.]+)h-?[\d.]+z/g))
+      out.push(`${r[1]},${r[2]},${r[3]},${r[4]}`);
+  return out;
+}
+/** An SVG's line segments of a stroke (`<path stroke="…" … d="Mx yLx y…">`, the SVG backend's) as "x0,y0,x1,y1". */
+export function svgSegments(xml: string, stroke: string): string[] {
+  const out: string[] = [];
+  for (const m of xml.matchAll(new RegExp(`<path stroke="${stroke}"[^>]* d="([^"]*)"`, 'gi')))
+    for (const r of m[1].matchAll(/M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g))
+      out.push(`${r[1]},${r[2]},${r[3]},${r[4]}`);
+  return out;
 }

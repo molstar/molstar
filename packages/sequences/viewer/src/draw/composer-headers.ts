@@ -331,7 +331,9 @@ function lineNumber(f: ComposerFrame, l: SectionLayout, e: number) {
   t.style(f.ctx.text.font('mono', Math.round(v.props.wrappedFontPx * 0.8)), RIGHT, MIDDLE);
   t.begin(TOKEN_INK_QUIET);
   const i = t.add(text);
-  t.x[i] = Math.round((l.dataLeft - 12 - (v.props.wrappedTrackAxes ? WRAPPED_AXIS_ROOM : 0)) * v.dpr);
+  // Left of the rows' labels where the rows are text (their column is the gutter's inner part, `TextRows.labelRoom`).
+  const room = (v.props.wrappedTrackAxes ? WRAPPED_AXIS_ROOM : 0) + l.textRows.labelRoom;
+  t.x[i] = Math.round((l.dataLeft - 12 - room) * v.dpr);
   t.y[i] = Math.round((f.box[0] + f.box[4] / 2 + 0.5) * v.dpr);
   v.backend.text(t);
   v.backend.popClip();

@@ -450,7 +450,7 @@ field_line_style | line_style | the field's values are line styles; others solid
       default: OptionalField(nullable(glyph), null, 'for values the map lacks; null: none'),
     },
     espript: {
-      identical: OptionalField(color, '#000000', 'where every row of the column has the letter'),
+      identical: OptionalField(color, '#000000', 'where every residue of the column is the letter'),
       similar: OptionalField(color, '#bdbdbd', "where the letter's group holds at least similarity of the column"),
       similarity: OptionalField(float, 0.7, 'the share of the column, from 0 to 1'),
       groups: OptionalField(list(str), ['ILMV', 'FWY', 'KRH', 'DE', 'ST', 'NQ', 'AG'], 'letter groups read as similar'),

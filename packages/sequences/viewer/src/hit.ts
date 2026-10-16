@@ -42,11 +42,12 @@ import {
   SectionLayouts,
   type SplitFeatures,
 } from './layout.js';
-import type { SeqViewerRegistry } from './registry.js';
+import type { LayerRenderer, SeqViewerRegistry } from './registry.js';
 import { hitItem } from './renderer-helpers.js';
 import { Ring } from './ring.js';
 import { lineAtX, linePositionAt, linePositionDrawnNear, runXInto } from './runs.js';
 import type { StreamView } from './streams.js';
+import type { Theme } from './themes.js';
 
 /** A layer's regions by its ref (`ctx.streams.get`): a hit reads a streamed layer's items through `v.stream`. */
 export type StreamLookup = (layer: string) => StreamView | null;
@@ -592,9 +593,15 @@ function hitAt(
     const r = type >= 0 ? registry.get('renderers', set.strings.get(type)) : undefined;
     if (past && r?.hitsPastEnd !== true) continue;
     const s = model.prepared[k]?.state;
-    // On the rows as text, the track's other layers by their items on the row (`itemAt`), as on a rows track's row.
+    // On the rows as text, the track's other layers drawn there (their `behindText` under a line style theme: a
+    // range's box or highlight) by their items on the row (`itemAt`), as on a rows track's row; the others draw nothing
+    // there and hit nothing.
     if (onText) {
-      found = k !== tr.layer && !past && itemAt(e, k, b, shown, shown, out.lane, out, at);
+      found =
+        k !== tr.layer &&
+        !past &&
+        drawnOnText(r, model.prepared[k]?.themes) &&
+        itemAt(e, k, b, shown, shown, out.lane, out, at);
       if (found) out.layer = k;
       continue;
     }
@@ -639,6 +646,13 @@ function hitAt(
     if (ownUnitAt(e, b, out)) out.kind = HoverKind.seq;
   }
   return true;
+}
+
+/** Whether a layer draws on the rows as text: a `behindText` and a line style theme (seqspec:viewer#rows-in-text). */
+function drawnOnText(r: LayerRenderer | undefined, themes: readonly (Theme | null)[] | undefined): boolean {
+  if (!r?.behindText || !themes) return false;
+  for (let i = 0; i < themes.length; i++) if (themes[i]?.kind === 'line_style') return true;
+  return false;
 }
 
 /**

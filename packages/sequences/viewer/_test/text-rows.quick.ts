@@ -20,9 +20,12 @@ const DRAW: QuickOptions = { warmSteps: 1_000, steps: 250, windows: 3, minWarmSt
 describe('an alignment as text with frames, quick', () => {
   it('a frame of the rows as text, a box, frames, cylinders and markers, scrolled', async ({ task }) => {
     const d = await textRows('draw');
+    d.resetCounts();
     quickCase(task, 'text-rows: draw', d.step, DRAW);
     expect(d.state().paths).toBeGreaterThan(100);
     expect(d.state().texts).toBeGreaterThan(1000);
+    // The frames' outlines were drawn in the steps measured.
+    expect(d.state().frames).toBeGreaterThan(100);
   });
 
   it("the pointer over the rows' cells, a gap and a frame's title", async ({ task }) => {
@@ -39,7 +42,11 @@ describe('an alignment as text with frames, quick', () => {
 
   it("frames in tracks: a row zoom (a rescale), the frames over the rows' new heights", async ({ task }) => {
     const d = await textRows('zoom');
+    const before = d.stats();
     quickCase(task, 'frames: row zoom', d.step, DRAW);
     expect(d.state().paths).toBeGreaterThan(0);
+    // Each step a rescale, no build.
+    expect(d.stats().rescales - before.rescales).toBeGreaterThan(1000);
+    expect(d.stats().builds).toBe(before.builds);
   });
 });

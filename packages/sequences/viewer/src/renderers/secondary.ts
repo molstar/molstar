@@ -38,6 +38,7 @@ import {
   PathVerb,
   placeRun,
   RectBatch,
+  runHull,
   SecondaryKind,
   SkinToken,
   segWindow,
@@ -60,7 +61,8 @@ const names = new TextBatch(16);
 const fitArgs = new Float64Array(2);
 /** A label's extent (device px): the feature's pieces drawn. */
 const ext = new Int32Array(2);
-let helixRuns = new Int32Array(16);
+const helixHull = new Int32Array(2);
+const INK = SkinToken.ink;
 const rects = new RectBatch(64);
 const shapes = new PathBatch(32);
 const range = new Int32Array(2);
@@ -150,19 +152,9 @@ function cylinder(x0: number, x1: number, cy: number, h: number, ink: number, al
  * intron's cut stays square. Ints in and out.
  */
 function helixEnds(v: DrawView, f: Features, k: number, b: number, x0: number, x1: number): number {
-  const stop = Math.max(f.stop[k], f.start[k] + 1);
-  let n = v.runToShown(b, f.start[k], stop, helixRuns);
-  if (2 * n > helixRuns.length) {
-    helixRuns = new Int32Array(4 * n);
-    n = v.runToShown(b, f.start[k], stop, helixRuns);
-  }
-  if (n === 0) return 0;
-  let lo = helixRuns[0];
-  let hi = helixRuns[1];
-  for (let r = 1; r < n; r++) {
-    if (helixRuns[2 * r] < lo) lo = helixRuns[2 * r];
-    if (helixRuns[2 * r + 1] > hi) hi = helixRuns[2 * r + 1];
-  }
+  if (!runHull(v, b, f.start[k], Math.max(f.stop[k], f.start[k] + 1), helixHull)) return 0;
+  const lo = helixHull[0];
+  const hi = helixHull[1];
   const right = v.geometry === WRAPPED ? v.xe(b, hi - 1) : v.xd(b, hi);
   return (Math.abs(x0 - v.xd(b, lo)) <= 1 ? 1 : 0) | (Math.abs(x1 - right) <= 1 ? 2 : 0);
 }
@@ -202,7 +194,7 @@ function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
         TextAlign.center,
         TextBaseline.bottom,
       );
-      names.begin(SkinToken.ink);
+      names.begin(INK);
       fitArgs[1] = v.text.label('…', names.font).width;
     }
     const cy = centerY(v);

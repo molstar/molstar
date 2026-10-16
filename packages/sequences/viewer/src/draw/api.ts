@@ -156,6 +156,7 @@ export {
   columnEnd,
   columnLevel,
   drawCells,
+  runHull,
   shownHull,
   visibleRange,
 } from './cells.js';

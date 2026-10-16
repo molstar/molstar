@@ -29,6 +29,7 @@ import {
   PathBatch,
   PathMode,
   PathVerb,
+  runHull,
   TextAlign,
   TextBaseline,
   TextBatch,
@@ -45,7 +46,6 @@ const DOTTED = LineStyle.dotted;
 
 const outline = new PathBatch(16);
 const titles = new TextBatch(16);
-let runs = new Int32Array(32);
 /** An item's shown hull [first, end) on its block. */
 const hull = new Int32Array(2);
 const fit = new Float64Array(2);
@@ -60,24 +60,17 @@ const titlePx = (fontPx: number, h: number) => Math.max(7, Math.min(Math.round(f
 const titleRow = (fontPx: number, gap: number) => gap + Math.ceil(Math.max(7, Math.round(fontPx * 0.7)) * 1.4);
 
 /** Item k's shown hull on its block into `hull`; false: none of it shown in the block. */
-function hullOf(v: AxisView, f: FrameFeatures, k: number): boolean {
-  const b = f.block[k];
-  const stop = Math.max(f.stop[k], f.start[k] + 1);
-  let n = v.runToShown(b, f.start[k], stop, runs);
-  if (2 * n > runs.length) {
-    runs = new Int32Array(4 * n);
-    n = v.runToShown(b, f.start[k], stop, runs);
-  }
-  if (n === 0) return false;
-  let lo = runs[0];
-  let hi = runs[1];
-  for (let r = 1; r < n; r++) {
-    if (runs[2 * r] < lo) lo = runs[2 * r];
-    if (runs[2 * r + 1] > hi) hi = runs[2 * r + 1];
-  }
-  hull[0] = lo;
-  hull[1] = hi;
-  return hi > lo;
+const hullOf = (v: AxisView, f: FrameFeatures, k: number) =>
+  runHull(v, f.block[k], f.start[k], Math.max(f.stop[k], f.start[k] + 1), hull);
+
+/**
+ * Lane offset k's display row (`v.spanDisplay`, the rows' `RowModel.display`): inside a collapsed clade, its wedge's row
+ * (the clade's first lane holds it; the others -1, contiguous after it); -1 where none is shown.
+ */
+function displayOf(disp: Int32Array, k: number): number {
+  let q = k < disp.length ? k : disp.length - 1;
+  while (q > 0 && disp[q] < 0) q--;
+  return q >= 0 ? disp[q] : -1;
 }
 
 /** The shown range drawn here: wrapped the line's, linear the whole view's (a pan's strip decides as a full draw). */
@@ -162,7 +155,8 @@ function across(v: DrawView, f: FrameFeatures) {
   outline.reset();
   ThemeLocation.reset(v.loc);
   const dpr = v.dpr;
-  const w = Math.max(2, Math.round(3 * dpr)) | 0;
+  // 1.5 CSS px rounded to whole device px (a width in half device px: even).
+  const w = (2 * Math.max(1, Math.round(1.5 * dpr))) | 0;
   const sr = v.spanRows;
   const disp = v.spanDisplay;
   for (let k = 0; k < f.count; k++) {
@@ -177,8 +171,8 @@ function across(v: DrawView, f: FrameFeatures) {
     const x1 = rightOf(v, b, s1) | 0;
     let top = v.top;
     let bottom = v.top + v.height;
-    const dLo = f.laneLo[k] >= 0 && disp !== null ? disp[f.laneLo[k]] : f.laneLo[k];
-    const dHi = f.laneHi[k] >= 0 && disp !== null ? disp[f.laneHi[k]] : f.laneHi[k];
+    const dLo = f.laneLo[k] >= 0 && disp !== null ? displayOf(disp, f.laneLo[k]) : f.laneLo[k];
+    const dHi = f.laneHi[k] >= 0 && disp !== null ? displayOf(disp, f.laneHi[k]) : f.laneHi[k];
     if (sr[2] === 1 && dLo >= 0) top = sr[0] + dLo * sr[1];
     if (sr[3] === 1 && dHi >= 0) bottom = sr[0] + (dHi + 1) * sr[1];
     const y0 = Math.round(top * dpr) | 0;
@@ -214,7 +208,11 @@ function lineHeights(s: unknown, p: unknown, axis: AxisView, lines: LineTable, o
   }
 }
 
-export const FrameRenderer = kernelEntry<FrameFeatures>('frame', (_s, _p, props) => props.rowHeight, {
+/** In tracks, its titles' row; without titles (`labels: false`) none (the layout gives the track no band). */
+const height = (_s: unknown, p: unknown, props: { rowHeight: number }) =>
+  (p as Params).labels === false ? 0 : props.rowHeight;
+
+export const FrameRenderer = kernelEntry<FrameFeatures>('frame', height, {
   geometries: ['linear', 'wrapped'],
   content: false,
   miniature: false,

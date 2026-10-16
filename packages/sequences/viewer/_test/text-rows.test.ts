@@ -21,7 +21,8 @@ import { CellInk } from '../src/themes.js';
 import { renderSvg } from '../src/svg/index.js';
 import { recording } from './composer-fixtures.js';
 import { lit } from './overlay-fixtures.js';
-import { globinRows, figureDoc } from './text-rows-fixtures.js';
+import type { FigureOptions } from './figure-docs.js';
+import { figureDoc, globinRows, svgRects, translated } from './text-rows-fixtures.js';
 import { at, context } from './theme-fixtures.js';
 
 /** A line per 60 columns, as the fixture's own blocks: one group of 60 a line (no room for two), no group labels. */
@@ -39,9 +40,9 @@ const texts = (r: ReturnType<typeof recording>) =>
     color: r.textItems.color[i],
   }));
 
-async function figure(given?: Partial<RenderProps>) {
+async function figure(given?: Partial<RenderProps>, o: FigureOptions = {}) {
   const render = given ?? (await sixty());
-  const t = await lit(figureDoc(), { width: 1100, height: 1400, render });
+  const t = await lit(figureDoc(o), { width: 1100, height: 1400, render });
   const l = t.ctx.layout.get(t.section)?.current;
   if (!l) throw new Error('no layout');
   return { ...t, l, tr: l.textRows };
@@ -142,6 +143,75 @@ describe('the rows as text', () => {
     expect(ctx.layout.hitTest(section, cellX(22), top + 1.5 * tr.height, h)).toBe(true);
     expect(rows[1].gapped[22]).toBe('-');
     expect([h.kind, h.dataRow, h.index]).toEqual([HoverKind.aligned, 1, 22]);
+  });
+
+  it("a group with none of the row's residues has no label: a short last group never shows the one before", async () => {
+    // Row 3 (BRUPA) ends in gaps from column 96 on: groups of 24, the last [96, 118) short and all gaps there.
+    const { ctx, section } = await figure({ wrappedGroup: 24 }, { reference: 3 });
+    const row = globinRows()[3].gapped;
+    const run = ctx.layout.axis(section)?.runs[0];
+    if (!run) throw new Error('no run');
+    const expected: string[] = [];
+    let residues = 0;
+    for (let start = 0; start < row.length; start += 24) {
+      let last = -1;
+      for (let c = start; c < Math.min(row.length, start + 24); c++)
+        if (row[c] !== '-' && row[c] !== '.') last = 37 + residues++;
+      expected.push(last >= 0 ? String(last) : '');
+    }
+    expect(row.slice(96).replace(/-/g, '')).toBe('');
+    expect(expected.at(-1)).toBe('');
+    expect(run.labels).toEqual(expected);
+  });
+
+  it("the lines' numbers (no group labels) sit left of the rows' labels, never over them", async () => {
+    const { l, tr, frame } = await figure();
+    const drawn = texts(frame(recording(), Dirty.all));
+    const label = drawn.find((d) => d.text === globinRows()[0].name);
+    const numbers = drawn.filter((d) => d.x < l.dataLeft && /^\d+$/.test(d.text));
+    expect(numbers.map((d) => d.text)).toEqual(['1', '61']);
+    // Right-aligned 12 px left of the labels' column.
+    for (const d of numbers) expect(d.x).toBe(Math.round(l.dataLeft - 12 - tr.labelRoom));
+    expect(numbers[0].x).toBeLessThan(label?.x ?? 0);
+  });
+
+  it("the rows track's other layers are hit where they draw: a box's item, not a points layer's (no `behindText`)", async () => {
+    const { ctx, section, l, tr } = await figure(undefined, { rowPoints: true });
+    const rows = globinRows();
+    const top = l.scrolledTop + l.entryTop[l.trackFirst[tr.track]];
+    const cell = ctx.layout.axis(section)?.axis?.fixedCell ?? 0;
+    // Row 0's residue 32 (His59, a marker of the points layer on row 0) and row 2's residue 12 (in its box).
+    const columnOf = (r: number, p: number) => {
+      let n = -1;
+      for (let c = 0; c < rows[r].gapped.length; c++) if (rows[r].gapped[c] !== '-' && ++n === p) return c;
+      return -1;
+    };
+    const h = Hit.create();
+    const at = (r: number, c: number) =>
+      ctx.layout.hitTest(section, l.dataLeft + l.lines.left[0] + (c + 0.5) * cell, top + (r + 0.5) * tr.height, h);
+    expect(at(0, columnOf(0, 32))).toBe(true);
+    expect([h.kind, h.dataRow]).toEqual([HoverKind.aligned, 0]);
+    expect(at(2, columnOf(2, 12))).toBe(true);
+    expect(h.kind).toBe(HoverKind.item);
+    expect(
+      ctx.graph.assembled.value?.set.strings.get(ctx.graph.assembled.value.set.annotations[h.annotation]?.key ?? -1),
+    ).toBe('figure.main.boxes');
+  });
+
+  it("SVG draws the screen's cells: each row's cells at the recording's coordinates, color by color", async () => {
+    const t = await lit(figureDoc(), { width: 1000, height: 2000 });
+    const r = t.frame(recording(), Dirty.all);
+    const xml = await renderSvg(t.ctx, { width: 1000 });
+    for (const color of [0x000000, 0xbdbdbd]) {
+      const drawn: string[] = [];
+      for (let i = 0; i < r.rectItems.n; i++)
+        if (r.rectItems.color[i] === color)
+          drawn.push(`${r.rectItems.x[i]},${r.rectItems.y[i]},${r.rectItems.w[i]},${r.rectItems.h[i]}`);
+      const hex = `#${color.toString(16).padStart(6, '0')}`;
+      expect(drawn.length, hex).toBeGreaterThan(8);
+      // The same rects, the export's section placed a few px down its document (`renderSvg`'s offset): one shift for all.
+      expect(translated(svgRects(xml, hex), drawn), hex).toBe(true);
+    }
   });
 
   it('exports alike: SVG holds the labels, numbers and frames, nothing undefined', async () => {
