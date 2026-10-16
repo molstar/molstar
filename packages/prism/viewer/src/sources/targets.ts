@@ -14,7 +14,13 @@ import type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } fro
 import { findStructure, structureNames } from './naming.js';
 import { isLociTarget } from '../api/target-param.js';
 import {
+  type CompiledTarget,
+  compileTarget,
+  type Evaluated,
+  type EvaluatedTarget,
+  evaluateExpression,
   evaluateTarget,
+  type Failure,
   summarize,
   formatTarget,
   type PersonKeyword,
@@ -116,16 +122,29 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
       const parts: ResolvedPart[] = [];
       let failure: ApiFailure | undefined;
       let stored: unknown;
+      const language = options.language ? { language: options.language } : {};
+      // Read and compiled once for every structure in scope; only `selection` and `focus` differ by structure.
+      let personal = false;
+      const once = compileTarget(target as Target, {
+        ...language,
+        resolvePerson: () => {
+          personal = true;
+          return undefined;
+        },
+      });
+      if (!once.ok && !personal) return fail('invalid', once.message, once.hint);
       for (const s of scope) {
         const structure = s.cell.obj?.data;
         if (!structure) continue;
-        const r = evaluateTarget(structure, target as Target, {
-          ...(options.language ? { language: options.language } : {}),
-          resolvePerson: (which) => {
-            const loci = personLoci(which, structure);
-            return loci ? StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(loci)) : undefined;
-          },
-        });
+        const r = once.ok
+          ? withTarget(evaluateExpression(structure, once.molql), once)
+          : evaluateTarget(structure, target as Target, {
+              ...language,
+              resolvePerson: (which) => {
+                const loci = personLoci(which, structure);
+                return loci ? StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(loci)) : undefined;
+              },
+            });
         if (!r.ok) {
           failure ??= fail('invalid', r.message, r.hint);
           continue;
@@ -157,6 +176,10 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
       };
     },
   };
+}
+
+function withTarget(r: Evaluated | Failure, target: Extract<CompiledTarget, { ok: true }>): EvaluatedTarget {
+  return r.ok ? { ...r, target } : r;
 }
 
 function fail(code: ApiErrorCode, message: string, hint?: string): ApiFailure {

@@ -15,10 +15,9 @@ import {
   StructureSelection,
   Unit,
 } from '@molstar/model/model/structure';
-import { compile } from '@molstar/model/script/runtime/query/compiler';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { compactNumbers } from './addresses.js';
-import { failure, messageOf } from './compile.js';
+import { compiledQuery, failure, messageOf } from './compile.js';
 import { compileTarget } from './target.js';
 import { selectorExpression } from './selector.js';
 import type {
@@ -45,8 +44,7 @@ import type {
 
 /** The atoms a MolQL expression selects in a structure (Mol* loci, with the structure's own units). */
 export function queryLoci(structure: Structure, molql: Expression): StructureElement.Loci {
-  const query = compile<StructureSelection>(molql);
-  const selection = query(new QueryContext(structure));
+  const selection = compiledQuery(molql)(new QueryContext(structure));
   return StructureSelection.toLociWithSourceUnits(selection);
 }
 

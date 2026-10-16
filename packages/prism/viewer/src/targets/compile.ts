@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { StructureQuery, StructureSelection } from '@molstar/model/model/structure';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 import { Expression } from '@molstar/query-language/language/expression';
@@ -74,11 +75,25 @@ export function checkMolQL(molql: unknown): true | string {
   const issues = expressionValidationIssues(molql);
   if (issues) return `Invalid MolQL: ${messageOf(issues.join('; '))}`;
   try {
-    compile(molql as Expression);
+    compiledQuery(molql as Expression);
     return true;
   } catch (e) {
     return `Mol* cannot run it: ${messageOf(e)}`;
   }
+}
+
+// Each expression compiled once: checked when the target is read, then run on every structure in scope.
+const compiled = new WeakMap<object, StructureQuery>();
+
+/** An expression as Mol*'s query, compiled once per expression object (it holds no structure: any can run it). */
+export function compiledQuery(molql: Expression): StructureQuery {
+  if (typeof molql !== 'object' || molql === null) return compile<StructureSelection>(molql);
+  let query = compiled.get(molql);
+  if (!query) {
+    query = compile<StructureSelection>(molql);
+    compiled.set(molql, query);
+  }
+  return query;
 }
 
 /** A MolQL expression as MolScript text, for people ("(structure-query.generator.atom-groups ...)"). */

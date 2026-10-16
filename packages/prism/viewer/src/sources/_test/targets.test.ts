@@ -9,11 +9,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { StructureElement } from '@molstar/model/model/structure';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ResolvedTarget } from '../../api/targets.js';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
+import { queryLanguage } from '../../targets/languages.js';
 import { createTargetResolver } from '../targets.js';
 
 // The resolver over a real plugin (targets.md §1–2, plan 2.1).
@@ -72,6 +73,16 @@ describe('the target resolver', () => {
     expect(named.scope).toBe('named');
     expect(named.parts.map((p) => p.structure.label)).toHaveLength(1);
     expect(await resolver.resolve('polymer', { structure: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
+  });
+
+  it('reads and compiles a target once for every structure in scope', async () => {
+    const { resolver } = await setup(['1crn.cif', '1crn.cif'], ['1cbs_updated.cif', '1cbs.cif']);
+    const transpile = vi.spyOn(queryLanguage('pymol')!, 'transpile');
+    const all = ok(await resolver.resolve('resn ALA and name CA'));
+    expect(all.parts).toHaveLength(2);
+    expect(all.parts.every((p) => p.selected.atoms > 0)).toBe(true);
+    expect(transpile).toHaveBeenCalledTimes(1);
+    transpile.mockRestore();
   });
 
   it("reads 'selection' as the person's selection on that structure", async () => {
