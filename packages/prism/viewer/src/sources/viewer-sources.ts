@@ -8,7 +8,8 @@
 
 import { Color } from '@molstar/core/util/color';
 import { StateTransform } from '@molstar/core/state';
-import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Canvas3DParams, type Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
@@ -103,7 +104,8 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
         a.background === b.background &&
         a.transparentBackground === b.transparentBackground &&
         a.illumination === b.illumination &&
-        a.props === b.props),
+        // By value: `canvas3d.props` is a new object at each read, and `settingsUpdated` fires for a camera focus too.
+        PD.areEqual(Canvas3DParams, a.props, b.props)),
   );
   const structures = fromChanged(
     scope,
@@ -134,7 +136,7 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   const pointer = createPointerSources(scope, plugin);
   const interaction = createInteractionSources(scope, plugin);
   const formats = plugin.dataFormats.options.map(([, label]) => label);
-  const settings = createSettingsSources(scope, plugin);
+  const settings = createSettingsSources(plugin);
   const memo = {};
   const layers = watchedState(
     () => readStyleLayers(plugin, memo),

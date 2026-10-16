@@ -23,7 +23,10 @@ export interface InteractionSources {
   readonly selectionMode: ReadonlyState<boolean>;
   /** What a click picks: Mol*'s granularity (`residue`, `chain`, …). */
   readonly granularity: ReadonlyState<string>;
-  /** What is selected, in Mol*'s words ("12 residues"); undefined: nothing. */
+  /**
+   * What is selected, in Mol*'s words ("12 residues"); undefined: nothing. Followed only while subscribed, read once
+   * per animation frame, on the selection's own changes.
+   */
   readonly selection: ReadonlyState<string | undefined>;
   /** The focused part, in Mol*'s words; undefined: none. */
   readonly focus: ReadonlyState<string | undefined>;
@@ -43,10 +46,12 @@ export function createInteractionSources(scope: SourceScope, plugin: PluginConte
   );
   const selected = () =>
     [...plugin.managers.structure.selection.entries.values()].map((e) => e.selection as StructureElement.Loci);
-  const selection = fromChanged(
-    scope,
+  // Not on every state change: the selection manager says `changed` when what a selection holds changes (a removed or
+  // rebuilt structure too), and a selection remapped onto a new trajectory frame keeps its counts, so a playing
+  // trajectory does not count the selection each frame.
+  const selection = watchedState(
     () => selectionSummary(selected()),
-    merge(plugin.managers.structure.selection.events.changed, plugin.state.data.events.changed),
+    () => plugin.managers.structure.selection.events.changed,
   );
   const focus = fromChanged(
     scope,

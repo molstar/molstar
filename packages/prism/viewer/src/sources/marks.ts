@@ -82,7 +82,13 @@ export function createMarksSource(scope: SourceScope, plugin: PluginContext): Ma
     const theme = bg === undefined ? 'light' : themeForColor(bg as number);
     return { ...MarkTones[theme], rest: MarkRest[theme] };
   };
-  const colors = fromChanged(scope, themeOf, plugin.events.canvas3d.settingsUpdated);
+  // Equal tones are not emitted: `settingsUpdated` fires for every canvas setting and camera focus, not only the theme.
+  const colors = fromChanged(
+    scope,
+    themeOf,
+    plugin.events.canvas3d.settingsUpdated,
+    (a, b) => a.highlight === b.highlight && a.accent === b.accent && a.rest === b.rest,
+  );
   scope.add(paintMarks(plugin, marks.asReadonly, colors));
   return {
     marks: marks.asReadonly,
@@ -117,6 +123,8 @@ function ownOverpaint(plugin: PluginContext, reprRef: string): Overpaint {
 /**
  * Paints the marks on the structure representations, over their own overpaint, and puts that back when the marks go;
  * again after Mol* sets a representation's state (its overpaint cells changed) or makes one. Once per frame at most.
+ * When the marks or their colors change, every representation is painted again; otherwise only those whose own cell
+ * or overpaint cells changed (a volume streamed in, or another representation's update, paints nothing).
  * Returns the stop.
  */
 function paintMarks(
@@ -126,11 +134,25 @@ function paintMarks(
 ): () => void {
   /** What it painted, to put back. */
   let painted = new Map<Representation<any>, string>();
+  /** The representations of marked structures it left alone (none of the marks on them, nothing dimmed). */
+  let unpainted = new Set<Representation<any>>();
+  /** Paint every representation again (the marks or their colors changed), not only the changed ones. */
+  let all = false;
+  /** The cells made or updated since the last paint: representations and their overpaint cells. */
+  const changed = new Set<string>();
+  /** Whether a representation's cell or one of its overpaint cells changed. */
+  const touched = (ref: string) => {
+    if (changed.has(ref)) return true;
+    const children = plugin.state.data.tree.children.get(ref);
+    if (children) for (const child of children.values()) if (changed.has(child)) return true;
+    return false;
+  };
   let frame = 0;
   const paint = () => {
     frame = 0;
     const list = marks.value;
     const next = new Map<Representation<any>, string>();
+    const nextUnpainted = new Set<Representation<any>>();
     if (list.length) {
       const tone = colors.value;
       for (const s of plugin.managers.structure.hierarchy.current.structures) {
@@ -142,19 +164,34 @@ function paintMarks(
             const repr = r.cell.obj?.data.repr;
             const source = r.cell.obj?.data.sourceData;
             if (!repr || !source) continue;
+            const ref = r.cell.transform.ref;
+            // As it was painted (or left) and nothing of it changed: it keeps that.
+            if (!all && !touched(ref)) {
+              if (painted.has(repr)) {
+                next.set(repr, ref);
+                continue;
+              }
+              if (unpainted.has(repr)) {
+                nextUnpainted.add(repr);
+                continue;
+              }
+            }
             const layers: Overpaint.Layer<StructureElement.Loci>[] = [];
             for (const m of own) {
               const loci = StructureElement.Loci.remap(m.loci, source);
               if (!StructureElement.Loci.isEmpty(loci)) layers.push({ loci, color: Color(tone[m.tone]), clear: false });
             }
             // Dimmed: grey under them (all of it: the marks paint over), a representation with none of them too.
-            if (!layers.length && !dim) continue;
+            if (!layers.length && !dim) {
+              nextUnpainted.add(repr);
+              continue;
+            }
             if (dim)
               layers.unshift({ loci: Structure.toStructureElementLoci(source), color: Color(tone.rest), clear: false });
-            const base = ownOverpaint(plugin, r.cell.transform.ref);
+            const base = ownOverpaint(plugin, ref);
             repr.setState({ overpaint: Overpaint('element-loci', [...base.layers, ...layers] as never) });
             plugin.canvas3d?.update(repr);
-            next.set(repr, r.cell.transform.ref);
+            next.set(repr, ref);
           }
         }
       }
@@ -166,17 +203,32 @@ function paintMarks(
       plugin.canvas3d?.update(repr);
     }
     painted = next;
+    unpainted = nextUnpainted;
+    all = false;
+    changed.clear();
   };
   const schedule = () => {
     if (frame) return;
-    if (!marks.value.length && !painted.size) return;
     frame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(paint) : (queueMicrotask(paint), -1);
+  };
+  const repaintAll = () => {
+    if (!marks.value.length && !painted.size) return;
+    all = true;
+    schedule();
   };
   const events = plugin.state.data.events;
   const subs = [
-    marks.subscribe(schedule),
-    colors.subscribe(schedule),
-    merge(events.object.created, events.object.updated).subscribe(schedule),
+    marks.subscribe(repaintAll),
+    colors.subscribe(repaintAll),
+    // A structure's update updates its representations, so theirs are the events that matter.
+    merge(events.object.created, events.object.updated).subscribe((e) => {
+      if (!marks.value.length && !painted.size) return;
+      if (!SO.Molecule.Structure.Representation3D.is(e.obj) && !SO.Molecule.Structure.Representation3DState.is(e.obj)) {
+        return;
+      }
+      changed.add(e.ref);
+      schedule();
+    }),
   ];
   return () => {
     for (const s of subs) s.unsubscribe();

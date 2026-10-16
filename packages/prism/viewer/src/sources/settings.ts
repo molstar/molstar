@@ -13,8 +13,7 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import type { PluginContext } from '@molstar/plugin/context';
 import { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';
 import type { IconName, ReadonlyState } from '@molstar/prism-ui/core';
-import { merge } from 'rxjs';
-import { fromChanged, type SourceScope } from './state.js';
+import { watchedState } from './watched.js';
 
 // The Settings tab's groups (parity.md §5, operations.md §2 `settings`): Canvas3D's params, the canvas context's,
 // the interactivity manager's and the behaviors' params, mapped into groups by intent so no param is lost. The mapping
@@ -379,22 +378,22 @@ export interface SettingsSources {
   /**
    * The groups the host can show, with their current values: it follows the canvas (settings, a new canvas), the
    * interactivity and the behaviors. The viewer group's value is the history's: the reader sets it
-   * (`withCheckpointing`).
+   * (`withCheckpointing`). Followed only while subscribed (the Settings tab hidden holds no subscription: a slider drag
+   * or a camera focus elsewhere does not read the settings), read once per animation frame.
    */
   readonly groups: ReadonlyState<readonly SettingsGroupState[]>;
 }
 
-export function createSettingsSources(scope: SourceScope, plugin: PluginContext): SettingsSources {
-  const groups = fromChanged(
-    scope,
+export function createSettingsSources(plugin: PluginContext): SettingsSources {
+  const groups = watchedState(
     () => readSettings(plugin, true),
-    merge(
+    () => [
       plugin.events.canvas3d.settingsUpdated,
       plugin.behaviors.canvas3d.initialized,
       plugin.managers.interactivity.events.propsUpdated,
       plugin.state.behaviors.events.changed,
-    ),
-    sameSettings,
+    ],
+    { compare: sameSettings },
   );
   return { groups };
 }
