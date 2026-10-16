@@ -185,6 +185,10 @@ export interface GroupRecord {
   readonly id: number;
   readonly label: string;
   readonly runs: RunRecord[];
+  /** The group's own history context, once it runs: a call made in it directly runs `within` it. */
+  within?: HistoryContext;
+  /** The runs made directly in the group (not by an operation in it), by id: each one's failure is the group's. */
+  readonly direct: Set<number>;
 }
 
 export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknown> {

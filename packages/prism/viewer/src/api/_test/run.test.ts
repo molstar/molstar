@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { StructureFeature } from '../../features/structure/index.js';
+import { TrajectoryFeature } from '../../features/trajectory/index.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { ViewerExtension } from '../../spec.js';
 import type { PrismViewer, ViewerPointerEvent } from '../../viewer.js';
@@ -78,7 +79,7 @@ const demo: ViewerExtension = { id: 'demo', title: 'Demo', api: { demo: (ctx: Ap
 // The scene's API (the \`structure\` feature) and the test's extensions; none of the other features.
 async function create(extensions: ViewerExtension[] = [demo]) {
   viewer = await createPrismViewerHeadless({
-    spec: { ...DefaultPrismViewerSpec(), extensions: [StructureFeature, ...extensions] },
+    spec: { ...DefaultPrismViewerSpec(), extensions: [StructureFeature, TrajectoryFeature, ...extensions] },
   });
   return viewer;
 }
@@ -180,6 +181,13 @@ describe('the run path', () => {
       await api.run('no.such-operation', {});
     });
     expect(unknown).toMatchObject({ ok: false, code: 'not-found' });
+    expect(v.api.structure.list.value).toHaveLength(2);
+    // So does a view call (no step of its own) that ran and failed.
+    const view = await v.api.group('View', async (api) => {
+      await api.session.clear();
+      await api.trajectory.frame({ index: 99 });
+    });
+    expect(view.ok).toBe(false);
     expect(v.api.structure.list.value).toHaveLength(2);
     // With onFailure 'continue', a refused call is passed over.
     const goesOn = await v.api.group(

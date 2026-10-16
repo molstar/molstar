@@ -243,15 +243,20 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
       const outcome = await history.group(
         label,
         input.origin,
-        (context) =>
-          work(bind({ ...input, within: context, group, ...(options.signal ? { signal: options.signal } : {}) })),
+        (context) => {
+          group.within = context;
+          return work(
+            bind({ ...input, within: context, group, ...(options.signal ? { signal: options.signal } : {}) }),
+          );
+        },
         {
           // All or nothing (api.md §5): the work's own failure, and any call of the group that failed, also one that
           // never reached the history (refused before it ran: invalid values, blocked, unavailable; a read or a view
           // call). Calls an operation made itself (nested) are its own business.
           failed: (v) =>
             ApiResult.isFailure(v) ||
-            (rollback && group.runs.some((r) => !r.nested && r.result !== undefined && !r.result.ok)),
+            (rollback &&
+              group.runs.some((r) => (!r.nested || group.direct.has(r.id)) && r.result !== undefined && !r.result.ok)),
           onFailure: options.onFailure ?? 'rollback',
           ...(within ? { within } : {}),
         },

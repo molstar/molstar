@@ -18,6 +18,7 @@ import { type Observable, Subject } from 'rxjs';
 import type { ViewerSources } from '../sources/viewer-sources.js';
 import {
   type ApiAreaContext,
+  type GroupRecord,
   type ApiContext,
   type ApiFailure,
   type ApiModules,
@@ -220,6 +221,7 @@ export class ApiRunner implements OperationPort {
       ...(run.group ? { group: { id: run.group.id, label: run.group.label } } : {}),
       ...(within ? { nested: true as const } : {}),
     };
+    if (run.group && within && within === run.group.within) run.group.direct.add(record.id);
     this.#running.set([...this.#running.value, record]);
     this.#started.next(record);
 
@@ -320,8 +322,8 @@ export class ApiRunner implements OperationPort {
   }
 
   /** A new group's record. */
-  newGroup(label: string): { id: number; label: string; runs: RunRecord[] } {
-    return { id: ++this.#serial, label, runs: [] };
+  newGroup(label: string): GroupRecord {
+    return { id: ++this.#serial, label, runs: [], direct: new Set() };
   }
 
   /** No more runs: calls after this say the viewer is gone. */

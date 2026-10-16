@@ -24,6 +24,11 @@
       "types": "./lib/features/*/index.d.ts",
       "import": "./lib/features/*/index.js"
     },
+    "./views/structure/scene-row": {
+      "molstar-src": "./src/views/structure/scene-row.tsx",
+      "types": "./lib/views/structure/scene-row.d.ts",
+      "import": "./lib/views/structure/scene-row.js"
+    },
     "./_stories/*": null,
     "./_test/*": null
   },
