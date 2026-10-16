@@ -137,6 +137,12 @@ export interface LayerRenderer<S = unknown> extends NamedEntry {
    * `v.height` that band, with this layer's state and themes.
    */
   behindText?(v: DrawView, s: S, p: unknown): void;
+  /**
+   * What it draws across the tracks its layer spans (a frame's outlines, seqspec:viewer#frames): the composer calls it
+   * after the entries of each region it draws, per wrapped line, `v.top` and `v.height` that span (CSS px) and
+   * `v.spanRows` where a rows band is at its edge, in the region's clip.
+   */
+  across?(v: DrawView, s: S, p: unknown): void;
   /** Numbers that follow the view, in the gutters. */
   gutter?(v: DrawView, s: S, p: unknown): void;
   /** What is lit, from `v.marks`. */

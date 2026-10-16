@@ -12,12 +12,15 @@
 // them at the finest level (held codes or `tile(0, 0, …)`, in the ink that reads on their cell), each row's first and
 // last residue numbers in the gutters, the whole alignment for the vertical overview, the tree in the header. Levels
 // per block from `blockLevels` over `DrawView.lanes`, the same the stream manager requests. Batches are this module's,
-// reset at a draw's start and handed over once at its end.
+// reset at a draw's start and handed over once at its end. Wrapped (seqspec:viewer#rows-in-text): a text row per row on
+// each line, cells and letters per position (no tiles: a line's x is not linear across its group gaps), the rows'
+// labels left of the line and each row's last residue number on it right of it.
 
 import { TILE, type Tile } from '@molstar/seq-core/format';
 import { NO_LABEL } from '@molstar/seq-core/model';
 import {
   type Axis,
+  AxisGeometry,
   blockLevels,
   CHARS,
   cellInk,
@@ -38,10 +41,14 @@ import {
   rowAt,
   rowLabel,
   SkinToken,
+  TEXT_ROWS_PAD,
   TextAlign,
   TextBaseline,
   TextBatch,
   ThemeLocation,
+  fitIn,
+  fitted,
+  textRowLabelPx,
   textShown,
   wedgeLabel,
 } from '../draw/api.js';
@@ -54,6 +61,14 @@ const muted = new RectBatch(64);
 const MUTE = 140;
 const letters = new TextBatch(256);
 const numbers = new TextBatch(2);
+/** Wrapped: the rows' cells, and their labels and numbers beside the line. */
+const textCells = new RectBatch(256);
+const beside = new TextBatch(32);
+const fit = new Float64Array(2);
+// Read once: a module member read per frame allocates under the test runner's module wrapper.
+const WRAPPED = AxisGeometry.wrapped;
+const INK = SkinToken.ink;
+const INK_QUIET = SkinToken.inkQuiet;
 const lv = new Int32Array(4);
 /** The baselines that center a capital and a lower-case letter on their cell (`letterLines`). */
 const baselines = new Float64Array(2);
@@ -167,8 +182,123 @@ function row(v: DrawView, s: RowsState, c: RowTiles, k: number): void {
   }
 }
 
+/**
+ * Wrapped, the line's rows in view (seqspec:viewer#rows-in-text): display row d (its lane offset) at `v.top` + d × a
+ * text row; under `wrappedCells` each residue's cell in the theme's color and its letter in the ink that reads on it,
+ * with `wrappedColors` the letter in its color, else in the ink; gaps quiet.
+ */
+function drawText(v: DrawView, s: RowsState): void {
+  const tr = v.textRows;
+  const ax = v.axis as Axis;
+  const b = v.onlyBlock;
+  if (!tr || tr.layer !== v.layer || b < 0 || !s.codes || ax.alignment[b] !== s.alignment) return;
+  const h = tr.height;
+  const d0 = Math.max(0, Math.floor((v.regionTop - v.top) / h)) | 0;
+  const d1 = Math.min(tr.count, s.lanes, Math.ceil((v.regionBottom - v.top) / h)) | 0;
+  if (d1 <= d0 || v.lineStop <= v.lineStart) return;
+  textCells.reset();
+  letters.reset();
+  ThemeLocation.reset(v.loc);
+  const color = v.color;
+  const cells = v.props.wrappedCells && color !== null;
+  const tinted = !cells && v.props.wrappedColors && color !== null;
+  const font = v.text.font('mono', v.fontPx);
+  letters.style(font, TextAlign.center, TextBaseline.alphabetic);
+  const ins = ax.set.alignments[ax.alignment[b]]?.insertColumn ?? null;
+  const codes = s.codes;
+  const dpr = v.dpr;
+  for (let d = d0; d < d1; d++) {
+    const slot = s.slot ? s.slot[d] : d;
+    if (slot < 0) continue;
+    const ar = rowAt(s, d);
+    const y0 = Math.round((v.top + d * h) * dpr) | 0;
+    const y1 = Math.round((v.top + (d + 1) * h) * dpr) | 0;
+    letterLines(v, font, y0, y1, baselines);
+    for (let q = v.lineStart; q < v.lineStop; q++) {
+      const i = ax.indexOf(b, q as never);
+      let code = i < s.columns ? codes[slot * s.columns + i] : 0;
+      if (code === 0) continue;
+      if (s.map !== null) code = s.map[code & 127];
+      if (ins !== null && ins[i] === 1 && code >= 65 && code <= 90) code += 32;
+      const gap = code === 45 || code === 46;
+      let fill = NO_COLOR;
+      if (color !== null && (cells || tinted) && !gap) {
+        const loc = ThemeLocation.at(v.loc, ax, v.layer, b, i);
+        loc.row = ar;
+        loc.letter = code;
+        fill = color.value(loc);
+      }
+      const x0 = v.xd(b, q);
+      const x1 = v.xe(b, q);
+      if (cells && fill >= 0) {
+        textCells.begin(fill);
+        textCells.push(x0, y0, x1 - x0, y1 - y0);
+      }
+      letters.begin(gap ? INK_QUIET : fill >= 0 ? (cells ? cellInk(fill) : fill) : INK);
+      const t = letters.add(CHARS[code & 127]);
+      letters.x[t] = (x0 + x1) / 2;
+      letters.y[t] = baselines[LETTER_LINE[code & 127]];
+    }
+  }
+  if (textCells.n > 0) v.backend.rects(textCells);
+  if (letters.n > 0) v.backend.text(letters);
+}
+
+/**
+ * Wrapped, beside the line (seqspec:viewer#rows-in-text): each row's label left of it, in the room the layout keeps
+ * (cut with an ellipsis), and its last residue number on the line right of the line's last cell; none on a row with no
+ * residue there.
+ */
+function gutterText(v: DrawView, s: RowsState): void {
+  const tr = v.textRows;
+  const ax = v.axis as Axis;
+  const b = v.onlyBlock;
+  const a = s.set.alignments[s.alignment];
+  if (!tr || tr.layer !== v.layer || !a || a.lazy || b < 0 || v.lineStop <= v.lineStart) return;
+  const h = tr.height;
+  const d0 = Math.max(0, Math.floor((v.regionTop - v.top) / h)) | 0;
+  const d1 = Math.min(tr.count, s.lanes, Math.ceil((v.regionBottom - v.top) / h)) | 0;
+  if (d1 <= d0) return;
+  const dpr = v.dpr;
+  const font = v.text.font('mono', textRowLabelPx(v.fontPx));
+  beside.reset();
+  beside.style(font, TextAlign.left, TextBaseline.alphabetic);
+  beside.begin(INK_QUIET);
+  fit[0] = tr.labelRoom - TEXT_ROWS_PAD;
+  fit[1] = v.text.label('…', font).width;
+  const labelX = Math.round((v.left + v.lineLeft - tr.labelRoom) * dpr) | 0;
+  const numberX = (v.xe(b, v.lineStop - 1) + Math.round((TEXT_ROWS_PAD / 2) * dpr)) | 0;
+  for (let d = d0; d < d1; d++) {
+    const ar = rowAt(s, d);
+    const y0 = Math.round((v.top + d * h) * dpr) | 0;
+    const y1 = Math.round((v.top + (d + 1) * h) * dpr) | 0;
+    letterLines(v, font, y0, y1, baselines);
+    const label = tr.labelRoom > 0 ? rowLabel(s, ar) : '';
+    if (label !== '') {
+      const p = v.text.label(label, font);
+      const m = fitIn(p, fit);
+      if (m > 0) {
+        const t = beside.add(fitted(p, m));
+        beside.x[t] = labelX;
+        beside.y[t] = baselines[0];
+      }
+    }
+    const slot = a.rows.slotOf(ar as never);
+    if (slot < 0) continue;
+    let pos = -1;
+    for (let q = v.lineStop - 1; pos < 0 && q >= v.lineStart; q--)
+      pos = a.rows.colToPos(ar as never, ax.indexOf(b, q as never) as never);
+    if (pos < 0) continue;
+    const t = beside.add(numberText((a.rows.rowFirst[slot] === NO_LABEL ? 1 : a.rows.rowFirst[slot]) + pos));
+    beside.x[t] = numberX;
+    beside.y[t] = baselines[0];
+  }
+  if (beside.n > 0) v.backend.text(beside);
+}
+
 /** One row (`v.row`, a lane offset) in the entry's box. */
 function draw(v: DrawView, s: RowsState): void {
+  if (v.geometry === WRAPPED) return drawText(v, s);
   const c = v.cache as RowTiles | null;
   if (!c || v.row < 0 || !v.axis || v.lanes[1] <= v.lanes[0]) return;
   begin(v, c);
@@ -242,6 +372,7 @@ function overview(v: DrawView, s: RowsState): boolean {
  * axis is one alignment's columns, one block (`svs.section.axis`): block 0.
  */
 function gutter(v: DrawView, s: RowsState): void {
+  if (v.geometry === WRAPPED) return gutterText(v, s);
   const a = s.set.alignments[s.alignment];
   if (!a || !v.axis || a.lazy || v.dataRow < 0 || v.height < 10 || v.gutterLeft < 20 || !shows(v, s, 0)) return;
   const slot = a.rows.slotOf(v.dataRow as never);
@@ -271,6 +402,7 @@ function gutter(v: DrawView, s: RowsState): void {
 }
 
 export const RowsRenderer = kernelEntry<RowsState>('rows', (_s, _p, props) => props.rowHeight, {
+  geometries: ['linear', 'wrapped'],
   minHeight: 1,
   miniature: false,
   draw,

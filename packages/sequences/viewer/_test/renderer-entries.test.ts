@@ -78,10 +78,11 @@ describe('the entries', () => {
       ['color', 'linear wrapped circular', true, 6, true, false],
       ['ruler', 'linear circular', false, 6, false, false],
       ['pairs', 'linear circular', false, 6, false, false],
-      ['rows', 'linear', false, 1, false, true],
+      ['rows', 'linear wrapped', false, 1, false, true],
       ['logo', 'linear circular', false, 8, true, false],
       ['matrix', 'linear', false, 4, true, false],
       ['dot_plot', 'linear', false, 24, false, false],
+      ['frame', 'linear wrapped circular', false, 6, false, false],
       ['seqv:map', 'linear', false, 4, false, false],
     ]);
     const h = (name: string, s: unknown = null) => byName(name).height?.(s as never, {}, DefaultRenderProps);

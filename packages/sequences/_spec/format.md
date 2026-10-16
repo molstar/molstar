@@ -231,7 +231,8 @@ the map from it to the block's: directly, along a path, or onto an alignment's c
   per-position types draw one mark per residue across its codon.
 - **Through a partial map**, data beyond what it pairs (a fusion partner, a terminal extension) draws nothing; this is
   never reported.
-- **Lanes.** In a track with a `rows` layer, other layers land on the lane of the row they target.
+- **Lanes.** In a track with a `rows` layer, other layers land on the lane of the row they target; a `frame` on the
+  lanes of the rows track its span reaches.
 - A layer without data is placed by its type (`letters` and `ruler` in every block).
 - A layer that reaches no block is `svs.layer.unplaced` (a warning), unless its data has no rows or is pending.
 
@@ -272,7 +273,16 @@ reference's Layer types.
   every protein whose codon mapping reaches the block.
 - **`ruler`** may show another coordinate system's numbering (`of`), through the map that places it.
 - **`secondary`**: a strand is an arrow toward its C-terminal end as shown (on a reversed piece, to the left), its head
-  on the piece holding that end only; a strand split by an intron draws its other pieces as bodies.
+  on the piece holding that end only; a strand split by an intron draws its other pieces as bodies. A helix is a
+  cylinder, its ends rounded where the helix ends and square where a line, the view or an intron cuts it (it goes on).
+  With `labels` each item's label (`α1`, `β2`) is drawn over its shape where it fits, whole or cut to three graphemes.
+- **`rows`** are drawn in a text layout too, a text row per row on every line (viewer.md, Rows in text), except a
+  streamed alignment's: text is a figure of rows held, so there they take their fallback (`svs.render.fallback`).
+- **`frame`**: an outline per item and run over the cells it covers, across the tracks `span` names (from `from`'s band
+  to `to`'s, in the frame's section), titled with the item's label; where a span's edge is a `rows` track, the rows the
+  item targets (a row target each; on the alignment's columns, every row). A side is drawn only where the item ends, so
+  a frame cut by a line break or the view stays open there. A span naming a track of another section is
+  `svs.layer.span`, and the frame is drawn on its own track alone. Its fallback, `ranges`, shows the same items.
 - **Dense states** (`matrix`): a band per state drawn, in its keyed order; bands thinner than a device pixel are reduced
   per device row by the layer's `density`: `majority` (the default) takes the plurality of the row's cells' colors (a
   tie: the color met first), opaque by the share of its cells that have a color (cells without one fade it); `maximum`
@@ -385,7 +395,10 @@ gives its value, or a nested theme's. A clause tests a **measure** per element: 
 annotation's value, the share or rank of the cell's letter in its column, or equality with a row's letter. A measure
 that does not apply is NaN, and a clause on NaN fails. Named color themes (`clustal_x`, `percent_identity`, …) are names
 for `rules` tables, so a viewer implements `rules` alone. Where a measure cannot be computed (a lazy alignment's
-columns), the viewer draws the fallback and reports `svs.render.theme`.
+columns), the viewer draws the fallback and reports `svs.render.theme`. `espript` is ESPript's shading as such a table:
+a residue whose letter is every residue of its column (gaps not counted) in `identical` (black), else one whose letter's
+group (`groups`) holds at least `similarity` (0.7) of the column in `similar` (grey), nothing elsewhere; an
+approximation of ESPript's similarity score by groups.
 
 ## Shared scales
 

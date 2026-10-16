@@ -50,6 +50,7 @@ describe("validating a section's style", () => {
       track_axes: true,
       track_labels: true,
       wrapped_tracks: 'full',
+      text_cells: true,
     };
     expect(Object.keys(each).slice(1)).toEqual(Object.keys(SectionStyleKeys));
     for (const [k, v] of Object.entries(each)) expect(issues({ [k]: v }), k).toEqual([]);
@@ -67,7 +68,8 @@ describe("validating a section's style", () => {
         'warning',
         '/colum_heads',
         'unknown style key "colum_heads"; the keys: preset, column_heads, data_floor, row_height, header_width, ' +
-          'vertical_nav, wrapped_group_labels, row_borders, hover_emphasis, track_axes, track_labels, wrapped_tracks; it ' +
+          'vertical_nav, wrapped_group_labels, row_borders, hover_emphasis, track_axes, track_labels, wrapped_tracks, ' +
+          'text_cells; it ' +
           'is ignored, the rest of the style applies',
       ],
     ]);

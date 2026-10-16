@@ -35,6 +35,7 @@ import {
   asText,
   directed,
   edgeTypes,
+  withFrame,
   mapped,
   matrixDoc,
   miniatureDoc,
@@ -84,9 +85,15 @@ const DOCS: Record<string, () => SeqViewSpecDoc> = {
   matrix: matrixDoc,
   dot_plot: () => dotPlotDoc(),
   'seqv:map': miniatureDoc,
+  frame: () => withFrame(allTypes()),
 };
 /** The edge geometries' documents, where the kit's own differs: an alignment given by value for rows and logo. */
-const EDGE_DOCS: Record<string, () => SeqViewSpecDoc> = { ...DOCS, rows: alignedDoc, logo: alignedDoc };
+const EDGE_DOCS: Record<string, () => SeqViewSpecDoc> = {
+  ...DOCS,
+  rows: alignedDoc,
+  logo: alignedDoc,
+  frame: () => withFrame(edgeTypes()),
+};
 /** What an alignment's columns cannot take. */
 const ALIGNED_SKIPS = {
   origin: "an alignment's columns have no cyclic origin",

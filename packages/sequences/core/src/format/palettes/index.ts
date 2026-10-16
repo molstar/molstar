@@ -9,6 +9,7 @@
 export * from './clustal-x.js';
 export * from './color.js';
 export * from './dictionaries.js';
+export * from './espript.js';
 export * from './fields.js';
 export * from './letter-maps.js';
 export * from './letters.js';

@@ -24,12 +24,13 @@ export type { Skin } from '../graph.js';
 export { copyAt, Hit, HoverKind, sourceAt } from '../hit.js';
 export type { HoverState } from '../hover.js';
 export type { LabelContext, LabelSink } from '../labels.js';
-export { letterCap, type RenderProps } from '../layout.js';
+export { letterCap, type RenderProps, TEXT_ROWS_PAD, type TextRows, textRowLabelPx } from '../layout.js';
 export { MarkBit, type MarkSet, type OverlayMarks } from '../marks.js';
 export { CellIO, cellLayout, endsIn, litPairs, pairsAt, pairsInView } from '../pairs-index.js';
 export {
   type EmphasisState,
   type Features,
+  type FrameFeatures,
   featureAt,
   keyOf,
   LetterForm,

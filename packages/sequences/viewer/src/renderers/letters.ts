@@ -463,10 +463,11 @@ function block(v: DrawView, s: LettersState, b: number) {
   if (form === LetterForm.ligand) return pill(v, s, b, lo, hi);
   const wrapped = v.geometry === AxisGeometry.wrapped;
   const w = v.cell * v.span[b];
-  // Residues and atoms alike: their cells in the theme's color at every zoom (a ligand's one position is its pill).
-  const cells = !wrapped && v.color !== null;
+  // Residues and atoms alike: their cells in the theme's color at every zoom (a ligand's one position is its pill);
+  // wrapped, under `wrappedCells` (seqspec:viewer#the-text-view).
+  const cells = (!wrapped || v.props.wrappedCells) && v.color !== null;
   // Wrapped text with `wrappedColors`: the letters themselves in the layer's color (there are no cells to put it on).
-  const tinted = wrapped && v.color !== null && v.props.wrappedColors;
+  const tinted = wrapped && !cells && v.color !== null && v.props.wrappedColors;
   // Plain text (no cells, no tint) with `unobservedGray`: the unobserved letters alone in the skin's `unobserved`.
   const grayText = !cells && !tinted && v.props.unobservedGray && ax.unit[b] >= 0;
   own.v = v;

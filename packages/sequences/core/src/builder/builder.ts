@@ -127,7 +127,7 @@ export type ComputedParams =
 export type BindParams = DistributiveOmit<MappingParams, 'from' | 'to'>;
 /** Twin: `KERNEL_LAYER_TYPE_NAMES` in the format's `tables/kernel.ts`; a test keeps them equal. */
 const LAYER_TYPES =
-  'letters rows ranges points emphasis variants secondary values color ruler pairs logo matrix dot_plot'.split(
+  'letters rows ranges points emphasis variants secondary values color ruler pairs logo matrix dot_plot frame'.split(
     ' ',
   ) as KernelLayerTypeName[];
 

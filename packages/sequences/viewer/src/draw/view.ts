@@ -14,7 +14,7 @@ import type { ResolvedView } from '@molstar/seq-core/format';
 import type { ComposedPath, Numbering } from '@molstar/seq-core/model';
 import { AxisGeometry, SectionAxisView, type ShownIndex } from '../axis.js';
 import type { Skin } from '../graph.js';
-import { DefaultRenderProps, type RenderProps } from '../layout.js';
+import { DefaultRenderProps, type RenderProps, type TextRows } from '../layout.js';
 import { MarkSet, type OverlayMarks } from '../marks.js';
 import { runXInto } from '../runs.js';
 import type { PendingSelection } from '../selection.js';
@@ -108,6 +108,18 @@ export class DrawView extends SectionAxisView {
   tracks: TracksHost | null = null;
   /** A rows layer's data row in the entry drawn; -1: not a rows entry. */
   dataRow = -1;
+  /**
+   * Wrapped: the section's rows drawn as text (seqspec:viewer#rows-in-text), the layout's record (its layer -1: none);
+   * set by the composer per entry.
+   */
+  textRows: TextRows | null = null;
+  /**
+   * A frame's span (seqspec:viewer#frames), while `across` draws (`v.top`, `v.height` the span, CSS px): where a rows
+   * band is at its top or bottom edge, display row 0's surface y (CSS px), a row's height, and 1 where the span's top
+   * (2) or bottom (3) is that band; `spanDisplay` its lane offsets' display rows (null: the same).
+   */
+  readonly spanRows = new Float64Array(4);
+  spanDisplay: Int32Array | null = null;
   columnX = 0;
   columnWidth = 0;
   /**

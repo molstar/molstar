@@ -55,9 +55,9 @@ const issuesOf = (ref: unknown) => {
 };
 
 describe('the line_style channel', () => {
-  it('is ranges’ alone, after color and glyph and before the size channels, with no default', () => {
+  it('is ranges’ and frame’s, after color and glyph and before the size channels, with no default', () => {
     const styled = KernelLayerTypes.filter((t) => t.channels.some((c) => c.kind === 'line_style')).map((t) => t.name);
-    expect(styled).toEqual(['ranges']);
+    expect(styled).toEqual(['ranges', 'frame']);
     const ch = KernelLayerTypes.find((t) => t.name === 'ranges')?.channels ?? [];
     expect(ch.map((c) => c.name)).toEqual(['color', 'glyph', 'line_style', 'thickness', 'radius']);
     expect(ch[2]).toMatchObject({ kind: 'line_style', unit: null, default: null });

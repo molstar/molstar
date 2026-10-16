@@ -283,10 +283,15 @@ export function gutter(f: ComposerFrame, l: SectionLayout, e: number) {
   const m = f.model as ViewModel;
   const rv = m.resolved;
   const t = l.entryTrack[e];
-  // Wrapped: the line's number; a track drawn in full, its layers' gutters (an axis).
+  // Wrapped: the line's number; a track drawn in full, its layers' gutters (an axis); the rows as text, theirs (their
+  // labels and numbers, seqspec:viewer#rows-in-text).
   if (l.geometry === WRAPPED) {
     lineNumber(f, l, e);
-    if (l.entryKind[e] !== TRACK || !fullTrack(v.props, rv, m.set, t) || v.runs[l.lines.block[l.entryRow[e]]]?.chip)
+    const rows = l.entryKind[e] === TRACK && t === l.textRows.track;
+    if (
+      !rows &&
+      (l.entryKind[e] !== TRACK || !fullTrack(v.props, rv, m.set, t) || v.runs[l.lines.block[l.entryRow[e]]]?.chip)
+    )
       return;
   }
   let opened = false;

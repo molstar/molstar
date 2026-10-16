@@ -74,7 +74,7 @@ describe('the picker', () => {
   it("lists only the schemes that fit: a protein alignment's rows, its points, its values; a DNA sequence", async () => {
     const t = await opened(case3());
     const [rows, points] = options(t.ctx, 'Members');
-    expect(rows).toEqual([null, 'clustal_x', 'zappo', 'taylor', 'hydrophobicity', 'percent_identity']);
+    expect(rows).toEqual([null, 'clustal_x', 'zappo', 'taylor', 'hydrophobicity', 'percent_identity', 'espript']);
     expect(points).toEqual([null, 'category10', 'okabe_ito', 'tableau10']);
     expect(options(t.ctx, 'Conservation')).toEqual([[null, 'viridis', 'cividis', 'magma', 'blues', 'rd_bu']]);
     const labels = colorSchemePickers(t.ctx, layer(t.ctx, 'Members').t)[0].options.map((o) => o.label);

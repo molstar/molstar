@@ -6,13 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The kernel's registry entries: the fourteen layer types (seqspec:format#layer-types), the color, glyph, size and
+// The kernel's registry entries: the fifteen layer types (seqspec:format#layer-types), the color, glyph, size and
 // line style themes (seqspec:format#themes) and the `svs.*` issue codes (seqspec:format#validation). Formats,
 // services, providers and aligners are in load/.
 
 import type { Severity } from '@molstar/seq-core/model';
 import type { Geometry, ThemeRef } from '../doc.js';
 import { clustalXRules } from '../palettes/clustal-x.js';
+import { espriptRules } from '../palettes/espript.js';
 import { checkSchemeDef, checkSchemeParams, percentIdentityRules } from '../palettes/schemes.js';
 import type { ChannelKind, LayerTypeEntry, SvsRegistryEntry, ThemeEntry } from '../registry.js';
 import { bool, dict, float, int, list, literal, nullable, ref, str, tuple, union } from '../schema/field-schema.js';
@@ -66,7 +67,7 @@ export function numericDefaultColor(lo: number, hi: number, given: boolean): The
 /** The layer types' table, a row each: name | shows | data | layouts | axes | sizing | fallback | color | glyph. */
 const LAYER_TYPES = `
 letters | residues (element symbols for atoms), one alignment row's, or another polymer's through a mapping | none | tracks text | blocks columns | row | - | letter | -
-rows | an alignment's rows in tree order, with the tree and data columns | none | tracks | columns | free | letters | letter | -
+rows | an alignment's rows in tree order, with the tree and data columns | none | tracks text | columns | free | letters | letter | -
 ranges | labeled ranges, discontinuous items, boundaries | ranges | tracks text | blocks columns | row | - | palette | tick
 points | point features | ranges | tracks text | blocks columns | row | ranges | palette | circle
 emphasis | positions emphasized in the letters or rows of its track | ranges | tracks text | blocks columns | row | points | - | -
@@ -78,7 +79,8 @@ ruler | positions labeled in a numbering | none | tracks | blocks columns | free
 pairs | pairs of positions, by category | pairs | tracks | blocks columns | free | points | palette | circle
 logo | letter frequencies per column | matrix | tracks | columns | free | values | letter | -
 matrix | a value per position and state | matrix | tracks | blocks columns | free | values | blues | -
-dot_plot | positions against positions on two axes: pairs as segments, a grid's values as cells | pairs grid | tracks | blocks | free | omit | palette | -`;
+dot_plot | positions against positions on two axes: pairs as segments, a grid's values as cells | pairs grid | tracks | blocks | free | omit | palette | -
+frame | named regions outlined across tracks, titled | ranges | tracks text | blocks columns | row | ranges | palette | -`;
 
 const letterMapField = OptionalField(
   nullable(letterMap),
@@ -125,7 +127,7 @@ const SIZE_CHANNELS: Readonly<Record<string, readonly (readonly [string, 'px' | 
 };
 const sizeParam = OptionalField(nullable(themeRef('size')), null, "a size theme; null: the viewer's size");
 /** The types with a `line_style` channel (after color and glyph, before the size channels). */
-const LINE_STYLED: ReadonlySet<string> = new Set(['ranges']);
+const LINE_STYLED: ReadonlySet<string> = new Set(['ranges', 'frame']);
 /** Each type's params (top-level layer params; the list under the table). Typed as written: `KernelLayerParams`. */
 const LAYER_PARAMS = {
   letters: {
@@ -194,7 +196,10 @@ const LAYER_PARAMS = {
   },
   points: { split, density, radius: sizeParam },
   variants: { split, density, thickness: sizeParam },
-  secondary: { thickness: sizeParam },
+  secondary: {
+    thickness: sizeParam,
+    labels: OptionalField(bool, false, "each item's label over its shape where it fits (α1, β2); a hint"),
+  },
   values: {
     thickness: sizeParam,
     encoding: display('bars', 'bars', 'line', 'area'),
@@ -257,9 +262,24 @@ const LAYER_PARAMS = {
       "the plot's width ÷ height (1: square), its height following the data area's width within what the section shows, never flatter than a viewer's stretch of it; null: the track's own height; a hint",
     ),
   },
+  frame: {
+    span: RequiredField(
+      object({
+        from: RequiredField(ref('track'), 'the first track the frames enclose'),
+        to: OptionalField(nullable(ref('track')), null, 'the last; null: from'),
+      }),
+      "the tracks each item's frame encloses, from the top of from's band to the bottom of to's (a rows track: the rows the item targets)",
+    ),
+    line_style: OptionalField(
+      nullable(themeRef('line_style')),
+      null,
+      'a line style theme: solid, dashed or dotted (the others drawn solid); null: solid',
+    ),
+    labels: OptionalField(bool, true, "each item's label as its frame's title, in the frame's own track"),
+  },
 } as const satisfies Readonly<Record<string, Fields>>;
 
-/** The fourteen kernel layer types, in the table's order (a test keeps it equal to the table and the builder's). */
+/** The fifteen kernel layer types, in the table's order (a test keeps it equal to the table and the builder's). */
 export const KERNEL_LAYER_TYPE_NAMES = [
   'letters',
   'rows',
@@ -275,6 +295,7 @@ export const KERNEL_LAYER_TYPE_NAMES = [
   'logo',
   'matrix',
   'dot_plot',
+  'frame',
 ] as const;
 export type KernelLayerTypeName = (typeof KERNEL_LAYER_TYPE_NAMES)[number];
 /** Each kernel type's own params (the layer's common ones are the tree table's), for the builder's typed methods. */
@@ -322,6 +343,7 @@ const NAMED_TABLES: Readonly<Record<string, (p: P) => ThemeRef>> = {
     return ruled([{ when: [{ measure, min: p.threshold ?? 0 }], theme: p.base, alpha: measure }]);
   },
   clustal_x: () => ruled(clustalXRules()),
+  espript: (p) => ruled(espriptRules(p)),
   percent_identity: () => ruled(percentIdentityRules()),
 };
 
@@ -352,6 +374,7 @@ field_color | color | the field's values are Colors; others not colored
 letter | color | the residue letter, or a ligand atom's element, through a letter dictionary
 clustal_x | color | Clustal X by the column's composition (protein); a named rule table
 percent_identity | color | the consensus letter where more than 80, 60, 40% of the column agree (Jalview's); a named rule table
+espript | color | ESPript's shading: identical columns in one color, a letter whose group holds at least similarity of its column in another; none elsewhere; a named rule table
 scheme | color | a color scheme by name, or an inline one: the letter, field_palette or rules theme it stands for, its dark variant on a dark skin
 by_unit | color | one color per unit, by unit ref in data order
 by_copy_group | color | one color per copy group, by its first unit
@@ -426,6 +449,12 @@ field_line_style | line_style | the field's values are line styles; others solid
       map: RequiredField(dict(glyph), 'value -> glyph'),
       default: OptionalField(nullable(glyph), null, 'for values the map lacks; null: none'),
     },
+    espript: {
+      identical: OptionalField(color, '#000000', 'where every row of the column has the letter'),
+      similar: OptionalField(color, '#bdbdbd', "where the letter's group holds at least similarity of the column"),
+      similarity: OptionalField(float, 0.7, 'the share of the column, from 0 to 1'),
+      groups: OptionalField(list(str), ['ILMV', 'FWY', 'KRH', 'DE', 'ST', 'NQ', 'AG'], 'letter groups read as similar'),
+    },
     field_glyph: { field: OptionalField(str, 'glyph', '') },
     field_line_style: { field: OptionalField(str, 'line_style', '') },
   },
@@ -462,7 +491,7 @@ const WARNINGS = `svs.version.newer_minor svs.snapshot.invalid svs.position.unkn
   svs.provider.unmapped svs.provider.size svs.provider.lazy
   svs.provider.alphabet svs.coverage.ambiguous svs.layer.rows svs.stream.ref svs.stream.conflict svs.stream.depth
   svs.stream.fallback svs.query.stale svs.query.warning svs.layer.streamed_merged
-  svs.stream.item_map svs.mapping.align svs.source.id svs.stream.load`;
+  svs.stream.item_map svs.mapping.align svs.source.id svs.stream.load svs.layer.span`;
 /** Quiet notes on how valid input was read (seqspec:format#validation): nothing is wrong, nothing is lost. */
 const INFOS = `svs.alignment.inserts svs.source.empty_record svs.source.skipped svs.source.unterminated svs.layer.empty
   svs.ref.pending svs.query.note svs.legend.unlisted`;

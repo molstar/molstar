@@ -42,7 +42,7 @@ describe('registries', () => {
     register(reg, [KernelRegistry, MvsRegistry]);
     expect(reg.version).toBe(1);
     expect(reg.list('layerTypes').map((t) => t.name)).toEqual(KernelLayerTypes.map((t) => t.name));
-    expect(reg.list('themes').filter((t) => t.params.color)).toHaveLength(12);
+    expect(reg.list('themes').filter((t) => t.params.color)).toHaveLength(13);
     expect(reg.list('themes').filter((t) => t.params.glyph)).toHaveLength(4);
     expect(reg.get('custom', 'mvs/unit')?.namespace).toBe('mvs');
     expect(reg.list('layerTypes')).toBe(reg.list('layerTypes'));

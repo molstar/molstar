@@ -54,10 +54,10 @@ const patched = (doc: ReturnType<typeof case3>, ops: Patch['ops']) =>
   applyPatch(doc, { format: 'seq_view_spec_patch', ops }, reg).doc;
 
 describe('the v1 schemes against their published definitions', () => {
-  it('16, each named once, with a label, a description and its provenance', () => {
+  it('17, each named once, with a label, a description and its provenance', () => {
     const names = KernelColorSchemes.map((e) => e.name);
-    expect(names).toHaveLength(16);
-    expect(new Set(names).size).toBe(16);
+    expect(names).toHaveLength(17);
+    expect(new Set(names).size).toBe(17);
     for (const e of KernelColorSchemes) for (const s of [e.label, e.description, e.provenance]) expect(s).not.toBe('');
   });
 
@@ -232,7 +232,11 @@ describe('what fits', () => {
   it('letters by alphabet, column tables only on held columns; values; categories', () => {
     const protein = ['clustal_x', 'zappo', 'taylor', 'hydrophobicity'];
     expect(names({ kind: 'letters', alphabet: 'protein', columns: false })).toEqual(protein);
-    expect(names({ kind: 'letters', alphabet: 'protein', columns: true })).toEqual([...protein, 'percent_identity']);
+    expect(names({ kind: 'letters', alphabet: 'protein', columns: true })).toEqual([
+      ...protein,
+      'percent_identity',
+      'espript',
+    ]);
     expect(names({ kind: 'letters', alphabet: 'dna', columns: false })).toEqual([
       'nucleotide',
       'purine_pyrimidine',

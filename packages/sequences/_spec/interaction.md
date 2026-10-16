@@ -153,7 +153,9 @@ an earlier; a stale owner's clear does nothing, so a late pointer-leave never cl
   its layer's hit (the hit's `track`, `layer` and `index`), so the hover names the position and the hover card shows the
   layer's value there, as on its linear track; hover emphasis outlines the position's cell of the strip. Beside the
   letters the hover is the letters'. A track drawn in full in the text view is hovered as in tracks: a glyph, an item's
-  bar or label, a position under a line or an area, by drawn geometry on its line.
+  bar or label, a position under a line or an area, by drawn geometry on its line. An alignment's rows in text
+  (`seqspec:viewer#rows-in-text`) are hovered as a rows track's rows: the row's residue under the point (on a gap, the
+  row at that column); the overlay lights its column over the line's bands.
 - **A dot plot's cell** (`dot_plot`, `seqspec:format#layer-types`) is two positions: the one under x, as on any track,
   and its **partner** under y (the hit's and the hover's `pairBlock`, `pairUnit`, `pairIndex`). The hover lights both,
   each closed as the hover is, in every section and through links (a 3D view lights both residues); its label adds the
@@ -339,13 +341,15 @@ keeps its results as a location set and clears every set it kept, in one patch, 
 `ScrollArea`, `Menu`; `ViewSurface` is the canvas. `AnnotationsPanel` (the Annotations part,
 `data-seqv-part="annotations"`) is a part a host places (no slot, in no chrome's composition): a section's bookmarks set
 as annotations, added from the selection with a label, a color and a line style (one of the format's `line_style`s,
-`solid` to start; written as the row's `line_style` column, which a layer shows through `field_line_style`), listed (a
-row reveals its range, `ctx.reveal`) and deleted, each a patch through the bookmark actions (one undo step). A host that
-names several sets (`places`: each a set's ref and the name a person sees) gets a choice in the add row (the first set
-to start with); the list shows the sets one after another, each row marked with its set's name, and a delete acts on its
-row's set. A set's own track decides where it is drawn: a `ranges` track ordered before the letters' draws above them,
-one after, below. The set is drawn by the document's own `ranges` track over it, colored by the rows' `color`
-(`field_color`); without a track the set is a `highlights` entry, as `bookmark.add` makes it.
+`solid` to start; written as the row's `line_style` column, which a layer shows through `field_line_style`) or, for a
+place of `kind` `points`, a glyph (written as the row's `glyph` column, shown through `field_glyph`), listed (a row
+reveals its range, `ctx.reveal`) and deleted, each a patch through the bookmark actions (one undo step). A host that
+names several sets (`places`: each a set's ref, the name a person sees and its `kind`, what its track draws: `ranges`,
+`points` or `frame`) gets a choice in the add row (the first set to start with); the list shows the sets one after
+another, each row marked with its set's name, and a delete acts on its row's set. A set's own track decides where it is
+drawn: a `ranges` track ordered before the letters' draws above them, one after, below. The set is drawn by the
+document's own `ranges` track over it, colored by the rows' `color` (`field_color`); without a track the set is a
+`highlights` entry, as `bookmark.add` makes it.
 
 - **Every part is a component a host places**: inside the viewer's composition, beside it, or not at all, against the
   viewer's context. React's take the context as a prop, under the provider (its slots, primitives and surfaces) or
