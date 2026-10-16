@@ -25,6 +25,7 @@ import {
 } from 'rxjs';
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { Show } from '../../dom/control-flow.js';
+import { bind } from '../../dom/scope.js';
 import { classes } from './_generated/empty-canvas.module.css.js';
 import { type PrismFieldOptions, PrismSplash, type SplashKind } from './prism-splash.js';
 
@@ -60,8 +61,8 @@ export function EmptyCanvas(props: {
   busy?: Observable<boolean>;
   /**
    * Whether the canvas under it shows: false as the mark comes (the canvas had been empty and the viewer idle: it goes
-   * quiet under the splash, its axes and all), true when something loads (it comes in gradually). Never called for a
-   * load the mark never showed for (a scene cleared to load the next, work in progress): the canvas just shows.
+   * quiet under the splash, its axes and all), true when something is in it (it comes in gradually). The host starts
+   * it quiet (nothing of an empty canvas shows before the mark); a load the mark never showed for finds it shown.
    */
   onCanvasShown?: (shown: boolean) => void;
 }) {
@@ -85,6 +86,8 @@ export function EmptyCanvas(props: {
     }),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
+  // Something in the canvas: it shows (the first load of a page that starts with one, without the mark first).
+  if (props.onCanvasShown) bind(props.empty, (empty) => !empty && props.onCanvasShown?.(true));
   const splash = props.splash ?? true;
   const field = (): SplashKind => {
     // Options are the light's: with them, the light.

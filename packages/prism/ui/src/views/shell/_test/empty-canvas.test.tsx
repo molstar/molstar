@@ -122,7 +122,7 @@ describe('EmptyCanvas', () => {
     }
   });
 
-  it('quiets the canvas while the mark shows and brings it back on a load, and leaves it alone otherwise', () => {
+  it('quiets the canvas while the mark shows, and shows it whenever something is in it', () => {
     const empty = observableState(true);
     const busy = observableState(false);
     const onCanvasShown = vi.fn();
@@ -133,23 +133,25 @@ describe('EmptyCanvas', () => {
       ),
       container,
     );
-    // Cleared to load the next at once: no mark, no reveal.
+    // Empty at the start: nothing (the host starts it quiet).
+    expect(onCanvasShown).not.toHaveBeenCalled();
+    // Cleared to load the next at once: shown, never quieted.
     vi.advanceTimersByTime(300);
     empty.set(false);
-    expect(onCanvasShown).not.toHaveBeenCalled();
-    // Empty while working (a long load), then loaded: still none.
+    // Empty while working (a long load), then loaded: still never quieted.
     empty.set(true);
     busy.set(true);
     vi.advanceTimersByTime(3000);
     empty.set(false);
     busy.set(false);
-    expect(onCanvasShown).not.toHaveBeenCalled();
-    // Empty and idle the whole delay: the mark, the canvas quiet under it; what loads now comes in gradually.
+    expect(onCanvasShown.mock.calls.every(([shown]) => shown)).toBe(true);
+    // Empty and idle the whole delay: the mark, the canvas quiet under it; what loads now comes in.
+    onCanvasShown.mockClear();
     empty.set(true);
     vi.advanceTimersByTime(800);
     expect(container.querySelector('[role=img]')).not.toBeNull();
     expect(onCanvasShown.mock.calls).toEqual([[false]]);
     empty.set(false);
-    expect(onCanvasShown.mock.calls).toEqual([[false], [true]]);
+    expect(onCanvasShown.mock.calls.at(-1)).toEqual([true]);
   });
 });
