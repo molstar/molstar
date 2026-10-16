@@ -70,6 +70,12 @@
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  /* Open, the top of its well: square at the bottom (as a section's header and Home's actions). */
+  &:has(.toggle[aria-expanded="true"]) {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .toggle {

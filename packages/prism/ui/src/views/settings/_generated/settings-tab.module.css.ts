@@ -87,6 +87,11 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
   &:hover {
     background: var(--msp-color-hover);
   }
+
+  &:has(.msp-settings-settings-tab-toggle[aria-expanded="true"]) {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 }
 
 .msp-settings-settings-tab-toggle {
