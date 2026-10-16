@@ -9,7 +9,7 @@
 import { rafScheduler, type Scheduler } from '@molstar/seq-viewer';
 import { DefaultSequenceTheme } from './document.js';
 import type { SequenceOverride, SequenceStyle, SequenceViewer } from './model.js';
-import type { TracksRail } from './presets.js';
+import { DefaultTracksRail, type TracksRail } from './presets.js';
 
 // The sequence's runtime (sequence.md §2, viewer-spec.md §2.3): Seq* and everything over it, one chunk the spec loads
 // (`sequence.runtime`) when a structure is first shown, or an operation or a saved state needs it. The viewer's core
@@ -71,6 +71,7 @@ export function applySaved(
   if (!v || (v.version !== 1 && v.version !== 2)) {
     viewer.setStyle(initial === 'text' ? 'compact' : 'tracks');
     viewer.setTheme(DefaultSequenceTheme);
+    viewer.setRail(DefaultTracksRail);
     follow(undefined);
     void viewer.setOverride(undefined);
     return;

@@ -189,6 +189,14 @@ describe('linking the sequence to a 3D view', () => {
     hover.set(undefined);
     expect(setHover).toHaveBeenLastCalledWith(null, '3d');
 
+    // Another model's loci are not this one's residues (they would remap by unit id and atom index).
+    const other = Structure.toStructureElementLoci((await hostStructure('1c26')).structure);
+    list.set([{ ...mark('c', 'accent'), loci: other }]);
+    expect(channels()).toEqual([]);
+    hover.set({ owner: 'plot', structure: 's', loci: other });
+    expect(setHover).toHaveBeenLastCalledWith(null, '3d');
+    hover.set(undefined);
+
     hover.set({ owner: 'plot', structure: 's', loci: all });
     stop();
     expect(channels()).toEqual([]);

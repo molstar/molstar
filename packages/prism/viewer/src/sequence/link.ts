@@ -87,6 +87,8 @@ export function linkSequence(
 function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: Structure, marks: MarksSource) {
   const scratch = Extents.create(16);
   const coordsOf = (loci: StructureElement.Loci) => {
+    // Another structure's loci would remap by unit id and atom index onto whatever residues share them.
+    if (loci.structure.root !== structure.root) return undefined;
     const here = StructureElement.Loci.remap(loci, structure);
     if (StructureElement.Loci.isEmpty(here)) return undefined;
     scratch.count = 0;

@@ -10,6 +10,8 @@ import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { ComplexRef, sequenceDocument } from '../document.js';
+import { DefaultTracksRail } from '../presets.js';
+import { applySaved } from '../runtime.js';
 import { skinFor } from '../skin.js';
 import type { SequenceBehaviorContext } from '../behaviors.js';
 import { headlessViewers, hostStructure, ValuesTrack, valuesBehavior } from './fixtures.js';
@@ -290,6 +292,32 @@ describe('the sequence model', () => {
     expect(h.viewer.structure.value?.structure).toBe(other.structure);
     h.structure.set(undefined);
     expect(h.viewer.structure.value).toBeUndefined();
+    h.viewers.dispose();
+  });
+
+  it('announces every document it builds, though the structure and the complex ref are the same (the 3D link is remade)', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    const before = h.viewer.structure.value;
+    let emitted = 0;
+    const sub = h.viewer.structure.subscribe(() => emitted++);
+    emitted = 0;
+    // A new document over the same structure (the text version's colors).
+    h.viewer.setTheme({ letters: null });
+    await until(() => h.viewer.structure.value !== before);
+    expect(emitted).toBeGreaterThan(0);
+    expect(h.viewer.structure.value?.structure).toBe(before?.structure);
+    expect(h.viewer.structure.value?.complex).toBe(before?.complex);
+    sub.unsubscribe();
+    h.viewers.dispose();
+  });
+
+  it('restores the default rail with the default state (a snapshot without the sequence, Undo to the start)', () => {
+    const h = headlessViewers();
+    h.viewer.setRail({ navigator: 'strip', height: 30 });
+    applySaved(h.viewer, () => {}, undefined, undefined);
+    expect(h.viewer.rail.value).toEqual(DefaultTracksRail);
     h.viewers.dispose();
   });
 

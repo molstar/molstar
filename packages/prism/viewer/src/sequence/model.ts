@@ -220,7 +220,11 @@ class Viewer implements SequenceViewer {
   readonly seq: SeqViewerContext;
   private readonly styleState = observableState<SequenceStyle>('tracks');
   private readonly themeState = observableState<SequenceTheme>(DefaultSequenceTheme);
-  private readonly structureState = observableState<SequenceStructure | undefined>(undefined);
+  // Each document is its own value (identity): the 3D link is made again for it, though the structure and the complex
+  // ref are the same, as its Seq* set is not.
+  private readonly structureState = observableState<SequenceStructure | undefined>(undefined, {
+    compare: (a, b) => a === b,
+  });
   private readonly legendState = observableState<SequenceLegend>(legendOf(DefaultSequenceTheme.letters, false));
   readonly style = this.styleState.asReadonly;
   readonly theme = this.themeState.asReadonly;
