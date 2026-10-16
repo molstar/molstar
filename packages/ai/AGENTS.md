@@ -5,6 +5,7 @@ AI packages' own. Architecture and decisions: [.v6/ai](../../.v6/ai/README.md) (
 
 - **The spec** is `_spec/` (start with [_spec/README.md](_spec/README.md): the packages, how a turn binds them, where to
   start for a task). Read it before the code; a change that moves what it says updates it in the same commit.
+- **What is missing** and what was deferred: [TODO.md](TODO.md) (an entry leaves when it is done).
 - `agent`, `harness`, `components` (platform code: storage, the supervisor), `model-adapters`, `conformance` (the suite
   every backend runs, and test doubles), `tools`, `session`, `trace`, `fibers`.
 - Generic: no package imports Mol\*, Prism or rxjs; `node:*` only in `ai-components`; zod only in `ai-tools`. Biome

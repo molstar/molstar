@@ -1,7 +1,8 @@
 # Prism
 
 The new Mol\* UI. The repository's rules ([../../AGENTS.md](../../AGENTS.md)) apply; these are Prism's own. Designs:
-[.v6/prism-ui](../../.v6/prism-ui/README.md) (start with its README; `design/contexts.md` holds the contracts).
+[.v6/prism-ui](../../.v6/prism-ui/README.md) (start with its README; `design/contexts.md` holds the contracts). What is
+missing and what was deferred: [TODO.md](TODO.md) (an entry leaves when it is done).
 
 - Packages: `ui` (the common base: its own DOM JSX runtime, components, the shell, the command menu), `viewer` (the
   viewer mode, Mol\*'s own UI), `stories` (the story mode), `assistant` (the AI assistant's UI). The modes and the

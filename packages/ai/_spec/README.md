@@ -84,14 +84,14 @@ imports (`./*`) exist but a host should not need them.
 | show what happened in a turn               | [trace.md](trace.md)                                                                                 |
 | keep a durable, windowed transcript or log | [fibers.md](fibers.md)                                                                               |
 
-## State of the code (2026-10-14)
+## State of the code (2026-10-16)
 
-- Built and tested: everything above. Consumers in the repository: `@molstar/prism-assistant` uses `ai-tools` types
-  (`paramsShape`, PD → field shape, `src/tools/params.ts`) and `ai-trace` types and `./format` (the Inspector, on mock
-  data).
-- Not built: Prism hosting a session (commands as tools, its drive, one undo step per turn; `.v6/ai/harness.md §18`),
-  SQLite backends, durable nested runs, more than one active turn, `ai-evals`. See
-  [.v6/ai/plan.md](../../../.v6/ai/plan.md).
+- Built and tested: everything above. Consumers in the repository: the Prism viewer's agent
+  (`@molstar/prism-viewer/agent`: operations as tools, `createViewerAgent` over `AgentSession`, one undo step per turn;
+  `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector over
+  `ai-trace`).
+- Not built: SQLite backends, more than one active turn, `ai-evals`. What is missing and what was deferred:
+  [../TODO.md](../TODO.md); the order: [.v6/ai/plan.md](../../../.v6/ai/plan.md).
 
 ## Rules for changes here
 
