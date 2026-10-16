@@ -133,6 +133,13 @@ const armWeights = new Float32Array(Arms.length);
 const ShockRadius = 220;
 const ShockSpeed = 260;
 
+/**
+ * The glass's gravity as it snaps back: how far it reaches (px from the word's middle) and how hard it pulls (px/s² at
+ * the middle, at full pull).
+ */
+const GravityRadius = 360;
+const Gravity = 900;
+
 /** How much faster (and denser) the stream is at the very start of its intro. */
 const IntroBoost = 8;
 /** Seconds a speck's speed takes to settle back after a push or a burst. */
@@ -539,6 +546,11 @@ export class PrismField {
     }
 
     const pointer = this.#pointer && o.interactive;
+    // The glass snapping back pulls the light toward the word's middle for a moment (its pop throws it out again).
+    const pull = this.#glass ? this.#glass.pull : 0;
+    const gx = this.#wordX + (WordmarkGeometry.width / 2 - 1) * this.#wordScale;
+    const gy = this.#wordY + (WordmarkGeometry.height / 2 - 1) * this.#wordScale;
+    const g2 = GravityRadius * GravityRadius;
     const r = o.radius;
     const r2 = r * r;
     const settle = Math.min(1, dt / Settle);
@@ -568,6 +580,18 @@ export class PrismField {
       const k = 1 + (this.#base[i] / v - 1) * settle;
       vx *= k;
       vy *= k;
+
+      if (pull > 0) {
+        const dx = gx - x;
+        const dy = gy - y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < g2) {
+          const d = Math.sqrt(d2) + 1e-3;
+          const f = Gravity * pull * (1 - d / GravityRadius) * dt;
+          vx += (dx / d) * f;
+          vy += (dy / d) * f;
+        }
+      }
 
       // A slow curl: a drift across the speck's way from a field that moves, added to its motion but not to its velocity
       // (so it wavers, and never wanders off).

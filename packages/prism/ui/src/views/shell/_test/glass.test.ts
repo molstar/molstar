@@ -88,4 +88,24 @@ describe('the wordmark as glass', () => {
     run(glass, 2);
     expect(glass.whole).toBe(true);
   });
+
+  it('pulls the light in as it snaps back (strongest at the start), not otherwise', () => {
+    const glass = new Glass();
+    glass.scatter();
+    // The first gathering pulls nothing.
+    run(glass, 0.5);
+    expect(glass.pull).toBe(0);
+    run(glass, 3);
+    glass.shatter(20, 10);
+    expect(glass.pull).toBe(0);
+    run(glass, 0.82);
+    expect(glass.phase).toBe('assembling');
+    const early = glass.pull;
+    expect(early).toBeGreaterThan(0.5);
+    run(glass, 0.2);
+    expect(glass.pull).toBeLessThan(early);
+    run(glass, 1);
+    expect(glass.whole).toBe(true);
+    expect(glass.pull).toBe(0);
+  });
 });

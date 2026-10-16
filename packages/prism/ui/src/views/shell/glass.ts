@@ -158,6 +158,17 @@ export class Glass {
     }
   }
 
+  /**
+   * How hard the glass pulls the light in as it snaps back (0..1): strongest as the pieces start home, gone as they land
+   * (the splash's gravity; 0 otherwise).
+   */
+  get pull(): number {
+    if (this.#phase !== 'assembling' || this.#assembly !== SnapBack) return 0;
+    const span = SnapBack.duration + SnapBack.stagger;
+    const p = Math.min(1, (this.#time - this.#since) / span);
+    return (1 - p) * (1 - p);
+  }
+
   /** Whole and still: nothing to draw again until something happens (no frames while nothing moves). */
   get resting(): boolean {
     return this.#still;
