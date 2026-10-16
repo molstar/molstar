@@ -115,6 +115,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   (`extensions/zenodo/src/index.ts`).
 - CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
   (`.github/workflows/node.yml`).
+- A load from a URL that does not answer fails with `Cannot read properties of undefined (reading 'cell')` instead of
+  saying so (`api/load`; found in the AI simplification's gate).
 
 ## Missing: prism-ui
 
@@ -150,6 +152,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - The Assistant tab always says stored keys are scrambled; `KeyStore.protection()` (protected by a per-browser key, or
   only scrambled) is not shown (`assistant/src/views/ai-setup.tsx`).
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
+- Web and data tools for the agent in the viewer (search, fetch a page or a file; `viewer/src/agent/skills.ts`).
 
 ## Considered and deferred
 
