@@ -74,3 +74,17 @@ describe('the model’s limits from a real provider (models.md, "The providers")
     expect(r).toMatchObject({ status: 'completed', text: 'From a class.' });
   });
 });
+
+describe('a provider the host replaces between turns', () => {
+  it('runs the next turn on the new provider (an own endpoint whose address changed)', async () => {
+    const before = scriptedModel([{ text: 'From the old address.' }]);
+    const after = scriptedModel([{ text: 'From the new address.' }]);
+    let current = before.provider;
+    const session = sessionOver(() => current, { provider: 'own-lab', model: 'llama' });
+    expect((await session.turn({ prompt: 'One.' })).text).toBe('From the old address.');
+    current = after.provider;
+    const r = await session.turn({ prompt: 'Two.' });
+    expect(r).toMatchObject({ status: 'completed', text: 'From the new address.' });
+    expect([before.invocations.length, after.invocations.length]).toEqual([1, 1]);
+  });
+});

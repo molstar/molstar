@@ -87,6 +87,36 @@ describe('Turns and operations', () => {
     expect(await statuses(s)).toEqual(['reset', 'completed']);
   });
 
+  it('T5 provider-per-turn: each turn and each resume resolve the provider again (a host may replace it between)', async () => {
+    let resolved = 0;
+    const s = createSession({
+      tools: { t: () => ({ text: 'done' }) },
+      configuration: { tools: { enabled: ['t'], preauthorized: [] } },
+      model: [{ text: 'one' }, { calls: [{ tool: 't', arguments: {} }] }, { text: 'two' }],
+      drive: with_({
+        permission: ({ payload }) => (asked.has(payload.call.callId) ? 'allow' : park(payload.call.callId)),
+      }),
+      models: (model) => ({
+        resolve: async () => {
+          resolved += 1;
+          return model.provider;
+        },
+      }),
+    });
+    const asked = new Set<string>();
+    const park = (callId: string) => {
+      asked.add(callId);
+      return { park: {} };
+    };
+    await s.send('first');
+    // The begin step's sizing and the model step share one resolution.
+    expect(resolved).toBe(1);
+    expect((await s.send('second')).outcome).toMatchObject({ parked: {} });
+    expect(resolved).toBe(2);
+    expect(await s.resume()).toMatchObject({ end: { status: 'completed' } });
+    expect(resolved).toBe(3);
+  });
+
   // T6. The event log is complete and ordered (harness.md §3, §13).
 
   it('T6 catch-up: a subscriber joining mid-turn subscribes, then reads events(after), and sees each event once', async () => {

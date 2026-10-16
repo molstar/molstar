@@ -45,8 +45,9 @@ comments cite are its sections).
 ## The harness
 
 `createHarness({ models, tools, drive, configure?, price?, clock?, ids?, limits: { depth = 4 }?, id? })` → `Harness`:
-`models: ProviderBindings` (`resolve(target) → provider`), `tools: ToolBindings` (`resolve(definition) → handler`), the
-`drive`, `configure(messages)` (a turn's configuration when `turn` gives none), `price(configuration, usage)`.
+`models: ProviderBindings` (`resolve(target) → provider`, asked once per configuration in each `turn` and each `resume`,
+so a provider the host replaced between them is the one used), `tools: ToolBindings` (`resolve(definition) → handler`),
+the `drive`, `configure(messages)` (a turn's configuration when `turn` gives none), `price(configuration, usage)`.
 
 | Operation                            | What                                                                                                                                                                               |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

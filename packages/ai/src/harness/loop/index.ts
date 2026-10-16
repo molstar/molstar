@@ -103,6 +103,10 @@ export function createHarness(options: HarnessOptions): Harness {
   const store = new Store();
   const observations = new Subject<Observation>();
   const seqs = new Subject<number>();
+  /**
+   * Providers and capabilities by configuration, for one turn's run (begun or resumed): a provider the host replaces
+   * between turns (an endpoint's address changed) is the one the next turn runs on.
+   */
   const models = new Map<string, Promise<{ provider: Provider; capabilities: ModelCapabilities }>>();
   let active: Active | undefined;
 
@@ -522,6 +526,7 @@ export function createHarness(options: HarnessOptions): Harness {
       if (configured === undefined) throw new HarnessError('invalid', 'a turn needs a configuration');
       const turnId = ids.next('turn');
       active = { turnId };
+      models.clear();
       return { turnId, done: loop(turnId, () => begin(turnId, configured, messages)) };
     },
     stop(reason) {
@@ -537,6 +542,7 @@ export function createHarness(options: HarnessOptions): Harness {
       store.turn = rest;
       write<ControlEvent>({ kind: 'control', control: 'resumed', turnId: turn.id, detail: {} });
       active = { turnId: turn.id };
+      models.clear();
       return { turnId: turn.id, done: loop(turn.id) };
     },
     reset(heads, reason) {
