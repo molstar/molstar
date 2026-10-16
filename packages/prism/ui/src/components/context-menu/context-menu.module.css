@@ -25,7 +25,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 15px 1fr;
+  grid-template-columns: 15px 1fr auto;
   align-items: center;
   gap: var(--msp-space-3);
   height: 28px;
@@ -43,4 +43,11 @@
   &:disabled {
     opacity: 0.55;
   }
+}
+
+/* A command's key, quiet at the row's end. */
+.keys {
+  color: var(--msp-color-text-subtle);
+  font-family: inherit;
+  font-size: var(--msp-font-size-xs);
 }

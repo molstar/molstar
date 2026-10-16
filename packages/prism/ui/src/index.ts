@@ -46,12 +46,15 @@ export * from './shell/fullscreen.js';
 export * from './shell/shell.js';
 export * from './shell/theme.js';
 
+export * from './commands/items.js';
+export * from './commands/keymap.js';
 export * from './commands/keys.js';
 export * from './commands/manager.js';
 export * from './commands/types.js';
 
 export { ActionFooter, type ActionFooterProps } from './components/action-footer/action-footer.js';
 export { Button, type ButtonProps } from './components/button/button.js';
+export { CommandButton } from './components/button/command-button.js';
 export { type Choice, Choices } from './components/choices/choices.js';
 export { ColorPalette, ColorPicker, type ColorPickerProps, colorToHex } from './components/color/color-picker.js';
 export { type ContextMenuItem, openContextMenu } from './components/context-menu/context-menu.js';

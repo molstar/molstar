@@ -21,6 +21,8 @@ export interface ContextMenuItem {
   icon?: IconName;
   /** Why it cannot be used now (greyed). */
   disabled?: string;
+  /** Its key, as text (`⌘K`): an entry made from a command has its key (`commandItem`, commands.md §7). */
+  shortcut?: string;
   run(): void;
 }
 
@@ -82,6 +84,7 @@ export function openContextMenu(
           >
             {item.icon ? <Icon name={item.icon} size={15} /> : <span />}
             <span>{item.label}</span>
+            {item.shortcut ? <kbd class={classes.keys}>{item.shortcut}</kbd> : <span />}
           </button>
         ))}
       </div>

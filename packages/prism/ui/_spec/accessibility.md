@@ -12,7 +12,9 @@ practice (WCAG 2.2 AA, the WAI-ARIA patterns), checked per view in tests and Sto
 - **Keyboard**: every view usable without a pointer. The command menu is a modal combobox (Tab stays in, focus returns
   to the opener); trees are ARIA trees (`dom/tree-keys.ts`: Tab reaches a tree once, arrows move, open, close; Enter
   does what a click does); cards and dialogs trap and restore focus (`dom/focus.ts`); a closed panel gives focus to its
-  tab; menu buttons follow the menu button pattern; the rail's tabs are a tab list.
+  tab; menu buttons follow the menu button pattern; the rail's tabs are a tab list. Keys can be remapped from the
+  keyboard in Help (a recorder takes the next chord, Escape cancels; the result is said politely:
+  [commands.md](commands.md) §6).
 - **Every field has a name**: a params row's control is labelled by its label's id
   (`components/params/params-form.tsx`).
 - **The canvas without sight or pointer**: picking, measuring and focusing by target (select, measure, focus take

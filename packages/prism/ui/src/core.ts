@@ -37,6 +37,8 @@ export {
 export * from './shell/shell.js';
 export * from './shell/theme.js';
 
+export * from './commands/items.js';
+export * from './commands/keymap.js';
 export * from './commands/keys.js';
 export * from './commands/manager.js';
 export * from './commands/types.js';

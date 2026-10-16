@@ -185,9 +185,10 @@ export function ShellView(props: ShellViewProps) {
   const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
   // The canvas: quiet (transparent, its axes and all) from the start and while the empty canvas's mark and splash are
   // up, coming in gradually over its own color when something is in it (shell.module.css `.canvas[data-quiet]`); a
-  // load the mark never showed for finds it shown.
+  // load the mark never showed for finds it shown. Keys scoped to the canvas work while the focus is in it
+  // (`data-msp-scope`, commands.md §6).
   const canvasBox = (
-    <div class={classes.canvas} data-msp-canvas="" data-quiet={props.empty ? '' : undefined}>
+    <div class={classes.canvas} data-msp-canvas="" data-msp-scope="canvas" data-quiet={props.empty ? '' : undefined}>
       {props.canvas}
     </div>
   ) as HTMLElement;

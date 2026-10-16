@@ -100,3 +100,48 @@
 .conflict {
   margin: 0;
 }
+
+/* A group's heading with an action at its end (Commands: Change keys). */
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--msp-space-1);
+
+  & .heading {
+    padding-bottom: 0;
+  }
+}
+
+/* While changing keys: a row's Change, Clear and Reset, quiet after its keys. */
+.edit {
+  display: flex;
+  gap: var(--msp-space-1);
+}
+
+/* Waiting for the new keys: a key-shaped well in the accent, focused. */
+.recorder {
+  padding: 1px var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  outline: 1px solid var(--msp-color-accent);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.editBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-inset) 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

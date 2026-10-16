@@ -23,6 +23,8 @@ export function selectionCommands(api: ViewerApi): CommandDefinition<ViewerComma
       title: 'Select…',
       alias: ['select', 'pick', 'add to selection', 'remove from selection'],
       action: 'Select',
+      // In the Select group: its mode starts from the group's (select.ts).
+      group: 'select',
     }),
     operationCommand(api, api.select.all, {
       category: 'Selection',

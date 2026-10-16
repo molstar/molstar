@@ -13,6 +13,7 @@ import {
   CanvasStackFadeMs,
   type CanvasBackgroundProps,
   CommandMenu,
+  commandItems,
   type CommandMenuAssistant,
   canvasInk,
   domView,
@@ -353,23 +354,22 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             icon: 'focus',
             title: 'Reset camera',
             run: () => void person.camera.reset(),
-            // v5's Reset menu (parity.md §4): the principal axes, or x, y and z.
-            menu: [
+            // v5's Reset menu (parity.md §4): the principal axes, or x, y and z. Entries by command id (commands.md §7):
+            // whether they can run and their keys are the commands'; a command an override removed takes its entry.
+            menu: commandItems(managers.commands, [
               {
+                command: 'camera.orient',
                 id: 'orient-axes',
                 label: 'Orient axes',
-                icon: 'axis-3d',
                 hint: 'Principal axes along the screen',
-                run: () => void person.camera.orient(),
               },
               {
+                command: 'camera.reset-axes',
                 id: 'reset-axes',
                 label: 'Reset axes',
-                icon: 'rotate-ccw',
                 hint: 'x, y and z along the screen',
-                run: () => void person.camera.resetAxes(),
               },
-            ],
+            ]),
           },
           // Expand (the canvas fills the viewer, `view.expand`), or fullscreen where expanding would only fill an iframe
           // (FullscreenModel.mode); the other beside it in the menu.

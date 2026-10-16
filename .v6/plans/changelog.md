@@ -408,3 +408,17 @@ the [API change ledger](breaking-v6-changes.md).
   `model-archive.fetch-pae` command and operation, and a button in the PAE card. The PAE is a download and a parse in
   the state tree, so it is undone with Undo and saved in a session.
 - The Structure panel's PAE row says the right size for a partial ModelCIF metric (a domain's PAE of a bigger model).
+
+## Prism commands: Select, keys, menus by command id
+
+- The command menu has a Select group: every selection query of the plugin's registry by category (By query), and the
+  loaded structures' entities, chains, ligands and other residues, and elements (In the loaded structures), with one
+  mode (Replace, Add, Remove, Intersect) set in the group's header. The highlighted row lights its atoms in 3D and says
+  how much it would select ("1 residue · 20 atoms").
+- Keys can be remapped in Help (Change keys: record, clear, reset, give a key to a command without one, reset all); the
+  person's keys are kept with the viewer's preferences. `ui.keybindings` is the app's layer under them. Help, the
+  command menu and `?` show the keys in effect, and conflicts per scope.
+- Commands can be scoped to a region (`scope: 'canvas'`, `'panel:<id>'`): their key works only there, and before a
+  global command on the same key.
+- prism-ui: `commandItem` / `commandItems` (menu entries by command id) and `CommandButton` (a button by command id);
+  context menu entries show a key. The canvas's camera Reset menu is made of commands.

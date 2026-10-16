@@ -45,6 +45,9 @@ import type { SavedSequence } from './sequence/runtime.js';
 import { SourceScope } from './sources/state.js';
 import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
+import { appKeybindings, keymapStore } from './commands/keymap-store.js';
+import { watchSelectCommands } from './commands/select.js';
+import { lociPreviewSink, selectQuerySource } from './sources/select-queries.js';
 import { createViewerSources, publicSources, type ViewerSources } from './sources/viewer-sources.js';
 import {
   type BuiltInViews,
@@ -242,6 +245,10 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       commands: new CommandManager<ViewerCommandContext>({
         context: commandContext.asReadonly,
         formats: { get: (name) => (name === 'target' ? targetFormat : undefined) },
+        // The command menu's highlighted rows light their atoms (the Select group's queries, commands.md §5).
+        preview: lociPreviewSink(plugin),
+        // The spec's keys over the commands' own; the person's remaps, kept with the preferences (commands.md §6).
+        keymap: { app: appKeybindings(spec), store: keymapStore(spec.persist?.preferences) },
       }),
       transactions,
       history,
@@ -278,15 +285,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keys = new Map((spec.ui?.keybindings ?? []).map((k) => [k.command, k.key]));
     // Every command goes through here: the core's, the shell's, extensions' and stubs' (overrides.ts).
     const overrides = new Overrides(spec.overrides);
+    // The spec's keybindings are the keymap's app layer (above), not rewritten into the definitions.
     const registerCommands = (defs: readonly CommandDefinition<ViewerCommandContext>[]) =>
-      managers.commands.register(
-        overrides.commands(defs).map((d) => {
-          if (!keys.has(d.id)) return d;
-          const key = keys.get(d.id);
-          const { shortcut: _, ...rest } = d;
-          return key ? { ...rest, shortcut: key } : rest;
-        }),
-      );
+      managers.commands.register(overrides.commands(defs));
 
     // The extensions, in order (viewer-spec.md §3): eager ones activated, lazy ones as stubs.
     const person = host.api.as({ kind: 'person' });
@@ -303,6 +304,17 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       : undefined;
     if (sequence) disposers.push(() => sequence.dispose());
     disposers.push(registerCommands(coreCommands(person)));
+    // The Select group: a command per selection query, made again as the structures change (commands/select.ts).
+    disposers.push(
+      watchSelectCommands({
+        queries: selectQuerySource(plugin),
+        api: person,
+        targets,
+        structures: sources.structures,
+        register: registerCommands,
+        registerGroups: (groups) => managers.commands.registerGroups(groups),
+      }),
+    );
     const extensions = new ExtensionHost({
       host,
       person,

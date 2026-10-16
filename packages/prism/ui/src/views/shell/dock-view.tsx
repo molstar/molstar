@@ -493,6 +493,8 @@ function DockContent(props: {
       role="tabpanel"
       id={props.id}
       aria-label={tab.title}
+      // Keys scoped to this panel work inside it (commands.md §6).
+      data-msp-scope={`panel:${tab.id}`}
       ref={(el) => {
         section = el;
       }}

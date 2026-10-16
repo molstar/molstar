@@ -16,6 +16,9 @@ import type { SnapshotStepperModel } from '@molstar/prism-ui/model/playback';
 import type { SceneModel, SceneNode } from '../model/scene.js';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import type { CommandMenuPrefix } from '@molstar/prism-ui';
+import { SelectCommandGroups } from '../commands/select-groups.js';
+
+const SelectGroup = SelectCommandGroups[0]!;
 
 type Ctx = {};
 
@@ -533,7 +536,8 @@ export function mockCommands(
   manager.registerGroups([
     { id: 'preset', title: 'Preset', icon: 'shapes', order: -2 },
     { id: 'styles', title: 'Styles', icon: 'paintbrush', order: -1 },
-    { id: 'select', title: 'Select', icon: 'mouse-pointer-click', order: 0 },
+    // The viewer's Select group with its shared mode (commands/select-groups.ts); the mocks add by default.
+    { ...SelectGroup, shared: { ...SelectGroup.shared!, default: 'add' } },
     { id: 'select.query', title: 'By query', icon: 'list-tree', parent: 'select', order: 0 },
     { id: 'select.expression', title: 'Expression', icon: 'text-cursor-input', parent: 'select', order: 1 },
     { id: 'selection', title: 'Selection', icon: 'palette', order: 1 },

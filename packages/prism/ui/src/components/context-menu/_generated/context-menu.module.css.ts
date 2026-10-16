@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'keys': 'msp-context-menu-keys',
   'menu': 'msp-context-menu-menu',
   'row': 'msp-context-menu-row',
 } as const;
@@ -39,7 +40,7 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msp.comp
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   text-align: left;
-  grid-template-columns: 15px 1fr;
+  grid-template-columns: 15px 1fr auto;
   display: grid;
 
   &:hover, &:focus-visible {
@@ -50,6 +51,12 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msp.comp
   &:disabled {
     opacity: .55;
   }
+}
+
+.msp-context-menu-keys {
+  color: var(--msp-color-text-subtle);
+  font-family: inherit;
+  font-size: var(--msp-font-size-xs);
 }
 }
 `);

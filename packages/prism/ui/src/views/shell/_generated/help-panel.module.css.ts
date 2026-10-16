@@ -15,15 +15,20 @@ export const classes = {
   'conflict': 'msp-shell-help-panel-conflict',
   'conflicts': 'msp-shell-help-panel-conflicts',
   'content': 'msp-shell-help-panel-content',
+  'edit': 'msp-shell-help-panel-edit',
+  'editBar': 'msp-shell-help-panel-editBar',
   'group': 'msp-shell-help-panel-group',
   'heading': 'msp-shell-help-panel-heading',
+  'headingRow': 'msp-shell-help-panel-headingRow',
   'help': 'msp-shell-help-panel-help',
   'input': 'msp-shell-help-panel-input',
   'key': 'msp-shell-help-panel-key',
   'keys': 'msp-shell-help-panel-keys',
   'list': 'msp-shell-help-panel-list',
   'or': 'msp-shell-help-panel-or',
+  'recorder': 'msp-shell-help-panel-recorder',
   'row': 'msp-shell-help-panel-row',
+  'srOnly': 'msp-shell-help-panel-srOnly',
 } as const;
 
 defineStyles('views/shell/help-panel.module.css', `@layer msp.components {
@@ -118,6 +123,48 @@ defineStyles('views/shell/help-panel.module.css', `@layer msp.components {
 
 .msp-shell-help-panel-conflict {
   margin: 0;
+}
+
+.msp-shell-help-panel-headingRow {
+  padding-right: var(--msp-space-1);
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+
+  & .msp-shell-help-panel-heading {
+    padding-bottom: 0;
+  }
+}
+
+.msp-shell-help-panel-edit {
+  gap: var(--msp-space-1);
+  display: flex;
+}
+
+.msp-shell-help-panel-recorder {
+  padding: 1px var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  outline: 1px solid var(--msp-color-accent);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.msp-shell-help-panel-editBar {
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-inset) 0;
+  display: flex;
+}
+
+.msp-shell-help-panel-srOnly {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 }
 `);

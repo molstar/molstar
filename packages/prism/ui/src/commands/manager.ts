@@ -12,6 +12,8 @@ import { type Observable, Subject } from 'rxjs';
 import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { CommandInvocation } from './invocation.js';
+import { isSymbolKey } from './keys.js';
+import { Keymap, type KeymapOptions, scopeOf } from './keymap.js';
 import { fuzzyScore } from './match.js';
 import type {
   CommandValues,
@@ -40,6 +42,19 @@ export interface CommandManagerOptions<Ctx> {
    * changes (`Object.is`, item by item). Without it, every context emission redraws it.
    */
   previewDeps?: (ctx: Ctx) => readonly unknown[];
+  /** The app's keys and the store of the person's remaps (commands.md §6). */
+  keymap?: KeymapOptions;
+  /**
+   * Ms a highlighted row of the command menu stays before its preview is drawn and its count computed (`browse`), so
+   * moving through the list does not compute every row on the way (default 80).
+   */
+  browseDelay?: number;
+}
+
+/** The command menu's highlighted row (`browse`): its command, and how much it would do once counted. */
+export interface CommandBrowse {
+  id: string;
+  count?: string;
 }
 
 export interface CommandMatch<Ctx> {
@@ -95,6 +110,13 @@ interface Run<Ctx> {
   cancel(): void;
 }
 
+/** The highlighted row being previewed and counted. */
+interface Browse<Ctx> {
+  command: CommandDefinition<Ctx>;
+  abort: AbortController;
+  timer?: ReturnType<typeof setTimeout>;
+}
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export class CommandManager<Ctx> {
@@ -108,9 +130,17 @@ export class CommandManager<Ctx> {
   #run: Run<Ctx> | undefined;
   readonly #recents;
   readonly #outcomes = new Subject<CommandOutcome<Ctx>>();
+  /** The groups' shared values the person picked, by group id. */
+  readonly #shared = observableState<Readonly<Record<string, string>>>({});
+  readonly #browsing = observableState<CommandBrowse | undefined>(undefined);
+  #browse: Browse<Ctx> | undefined;
+  #browsePreview = false;
+  /** Which key runs which command: the commands' own, the app's, the person's (commands.md §6). */
+  readonly keymap: Keymap;
 
   constructor(options: CommandManagerOptions<Ctx>) {
     this.#options = options;
+    this.keymap = new Keymap(options.keymap);
     let saved: string[] = [];
     try {
       saved = options.recents?.load() ?? [];
@@ -242,6 +272,113 @@ export class CommandManager<Ctx> {
     return { command, ...(blocked ? { blocked } : {}) };
   }
 
+  /** The command's key now, after the app's and the person's keymap (commands.md §6). */
+  shortcut(command: CommandDefinition<Ctx>): KeyChord | undefined {
+    return this.keymap.shortcut(command);
+  }
+
+  /** The groups' shared values the person picked, by group id (the defaults are the groups'). */
+  get shared(): ReadonlyState<Readonly<Record<string, string>>> {
+    return this.#shared.asReadonly;
+  }
+
+  /** A group's shared value now: the person's pick, else its default; none for a group without one. */
+  sharedValue(groupId: string): string | undefined {
+    const g = this.#groups.asReadonly.value.find((x) => x.id === groupId);
+    if (!g?.shared) return undefined;
+    const v = this.#shared.asReadonly.value[groupId];
+    return v !== undefined && g.shared.options.some(([o]) => o === v) ? v : g.shared.default;
+  }
+
+  /** Sets a group's shared value (Select's mode), for every command in it from now on. */
+  setShared(groupId: string, value: string): void {
+    if (this.#shared.asReadonly.value[groupId] === value) return;
+    this.#shared.set({ ...this.#shared.asReadonly.value, [groupId]: value });
+  }
+
+  /** The shared values a command gets from the groups it is in (the nearest group's wins for a name). */
+  #sharedFor(command: CommandDefinition<Ctx>): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const g of this.groupPath(command.group)) {
+      if (!g.shared) continue;
+      const v = this.sharedValue(g.id);
+      if (v !== undefined) out[g.shared.name] = v;
+    }
+    return out;
+  }
+
+  /** What a command without params runs with: its defaults and its groups' shared values. */
+  #argsFor(command: CommandDefinition<Ctx>, ctx: Ctx): Record<string, unknown> {
+    return { ...(command.defaults?.(ctx) ?? {}), ...this.#sharedFor(command) };
+  }
+
+  /** The command menu's highlighted command (`browse`), and its count once there is one. */
+  get browsing(): ReadonlyState<CommandBrowse | undefined> {
+    return this.#browsing.asReadonly;
+  }
+
+  /**
+   * The command menu's highlighted row (commands.md §5): a command without params that can run is previewed through the
+   * PreviewSink and counted (`count`), after `browseDelay`, for that row only; a move of the highlight (or none) aborts
+   * that and clears the preview. The menu calls it with none when it closes or opens a form.
+   */
+  browse(id: string | undefined): void {
+    const command = id === undefined ? undefined : this.get(id);
+    if (command && command === this.#browse?.command) return;
+    this.#endBrowse();
+    if (!command) return;
+    const abort = new AbortController();
+    const browse: Browse<Ctx> = { command, abort };
+    this.#browse = browse;
+    this.#browsing.set({ id: command.id });
+    if (command.params || (!command.preview && !command.count) || this.blocked(command)) return;
+    const start = async () => {
+      browse.timer = undefined;
+      const ctx = this.#options.context.value;
+      let args: Record<string, unknown>;
+      try {
+        args = this.#argsFor(command, ctx);
+      } catch {
+        return;
+      }
+      const sink = this.#options.preview;
+      if (command.preview && sink) {
+        try {
+          const preview = command.preview(args, ctx);
+          if (preview !== undefined) {
+            sink.set(preview);
+            this.#browsePreview = true;
+          }
+        } catch {
+          // A preview that fails shows nothing.
+        }
+      }
+      if (!command.count) return;
+      try {
+        const count = await command.count(args, ctx, abort.signal);
+        if (!abort.signal.aborted && count) this.#browsing.set({ id: command.id, count });
+      } catch {
+        // A count that fails says nothing.
+      }
+    };
+    const delay = this.#options.browseDelay ?? 80;
+    if (delay > 0) browse.timer = setTimeout(() => void start(), delay);
+    else void start();
+  }
+
+  #endBrowse(): void {
+    const b = this.#browse;
+    if (!b) return;
+    this.#browse = undefined;
+    if (b.timer !== undefined) clearTimeout(b.timer);
+    b.abort.abort();
+    if (this.#browsePreview) {
+      this.#browsePreview = false;
+      this.#options.preview?.clear();
+    }
+    this.#browsing.set(undefined);
+  }
+
   /** What the typed text (after "/") matches. */
   query(text: string): CommandQuery<Ctx> {
     const all = this.#commands.asReadonly.value;
@@ -344,8 +481,10 @@ export class CommandManager<Ctx> {
     if (this.#run) return { kind: 'blocked', reason: `${this.#run.command.title.replace(/…$/, '')} is still running.` };
     const blocked = this.blocked(command);
     if (blocked) return { kind: 'blocked', reason: blocked };
+    this.#endBrowse();
     this.close();
     if (!command.params) return { kind: 'ran', result: this.#runNow(command) };
+    const start = this.#sharedStart(command, values);
     let invocation: CommandInvocation<Ctx>;
     try {
       invocation = new CommandInvocation<Ctx>({
@@ -356,7 +495,7 @@ export class CommandManager<Ctx> {
         ...(this.#options.assistant ? { assistant: this.#options.assistant } : {}),
         ...(this.#options.previewDeps ? { previewDeps: this.#options.previewDeps } : {}),
         ...(tail ? { tail } : {}),
-        ...(values ? { preset: values } : {}),
+        ...(start ? { preset: start } : {}),
         onRun: () =>
           this.#startRun({ command, owner: this.#owners.get(command), invocation, cancel: () => invocation.cancel() }),
         onSettled: (outcome) => this.#settled(invocation, outcome),
@@ -366,6 +505,20 @@ export class CommandManager<Ctx> {
     }
     this.#active.set(invocation);
     return { kind: 'form', invocation };
+  }
+
+  /** A form's start: the groups' shared values its params take (Select's mode), under the values it is opened with. */
+  #sharedStart(command: CommandDefinition<Ctx>, values: CommandValues | undefined): CommandValues | undefined {
+    const shared = this.#sharedFor(command);
+    if (!Object.keys(shared).length) return values;
+    let names: string[];
+    try {
+      names = Object.keys(command.params?.(this.#options.context.value, values ?? {}) ?? {});
+    } catch {
+      return values;
+    }
+    const fit = Object.fromEntries(Object.entries(shared).filter(([k]) => names.includes(k)));
+    return Object.keys(fit).length ? { ...fit, ...(values ?? {}) } : values;
   }
 
   /** Closes the open form. False while it runs: cancel it instead. */
@@ -388,27 +541,41 @@ export class CommandManager<Ctx> {
   }
 
   /**
-   * Runs a command's keybinding, if the event is one it may take. True when it handled the
-   * event; a refusal is a `blocked` outcome.
+   * Runs a command's keybinding, if the event is one it may take (commands.md §6). True when it handled the event; a
+   * refusal is a `blocked` outcome. Keys are the keymap's; a command scoped to a region (`scope`) takes its key only
+   * inside it (an element around the focus names it with `data-msp-scope`), and there it comes before a global one.
    */
   handleKey(e: KeyEventLike, mac = true): boolean {
     if (e.defaultPrevented || e.repeat || e.isComposing || e.key === 'Process') return false;
-    const target = e.composedPath?.()[0] ?? e.target;
+    const path = e.composedPath?.() ?? [];
+    const target = path[0] ?? e.target;
     const typing = typesText(target);
     // A control that steps with the arrows (a slider, a radio group, a tab strip) keeps the plain keys too.
     const owns = !typing && usesKeys(target);
-    const hits = this.#commands.asReadonly.value.filter(
-      (c) =>
-        c.shortcut &&
-        (!typing || typesNothing(c.shortcut)) &&
-        (!owns || !isPlain(c.shortcut)) &&
-        chordMatches(c.shortcut, e, mac),
-    );
-    const command = hits.find((c) => !this.blocked(c)) ?? hits[0];
-    if (!command) return false;
+    const scopes = scopesAround(path.length ? path : target);
+    // Nearer scopes first (0 = the innermost), global last; a scope that is not around the focus: not at all.
+    const rank = (c: CommandDefinition<Ctx>) => {
+      const s = scopeOf(c);
+      return s === 'global' ? scopes.length : scopes.indexOf(s);
+    };
+    const hits = this.#commands.asReadonly.value
+      .map((c) => ({ c, chord: this.keymap.shortcut(c), rank: rank(c) }))
+      .filter(
+        ({ chord, rank }) =>
+          !!chord &&
+          rank >= 0 &&
+          (!typing || typesNothing(chord)) &&
+          (!owns || !isPlain(chord)) &&
+          chordMatches(chord, e, mac),
+      )
+      .sort((a, b) => a.rank - b.rank);
+    // The nearest that can run; else the nearest, refused.
+    const hit = hits.find((h) => !this.blocked(h.c)) ?? hits[0];
+    if (!hit) return false;
+    const command = hit.c;
     // A plain key (an arrow: the next snapshot) is ambient: where its command cannot run, the key is not taken, and
     // nothing says it was refused.
-    if (isPlain(command.shortcut!) && this.blocked(command)) return false;
+    if (isPlain(hit.chord!) && this.blocked(command)) return false;
     const r = this.open(command.id);
     if (r.kind === 'blocked') this.#outcomes.next({ kind: 'blocked', command, message: r.reason });
     return true;
@@ -420,7 +587,7 @@ export class CommandManager<Ctx> {
     const run: Run<Ctx> = { command, owner: this.#owners.get(command), cancel: () => abort.abort() };
     this.#startRun(run);
     try {
-      const values = command.defaults?.(ctx) ?? {};
+      const values = this.#argsFor(command, ctx);
       const problem = command.check?.(values, ctx);
       if (problem) {
         this.#endRun(run);
@@ -534,9 +701,27 @@ function typesNothing(chord: KeyChord): boolean {
   return !!chord.mod && !chord.alt;
 }
 
-/** A single character that is not a letter, a digit or a space. */
-function isSymbol(key: string): boolean {
-  return /^[^\p{L}\p{N}\s]$/u.test(key);
+/**
+ * The scopes around a key's target, innermost first (commands.md §6): the `data-msp-scope` of the elements on the
+ * event's composed path (across shadow roots), or, without one, of the target and its ancestors.
+ */
+function scopesAround(path: readonly unknown[] | unknown): string[] {
+  const out: string[] = [];
+  const read = (node: unknown) => {
+    const n = node as { getAttribute?(name: string): string | null } | null;
+    const v = n && typeof n.getAttribute === 'function' ? n.getAttribute('data-msp-scope') : null;
+    if (v && !out.includes(v)) out.push(v);
+  };
+  if (Array.isArray(path)) {
+    for (const node of path) read(node);
+    return out;
+  }
+  let node = path as { parentNode?: unknown; host?: unknown } | null | undefined;
+  for (let i = 0; node && i < 256; i++) {
+    read(node);
+    node = (node.parentNode ?? node.host) as typeof node;
+  }
+  return out;
 }
 
 function chordMatches(chord: KeyChord, e: KeyEventLike, mac: boolean): boolean {
@@ -544,7 +729,7 @@ function chordMatches(chord: KeyChord, e: KeyEventLike, mac: boolean): boolean {
   const other = mac ? !!e.ctrlKey : !!e.metaKey;
   if (!!chord.mod !== mod || other || !!chord.alt !== !!e.altKey) return false;
   // A symbol (`?` is Shift+/ on most layouts) already implies its modifiers; letters and digits match Shift strictly.
-  if (!!chord.shift !== !!e.shiftKey && (chord.shift || !isSymbol(chord.key))) return false;
+  if (!!chord.shift !== !!e.shiftKey && (chord.shift || !isSymbolKey(chord.key))) return false;
   const want = chord.key.toLowerCase();
   const key = e.key.toLowerCase();
   if (key === want) return true;

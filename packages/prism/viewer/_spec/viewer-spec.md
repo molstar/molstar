@@ -63,9 +63,10 @@ import of the plugin.
 
 ### 2.5 `ui`: the shell
 
-`layout` (docks, mode, compact width, `tabs` placement, `start` tab, `compactRail`), `theme`, `keybindings` (replace the
-named commands' shortcuts). What shows is decided by parts and `overrides` (§4), one way to hide anything. Ignored
-headless.
+`layout` (docks, mode, compact width, `tabs` placement, `start` tab, `compactRail`), `theme`, `keybindings` (the
+keymap's app layer: `{ command, key }`, `key: null` removes one; ui's commands.md §6). The person's remaps (Help) are
+kept with the preferences (`persist.preferences`, key `keybindings`; `commands/keymap-store.ts`). What shows is decided
+by parts and `overrides` (§4), one way to hide anything. Ignored headless.
 
 - **The embedded layout** (`layout.compactRail: true`; the app's `?hide-rail`): the rail is hidden behind a button in
   the canvas's corner and the canvas goes edge to edge; the button slides the rail in over the canvas, a panel opens

@@ -100,9 +100,10 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Missing: prism-ui
 
-- Commands: a `select` group with a shared mode, generated selection-query commands, previews while browsing, counts on
-  the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6);
-  contextual commands, menus and buttons by command id.
+- Commands: Select's one-run mode by a modifier on Enter (Shift+Enter removes, ⌥↵ intersects) and mode words in tails
+  ([commands.md §5](ui/_spec/commands.md)); trees marked as a key scope (`data-msp-scope="tree"`) and commands using
+  scopes (§6); more menus and buttons by command id: the scene tree's row menus, the selection bar, `CommandButton` in
+  views (§7).
 - No lint rule against `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views
   (§5).
 - The viewer's scene and state trees are not virtualized (`VirtualList` only in

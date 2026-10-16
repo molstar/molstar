@@ -81,9 +81,9 @@ the truth for how.
 ## 6. Light state in the browser's storage
 
 - **Two stores**, never for data (`persist/stores.ts`, `webStore('local' | 'session', { prefix, version, budget })`):
-  `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme, the layout) and
-  `persist.restore` (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over budget is
-  dropped; a blocked store fails nothing. Settings are not kept.
+  `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme, the layout, the person's
+  keys) and `persist.restore` (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over
+  budget is dropped; a blocked store fails nothing. Settings are not kept.
 - **The layout** (`ui/layout.ts`, key `layout`; `persist.layout`, viewer-spec.md §2.6): `viewState.save()` (docks,
   sizes, float, pin, hidden tabs) and `navigation.save()`'s docks (their open tab and collapse; not the card or the
   page, which are summoned), written 500 ms after a change that differs from what was written, again on `pagehide` and

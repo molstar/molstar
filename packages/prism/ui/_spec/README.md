@@ -12,7 +12,7 @@ each app composes it in its own code. The code is the truth for how.
 | [rendering.md](rendering.md)         | the DOM runtime: JSX, scopes (active and paused), control flow, elements, views, React/Preact     |
 | [view-models.md](view-models.md)     | reactive primitives, model conventions, sources and records, lifetimes, results and state         |
 | [shell.md](shell.md)                 | the shell: rail, panel, cards, pages, docks, canvas chrome, status column, compact, the model     |
-| [commands.md](commands.md)           | commands, the manager, the command menu, keybindings                                              |
+| [commands.md](commands.md)           | commands, the manager, the command menu, keybindings (scopes, keymap), menus and buttons by id    |
 | [styling.md](styling.md)             | CSS modules, tokens, themes, spacing, the build, the look's rules, performance (§5)               |
 | [accessibility.md](accessibility.md) | keyboard, focus, ARIA, the live region, touch                                                     |
 

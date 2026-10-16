@@ -314,6 +314,28 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   });
   // A move of the highlight notifies the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
+  // The highlighted command is previewed and counted (commands.md §5): that row only; none once the menu closes.
+  bind(
+    combineLatest([highlight.asReadonly, rows]).pipe(
+      map(([h, r]) => {
+        const row = r.find((x) => x.kind === 'match' && x.index === h);
+        return row?.kind === 'match' && !row.match.preset && !row.tail && !row.match.blocked
+          ? row.match.command.id
+          : undefined;
+      }),
+      distinctUntilChanged(),
+    ),
+    (id) => manager.browse(id),
+  );
+  onCleanup(() => manager.browse(undefined));
+  // The shared argument of the group being browsed (Select's mode), shown once under the input.
+  const shared = combineLatest([group.asReadonly, manager.groups]).pipe(
+    map(([g]) => {
+      const owner = [...manager.groupPath(g)].reverse().find((x) => x.shared);
+      return owner;
+    }),
+    distinctUntilChanged(),
+  );
   const active = combineLatest([highlight.asReadonly, rows]).pipe(
     map(([h, r]) => (r.some((x) => x.kind !== 'caption') ? optionId(h) : undefined)),
     distinctUntilChanged(),
@@ -428,6 +450,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         </For>
         {input}
       </div>
+      <Show when={shared}>{(owner) => <SharedChoice manager={manager} group={owner} />}</Show>
       <Show when={message}>
         {(m) => (
           <p class={classes.message} role="alert">
@@ -487,6 +510,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
             return (
               <CommandRow
                 id={id}
+                manager={manager}
                 row={row}
                 path={relativePath(manager, row.match.command.group, group.value)}
                 inGroup={group.value !== undefined}
@@ -561,6 +585,34 @@ function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Ob
   );
 }
 
+/**
+ * A group's shared argument (commands.md §5: Select's mode) as a row of toggle buttons: set once, it goes to whichever
+ * command in the group runs. Reachable with Tab (the menu keeps Tab inside); the input keeps the focus otherwise.
+ */
+function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup }) {
+  const { manager, group } = props;
+  const shared = group.shared!;
+  const value = manager.shared.pipe(
+    map(() => manager.sharedValue(group.id)),
+    distinctUntilChanged(),
+  );
+  return (
+    <div class={classes.shared} role="group" aria-label={`${group.title}: ${shared.title}`}>
+      <span class={classes.sharedTitle}>{shared.title}</span>
+      {shared.options.map(([v, label]) => (
+        <button
+          type="button"
+          class={classes.sharedOption}
+          aria-pressed={value.pipe(map((x) => (x === v ? 'true' : 'false')))}
+          onClick={() => manager.setShared(group.id, v)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** A command's group path below the group being browsed (all of it at the top level). */
 function relativePath(manager: CommandManager<any>, of: string | undefined, browsing: string | undefined): string[] {
   const path = manager.groupPath(of);
@@ -587,11 +639,14 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
         },
       }));
       const shortcuts: CommandMenuItem[] = props.manager.commands.value
-        .filter((c) => c.shortcut)
-        .map((c) => ({
+        .flatMap((c) => {
+          const chord = props.manager.shortcut(c);
+          return chord ? [{ c, chord }] : [];
+        })
+        .map(({ c, chord }) => ({
           id: `keys:${c.id}`,
           label: c.title,
-          detail: formatChord(c.shortcut!),
+          detail: formatChord(chord),
           icon: c.icon ?? 'keyboard',
           run: () => {
             props.manager.open(c.id);
@@ -674,6 +729,7 @@ function ItemRow(props: {
 
 function CommandRow(props: {
   id: string;
+  manager: CommandManager<any>;
   row: Extract<Row, { kind: 'match' }>;
   /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
   path: readonly string[];
@@ -687,6 +743,15 @@ function CommandRow(props: {
   const { match, tail } = props.row;
   const c = match.command;
   const title = match.preset ? `${c.title.replace(/…$/, '')} ${match.preset.title}` : c.title;
+  const chord = props.manager.shortcut(c);
+  const meta = match.blocked ?? (props.path.length ? props.path.join(' › ') : props.inGroup ? '' : c.category);
+  // Highlighted, how much it would do (`count`, commands.md §5) in place of its path or category.
+  const count = c.count
+    ? props.manager.browsing.pipe(
+        map((b) => (b?.id === c.id && !match.preset ? b.count : undefined)),
+        distinctUntilChanged(),
+      )
+    : undefined;
   const el = (
     <div
       id={props.id}
@@ -702,10 +767,8 @@ function CommandRow(props: {
         {props.query.pipe(map((q) => highlight(title, tail ? '' : q)))}
         {tail ? <span class={classes.tail}>{tail}</span> : null}
       </span>
-      <span class={classes.rowMeta}>
-        {match.blocked ?? (props.path.length ? props.path.join(' › ') : props.inGroup ? '' : c.category)}
-      </span>
-      {c.shortcut ? <kbd class={classes.keys}>{formatChord(c.shortcut)}</kbd> : null}
+      <span class={classes.rowMeta}>{count ? count.pipe(map((n) => n ?? meta)) : meta}</span>
+      {chord ? <kbd class={classes.keys}>{formatChord(chord)}</kbd> : null}
     </div>
   ) as HTMLElement;
   bind(props.selected, (s) => {
