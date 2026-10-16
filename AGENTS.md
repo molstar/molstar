@@ -41,6 +41,7 @@ pnpm test:unit packages/ai # a folder or file filter; `pnpm test:watch` for watc
 pnpm test                  # lint and the unit tests
 pnpm test:live             # live agent runs on real models (opt in: keys in .env.local; costs money)
 pnpm check:workspace       # package boundaries, exports, imports, the inventory
+pnpm deploy:local          # build, then the GitHub Pages folder in deploy/data (apps, prism/, ui-storybook/)
 npx tsc -b                 # every project, by references
 ```
 

@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,7 @@ const buildPaths = {
   prismViewer: path.join(root, 'distributions/molstar/build/prism-viewer'),
   stories: path.join(root, 'distributions/molstar/build/mvs-stories'),
   mesoscale: path.join(root, 'apps/mesoscale-explorer/build'),
+  storybook: path.join(root, 'storybook'),
   example: (name) => path.join(root, 'examples', name, 'build'),
 };
 
@@ -58,12 +60,22 @@ function copyViewer() {
   fsExtra.copySync(path.join(dataDir, 'pwa'), viewerDeployPath, { overwrite: true });
   addVersion(path.join(viewerDeployPath, 'sw.js'));
 }
-/** The Prism viewer (v6), beside the classic one: its page at `prism-viewer/`. */
+/** The Prism viewer (v6), beside the classic one: its page at `prism/`. */
 function copyPrismViewer() {
   console.log('\n### copy Prism viewer files');
-  const target = path.join(localPath, 'prism-viewer');
+  const target = path.join(localPath, 'prism');
   fsExtra.copySync(buildPaths.prismViewer, target, { overwrite: true });
   addAnalytics(path.join(target, 'index.html'));
+}
+
+/** The UI Storybook (`storybook/`), its static build at `ui-storybook/`; its paths are relative, so any folder serves it. */
+function buildStorybook() {
+  console.log('\n### build UI Storybook');
+  const target = path.join(localPath, 'ui-storybook');
+  execFileSync('pnpm', ['exec', 'storybook', 'build', '--output-dir', target, '--quiet'], {
+    cwd: buildPaths.storybook,
+    stdio: 'inherit',
+  });
 }
 
 function copyMesoscale() {
@@ -93,6 +105,7 @@ function copyFiles() {
   copyDemo('lighting');
   copyDemo('alpha-orbitals');
   copyDemo('mvs-stories');
+  buildStorybook();
 }
 function copyToRepository() {
   console.log('\n### copy repository files');
@@ -130,13 +143,25 @@ async function syncRepository() {
 
 const args = new Set(process.argv.slice(2));
 if (args.has('--help') || args.has('-h')) {
-  console.log('Usage: node scripts/deploy.js [--local]');
+  console.log(
+    [
+      'Usage: node scripts/deploy.js [--local | --dry-run]',
+      '  --local    prepare deploy/data only (serve it to check: npx http-server deploy/data)',
+      `  --dry-run  prepare deploy/data and print what would be pushed to ${remoteUrl}`,
+      `  (none)     prepare deploy/data, commit it into deploy/molstar.github.io and push it`,
+    ].join('\n'),
+  );
   process.exit(0);
 }
-const unknown = [...args].filter((arg) => arg !== '--local');
+const unknown = [...args].filter((arg) => arg !== '--local' && arg !== '--dry-run');
 if (unknown.length) throw new Error(`Unknown deploy option(s): ${unknown.join(', ')}`);
 fs.mkdirSync(localPath, { recursive: true });
 copyFiles();
 if (args.has('--local')) process.exit(0);
+if (args.has('--dry-run')) {
+  console.log(`\n### dry run: would sync ${path.relative(root, localPath)} into ${remoteUrl} (master) and push`);
+  for (const entry of fs.readdirSync(localPath).sort()) console.log(`  ${entry}/`);
+  process.exit(0);
+}
 fs.mkdirSync(repositoryPath, { recursive: true });
 await syncRepository();

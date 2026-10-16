@@ -27,6 +27,8 @@
     "clean:build": "node scripts/clean.js --build",
     "clean:lib": "node scripts/clean.js --lib",
     "rebuild": "pnpm clean && pnpm build",
+    "deploy:local": "pnpm build && node scripts/deploy.js --local",
+    "deploy:remote": "pnpm build && node scripts/deploy.js",
     "pack:workspace": "node scripts/workspace/pack.mjs",
     "check:workspace": "node scripts/workspace/check.mjs && node scripts/workspace/slim-bundle.mjs && node scripts/workspace/registry-compare.mjs && node scripts/workspace/composition-check.mjs && node scripts/workspace/query-language-check.mjs",
     "version:check": "node scripts/workspace/version.mjs --check",

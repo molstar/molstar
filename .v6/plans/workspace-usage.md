@@ -130,6 +130,17 @@ not check missing required arguments, argument types, selection-result types, or
 `mvs-validate` uses the standard vocabulary and exits with status 1 if any file fails. Molecular compilation stays in
 model.
 
+## Deploying the apps (GitHub Pages)
+
+`pnpm deploy:local` builds the workspace (`pnpm build`) and prepares the Git-ignored `deploy/data` folder as
+[molstar.github.io](https://github.com/molstar/molstar.github.io) serves it: `viewer/`, `prism/` (the Prism viewer app),
+`me/viewer/` (Mesoscale Explorer), `stories-viewer/v<version>/`, `demos/{lighting,alpha-orbitals,mvs-stories}/` and
+`ui-storybook/` (the static build of `storybook/`). Every entry uses relative paths, so a static server checks it
+(`npx http-server deploy/data`, then `/prism/` and `/ui-storybook/`). `pnpm deploy:remote` does the same, then commits
+the folder into a clone in `deploy/molstar.github.io` and pushes it (maintainers only); `node scripts/deploy.js
+--dry-run` prepares the folder from the existing builds and prints what it would push. The script is `pnpm deploy:remote`, not `deploy`, because
+`pnpm deploy` is a pnpm command.
+
 ## Versions and checks
 
 Colocated unit tests use `_test/<name>.test.ts`. Vitest discovers `.test.ts`, `.test.tsx` and `.test.mjs` files; package
