@@ -130,9 +130,9 @@ collapse the same architecture is folder to folder over relative imports:
 | `testing/`    | `messages/`, `harness/`, `providers/port.ts` |
 
 All folders: no Mol\*, Prism, rxjs, `node:*`, except `messages/` importing `@molstar/core/data/util/hash-functions`
-(harness.md §7). Expressing "may import" with Biome's `noRestrictedImports` on relative
-paths (`../providers/**` and the like) is **inferred, not verified**; the fallback is a small check in
-`scripts/workspace/` (it already checks package boundaries, `pnpm check:workspace`). Open question 8.
+(harness.md §7). Expressing "may import" with Biome's `noRestrictedImports` on relative paths works (verified 2026-10-16 with Biome
+2.5.15 on a scratch config): a pattern `**/providers/**` (and `**/providers.js`) flags `../providers/models.js` and
+`../../providers/models.js` from a restricted folder, and not a folder's own `./values.js`.
 
 ## 6. Size
 

@@ -145,8 +145,9 @@ if they can leave the serial Vitest project.
    type in the API, one Biome override restricting zod outside `packages/ai/**` ([tool-schemas.md](tool-schemas.md) §0).
    Optional on top: replace zod inside the tools with ~180 lines of our own (§3); the AI SDK keeps it installed
    either way.
-8. **Folder rules**: the Biome per-package import rules become per-folder rules on relative paths (inferred to be
-   expressible with `noRestrictedImports` patterns; not verified), or a check in `scripts/workspace/`?
+8. ~~Folder rules~~: **verified 2026-10-16, no decision needed**: Biome's `noRestrictedImports` patterns like
+   `**/providers/**` catch a relative import of another folder at any depth and leave a folder's own imports alone
+   (Biome 2.5.15, a scratch config), so the per-package rules become per-folder Biome rules (packaging.md §5).
 9. **`runOnce`** (the command menu's assistant, not built): delete now, or keep for that feature?
 10. ~~Hashing~~: **decided 2026-10-16**: synchronous, `@molstar/core`'s MurmurHash3-128 over UTF-8 bytes (as
     MolViewSpec uses it), imported from core's one hash file with a narrow Biome exception; the core hash was fixed
