@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { type Message } from '../../messages/index.js';
-import { defaultDrive, drive } from '../index.js';
+import { defaultDrive, drive, type RunContext } from '../index.js';
 import { createSession, type Session, type SessionSetup } from '../../testing/session.js';
 import { system, textOf, user } from '../../testing/messages.js';
 import { expectWith, stepEvents, TURN, with_ } from './helpers.js';
@@ -240,5 +240,126 @@ describe('Steps', () => {
     const toolsStep = stepEvents(await s.events()).find((e) => e.stepKind === 'tools');
     const endings = (await s.harness.steps([toolsStep?.step as string])).map((e) => e.ending);
     expect(endings).toEqual(['parked', 'settled']);
+  });
+
+  /** A tool whose nested run calls `gated` (needs permission) and returns its status. */
+  const helperOf = (session: () => Session) => async (context: RunContext) => {
+    const s = session();
+    const r = await context.run({
+      input: [user('help')],
+      tools: { enabled: ['gated'], preauthorized: [], definitions: [s.tools.definition('gated')] },
+      model: s.configuration.model,
+      limits: {},
+    });
+    return { text: `helper ${r.status}` };
+  };
+  /** Parks `gated` the first time it is asked; allows every other call. */
+  const parkOnce = () => {
+    let parks = 0;
+    return with_({
+      permission: ({ payload }) => (payload.call.toolId === 'gated' && parks++ === 0 ? { park: {} } : 'allow'),
+    });
+  };
+
+  it('E6 nested-park-keeps-ended: a call that succeeded before a nested park keeps its result and does not run again', async () => {
+    const s = createSession({
+      tools: { write: () => ({ text: 'wrote' }), gated: () => ({ text: 'gated ok' }), helper: helperOf(() => s) },
+      model: [
+        {
+          calls: [
+            { tool: 'write', arguments: {} },
+            { tool: 'helper', arguments: {} },
+          ],
+        },
+        // The nested run: its call parks.
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        // After resume: the nested run again, allowed this time.
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        { text: 'nested done' },
+        { text: 'done' },
+      ],
+      drive: parkOnce(),
+    });
+    expect((await s.send('go')).outcome).toMatchObject({ parked: {} });
+    expect(s.tools.callsOf('write')).toHaveLength(1);
+    expect(await s.resume()).toMatchObject({ end: { status: 'completed' } });
+    // write ran once; helper, which had started, runs again knowing it may have run.
+    expect(s.tools.callsOf('write')).toHaveLength(1);
+    expect(s.tools.callsOf('helper').map((c) => c.prior)).toEqual(['none', 'possible']);
+    // The parked call's nested call had not started: it runs fresh.
+    expect(s.tools.callsOf('gated').map((c) => c.prior)).toEqual(['none']);
+    // The round holds every result, write's from before the park.
+    const results = (await s.main()).flatMap((m) =>
+      m.role === 'user' ? m.parts.flatMap((p) => (p.kind === 'tool-result' ? [textOf(p)] : [])) : [],
+    );
+    expect(results).toEqual(['wrote', 'helper completed']);
+  });
+
+  it('E6 nested-park-aborts-sibling: a sibling cut short by the park runs again with prior "possible"', async () => {
+    let session: Session | undefined;
+    const s = createSession({
+      tools: {
+        slow: async () => {
+          await session?.clock.sleep(1000);
+          return { text: 'slow done' };
+        },
+        gated: () => ({ text: 'gated ok' }),
+        helper: helperOf(() => s),
+      },
+      model: [
+        {
+          calls: [
+            { tool: 'slow', arguments: {} },
+            { tool: 'helper', arguments: {} },
+          ],
+        },
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        { text: 'nested done' },
+        { text: 'done' },
+      ],
+      drive: drive(
+        {
+          schedule: ({ payload }) => ({ stages: [payload.calls.map((c) => c.callId)], maxConcurrency: 2 }),
+        },
+        parkOnce(),
+      ),
+    });
+    session = s;
+    expect((await s.send('go')).outcome).toMatchObject({ parked: {} });
+    expect(await s.resume()).toMatchObject({ end: { status: 'completed' } });
+    expect(s.tools.callsOf('slow').map((c) => c.prior)).toEqual(['none', 'possible']);
+    expect(s.tools.callsOf('slow')[0]?.signal.aborted).toBe(true);
+  });
+
+  it('E6 nested-park-reruns-writer: a call that wrote a pointer runs again (its writes went with the step), prior "possible"', async () => {
+    const s = createSession({
+      tools: {
+        note: (context) => {
+          context.journal.append('notes', [user('remember')]);
+          return { text: 'noted' };
+        },
+        gated: () => ({ text: 'gated ok' }),
+        helper: helperOf(() => s),
+      },
+      model: [
+        {
+          calls: [
+            { tool: 'note', arguments: {} },
+            { tool: 'helper', arguments: {} },
+          ],
+        },
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        { calls: [{ tool: 'gated', arguments: {} }] },
+        { text: 'nested done' },
+        { text: 'done' },
+      ],
+      drive: parkOnce(),
+    });
+    await s.send('go');
+    expect(await s.resume()).toMatchObject({ end: { status: 'completed' } });
+    expect(s.tools.callsOf('note').map((c) => c.prior)).toEqual(['none', 'possible']);
+    const [notes] = await s.harness.pointers(['notes']);
+    expect((await s.harness.heads([notes?.head as string]))[0]?.entries).toHaveLength(1);
   });
 });

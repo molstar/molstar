@@ -50,6 +50,7 @@ import {
   firstExit,
   Halt,
   headIdOf,
+  type Parked,
   type Staged,
   StepState,
   Store,
@@ -188,6 +189,25 @@ export function createHarness(options: HarnessOptions): Harness {
     if (end.status === 'completed') store.completedMain = store.main;
     store.turn = undefined;
     store.firstStep = undefined;
+    store.parked.clear();
+  }
+
+  /**
+   * A step parks (harness.md §5): what its calls did is kept for its re-run. A top-level call that succeeded and holds
+   * no pointer keeps its result (its writes, if any, would be dropped with the step); every call that started is run
+   * again with `prior: "possible"`.
+   */
+  function keepParked(run: Run): void {
+    const kept: Parked = store.parked.get(run.step) ?? { results: new Map(), started: new Set() };
+    const holders = new Set(run.collector.holders.values());
+    for (const call of run.collector.calls) {
+      if (call.kind !== 'tool' || call.attempts.length === 0) continue;
+      kept.started.add(call.key);
+      const succeeded = call.attempts.at(-1)?.outcome === 'succeeded';
+      if (call.parentCallId === undefined && succeeded && call.result !== undefined && !holders.has(call.id))
+        kept.results.set(call.id, call.result);
+    }
+    store.parked.set(run.step, kept);
   }
 
   /** How a step ended (harness.md §6): its writes, its event, and the turn after it. */
@@ -212,6 +232,8 @@ export function createHarness(options: HarnessOptions): Harness {
     };
     const summary = step.end !== undefined ? summaryOf(updated, step.end.status, run.step) : undefined;
     const { park: _, ...rest } = updated;
+    if (step.ending === 'parked') keepParked(run);
+    else store.parked.delete(run.step);
     store.turn =
       step.end !== undefined
         ? undefined
@@ -316,7 +338,15 @@ export function createHarness(options: HarnessOptions): Harness {
 
   async function toolsTop(run: Run, pending: Extract<PendingStep, { kind: 'tools' }>): Promise<void> {
     const message = store.blobs.get(pending.message) as unknown as Parameters<typeof toolsStep>[1];
-    const { round: messages, ids: hashed } = await toolsStep(run, message, bind(run, pending.plan));
+    // A resumed step (harness.md §5): the calls that succeeded before it parked keep their results.
+    const parked = store.parked.get(run.step);
+    if (parked !== undefined) run.state.prior = parked.started;
+    const ended = new Map<string, Json>();
+    for (const [callId, ref] of parked?.results ?? []) {
+      const body = store.blobs.get(ref);
+      if (body !== undefined) ended.set(callId, body);
+    }
+    const { round: messages, ids: hashed } = await toolsStep(run, message, bind(run, pending.plan), ended);
     append(run, run.context, messages, hashed);
     await round(run, false);
   }

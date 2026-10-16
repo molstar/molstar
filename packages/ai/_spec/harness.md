@@ -53,7 +53,7 @@ the `drive`, `configure(messages)` (a turn's configuration when `turn` gives non
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `turn({ messages, configuration? })` | begins a turn; refused (`invalid`) while one is active. Returns `{ turnId, done }`; `done` resolves with the `TurnOutcome`: `{ turnId, end: TurnEnd }` or `{ turnId, parked }`     |
 | `stop(reason?)`                      | the running step is aborted and recorded `abandoned`, end `stopped`; a parked turn ends at once (`stopped`)                                                                        |
-| `resume()`                           | re-runs a parked turn's step, asking the drive again (`resumed`); refused (`invalid`) unless one is parked                                                                         |
+| `resume()`                           | re-runs a parked turn's step, asking the drive again (`resumed`); calls that succeeded before the park keep their results (below); refused (`invalid`) unless one is parked        |
 | `reset(heads?, reason?)`             | ends any turn as `reset` (a running step's writes are dropped) and moves pointers: the given heads, else `main` to its head at the end of the last completed turn; deletes nothing |
 | `observe()`                          | live observations and each event as it is written                                                                                                                                  |
 | reads (`HarnessReader`)              | `id`, `execution`, `heads`, `pointers`, `entries`, `events`, `steps`, `turns`, `blobs`, `watch`                                                                                    |
@@ -118,9 +118,9 @@ compacts with a model).
   frames, then exactly one `result { status, parts, contributions?, effect?, transient? }`. A frame after the result or
   no result is a `stream-protocol` failure.
 - **`RunContext`**: `harnessId`, `turnId`, `callId`, `path`, **`key`** (names the intended effect: the call id at top
-  level; a digest of parent key, tool, arguments and count in a nested run), **`prior`** (`'possible'` on a retry: a
-  non-idempotent tool looks for its earlier effect), `attempt`, `definition`, `arguments`, `signal`, `journal`,
-  `run(spec)`.
+  level; a digest of parent key, tool, arguments and count in a nested run), **`prior`** (`'possible'` on a retry, or
+  when the call had started before its step parked: a non-idempotent tool looks for its earlier effect), `attempt`,
+  `definition`, `arguments`, `signal`, `journal`, `run(spec)`.
 - **`journal`**: `read(scope)` any pointer (sees this step's staged moves); `append`/`edit` on a pointer the tool holds,
   never `main` (`pointer-busy`); staged until the step ends.
 - **Contributions**: messages a result adds after the results message (a skill's guidance, tool definitions); one
@@ -133,7 +133,10 @@ optional `drive`, and where the context starts (`pointer`: continued and moved; 
 empty). Same engine, its own budget (not charged to the parent's limits, but in the turn's usage), its calls recorded
 under the parent call (`parentCallId`), nothing written until the parent step ends. Depth limit 4 (a deeper run fails
 with `reason: 'depth'`); it may not write `main`. Ends `completed` with its last `output` or `failed`; a stop or a park
-ends the whole step.
+ends the whole step. On resume the parked step runs again: a top-level call that succeeded before the park and holds no
+pointer keeps its result and is neither asked about nor run again; every other call that had started (the parked call, a
+sibling the park cut short, a writer whose writes went with the step, their nested calls) runs again with
+`prior: 'possible'` (harness.md §5).
 
 ## Budgets and projection
 

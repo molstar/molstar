@@ -72,7 +72,8 @@ async function attemptCall(
     callId: call.callId,
     path: run.path,
     key: call.key,
-    prior: attempt > 1 ? 'possible' : 'none',
+    // A retry, or a call that started before its step parked (harness.md §5, §8).
+    prior: attempt > 1 || run.state.prior?.has(call.key) === true ? 'possible' : 'none',
     attempt,
     definition: call.bound,
     arguments: call.arguments,
@@ -227,10 +228,20 @@ async function runStage(run: Run, calls: readonly Planned[], limit: number, resu
 
 /**
  * The tools step (harness.md §6): repair, permission, schedule, run. Returns the round: the assistant
- * message, the results in call order, then the contributions not already in the head.
+ * message, the results in call order, then the contributions not already in the head. `ended`: the results of calls
+ * that succeeded before the step parked (a resumed step's): kept, neither asked about nor run again (harness.md §5).
  */
-export async function toolsStep(run: Run, message: AssistantMessage, plan: readonly Planned[]) {
+export async function toolsStep(
+  run: Run,
+  message: AssistantMessage,
+  plan: readonly Planned[],
+  ended: ReadonlyMap<CallId, Json> = new Map(),
+) {
   const results = new Map<CallId, Result>();
+  for (const call of plan) {
+    const body = ended.get(call.callId);
+    if (body !== undefined) results.set(call.callId, body as unknown as Result);
+  }
   const skip: Skip = { calls: new Map(), plan, started: new Set(), results };
   for (const call of plan) {
     if (call.unbound === undefined) continue;

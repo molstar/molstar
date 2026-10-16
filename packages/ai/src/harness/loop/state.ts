@@ -57,6 +57,8 @@ export class StepState {
   limits?: Limits;
   /** A reset ended the turn: nothing this step did is written. */
   halted = false;
+  /** The keys of the calls that started in an earlier, parked run of this step: run again with `prior: "possible"`. */
+  prior?: ReadonlySet<string>;
   /** Records an exit and aborts the step's other work (harness.md §6). */
   exit(exit: Exit): Exit {
     this.exits.push(exit);
@@ -170,6 +172,15 @@ export function usageOf(calls: readonly CallRecord[]): { all: Usage; charged: Us
 export const headIdOf = (entries: readonly EntryId[]): HeadId => digest({ head: [...entries] });
 
 /**
+ * What a step's parked runs left (harness.md §5): the results of the top-level calls that succeeded and hold no
+ * pointer (reused on resume, not run again), and the keys of every call that started.
+ */
+export interface Parked {
+  readonly results: Map<CallId, BlobRef>;
+  readonly started: Set<string>;
+}
+
+/**
  * The harness's state, one object in memory (harness.md §2–§4): entries by hash, heads as lists of entry ids,
  * pointers, the event log (`seq` is an event's position, from 1), blobs, the active turn. A step changes it only at
  * its end, in one synchronous assignment.
@@ -190,6 +201,8 @@ export class Store {
   firstStep: string | undefined;
   /** `main` at the end of the last completed turn (reset's default). */
   completedMain: HeadId | undefined;
+  /** What the parked runs of the active turn's pending step left, for its re-run on resume (harness.md §5). */
+  readonly parked = new Map<string, Parked>();
 
   constructor() {
     this.main = this.head([]);

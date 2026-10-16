@@ -67,7 +67,9 @@ call's evidence is what reproduces it (head, configuration, tools, provider revi
   wins over a settlement in flight.
 - **Reset** ends any turn (a running step's writes are dropped) and moves pointers back (by default `main` to its head
   at the end of the last completed turn); it deletes nothing and never runs on its own.
-- **Park**: a `permission` answered `park` parks the step; `resume` re-runs the step and asks the drive again.
+- **Park**: a `permission` answered `park` parks the step; `resume` re-runs the step and asks the drive again. A
+  top-level call that succeeded before the park (a park inside a nested run ends the whole step) and holds no pointer
+  keeps its result and does not run again; every other call that had started runs again with `prior: "possible"`.
 - A prompt that arrives during a turn is the host's to hold until the turn ends: each prompt is its own turn (§10).
 
 ## 6. Steps
@@ -98,7 +100,7 @@ one stage per call, retry transient failures up to 3 times, accept, proceed…),
 - **The handler** (`ToolBindings.resolve(definition) → invoke(context)`) yields `progress` and `usage` frames, then
   exactly one `result` (`succeeded` or `failed`, parts, optional contributions, `effect`, `transient`).
 - **Keys**: a call's `key` names its intended effect (the call id at top level; a digest in a nested run), and
-  `prior: "possible"` says an earlier attempt may have run, so a tool that is not idempotent can look for its effect.
+  `prior: "possible"` says an earlier attempt may have run (a retry, or a run before the step parked), so a tool that is not idempotent can look for its effect.
 - **A tool's own context**: `journal.read` any pointer; `append` and `edit` on one it holds (never `main`), staged until
   the step ends.
 
