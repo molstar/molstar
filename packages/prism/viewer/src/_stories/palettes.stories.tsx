@@ -133,13 +133,13 @@ interface Args {
 
 /**
  * A structure from RCSB colored by chain (or entity) with the picked list: GroEL–GroES (1AON, 21 chains), hemoglobin
- * (4HHB, 4), a nucleosome (1KX5, 10: protein and DNA).
+ * (4HHB, 4), a nucleosome (1KX5, 10: protein and DNA), cytochrome P450 3A4 (1TQN, 1 chain).
  */
 export const OnAStructure: StoryObj<Args> = {
   args: { palette: 'prism-d', entry: '1AON', theme: 'chain-id', background: 'light' },
   argTypes: {
     palette: { control: 'select', options: Object.keys(Palettes) },
-    entry: { control: 'select', options: ['1AON', '4HHB', '1KX5'] },
+    entry: { control: 'select', options: ['1AON', '4HHB', '1KX5', '1TQN'] },
     theme: { control: 'inline-radio', options: ['chain-id', 'entity-id'] },
     background: { control: 'inline-radio', options: ['light', 'dark'] },
   },
@@ -158,4 +158,11 @@ export const OnAStructure: StoryObj<Args> = {
         },
       }),
     ),
+};
+
+/** Candidate E on cytochrome P450 3A4 (1TQN). */
+export const EOn1TQN: StoryObj<Args> = {
+  ...OnAStructure,
+  name: 'E on 1TQN',
+  args: { ...OnAStructure.args, palette: 'prism-e', entry: '1TQN' },
 };
