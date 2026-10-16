@@ -14,7 +14,7 @@ import { operationCommand } from '@molstar/prism-viewer/commands/operations';
 import type { ViewerExtension, ViewerSkill } from '@molstar/prism-viewer/spec';
 import { downloadBlob } from '@molstar/prism-viewer/ui/download';
 
-// Geometry export in the Prism viewer (plan 5.2, parity.md §6: Export › Geometry; README decision 27, commands first):
+// Geometry export in the Prism viewer (parity.md §6: Export › Geometry; README decision 27, commands first):
 // the `geo-export` area with `geo-export.export`, which writes what the canvas shows (its render objects, as Mol*'s
 // geometry exporters read them) as GLB, STL, OBJ or USDZ and gives the file's bytes; saving it is the page's
 // (`ui/download.ts`), in the command and the Export card's Geometry section. The geometry is the canvas's, so it needs

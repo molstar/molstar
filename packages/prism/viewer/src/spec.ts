@@ -88,7 +88,7 @@ export interface PrismViewerPluginParts {
 }
 
 /**
- * §2.8: the lists the data palettes take (README §3.7), the categorical themes' colors (chains, entities, …), in the
+ * §2.8: the lists the data palettes take (accessibility.md), the categorical themes' colors (chains, entities, …), in the
  * order categories take them: each color `0xRRGGBB` or `'#rrggbb'`. `options.canvas.palette` picks among them (`prism`
  * by default; `classic` is Mol*'s own many-distinct).
  */
@@ -244,7 +244,7 @@ export interface ExportFrame {
 }
 
 export interface ExportFrameValues {
-  /** The viewport's, or its pixels (operations.md §1: a choice with its settings is a union). */
+  /** The viewport's, or its pixels (api.md §1: a choice with its settings is a union). */
   readonly size:
     | { readonly name: 'viewport' }
     | { readonly name: 'custom'; readonly params: { readonly width: number; readonly height: number } };
@@ -266,7 +266,7 @@ export interface ViewerExtension {
   readonly api?: Readonly<Record<string, (ctx: ApiAreaContext) => ApiArea>>;
   /**
    * Operations it adds to core areas (the `loaders` feature's `load.entry`, `canvas-settings`' `canvas.lighting`):
-   * built-in features only (`builtIn`), so the core's areas do not grow with Mol*'s extensions (operations.md §2).
+   * built-in features only (`builtIn`), so the core's areas do not grow with Mol*'s extensions (api.md §2).
    */
   readonly contributes?: (ctx: ApiAreaContext) => readonly {
     readonly area: string;

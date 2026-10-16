@@ -10,7 +10,7 @@ import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
 
-// The canvas in a page's viewer. Resizes (README §3.5, step 2): the plugin waits out a 50 ms debounce and a 100 ms
+// The canvas in a page's viewer. Resizes (README decision 28): the plugin waits out a 50 ms debounce and a 100 ms
 // throttle, and sizing the canvas element clears it, so the frame after is blank until the next draw. Here the host's
 // size is observed (a ResizeObserver: once per frame while it changes, after layout, before paint), the canvas is sized
 // and drawn in the same callback, so the cleared canvas never shows; a size it already has is not set again (setting it
@@ -64,7 +64,7 @@ const PressMs = 450;
 const PressSlop = 8;
 
 /**
- * Touch (README §3.7): what hover gives a mouse, a long press gives a finger: the label of what is under it (the
+ * Touch (accessibility.md): what hover gives a mouse, a long press gives a finger: the label of what is under it (the
  * plugin's highlight, so the hover label shows it), until the next touch.
  */
 function longPress(plugin: PluginContext): void {

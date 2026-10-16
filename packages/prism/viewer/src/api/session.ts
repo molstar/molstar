@@ -16,8 +16,8 @@ import { messageOf } from './run.js';
 import { labelOf, loadedStructures } from './scope.js';
 import { currentStateServer, openStateFrom, stateAddress, transformersOf } from './state-open.js';
 
-// `session` (operations.md §2): `open` (`.molx`, `.molj`, from a url, data, a file, or a state server's id) and `clear`
-// now; `save` with `export-session`, the remote operations with `remote-states` (plan phase 3). Both are history steps:
+// `session` (api.md §2): `open` (`.molx`, `.molj`, from a url, data, a file, or a state server's id) and `clear`
+// in the core; `save` comes with `export-session`, the remote operations with `remote-states`. Both are history steps:
 // Undo brings the scene back. The loaders' `load.snapshot` is `open` under another name (`openSession`), for the app's
 // `snapshot-url` and `snapshot-id` URL options.
 
@@ -46,7 +46,7 @@ function failedNodes(ctx: ApiContext): { count: number; first: string; all: bool
 
 export type SessionType = 'auto' | 'molx' | 'molj';
 
-/** `session.open`'s params (and `load.snapshot`'s): one of url, data, file (operations.md §1, "Inputs") or id. */
+/** `session.open`'s params (and `load.snapshot`'s): one of url, data, file (api.md §1, "Inputs") or id. */
 export const SessionOpenParams = {
   ...InputParams({
     url: 'The address of a session (.molx) or a state (.molj)',

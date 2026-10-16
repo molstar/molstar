@@ -11,7 +11,7 @@ import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 
-/** The component commands (operations.md §3, §2 `component`): one per operation, the reads and `modify` aside. */
+/** The component commands (api.md §9, §2 `component`): one per operation, the reads and `modify` aside. */
 export function componentCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
   const category = 'Components';
   return [

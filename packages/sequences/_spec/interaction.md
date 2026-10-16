@@ -61,6 +61,8 @@ a gesture and never claims it.
   tagged so reports too (`listenChrome`, or `ctx.interaction.chrome` directly). A focused chrome control's keys are its
   own.
 - A behavior's bindings are listed, described, as Mol\*'s `Binding` (`ctx.behaviors.bindings()`), for a help panel.
+- The engine's own input stays under the performance contract; Mol\*'s input observer is not used (it allocates a
+  payload per event). The streams speak Mol\*'s vocabulary, so a host linking Seq\* and Canvas3D reads one.
 
 ## Replays and carries
 

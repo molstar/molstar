@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The assistant's key store (spec/agent.md §4, "Keys"). Keys are the person's, kept for the scope they chose; stored
+// The assistant's key store (_spec/README.md, "Keys"). Keys are the person's, kept for the scope they chose; stored
 // ones are always scrambled, so the storage read as it is shows no key. Nothing here guards against code running in
 // the page. A key is never logged.
 

@@ -24,7 +24,7 @@
   container-type: size;
 
   &[data-mode="compact"] {
-    /* Touch targets of at least 44px (README §3.7, WCAG 2.5.5 on touch): rows and controls grow; the rest follows. */
+    /* Touch targets of at least 44px (accessibility.md, WCAG 2.5.5 on touch): rows and controls grow; the rest follows. */
     --msp-row-height: 44px;
     --msp-control-height: 40px;
     /* What fixed-size targets grow to (`max(<their size>, var(--msp-touch-target, 0px))`). */

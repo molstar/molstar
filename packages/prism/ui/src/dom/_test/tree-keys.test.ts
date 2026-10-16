@@ -11,7 +11,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { treeFocus, treeKeys } from '../tree-keys.js';
 
-// The tree's keyboard (README §3.7): arrows move, open, close, enter and leave; Enter does what a click does.
+// The tree's keyboard (accessibility.md): arrows move, open, close, enter and leave; Enter does what a click does.
 
 function tree() {
   const root = document.createElement('div');

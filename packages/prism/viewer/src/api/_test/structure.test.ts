@@ -14,7 +14,7 @@ import { createPrismViewerHeadless } from '../../headless.js';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// `structure` (operations.md §2, plan 2.2) on a headless viewer.
+// `structure` (api.md §2) on a headless viewer.
 
 const dataDir = path.resolve(import.meta.dirname, '../../../../../../data/examples');
 const file = (name: string, as: string) => new File([fs.readFileSync(path.join(dataDir, name))], as);

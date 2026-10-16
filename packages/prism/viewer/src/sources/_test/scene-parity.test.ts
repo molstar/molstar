@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, recordRuns, until } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// parity.md §2 (phase 6) in the scene: the unit cell's row under its structure, and the structure inspector's
+// parity.md §2 in the scene: the unit cell's row under its structure, and the structure inspector's
 // Transform (the Conformation Transform), both acting through the API.
 
 const unitCellRow = (v: PrismViewer) => v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'unit-cell');

@@ -20,7 +20,7 @@ import { nodesFor, updateEach } from './nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from './scope.js';
 import { commitRepresentation, setRepresentation } from './set-representation.js';
 
-// `particles` (operations.md §2, plan 2.5): the particle lists in the scene (`get`), their representations (desired
+// `particles` (api.md §2): the particle lists in the scene (`get`), their representations (desired
 // state, like `representation.set`), visibility and removal. It follows `volume`: a `particles` names a list by label
 // or state ref, else the only one loaded; several are `ambiguous`, with their labels in the hint.
 
@@ -75,10 +75,10 @@ export class ParticlesApi extends ApiArea {
     },
   });
 
-  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  /** @deprecated The former name of `list` (api.md §1 "Words"), until the release. */
   readonly get = this.list;
 
-  // operations.md §2: on a particle list, the representation of a type: added if absent, its params updated if present.
+  // api.md §2: on a particle list, the representation of a type: added if absent, its params updated if present.
   readonly representation = this.operation({
     id: 'particles.representation',
     title: 'Show particles as…',
@@ -224,7 +224,7 @@ function oneList(ctx: ApiContext, name: string | undefined): ParticleListRef | A
 const RepresentationNodeParam = () =>
   NodeParam('Particle representations by selector (representation[type=spheres]) or a state ref');
 
-/** The particle representations a node selector matches (operations.md §1 "Nodes"). */
+/** The particle representations a node selector matches (api.md §1 "Nodes"). */
 function particleRepresentationsOf(ctx: ApiContext, node: string): ParticleRepresentationRef[] | ApiFailure {
   const byRef = new Map(lists(ctx).flatMap((l) => l.representations.map((r) => [r.cell.transform.ref, r] as const)));
   return nodesFor(ctx.plugin.state.data, node, 'particle representation', (cell) => byRef.get(cell.transform.ref));

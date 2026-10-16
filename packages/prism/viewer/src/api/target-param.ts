@@ -13,7 +13,7 @@ import type { QueryLanguage, Target } from '../targets/types.js';
 
 // The `target` param (targets.md §1): a keyword, an address list, a query text or a selector (schema items, `{ molql }`),
 // and, from code in the page (the sequence link), loci directly (`{ loci }`, never stored). A plain value param: its
-// command form shows a text field (`commands/operations.ts`), its tool field is the same string (agent.md §3).
+// command form shows a text field (`commands/operations.ts`), its tool field is the same string (agent.md §2).
 
 /** What an operation's `target` takes. */
 export type TargetValue = Target | { readonly loci: StructureElement.Loci };

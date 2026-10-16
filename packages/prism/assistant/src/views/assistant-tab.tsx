@@ -27,9 +27,9 @@ export interface AssistantInspect {
 }
 
 /**
- * The Assistant tab, at the rail's foot by Settings (only with the agent module included, design/agent.md §6): the
- * model it uses and the keys, then (with the Inspector) a way into its trace, tools and limits; asking happens in the
- * command menu.
+ * The Assistant tab, at the rail's foot by Settings (only with the agent module included; _spec/README.md, "The
+ * Assistant tab"): the model it uses and the keys, then (with the Inspector) a way into its trace, tools and limits;
+ * asking happens in the command menu.
  */
 export function AssistantTab(props: { agent: AgentModel; inspect?: AssistantInspect }) {
   const { inspect } = props;

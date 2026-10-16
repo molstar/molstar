@@ -186,7 +186,7 @@ describe('export session', () => {
   });
 });
 
-describe('the Snapshots list (gate G5)', () => {
+describe('the Snapshots list', () => {
   it('is left as it is by a save: none added to an empty list, and the person’s own not replaced', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const entries = () => v.plugin.managers.snapshot.state.entries.toArray().map((e) => e.snapshot.id);

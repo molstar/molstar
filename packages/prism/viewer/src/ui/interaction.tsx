@@ -16,7 +16,7 @@ import type { PickedStructure } from '../sources/selection.js';
 import { sameItems } from '../sources/state.js';
 import type { CanvasMode, Granularity, ModeSwitchProps } from '../views/canvas/mode-switch.js';
 
-// The canvas's interaction chrome over the viewer (plan 2.3): the mode switch and the picking level (Mol*'s selection
+// The canvas's interaction chrome over the viewer: the mode switch and the picking level (Mol*'s selection
 // mode and granularity, `select.mode` and `select.granularity`), and the selection bar (what is selected, and what to do
 // with it: `focus.set`, `component.add`, `select.clear`). Every action is an operation, as the person.
 

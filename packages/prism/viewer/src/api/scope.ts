@@ -81,7 +81,7 @@ export function loadedStructures(ctx: Pick<ApiContext, 'plugin'>): readonly Stru
   return ctx.plugin.managers.structure.hierarchy.current.structures;
 }
 
-/** A structure as every read names it (operations.md §1 "Words"): its state ref and its name for people. */
+/** A structure as every read names it (api.md §1 "Words"): its state ref and its name for people. */
 export interface StructureId {
   readonly ref: string;
   readonly label: string;

@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import type { RunRecord } from '../../api/run.js';
 
-// The sequence on the API (sequence.md §2–§7, plan 2.4), headless.
+// The sequence on the API (sequence.md §2–§7), headless.
 
 describe('the sequence', () => {
   it('follows the loaded structure, and shows its document', async () => {

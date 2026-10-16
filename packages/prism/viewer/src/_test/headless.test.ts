@@ -13,7 +13,7 @@ import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { createPrismViewerHeadless } from '../headless.js';
 import type { PrismViewer } from '../viewer.js';
 
-// The headless viewer (plan phase 1.6, viewer-spec.md §6): the same API as on a page, with no DOM and no canvas.
+// The headless viewer (viewer-spec.md §6): the same API as on a page, with no DOM and no canvas.
 
 const dataDir = path.resolve(import.meta.dirname, '../../../../../data/examples');
 const crambin = () => new File([fs.readFileSync(path.join(dataDir, '1crn.cif'))], '1crn.cif');

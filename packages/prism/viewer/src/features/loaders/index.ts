@@ -37,7 +37,7 @@ declare module '../../api/load.js' {
   }
 }
 
-// The `loaders` feature (viewer-spec.md §3.1, plan 3.2): the database and URL loaders as operations of the core's
+// The `loaders` feature (viewer-spec.md §3.1): the database and URL loaders as operations of the core's
 // `load` area (`entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`), their commands, and the URL's load
 // parameters (`runUrlLoads`, which the app calls once the viewer is ready; app.md §4). It has no views: Home's own
 // "Download Structure" (every source with its options) is the form for an id, and a second one beside it did the same;

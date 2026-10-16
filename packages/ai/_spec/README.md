@@ -111,7 +111,7 @@ allowed only in `tools/` and `providers/` (and restricted everywhere outside `pa
 
 - Built and tested: everything above. Consumers in the repository: the Prism viewer's agent (`@molstar/prism-viewer`'s
   `agent/`: operations as tools, `createViewerAgent` over `AgentSession`, one undo step per turn; its record, a thread,
-  in `journal/`; `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector
+  in `journal/`; `packages/prism/viewer/_spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector
   over `@molstar/ai/trace`). Narration has no consumer yet.
 - Not built: persistence of a conversation, more than one active turn, evals. What is missing and what was deferred:
   [../TODO.md](../TODO.md); the order: [.v6/ai/plan.md](../../../.v6/ai/plan.md).

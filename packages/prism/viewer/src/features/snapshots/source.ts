@@ -14,7 +14,7 @@ import { merge } from 'rxjs';
 import { fromBehavior, fromChanged, SourceScope } from '../../sources/state.js';
 
 // The snapshots as the views read them (state.md §4, row 2: a mutable field with a void `changed`). Sources by role
-// (contexts.md §7): this one is allowed to read the plugin, as `sources/` is, so the feature's views never do. The
+// (README, Folders): this one is allowed to read the plugin, as `sources/` is, so the feature's views never do. The
 // snapshot area owns it and hands it to the views (`api.snapshot.state`).
 
 /** A saved snapshot as listed: what the list and the playback card show. */
@@ -161,7 +161,7 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
 }
 
 /**
- * The plugin's markdown extensions as the descriptions read them (B1; v5's `controls/markdown.tsx`): which links and
+ * The plugin's markdown extensions as the descriptions read them (parity.md §4; v5's `controls/markdown.tsx`): which links and
  * image sources are commands (`!name=value&…`, by the plugin's parsers), images resolved by the plugin's resolvers (an
  * MVSX archive's files), and the audio player a command made. Running a command is an operation (`snapshot.link`).
  */

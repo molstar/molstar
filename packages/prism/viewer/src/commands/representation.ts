@@ -11,7 +11,7 @@ import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 
-/** The representation commands (operations.md §3, §2 `representation`): the look of a target, and what a component shows. */
+/** The representation commands (api.md §9, §2 `representation`): the look of a target, and what a component shows. */
 export function representationCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
   const category = 'Style';
   return [

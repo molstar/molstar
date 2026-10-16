@@ -25,7 +25,7 @@ import { isTransmembrane, MembraneOrientation3D } from './behavior.js';
 import { MembraneOrientation, MembraneOrientationProvider } from './prop.js';
 import type { MembraneOrientationProps as LookProps } from './representation.js';
 
-// The `membrane` area (operations.md §2, parity.md §6): ANVIL's membrane orientation as operations. `show` places the
+// The `membrane` area (api.md §2, parity.md §6): ANVIL's membrane orientation as operations. `show` places the
 // membrane (computed on first use, locally) and adds its planes and rims, `hide` removes them, `fit` places it again
 // with ANVIL's settings, `options` sets how it looks (v5's generic representation control), `get` says where it is.
 // ANVIL's settings live in the structure's custom-properties node, as v5's custom-property controls kept them, so Undo
@@ -52,7 +52,7 @@ export interface MembraneInfo {
   readonly settings: ANVILProps;
 }
 
-// Each absent: kept as it is (Prism's operations.md §1); given: set.
+// Each absent: kept as it is (Prism's api.md §1); given: set.
 const LookParams = {
   planes: OptionalParam(PD.Boolean(true, { description: 'Show the two planes' })),
   rims: OptionalParam(PD.Boolean(true, { description: 'Show the rims around them' })),
@@ -89,7 +89,8 @@ export class MembraneApi extends ApiArea {
 
   /**
    * The row's state for a structure (by state ref), following the state tree while watched (a view bound to it): a
-   * read for views, as the animation area's `state` (contexts.md §7); nothing is computed or fetched for it.
+   * read for views, as the animation area's `state` (the Prism viewer's `_spec/README.md`, Folders); nothing is
+   * computed or fetched for it.
    */
   rowState(structure: string): ReadonlyState<MembraneRowState> {
     const plugin = this.ctx.plugin;

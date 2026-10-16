@@ -10,7 +10,7 @@ import { StructureElement } from '@molstar/model/model/structure';
 import type { PrismViewer } from '../../viewer.js';
 import type { EvalCheck, EvalTask } from '../eval.js';
 
-// The first eval (plan 4.5): tasks from the agent's first scope (README §3.3) on 1CBS, offline (the file is loaded
+// The first eval (agent.md §6): tasks from the agent's first scope (api.md §11) on 1CBS, offline (the file is loaded
 // first), each checked on the scene. The unit test runs them with a scripted model; `evals.live.ts` with real ones.
 
 const Red = 0xff0000;

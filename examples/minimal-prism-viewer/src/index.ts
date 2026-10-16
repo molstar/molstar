@@ -46,7 +46,7 @@ async function main() {
     status.textContent = `Loading ${url}…`;
     await viewer.api.session.clear();
     try {
-      // Raw plugin work as one history step (README §3.2): download, parse, and the default preset with the look.
+      // Raw plugin work as one history step (api.md §5): download, parse, and the default preset with the look.
       await viewer.run(`Load ${source}`, async (plugin) => {
         const data = await plugin.builders.data.download(
           { url: Asset.Url(url), isBinary },

@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 
-// Absent versus given (operations.md §1): a value left out is kept as it is, a value given is set; no sentinel values
+// Absent versus given (api.md §1): a value left out is kept as it is, a value given is set; no sentinel values
 // (0, -1, '') stand for "keep". Switches take the state wanted; the commands flip them.
 
 describe('absent values', () => {

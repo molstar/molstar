@@ -22,7 +22,7 @@ declare module '@molstar/prism-viewer/api' {
   }
 }
 
-// Assembly symmetry in the Prism viewer (plan 5.2, README decision 27): commands first. The symmetry RCSB PDB annotates
+// Assembly symmetry in the Prism viewer (parity.md §6, README decision 27): commands first. The symmetry RCSB PDB annotates
 // for an assembly (`get`), its axes (`show`, `hide`) and the coloring by its clusters (`color`); the plugin gets the
 // property and the cluster color theme. v5's preset and state action are left out: they fetch from RCSB PDB outside
 // the operations, past the agent's approval (agent.md §4). Its view is a row under each structure that is a PDB

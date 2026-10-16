@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The keyboard's focus around what opens and closes (README §3.7): a dialog keeps Tab inside it and gives the focus back
+// The keyboard's focus around what opens and closes (accessibility.md): a dialog keeps Tab inside it and gives the focus back
 // to what opened it; a menu moves between its items by the arrows (WAI-ARIA's menu pattern); a tab list is one Tab stop
 // whose tabs the arrows move between (the tabs pattern, manual activation). Across shadow roots: a viewer's shell lives
 // in one.

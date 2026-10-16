@@ -11,7 +11,7 @@ import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 
-/** The trajectory commands (operations.md §3, §2 `trajectory`): one per operation, the read aside. */
+/** The trajectory commands (api.md §9, §2 `trajectory`): one per operation, the read aside. */
 export function trajectoryCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
   const category = 'Models';
   return [

@@ -16,7 +16,7 @@ import { hoverLines } from './hover-lines.js';
 import { structureNames } from './naming.js';
 import { fromChanged, type SourceScope } from './state.js';
 
-// What is under the pointer (api.md §8: v5's `structureInteractivity`; README §3.6): the hover label's lines, and the
+// What is under the pointer (api.md §8: v5's `structureInteractivity`; README decision 22): the hover label's lines, and the
 // hover and click events embedding hosts read, each with the target in the address language (targets.md §1).
 
 export interface ViewerPointerEvent {
@@ -45,7 +45,7 @@ export interface PointerSources {
 
 export function createPointerSources(scope: SourceScope, plugin: PluginContext): PointerSources {
   // The lines are derived on every emission and compared themselves: Mol*'s label manager reuses one `labels` array
-  // (`LociLabelManager.getLabels`), so the event's value looks unchanged to a shallow compare (G8).
+  // (`LociLabelManager.getLabels`), so the event's value looks unchanged to a shallow compare.
   const lines = fromChanged(
     scope,
     () => hoverLines(plugin.behaviors.labels.highlight.value.labels),

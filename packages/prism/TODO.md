@@ -1,9 +1,8 @@
 # Prism: to do
 
-What is missing, and what was considered and deferred. One entry each, with a pointer; an entry leaves when it is done
-(its design or plan says so then). Gathered 2026-10-16 from the branch review
-([2026-10-16-branch-review.md](../../.v6/prism-ui/reviews/2026-10-16-branch-review.md)), the specs
-([.v6/prism-ui/spec](../../.v6/prism-ui/spec/README.md)) and the code. The AI package (`@molstar/ai`) has its own:
+What is missing, and what was considered and deferred. One entry each, with a pointer (a code path or a `_spec`
+section); an entry leaves when it is done (its spec section says so then). The specs:
+[viewer/\_spec](viewer/_spec/README.md) and [ui/\_spec](ui/_spec/README.md). The AI package (`@molstar/ai`) has its own:
 [../ai/TODO.md](../ai/TODO.md); Seq\*'s is [../sequences/todo.md](../sequences/todo.md).
 
 ## Decisions open
@@ -24,58 +23,88 @@ What is missing, and what was considered and deferred. One entry each, with a po
   its air, `fluid.ts`); the light as a wave (`quantum-field.ts`: Schrödinger by split-step FFT, Bohmian specks) is in
   Storybook only (Components / Splash: Quantum, Side by side). Pick one, or offer both
   (`ui.splash: 'light' | 'quantum'`).
-- **Duplicates** (review B11): `StatusModel` and `NotificationsManager`; `ShellModel.layout` beside `viewState.save()`;
-  `persist.key` that namespaces nothing; three ways to run Preset and Styles in `StructureTab`.
-- **The query languages' registry is page-wide** (review B12): two viewers on a page offer each other's languages.
-  Recommended: page-wide until pages with several viewers matter (plan.md phase 6).
-- **Size** (review C14–C18; C13 was a no-op: esbuild minifies identifiers under `minify: true`): MolViewSpec in the
-  startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk (one default for now,
-  everything but streaming; its floor of ~721 kB is aligners, SeqQL, streams and palettes:
+- **Duplicates**: `StatusModel` kept as an alias of `NotificationsManager` (`ui/src/managers/notifications.ts`);
+  `ShellModel.layout` beside `viewState.save()` (`ui/src/shell/shell.ts`, `ui/src/managers/view-state.ts`); three ways
+  to run Preset and Styles in the Structure tab (`viewer/src/views/structure/structure-tab.tsx`).
+- **The query languages' registry is page-wide** (`viewer/src/targets/languages.ts`): two viewers on a page offer each
+  other's languages. Recommended: page-wide until pages with several viewers matter.
+- **Size**: MolViewSpec in the startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk
+  (one default for now, everything but streaming; its floor of ~721 kB is aligners, SeqQL, streams and palettes:
   [../sequences/todo.md](../sequences/todo.md)); eager extensions in the app (~190 kB, lazy stubs owning their formats);
   panels shown on demand as static imports (command menu, History, Settings with the params form, volume inspectors);
-  `sideEffects` declared almost nowhere.
+  `sideEffects` declared almost nowhere (every module that registers on import must be listed).
 - **Build budgets** (2026-10-16, app.md §1): the `index.js` budget no longer bounds the start (the start code is in
   shared chunks since `lib`'s lazy import): a budget over the start closure (65 files, 4.4 MB, 1.29 MB gzipped); lower
   the 8 MB `prism-viewer.js` budget (6.2 MB today).
 - **`molstar.lib`** (`apps/prism-viewer/src/lib.ts`): also from the single file `prism-viewer.js` (+32 kB gzipped on
-  every page that imports it)? `StateTransforms` for full v5 parity (architecture.md §9.3 keeps it for the classic
+  every page that imports it)? `StateTransforms` for full v5 parity ([architecture.md](../../.v6/designs/architecture.md) §9.3 keeps it for the classic
   Viewer)?
-- **The night's choices, keep or change** (review D): built-in areas typed as present and throwing when left out; panels
-  keeping their tab ids; History and Settings in the core; the runner re-checking `exists` only for loads; the
-  kept-records index growing (journal.md §1).
+- **Choices to keep or change**: built-in areas typed as present and throwing when left out; panels keeping their tab
+  ids; History and Settings in the core; the runner re-checking `exists` only for loads; the kept-records index growing
+  (journal.md §1).
+- **Mol\*'s other apps on Prism**: docking-viewer (its preset buttons as toolbar items and commands), mesoscale-explorer
+  (its panels as views; the test of the shell's modularity), mvs-stories (embeddable viewport and snapshot-stepper
+  elements), and examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`): port, or leave them on the classic
+  UI (`apps/`, `examples/`).
 
 ## Missing: the viewer
 
-- A fast path in the runner for pointer-rate view operations; measure first (review, "Not done").
-- `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused; B9).
-- The drop overlay and Home read `sources.formats` once, when the shell mounts (review, "Not done").
-- The PAE row's size before the matrix is read assumes a full ModelCIF PAE (review, "Not done").
+- A fast path in the runner for pointer-rate view operations; measure first: the hover is per element, not per frame
+  (`viewer/src/api/run.ts`).
+- `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
+- The drop overlay and Home read `sources.formats` once, when the shell mounts (`viewer/src/ui/shell.tsx`,
+  `viewer/src/features/home/shell.tsx`).
+- The PAE row's size before the matrix is read assumes a full ModelCIF PAE: the model's polymer residues, wrong for a
+  partial metric (`extensions/model-archive/src/prism-viewer.ts`).
 - Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`), kinds for shapes and particle lists; `node` on the
-  structure-scoped operations ([nodes.md §5](../../.v6/prism-ui/spec/nodes.md)).
-- Themes and presets that fetch as they apply carry no addresses (only known services today); the pLDDT track reads
-  B-factors where the 3D theme reads ModelCIF scores (plan.md, G7 "Left").
+  structure-scoped operations ([nodes.md §5](viewer/_spec/nodes.md)).
+- Themes and presets that fetch as they apply carry no addresses (only known services today;
+  `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
+  (`extensions/model-archive/src/prism-viewer.ts`).
 - The record: a run's targets and `changed`, the turn's model, reply deltas, who undid a step, one entry per Undo turn,
-  the index's size and folding, the record inside a `.molx` ([journal.md §1–2](../../.v6/prism-ui/spec/journal.md)).
-- The sequence's caches and its edits overlay ([sequence.md](../../.v6/prism-ui/spec/sequence.md) §2, §7).
-- No redo in the history (`ui/src/managers/history.ts`).
-- The app: hashed entry names, the single file published to Pages beside the app (`pnpm deploy:remote` publishes the app
-  at `prism/` and Storybook at `ui-storybook/`), a CI smoke of it ([app.md §1–2](../../.v6/prism-ui/spec/app.md)).
-- Phase 6 and the switch: accessibility and touch, compact mode, several viewers on a page, performance budgets, and
-  parity.md's missing rows ([plan.md](../../.v6/prism-ui/spec/plan.md) phases 6–7).
+  the index's size and folding, the record inside a `.molx` ([journal.md §1–2](viewer/_spec/journal.md)).
+- The sequence's caches and its edits overlay ([sequence.md](viewer/_spec/sequence.md) §2, §7).
+- Framing around the panels: a pinned panel and the rail still narrow the canvas (`--msp-canvas-pinned`,
+  `ui/src/views/shell/shell.module.css`); the camera's framing should keep the scene clear of them and of the sequence
+  band instead (`paddedFocus`, `viewer/src/sources/framing.ts`, unused so far; [README](viewer/_spec/README.md) decision
+  28).
+- The generated form in a dialog ("open as form") for command params that are not flat; today they run at their defaults
+  from the inline sentence (`ui/src/forms/flat-fields.ts`, [commands.md](ui/_spec/commands.md)).
+- The app: hashed entry names; publishing from the release workflow (today `pnpm deploy:remote` publishes the app and
+  its single file at `prism/` and Storybook at `ui-storybook/`) ([app.md §1–2](viewer/_spec/app.md)).
+- Before Prism becomes the default viewer: accessibility and touch, compact mode, several viewers on a page, performance
+  budgets (a one-node change in a scene tree of 1,000 components or a state tree of 5,000 cells within a frame), and
+  [parity.md](viewer/_spec/parity.md)'s missing rows; the classic `apps/viewer` stays beside it for a major version.
 - Stories, its own app on prism-ui (there are no modes; `ModeChooser` is gone), is not built.
+- Turning illumination on waits on its shaders' linking (core graphics, `packages/graphics`).
+- The `dom` runtime's edge cases (`ui/src/dom/control-flow.ts`, `render.ts`): `For` shows its fallback while every entry
+  waits on a time slice (`order`, not the items, decides); `Switch` with no cases never shows its fallback, and drops
+  nested case arrays; a slice ends at a microtask, not a task boundary; a region rendered re-entrantly can insert
+  content built in a disposed scope (no guard). `combineBehaviors` projects from combineLatest's raw values, so states
+  set in one `batch` emit an intermediate pair (`ui/src/reactive/combine-behaviors.ts`).
+- Core follow-ups, each additive (the viewer's sources work around them, `viewer/src/sources/`): a registry-changed
+  event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
+  `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
+  (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
+- Small bugs in Mol\*'s own code: the classic Help reads `clickSelectToggle` where the binding is `clickToggle`
+  (`plugin/ui/src/viewport/help.tsx`); kinemage probes a `ctx.customControls` that does not exist
+  (`extensions/kinemage/src/behavior.ts`); Zenodo's import behavior is named "Zenodo Export"
+  (`extensions/zenodo/src/index.ts`).
+- CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
+  (`.github/workflows/node.yml`).
 
 ## Missing: the agent and the assistant
 
 - Skills: SeqQL selections and the sequence skill, `viewer-code` (TypeScript against the API, api.md §7), opening panels
-  as tools ([agent.md §3](../../.v6/prism-ui/spec/agent.md)).
+  as tools ([agent.md §3](viewer/_spec/agent.md)).
 - `ask` parking the turn with the question in the turn card; today it ends the turn
-  ([agent.md §3](../../.v6/prism-ui/spec/agent.md)).
+  ([agent.md §3](viewer/_spec/agent.md)).
 - Policies: steps made unsafe by a change outside the API when undo is off; the domain rules listed in Settings; data
-  quoted in tool results ("Loaded 1CBS.") as it is in the state block ([agent.md §4](../../.v6/prism-ui/spec/agent.md)).
+  quoted in tool results ("Loaded 1CBS.") as it is in the state block ([agent.md §4](viewer/_spec/agent.md)).
 - What the agent sees: colors, snapshots and the canvas in the state block; a state version for repeated reads
-  ([agent.md §5](../../.v6/prism-ui/spec/agent.md)).
+  ([agent.md §5](viewer/_spec/agent.md)).
 - Without a page: the eval's run log replayed in the app; an MCP server over the headless viewer
-  ([agent.md §6](../../.v6/prism-ui/spec/agent.md)).
+  ([agent.md §6](viewer/_spec/agent.md)).
 - The setup: models asked from each provider's `/models`, an own endpoint's models listed
   (`assistant/src/viewer/settings-model.ts`).
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
@@ -83,8 +112,14 @@ What is missing, and what was considered and deferred. One entry each, with a po
 ## Considered and deferred
 
 - `agent.skills` as a function of the defaults: `{ add, remove }` was chosen (data, composes by id, needs no import of
-  the defaults; [viewer-spec.md §2.4](../../.v6/prism-ui/spec/viewer-spec.md)).
+  the defaults; [viewer-spec.md §2.4](viewer/_spec/viewer-spec.md)).
 - Keys in `assistant(options)`: a page never passes a key; keys are the person's, typed into the Assistant tab
-  ([agent.md §4](../../.v6/prism-ui/spec/agent.md)). Dev keys from `.env.local` serve only the live test runs
+  ([assistant/\_spec](assistant/_spec/README.md), "Keys"). Dev keys from `.env.local` serve only the live test runs
   (`pnpm test:live`); a host with its own models passes `provided` (a server-side adapter).
-- Field edges in the default themes: kept as they are (David, 2026-10-16; plan.md, G8).
+- Field edges in the default themes: kept as they are (2026-10-16; the fill marks a field, the high-contrast theme and
+  `prefers-contrast: more` draw an edge: [styling.md](ui/_spec/styling.md)).
+- Compiled row templates for the `dom` runtime (rows cloned rather than created; what creating 10,000 rows still costs
+  is element creation, ~50 ms): it needs a build step the runtime does not have
+  (`ui/src/_stories/runtime-bench.stories.tsx`).
+- Named parts for host styling (`data-msp-part`) and a theming page in Storybook: hosts theme through the `--msp-*`
+  tokens only (`ui/src/styles/theme.css`).

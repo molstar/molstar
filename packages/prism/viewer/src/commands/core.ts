@@ -12,7 +12,7 @@ import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 import { selectionCommands } from './selection.js';
 
-// The core's commands (operations.md §3), over the API bound to the person; the features bring theirs (the
+// The core's commands (api.md §9), over the API bound to the person; the features bring theirs (the
 // structure, volume, trajectory and annotations features theirs: viewer-spec.md §3.1).
 
 export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
@@ -85,7 +85,7 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       category: 'View',
       icon: 'maximize-2',
       alias: ['expand', 'expand viewport', 'hide panels', 'maximize', 'canvas only'],
-      // The command flips it; the operation takes the state wanted (operations.md §1).
+      // The command flips it; the operation takes the state wanted (api.md §1).
       toggle: { key: 'on', current: () => api.view.isExpanded },
     }),
     operationCommand(api, api.view.fullscreen, {

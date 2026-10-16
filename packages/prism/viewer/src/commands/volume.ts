@@ -12,7 +12,7 @@ import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 
 /**
- * The volume and particle commands (operations.md §3, §2 `volume`, `particles`): one per operation, the reads and the
+ * The volume and particle commands (api.md §9, §2 `volume`, `particles`): one per operation, the reads and the
  * inspector's `update` aside.
  */
 export function volumeCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {

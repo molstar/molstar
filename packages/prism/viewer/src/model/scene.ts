@@ -28,7 +28,7 @@ export type SceneNodeKind =
   | 'contents'
   | 'entity'
   | 'chain'
-  /** A structure's focus group: the focus behavior's components (README §3.2, always there). */
+  /** A structure's focus group: the focus behavior's components (viewer-spec.md §2.1, always there). */
   | 'focus'
   /** A row an extension adds under a structure (volume streaming, assembly symmetry). */
   | 'extension';

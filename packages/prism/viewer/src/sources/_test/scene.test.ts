@@ -11,7 +11,7 @@ import { cbs, crambin, expectOk, headlessViewer, recordRuns, representationTypes
 import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
 import type { SceneNode } from '../../model/scene.js';
 
-// The scene source (plan 2.2): the Structure tab's tree over a real plugin.
+// The scene source: the Structure tab's tree over a real plugin.
 
 /** The data's nodes: the Measurements group stays out while it is empty (it is there once something is loaded). */
 const data = (nodes: readonly SceneNode[]) =>

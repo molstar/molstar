@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, exampleFile, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// parity.md §2, phase 6: the unit cell (`structure.unit-cell`) and the Conformation Transform (`structure.transform`,
+// parity.md §2: the unit cell (`structure.unit-cell`) and the Conformation Transform (`structure.transform`,
 // `structure.transform-reset`) on a headless viewer.
 
 const steps = (v: PrismViewer) => v.managers.history.steps.value.length;

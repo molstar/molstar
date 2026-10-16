@@ -104,8 +104,7 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
   let primed = false;
   /**
    * Entries kept loaded: a window, and one more for each "Show earlier". New ones push the oldest out (they come back by
-   * "Show earlier"), so a step costs the same however long the session (G8: History open made a step cost more as the
-   * rows grew).
+   * "Show earlier"), so a step costs the same however long the session, History open or not (styling.md §5).
    */
   let limit = size;
   let active = false;
@@ -153,7 +152,7 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
 
   /**
    * Reads only what is new since the last read (from `top`), or from the oldest entry still under way (a turn may have
-   * settled since), and merges it into what is loaded: a step costs the entries it added, not a window (G8 perf #2).
+   * settled since), and merges it into what is loaded: a step costs the entries it added, not a window.
    */
   const refresh = async () => {
     if (!primed) return readNewest();

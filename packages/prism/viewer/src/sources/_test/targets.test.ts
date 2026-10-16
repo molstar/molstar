@@ -17,7 +17,7 @@ import type { PrismViewer } from '../../viewer.js';
 import { queryLanguage } from '../../targets/languages.js';
 import { createTargetResolver } from '../targets.js';
 
-// The resolver over a real plugin (targets.md §1–2, plan 2.1).
+// The resolver over a real plugin (targets.md §1–2).
 
 const dataDir = path.resolve(import.meta.dirname, '../../../../../../data/examples');
 const file = (name: string, as: string) => new File([fs.readFileSync(path.join(dataDir, name))], as);

@@ -13,7 +13,7 @@ import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DataOnlyExtensions } from '../data-extensions.js';
 
-// Mol*'s data-only extensions (plan 5.2) on a headless viewer: they register what the v5 behaviors did, and what a
+// Mol*'s data-only extensions (parity.md §6) on a headless viewer: they register what the v5 behaviors did, and what a
 // structure carries of them is listed by `annotations.list`. No network: nothing here applies a validation theme (it
 // would fetch the report).
 

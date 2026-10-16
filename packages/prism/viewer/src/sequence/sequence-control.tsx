@@ -28,7 +28,7 @@ import { linkSequence, type SequenceView3D } from './link.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
 
-// The sequence control (prism-sequence.md §4): Seq*'s section surface in the canvas band, the link with the 3D view
+// The sequence control (sequence.md §8): Seq*'s section surface in the canvas band, the link with the 3D view
 // while it is shown, the Seq* hover label for the shell's one cursor-following label, and the fades where the text
 // scrolls. It has no controls of its own: the style, the colors and the legend are the canvas stack's Sequence menu
 // (sequence/menu.ts, commands). Seq* draws the letters, hover, selection and focus and handles the pointer.
@@ -40,7 +40,7 @@ export interface SequenceControlProps {
    * Over the real plugin it is `pluginView3D(plugin, structure)` (sources/).
    */
   view3d?: (structure: Structure) => SequenceView3D | undefined;
-  /** The shell and its dock, for the height rules (§4): tracks follow their content, the text has a fixed height. */
+  /** The shell and its dock, for the height rules (sequence.md §8): tracks follow their content, the text has a fixed height. */
   shell?: ShellModel;
   dock?: DockId;
   /** The text version's lines' height, px (the band is this and its air and fade). */
@@ -115,7 +115,7 @@ export function SequenceControl(props: SequenceControlProps) {
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
   if (props.view3d) onCleanup(linkSequence(viewer, props.view3d, props.marks ? { marks: props.marks } : undefined));
 
-  // The track menus (prism-sequence.md §4): the browser's context-menu request on a track (a right-click, Ctrl+click on
+  // The track menus (sequence.md §8): the browser's context-menu request on a track (a right-click, Ctrl+click on
   // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and
   // the place; the model says what the track offers, Prism's menu opens there and runs it on the 3D view. The browser's
   // own menu is suppressed only over a track that offers one.
@@ -289,7 +289,7 @@ export function SequenceControl(props: SequenceControlProps) {
     bind(height, (h) => shell.setSize(dockId, (h > 0 ? h : text) + BandExtra));
   }
 
-  // The keyboard cursor, said (README §3.7): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the cursor
+  // The keyboard cursor, said (accessibility.md): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the cursor
   // holds the hover), once the arrows rest, in a polite region of the control's own; nothing while the pointer hovers.
   const cursorSaid = (<span class={classes.said} aria-live="polite" />) as HTMLElement;
   {

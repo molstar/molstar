@@ -10,7 +10,7 @@ import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer } from '../../_test/harness.js';
 
-// The hover label (G8): Mol*'s label manager reuses its labels array, so each highlight must still reach the lines.
+// The hover label: Mol*'s label manager reuses its labels array, so each highlight must still reach the lines.
 
 describe('the hover lines', () => {
   it('follow every highlight, one after another', async () => {

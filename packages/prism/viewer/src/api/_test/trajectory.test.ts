@@ -13,7 +13,7 @@ import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
 import { ensemble } from './trajectory-fixtures.js';
 
-// `trajectory` (operations.md §2) on a headless viewer, with a small NMR-like ensemble of three models.
+// `trajectory` (api.md §2) on a headless viewer, with a small NMR-like ensemble of three models.
 
 const modelIndex = (v: PrismViewer) =>
   (v.plugin.managers.structure.hierarchy.current.structures[0].model!.cell.transform.params as any).modelIndex;
@@ -32,7 +32,7 @@ describe('trajectory', () => {
     expect(none.value?.structures).toEqual([]);
   });
 
-  it('runs under its former ids too (operations.md §1 "Words"), listed once', async () => {
+  it('runs under its former ids too (api.md §1 "Words"), listed once', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     expectOk(await v.api.run('structure.model', { index: 1 }));
     expect(modelIndex(v)).toBe(1);

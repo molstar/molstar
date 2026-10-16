@@ -11,7 +11,7 @@ import { cbs, crambin, expectOk, headlessViewer, representationTypes } from '../
 import type { PrismViewer } from '../../viewer.js';
 import type { StructureComponents } from '../component.js';
 
-// `component` (operations.md §2, plan 2.2) on a headless viewer with 1CBS.
+// `component` (api.md §2) on a headless viewer with 1CBS.
 
 const steps = (v: PrismViewer) => v.managers.history.steps.value.length;
 const components = (v: PrismViewer) =>

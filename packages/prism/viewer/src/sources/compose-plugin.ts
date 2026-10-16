@@ -15,7 +15,7 @@ import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
 import type { PrismViewerOptionValues } from '../options.js';
 import type { PrismViewerPluginParts, ViewerExtension } from '../spec.js';
 
-// The plugin spec a viewer runs on (spec README §3.4, viewer-spec.md §2.1): four layers in a fixed order, nothing
+// The plugin spec a viewer runs on (viewer-spec.md §2.1): four layers in a fixed order, nothing
 // resolved by name. Registry: the base, then each extension's entries in list order (custom formats are an extension's
 // entry, so they come after the built-in formats). Behaviors: the base (narrowed by the focus option), then the
 // extensions'. Config: the base, the extensions', then the options' and the viewer's fixed items; later wins. Then
@@ -70,7 +70,7 @@ export function composePluginSpec(input: ComposeInput): PluginSpec {
 
   config.push(...optionsConfig(options), ...FixedConfig.map(([k, v]) => [k, v] as [PluginConfigItem, unknown]));
   canvas3d = mergeCanvas(canvas3d, optionsCanvas(options));
-  // Reduced motion (README §3.7): the plugin's own camera moves are cuts too (the framing on load, a focus by click).
+  // Reduced motion (accessibility.md): the plugin's own camera moves are cuts too (the framing on load, a focus by click).
   const reduced = prefersReducedMotion();
   if (reduced) canvas3d = mergeCanvas(canvas3d, { cameraResetDurationMs: 0 });
 

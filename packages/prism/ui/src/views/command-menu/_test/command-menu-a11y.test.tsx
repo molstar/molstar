@@ -68,7 +68,7 @@ function setup(extra = 0) {
   return { manager, ran, opener, container, input, key, type, close, cleanup, isOpen: () => !!dispose };
 }
 
-describe('CommandMenu accessibility (README §3.7)', () => {
+describe('CommandMenu accessibility (accessibility.md)', () => {
   it('is a combobox whose input names the highlighted option; captions are not options', async () => {
     const t = setup();
     await tick();

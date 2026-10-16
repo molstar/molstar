@@ -14,7 +14,7 @@ import { StructureParam } from './params.js';
 import { isFailure, loadedStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam } from './target-param.js';
 
-// `highlight` (operations.md §2, plan 2.3): the hover mark, for embedding hosts and the sequence link; with `sequence`,
+// `highlight` (api.md §2): the hover mark, for embedding hosts and the sequence link; with `sequence`,
 // lit in the sequence too (a view other than the sequence pointing at residues: a plot's cell). And the marks
 // (marks.md): an owner's named residue ranges in a tone, in the 3D view and the sequence until cleared. View state: no
 // history step (sequence.md §7.3). It runs at pointer rate from the sequence, so loci from code in the page go

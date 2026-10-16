@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// `representation` (operations.md §2, plan 2.2) on a headless viewer with 1CBS.
+// `representation` (api.md §2) on a headless viewer with 1CBS.
 
 const cells = (v: PrismViewer, t: StateTransformer) =>
   v.plugin.state.data.select(StateSelection.Generators.ofTransformer(t));

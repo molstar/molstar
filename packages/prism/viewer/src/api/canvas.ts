@@ -14,8 +14,8 @@ import type { CanvasState } from '../sources/viewer-sources.js';
 import { type DataPalette, dataPaletteOf, setDataPalette } from '../sources/palette.js';
 import { ApiArea, ApiResult } from './area.js';
 
-// `canvas` (operations.md §2): background now; illumination, lighting, clipping and XR with `canvas-settings` (plan
-// phase 3). Canvas props are set through the plugin's emitting path, so the canvas source follows (state.md §3).
+// `canvas` (api.md §2): the background in the core; illumination, lighting, clipping and XR come with
+// `canvas-settings`. Canvas props are set through the plugin's emitting path, so the canvas source follows (state.md §3).
 
 export class CanvasApi extends ApiArea {
   readonly id = 'canvas';
@@ -46,7 +46,7 @@ export class CanvasApi extends ApiArea {
     },
   });
 
-  // README §3.7: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations on
+  // accessibility.md: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations on
   // the old default follow.
   readonly palette = this.operation({
     id: 'canvas.palette',
@@ -85,7 +85,7 @@ export class CanvasApi extends ApiArea {
       const canvas = ctx.sources.canvas.value;
       const p = ctx.plugin.canvas3d?.props;
       if (!canvas || !p) return ApiResult.ok('No canvas (a headless viewer).', {}, { value: undefined });
-      // What the canvas operations set, so a script reads it back as it would give it (operations.md §1).
+      // What the canvas operations set, so a script reads it back as it would give it (api.md §1).
       const on = (m: { name: string }) => m.name === 'on';
       const value = {
         background: canvas.background,

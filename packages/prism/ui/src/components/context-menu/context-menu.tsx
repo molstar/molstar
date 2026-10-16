@@ -29,7 +29,7 @@ export interface ContextMenuItem {
  * right of the point, flipped to the other side where it would leave the window (so near the bottom edge it opens upward).
  * It measures once, on opening. Closes on a choice, on Escape, on a press elsewhere and when the window resizes or
  * scrolls; `close` ends it early. Returns that close. The arrows move between its items; closed, the focus goes back to
- * where it was (README §3.7).
+ * where it was (accessibility.md).
  */
 export function openContextMenu(
   root: HTMLElement,

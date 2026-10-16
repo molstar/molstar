@@ -13,7 +13,7 @@ import { downloadBlob } from '../../ui/download.js';
 import { ExportApi, LoadViewport, type ViewportLoadParams } from './operations.js';
 
 declare module '../../api/area.js' {
-  // The `export` area (operations.md §2): image here; other exports (models, geometry, animation) are extensions'.
+  // The `export` area (api.md §2): image here; other exports (models, geometry, animation) are extensions'.
   interface BuiltInApis {
     export: ExportApi;
   }

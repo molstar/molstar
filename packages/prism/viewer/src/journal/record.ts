@@ -42,7 +42,7 @@ const Owner = threadOwnerId('prism-viewer');
 
 /** The thread's largest window (`maxWindowEntries`): longer reads go in pages of it. */
 export const RecordWindowMax = THREAD_LIMIT_HARD_BOUNDS.maxWindowEntries;
-/** A turn under way says it is alive this often, well inside the thread's inactivity timeout (journal.md §2, F52). */
+/** A turn under way says it is alive this often, well inside the thread's inactivity timeout (journal.md §2). */
 const HeartbeatMs = 5 * 60_000;
 /** A kept record's index entry is touched at most this often while it is appended to (and at a turn's end). */
 const TouchMs = 60_000;

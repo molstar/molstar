@@ -26,10 +26,10 @@ import { EveryStructureParam, OptionalParam, StructureParam } from './params.js'
 import { entryRoot, isFailure, labelOf, oneStructure, someStructures } from './scope.js';
 import { defaultPreset } from './styles.js';
 
-// `structure` (operations.md §2, plan 2.2): the scene outline (`get`), representation presets by id, the model of a
+// `structure` (api.md §2): the scene outline (`get`), representation presets by id, the model of a
 // trajectory, the assembly, a structure's visibility and removal. The first scene area: the others follow its shape
 // (a `structure` field naming one by ref or label, else the one the person works with; registries as arguments, their
-// ids in the hint when one is wrong; "already so" when nothing would change). Parity (parity.md §2, phase 6): the unit
+// ids in the hint when one is wrong; "already so" when nothing would change). Parity (parity.md §2): the unit
 // cell (`unit-cell`, v5's model-level Unit Cell representation) and the Conformation Transform (`transform`,
 // `transform-reset`: v5's `TransformStructureConformation` decorator, the one superposition sets too).
 
@@ -58,7 +58,7 @@ export class StructureApi extends ApiArea {
     },
   });
 
-  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  /** @deprecated The former name of `list` (api.md §1 "Words"), until the release. */
   readonly get = this.list;
 
   readonly preset = this.operation({
@@ -203,7 +203,7 @@ export class StructureApi extends ApiArea {
       structure: StructureParam(),
     },
     async run(v, ctx) {
-      // Absent: kept (operations.md §1); called with nothing, it shows the cell (what the operation is for).
+      // Absent: kept (api.md §1); called with nothing, it shows the cell (what the operation is for).
       const { color, opacity, structure } = v as { color?: string; opacity?: number; structure: string };
       const given = v as { visible?: boolean };
       const s = oneStructure(ctx, structure || undefined);
@@ -304,7 +304,7 @@ export class StructureApi extends ApiArea {
     },
     async run(v, ctx) {
       const { center, compose, structure } = v;
-      // What was given (operations.md §1): a matrix, or parts (a translation, an angle about an axis); not both, not none.
+      // What was given (api.md §1): a matrix, or parts (a translation, an angle about an axis); not both, not none.
       const {
         translation: t,
         axis: a,

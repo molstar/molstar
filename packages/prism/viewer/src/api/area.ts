@@ -16,11 +16,11 @@ import type { RunRecord } from './run.js';
 import type { TargetResolver } from './targets.js';
 import type { ExtensionApis } from '../api.js';
 
-// The viewer's API (api.md, operations.md §1): one object per area, its operations as fields, every change through
+// The viewer's API (api.md, api.md §1): one object per area, its operations as fields, every change through
 // one run path (`ApiRunner`), results for every caller, never a throw. An area is made once; binding it to an origin
 // (`api.as`), a group (`api.group`) or a run in progress (`ctx.api`) is a thin facade over the same object.
 
-/** Who runs it (operations.md §1): the history and the record read it. */
+/** Who runs it (api.md §1): the history and the record read it. */
 export type RunOrigin =
   | { readonly kind: 'person' }
   | { readonly kind: 'agent'; readonly turn: string }
@@ -62,7 +62,7 @@ export type ApiResult<R = unknown> =
       readonly warnings?: readonly string[];
       /** What to do next, when there is an obvious next step. */
       readonly next?: string;
-      /** It was already so: nothing changed, no history step (operations.md §1, desired state). */
+      /** It was already so: nothing changed, no history step (api.md §1, desired state). */
       readonly unchanged?: true;
     }
   | {
@@ -112,7 +112,7 @@ export interface Projection<T = unknown> {
 
 /** What an area and an operation's `params` and `when` get: the viewer's parts, no origin (api.md §4). */
 export interface ApiAreaContext {
-  /** Only `api/` and `sources/` use it (contexts.md §7). */
+  /** Only `api/` and `sources/` use it (README, Folders). */
   readonly plugin: PluginContext;
   readonly sources: ApiSources;
   readonly targets: TargetResolver;
@@ -195,7 +195,7 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
   /** `<area>.<verb>`: `component.add`, `canvas.background`. */
   readonly id: string;
   /**
-   * Former ids that still run it (operations.md §1 "Words"): `api.run('structure.get')` runs `structure.list`. Until
+   * Former ids that still run it (api.md §1 "Words"): `api.run('structure.get')` runs `structure.list`. Until
    * the release; describe, the spec, the commands and the tools list only `id`.
    */
   readonly aliases?: readonly string[];
@@ -246,7 +246,7 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
    * stub takes any.
    */
   readonly passValues?: true;
-  /** Who may not call it: `ui-only` / `agent-only` say why there is no tool or no command (operations.md §4). */
+  /** Who may not call it: `ui-only` / `agent-only` say why there is no tool or no command (api.md §10). */
   readonly surface?: { readonly kind: 'ui-only' | 'agent-only'; readonly reason: string };
   run(values: PD.ValuesFor<P>, ctx: ApiContext): Promise<ApiResult<R>>;
 }

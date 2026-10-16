@@ -36,7 +36,7 @@ import { PrismSequenceSpec } from './spec.js';
 import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
 import { type SequenceFonts, skinFor, plainCellHex } from './skin.js';
 
-// The sequence model (prism-sequence.md §2.1): owns the Seq* contexts, one per id ('default' only for now), and keeps
+// The sequence model (sequence.md §1): owns the Seq* contexts, one per id ('default' only for now), and keeps
 // each in step with what the viewer follows: the canvas ink (its skin), the structure the 3D view shows (its
 // document), and the person's choices (the style, the color theme). Plain arguments, no DOM and no plugin: testable
 // headless.
@@ -123,7 +123,7 @@ export interface TrackColoring extends TrackAction {
 }
 
 /**
- * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (design §6);
+ * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (sequence.md §10);
  * behaviors offer their tracks' (`SequenceOffer.menus`). The 3D coloring each track stands for: its own track colors the
  * structure the same way.
  */

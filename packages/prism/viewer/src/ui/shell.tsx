@@ -50,7 +50,7 @@ import { downloadBlob } from './download.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
-// The viewer on a page (viewer-spec.md §6, plan 1.4): the shell over the viewer's managers, rendered into the target's
+// The viewer on a page (viewer-spec.md §6): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
 // 29); styles are adopted into its shadow root (library.md §3).
 
@@ -146,7 +146,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const xr = createXrSource(core.plugin);
 
     // The canvas: the plugin is mounted here once the shell is in the page and has a size.
-    // Its text alternative (README §3.7): what is loaded and what is selected, in words, for a screen reader; kept in
+    // Its text alternative (accessibility.md): what is loaded and what is selected, in words, for a screen reader; kept in
     // step with the scene, coalesced (one update per settle), and never announced (a description, not a live region).
     const canvasText = (
       <div
@@ -404,7 +404,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               map((c) => !!c?.illumination),
               distinctUntilChanged(),
             ),
-            // The lighting's illumination switch, set to the other of what it is (operations.md §1).
+            // The lighting's illumination switch, set to the other of what it is (api.md §1).
             run: () =>
               void person.canvas.lighting({
                 illumination: { name: sources.canvas.value?.illumination ? 'off' : 'on' },
@@ -474,7 +474,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     unregister.push(() => extensionFailed.unsubscribe());
 
     // The assistant, when the spec has one (viewer-spec.md §2.4): loaded on first use, with the agent's code (both chunks
-    // of their own, with the AI SDK: G8 perf #5), then its tab, the command menu's Ask row, and its turn card under the
+    // of their own, with the AI SDK), then its tab, the command menu's Ask row, and its turn card under the
     // status line. Until then its tab is a placeholder whose opening loads it, and the Ask row loads it and then asks.
     const assistantMenu = observableState<CommandMenuAssistant | undefined>(undefined);
     const agentView = observableState<(() => Child) | undefined>(undefined);
@@ -614,7 +614,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             <Show when={hasData}>
               {() => (
                 // The viewport, not the canvas: the sequence band floats over it and feeds the same label
-                // (prism-sequence.md §6).
+                // (sequence.md §10).
                 <HoverLabel
                   model={{ lines: hoverLines.asReadonly }}
                   area={() => canvasHost.closest<HTMLElement>('[data-msp-viewport]') ?? canvasHost.parentElement}

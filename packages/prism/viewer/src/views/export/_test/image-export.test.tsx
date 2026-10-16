@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockImageExport } from '../../../testing/image-export.js';
 import { ImageExport } from '../image-export.js';
 
-// The image export's crop box (M2; v5's screenshot crop): dragged to move, by a handle to resize, set once per frame.
+// The image export's crop box (v5's screenshot crop): dragged to move, by a handle to resize, set once per frame.
 
 afterEach(() => {
   document.body.innerHTML = '';

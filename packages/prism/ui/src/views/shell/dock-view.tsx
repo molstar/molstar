@@ -419,7 +419,7 @@ function DockContent(props: {
       if (from.isConnected && !from.closest('[inert]')) focusIn = false;
     });
   };
-  // Closed (✕, its shortcut) with the focus in it: the focus goes to its tab, not to the page (README §3.7). A switch
+  // Closed (✕, its shortcut) with the focus in it: the focus goes to its tab, not to the page (accessibility.md). A switch
   // with the focus elsewhere (a script's, the agent's, with the focus on the page) leaves it there.
   onCleanup(() => {
     if (!focusIn) return;

@@ -17,7 +17,7 @@ import { SnapshotsFeature } from '../index.js';
 import { createMarkdownHost } from '../markdown.js';
 import { createSnapshotStepper, openPlaybackOnLoad } from '../model.js';
 
-// The playback card's descriptions (B1: Mol*'s markdown commands) and its opening on a load (M3), headless.
+// The playback card's descriptions (Mol*'s markdown commands) and its opening on a load (parity.md §4), headless.
 
 const viewer = () => headlessViewer({ extensions: [SnapshotsFeature], files: [cbs()] });
 const snap = (v: PrismViewer) => v.api.snapshot!;

@@ -13,7 +13,7 @@ import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { afterEach, describe, expect, it } from 'vitest';
 import { KinemageExtension } from '../prism-viewer.js';
 
-// The kinemage extension in the Prism viewer (plan 5.2) on a headless viewer, with a small .kin written here (no
+// The kinemage extension in the Prism viewer on a headless viewer (parity.md §6), with a small .kin written here (no
 // network, no canvas: the view operation says so).
 
 const Kin = `@kinemage 1

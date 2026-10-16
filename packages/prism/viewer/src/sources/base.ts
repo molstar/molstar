@@ -14,7 +14,7 @@ import { PluginSpec } from '@molstar/plugin/spec';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import type { PrismViewerPluginParts } from '../spec.js';
 
-// The viewer's base (spec README §3.4, item 1; viewer-spec.md §2.1): the registry entries and behaviors its own
+// The viewer's base (viewer-spec.md §2.1): the registry entries and behaviors its own
 // features need, exported as named parts so an app narrows or swaps them by identity. Behaviors that only drive the
 // classic UI are left out; nothing of `PluginUISpec`.
 

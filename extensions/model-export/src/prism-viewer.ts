@@ -21,7 +21,7 @@ import { downloadBlob } from '@molstar/prism-viewer/ui/download';
 import { ModelExport } from './export.js';
 import { to_pdb } from './pdb.js';
 
-// Model export in the Prism viewer (plan 5.2, parity.md §6: Export › Models; README decision 27, commands first): the
+// Model export in the Prism viewer (parity.md §6: Export › Models; README decision 27, commands first): the
 // `model-export` area with `model-export.export`, which writes the loaded structures (or one, or only what is
 // selected) as mmCIF, BinaryCIF or PDB and gives the file's bytes; saving it is the page's (`ui/download.ts`), in the
 // command and the Export card's Models section. Exporting changes nothing in the scene, but a file written for the

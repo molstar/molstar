@@ -31,7 +31,7 @@ import { type ApiAreaContext, type ApiContext, ApiArea, ApiResult } from './area
 import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, type StructureId, structureId, loadedStructures, oneStructure } from './scope.js';
 
-// `contents` (operations.md §2; README decision 18): hiding part of a structure at the entity and chain level, so what
+// `contents` (api.md §2; README decision 18): hiding part of a structure at the entity and chain level, so what
 // is hidden is left out of every component (and so of every representation) of the structure, not just made
 // transparent. Each component is made to hold "what it held, except what is hidden"; its own params are kept in the
 // viewer's state (`registerCustomState`, so snapshots, sessions and the history's checkpoints carry them) and put back

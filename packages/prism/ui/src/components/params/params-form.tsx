@@ -231,7 +231,7 @@ function ParamRow(props: {
     );
   }
   // Its help (a description, a legend; for a theme choice, the chosen theme's): a ? by the label, opening under the row.
-  // The label's text has an id: the row's control is labelled by it (README §3.7: every field has a name).
+  // The label's text has an id: the row's control is labelled by it (accessibility.md: every field has a name).
   const labelId = uniqueId('msp-field');
   const { head, block } = withHelp(label, helpOf(param, binding.value), labelId);
   const wrap = (row: Child) => (

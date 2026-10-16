@@ -9,10 +9,11 @@
 import type { ReadonlyState } from '@molstar/prism-ui';
 import type { SnapshotStepperModel } from '@molstar/prism-ui/model/playback';
 
-// Story mode's view-model contracts (design/modes.md): a story is a document (scenes described by schemas and
-// MolViewSpec), the canvas renders it; editing a story edits the document, never the plugin's state directly, so a
-// story stays serializable and reproducible. A first sketch for the mocks: the scenes and the player; the rest of the
-// story UX (scene editing, assets, the narrative text, publishing) is still to be designed.
+// The stories' view-model contracts (an app of their own, not a mode: the Prism viewer's `_spec/README.md`, decision
+// 3): a story is a document (scenes described by schemas and MolViewSpec), the canvas renders it; editing a story edits
+// the document, never the plugin's state directly, so a story stays serializable and reproducible. A first sketch for
+// the mocks: the scenes and the player; the rest of the story UX (scene editing, assets, the narrative text,
+// publishing) is still to be designed.
 
 /** One scene of a story: what the canvas shows (a MolViewSpec snapshot, by key) and what it says. */
 export interface StoryScene {

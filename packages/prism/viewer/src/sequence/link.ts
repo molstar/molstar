@@ -24,12 +24,12 @@ export interface SequenceView3D extends StructureView3D {
 const FromSequence: ReadonlySet<string> = new Set(['pointer', 'keyboard']);
 
 /**
- * The two-way link between a viewer and the 3D view of the structure it shows (prism-sequence.md §2.3): hover and
+ * The two-way link between a viewer and the 3D view of the structure it shows (sequence.md §4): hover and
  * selection both ways, focus. Made when the viewer has a structure and a 3D view of it, dropped and made again when
  * the structure changes. Returns the unlink: the control calls it when it goes, so nothing stays subscribed. The replay
  * rule makes remounting safe (linking sends the current selection as a selection, never a clear). A selection the person
  * empties in the sequence view (a click or Shift+drag removing the last stretch, Escape) also resets the 3D camera, once
- * (prism-sequence.md §9); an emptying from 3D, the selection bar, the API or a data edit leaves the camera.
+ * (sequence.md §4); an emptying from 3D, the selection bar, the API or a data edit leaves the camera.
  */
 export function linkSequence(
   viewer: SequenceViewer,

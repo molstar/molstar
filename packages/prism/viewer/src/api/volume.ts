@@ -30,7 +30,7 @@ import { nodesFor, updateEach } from './nodes.js';
 import { entryRoot, isFailure, labelOf, namesOf, oneStructure, pickOne } from './scope.js';
 import { commitRepresentation, setRepresentation } from './set-representation.js';
 
-// `volume` (operations.md §2, plan 2.5): the maps in the scene (`get`), a representation's iso value, the
+// `volume` (api.md §2): the maps in the scene (`get`), a representation's iso value, the
 // representations of a volume (desired state, like `representation.set`), visibility, removal, and volume streaming on
 // a structure. A `volume` names one by label or state ref, else the only one loaded; several are `ambiguous`, with
 // their labels in the hint. The data types share this shape: `particles` follows it.
@@ -108,10 +108,10 @@ export class VolumeApi extends ApiArea {
     },
   });
 
-  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  /** @deprecated The former name of `list` (api.md §1 "Words"), until the release. */
   readonly get = this.list;
 
-  // operations.md §2: the iso value of a representation (σ above the mean when relative).
+  // api.md §2: the iso value of a representation (σ above the mean when relative).
   readonly isovalue = this.operation({
     id: 'volume.isovalue',
     title: 'Set the iso value',
@@ -179,7 +179,7 @@ export class VolumeApi extends ApiArea {
     },
   });
 
-  // operations.md §2: on a volume, the representation of a type: added if absent, its params updated if present.
+  // api.md §2: on a volume, the representation of a type: added if absent, its params updated if present.
   readonly representation = this.operation({
     id: 'volume.representation',
     title: 'Show a volume as…',
@@ -308,7 +308,7 @@ export class VolumeApi extends ApiArea {
     },
   });
 
-  // operations.md §2: density streamed from a server for a structure (v5's "Volume Streaming" panel, `Enable`).
+  // api.md §2: density streamed from a server for a structure (v5's "Volume Streaming" panel, `Enable`).
   readonly streaming = this.operation({
     id: 'volume.streaming',
     title: 'Stream density for a structure',
@@ -678,7 +678,7 @@ function resolveRepresentation(
   return { rep, volume: rep.volume };
 }
 
-/** The volume representations a node selector matches (operations.md §1 "Nodes"). */
+/** The volume representations a node selector matches (api.md §1 "Nodes"). */
 function volumeRepresentationsOf(ctx: ApiContext, node: string): VolumeRepresentationRef[] | ApiFailure {
   const byRef = new Map(allRepresentations(ctx).map((r) => [r.cell.transform.ref, r]));
   return nodesFor(ctx.plugin.state.data, node, 'volume representation', (cell) => byRef.get(cell.transform.ref));

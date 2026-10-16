@@ -16,8 +16,8 @@ import { Looks, RepresentationStyles } from '../api/styles.js';
 import type { PresetsModel, QuickStylesModel, StructurePreset } from '../model/scene.js';
 import type { SourceScope } from './state.js';
 
-// The Structure tab's header models (state.md §1, rows 6 and 8): the representation presets from the plugin's registry
-// (grouped as it groups them; operations.md §2, "registries are arguments": the preset is `structure.preset`'s id), and
+// The Structure tab's header models (state.md §1, rows 6 and 26): the representation presets from the plugin's registry
+// (grouped as it groups them; api.md §2, "registries are arguments": the preset is `structure.preset`'s id), and
 // the component manager's options as a form (`component.options`).
 
 export function createPresetsModel(scope: SourceScope, plugin: PluginContext, api: ViewerApi): PresetsModel {

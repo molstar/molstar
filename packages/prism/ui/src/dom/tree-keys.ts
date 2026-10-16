@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The keyboard of an ARIA tree (README §3.7, WAI-ARIA's tree pattern): a tree is reached by Tab once, then the arrows
+// The keyboard of an ARIA tree (accessibility.md, WAI-ARIA's tree pattern): a tree is reached by Tab once, then the arrows
 // move between its items (Down, Up), open and enter (Right), close and leave (Left), Home and End jump, Enter and Space
 // do what a click on the row does. Items are the `role="treeitem"` elements under the tree; each item's row is its
 // `[data-tree-row]` element (clicked on Enter) and its open/close button its `[data-tree-toggle]`. Focus roves: the

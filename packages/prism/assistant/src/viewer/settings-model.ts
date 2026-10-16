@@ -19,9 +19,9 @@ import {
   OwnLimits,
 } from '../model.js';
 
-// The assistant's model setup (agent.md §4): the providers, their keys (the person's, kept as they chose, always
-// scrambled: keys.ts), the model chosen, one's own OpenAI-compatible endpoints. It gives the agent its providers: a lookup,
-// so a key added while the conversation is open is found (`ModelSource.providerFor`).
+// The assistant's model setup (_spec/README.md, "The setup"): the providers, their keys (the person's, kept as they
+// chose, always scrambled: keys.ts), the model chosen, one's own OpenAI-compatible endpoints. It gives the agent its
+// providers: a lookup, so a key added while the conversation is open is found (`ModelSource.providerFor`).
 
 const Builtin: readonly Omit<AIProvider, 'models' | 'key'>[] = [
   { id: 'anthropic', label: 'Anthropic', family: 'anthropic' },

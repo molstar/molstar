@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, representationTypes } from '../../_test/harness.js';
 
-// Redo (v5's, G5): what Undo took back comes back, until a new step.
+// Redo (v5's): what Undo took back comes back, until a new step.
 
 describe('history.redo', () => {
   it('puts back what Undo took back, and is blocked after a new step', async () => {

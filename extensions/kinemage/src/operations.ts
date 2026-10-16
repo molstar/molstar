@@ -202,7 +202,7 @@ export class KinemageApi extends ApiArea {
       view: PD.Text('', { description: 'A view by name or number; empty: the first' }),
       kinemage: KinemageParam(),
     },
-    // A step: a view sets the background and the scene's radius too, which Undo should bring back (G7).
+    // A step: a view sets the background and the scene's radius too, which Undo should bring back.
     modules: ['canvas'],
     when: ifLoaded,
     async run({ view, kinemage }, ctx) {

@@ -15,7 +15,7 @@ import { merge } from 'rxjs';
 import { isViewing } from './trajectory.js';
 
 // The history's checkpoints (sequence.md §7.2): the plugin's state directly, never its snapshot manager (whose
-// `getStateSnapshot` adds entries and whose restore clears; review F1). What undo restores: the data tree, behavior
+// `getStateSnapshot` adds entries and whose restore clears). What undo restores: the data tree, behavior
 // settings, canvas props, interactivity, the selection mode, and every owner's custom state (the sequence's, through
 // `registerCustomState`). What it never touches: the camera, the selection and the focus (view state, not steps).
 
@@ -105,7 +105,7 @@ export function isBehaviorOwned(transform: StateTransform): boolean {
 }
 
 /**
- * Watches the data tree for changes outside the API (review F5): a cell created, removed or updated while the history
+ * Watches the data tree for changes outside the API (sequence.md §7.3): a cell created, removed or updated while the history
  * is not applying a run or a restore, and not owned by a behavior, makes every earlier checkpoint unsafe.
  */
 export function watchOutsideChanges(plugin: PluginContext, history: HistoryManager<ViewerCheckpoint>): () => void {

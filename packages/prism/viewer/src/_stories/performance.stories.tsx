@@ -21,7 +21,7 @@ import { story } from '@molstar/prism-ui/testing/index';
 const meta: Meta = { title: 'Internals/State tree performance' };
 export default meta;
 
-// The renderer check (plan.md Phase 2): the state tree at 5,000 cells under bursts of updates, in the `dom` runtime.
+// The renderer check: the state tree at 5,000 cells under bursts of updates, in the `dom` runtime.
 // Every number is wall time in this browser (ms), layout forced, measured over a frame.
 
 // Two frames when the page shows; a hidden page gets no frames and throttled timers, so there a microtask (script,

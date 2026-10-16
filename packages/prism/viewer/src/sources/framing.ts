@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The camera's default framing with the top of the canvas taken (prism-sequence.md §4): the sequence band covers the
+// The camera's default framing with the top of the canvas taken (sequence.md §8): the sequence band covers the
 // top `topPx` of the canvas, so the structure is framed in the region below it. Mol*'s reset takes a snapshot provider
 // (`requestCameraReset({ snapshot })`); this is one. The user's camera is never touched by it: only a reset (or the
 // first framing) asks for it.

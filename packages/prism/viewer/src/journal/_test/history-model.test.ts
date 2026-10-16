@@ -12,7 +12,7 @@ import { createHistoryModel, type HistoryRunRow, type HistoryTurnRow } from '../
 import { createSessionRecord } from '../record.js';
 import { fakeApi } from './runs.js';
 
-// What History shows of the record (journal.md §3, plan 4.3).
+// What History shows of the record (journal.md §3).
 
 async function setup() {
   const v = await headlessViewer({ files: [cbs()] });

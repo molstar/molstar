@@ -11,7 +11,7 @@ import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { mergeParams } from './params.js';
 
-// Node selectors (operations.md §1 "Nodes", nodes.md): a node or a subtree of the plugin's state tree, said the way CSS
+// Node selectors (api.md §1 "Nodes", nodes.md): a node or a subtree of the plugin's state tree, said the way CSS
 // says elements: `structure[label="1CBS"] component[label=Ligand] > representation[type=cartoon]`, `#ref`, `:hidden`.
 // A selector compiles to a `StateSelection.Builder` (Mol*'s own monadic selection), so an operation that takes a `node`
 // acts on every cell it matches, and a script can keep composing the builder. In scripts, `node(...)` writes the same
@@ -525,7 +525,7 @@ export function selectOneNode(
 }
 
 /**
- * The cells an operation acts on (operations.md §1 "Nodes"): every match of the selector that `accept` takes (a
+ * The cells an operation acts on (api.md §1 "Nodes"): every match of the selector that `accept` takes (a
  * representation, a volume…), mapped to what the operation works with. None fails, saying what matched instead.
  */
 export function nodesFor<T>(

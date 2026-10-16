@@ -37,8 +37,8 @@ import { FullPrismViewerSpec } from './full-spec.js';
  * `molstar.lib` (app.md §1): Mol*'s library for scripts on the page, without a build step. The keys mirror v5's Viewer
  * (`apps/viewer/src/lib.ts`) where the Prism app has them; left out are the classic UI's (`PluginUIContext`,
  * `DefaultPluginUISpec`, the extensions' view models) and `StateTransforms` (the classic Viewer's 5.x carve-out,
- * architecture.md §9.3; import a transformer from its module instead). `prism` holds the Prism viewer's own entry points.
- * The app loads it beside the viewer, in a chunk of its own; `@molstar/prism-viewer` does not export it.
+ * `.v6/designs/architecture.md` §9.3; import a transformer from its module instead). `prism` holds the Prism viewer's
+ * own entry points. The app loads it beside the viewer, in a chunk of its own; `@molstar/prism-viewer` does not export it.
  */
 export const lib = {
   structure: {

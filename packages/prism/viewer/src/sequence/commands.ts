@@ -13,7 +13,7 @@ import type { SequenceViewer } from './model.js';
 import { LetterSchemes } from './palette.js';
 import type { TracksRail } from './presets.js';
 
-// The sequence's commands (prism-sequence.md §4): the one way to change what the sequence shows. The canvas stack's
+// The sequence's commands (sequence.md §8): the one way to change what the sequence shows. The canvas stack's
 // Sequence menu runs them, so does the command menu; `view.sequence` (show or hide) is the shell's own.
 
 /** The overlay card the legend is in (registered by the viewer mode). */

@@ -16,8 +16,8 @@ import { extensionOf } from './input.js';
 import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
 
-// `load` (operations.md §2): the core's `files` (drag and drop, Open) now; `action` (Home's registry actions) with the
-// scene areas; `entry`, `url`, `mvs`, `svs`, `snapshot` come with the `loaders` feature (plan phase 3).
+// `load` (api.md §2): the core's `files` (drag and drop, Open); `action` (Home's registry actions) with the
+// scene areas; `entry`, `url`, `mvs`, `svs`, `snapshot` come with the `loaders` feature.
 
 /** File names a session opens from (`.molx`, `.molj`): opened by `session.open`, not loaded as data. */
 const SessionExtensions = ['.molx', '.molj'];
@@ -29,7 +29,7 @@ export class LoadApi extends ApiArea {
 
   /**
    * A registry state action applicable to the root (Home's blocks: download a structure, open files, download density;
-   * operations.md §2), by its id, with its params. Network actions ask first, from the agent (agent.md §4).
+   * api.md §2), by its id, with its params. Network actions ask first, from the agent (agent.md §4).
    */
   readonly action = this.operation({
     id: 'load.action',

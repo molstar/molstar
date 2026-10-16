@@ -10,11 +10,11 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { shellIdOf } from '../extensions/overrides.js';
 import { ApiArea, ApiResult } from './area.js';
 
-// `view` (operations.md §2): the UI's state, through the navigation manager; no history step. Headless it changes the
+// `view` (api.md §2): the UI's state, through the navigation manager; no history step. Headless it changes the
 // navigation state only (nothing shows it). `open`, `close`, `expand` (the canvas fills the viewer) and `fullscreen`
 // (the page's shell follows `navigation.fullscreen` with the browser's; parity.md's "expand, fullscreen" row).
 
-/** On (true) or off (false): the state wanted, never a toggle (operations.md §1; commands flip it). */
+/** On (true) or off (false): the state wanted, never a toggle (api.md §1; commands flip it). */
 const OnParam = (description: string) => PD.Boolean(true, { description });
 
 const DockSides = ['right', 'left', 'top', 'bottom'] as const;

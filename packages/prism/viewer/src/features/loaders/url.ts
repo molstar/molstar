@@ -74,7 +74,7 @@ export function loadsFromUrl(search: string): UrlLoad[] {
   const q = parseSearch(search);
   const get = (name: string) => q.get(name)?.trim() || undefined;
   const flag = (name: string) => ['1', 'true'].includes(get(name)?.toLowerCase() ?? '');
-  // A binary flag left out is told from the format and the address (operations.md §1, "Inputs").
+  // A binary flag left out is told from the format and the address (api.md §1, "Inputs").
   const binary = (name: string) => (get(name) === undefined ? {} : { binary: flag(name) });
   const format = (name: string) => (get(name) ? { format: get(name)!.toLowerCase() } : {});
   const loads: UrlLoad[] = [];

@@ -129,9 +129,9 @@ export function UndoTurn(props: { agent: AgentModel; id: string }) {
 }
 
 /**
- * The agent at work, over the canvas at the bottom left (design/agent.md §5): the request, the model's words as they
- * stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it did in one
- * line, its trace (with the Inspector: `onTrace` opens it at the turn) and Undo turn (back to the checkpoint before it).
+ * The agent at work, over the canvas at the bottom left (_spec/README.md, "The turn card"): the request, the model's
+ * words as they stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it
+ * did in one line, its trace (with the Inspector: `onTrace` opens it at the turn) and Undo turn (back to the checkpoint before it).
  */
 export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: string) => void }) {
   const { agent } = props;
@@ -216,7 +216,7 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
         );
         return (
           // Not a live region: the text streams in; the finished reply is said once by the shell's region
-          // (README §3.7; agent-model.ts announces it).
+          // (accessibility.md; agent-model.ts announces it).
           <section class={classes.card} data-status={status} aria-label="Assistant">
             <header class={classes.header}>
               <Icon name="sparkles" size={14} class={classes.spark} />

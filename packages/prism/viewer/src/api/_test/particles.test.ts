@@ -12,7 +12,7 @@ import type { PrismViewer } from '../../viewer.js';
 import type { ParticleListInfo } from '../particles.js';
 import { particlesFile } from './volume-fixtures.js';
 
-// `particles` (operations.md §2, plan 2.5) on a headless viewer, over a small CryoET NDJSON file made in memory.
+// `particles` (api.md §2) on a headless viewer, over a small CryoET NDJSON file made in memory.
 
 const infos = async (v: PrismViewer) => {
   const r = await v.api.particles.list();

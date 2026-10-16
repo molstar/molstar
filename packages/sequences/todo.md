@@ -6,14 +6,13 @@ starts); a new deferral comes in with what triggers it and where its context is.
 
 ## In progress
 
-Nothing: tracks in the text view as lanes, input as streams and the host options' performance pass are built, as one PR
-(`.v6/seq/plans/lanes-input-perf.md`: §2.6 to §2.8, §3.6, §4.3).
+Nothing.
 
 ## Next
 
-The move into Mol\* v6's repository is done. Next is Prism over Seq\* (`.v6/seq/plan.md` §3, designed in
-`.v6/seq/prism-sequence.md`): the Prism viewer's sequence control, tooltip and legend replacing the default primitives
-(the chrome's next look, below), then the plan's §4 follow-ups (whether `viewer/react` stays).
+Prism over Seq\* is built (`packages/prism/viewer/_spec/sequence.md`): its band, menu, tooltip and legend replace the
+default primitives in the Prism viewer. Next are the follow-ups below: whether `viewer/react` stays, and the chrome's
+next look.
 
 ## Deferred features
 
@@ -40,7 +39,7 @@ headless test), and a viewer joins the same registry later. `seqspec:libraries#t
 `seqspec:interaction#focus` move with it. _Trigger:_ a consumer of the mapping without a viewer, or the next change to
 `ctx.systems`.
 
-**Loci and coordinates on input events** (2026-10-14, from input as streams: `.v6/seq/plans/lanes-input-perf.md` §3.6).
+**Loci and coordinates on input events** (2026-10-14, from input as streams: `seqspec:interaction#streams`).
 `ctx.interaction`'s payloads carry refs and indices (`part`, `at`: layer, lane, block, index, row, item), not the hit's
 loci or its `Coordinates`; a consumer that wants them reads `hover.toLoci()` (the hover) or resolves the refs. To add
 them lazily (computed on first read, as `seq-hover`'s): a hit copied into the payload (`Hit.copy`), the hover's resolve
@@ -180,6 +179,24 @@ floating the bar and the player over the canvas as Prism's cards (they stay in f
 unboxed under the canvas); motion (menus dropping in, the legend's reveal); a host's composition helpers beyond
 `SeqViewerRoot`/`createDomUI` (a DOM part per shown section, as React's `shownSections` map does by hand). _Trigger:_
 the move into Mol\* v6 and its Prism components replacing the default primitives.
+
+**The React UI (`viewer/react`): kept or dropped.** Kept for React hosts, or dropped now that Prism has its own sequence
+UI (`packages/prism/viewer/src/sequence/`). _Trigger:_ the next change to the React parts, or a React host asking.
+
+**Input streams, the rest** (2026-10-14, `seqspec:interaction#streams`). Safari's keyboard `contextmenu` has no
+`pointerType` and reads as the pointer's; with no `menu` subscriber the menu key's default is the browser's (the default
+UIs prevent it); a macOS Ctrl+click is both a menu request and `select`'s `toggle`; rxjs reports a throwing stream
+subscriber asynchronously, not as `seqv.behavior.error`. _Trigger:_ a host on Safari, or a subscriber's error lost.
+
+**Chips without a cap.** Every short unit flows as a chip in the text view (`seqspec:viewer#the-text-view`); nothing
+caps how many a section shows. _Trigger:_ a structure with many ligands or ions in Text.
+
+**`useDefineForClassFields: true` for the whole repository.** Seq\* sets it per package (built and guarded under ES2022
+define semantics); Mol\*'s base keeps `false`. An audit for re-declared fields (`declare`), then the full tests and
+apps. _Trigger:_ a class-field bug, or the next tooling pass.
+
+**The heap tiers in a scheduled CI job** (opt-in by hand today, AGENTS.md, Tests). _Trigger:_ a hot-path regression
+missed between checkpoints.
 
 **A codon text track.** A residue's three bases drawn in its cell on a protein's axis, only where a cell holds three
 letters (about 20 px or more), nothing below that. _Trigger:_ a variant story where the reader must see the reference

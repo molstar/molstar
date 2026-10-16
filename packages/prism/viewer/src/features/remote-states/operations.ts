@@ -13,7 +13,7 @@ import { type ApiContext, ApiResult, memberName, type OperationDefinition } from
 import { messageOf } from '../../api/run.js';
 import { openStateFrom } from '../../api/state-open.js';
 
-// The `remote-states` feature's operations (operations.md §2, the `session` row: `remote.list`, `remote.open`,
+// The `remote-states` feature's operations (api.md §2, the `session` row: `remote.list`, `remote.open`,
 // `remote.upload`, `remote.remove`; parity.md §1): Mol*'s state server (the classic State tab's Remote States,
 // `RemoteStateSnapshots`) over the plugin's snapshot manager, as operations of the core's `session` area. The server is
 // a parameter (empty: the viewer's `state-server` option, which is what the plugin's `CurrentServer` holds), so the

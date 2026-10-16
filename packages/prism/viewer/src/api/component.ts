@@ -36,7 +36,7 @@ import {
 } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
-// `component` (operations.md §2, plan 2.2): the components of a structure, which are the unit the representations hang
+// `component` (api.md §2): the components of a structure, which are the unit the representations hang
 // off. `add` makes one of what a target selects (with a representation), `modify` changes what one holds by a target,
 // `remove`, `rename`, `visibility`, and the component manager's `options`; `list` reads them. The scene areas share a
 // shape (see `structure.ts`): a `structure` field naming one by label or ref, a component by label or ref, registry
@@ -78,7 +78,7 @@ const OptionKeys = {
   animation: 'animation',
 } as const satisfies Record<string, keyof StructureComponentManager.Options>;
 
-// The selection's words (operations.md §1 "Words"): add, remove, intersect.
+// The selection's words (api.md §1 "Words"): add, remove, intersect.
 const ModeParam = () =>
   PD.Select(
     'add',

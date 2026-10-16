@@ -22,7 +22,7 @@ import {
 } from './source.js';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 
-// The `snapshot` area (operations.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
+// The `snapshot` area (api.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
 // as operations. Its checkpoints never use the manager (sequence.md §7.2) and the list is not part of Undo ("what it
 // never touches: … the Snapshots list"), so changes to the list are `undoable: false` (no checkpoint, recorded as
 // runs); applying one changes the scene and is a step. Playback is view state: `history: false`.
@@ -59,7 +59,7 @@ const Options = () =>
     },
   );
 
-/** How long playback shows a snapshot; absent: `absent` (operations.md §1). */
+/** How long playback shows a snapshot; absent: `absent` (api.md §1). */
 const ShowFor = (absent = 'the default') =>
   OptionalParam(
     PD.Numeric(
@@ -79,7 +79,7 @@ const AddParams = {
 
 const UpdateParams = {
   entry: EntryParam(`${ByIdNameOrKey}; empty: the current one`),
-  // Each given is set (empty text clears it), each absent kept (operations.md §1).
+  // Each given is set (empty text clears it), each absent kept (api.md §1).
   name: OptionalParam(PD.Text('', { description: 'A new name ("": none)' })),
   description: OptionalParam(PD.Text('', { description: 'A new description in markdown ("": none)' })),
   key: OptionalParam(PD.Text('', { description: 'A new key ("": none)' })),

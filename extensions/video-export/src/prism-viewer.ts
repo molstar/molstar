@@ -22,13 +22,13 @@ import type { VideoRendererBackend } from './backend.js';
 import { VideoCommands, VideoOperations, VideoSection, VideoSkill } from './prism-viewer-stub.js';
 
 declare module '@molstar/prism-viewer/api' {
-  // The `video` area: the extension's own (operations.md §2, extensions add areas).
+  // The `video` area: the extension's own (api.md §2, extensions add areas).
   interface ExtensionApis {
     video: VideoApi;
   }
 }
 
-// The video export in the Prism viewer (plan 5.2, parity.md §6: Export › Animation; lazy): `video.export` renders one of
+// The video export in the Prism viewer (parity.md §6: Export › Animation; lazy): `video.export` renders one of
 // the plugin's exportable animations frame by frame on the screenshot helper's image pass and encodes it (Mediabunny,
 // WebCodecs), as v5's VideoControls did; `video.cancel` stops it. Exporting changes nothing in the scene: no history
 // step, nothing to undo (as `export.image`). The file comes back as bytes; saving it is the page's (`ui/download.ts`).
@@ -77,7 +77,7 @@ export const VideoExportParams = (ctx: ApiAreaContext) => {
       ),
     ),
     fps: PD.Numeric(30, { min: 1, max: 120, step: 1 }, { description: 'Frames per second' }),
-    // A preset, or custom with its sides (Prism's operations.md §1: a choice with its settings is a union).
+    // A preset, or custom with its sides (Prism's api.md §1: a choice with its settings is a union).
     size: PD.MappedStatic(
       'viewport',
       {

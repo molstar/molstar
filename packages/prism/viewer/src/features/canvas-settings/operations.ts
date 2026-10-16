@@ -13,7 +13,7 @@ import { OptionalParam, SwitchParam, type SwitchValue } from '../../api/params.j
 import { checkValues } from '../../api/run.js';
 import { changeWords } from '../../api/change-words.js';
 
-// The `canvas-settings` feature's operations (operations.md §2, the `canvas` row; viewer-spec.md §3.1): added to the
+// The `canvas-settings` feature's operations (api.md §2, the `canvas` row; viewer-spec.md §3.1): added to the
 // core's `canvas` area, as only built-in features may. The card's sections edit through `canvas.settings` (one section's
 // values, as the classic simple settings map them); tools and commands take the named ones.
 
@@ -123,7 +123,7 @@ export const SettingsParams = {
   section: PD.Select<CanvasSection>('background', PD.arrayToOptions(Object.keys(CanvasSections) as CanvasSection[])),
   values: PD.Value<Record<string, unknown>>({}),
 };
-/** The lighting's switches (operations.md §1): each off, or on with its settings (given: set; absent: kept). */
+/** The lighting's switches (api.md §1): each off, or on with its settings (given: set; absent: kept). */
 export const LightingParams = {
   occlusion: SwitchParam(onParams(pp.occlusion), { description: 'Ambient occlusion: { name: "on", params } or off' }),
   shadow: SwitchParam(onParams(pp.shadow), { description: 'Shadows: { name: "on", params } or off' }),
@@ -244,7 +244,7 @@ export const canvasSettingsOperations = (): {
             'occlusion, shadow, outline, fog or illumination: { name: "on" } (with params to set) or { name: "off" }.',
           );
         }
-        // Absent: kept; off; on: its current settings (or the defaults), the given ones over them (operations.md §1).
+        // Absent: kept; off; on: its current settings (or the defaults), the given ones over them (api.md §1).
         const switched = (current: { name: string; params: any }, given: SwitchValue | undefined, m: PD.Any) =>
           given === undefined
             ? current
@@ -372,7 +372,7 @@ export const canvasSettingsOperations = (): {
         if (clip === undefined && farGiven === undefined) {
           return ApiResult.fail('invalid', 'Change what?', 'clip (percent clipped away) or far (true or false).');
         }
-        // Absent: kept (operations.md §1).
+        // Absent: kept (api.md §1).
         const radius = clip === undefined ? p.cameraClipping.radius : Math.max(0, Math.min(99, clip));
         const far = farGiven ?? p.cameraClipping.far;
         if (p.cameraClipping.radius === radius && p.cameraClipping.far === far) {

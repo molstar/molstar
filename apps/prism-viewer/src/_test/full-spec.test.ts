@@ -11,7 +11,7 @@ import { isLazyExtension } from '@molstar/prism-viewer/spec';
 import { describe, expect, it } from 'vitest';
 import { FullPrismViewerSpec } from '../full-spec.js';
 
-// The app's whole composition (app.md §2, G7): every extension at once, headless. Ids that collide, a stub that does not
+// The app's whole composition (app.md §2): every extension at once, headless. Ids that collide, a stub that does not
 // match what it loads, or a network operation that does not say what it reaches would show here first.
 
 describe('FullPrismViewerSpec', () => {

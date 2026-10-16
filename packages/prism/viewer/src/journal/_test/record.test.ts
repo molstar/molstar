@@ -21,7 +21,7 @@ import {
 } from '../record.js';
 import { fakeApi } from './runs.js';
 
-// The session's record (journal.md, plan 4.3).
+// The session's record (journal.md).
 
 describe('the session record', () => {
   it('records each change in order, whoever made it, and not the reads', async () => {
@@ -207,7 +207,7 @@ const turnOf = async (record: Awaited<ReturnType<typeof createSessionRecord>>) =
   return (await record.read(50)).items.find((i) => i.entry.kind === 'turn')!;
 };
 
-describe('the session record at G6', () => {
+describe('the session record: open turns, windows and keeping', () => {
   it('keeps a turn under way alive while it waits, and stops the heartbeat when it settles', async () => {
     const { api } = fakeApi();
     const c = controlled();

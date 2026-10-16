@@ -17,7 +17,7 @@ import { MeasurementGroupTag } from '@molstar/plugin/state/manager/structure/mea
 import { MeasurementsFeature } from '../index.js';
 import { shortLabel } from '../source.js';
 
-// The `measure` area (operations.md §2) on a headless viewer with 1CBS: the measurement manager's cells, as results.
+// The `measure` area (api.md §2) on a headless viewer with 1CBS: the measurement manager's cells, as results.
 
 const steps = (v: PrismViewer) => v.api.history.steps.value.length;
 const manager = (v: PrismViewer) => v.plugin.managers.structure.measurement;
@@ -381,7 +381,7 @@ describe('the feature', () => {
       (n) => `measure.${n}`,
     );
     for (const id of ids) expect(v.managers.commands.get(id), id).toBeDefined();
-    // Every operation has a command (operations.md §4).
+    // Every operation has a command (api.md §10).
     const defined = v.api
       .area('measure')!
       .operations()

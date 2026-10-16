@@ -114,7 +114,7 @@ describe('canvas settings', () => {
     expectOk(await v.api.canvas.clipping!({ clip: 50, far: false }));
     expect(props.cameraClipping).toMatchObject({ radius: 50, far: false });
     expect(await v.api.canvas.clipping!({ clip: 50, far: false })).toMatchObject({ ok: true, unchanged: true });
-    // An absent value is kept (operations.md §1): far stays off when only the clip changes.
+    // An absent value is kept (api.md §1): far stays off when only the clip changes.
     expectOk(await v.api.canvas.clipping!({ clip: 20 }));
     expect(props.cameraClipping).toMatchObject({ radius: 20, far: false });
     // A field of view below 10° is refused; the same again is already so.

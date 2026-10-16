@@ -8,7 +8,7 @@
 
 import type { PartialOptions } from '@molstar/prism-viewer/spec';
 
-// The URL's options (app.md §4, README §3.2): v5's names kept. The load parameters (`pdb`, `url`, …) are read by the
+// The URL's options (app.md §4): v5's names kept. The load parameters (`pdb`, `url`, …) are read by the
 // loaders feature once the viewer is ready; these are the ones read at creation.
 
 export function optionsFromUrl(search: string): PartialOptions {
@@ -46,7 +46,7 @@ export function optionsFromUrl(search: string): PartialOptions {
     canvas: {
       background: q.get('bg-color') ?? q.get('viewport-background-color') ?? undefined,
       focusBehavior: pick('viewport-focus-behavior', ['default', 'secondary-zoom', 'disabled'] as const),
-      // Prism's own (README §3.7): `?palette=colorblind` (or `classic`, `prism`).
+      // Prism's own (accessibility.md): `?palette=colorblind` (or `classic`, `prism`).
       palette: pick('palette', ['prism', 'classic', 'colorblind'] as const),
     },
     data: {

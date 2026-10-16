@@ -73,7 +73,7 @@ function iepDoc() {
 describe('seqv-render', { timeout: 30_000 }, () => {
   const c14 = write('case14.json', JSON.stringify(case14()));
 
-  // The fast tier's one run of the CLI: it waits for a `lib` (.v6/seq/plan.md §2.3).
+  // The fast tier's one run of the CLI: it waits for a `lib` (packages/sequences/AGENTS.md, Tests).
   it.skipIf(!existsSync(cli))('writes to stdout what renderSvg writes for the document', async () => {
     const r = run(c14, '--width', '900');
     expect(r.status).toBe(0);

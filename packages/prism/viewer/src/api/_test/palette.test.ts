@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// The data palette (README §3.7): Prism's own list by default; `canvas.palette` swaps the categorical themes' default
+// The data palette (accessibility.md): Prism's own list by default; `canvas.palette` swaps the categorical themes' default
 // (Prism's, Mol*'s classic, colorblind-safe) and recolors what used the old default, as one step that Undo takes back,
 // registry included; the spec gives the lists (viewer-spec.md §2.8).
 

@@ -12,7 +12,7 @@ import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 import { createViewerAgent } from '../session.js';
 
-// The viewer's agent (agent.md, plan 4.1) on a headless viewer with a scripted model: no network, no real model.
+// The viewer's agent (agent.md) on a headless viewer with a scripted model: no network, no real model.
 
 const call = (tool: string, args: Record<string, unknown> = {}) => ({ tool, arguments: args as never });
 
@@ -128,7 +128,7 @@ describe('the viewer agent while undo is off', () => {
   });
 });
 
-describe('the viewer agent at G6', () => {
+describe('the viewer agent: turns, approvals, tools and skills', () => {
   it('ends a parked turn on stop: settled in the record, its group closed; and refuses a new turn while one waits', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const { agent } = agentOn(v, [

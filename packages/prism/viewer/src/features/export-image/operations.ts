@@ -19,7 +19,7 @@ import type { CameraValue } from '../../api/camera.js';
 import { FileParam, filesOf } from '../../api/files.js';
 import { cameraUpdates, sceneChanges } from './source.js';
 
-// The `export` area, image part (operations.md §2, the `export` row): an image of the canvas by Mol*'s
+// The `export` area, image part (api.md §2, the `export` row): an image of the canvas by Mol*'s
 // `ViewportScreenshotHelper`. Exporting changes nothing in the scene, so none of these is a history step
 // (`history: false`) and none is undoable. `history: false` does NOT serialize them: `api/run.ts` runs it like a read,
 // directly. They all configure the one shared helper (also the classic UI's), render and put it back, so `ExportApi`
@@ -43,7 +43,7 @@ export type ImageSize = 'viewport' | 'hd' | 'full-hd' | 'ultra-hd' | '8k-ultra-h
 export type ImageFormat = 'png' | 'jpeg' | 'webp';
 
 /**
- * The image's size (operations.md §1: a choice with its own settings is a union), as Mol*'s screenshot resolution: a
+ * The image's size (api.md §1: a choice with its own settings is a union), as Mol*'s screenshot resolution: a
  * preset, `{ name: 'hd' }`, or `{ name: 'custom', params: { width, height } }`.
  */
 /** A custom size's sides, in pixels. */

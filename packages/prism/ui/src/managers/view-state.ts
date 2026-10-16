@@ -9,7 +9,7 @@
 import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
-// The UI's layout as state (spec README §3.3, library.md §1): the docks' tabs, sizes and float, the shell's mode and its
+// The UI's layout as state (api.md §11, library.md §1): the docks' tabs, sizes and float, the shell's mode and its
 // rail, which toolbar buttons show. DOM-free and serializable: what a layout preference keeps and restores. What is
 // open is `navigation`'s; `ShellModel` registers the parts and reads both.
 

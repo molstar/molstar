@@ -458,7 +458,7 @@ describe('state tree', () => {
   });
 });
 
-describe('where data comes from (gate G5)', () => {
+describe('where data comes from', () => {
   it('is not changed through state.update, and actions ask as network', async () => {
     const v = await viewer();
     const tree = v.plugin.state.data.tree;

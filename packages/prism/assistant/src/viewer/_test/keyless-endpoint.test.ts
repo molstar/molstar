@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { KeyScope, KeyStore } from '../../keys.js';
 import { createAISettings, type SettingsPrefs } from '../settings-model.js';
 
-// An own endpoint added with no key (a local server): usable, with no empty key kept (agent.md §4).
+// An own endpoint added with no key (a local server): usable, with no empty key kept (_spec/README.md, "The setup").
 
 const made: { resolveApiKey: () => string | Promise<string> }[] = [];
 vi.mock('@molstar/ai/providers/openai', () => ({

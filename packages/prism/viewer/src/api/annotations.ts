@@ -13,7 +13,7 @@ import { type ApiContext, ApiArea, type ApiResult, ApiResult as Result } from '.
 import { EveryStructureParam, StructureParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 
-// `annotations` (operations.md §2; README decision 27): what a structure carries and the viewer can show of it: quality
+// `annotations` (api.md §2; README decision 27): what a structure carries and the viewer can show of it: quality
 // scores, validation, B-factors, secondary structure. Each kind is a provider; extensions register theirs
 // (`ViewerExtension.annotations`), so v5's "Automatic (w/ Annotation)" preset becomes a command, not a copy.
 

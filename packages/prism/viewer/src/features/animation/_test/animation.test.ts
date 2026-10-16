@@ -15,7 +15,7 @@ import type { PrismViewer } from '../../../viewer.js';
 import { AnimationFeature } from '../index.js';
 import { wiggleCells, wiggleOf } from '../source.js';
 
-// The `animation` feature (operations.md §2): the plugin's animations and the wiggle, on a headless viewer. The plugin
+// The `animation` feature (api.md §2): the plugin's animations and the wiggle, on a headless viewer. The plugin
 // ticks its animations on the canvas's frames, so a test ticks by hand; the camera ones read a stand-in canvas.
 
 // The plugin's ids, and the names `animation.play` takes and `animation.get` gives back (the id without its namespace).

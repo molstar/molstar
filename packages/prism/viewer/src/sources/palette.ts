@@ -12,7 +12,7 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { PluginContext } from '@molstar/plugin/context';
 
-// The data palette (README §3.7, decision 31): the categorical color themes (chains, entities, polymers, operators,
+// The data palette (accessibility.md, decision 31): the categorical color themes (chains, entities, polymers, operators,
 // models) take the chosen list as their default palette, so every new representation and preset uses it; the
 // representations that use a theme's default palette now are recolored with the new one. A theme's own non-default
 // palette (chosen by the person) is left alone. The registry keeps the themes' names: saved sessions read the same.

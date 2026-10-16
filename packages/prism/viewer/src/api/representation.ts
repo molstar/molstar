@@ -56,7 +56,7 @@ import {
 import { setRepresentation } from './set-representation.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
-// `representation` (operations.md §2, plan 2.2): what a component shows and how it looks. `set` and `remove` act on a
+// `representation` (api.md §2): what a component shows and how it looks. `set` and `remove` act on a
 // component's representations (by type); the look operations take a target (targets.md §1–2) and act, per structure,
 // on the representations of the components the target covers: `color`, `transparency`, `emissive` and `clipping` are
 // Mol*'s layers (overpaint, transparency, emissive, clipping on a representation), which hold the target's elements;
@@ -76,7 +76,7 @@ const ClippingNames = Object.keys(Clipping.Groups.Names) as Clipping.Groups.Name
 export class RepresentationApi extends ApiArea {
   readonly id = 'representation';
 
-  // The inspector's form (plan 2.2): the whole params of the representations a node selector matches (`#ref` for a
+  // The inspector's form: the whole params of the representations a node selector matches (`#ref` for a
   // row's); equal params: already.
   readonly update = this.operation({
     id: 'representation.update',
@@ -118,7 +118,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: on a component, the representation of a type: added if absent, its params updated if present.
+  // api.md §2: on a component, the representation of a type: added if absent, its params updated if present.
   readonly set = this.operation({
     id: 'representation.set',
     title: 'Show a component as…',
@@ -157,7 +157,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: removes that type (or all) from the component; or the representations a node selector matches
+  // api.md §2: removes that type (or all) from the component; or the representations a node selector matches
   // (a tree row's by `#ref`, which another of the same type may sit beside).
   readonly remove = this.operation({
     id: 'representation.remove',
@@ -183,7 +183,7 @@ export class RepresentationApi extends ApiArea {
       if (type && !ctx.plugin.representation.structure.registry.has(type)) {
         return ApiResult.fail('invalid', `There is no representation type '${type}'.`, `Types: ${typeIds(ctx)}.`);
       }
-      // An empty remove is the only one (operations.md §1 "Words"); `all` clears.
+      // An empty remove is the only one (api.md §1 "Words"); `all` clears.
       if (!type && !every && c.representations.length > 1) {
         return ApiResult.fail(
           'ambiguous',
@@ -204,7 +204,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: a color on what the target selects (the overpaint layer), or a color theme on the
+  // api.md §2: a color on what the target selects (the overpaint layer), or a color theme on the
   // representations of the components it covers.
   readonly color = this.operation({
     id: 'representation.color',
@@ -258,7 +258,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2, decision 18: transparency from opaque (0) to hidden (1), keeping the geometry.
+  // api.md §2, decision 18: transparency from opaque (0) to hidden (1), keeping the geometry.
   readonly transparency = this.operation({
     id: 'representation.transparency',
     title: 'Set transparency',
@@ -286,7 +286,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: the emissive layer.
+  // api.md §2: the emissive layer.
   readonly emissive = this.operation({
     id: 'representation.emissive',
     title: 'Set emissive strength',
@@ -312,7 +312,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: the clipping layer. Mol*'s layer names the clip objects (canvas clipping, groups one to six) the
+  // api.md §2: the clipping layer. Mol*'s layer names the clip objects (canvas clipping, groups one to six) the
   // target is excluded from: by default all of them, so the target stays whole while the rest is clipped.
   readonly clipping = this.operation({
     id: 'representation.clipping',
@@ -350,7 +350,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: the size theme and the size factor on the representations the target covers (all, when empty).
+  // api.md §2: the size theme and the size factor on the representations the target covers (all, when empty).
   readonly size = this.operation({
     id: 'representation.size',
     title: 'Set size',
@@ -358,7 +358,7 @@ export class RepresentationApi extends ApiArea {
       const themes = ctx.plugin.representation.structure.themes.sizeThemeRegistry.types;
       return {
         target: TargetParam('What to resize: ligand, A:120-130, …; empty: everything'),
-        // Each absent: kept (operations.md §1); one of them is needed.
+        // Each absent: kept (api.md §1); one of them is needed.
         theme: OptionalParam(
           PD.Select(
             themes[0]?.[0] ?? 'uniform',
@@ -426,7 +426,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: the material params (metalness, roughness, bumpiness) of representations.
+  // api.md §2: the material params (metalness, roughness, bumpiness) of representations.
   readonly material = this.operation({
     id: 'representation.material',
     title: 'Set material',
@@ -488,7 +488,7 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: clears a layer: every representation of the structure (or all) loses what it holds; `all`: every
+  // api.md §2: clears a layer: every representation of the structure (or all) loses what it holds; `all`: every
   // kind at once (the Selection tab's Clear all), one step.
   readonly reset = this.operation({
     id: 'representation.reset',
@@ -710,7 +710,7 @@ interface RepresentationParams {
 const typeOf = (r: StructureRepresentationRef) => (r.cell.transform.params as RepresentationParams).type.name;
 const refOf = (r: StructureRepresentationRef) => r.cell.transform.ref;
 
-/** The scene's structure representations a node selector matches (operations.md §1 "Nodes"). */
+/** The scene's structure representations a node selector matches (api.md §1 "Nodes"). */
 function representationsOf(ctx: ApiContext, node: string): StructureRepresentationRef[] | ApiFailure {
   const byRef = new Map<string, StructureRepresentationRef>();
   for (const s of loadedStructures(ctx)) {

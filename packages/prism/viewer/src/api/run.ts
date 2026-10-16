@@ -35,7 +35,7 @@ import {
 import type { ViewerManagers } from './managers.js';
 import type { TargetResolver } from './targets.js';
 
-// The one run path (operations.md §1, api.md §5): every call, from a command, a tool, a script, a URL or the
+// The one run path (api.md §1, §5): every call, from a command, a tool, a script, a URL or the
 // sequence, goes through `ApiRunner.run`. It fills the params' defaults and checks the values, checks the host's modules
 // and `when`, says "already so" for what exists (decision 30), runs an undoable operation as a history step (the
 // checkpoint before it; a failure restores it; a result that changed nothing records none), applies the projection,
@@ -296,7 +296,7 @@ export class ApiRunner implements OperationPort {
   }
 
   /**
-   * Raw plugin work as one history step (`viewer.run`, README §3.2): recorded as one opaque run, `script.run`, with
+   * Raw plugin work as one history step (`viewer.run`, api.md §5): recorded as one opaque run, `script.run`, with
    * its label. Calls it makes through the API with its context join the step. A throw restores the checkpoint and is
    * thrown on.
    */
@@ -497,7 +497,7 @@ function checkParam(name: string, p: PD.Any, value: unknown): ApiFailure | undef
         ? undefined
         : ApiResult.fail('invalid', `'${name}' takes an object.`);
     case 'mapped': {
-      // A switch or a choice with settings (operations.md §1): `{ name, params }`, the params the named case's.
+      // A switch or a choice with settings (api.md §1): `{ name, params }`, the params the named case's.
       const names = p.select.options.map((o) => o[0]);
       const v = value as { name?: unknown; params?: unknown } | null;
       if (!v || typeof v !== 'object' || Array.isArray(v) || !names.includes(v.name as string)) {

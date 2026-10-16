@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The empty canvas's splash (design/shell.md, "Appear when relevant"): light through the Mol* star. A sparse, faint
+// The empty canvas's splash (shell.md, "Appear when relevant"): light through the Mol* star. A sparse, faint
 // stream of specks drifts in from the left behind the wordmark (white light, in the canvas's subtle text color) and, where
 // it reaches the star, leaves it along the star's arms (the asterisk's eight at 45°, less the one the light comes in
 // along), each ray a small spectrum of the logo's colors (brand-1 to brand-4, each bent a little its own way across the

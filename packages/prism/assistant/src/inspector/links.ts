@@ -12,8 +12,8 @@ import type { InspectLink } from '../views/assistant-tab.js';
 import { type InspectorModel, toolCounts } from './model.js';
 
 /**
- * The Assistant tab's Inspect rows (design/agent.md §6): Trace with its turns, Tools with its tools and skills, Limits
- * with what they bound; each opens the Inspector there (`InspectLink.id` is an `InspectorFocus`).
+ * The Assistant tab's Inspect rows (_spec/README.md, "The Inspector"): Trace with its turns, Tools with its tools and
+ * skills, Limits with what they bound; each opens the Inspector there (`InspectLink.id` is an `InspectorFocus`).
  */
 export function inspectLinks(model: InspectorModel, limits = 'turn budget, context window'): InspectLink[] {
   const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;

@@ -8,7 +8,7 @@
 
 import type { Expression } from '@molstar/query-language/language/expression';
 
-// Targets (spec/targets.md §1). Ported from Stories Untold's `any-molql`. Kept structural (the plain data of an MVS
+// Targets (_spec/targets.md §1). Ported from Stories Untold's `any-molql`. Kept structural (the plain data of an MVS
 // selector), so a target is data anywhere it goes; the one Mol* type here is MolQL's `Expression`, which is JSON.
 
 /** The keywords that are fixed MolScript expressions (`keywords.ts`). */

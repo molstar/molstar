@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
-// `contents` (operations.md §2, README decision 18): entities and chains left out of the structure's components.
+// `contents` (api.md §2, README decision 18): entities and chains left out of the structure's components.
 
 /** Atoms the components of the first structure hold, together. */
 const componentAtoms = (v: PrismViewer) =>
@@ -94,7 +94,7 @@ describe('representation rows', () => {
     );
   });
 
-  it('keeps a rename and a change of a component made while contents are hidden (gate G3)', async () => {
+  it('keeps a rename and a change of a component made while contents are hidden', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const ligand = () =>
       v.plugin.managers.structure.hierarchy.current.structures[0].components.find((c) =>

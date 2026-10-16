@@ -72,7 +72,7 @@ import { initDataPalette, paletteLists, setDataPalette } from './sources/palette
 
 export type { ViewerPointerEvent } from './sources/pointer.js';
 
-/** The root view models (README §3.3): the shell's on a page; the scene, the selection and the rest as they are built. */
+/** The root view models (api.md §11): the shell's on a page; the scene, the selection and the rest as they are built. */
 /**
  * The viewer's view models. The built-in features' (`BuiltInViews`: the Structure panel's `scene`, Home's
  * `homeActions`) are typed as present, as in the default spec; in a viewer whose spec left the feature out, reading one
@@ -117,7 +117,7 @@ export interface PrismViewer {
   readonly plugin: PluginContext;
   /** Every operation, as a script calls them (origin `script`). */
   readonly api: ViewerApi;
-  /** Raw plugin work as one history step (README §3.2); calls it makes through `api` join the step. */
+  /** Raw plugin work as one history step (api.md §5); calls it makes through `api` join the step. */
   run<T>(label: string, work: (plugin: PluginContext, api: ViewerApi) => Promise<T>): Promise<T>;
   readonly managers: ViewerManagers;
   readonly views: PrismViewerViews;
@@ -135,7 +135,7 @@ export interface PrismViewer {
     readonly error: Observable<ViewerError>;
   };
   /**
-   * The extensions: which are loaded, each lazy one's status, loading one (README §3.6), and mounting one the spec did
+   * The extensions: which are loaded, each lazy one's status, loading one (README decision 22), and mounting one the spec did
    * not list, at runtime (viewer-spec.md §3).
    */
   readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor' | 'mount'>;
@@ -170,7 +170,7 @@ export interface ViewerCore extends PrismViewer {
   readonly ready$: { set(value: boolean): void };
   /** Undoes what was added since creation (the page's parts), before the core goes. */
   onDispose(fn: () => void | Promise<void>): void;
-  /** Registers commands with the spec's keybindings applied (README §3.3: keybindings name commands). */
+  /** Registers commands with the spec's keybindings applied (api.md §11: keybindings name commands). */
   registerCommands(defs: readonly CommandDefinition<ViewerCommandContext>[]): () => void;
   /** The spec's overrides, for the shell's own parts. */
   readonly overrides: Overrides;
@@ -353,7 +353,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       own.dispose();
       storage.dispose();
     });
-    // The data palette the options ask for (README §3.7): before anything is loaded, so no step. Its state is
+    // The data palette the options ask for (accessibility.md): before anything is loaded, so no step. Its state is
     // registered either way, so a session's palette comes back.
     initDataPalette(plugin, paletteLists(spec.palettes));
     if (options.canvas.palette !== 'classic') await setDataPalette(plugin, options.canvas.palette);
@@ -426,7 +426,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           if (def.quiet) notifications.announce(result.did);
           else notifications.post(result.did, 'info');
         } else if (r.origin.kind === 'person' && def && !def.read && /^(select|focus|measure)\./.test(r.operation)) {
-          // A selection, a focus or a measurement by target is how a person without sight picks (README §3.7): its
+          // A selection, a focus or a measurement by target is how a person without sight picks (accessibility.md): its
           // result is said (the live region), with no message on show.
           notifications.announce(result.did);
         }
@@ -551,7 +551,7 @@ function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues)
 }
 
 /**
- * The sequence (sequence.md, plan 2.4): its source and its area in the API from the start, its viewer over the structure
+ * The sequence (sequence.md): its source and its area in the API from the start, its viewer over the structure
  * the source follows once the runtime is in, and its state in snapshots (`prism-viewer.sequence`, sequence.md §7.1),
  * kept as given until then.
  */

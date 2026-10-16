@@ -27,7 +27,7 @@ import {
 } from './prop.js';
 import { AssemblySymmetry3D, getAssemblySymmetryConfig } from './transforms.js';
 
-// The `assembly-symmetry` area (operations.md §2, parity.md §6): RCSB PDB's annotation of an assembly's symmetry
+// The `assembly-symmetry` area (api.md §2, parity.md §6): RCSB PDB's annotation of an assembly's symmetry
 // (BioJava's, from data.rcsb.org; PDBe's when the viewer is configured so), its axes in 3D and the coloring by its
 // clusters. `get` lists the symmetries, `show` adds the axes for one (the first that is not C1 by default), `hide`
 // removes them, `color` colors the structure by the symmetry's clusters. Each reaches only the configured service, so
@@ -86,8 +86,8 @@ export class AssemblySymmetryApi extends ApiArea {
 
   /**
    * The row's state for a structure (by state ref), following the state tree while watched (a view bound to it): a
-   * read for views, as the animation area's `state` (contexts.md §7). It never fetches: the symmetries show once an
-   * operation has asked RCSB PDB for them.
+   * read for views, as the animation area's `state` (the Prism viewer's `_spec/README.md`, Folders). It never fetches:
+   * the symmetries show once an operation has asked RCSB PDB for them.
    */
   rowState(structure: string): ReadonlyState<SymmetryRowState> {
     const plugin = this.ctx.plugin;

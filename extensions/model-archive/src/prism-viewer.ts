@@ -18,13 +18,13 @@ import { ModelArchiveApi } from './pae/operations.js';
 import { QualityAssessment } from './quality-assessment/prop.js';
 
 declare module '@molstar/prism-viewer/api' {
-  // The `model-archive` area: the extension's own (operations.md §2, extensions add areas).
+  // The `model-archive` area: the extension's own (api.md §2, extensions add areas).
   interface ExtensionApis {
     'model-archive': ModelArchiveApi;
   }
 }
 
-// Model Archive's quality scores in the Prism viewer (plan 5.1, README decision 27, parity.md §6): commands first. What
+// Model Archive's quality scores in the Prism viewer (README decision 27, parity.md §6): commands first. What
 // a predicted model carries is shown through `annotations.apply` (pLDDT, QMEAN as the 3D color), the plugin gets the two
 // color themes, and the sequence a pLDDT track under the letters (a sequence behavior, sequence.md §3) whose menu colors
 // the 3D view by it. The viewer itself knows nothing of pLDDT. The pairwise metric (PAE) is the `model-archive` area's

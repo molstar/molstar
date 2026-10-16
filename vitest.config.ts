@@ -11,7 +11,7 @@ import { defineConfig } from 'vitest/config';
 const include = ['**/*.test.{ts,tsx,mjs}'];
 const exclude = ['**/node_modules/**', '**/lib/**', '**/build/**', '.pnpm-store/**', '.claude/**', 'smoke/**'];
 
-// Seq* (`packages/sequences`, .v6/seq/plan.md §2.3): its fast tier runs here, in two projects of its own. Files share a
+// Seq* (`packages/sequences`, its AGENTS.md, Tests): its fast tier runs here, in two projects of its own. Files share a
 // worker's module registry (`isolate: false`: each file importing the whole package again was most of the run's time);
 // the files that mock or reset modules, found by reading them, run isolated. Never matched: the browser folders, the
 // heap guards (`*.heap.ts`, not `*.test.*`) and the benches. The opt-in tiers (`test:slow`, `test:browser`,

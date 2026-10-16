@@ -15,7 +15,7 @@ import { isFailure, labelOf, oneStructure } from '@molstar/prism-viewer/api/scop
 import { QualityAssessment } from '../quality-assessment/prop.js';
 import { type PaeMatrix, type PaeResidue, paeChains } from './data.js';
 
-// The `model-archive` area (operations.md §2, an extension's own area): the predicted aligned error of a model, read
+// The `model-archive` area (api.md §2, an extension's own area): the predicted aligned error of a model, read
 // from the ModelCIF's `ma_qa_metric_local_pairwise` (Model Archive's models carry it; AlphaFold DB ships its PAE apart
 // from the model). `model-archive.pae` says whether a structure has it and how big it is; the PAE card reads the matrix
 // through `paeMatrix` (a read for views, as the animation area's `state`), and acts through `select.set`; the Structure

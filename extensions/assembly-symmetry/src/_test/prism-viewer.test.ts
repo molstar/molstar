@@ -16,7 +16,7 @@ import type { AssemblySymmetryInfo, SymmetryInfo } from '../operations.js';
 import { AssemblySymmetryExtension } from '../prism-viewer.js';
 import { AssemblySymmetryData } from '../prop.js';
 
-// Assembly symmetry in the Prism viewer (plan 5.2) on a headless viewer: 1GRM (gramicidin, a dimer in assembly 1) and
+// Assembly symmetry in the Prism viewer on a headless viewer (parity.md §6): 1GRM (gramicidin, a dimer in assembly 1) and
 // 1CBS (a monomer). RCSB PDB is never reached: `fetch` is stubbed with recorded-shape answers.
 
 const fixture = (name: string) =>

@@ -10,7 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The headless viewer's module graph is free of the DOM (README §3.3, library.md §1): following its value imports from
+// The headless viewer's module graph is free of the DOM (api.md §11, library.md §1): following its value imports from
 // `headless.ts` through the viewer and into prism-ui never reaches prism-ui's DOM folders or its index (which
 // re-exports them); prism-ui's DOM-free part is `@molstar/prism-ui/core`.
 

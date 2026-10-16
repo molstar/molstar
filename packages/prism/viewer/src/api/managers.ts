@@ -16,7 +16,7 @@ import type {
 } from '@molstar/prism-ui/core';
 import type { ViewerCheckpoint } from '../sources/checkpoint.js';
 
-// The viewer's managers (spec README §3.3): generic and DOM-free, from prism-ui, composed by the viewer as
+// The viewer's managers (api.md §11): generic and DOM-free, from prism-ui, composed by the viewer as
 // `PluginContext` has its managers.
 
 /** What commands see: whether anything is loaded, the viewer's API bound to the person. */
