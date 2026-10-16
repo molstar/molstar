@@ -166,3 +166,10 @@ export const EOn1TQN: StoryObj<Args> = {
   name: 'E on 1TQN',
   args: { ...OnAStructure.args, palette: 'prism-e', entry: '1TQN' },
 };
+
+/** Candidate D on cytochrome P450 3A4 (1TQN). */
+export const DOn1TQN: StoryObj<Args> = {
+  ...OnAStructure,
+  name: 'D on 1TQN',
+  args: { ...OnAStructure.args, palette: 'prism-d', entry: '1TQN' },
+};
