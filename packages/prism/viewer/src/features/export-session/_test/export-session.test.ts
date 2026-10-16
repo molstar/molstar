@@ -114,6 +114,35 @@ describe('export session', () => {
     expect(count()).toBe(1);
   });
 
+  it('opens a state whose one node cannot be made, with a warning; an error logged meanwhile is not a failure', async () => {
+    const text = fs.readFileSync(
+      path.resolve(import.meta.dirname, '../../../../../../../data/examples/1cbs_updated.cif'),
+    );
+    let reachable = true;
+    const v = await headlessViewer({ extensions: [ExportSessionFeature] });
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('gone.cif') && !reachable) {
+        v.plugin.log.error('Something else went wrong');
+        return new Response('', { status: 404 });
+      }
+      return new Response(text);
+    });
+    const { builders } = v.plugin;
+    for (const url of ['https://data.test/1cbs.cif', 'https://data.test/gone.cif']) {
+      const data = await builders.data.download({ url, isBinary: false });
+      const trajectory = await builders.structure.parseTrajectory(data, 'mmcif');
+      await builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    }
+    const saved = await v.api.session.save!({ kind: 'state' });
+    expectOk(saved);
+    expectOk(await v.api.session.clear());
+    reachable = false;
+    const opened = await v.api.session.open({ file: new File([saved.value!.blob], saved.value!.filename) });
+    expectOk(opened);
+    expect(opened.warnings).toEqual([expect.stringMatching(/^1 part of it could not be made: /)]);
+    expect(v.plugin.managers.structure.hierarchy.current.structures.filter((s) => s.cell.obj)).toHaveLength(1);
+  });
+
   it("keeps the session's record in the file only when asked, and shows it read-only when the file opens", async () => {
     const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
     expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));

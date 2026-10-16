@@ -7,6 +7,7 @@
  */
 
 import { StateTransform } from '@molstar/core/state';
+import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
 import { FileParam, filesOf } from './files.js';
 
@@ -19,6 +20,21 @@ function recordLinesOf(extra: { files?: Record<string, Uint8Array>; fields?: Rec
   if (file) return new TextDecoder().decode(file);
   const field = extra?.fields?.record;
   return Array.isArray(field) ? field.map((e) => JSON.stringify(e)).join('\n') : '';
+}
+
+/** The nodes an opened session could not make: how many, the first one's error, and whether every top one failed. */
+function failedNodes(ctx: ApiContext): { count: number; first: string; all: boolean } {
+  const state = ctx.plugin.state.data;
+  let count = 0;
+  let first = '';
+  state.cells.forEach((cell) => {
+    if (cell.status !== 'error') return;
+    count++;
+    first ||= cell.errorText ?? 'an error';
+  });
+  const top = state.tree.children.get(StateTransform.RootRef);
+  const all = count > 0 && top.size > 0 && top.toArray().every((ref) => state.cells.get(ref)?.status === 'error');
+  return { count, first, all };
 }
 
 export class SessionApi extends ApiArea {
@@ -38,24 +54,47 @@ export class SessionApi extends ApiArea {
         const transformers = [...(await f.text()).matchAll(/"transformer"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
         await ctx.extensions.ensureFor({ transformers });
       }
-      let failed: string | undefined;
-      const sub = ctx.plugin.events.log.subscribe((e) => {
-        if (e.type === 'error') failed = String(e.message);
-      });
+      // Only the open itself failing is fatal (it logs why); a node of the session that cannot be made (a server out of
+      // reach) is said as a warning beside what did open, and an error logged by other work changes nothing.
+      let opened = false;
+      let logged: string | undefined;
+      const subs = [
+        ctx.plugin.managers.snapshot.events.opened.subscribe(() => {
+          opened = true;
+        }),
+        ctx.plugin.events.log.subscribe((e) => {
+          if (e.type === 'error') logged = String(e.message);
+        }),
+      ];
       let extra: Awaited<ReturnType<typeof ctx.plugin.managers.snapshot.open>>;
       try {
         extra = await ctx.plugin.managers.snapshot.open(f);
       } finally {
-        sub.unsubscribe();
+        for (const s of subs) s.unsubscribe();
       }
-      if (failed) return ApiResult.fail('failed', `Could not open ${f.name}: ${failed}`);
+      if (!opened) return ApiResult.fail('failed', `Could not open ${f.name}: ${logged ?? 'it is not a session'}`);
+      const failed = failedNodes(ctx);
+      if (failed.all) {
+        return ApiResult.fail(
+          'failed',
+          `Could not open ${f.name}: nothing in it could be made (${failed.first}).`,
+          'A state names its data; data opened from local files is only in a session (.molx).',
+        );
+      }
       // A record saved with it (journal.md §5): shown in History, read-only, beside the opened scene.
       const lines = recordLinesOf(extra);
       const shown = !!lines && ctx.journal.show(f.name, lines);
-      return ApiResult.ok(`Opened ${f.name}.${shown ? ' Its record is in History, read-only.' : ''}`, {
-        view: true,
-        sequence: true,
-      });
+      return ApiResult.ok(
+        `Opened ${f.name}.${shown ? ' Its record is in History, read-only.' : ''}`,
+        { view: true, sequence: true },
+        failed.count
+          ? {
+              warnings: [
+                `${failed.count} part${failed.count === 1 ? '' : 's'} of it could not be made: ${failed.first}`,
+              ],
+            }
+          : {},
+      );
     },
   });
 
