@@ -60,14 +60,14 @@ function smoothResizes(plugin: PluginContext): void {
 
 const presses = new WeakMap<PluginContext, () => void>();
 /** How long a touch is held to be a long press (ms), and how far it may move (px). */
-const PressMs = 450;
-const PressSlop = 8;
+export const PressMs = 450;
+export const PressSlop = 8;
 
 /**
  * Touch (accessibility.md): what hover gives a mouse, a long press gives a finger: the label of what is under it (the
  * plugin's highlight, so the hover label shows it), until the next touch.
  */
-function longPress(plugin: PluginContext): void {
+export function longPress(plugin: PluginContext): void {
   const canvas = plugin.canvas3dContext?.canvas;
   if (!canvas) return;
   let timer: ReturnType<typeof setTimeout> | undefined;

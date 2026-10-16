@@ -118,6 +118,8 @@ describe('canvas.xr', () => {
   it('the ui.xr option: auto by default; always and never; others refused', () => {
     expect(resolveOptions().ui.xr).toBe('auto');
     expect(resolveOptions({ ui: { xr: 'always' } }).ui.xr).toBe('always');
-    expect(PrismViewerOptions.ui.params.xr.options.map((o) => o[0])).toEqual(['auto', 'always', 'never']);
+    expect(
+      (PrismViewerOptions.ui.params.xr as unknown as { options: [string, string][] }).options.map((o) => o[0]),
+    ).toEqual(['auto', 'always', 'never']);
   });
 });

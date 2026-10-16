@@ -65,8 +65,10 @@ export function PresetsList<T>(props: {
       {() => {
         // Read when opened: a line graph's presets come from the data at hand (a volume's statistics).
         const presets = props.presets();
+        const anchor = props.anchor?.() ?? anchors.get(open);
         const list = (
           <OptionList
+            aria-label={anchor?.getAttribute('aria-label') ?? 'Presets'}
             options={presets.map(([, label], i) => [String(i), label] as const)}
             value={props.current.pipe(map((i) => (i === undefined ? undefined : String(i))))}
             onPick={(i) => {
@@ -78,7 +80,6 @@ export function PresetsList<T>(props: {
             floating
           />
         );
-        const anchor = props.anchor?.() ?? anchors.get(open);
         return anchor ? <Floating anchor={anchor}>{list}</Floating> : <div class={classes.presetsList}>{list}</div>;
       }}
     </Show>

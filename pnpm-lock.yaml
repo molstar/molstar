@@ -123,6 +123,9 @@ catalogs:
     astro:
       specifier: 7.3.8
       version: 7.3.8
+    axe-core:
+      specifier: 4.14.0
+      version: 4.14.0
     benchmark:
       specifier: 2.1.4
       version: 2.1.4
@@ -2926,6 +2929,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
+      axe-core:
+        specifier: 'catalog:'
+        version: 4.14.0
       lightningcss:
         specifier: 'catalog:'
         version: 1.33.0

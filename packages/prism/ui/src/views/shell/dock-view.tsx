@@ -68,16 +68,19 @@ export function DockView(props: {
           </Show>
           <Show when={showStrip}>
             {() => (
-              <div
-                class={classes.strip}
-                role="tablist"
-                aria-label="Panels"
-                aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
-                ref={(el) => onCleanup(rovingTabs(el))}
-              >
-                <For each={compactTabs}>
-                  {(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}
-                </For>
+              <div class={classes.strip}>
+                {/* The tab list holds tabs only; what ends the strip (the compact bar's menu buttons) is beside it. */}
+                <div
+                  role="tablist"
+                  aria-label="Panels"
+                  aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
+                  style="display: contents"
+                  ref={(el) => onCleanup(rovingTabs(el))}
+                >
+                  <For each={compactTabs}>
+                    {(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}
+                  </For>
+                </div>
                 {props.stripEnd}
               </div>
             )}

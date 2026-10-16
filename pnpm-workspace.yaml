@@ -59,6 +59,8 @@ catalog:
   # The test runner (the whole repository, ESM throughout) and its DOM environment; MIT licensed.
   'vitest': '5.0.4'
   'jsdom': '30.1.2'
+  # Automated accessibility checks of Prism's views in the unit tests (`@molstar/prism-ui/testing/axe`); MPL-2.0 licensed, a development dependency only.
+  'axe-core': '4.14.0'
   'jpeg-js': '0.4.4'
   'react': '18.3.1'
   'react-dom': '18.3.1'

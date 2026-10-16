@@ -464,3 +464,13 @@ the [API change ledger](breaking-v6-changes.md).
   reload. Commands `sequence.track.hide`, `sequence.track.show`, `sequence.track.show-all`; operations
   `sequence.track.hide` and `sequence.track.show`; `sequence.get` lists the tracks.
 - prism-ui: a canvas menu row with `items` is a submenu, opened beside the menu (hover, click, →).
+
+## Prism: automated accessibility checks and what they found
+
+- prism-ui: `@molstar/prism-ui/testing/axe` (`expectNoAxeViolations`) runs axe-core in the unit tests; the shell, the
+  components, every tab and card of the viewer, the command menu and the inspectors are checked
+  ([accessibility.md](../../packages/prism/ui/_spec/accessibility.md), which also has the audit by view and the gaps).
+- Fixed: an open select's options list has a name; the compact tab bar's menu buttons are beside the tab list, not in it;
+  the Snapshots list is a list of items (a button applies a snapshot, its buttons are beside it) and its buttons are 24px,
+  44px in compact mode; a volume's iso slider gives ARIA a plain number.
+- CI: the Prism packages' `styles:check`, `icons:check` and `typecheck:storybook` run in a job of their own.

@@ -181,6 +181,7 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
                 selector.set(v);
               }}
               onClose={() => open.set(false)}
+              aria-label={selector.title}
             />
           </div>
         )}

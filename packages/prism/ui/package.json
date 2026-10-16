@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
+    "axe-core": "catalog:",
     "@types/node": "catalog:",
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",

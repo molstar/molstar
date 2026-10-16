@@ -36,6 +36,11 @@ export function SnapshotsPanel(props: {
   const open = observableState(false);
   const current = model.current.pipe(distinctUntilChanged());
   let list: HTMLElement | undefined;
+  // A list needs items: with none, it is the plain text saying so (accessibility.md).
+  const some = model.entries.pipe(
+    map((entries) => entries.length > 0),
+    distinctUntilChanged(),
+  );
   const drag = (id: string) => (e: PointerEvent) => dragToReorder(e, list, id, (index) => model.moveTo(id, index));
   return (
     <div class={classes.panel}>
@@ -71,8 +76,8 @@ export function SnapshotsPanel(props: {
       <ScrollArea
         class={classes.list}
         contentClass={classes.listContent}
-        role="listbox"
-        aria-label="Snapshots"
+        role={some.pipe(map((some) => (some ? 'list' : undefined)))}
+        aria-label={some.pipe(map((some) => (some ? 'Snapshots' : undefined)))}
         ref={(el: HTMLElement) => (list = el)}
       >
         <For
@@ -130,12 +135,19 @@ function SnapshotRow(props: {
     .map((l) => l.replace(/[#*`>-]/g, '').trim())
     .find((l) => l);
   return (
-    <div class={classes.item} data-id={entry.id}>
+    // A list item: the row (applies the snapshot) and, beside it, its buttons (an interactive role holds no buttons).
+    <div
+      class={classes.item}
+      role="listitem"
+      data-id={entry.id}
+      data-current={props.current.pipe(map((c) => (c ? '' : undefined)))}
+    >
       <div
         class={classes.row}
-        role="option"
+        role="button"
         tabIndex={0}
-        aria-selected={props.current}
+        aria-current={props.current.pipe(map((c) => (c ? 'true' : undefined)))}
+        aria-label={`Apply ${entry.name}`}
         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
         onClick={() => model.apply(entry.id)}
         onKeyDown={(e) => {
@@ -170,35 +182,35 @@ function SnapshotRow(props: {
         <span class={classes.name}>{entry.name}</span>
         {entry.key ? <span class={classes.key}>#{entry.key}</span> : null}
         <span class={classes.description}>{firstLine ?? ''}</span>
-        <span class={classes.rowActions}>
-          <button
-            type="button"
-            class={classes.action}
-            data-tip="Retake from the current view"
-            aria-label="Retake from the current view"
-            onClick={(e) => {
-              e.stopPropagation();
-              model.replace(entry.id);
-            }}
-          >
-            <Icon name="camera" size={14} />
-          </button>
-          <button
-            type="button"
-            class={classes.action}
-            aria-label="More"
-            aria-haspopup="menu"
-            aria-expanded={menu}
-            ref={(el: HTMLElement) => (more = el)}
-            onClick={(e) => {
-              e.stopPropagation();
-              menu.set(!menu.value);
-            }}
-          >
-            <Icon name="ellipsis" size={15} />
-          </button>
-        </span>
       </div>
+      <span class={classes.rowActions}>
+        <button
+          type="button"
+          class={classes.action}
+          data-tip="Retake from the current view"
+          aria-label="Retake from the current view"
+          onClick={(e) => {
+            e.stopPropagation();
+            model.replace(entry.id);
+          }}
+        >
+          <Icon name="camera" size={14} />
+        </button>
+        <button
+          type="button"
+          class={classes.action}
+          aria-label="More"
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          ref={(el: HTMLElement) => (more = el)}
+          onClick={(e) => {
+            e.stopPropagation();
+            menu.set(!menu.value);
+          }}
+        >
+          <Icon name="ellipsis" size={15} />
+        </button>
+      </span>
       {/* A popover from ⋯ (as the tree's rows): Remove; the order is the drag handle's and Alt+Up and Down's (no Move up and down). */}
       <Show when={menu}>
         {() => (

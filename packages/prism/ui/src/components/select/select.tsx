@@ -71,6 +71,7 @@ export function Select(props: SelectProps) {
               }}
               onClose={() => open.set(false)}
               floating={props.over}
+              aria-label={props['aria-label'] ?? props.title}
             />
           );
           return props.over ? <Floating anchor={anchor}>{list}</Floating> : list;
@@ -117,6 +118,8 @@ export function OptionList(props: {
   onClose(): void;
   /** Floating over the page (a popover): the wheel stays in it. Inline (default), at its ends it scrolls the panel. */
   floating?: boolean;
+  /** The list's accessible name (a listbox has one): what the choice is, as its button's. */
+  'aria-label'?: string;
 }) {
   // The current value when opened: its group starts open.
   let current: string | undefined;
@@ -184,6 +187,7 @@ export function OptionList(props: {
       contentClass={classes.listContent}
       chain={!props.floating}
       role="listbox"
+      aria-label={props['aria-label']}
       onKeyDown={(e) => {
         const all = navigable();
         const i = all.indexOf(activeElement(list) as HTMLElement);

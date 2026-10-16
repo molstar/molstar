@@ -58,7 +58,9 @@ section); an entry leaves when it is done (its spec section says so then). The s
   from the inline sentence (`ui/src/forms/flat-fields.ts`, [commands.md](ui/_spec/commands.md)).
 - The app: hashed entry names; publishing from the release workflow (today `pnpm deploy:remote` publishes the app and
   its single file at `prism/` and Storybook at `ui-storybook/`) ([app.md §1–2](viewer/_spec/app.md)).
-- Before Prism becomes the default viewer: accessibility and touch, compact mode, several viewers on a page, performance
+- Before Prism becomes the default viewer: accessibility and touch beyond the automated checks (a screen reader pass,
+  `target-size` and contrast in a real browser, the sub-24px controls, a single-pointer alternative to drag-reordering;
+  [accessibility.md](ui/_spec/accessibility.md) "Audit by view"), compact mode, several viewers on a page, performance
   budgets (a one-node change in a scene tree of 1,000 components or a state tree of 5,000 cells within a frame), and
   [parity.md](viewer/_spec/parity.md)'s missing rows; the classic `apps/viewer` stays beside it for a major version.
 - Kept data: preferences keep the theme and the layout, not settings; kept records past 90 days are only marked; the
@@ -94,8 +96,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
   event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
-- CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
-  (`.github/workflows/node.yml`).
 
 ## Missing: prism-ui
 

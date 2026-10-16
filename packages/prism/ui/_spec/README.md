@@ -31,7 +31,7 @@ each app composes it in its own code. The code is the truth for how.
 | `model/`      | DOM-free models the views share: the canvas ink, playback, settings                                                                                                                                     |
 | `styles/`     | the tokens (`theme.css`: light, dark, blue, high contrast; `prefers-contrast`), the reset, the style registry that adopts sheets into shadow roots                                                      |
 | `react/`      | an adapter for React hosts (`reactView`, hooks over observables)                                                                                                                                        |
-| `testing/`    | stories' fixtures                                                                                                                                                                                       |
+| `testing/`    | stories' fixtures and `testing/axe`, the accessibility check for tests                                                                                                                                  |
 
 ## Contracts
 

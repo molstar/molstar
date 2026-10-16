@@ -37,7 +37,7 @@ function mount() {
   const container = document.createElement('div');
   document.body.append(container);
   render(() => <SnapshotsPanel model={model} />, container);
-  const rows = () => [...container.querySelectorAll<HTMLElement>('[role="option"]')];
+  const rows = () => [...container.querySelectorAll<HTMLElement>('[role="list"] [role="button"][aria-keyshortcuts]')];
   const key = (el: HTMLElement, k: string, altKey: boolean) =>
     el.dispatchEvent(new KeyboardEvent('keydown', { key: k, altKey, bubbles: true, cancelable: true }));
   return { rows, key, moves };

@@ -603,6 +603,7 @@ function SelectRow(props: {
               }}
               onClose={() => open.set(false)}
               floating
+              aria-label={props.label}
             />
           );
           return control ? <Floating anchor={control}>{list}</Floating> : list;

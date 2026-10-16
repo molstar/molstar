@@ -144,7 +144,9 @@ describe('CommandManager.register', () => {
   it('lets an id be registered again once its owner has gone', () => {
     const { manager, unregister } = setup();
     unregister();
-    expect(() => manager.register([{ id: 'view.focus', title: 'F', run: () => ({ message: '' }) }])).not.toThrow();
+    expect(() =>
+      manager.register([{ id: 'view.focus', title: 'F', category: 'View', run: () => ({ message: '' }) }]),
+    ).not.toThrow();
   });
 
   it('throws on a duplicate group id', () => {

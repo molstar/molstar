@@ -39,6 +39,10 @@ export function formatIn(unit: VolumeLevelUnit, value: number, stats: VolumeLeve
   return minus(String(Number(value.toPrecision(3))));
 }
 
+/** A value in σ as the number ARIA wants (a plain minus; the typographic one is for the text, `formatIn`). */
+const sigmas = (value: number, stats: VolumeLevelsModel['stats']) =>
+  ((value - stats.mean) / (stats.sigma || 1)).toFixed(2);
+
 /** A typed value in a unit, as map units; undefined: not a number. */
 function parseIn(unit: VolumeLevelUnit, text: string, stats: VolumeLevelsModel['stats']): number | undefined {
   const v = Number(text.replace('−', '-').replace('σ', '').trim());
@@ -216,9 +220,9 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
                     role="slider"
                     tabIndex={0}
                     aria-label={level.pipe(map((l) => `${l.label} iso value`))}
-                    aria-valuemin={formatIn('sigma', stats.min, stats)}
-                    aria-valuemax={formatIn('sigma', stats.max, stats)}
-                    aria-valuenow={level.pipe(map((l) => formatIn('sigma', l.value, stats)))}
+                    aria-valuemin={sigmas(stats.min, stats)}
+                    aria-valuemax={sigmas(stats.max, stats)}
+                    aria-valuenow={level.pipe(map((l) => sigmas(l.value, stats)))}
                     aria-valuetext={level.pipe(map((l) => `${formatIn('sigma', l.value, stats)} σ`))}
                     onKeyDown={onKey(id)}
                   />
