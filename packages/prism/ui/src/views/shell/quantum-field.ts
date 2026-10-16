@@ -104,6 +104,11 @@ const Absorb = 0.12;
  */
 const MaskRes = 4;
 const MaskSoft = 0.8;
+/**
+ * What shows under the glass: the wave pools in its well (that is what refracts it), but in the picture the word stays
+ * clear: no glow, no births, specks fading, where the glass covers a cell (its cover times this, at most 1).
+ */
+const CoverHide = 1.6;
 /** Without the glass (reduced motion, no Path2D): the star alone, a well with eight arms of this radius (px). */
 const PrismRadius = 34;
 const PrismArms = 0.45;
@@ -349,6 +354,8 @@ export class QuantumField {
   #maskWidth = 0;
   #maskHeight = 0;
   readonly #pose = new Float32Array(5);
+  /** How much of each cell the glass covers now (0..1, from its pieces; `CoverHide`). */
+  readonly #cover = new Float32Array(Cells);
   #wasPull = 0;
   #bursts = 0;
 
@@ -743,7 +750,10 @@ export class QuantumField {
               if (mi >= 0 && mj >= 0 && mi < mw && mj < mh) sum += mask[mj * mw + mi];
             }
           }
-          if (sum > 0) v[y * N + x] -= (depth * sum) / 4;
+          if (sum > 0) {
+            v[y * N + x] -= (depth * sum) / 4;
+            if (sum / 4 > this.#cover[y * N + x]) this.#cover[y * N + x] = sum / 4;
+          }
         }
       }
     }
@@ -754,6 +764,7 @@ export class QuantumField {
     const o = this.#options;
     const v = this.#v;
     v.fill(0);
+    this.#cover.fill(0);
     const e0 = (o.k * o.k) / 2;
     const sx = (this.#ox - this.#gx) / Cell;
     const sy = (this.#oy - this.#gy) / Cell;
@@ -862,8 +873,10 @@ export class QuantumField {
         const b = im[i];
         const p = a * a + b * b;
         rho[i] = p;
-        if (p > most) most = p;
-        sum += p;
+        // What shows (none under the glass) sets the scale and the births (by |ψ|²).
+        const shown = p * (1 - Math.min(1, this.#cover[i] * CoverHide));
+        if (shown > most) most = shown;
+        sum += shown;
         this.#cdf[i] = sum;
         if (x === 0 || y === 0 || x === N - 1 || y === N - 1 || p < 1e-9) {
           vx[i] = 0;
@@ -1093,7 +1106,8 @@ export class QuantumField {
       data[j + 1] = tg[i];
       data[j + 2] = tb[i];
       const front = 1 - o.ripples * 0.5 * (1 - this.#re[i] / Math.sqrt(rho[i]));
-      data[j + 3] = Math.min(255, glow * Math.min(1, p ** 0.5) * front * edgeShow[i]);
+      const clear = 1 - Math.min(1, this.#cover[i] * CoverHide);
+      data[j + 3] = Math.min(255, glow * Math.min(1, p ** 0.5) * front * edgeShow[i] * clear);
     }
     this.#pictureCtx.putImageData(image, 0, 0);
   }
@@ -1123,7 +1137,10 @@ export class QuantumField {
     for (let i = 0; i < this.#alive; i++) {
       const age = this.#age[i];
       // In over its birth, then halving every `decay` seconds (not the wave under it: it is a particle now).
-      const a = Math.min(1, age / Birth) * 0.5 ** (age / decay) * this.#at(edgeShow, this.#x[i], this.#y[i]);
+      const x = this.#x[i];
+      const y = this.#y[i];
+      const clear = 1 - Math.min(1, this.#at(this.#cover, x, y) * CoverHide);
+      const a = Math.min(1, age / Birth) * 0.5 ** (age / decay) * this.#at(edgeShow, x, y) * clear;
       const level = Math.max(0, Math.min(Levels - 1, Math.round(a * (Levels - 1))));
       const c = o.colors ? this.#color[i] : 0;
       const b = c * Levels + level;
