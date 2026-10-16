@@ -195,7 +195,17 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-stack {
   --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
+  transition: opacity var(--msp-motion-fade) var(--msp-ease-reveal);
   position: relative;
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  &[data-quiet] {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .msp-shell-canvas-railToggle {

@@ -141,6 +141,12 @@ export interface ShellOptions {
  * structure passes under it faded, with no hard cut. The band's view keeps this much clear at its bottom.
  */
 export const BandFadePx = 28;
+
+/**
+ * Ms the canvas stack (its toolbar) takes to fade out when the canvas empties (`--msp-motion-fade`): what is in it is
+ * kept that long, so the fade has something to fade (`CanvasStack`'s `quiet`).
+ */
+export const CanvasStackFadeMs = 360;
 /** Px of the band's last lines over which its backdrop already starts to fade (the dissolve begins within the band). */
 export const BandDissolvePx = 36;
 

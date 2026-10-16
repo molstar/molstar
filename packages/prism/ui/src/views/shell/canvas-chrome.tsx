@@ -239,10 +239,19 @@ export function ToolMenuRows(props: { items: readonly CanvasMenuItem[]; onRun():
  * panel: one frame with the mode buttons (`lead`) and then the toolbar items placed on the canvas (camera, lighting,
  * XR, expand, sequence); `aside` is what opens beside it (the picking level).
  */
-export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Child }) {
+export function CanvasStack(props: {
+  shell: ShellModel;
+  lead?: Child;
+  aside?: Child;
+  /**
+   * The canvas is empty: the stack fades out (`CanvasStackFadeMs`; what is in it should stay that long), and in again
+   * when it has something (canvas.module.css, `@starting-style`).
+   */
+  quiet?: Observable<boolean>;
+}) {
   const menus = new ToolMenus();
   const stack = (
-    <div class={classes.stack}>
+    <div class={classes.stack} data-quiet={props.quiet?.pipe(map((q) => (q ? '' : undefined)))}>
       <div class={classes.frame}>
         <ScrollArea axis="x" contentClass={classes.stackTools}>
           {props.lead}

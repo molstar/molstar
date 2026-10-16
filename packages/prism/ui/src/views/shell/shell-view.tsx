@@ -255,7 +255,7 @@ export function ShellView(props: ShellViewProps) {
                 {() => <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />}
               </Show>
               <div class={canvasClasses.corner}>
-                <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
+                <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} quiet={props.empty} />
                 <Show when={compact.pipe(map((c) => !c))}>
                   {() => <ContextChips status={status} lead={props.context?.()} />}
                 </Show>

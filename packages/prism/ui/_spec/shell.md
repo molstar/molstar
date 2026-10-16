@@ -23,10 +23,11 @@ buttons) is the app's. The code is the truth for how.
   quiet while the mark is up; whatever is in it brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s,
   over the canvas's own color; same guards as the mark). `ShellView`'s `splash` turns it off.
 - **Motion.** Open and close by `Show`'s `reveal`: grow (`data-reveal`) for lists and sections, `'side'` for panels,
-  `'fade'` (opacity only) for what must not change size, like the sequence band drawn on a canvas (re-laid out every
-  frame if it grew). One value replacing another (a right panel by another) can swap as a view transition scoped to the
-  dock (`swap`, motion.ts `swapIn`), where the browser has scoped ones; never the document's (it would stop the 3D
-  canvas while it runs).
+  `'fade'` (opacity only) for what must not change size, like the sequence band drawn on a canvas, and the canvas
+  toolbar (`CanvasStack` `quiet`; its buttons stay `CanvasStackFadeMs` as it fades out) (re-laid out every frame if it
+  grew). One value replacing another (a right panel by another) can swap as a view transition scoped to the dock
+  (`swap`, motion.ts `swapIn`), where the browser has scoped ones; never the document's (it would stop the 3D canvas
+  while it runs).
 - **Lean views.** Commands carry the operations ([commands.md](commands.md)); views show state and the common actions.
 
 ## 2. Structure

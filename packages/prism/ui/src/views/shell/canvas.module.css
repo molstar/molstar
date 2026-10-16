@@ -163,6 +163,18 @@
   --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
 
   position: relative;
+  /* In and out as the sequence band does (opacity only): in as it gets its buttons, out as the canvas empties (they
+     stay `CanvasStackFadeMs` for it). */
+  transition: opacity var(--msp-motion-fade) var(--msp-ease-reveal);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  &[data-quiet] {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /* The compact rail's toggle: centered in the rail's column (44px, at the right edge), at the corner row's bottom, where

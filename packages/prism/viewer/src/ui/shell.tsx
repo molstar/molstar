@@ -10,6 +10,7 @@
 
 import {
   BandFadePx,
+  CanvasStackFadeMs,
   type CanvasBackgroundProps,
   CommandMenu,
   type CommandMenuAssistant,
@@ -38,7 +39,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { combineLatest, debounceTime, distinctUntilChanged, map, skip } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map, of, shareReplay, skip, switchMap, timer } from 'rxjs';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard } from './export-card.js';
@@ -243,6 +244,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     }
 
     const hasData = sources.empty.pipe(map((e) => !e));
+    // The canvas stack's own: its buttons stay while it fades out as the canvas empties (`CanvasStackFadeMs`).
+    const stackData = hasData.pipe(
+      switchMap((data) => (data ? of(true) : timer(CanvasStackFadeMs).pipe(map(() => false)))),
+      distinctUntilChanged(),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
     const sequence = core.views.sequence;
     const seqLines = observableState<readonly string[]>([]);
     const hoverLines = observableState<readonly string[]>([]);
@@ -293,8 +300,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     if (trajectory) unregister.push(trajectory.dispose);
     const modeProps = modeSwitchProps(sources.interaction, person);
     // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
-    const shown = (id: string) =>
-      combineLatest([hasData, managers.viewState.layout]).pipe(
+    const shown = (id: string, data = hasData) =>
+      combineLatest([data, managers.viewState.layout]).pipe(
         map(([data, layout]) => data && layout.buttons[id] !== false),
         distinctUntilChanged(),
       );
@@ -337,7 +344,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'reset',
             place: 'canvas',
             group: 'canvas',
-            visible: hasData,
+            visible: stackData,
             icon: 'focus',
             title: 'Reset camera',
             run: () => void person.camera.reset(),
@@ -365,7 +372,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'expand',
             place: 'canvas',
             group: 'canvas',
-            visible: hasData,
+            visible: stackData,
             icon: fullscreen.mode === 'fullscreen' ? 'fullscreen' : 'maximize-2',
             title: fullscreen.mode === 'fullscreen' ? 'Fullscreen' : 'Expand',
             pressed: combineLatest([managers.navigation.expanded, fullscreen.active]).pipe(map(([e, f]) => e || f)),
@@ -398,7 +405,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'illumination',
             place: 'canvas',
             group: 'rendering',
-            visible: combineLatest([hasData, sources.canvas]).pipe(
+            visible: combineLatest([stackData, sources.canvas]).pipe(
               map(([data, c]) => data && c !== undefined && person.describe('canvas.lighting') !== undefined),
               distinctUntilChanged(),
             ),
@@ -418,7 +425,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'xr',
             place: 'canvas',
             group: 'rendering',
-            visible: combineLatest([hasData, xr.state]).pipe(
+            visible: combineLatest([stackData, xr.state]).pipe(
               map(([data, x]) => data && x.supported && person.describe('canvas.xr') !== undefined),
               distinctUntilChanged(),
             ),
@@ -643,8 +650,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           splash={core.options.ui.splash}
           busy={sources.busy}
           context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
-          canvasLead={<Show when={shown('selection-mode')}>{() => <ModeSwitch {...modeProps} />}</Show>}
-          canvasAside={<Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>}
+          canvasLead={<Show when={shown('selection-mode', stackData)}>{() => <ModeSwitch {...modeProps} />}</Show>}
+          canvasAside={<Show when={stackData}>{() => <PickLevel {...modeProps} />}</Show>}
           onDropFiles={openFiles}
           dropFormats={sources.formats}
           onOpenLog={() => (core.options.ui.showHistory ? shell.show('history', 'log') : shell.show('log'))}
