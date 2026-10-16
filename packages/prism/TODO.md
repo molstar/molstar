@@ -19,6 +19,11 @@ section); an entry leaves when it is done (its spec section says so then). The s
   gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
   Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
   JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
+  Measured 2026-10-17 (esbuild, minified / gzip, English-only zod): a provider chunk on the AI SDK is 570–750 / 155–195
+  kB (zod 193 / 54, `ai` 184, the unused gateway 111); the official SDKs (`@anthropic-ai/sdk`, `openai`,
+  `@google/genai`) are 315–400 / 72–84 kB with no zod on the streaming path. A rewrite of `providers/` on them is ~900
+  lines and 2–3 weeks with the fixtures; `tools/input.ts` then needs a ~120-line validator over the closed field
+  vocabulary (or `zod/mini`, 18 / 6 kB).
 - **Assistant keys are shared by every viewer in the browser** (README decision 29): Forget in one viewer is seen by
   another only after a reload; make the key store notify the other viewers if that matters.
 - **Size**: MolViewSpec in the startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk
