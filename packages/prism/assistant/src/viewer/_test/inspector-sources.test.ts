@@ -77,9 +77,10 @@ describe('the Inspector over the viewer agent', () => {
     expect(styles().guidance).toBeTruthy();
     expect(styles().tools.every((t) => t.state !== 'loaded')).toBe(true);
 
+    // The harness's changes are read as they come while the trace is watched (no refresh asked).
+    const watching = sources.trace.subscribe();
     const result = await agent.turn('show a surface');
     expect(result.status).toBe('completed');
-    // The harness's changes are read as they come (no refresh asked).
     await until(() => sources.trace.value?.turns.length === 1);
     await sources.refresh();
     const turn = sources.trace.value!.turns[0];
@@ -116,6 +117,36 @@ describe('the Inspector over the viewer agent', () => {
     expect(rows.slice(0, 2)).toEqual(['turn', 'request']);
     expect(rows.filter((k) => k === 'step')).toHaveLength(5);
     sub.unsubscribe();
+    watching.unsubscribe();
+
+    sources.dispose();
+    agent.dispose();
+  });
+
+  it('reads the trace only while something watches it, and on refresh', async () => {
+    const { agent } = await agentOn([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }]);
+    const sources = createInspectorSources(agent);
+    const settle = () => new Promise((r) => setTimeout(r, 50));
+    const turns = () => sources.trace.value?.turns.length ?? 0;
+
+    // Nobody watches: a turn's records are not read.
+    await agent.turn('one');
+    await settle();
+    expect(turns()).toBe(0);
+
+    // Watched (the tools, as the Assistant tab's links are): read at once, then as they change.
+    const watching = sources.tools.subscribe();
+    await until(() => turns() === 1);
+    await agent.turn('two');
+    await until(() => turns() === 2);
+
+    // Released: not read any more, until a refresh.
+    watching.unsubscribe();
+    await agent.turn('three');
+    await settle();
+    expect(turns()).toBe(2);
+    await sources.refresh();
+    expect(turns()).toBe(3);
 
     sources.dispose();
     agent.dispose();

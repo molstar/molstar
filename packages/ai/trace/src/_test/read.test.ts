@@ -568,20 +568,32 @@ describe('readTrace: the profile (the host’s part)', () => {
 
   it('keeps what it read in a cache, so a re-read fetches only what is new', async () => {
     const s = await basic();
-    const counts = { entries: 0, heads: 0, blobs: 0 };
+    const counts = { entries: 0, heads: 0, blobs: 0, events: 0 };
     const reader: HarnessReader = {
       ...s.client,
       entries: (ids) => (counts.entries++, s.client.entries(ids)),
       heads: (ids) => (counts.heads++, s.client.heads(ids)),
       blobs: (refs) => (counts.blobs++, s.client.blobs(refs)),
+      events: async (input) => {
+        const got = await s.client.events(input);
+        counts.events += got.length;
+        return got;
+      },
     };
     const cache = { entries: new Map(), heads: new Map(), blobs: new Map() };
     const one = await readTrace(reader, { cache });
     const fetched = { ...counts };
     expect(fetched.entries).toBeGreaterThan(0);
+    expect(fetched.events).toBeGreaterThan(0);
     const two = await readTrace(reader, { cache });
     expect(counts).toEqual(fetched);
     expect(two).toEqual(one);
+    // A later turn: only its events are read, and the trace is the one a fresh read gives.
+    await turn(s, 'Again');
+    const three = await readTrace(reader, { cache });
+    expect(three.turns).toHaveLength(2);
+    expect(counts.events - fetched.events).toBe(cache.log!.events.length - fetched.events);
+    expect(three).toEqual(await readTrace(s.client));
   });
 });
 

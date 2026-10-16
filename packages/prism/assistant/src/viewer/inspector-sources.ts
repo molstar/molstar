@@ -18,16 +18,21 @@ import {
   toolsView,
   type TraceData,
 } from '@molstar/ai-trace';
-import { observableState } from '@molstar/prism-ui/core';
+import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
+import { Observable } from 'rxjs';
 import type { ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import type { InspectorSources } from '../inspector/model.js';
 
 // The Inspector over the viewer's agent (agent.md §1): the trace read from the session's harness through
-// `@molstar/ai-trace` as its records change, the Tools view from the viewer's toolkit as it is now, the limits from the
-// session's budget and the model's window. DOM-free.
+// `@molstar/ai-trace` as its records change, while something watches it (the Inspector, the Assistant tab's links),
+// the Tools view from the viewer's toolkit as it is now, the limits from the session's budget and the model's window.
+// DOM-free.
 
 export interface ViewerInspectorSources extends InspectorSources {
-  /** Reads the trace again now; resolves once the trace (and the tools and limits that follow it) is up to date. */
+  /**
+   * Reads the trace again now; resolves once the trace (and the tools and limits that follow it) is up to date. The
+   * sources read it themselves only while one of them is subscribed.
+   */
   refresh(): Promise<void>;
   dispose(): void;
 }
@@ -37,7 +42,7 @@ export function createInspectorSources(agent: Pick<ViewerAgent, 'session' | 'too
   const trace = observableState<TraceData | undefined>(undefined);
   const tools = observableState<ToolsData>(toolsOf(agent, undefined));
   const limits = observableState<LimitsData>(limitsOf(agent, undefined));
-  // Heads, entries and blobs are immutable: a re-read fetches only what is new.
+  // Heads, entries and blobs are immutable, the event log append-only: a re-read fetches only what is new.
   const cache = createTraceCache();
   let disposed = false;
 
@@ -81,23 +86,46 @@ export function createInspectorSources(agent: Pick<ViewerAgent, 'session' | 'too
     return reading;
   };
 
-  // The harness's seq: the current one first, then each change.
+  // The harness's seq (the current one first, then each change), watched while the trace, tools or limits are: a read
+  // re-groups the whole session's log, so nothing reads it on a turn's every step while nobody looks.
   let unwatch: (() => void) | undefined;
-  void session.client().then((client) => {
-    if (disposed) return;
-    unwatch = client.watch().subscribe(() => void read());
-  });
+  let watchers = 0;
+  const watch = () => {
+    if (watchers++ > 0) return;
+    void session.client().then((client) => {
+      if (disposed || watchers === 0 || unwatch) return;
+      unwatch = client.watch().subscribe(() => void read());
+    });
+  };
+  const release = () => {
+    if (--watchers > 0) return;
+    unwatch?.();
+    unwatch = undefined;
+  };
+  const watched = <T>(state: ReadonlyState<T>): ReadonlyState<T> => {
+    const o = new Observable<T>((subscriber) => {
+      watch();
+      const sub = state.subscribe(subscriber);
+      return () => {
+        sub.unsubscribe();
+        release();
+      };
+    }) as ReadonlyState<T>;
+    Object.defineProperty(o, 'value', { get: () => state.value });
+    return o;
+  };
   const offTools = toolkit.onChange(() => tools.set(toolsOf(agent, trace.value)));
 
   return {
-    trace: trace.asReadonly,
-    tools: tools.asReadonly,
-    limits: limits.asReadonly,
+    trace: watched(trace.asReadonly),
+    tools: watched(tools.asReadonly),
+    limits: watched(limits.asReadonly),
     // A read already running goes round once more: the change asked for is in it.
     refresh: read,
     dispose() {
       disposed = true;
       unwatch?.();
+      unwatch = undefined;
       offTools();
     },
   };

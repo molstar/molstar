@@ -93,11 +93,16 @@ export interface TraceToolNotes {
   readonly changed?: readonly { readonly id: string; readonly label: string }[];
 }
 
-/** The model-visible calls the trace caches between reads: heads, entries and blobs are immutable. */
+/**
+ * What the trace caches between reads of one harness: heads, entries and blobs are immutable, and the event log is
+ * append-only (seq order), so a re-read fetches only the events after the last one it has.
+ */
 export interface TraceCache {
   readonly entries: Map<string, Message>;
   readonly heads: Map<string, readonly string[]>;
   readonly blobs: Map<string, Json>;
+  /** The events read so far, and the harness they are of (another harness reads its log from the start). */
+  log?: { readonly harness: string; readonly events: HarnessEvent[] };
 }
 
 export function createTraceCache(): TraceCache {
@@ -430,10 +435,12 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
   const now = profile.now ?? Date.now;
 
   const execution = await reader.execution();
-  const events: HarnessEvent[] = [];
+  if (cache.log?.harness !== reader.id) cache.log = { harness: reader.id, events: [] };
+  const { events } = cache.log;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const got = await reader.events({ after: events.at(-1)?.seq ?? 0, limit: PAGE });
-    events.push(...got);
+    // Two reads at once over one cache: what the other appended meanwhile is not taken twice.
+    for (const e of got) if (e.seq > (events.at(-1)?.seq ?? 0)) events.push(e);
     if (got.length < PAGE) break;
   }
   // A turn's summary: from the log (the event that ended it), the active turn's from the reader.
