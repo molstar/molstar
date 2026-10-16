@@ -13,7 +13,8 @@ import type { ToolEvent, TurnHooks } from './types.js';
 
 /**
  * Everything the session keeps for the turn that is running, in one object made afresh for each turn (and each
- * resume): the drive and the observers write it, the result reads it.
+ * resume, which keeps the events shown before the park and seeds `planned` from the parked step): the drive and the
+ * observers write it, the result reads it.
  */
 export interface TurnState {
   hooks: TurnHooks;

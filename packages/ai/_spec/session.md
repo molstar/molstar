@@ -7,14 +7,14 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 
 ## Files (`src/session/`)
 
-| File          | What                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| `session.ts`  | `AgentSession`: the harness (made on first use), `turn`, `resume`, `stop`, hooks from observations, results |
-| `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`            |
-| `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                              |
-| `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`             |
-| `state.ts`    | `TurnState`: what the session keeps of the running turn (made afresh per turn and per resume)               |
-| `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)    |
+| File          | What                                                                                                                                                             |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session.ts`  | `AgentSession`: the harness (made on first use), `turn`, `resume`, `stop`, hooks from observations, results                                                      |
+| `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`                                                                 |
+| `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                                                                                   |
+| `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`                                                                  |
+| `state.ts`    | `TurnState`: what the session keeps of the running turn (made afresh per turn and per resume; a resume keeps the events shown and seeds the parked step's calls) |
+| `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)                                                         |
 
 ## Making one
 
@@ -60,8 +60,9 @@ long as the session (a reload ends the conversation).
   tools lazy skills will bring; tools.md, "Dynamic").
 - **`TurnResult`**: `status` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval`), `approval?` (pending
   calls), `text` (the last reply), `turnText` (every reply of the turn: one per model call, a retry counted once, a
-  widened reply replacing the cut one; for a resumed turn, since the resume), `error?`, `tools: ToolEvent[]`, `usage?`
-  (`input`, `output`, `cached`, `written`, `modelCalls`), `context?` (tokens after the turn), `compactions?`.
+  widened reply replacing the cut one; for a resumed turn, since the resume), `error?`, `tools: ToolEvent[]` (for a
+  resumed turn, the events shown before the park too; a denial or repair the re-run step decides again is shown once),
+  `usage?` (`input`, `output`, `cached`, `written`, `modelCalls`), `context?` (tokens after the turn), `compactions?`.
 - **Hooks** (`TurnHooks`): `onText(textSoFar)`, `onTool(ToolEvent)` (top-level calls: `started`, `progress`,
   `succeeded`, `failed`, `skipped`; with `read`, times),
   `onStatus({ kind: model | tools | permission | budget | retrying | widened | budget-extended | compacting, detail? })`,

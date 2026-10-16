@@ -406,8 +406,15 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     this.state.hooks.onTool?.(event);
   }
 
-  /** An event the person sees and the result keeps. */
+  /**
+   * An event the person sees and the result keeps; once: a resumed step asks again about its denials and repairs,
+   * which the person has seen.
+   */
   private shown(event: Omit<ToolEvent, 'startedAt'> & { startedAt?: number }): void {
+    const seen = this.state.events.some(
+      (e) => e.id !== undefined && e.id === event.id && e.status === event.status && e.text === event.text,
+    );
+    if (seen) return;
     const now = this.clock.now();
     const done: ToolEvent = {
       ...event,
@@ -628,6 +635,9 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
    */
   async resume({ decisions = {}, hooks = {} }: ResumeOptions = {}): Promise<TurnResult | undefined> {
     if (this.activeTurn) return undefined;
+    // The parked step's calls: its re-run reports their attempts as tools, and the ones that never run as skipped.
+    const pending = (await this.harness.execution()).turn?.pending;
+    if (this.activeTurn) return undefined;
     let handle: ReturnType<Harness['resume']>;
     try {
       handle = this.harness.resume();
@@ -637,7 +647,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     }
     // The loop starts after this tick: the decisions and the hooks are in place for its first decision.
     for (const [callId, d] of Object.entries(decisions)) this.decided.set(callId, d);
+    // What the person saw before the park stays the turn's (a call that ended then is not run again).
+    const { events, starts } = this.state;
     this.reset(hooks);
+    this.state.events = [...events];
+    for (const [id, at] of starts) this.state.starts.set(id, at);
+    if (pending?.kind === 'tools')
+      this.state.planned = pending.plan.map((c) => ({ callId: c.callId, toolId: c.toolId, arguments: c.arguments }));
     this.activeTurn = handle.turnId;
     try {
       this.begin(handle.turnId, true);
