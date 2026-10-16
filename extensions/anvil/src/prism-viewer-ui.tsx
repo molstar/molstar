@@ -13,7 +13,7 @@ import { bind, Button, domView, ParamsForm, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { mapState } from '@molstar/prism-ui/reactive/map-state';
 import type { SceneNode } from '@molstar/prism-viewer';
-import { SceneRow } from '@molstar/prism-viewer';
+import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import type { MembraneRowState } from './operations.js';
 

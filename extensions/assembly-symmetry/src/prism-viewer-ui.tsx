@@ -12,7 +12,7 @@ import { Button, domView, Select, Show } from '@molstar/prism-ui';
 import { mapState } from '@molstar/prism-ui/reactive/map-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { SceneNode } from '@molstar/prism-viewer';
-import { SceneRow } from '@molstar/prism-viewer';
+import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import type { SymmetryInfo, SymmetryRowState } from './operations.js';
 

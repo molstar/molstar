@@ -23,7 +23,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { observableState } from '@molstar/prism-ui/core';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { distinctUntilChanged, map, type Observable, of } from 'rxjs';
+import { distinctUntilChanged, map, type Observable, of, shareReplay } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import {
   createHistoryModel,
@@ -192,9 +192,11 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
     map((steps) => (steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '')),
   );
   // "Undo turn" is for the agent's latest turn: the newest step that is its.
+  // Shared: computed once per change, not once per turn row that reads it.
   const latestTurn = history.steps.pipe(
     map((steps) => steps.find((s) => s.origin.kind === 'agent')?.origin.turn),
     distinctUntilChanged(),
+    shareReplay({ bufferSize: 1, refCount: true }),
   );
   const say = (r: Awaited<ReturnType<ViewerApi['history']['undo']>>) => {
     if (!r.ok) notifications.post(r.message, 'warning');

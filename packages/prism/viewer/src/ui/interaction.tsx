@@ -54,12 +54,17 @@ export function selectionModel(
     summary: interaction.selection,
     actions: [
       { id: 'focus', label: 'Focus', icon: 'focus', run: () => void api.focus.set({ target: 'selection' }) },
-      {
-        id: 'component',
-        label: 'Component',
-        icon: 'layers',
-        run: () => void api.component.add({ target: 'selection', label: 'Selection' }, { copy: true }),
-      },
+      // Without the structure feature there is no component area to add to (api.md §6).
+      ...(api.area('component')
+        ? [
+            {
+              id: 'component',
+              label: 'Component',
+              icon: 'layers' as const,
+              run: () => void api.component.add({ target: 'selection', label: 'Selection' }, { copy: true }),
+            },
+          ]
+        : []),
       ...(openPanel ? [{ id: 'more', label: 'More…', icon: 'mouse-pointer-click' as const, run: openPanel }] : []),
     ],
     clear: () => void api.select.clear(),

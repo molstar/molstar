@@ -10,7 +10,8 @@
 
 import { domView, Select, Show } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { type SceneNode, SceneRow } from '@molstar/prism-viewer';
+import type { SceneNode } from '@molstar/prism-viewer/model/scene';
+import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';

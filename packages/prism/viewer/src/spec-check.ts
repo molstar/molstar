@@ -7,7 +7,7 @@
  */
 
 import { CoreParts } from './extensions/overrides.js';
-import { isLazyExtension, type PrismViewerSpec } from './spec.js';
+import { isLazyExtension, type PartKind, type PrismViewerSpec } from './spec.js';
 
 // The first step of creation (viewer-spec.md §6): the spec checked before anything is made. Every problem at once, in
 // one error naming each.
@@ -16,19 +16,22 @@ const IdPattern = /^[a-z][a-z0-9-]*$/;
 const PartIdPattern = /^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9.-]*$/;
 /** A command's id (`<area>.<verb>`, viewer-spec.md §4: command ids are their own). */
 const CommandIdPattern = /^[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$/;
-const PartKinds = new Set([
-  'tab',
-  'section',
-  'row',
-  'toolbar',
-  'overlay',
-  'command',
-  'tool',
-  'skill',
-  'sequence',
-  'api',
-  'settings',
-]);
+/** Every part kind (a `Record` over `PartKind`, so a kind added to the type is added here or the build fails). */
+const PartKindIds: Readonly<Record<PartKind, true>> = {
+  tab: true,
+  section: true,
+  row: true,
+  toolbar: true,
+  overlay: true,
+  page: true,
+  command: true,
+  tool: true,
+  skill: true,
+  sequence: true,
+  api: true,
+  settings: true,
+};
+const PartKinds: ReadonlySet<string> = new Set(Object.keys(PartKindIds));
 
 export class PrismViewerSpecError extends Error {
   constructor(readonly problems: readonly string[]) {
