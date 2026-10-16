@@ -284,16 +284,27 @@ export function Floating(props: {
       {props.children}
     </div>
   ) as HTMLElement;
+  // At least as wide as the anchor, as wide as its options need: written only when the anchor's width changes, so
+  // a scroll or resize reads the layout once and then writes (no layout forced after a write).
+  let minWidth = -1;
   const place = () => {
     const r = props.anchor.getBoundingClientRect();
+    if (r.width !== minWidth) {
+      minWidth = r.width;
+      el.style.minWidth = `${r.width}px`;
+    }
     const h = el.offsetHeight;
+    const w = el.offsetWidth;
     const below = window.innerHeight - r.bottom;
     const top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
-    // At least as wide as the anchor, as wide as its options need; kept on screen.
-    el.style.minWidth = `${r.width}px`;
-    const left = props.align === 'end' ? r.right - el.offsetWidth : r.left;
-    el.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 8 - el.offsetWidth))}px`;
+    // Kept on screen.
+    const left = props.align === 'end' ? r.right - w : r.left;
+    el.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 8 - w))}px`;
     el.style.top = `${Math.max(4, top)}px`;
+  };
+  // A scroll of its own list does not move the anchor (the listener captures every element's scroll).
+  const onScroll = (e: Event) => {
+    if (!isInside(e, el)) place();
   };
   queueMicrotask(() => {
     if (!el.isConnected) return;
@@ -304,10 +315,10 @@ export function Floating(props: {
       el.querySelector<HTMLElement>('[aria-selected="true"]') ?? el.querySelector<HTMLElement>('[role=option]')
     )?.focus();
   });
-  window.addEventListener('scroll', place, true);
+  window.addEventListener('scroll', onScroll, true);
   window.addEventListener('resize', place);
   onCleanup(() => {
-    window.removeEventListener('scroll', place, true);
+    window.removeEventListener('scroll', onScroll, true);
     window.removeEventListener('resize', place);
   });
   return el;
