@@ -23,7 +23,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { observableState } from '@molstar/prism-ui/core';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { distinctUntilChanged, map, type Observable, of, shareReplay } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, of, shareReplay } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import {
   createHistoryModel,
@@ -195,8 +195,9 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
   const confirm = observableState<{ turn: string; text: string } | undefined>(undefined);
 
   // Undo says what it undoes, or why it cannot.
-  const title = history.undoBlocked.pipe(map((reason) => reason ?? 'Undo the latest step'));
+  // Undo says what it undoes (in its tooltip: the button is a word), or why it cannot.
   const undoLabel = history.steps.pipe(map((steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo')));
+  const title = combineLatest([history.undoBlocked, undoLabel]).pipe(map(([reason, label]) => reason ?? label));
   const redoLabel = history.redoable.pipe(map((r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo')));
   const count = history.steps.pipe(
     map((steps) => (steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '')),
@@ -213,102 +214,101 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
   };
   return (
     <div class={classes.history} aria-label="History">
+      {/* As the Snapshots and Structure tabs' headers: quiet buttons, an icon and a word each; Keep at the end. */}
       <div class={classes.bar}>
         <Button
           size="sm"
-          icon={<Icon name="undo-2" size={14} />}
+          variant="ghost"
+          icon={<Icon name="undo-2" />}
           title={title}
           disabled={history.canUndo.pipe(map((can) => !can))}
           onClick={() => void api.history.undo().then(say)}
         >
-          {undoLabel}
+          Undo
         </Button>
         <Button
           size="sm"
-          icon={<Icon name="redo-2" size={14} />}
+          variant="ghost"
+          icon={<Icon name="redo-2" />}
           title={redoLabel}
           aria-label="Redo"
           disabled={history.redoable.pipe(map((r) => r.length === 0))}
           onClick={() => void api.history.redo().then(say)}
         />
         <span class={classes.count}>{count}</span>
-      </div>
-      <div class={classes.keep}>
         <Show
           when={model.kept}
           fallback={() => (
-            <Show
-              when={over.asReadonly}
-              fallback={() => (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  icon={<Icon name="save" size={14} />}
-                  title="Keep this session's record in this browser (the record only: no scene, no files)"
-                  disabled={keepBusy.asReadonly}
-                  onClick={() => {
-                    keepBusy.set(true);
-                    void viewer.keptRecords
-                      .overBound()
-                      .then((oldest) => (oldest ? void over.set(oldest) : keepSessionRecord(viewer).then(() => {})))
-                      .finally(() => keepBusy.set(false));
-                  }}
-                >
-                  Keep this record
-                </Button>
-              )}
-            >
-              {(oldest) => (
-                // At the bound (journal.md §5): keeping one more forgets the oldest, asked first.
-                <div class={classes.ask}>
-                  <span class={classes.caption}>
-                    {`${viewer.keptRecords.max} records are kept: forget the oldest, “${oldest.title}”?`}
-                  </span>
-                  <Button
-                    size="xs"
-                    disabled={keepBusy.asReadonly}
-                    onClick={() => {
-                      keepBusy.set(true);
-                      void viewer.keptRecords
-                        .forget(oldest.id)
-                        .then(() => keepSessionRecord(viewer))
-                        .finally(() => {
-                          keepBusy.set(false);
-                          over.set(undefined);
-                        });
-                    }}
-                  >
-                    Forget it and keep
-                  </Button>
-                  <Button size="xs" variant="ghost" onClick={() => over.set(undefined)}>
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </Show>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon name="save" />}
+              title="Keep this session's record in this browser (the record only: no scene, no files)"
+              aria-label="Keep this record"
+              disabled={keepBusy.asReadonly}
+              onClick={() => {
+                keepBusy.set(true);
+                void viewer.keptRecords
+                  .overBound()
+                  .then((oldest) => (oldest ? void over.set(oldest) : keepSessionRecord(viewer).then(() => {})))
+                  .finally(() => keepBusy.set(false));
+              }}
+            />
           )}
         >
           {() => (
-            <>
-              <span class={classes.caption}>Kept in this browser</span>
-              <Button
-                size="xs"
-                variant="ghost"
-                title="Forget the kept copy: it goes on in memory, and can be kept again"
-                onClick={() => void viewer.keptRecords.forget(viewer.record.id)}
-              >
-                Forget
-              </Button>
-            </>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon name="save" />}
+              pressed={true}
+              title="Kept in this browser. Forget the kept copy: it goes on in memory, and can be kept again"
+              aria-label="Forget the kept record"
+              onClick={() => void viewer.keptRecords.forget(viewer.record.id)}
+            />
           )}
         </Show>
       </div>
+      <Show when={over.asReadonly}>
+        {(oldest) => (
+          // At the bound (journal.md §5): keeping one more forgets the oldest, asked first.
+          <div class={classes.ask}>
+            <span class={classes.caption}>
+              {`${viewer.keptRecords.max} records are kept: forget the oldest, “${oldest.title}”?`}
+            </span>
+            <Button
+              size="xs"
+              disabled={keepBusy.asReadonly}
+              onClick={() => {
+                keepBusy.set(true);
+                void viewer.keptRecords
+                  .forget(oldest.id)
+                  .then(() => keepSessionRecord(viewer))
+                  .finally(() => {
+                    keepBusy.set(false);
+                    over.set(undefined);
+                  });
+              }}
+            >
+              Forget it and keep
+            </Button>
+            <Button size="xs" variant="ghost" onClick={() => over.set(undefined)}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </Show>
       {/* The rows in a contained box of their own: the bar's changes do not lay them out, nor theirs the panel. */}
       <div class={classes.list}>
         <For
           each={model.rows}
           key={(r) => r.key}
-          fallback={() => <p class={classes.empty}>Nothing has happened yet.</p>}
+          fallback={() => (
+            <p class={classes.empty}>
+              Nothing has happened yet. Each change to the scene shows here; <strong>Undo</strong> takes the latest
+              back.
+            </p>
+          )}
         >
           {(row) => (
             <Row

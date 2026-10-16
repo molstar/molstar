@@ -24,18 +24,28 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: var(--msp-space-3);
+  gap: var(--msp-space-1);
 }
 
 .count {
   margin-left: auto;
+  padding-inline: var(--msp-space-2);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
 
+/* As the Snapshots tab's empty list. */
 .empty {
-  padding: var(--msp-space-4);
-  color: var(--msp-color-text-muted);
+  margin: 0;
+  padding: var(--msp-space-3) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.5;
+
+  & strong {
+    color: var(--msp-color-text-muted);
+    font-weight: 600;
+  }
 }
 
 /*
@@ -98,11 +108,6 @@
   opacity: 0.8;
 }
 
-.keep {
-  display: flex;
-  align-items: center;
-  min-height: var(--msp-space-5);
-}
 
 .caption {
   color: var(--msp-color-text-subtle);
@@ -253,12 +258,11 @@
 }
 
 .halfTitle {
-  padding: var(--msp-space-2) calc(var(--msp-panel-inset) + var(--msp-space-3));
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-panel-inset);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .halfBody {

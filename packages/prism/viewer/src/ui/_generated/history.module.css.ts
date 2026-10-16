@@ -21,7 +21,6 @@ export const classes = {
   'halfBody': 'msp-viewer-history-halfBody',
   'halfTitle': 'msp-viewer-history-halfTitle',
   'history': 'msp-viewer-history-history',
-  'keep': 'msp-viewer-history-keep',
   'kept': 'msp-viewer-history-kept',
   'keptText': 'msp-viewer-history-keptText',
   'keptTitle': 'msp-viewer-history-keptTitle',
@@ -62,19 +61,28 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 
 .msp-viewer-history-bar {
   align-items: center;
-  gap: var(--msp-space-3);
+  gap: var(--msp-space-1);
   display: flex;
 }
 
 .msp-viewer-history-count {
+  padding-inline: var(--msp-space-2);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin-left: auto;
 }
 
 .msp-viewer-history-empty {
-  padding: var(--msp-space-4);
-  color: var(--msp-color-text-muted);
+  padding: var(--msp-space-3) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  margin: 0;
+  line-height: 1.5;
+
+  & strong {
+    color: var(--msp-color-text-muted);
+    font-weight: 600;
+  }
 }
 
 .msp-viewer-history-step, .msp-viewer-history-turn, .msp-viewer-history-separator {
@@ -127,12 +135,6 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
   overflow-wrap: anywhere;
   opacity: .8;
   min-width: 0;
-}
-
-.msp-viewer-history-keep {
-  min-height: var(--msp-space-5);
-  align-items: center;
-  display: flex;
 }
 
 .msp-viewer-history-caption {
@@ -273,11 +275,10 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 }
 
 .msp-viewer-history-halfTitle {
-  padding: var(--msp-space-2) calc(var(--msp-panel-inset) + var(--msp-space-3));
+  padding: var(--msp-space-2) var(--msp-panel-inset);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: .04em;
+  margin: 0;
   font-weight: 600;
 }
 
