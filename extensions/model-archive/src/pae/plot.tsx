@@ -250,6 +250,8 @@ export function PaePlot(props: PaePlotProps) {
   let py = 0;
   let inside = false;
   let cellKey = -1;
+  // A drag hid the crosshair: the first frame after it redraws it (and sends the hover) even on the same cell.
+  let hairHidden = false;
   // The cell sent on to the 3D view and the sequence (`onHover`) at 24 a second at most, the last one always: they
   // redraw on each, the plot's own crosshair and line keep the frame rate.
   const HoverEvery = 1000 / 24;
@@ -346,13 +348,15 @@ export function PaePlot(props: PaePlotProps) {
       drawBox(b);
       placeClose(b);
       drawHair(undefined);
+      hairHidden = true;
       return;
     }
     plot.style.cursor = inside ? cursorFor(onBox(px, py)) : 'crosshair';
     const at = inside ? cellAt(px, py) : undefined;
     const key = at ? at.i * n + at.j : -1;
-    if (key === cellKey) return;
+    if (key === cellKey && !hairHidden) return;
     cellKey = key;
+    hairHidden = false;
     drawHair(at);
     hoverText.set(at ? paeCellLabel(m, at.i, at.j) : undefined);
     hover(at);
@@ -394,11 +398,13 @@ export function PaePlot(props: PaePlotProps) {
     drawBox(b);
     placeClose(b);
     props.onBox?.(b);
+    schedule();
   });
   plot.addEventListener('pointercancel', () => {
     drag = undefined;
     drawBox(shown.value);
     placeClose(shown.value);
+    schedule();
   });
   const clear = () => {
     shown.set(undefined);

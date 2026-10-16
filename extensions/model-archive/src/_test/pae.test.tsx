@@ -351,6 +351,46 @@ describe('the PAE card', () => {
     unmount();
   });
 
+  it('brings the crosshair back after a box drag ends on the cell it started on', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      () =>
+        ({
+          createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+          putImageData: vi.fn(),
+        }) as never,
+    );
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 400,
+      height: 400,
+    } as DOMRect);
+    const v = await viewer([modelFile()]);
+    const ui = paeUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
+    const host = document.createElement('div');
+    document.body.append(host);
+    const unmount = ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
+    const plot = host.querySelector<HTMLElement>('[role="img"]')!;
+    const pointer = (type: string, x: number, y: number) =>
+      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
+    const frame = () => new Promise((r) => requestAnimationFrame(r));
+    const hair = () => plot.querySelectorAll('line[stroke="rgba(255, 255, 255, 0.7)"][visibility="visible"]').length;
+
+    pointer('pointermove', 300, 50);
+    await frame();
+    expect(hair()).toBe(2);
+    // Down on the cell, away (the crosshair goes), back and up on the same cell: it comes back.
+    pointer('pointerdown', 300, 50);
+    pointer('pointermove', 100, 250);
+    await frame();
+    expect(hair()).toBe(0);
+    pointer('pointermove', 300, 50);
+    pointer('pointerup', 300, 50);
+    await frame();
+    expect(hair()).toBe(2);
+    unmount();
+  });
+
   it('has no toolbar button while no loaded model has a PAE', async () => {
     const v = await viewer([cbs()]);
     const ui = paeUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });

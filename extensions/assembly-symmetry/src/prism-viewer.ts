@@ -107,6 +107,8 @@ export const AssemblySymmetryExtension: ViewerExtension = {
     behaviors: [PluginSpec.Behavior(AssemblySymmetryProperty)],
   },
   api: { 'assembly-symmetry': (ctx) => new AssemblySymmetryApi(ctx) },
+  // `assembly-symmetry.color` colors through the `representation` area.
+  requires: ['structure'],
   commands: (api) => {
     const a = api['assembly-symmetry'];
     if (!a) return [];

@@ -82,6 +82,42 @@ describe('the model-export extension in the Prism viewer', () => {
     expect(atoms(back)).toEqual(atoms(v));
   });
 
+  it('keeps a modified residue (a HETATM) inside its chain, and says coordinates the columns cannot hold', async () => {
+    const atom = (rec: string, i: number, name: string, res: string, seq: number, x: number, el: string) =>
+      `${rec.padEnd(6)}${String(i).padStart(5)}  ${name.padEnd(3)} ${res} A${String(seq).padStart(4)}    ${x.toFixed(3).padStart(8)}${'0.000'.padStart(8)}${'0.000'.padStart(8)}  1.00 10.00           ${el}`;
+    const residues = [
+      ['ATOM', 'ALA'],
+      ['ATOM', 'ALA'],
+      ['HETATM', 'MSE'],
+      ['ATOM', 'ALA'],
+      ['ATOM', 'ALA'],
+    ];
+    const lines: string[] = [];
+    residues.forEach(([rec, res], r) => {
+      for (const [k, [name, el]] of [
+        ['N', 'N'],
+        ['CA', 'C'],
+        ['C', 'C'],
+      ].entries()) {
+        lines.push(atom(rec, r * 3 + k + 1, name, res, r + 1, r * 3.8 + k * 1.3, el));
+      }
+    });
+    const v = await viewer([new File([[...lines, 'END', ''].join('\n')], 'mse.pdb')]);
+    const r = await exported(v, { format: 'pdb' });
+    const out = (await r.value!.blob.text()).split('\n');
+    // One TER, after the last residue: not before the MSE.
+    expect(out.filter((l) => l.startsWith('TER'))).toHaveLength(1);
+    expect(out.findIndex((l) => l.startsWith('TER'))).toBe(out.findIndex((l) => l === 'END') - 1);
+    expect(out.some((l) => l.startsWith('HETATM') && l.slice(17, 20) === 'MSE')).toBe(true);
+    expect(r.warnings ?? []).toEqual([]);
+
+    // A coordinate beyond the column is cut, which is said.
+    const far = lines.map((l, i) => (i === 0 ? atom('ATOM', 1, 'N', 'ALA', 1, -1234.567, 'N') : l));
+    const wide = await viewer([new File([[...far, 'END', ''].join('\n')], 'far.pdb')]);
+    const w = await exported(wide, { format: 'pdb' });
+    expect((w.warnings ?? []).join(' ')).toMatch(/too wide.*mmCIF/);
+  });
+
   it('exports BinaryCIF that loads back', async () => {
     const v = await viewer([cbs()]);
     const r = await exported(v, { format: 'bcif' });

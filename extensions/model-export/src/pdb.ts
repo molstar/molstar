@@ -20,7 +20,14 @@ export interface PdbText {
 
 const pad = (s: string, n: number) => (s.length >= n ? s.slice(0, n) : s.padEnd(n));
 const right = (s: string, n: number) => (s.length >= n ? s.slice(s.length - n) : s.padStart(n));
-const fixed = (x: number, digits: number, n: number) => right(x.toFixed(digits), n);
+
+/** A number in a fixed column; one too wide for it (a coordinate beyond ±999.999) loses its leading characters: said. */
+function fixed(x: number, digits: number, n: number, warnings: Set<string>): string {
+  const s = x.toFixed(digits);
+  if (s.length > n)
+    warnings.add('Values too wide for their PDB columns (large coordinates, B-factors) were cut: use mmCIF.');
+  return right(s, n);
+}
 
 /** Columns 13-16: a name of four fills them; a shorter one of a one-letter element starts at 14 (the convention). */
 function atomName(name: string, element: string): string {
@@ -96,8 +103,10 @@ export function to_pdb(structure: Structure): PdbText {
       const resSeq = right(String(seq), 4);
       const iCode = pad(P.residue.pdbx_PDB_ins_code(l), 1);
 
-      // A ligand after its chain's polymer: the polymer ends first.
-      if (!isAtom) ter();
+      // A ligand (water, ions) after its chain's polymer: the polymer ends first. A modified residue (MSE, TPO) is a
+      // HETATM inside the polymer and does not end it.
+      const polymer = isAtom || P.entity.type(l) === 'polymer';
+      if (!polymer) ter();
       serial++;
       if (serial === 100000) warnings.add('More than 99,999 atoms: the serial numbers start again from 0.');
       lines.push(
@@ -112,16 +121,16 @@ export function to_pdb(structure: Structure): PdbText {
           resSeq +
           iCode +
           '   ' +
-          fixed(P.atom.x(l), 3, 8) +
-          fixed(P.atom.y(l), 3, 8) +
-          fixed(P.atom.z(l), 3, 8) +
-          fixed(P.atom.occupancy(l), 2, 6) +
-          fixed(P.atom.B_iso_or_equiv(l), 2, 6) +
+          fixed(P.atom.x(l), 3, 8, warnings) +
+          fixed(P.atom.y(l), 3, 8, warnings) +
+          fixed(P.atom.z(l), 3, 8, warnings) +
+          fixed(P.atom.occupancy(l), 2, 6, warnings) +
+          fixed(P.atom.B_iso_or_equiv(l), 2, 6, warnings) +
           '          ' +
           right(element, 2) +
           charge(P.atom.pdbx_formal_charge(l)),
       );
-      if (isAtom) open = { resName, chain, resSeq, iCode };
+      if (polymer) open = { resName, chain, resSeq, iCode };
     }
   }
   ter();

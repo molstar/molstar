@@ -133,8 +133,18 @@ export const ModelArchiveExtension: ViewerExtension = {
   api: { 'model-archive': (ctx) => new ModelArchiveApi(ctx) },
   annotations: QualityAnnotations,
   sequence: [PlddtSequenceBehavior],
+  // The color commands run on `annotations.apply`, a feature a minimal viewer may leave out (the host skips the
+  // provider there too): without it only the PAE commands are brought.
+  requires: ['structure'],
   commands: (api) => [
     ...(api['model-archive'] ? paeCommands(api, api['model-archive']) : []),
+    ...(api.area('annotations') ? colorCommands(api) : []),
+  ],
+  ui: async (ctx) => (await import('./pae/ui.js')).paeUI(ctx),
+};
+
+function colorCommands(api: ViewerApi): CommandDefinition<any>[] {
+  return [
     operationCommand(api, api.annotations.apply, {
       id: 'model-archive.color-plddt',
       title: 'Color by pLDDT',
@@ -151,9 +161,8 @@ export const ModelArchiveExtension: ViewerExtension = {
       alias: ['qmean', 'model quality'],
       values: { annotation: 'qmean' },
     }),
-  ],
-  ui: async (ctx) => (await import('./pae/ui.js')).paeUI(ctx),
-};
+  ];
+}
 
 /** The PAE card's id (`pae/ui.tsx`), here so the commands do not load the views. */
 const PaeCard = 'model-archive.overlay.pae';

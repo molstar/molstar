@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
+import { checkSpec } from '@molstar/prism-viewer/spec-check';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelArchiveExtension, PlddtTrack } from '../prism-viewer.js';
@@ -92,5 +93,16 @@ describe('the model-archive extension in the Prism viewer', () => {
     expect(v.managers.commands.get('model-archive.color-plddt')).toBeDefined();
     const bare = await viewer([alphafold()], false);
     expect((await bare.api.annotations.apply({ annotation: 'plddt' })).ok).toBe(false);
+  });
+
+  it('still activates in a viewer without the annotations feature, and asks for the structure feature', async () => {
+    const base = DefaultPrismViewerSpec();
+    const extensions = [...(base.extensions ?? []).filter((e) => e.id !== 'annotations'), ModelArchiveExtension];
+    const v = await createPrismViewerHeadless({ spec: { ...base, extensions } });
+    viewers.push(v);
+    expect(v.api['model-archive']).toBeDefined();
+    expect(v.managers.commands.get('model-archive.show-pae')).toBeDefined();
+    expect(v.managers.commands.get('model-archive.color-plddt')).toBeUndefined();
+    expect(() => checkSpec({ ...base, extensions: [ModelArchiveExtension] })).toThrow(/needs 'structure'/);
   });
 });

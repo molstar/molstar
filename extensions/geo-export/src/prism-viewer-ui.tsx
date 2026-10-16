@@ -37,13 +37,9 @@ export function geoExportUI(ctx: ViewerUIContext): ViewerExtensionUI {
             if (busy.value || !op) return;
             busy.set(true);
             try {
+              // The run path says how it went (a warning on failure, the result when it worked).
               const r = await op(form.values.value);
-              if (!r.ok) {
-                ctx.managers.notifications.post(r.hint ? `${r.message} ${r.hint}` : r.message, 'error');
-                return;
-              }
-              if (r.value) downloadBlob(r.value.blob, r.value.filename);
-              ctx.managers.notifications.post(r.did, 'success');
+              if (r.ok && r.value) downloadBlob(r.value.blob, r.value.filename);
             } finally {
               busy.set(false);
             }

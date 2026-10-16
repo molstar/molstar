@@ -9,7 +9,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { bind, Button, domView, ParamsForm, Show } from '@molstar/prism-ui';
+import { bind, Button, domView, onCleanup, ParamsForm, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { mapState } from '@molstar/prism-ui/reactive/map-state';
 import type { SceneNode } from '@molstar/prism-viewer';
@@ -72,6 +72,8 @@ function MembraneControls(props: {
   const { ctx, structure, state } = props;
   const area = ctx.api.membrane!;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // A pending call must not outlive the controls: the row folded, the membrane hidden or the structure removed.
+  onCleanup(() => clearTimeout(timer));
   const form = new ParamsFormModel(Look, PD.getDefaultValues(Look), {
     // The slider changes at pointer rate: one call a moment after the last.
     onChange: (v, name) => {

@@ -104,6 +104,25 @@ describe("the membrane's row", () => {
     await until(() => v.api.membrane!.rowState(ref).value.look?.rims === false);
   });
 
+  it('drops a pending opacity change when its controls go', async () => {
+    const v = await viewer('1grm_updated.cif');
+    const ref = v.views.scene.roots.value[0].id;
+    expect((await v.api.membrane!.show({})).ok).toBe(true);
+    const { host } = mountRow(v);
+    const row = host.querySelector('[data-tree-row]') as HTMLElement;
+    row.click();
+    await until(() => !!host.querySelector('[role=group]'));
+    const before = v.api.membrane!.rowState(ref).value.look!.opacity;
+    const slider = host.querySelector('input[type=range]') as HTMLInputElement;
+    slider.value = '0.9';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    // Folded within the 150 ms: the call does not run afterwards.
+    row.click();
+    await until(() => !host.querySelector('[role=group]'));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(v.api.membrane!.rowState(ref).value.look!.opacity).toBe(before);
+  });
+
   it('is not shown for a structure ANVIL does not apply to', async () => {
     const v = await viewer('test.gro');
     const { host } = mountRow(v);
