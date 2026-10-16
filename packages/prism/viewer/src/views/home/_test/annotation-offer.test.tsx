@@ -89,6 +89,35 @@ describe("Home's annotation offer", () => {
     c.stop();
   });
 
+  it("still offers the first structure's annotation when another arrives while it is being listed", async () => {
+    const list = observableState<readonly { ref: string; label: string }[]>([{ ref: 'a', label: 'A' }]);
+    let finishA!: () => void;
+    const lists: Record<string, () => Promise<unknown>> = {
+      a: () =>
+        new Promise((resolve) => {
+          finishA = () => resolve({ ok: true, value: [{ annotations: [{ id: 'plddt', title: 'pLDDT' }] }] });
+        }),
+      b: async () => ({ ok: true, value: [{ annotations: [{ id: 'secondary-structure', title: 'Secondary' }] }] }),
+    };
+    const api = {
+      area: () => true,
+      annotations: { list: ({ structure }: { structure: string }) => lists[structure](), providers: { value: [] } },
+    };
+    const model = createAnnotationOffer(api as never, list.asReadonly);
+    const { seen, stop } = watch(model);
+    await until(() => !!finishA);
+    // B arrives while A is listed and carries nothing; A's result must not be dropped.
+    list.set([
+      { ref: 'a', label: 'A' },
+      { ref: 'b', label: 'B' },
+    ]);
+    await new Promise((r) => setTimeout(r, 10));
+    finishA();
+    await until(() => !!seen.value);
+    expect(seen.value).toMatchObject({ structure: 'a', annotation: 'plddt' });
+    stop();
+  });
+
   it('shows on Home as a line with Show and Dismiss', async () => {
     const v = await headlessViewer({ files: [cbs()], extensions: [Scores] });
     const model = createAnnotationOffer(v.api.as({ kind: 'person' }), structures(v));

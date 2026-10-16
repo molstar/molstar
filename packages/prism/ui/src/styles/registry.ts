@@ -16,7 +16,7 @@
 const LayerOrder = '@layer msp.reset, msp.theme, msp.components, msp.overrides;';
 
 const entries = new Map<string, string>();
-const roots = new Map<StyleRoot, { schedule: () => void; remove: () => void }>();
+const roots = new Map<StyleRoot, { users: number; schedule: () => void; remove: () => void }>();
 
 /** Registers (or replaces) the CSS of a file; adopted documents update. */
 export function defineStyles(id: string, css: string): void {
@@ -34,12 +34,17 @@ export function styleText(): string {
 export type StyleRoot = Document | ShadowRoot;
 
 /**
- * Keeps a document's or a shadow root's styles in sync with the registry (idempotent): sheets registered later (a lazy
- * extension's) reach every adopted root. Uses a constructed stylesheet where supported, otherwise a `<style>` element
+ * Keeps a document's or a shadow root's styles in sync with the registry: sheets registered later (a lazy
+ * extension's) reach every adopted root. Adopting a root again adds a user; `releaseStyles` takes one away, and the
+ * styles go with the last (two viewers made into one shadow root, one of them disposed, leave the other its styles). Uses a constructed stylesheet where supported, otherwise a `<style>` element
  * (in the head, or first in the shadow root).
  */
 export function adoptStyles(root: StyleRoot = document): void {
-  if (roots.has(root)) return;
+  const adopted = roots.get(root);
+  if (adopted) {
+    adopted.users++;
+    return;
+  }
   const doc = isDocument(root) ? root : root.ownerDocument;
   const win = doc.defaultView;
   let update: () => void;
@@ -73,6 +78,7 @@ export function adoptStyles(root: StyleRoot = document): void {
     });
   };
   roots.set(root, {
+    users: 1,
     schedule,
     remove: () => {
       released = true;
@@ -82,9 +88,14 @@ export function adoptStyles(root: StyleRoot = document): void {
   update();
 }
 
-/** Removes the styles adopted into a root and stops updating them (its viewer is gone); it can be adopted again. */
+/**
+ * Gives up one adoption of a root; with the last, removes the styles adopted into it and stops updating them (its
+ * viewer is gone). It can be adopted again.
+ */
 export function releaseStyles(root: StyleRoot): void {
-  roots.get(root)?.remove();
+  const adopted = roots.get(root);
+  if (!adopted || --adopted.users > 0) return;
+  adopted.remove();
   roots.delete(root);
 }
 

@@ -121,6 +121,8 @@ export function createAnnotationOffer(
 ): AnnotationOfferModel {
   const current = observableState<AnnotationOffer | undefined>(undefined);
   const asked = new Set<string>();
+  /** Asked, and not read yet: a check superseded by a newer one leaves its structures to it. */
+  let waiting: { readonly ref: string; readonly label: string }[] = [];
   let token = 0;
 
   const check = async (list: readonly { readonly ref: string; readonly label: string }[]) => {
@@ -131,14 +133,17 @@ export function createAnnotationOffer(
     const fresh = list.filter((s) => !asked.has(s.ref));
     if (!fresh.length) return;
     for (const s of fresh) asked.add(s.ref);
+    waiting = [...waiting.filter((w) => list.some((s) => s.ref === w.ref)), ...fresh];
     const mine = ++token;
     // The newest first: the offer is about what just loaded.
-    for (const s of [...fresh].reverse()) {
+    for (const s of [...waiting].reverse()) {
       const r = await api.annotations.list({ structure: s.ref });
       if (mine !== token) return;
+      waiting = waiting.filter((w) => w !== s);
       const found = r.ok ? r.value?.[0]?.annotations.find((a) => !BuiltInIds.has(a.id)) : undefined;
       if (!found) continue;
       const provider = api.annotations.providers.value.find((p) => p.id === found.id);
+      waiting = [];
       current.set({
         structure: s.ref,
         label: s.label,

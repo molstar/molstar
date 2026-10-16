@@ -10,6 +10,7 @@
 
 import { Button, domView, type ShellModel } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { onActive } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { map } from 'rxjs';
 import type { CommandManager } from '@molstar/prism-ui/core';
@@ -45,7 +46,13 @@ export function extensionUIPort(
         }
       });
     };
-    if (!failed.has(owner)) start();
+    // When it is shown, not when it is made: a folded section's or a hidden tab's body is rendered, paused (viewer-spec.md §3.1).
+    let started = false;
+    onActive((active) => {
+      if (!active || started || failed.has(owner)) return;
+      started = true;
+      start();
+    });
     const isFailed = state.asReadonly.pipe(map((s) => s === 'failed'));
     return (
       <div style="padding: var(--msp-space-4); display: grid; gap: var(--msp-space-2); justify-items: start">

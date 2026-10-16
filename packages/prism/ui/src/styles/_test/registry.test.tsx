@@ -111,4 +111,18 @@ describe('styles in shadow roots', () => {
     await tick();
     expect(cssOf(a)).toBe('');
   });
+
+  it('keeps the styles of a root adopted twice until it is released twice', async () => {
+    const a = shadow();
+    adoptStyles(a);
+    adoptStyles(a);
+    await tick();
+    releaseStyles(a);
+    expect(cssOf(a)).toContain('.msp-button-button');
+    defineStyles('test/shadow-shared.css', '.shadow-shared { color: red }');
+    await tick();
+    expect(cssOf(a)).toContain('shadow-shared');
+    releaseStyles(a);
+    expect(cssOf(a)).toBe('');
+  });
 });

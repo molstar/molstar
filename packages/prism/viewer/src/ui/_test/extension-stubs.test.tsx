@@ -60,4 +60,29 @@ describe('lazy placeholders', () => {
     expect(load).toHaveBeenCalledTimes(2);
     remove();
   });
+
+  it('loads when it is shown, not while its section is folded or its panel hidden', async () => {
+    const shell = new ShellModel();
+    const port = extensionUIPort(shell, {} as never, {} as ViewerUIContext);
+    const stub = { parts: [{ id: 'x.section.a', kind: 'section' as const, slot: 'export' as const, title: 'A' }] };
+    const load = vi.fn(async () => true);
+    const remove = port.registerStub('x', stub, load);
+    const host = document.createElement('div');
+    document.body.append(host);
+    // Rendered in a paused scope, as a folded section's body is.
+    const scope = new Scope();
+    scope.setActive(false);
+    shell.sections('export').value[0].render.mount(host, {} as never, scope);
+    await flush();
+    expect(load).not.toHaveBeenCalled();
+    scope.setActive(true);
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1);
+    // Paused and shown again: once.
+    scope.setActive(false);
+    scope.setActive(true);
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1);
+    remove();
+  });
 });
