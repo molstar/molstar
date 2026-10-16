@@ -128,7 +128,7 @@
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: var(--msp-space-3);
-  height: max(28px, var(--msp-touch-target, 0px));
+  height: 28px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -144,6 +144,13 @@
   &[aria-checked="true"] {
     color: var(--msp-color-accent);
     font-weight: 600;
+  }
+}
+
+/* Touch targets (compact mode's 44px) only where the pointer is a finger: with a mouse the list stays tight. */
+@media (pointer: coarse) {
+  .levelRow {
+    height: max(28px, var(--msp-touch-target, 0px));
   }
 }
 

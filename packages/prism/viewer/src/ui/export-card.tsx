@@ -25,8 +25,9 @@ export function exportCard(shell: ShellModel): { overlay: ShellOverlay; toolbar:
     },
     toolbar: {
       id: 'export',
-      // Last in the scene's group, under Canvas, Animation and the Story (David, 2026-10-15).
-      group: 'scene',
+      // Under the scene's group (Canvas, Animation, the Story), in a section of its own: a hairline above it (David,
+      // 2026-10-16).
+      group: 'export',
       order: 100,
       icon: 'download',
       title: 'Export…',

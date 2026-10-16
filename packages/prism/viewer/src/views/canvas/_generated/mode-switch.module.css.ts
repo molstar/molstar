@@ -126,7 +126,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 .msp-viewer-mode-switch-levelRow {
   align-items: center;
   gap: var(--msp-space-3);
-  height: max(28px, var(--msp-touch-target, 0px));
+  height: 28px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -143,6 +143,12 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   &[aria-checked="true"] {
     color: var(--msp-color-accent);
     font-weight: 600;
+  }
+}
+
+@media (pointer: coarse) {
+  .msp-viewer-mode-switch-levelRow {
+    height: max(28px, var(--msp-touch-target, 0px));
   }
 }
 

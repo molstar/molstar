@@ -56,8 +56,9 @@ the truth for how.
 ## 6. Light state in the browser's storage
 
 - **Two stores**, never for data (`persist/stores.ts`, `webStore('local' | 'session', { prefix, version, budget })`):
-  `persist.preferences` (localStorage, ~64 KB: the theme) and `persist.restore` (sessionStorage, ~256 KB: this tab's
-  light restore). A value of another version or over budget is dropped; a blocked store fails nothing.
+  `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme) and `persist.restore`
+  (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over budget is dropped; a blocked
+  store fails nothing.
 - **The light restore** (`sources/restore.ts`): a second after the last step (longer after a slow write), the plugin's
   snapshot without data, when every data cell comes from an address; with a local file or inline data nothing is kept,
   said once.
