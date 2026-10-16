@@ -12,10 +12,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginStateSnapshotManager } from '../../manager/snapshots.js';
 import { PluginStateAnimation } from '../model.js';
 
+/** Plugins whose canvas props a playing animation set silently: its `teardown` emits `settingsUpdated` once. */
+const settingsChanged = new WeakSet<PluginContext>();
+
+/** Emits `events.canvas3d.settingsUpdated` once if frames since the last call set canvas props silently. */
+function flushSettingsUpdated(plugin: PluginContext) {
+  if (!settingsChanged.delete(plugin)) return;
+  plugin.events.canvas3d.settingsUpdated.next(void 0);
+}
+
+/**
+ * `frame`: a transition frame of a playing animation, whose canvas props are set without `settingsUpdated` (it would
+ * wake every settings reader at the frame rate); the next emitting call or the animation's `teardown` emits it once.
+ */
 async function setPartialSnapshot(
   plugin: PluginContext,
   entry: Partial<PluginStateSnapshotManager.Entry['snapshot']>,
   first = false,
+  frame = false,
 ) {
   if (entry.data) {
     await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
@@ -30,7 +44,13 @@ async function setPartialSnapshot(
       settings.cameraClipping = undefined;
       settings.cameraFog = undefined;
     }
-    plugin.setCanvas3DProps(settings);
+    if (!frame) {
+      settingsChanged.delete(plugin);
+      plugin.setCanvas3DProps(settings);
+    } else if (plugin.canvas3d) {
+      plugin.canvas3d.setProps(settings);
+      settingsChanged.add(plugin);
+    }
   }
   const instant = first || entry.camera?.transitionStyle === 'instant';
   if (entry.camera?.current) {
@@ -76,6 +96,9 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
   setup(_, __, plugin) {
     const pivot = plugin.managers.snapshot.state.entries.get(0)!;
     setPartialSnapshot(plugin, pivot.snapshot, true);
+  },
+  teardown(_, __, plugin) {
+    flushSettingsUpdated(plugin);
   },
   getDuration: (_, plugin) => {
     return {
@@ -128,7 +151,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
           canvas3d,
         });
       } else {
-        await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex]);
+        await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex], false, true);
       }
 
       return { kind: 'next', state: { ...animState, currentIndex: i, currentAnimationFrame: frameIndex } };
@@ -162,6 +185,9 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
     const { current } = plugin.managers.snapshot;
     if (!current) return;
     setPartialSnapshot(plugin, current.snapshot.transition?.frames[0] ?? current.snapshot, true);
+  },
+  teardown(_, __, plugin) {
+    flushSettingsUpdated(plugin);
   },
   getDuration: (_, plugin) => {
     const { current } = plugin.managers.snapshot;
@@ -197,7 +223,7 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
       if (snapshot?.transition && animState.isInitial) {
         const frameIndex = snapshot.transition.frames.length - 1;
         ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(animState.totalDuration, false);
-        await setPartialSnapshot(ctx.plugin, snapshot.transition.frames[frameIndex]);
+        await setPartialSnapshot(ctx.plugin, snapshot.transition.frames[frameIndex], false, true);
       }
       return { kind: 'finished' };
     }
@@ -216,13 +242,18 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
 
     ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
     if (frameIndex === 0) {
-      await setPartialSnapshot(ctx.plugin, {
-        ...transition.frames[frameIndex],
-        camera,
-        canvas3d,
-      });
+      await setPartialSnapshot(
+        ctx.plugin,
+        {
+          ...transition.frames[frameIndex],
+          camera,
+          canvas3d,
+        },
+        false,
+        true,
+      );
     } else {
-      await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex]);
+      await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex], false, true);
     }
     return { kind: 'next', state: { ...animState, currentAnimationFrame: frameIndex, isInitial: false } };
   },

@@ -7,6 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
+import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 
 /** A plugin without WebGL: `canvas3d` and `canvas3dContext` are fakes that record `setProps` calls. */
 async function createPlugin() {
@@ -80,13 +81,37 @@ describe('canvas props emit settingsUpdated', () => {
     expect(updated).toHaveBeenCalledTimes(2);
   });
 
-  it('a transition frame with canvas3d props emits', async () => {
+  it('scrubbed transition frames with canvas3d props emit once they settle', async () => {
     const { plugin, canvas3d, updated } = await createPlugin();
-    await plugin.state.setAnimationSnapshot(
-      { id: 'test', transition: { frames: [{ canvas3d: { props: {} } }] } } as any,
-      0,
-    );
-    expect(canvas3d.setProps).toHaveBeenCalledTimes(1);
+    vi.useFakeTimers();
+    try {
+      const snapshot = { id: 'test', transition: { frames: [{ canvas3d: { props: {} } }] } } as any;
+      await plugin.state.setAnimationSnapshot(snapshot, 0);
+      await plugin.state.setAnimationSnapshot(snapshot, 0);
+      expect(canvas3d.setProps).toHaveBeenCalledTimes(2);
+      expect(updated).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(updated).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a playing transition sets the frames silently and emits once on teardown', async () => {
+    const { plugin, canvas3d, updated } = await createPlugin();
+    const frame = { durationInMs: 10, canvas3d: { props: {} } };
+    const snapshot = { id: 'test', canvas3d: { props: {} }, transition: { frames: [frame, frame, frame] } } as any;
+    const state = { totalDuration: 30, snapshots: [{ snapshot }], currentIndex: 0, isInitial: true };
+    const ctx = { params: {}, plugin };
+    for (const current of [5, 15]) {
+      await AnimateStateSnapshotTransition.apply(state, { lastApplied: 0, current }, ctx);
+    }
+    expect(canvas3d.setProps).toHaveBeenCalledTimes(2);
+    expect(updated).not.toHaveBeenCalled();
+    await AnimateStateSnapshotTransition.teardown!({}, state, plugin);
+    expect(updated).toHaveBeenCalledTimes(1);
+    // nothing new to say
+    await AnimateStateSnapshotTransition.teardown!({}, state, plugin);
     expect(updated).toHaveBeenCalledTimes(1);
   });
 });

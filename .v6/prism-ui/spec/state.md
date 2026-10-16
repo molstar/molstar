@@ -66,7 +66,9 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
   selection's additions history is not undo: it is the ordered picks measurements read.
 - **Animation and canvas settings** are PD sections registered by the mocks, with no model: they need `AnimationModel`
   and `CanvasSettingsModel` contracts, so the API, commands and tools have something to call. Canvas props are set
-  through one action; a path that changes them without `settingsUpdated` is a bug to fix in core.
+  through one action; a path that changes them without `settingsUpdated` is a bug to fix in core. A snapshot
+  transition's frames are the exception: played or scrubbed, they set the props silently and emit once when the
+  animation stops or the scrubbing rests, not at the frame rate.
 - **Selection mode, granularity and focus** are the plugin's state (`behaviors.interaction.selectionMode`,
   `managers.interactivity.props`, `managers.structure.focus`); what is missing is their source and view model (the
   mocks pass them as view props), which the agent's account and the sequence read.

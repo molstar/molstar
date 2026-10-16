@@ -51,6 +51,9 @@ const RepresentationTransformerScopes: { [id: string]: RepresentationScope | und
   'ms-plugin.particles-representation-3d': 'particles',
 };
 
+/** How long a scrubbed transition (`setAnimationSnapshot`) rests before it emits `canvas3d.settingsUpdated`. */
+const SettingsUpdatedDebounceMs = 100;
+
 class PluginState extends PluginComponent {
   private get animation() {
     return this.plugin.managers.animation;
@@ -286,6 +289,12 @@ class PluginState extends PluginComponent {
     }
   }
 
+  private settingsUpdatedTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  private emitSettingsUpdated = () => {
+    this.settingsUpdatedTimer = undefined;
+    this.plugin.events.canvas3d.settingsUpdated.next(void 0);
+  };
+
   async setAnimationSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
     await this.animation.stopStateTransitionAnimation();
 
@@ -294,9 +303,13 @@ class PluginState extends PluginComponent {
     const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
     const frame = transition.frames[finalIndex] ?? snapshot.data;
     if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
-    if (frame.canvas3d?.props) {
+    if (frame.canvas3d?.props && this.plugin.canvas3d) {
+      // A scrubbed transition sets every frame's props silently and says so once the scrubbing settles: emitting per
+      // frame would wake every settings reader at the scrub's rate.
       const settings = PD.normalizeParams(Canvas3DParams, frame.canvas3d.props, 'children');
-      this.plugin.setCanvas3DProps(settings);
+      this.plugin.canvas3d.setProps(settings);
+      clearTimeout(this.settingsUpdatedTimer);
+      this.settingsUpdatedTimer = setTimeout(this.emitSettingsUpdated, SettingsUpdatedDebounceMs);
     }
     if (frame.camera?.current) {
       PluginCommands.Camera.Reset(this.plugin, {
@@ -353,6 +366,7 @@ class PluginState extends PluginComponent {
   }
 
   dispose() {
+    clearTimeout(this.settingsUpdatedTimer);
     this.behaviors.cells.forEach((cell) => {
       if (PluginBehavior.Behavior.is(cell.obj)) {
         cell.obj.data.unregister?.();
