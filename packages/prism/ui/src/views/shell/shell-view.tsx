@@ -89,9 +89,6 @@ export interface ShellViewProps {
 }
 
 /** The frame: docks around the canvas, chrome over it. */
-/** How long a structure takes to come in after the empty canvas's mark (ms). */
-const RevealMs = 900;
-
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
@@ -181,18 +178,15 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
-  // The canvas, and its reveal: what loads after the empty canvas's mark showed (the canvas empty, the viewer idle)
-  // comes in gradually over the canvas's own color; a load the mark never showed for appears at once.
+  // The canvas: quiet (transparent, its axes and all) while the empty canvas's mark and splash are up, coming in
+  // gradually over its own color when something loads (shell.module.css `.canvas[data-quiet]`); a load the mark never
+  // showed for appears at once.
   const canvasBox = (
     <div class={classes.canvas} data-msp-canvas="">
       {props.canvas}
     </div>
   ) as HTMLElement;
-  const reveal = () => {
-    if (typeof canvasBox.animate !== 'function') return;
-    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    canvasBox.animate([{ opacity: 0 }, { opacity: 1 }], { duration: RevealMs, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
-  };
+  const canvasShown = (shown: boolean) => canvasBox.toggleAttribute('data-quiet', !shown);
   const root = (
     <div class={classes.shell} data-mode={shell.mode} data-expanded={expanded.pipe(map((e) => (e ? '' : undefined)))}>
       <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => !f && !e))}>
@@ -244,7 +238,7 @@ export function ShellView(props: ShellViewProps) {
             <EmptyCanvas
               empty={props.empty}
               splash={props.splash ?? true}
-              onReveal={reveal}
+              onCanvasShown={canvasShown}
               {...(props.busy ? { busy: props.busy } : {})}
             />
           ) : null}

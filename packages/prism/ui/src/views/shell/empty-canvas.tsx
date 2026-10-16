@@ -59,10 +59,11 @@ export function EmptyCanvas(props: {
   /** The viewer is working (a load, a task): the wait for the mark starts over while it is. */
   busy?: Observable<boolean>;
   /**
-   * Something loaded while the mark showed (the canvas had been empty and the viewer idle): the host reveals it
-   * gradually. Never for a load the mark never showed for (a scene cleared to load the next, work in progress).
+   * Whether the canvas under it shows: false as the mark comes (the canvas had been empty and the viewer idle: it goes
+   * quiet under the splash, its axes and all), true when something loads (it comes in gradually). Never called for a
+   * load the mark never showed for (a scene cleared to load the next, work in progress): the canvas just shows.
    */
-  onReveal?: () => void;
+  onCanvasShown?: (shown: boolean) => void;
 }) {
   const phase = combineLatest([props.empty.pipe(distinctUntilChanged()), props.busy ?? of(false)]).pipe(
     switchMap(
@@ -78,7 +79,10 @@ export function EmptyCanvas(props: {
     // Fading out only what showed.
     scan((prev: Phase, next: Phase): Phase => (next === 'out' && prev !== 'in' ? 'gone' : next)),
     distinctUntilChanged(),
-    tap((p) => p === 'out' && props.onReveal?.()),
+    tap((p) => {
+      if (p === 'in') props.onCanvasShown?.(false);
+      else if (p === 'out') props.onCanvasShown?.(true);
+    }),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   const splash = props.splash ?? true;

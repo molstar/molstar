@@ -55,6 +55,13 @@
   position: absolute;
   /* The rail and a pinned panel sit beside the canvas: it ends where they begin (the rail alone, while the panel floats). */
   inset: 0 var(--msp-canvas-end, var(--msp-canvas-pinned, 0px)) 0 0;
+  /* Quiet under the empty canvas's mark and splash, back in gradually when something loads (the viewport behind it is
+     the canvas's own color). */
+  transition: opacity var(--msp-motion-reveal) var(--msp-ease);
+
+  &[data-quiet] {
+    opacity: 0;
+  }
 }
 
 /* Items floating over the canvas: two layers, the view's chrome (canvas-themed) and the application's (UI-themed).
