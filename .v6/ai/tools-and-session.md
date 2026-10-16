@@ -75,7 +75,7 @@ also set up a host, a runner per launch under a supervisor, and storage; that we
   the request. The request is `[preamble][state]\n\nFocus: [focus]\n\n[notes]Request: [prompt]`; the markers stay in the
   text for the model, and every message the session writes is labelled (`session:request` with the prompt and focus
   as data, `session:guidance`, `session:guidance-update`, `tools:definitions`), so compaction, `catchUp` and the trace
-  read labels, not text (the markers only for entries written before labels).
+  read labels, not text.
 - **Hooks**: `onText`, `onTool` (started, progress, succeeded, failed, skipped; with `read` and times), `onStatus`
   (`{ kind: model | tools | permission | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
   (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).

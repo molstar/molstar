@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export { estimatedTokens } from './estimate.js';
 export { canonicalJson, digest, encodeMessage, hashing, hashMessage } from './hash.js';
 export type * from './messages.js';
 export * from './models.js';

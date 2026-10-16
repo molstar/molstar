@@ -13,7 +13,7 @@ durable (storage port, host protocol, leases, a supervisor); that went
 | `contracts/records.ts` | the records: `Execution`, `ActiveTurn`, `Head`, `Pointer`, events, `Usage`, `Limits`                                                                            |
 | `contracts/harness.ts` | `Harness`, `HarnessReader`, `HarnessOptions`, `TurnHandle`, `TurnOutcome`, `HeadEdit`, `HarnessError`                                                           |
 | `contracts/drive.ts`   | `Decisions` (each kind's payload and answers), `Drive`, `DriveContext`, `DriveHandlers`                                                                         |
-| `contracts/runner.ts`  | `Clock`, `IdSource`, `ToolBindings`/`ToolHandler`/`ToolFrame`, `ToolJournal`, `RunContext`, `RunSpec`                                                           |
+| `contracts/runner.ts`  | `Clock` (re-exported from `messages/`), `IdSource`, `ToolBindings`/`ToolHandler`/`ToolFrame`, `ToolJournal`, `RunContext`, `RunSpec`                            |
 | `contracts/observe.ts` | `HarnessObservable`, `Observation`                                                                                                                              |
 | `loop/`                | `createHarness` (`index.ts`: turns, steps, writes, reads), `model.ts` (model step), `run.ts` (shared step ops), `state.ts` (`Store`, `Collector`, exits, usage) |
 | `tools/`               | `plan.ts` (bind calls to definitions), `step.ts` (the tools step), `journal.ts` (a tool's journal)                                                              |

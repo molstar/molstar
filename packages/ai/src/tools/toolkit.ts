@@ -325,20 +325,14 @@ function buildToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>, current
     parts: [{ kind: 'text', text: textOf(x) }],
     label: { kind: isGroup(x) ? LABEL_SKILL : LABEL_ENTRY, key: groupKey(x) },
   });
-  // By the entry's label, whose key holds its text's fingerprint (an earlier text is not the group's now); an entry
-  // written before labels by its exact text.
+  // By the entry's label, whose key holds its text's fingerprint (an earlier text is not the group's now).
   const groupsIn = (messages: readonly Message[]): string[] => {
-    const texts = new Map([...spec.groups, ...entries].map((x) => [textOf(x), groupKey(x)] as const));
-    const current = new Set(texts.values());
-    return messages.flatMap((m) => {
-      if (m.label !== undefined)
-        return (m.label.kind === LABEL_SKILL || m.label.kind === LABEL_ENTRY) && current.has(m.label.key ?? '')
-          ? [m.label.key as string]
-          : [];
-      const part = m.role === 'user' && m.parts.length === 1 ? m.parts[0] : undefined;
-      const key = part?.kind === 'text' ? texts.get(part.text) : undefined;
-      return key === undefined ? [] : [key];
-    });
+    const current = new Set([...spec.groups, ...entries].map(groupKey));
+    return messages.flatMap((m) =>
+      (m.label?.kind === LABEL_SKILL || m.label?.kind === LABEL_ENTRY) && current.has(m.label.key ?? '')
+        ? [m.label.key as string]
+        : [],
+    );
   };
 
   // ---------------------------------------------------------------- disclosure

@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { type Clock } from '../messages/index.js';
 import { cloneData } from './data.js';
 import type {
-  ThreadClock,
   ThreadCommandResult,
   ThreadDeltaBatch,
   ThreadEntry,
@@ -66,7 +66,8 @@ export interface ThreadHost extends ThreadPort {
 
 export interface ThreadHostOptions {
   rows: ThreadRows | Promise<ThreadRows>;
-  clock?: ThreadClock;
+  /** Only `now` is read. */
+  clock?: Pick<Clock, 'now'>;
   /** A thread's scope in the rows; default `thread:<id>`. */
   scopeOf?: (threadId: ThreadId) => string;
   /**

@@ -400,7 +400,7 @@ describe('what of the conversation is a group’s text', () => {
     });
   });
 
-  it('reads a labelled entry by its label and one written before labels by its text', () => {
+  it('reads an entry by its label, never by its text', () => {
     const unlabelled = ({ role, parts }: Message): Message => ({ role, parts }) as Message;
     // By its label: the text is not what is matched.
     const relabelled: Message = { ...kit.groupEntry(VOLUMES), parts: [{ kind: 'text', text: 'reworded' }] } as Message;
@@ -408,8 +408,8 @@ describe('what of the conversation is a group’s text', () => {
     // A label of another kind, or with another key, is not a group's, even with the group's text.
     const other: Message = { ...kit.groupEntry(VOLUMES), label: { kind: 'host:note' } } as Message;
     expect(kit.groupsIn([other])).toEqual([]);
-    // Before labels: by the exact text.
-    expect(kit.groupsIn([unlabelled(kit.groupEntry(VOLUMES))])).toEqual([kit.groupKey(VOLUMES)]);
+    // Without a label, even the group's exact text is not read.
+    expect(kit.groupsIn([unlabelled(kit.groupEntry(VOLUMES))])).toEqual([]);
   });
 
   it('definitionEntries is one system message of tool-definition parts', () => {

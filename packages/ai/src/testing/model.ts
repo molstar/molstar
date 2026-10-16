@@ -10,6 +10,7 @@ import {
   type AssistantMessage,
   canonicalJson,
   digest,
+  estimatedTokens,
   type Json,
   type Provider,
   type ProviderBindings,
@@ -113,7 +114,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
         payload,
         digest: digest(payload),
         revision: 'scripted-1',
-        inputTokens: Math.ceil(canonicalJson(payload).length / 4),
+        inputTokens: estimatedTokens(canonicalJson(payload)),
       };
     },
     async *invoke({ request, signal }): AsyncIterable<ModelFrame> {
@@ -144,7 +145,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
           ? {}
           : (step.usage ?? {
               inputTokens: request.inputTokens,
-              outputTokens: Math.ceil(canonicalJson(message as unknown as Json).length / 4),
+              outputTokens: estimatedTokens(canonicalJson(message as unknown as Json)),
             });
       yield { kind: 'result', message, finish: step.finish ?? (hasCalls ? 'tool-calls' : 'complete'), usage };
     },

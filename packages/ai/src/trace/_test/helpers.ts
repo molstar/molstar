@@ -29,9 +29,9 @@ export const adapterState = { systemVersion: 0 };
 
 /**
  * A request's parts as a provider caches them: the tools, the system text, then each message (what a real provider
- * reports as `segments`; the scripted model reports none).
+ * reports as `prefix`; the scripted model reports none).
  */
-export function segmentsOf(input: ProjectInput): string[] {
+export function prefixOf(input: ProjectInput): string[] {
   const systemText = input.messages.flatMap((m) =>
     m.role === 'system' ? m.parts.map((p) => (p.kind === 'text' ? p.text : '')) : [],
   );
@@ -42,14 +42,14 @@ export function segmentsOf(input: ProjectInput): string[] {
   ];
 }
 
-/** The session's scripted model, reporting segments. */
-export function segmenting(model: ScriptedModel): ProviderBindings {
+/** The session's scripted model, reporting the request's `prefix`. */
+export function prefixing(model: ScriptedModel): ProviderBindings {
   const bindings: ProviderBindings = {
     resolve: async () => ({
       ...model.provider,
       project: async (input: ProjectInput) => ({
         ...(await model.provider.project(input)),
-        segments: segmentsOf(input),
+        prefix: prefixOf(input),
       }),
     }),
   };
@@ -58,8 +58,29 @@ export function segmenting(model: ScriptedModel): ProviderBindings {
 
 export const with_ = (handlers: DriveHandlers) => drive(handlers, defaultDrive());
 
-/** Whole turns over the harness: the scripted model (reporting segments) and tools, a simulated clock. */
-export const createSession = (setup: SessionSetup = {}): Session => session({ models: segmenting, ...setup });
+/** Whole turns over the harness: the scripted model (reporting a prefix) and tools, a simulated clock. */
+export const createSession = (setup: SessionSetup = {}): Session => session({ models: prefixing, ...setup });
+
+/**
+ * A request as a session writes it: the text, labelled with the person's words and focus (the trace reads the label,
+ * never the text). A text without `Request: ` stays a plain message.
+ */
+function requestMessage(text: string): Message {
+  const at = text.startsWith('Request: ') ? 0 : text.indexOf('\n\nRequest: ') + 2;
+  if (at <= 1 && !text.startsWith('Request: ')) return user(text);
+  const focus = text
+    .slice(0, at)
+    .split('\n')
+    .find((line) => line.startsWith('Focus: '))
+    ?.slice('Focus: '.length);
+  return {
+    ...user(text),
+    label: {
+      kind: 'session:request',
+      data: { prompt: text.slice(at + 'Request: '.length), ...(focus !== undefined ? { focus } : {}) },
+    },
+  };
+}
 
 /** The first prompt: guidance, the tools (all loaded unless named as deferred), then the request. */
 export function first(
@@ -80,13 +101,13 @@ export function first(
           ),
         ]
       : []),
-    user(request),
+    requestMessage(request),
   ];
 }
 
 /** Sends a prompt and runs its turn, with a configuration of its own if given. */
 export const turn = (s: Session, prompt: string | Message[], options: { configuration?: TurnConfiguration } = {}) =>
-  s.send(prompt, options);
+  s.send(typeof prompt === 'string' ? [requestMessage(prompt)] : prompt, options);
 
 /** A request as the session composes it. */
 export const request = (prompt: string, parts: { state?: string; focus?: string; notes?: string[] } = {}): string =>

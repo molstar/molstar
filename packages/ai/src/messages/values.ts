@@ -22,3 +22,10 @@ export interface Reference {
   /** `murmur3-128:<32 hex>` (the messages' hash of the bytes) for inline bytes, checked by the providers; resolvers may use their own schemes. */
   readonly digest?: string;
 }
+
+/** Time, injected so every retry and deadline runs on a simulated clock in tests. */
+export interface Clock {
+  now(): number;
+  /** Resolves after `ms`, or rejects with the signal's reason when it aborts. */
+  sleep(ms: number, signal?: AbortSignal): Promise<void>;
+}

@@ -9,6 +9,7 @@
 import {
   type AssistantMessage,
   digest,
+  estimatedTokens,
   type Json,
   type ModelConfiguration,
   ModelError,
@@ -81,7 +82,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
       revision: request.revision,
       digest: request.digest,
       inputTokens: request.inputTokens,
-      ...(request.segments !== undefined ? { segments: [...request.segments] } : {}),
+      ...(request.prefix !== undefined ? { prefix: [...request.prefix] } : {}),
     };
     const call = openCall(run, 'model', evidence);
     for (let attempt = 1; ; attempt += 1) {
@@ -135,7 +136,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
                 : failure('provider', String(error), false, 'unknown');
         }
       }
-      const output = result === undefined ? 0 : Math.ceil(JSON.stringify(result.message).length / 4);
+      const output = result === undefined ? 0 : estimatedTokens(JSON.stringify(result.message));
       let used = invoked ? modelUsage(usage, { input: request.inputTokens, output }, first) : ZERO;
       const cost = run.core.price?.(configuration, used);
       if (cost !== undefined) used = { ...used, cost };

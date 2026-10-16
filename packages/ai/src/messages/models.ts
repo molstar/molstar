@@ -79,9 +79,9 @@ export interface ProjectedRequest {
   /**
    * The payload's parts as the provider caches them (tools, system, then each message), a short
    * digest each: a request extends an earlier one, and can reuse its cache, when the earlier one's
-   * segments are a prefix of its own. Where a provider gives them.
+   * `prefix` is a prefix of its own. Where a provider gives it.
    */
-  readonly segments?: readonly string[];
+  readonly prefix?: readonly string[];
 }
 
 export type ModelFinish = 'complete' | 'tool-calls' | 'output-limit' | 'filtered';

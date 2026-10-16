@@ -6,7 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { assertStrictJsonData, canonicalData } from './data.js';
+import { canonicalJson, type Json } from '../messages/index.js';
+import { assertStrictJsonData } from './data.js';
 import type {
   AbortThreadEntryCommand,
   AppendThreadDeltaCommand,
@@ -90,7 +91,7 @@ function replayOrConflict<T>(
 }
 
 export function threadStoredEnvelopeBytes(envelope: ThreadPayloadEnvelope): number {
-  return new TextEncoder().encode(canonicalData(envelope)).byteLength;
+  return new TextEncoder().encode(canonicalJson(envelope as unknown as Json)).byteLength;
 }
 
 export function validThreadPayloadEnvelope(value: unknown, maxBytes: number): value is ThreadPayloadEnvelope {
@@ -110,7 +111,7 @@ export function validThreadPayloadEnvelope(value: unknown, maxBytes: number): va
 
 export function threadCommandFingerprint(kind: ThreadCommandKind, input: Readonly<Record<string, unknown>>): string {
   const { commandId: _commandId, ...rest } = input;
-  return canonicalData({ kind, ...rest });
+  return canonicalJson({ kind, ...rest } as Json);
 }
 
 function activeThread(thread: ThreadKernelThread | undefined): ThreadKernelThread | ThreadFailure {

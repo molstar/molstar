@@ -9,7 +9,7 @@
 import type { Message, ModelConfiguration } from '../../messages/index.js';
 import { type DriveContext, type HeadEdit, MAIN } from '../../harness/index.js';
 import type { CompactionDomain } from './domain.js';
-import { type CompactionPlan, estimatedTokens, type PlanInput, planCompaction, sizeOf } from './plan.js';
+import { type CompactionPlan, editTokens, type PlanInput, planCompaction, sizeOf } from './plan.js';
 import { carryOverInstruction, type CompactionSettings } from './settings.js';
 
 const textMessage = (role: 'user' | 'system', text: string): Message => ({ role, parts: [{ kind: 'text', text }] });
@@ -94,7 +94,7 @@ export async function runCompaction(context: DriveContext, options: CompactionOp
       ...(sizeNote ? { sizeNote } : {}),
     });
   const oldTokens = options.size ?? entries.reduce((a, e) => a + sizeOf(e.message), 0);
-  const measure = (p: CompactionPlan) => estimatedTokens(p.edit, entries, oldTokens);
+  const measure = (p: CompactionPlan) => editTokens(p.edit, entries, oldTokens);
   // Aim at the target: try a leaner plan (no recent turns, no skills again); still above, ask the next compaction
   // to condense harder, but only when the carried-over part is what is over.
   let lean = false;
@@ -109,11 +109,7 @@ export async function runCompaction(context: DriveContext, options: CompactionOp
   if (tokens > target) {
     const leanest = lean ? plan : make(true);
     const notes = new Set(leanest.edit.entries.filter((e) => typeof e !== 'string' && e.role === 'user'));
-    fixed = estimatedTokens(
-      { entries: leanest.edit.entries.filter((e) => !notes.has(e as never)) },
-      entries,
-      oldTokens,
-    );
+    fixed = editTokens({ entries: leanest.edit.entries.filter((e) => !notes.has(e as never)) }, entries, oldTokens);
     if (fixed < target) {
       plan = make(lean, { estimated: tokens, target, fixed });
       tokens = measure(plan);

@@ -8,6 +8,7 @@
 
 import type {
   AssistantMessage,
+  Clock,
   Json,
   Message,
   ModelConfiguration,
@@ -20,12 +21,8 @@ import type { CallId, HarnessId, HeadId, Limits, ScopeId, ToolSet, TurnId, Usage
 
 /** What the loop runs with (harness.md §6–§9): time and ids, injected; tool handlers and their contexts. */
 
-/** Time, injected so every retry and deadline runs on a simulated clock in tests. */
-export interface Clock {
-  now(): number;
-  /** Resolves after `ms`, or rejects with the signal's reason when it aborts. */
-  sleep(ms: number, signal?: AbortSignal): Promise<void>;
-}
+/** Time, injected (defined in `messages/`, which threads share). */
+export type { Clock };
 
 /** Fresh ids for turns, steps, calls and attempts. */
 export interface IdSource {

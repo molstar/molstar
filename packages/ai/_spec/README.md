@@ -25,7 +25,7 @@ messages ─┬─ harness ─┬─ tools ──── session
           │           ├─ trace
           │           └─ testing
           └─ providers          (host passes providers in)
-threads (nothing) ── threads/_test (the suite; testing/threads)
+messages ── threads ── threads/_test (the suite; testing/threads)
 narration (nothing of the other folders)
 ```
 
@@ -37,7 +37,7 @@ narration (nothing of the other folders)
 | `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
 | `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`              |
 | `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts` |
-| `threads/`      | the thread kernel and host, its own storage port, the memory rows; the suite is `_test/`                           | none                                        |
+| `threads/`      | the thread kernel and host, its own storage port, the memory rows; the suite is `_test/`                           | `messages` (JSON, `Clock`)                  |
 | `testing/`      | `createSession`; the clock, ids, scripted model and tools                                                          | `messages`, `harness`                       |
 | `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                        |
 

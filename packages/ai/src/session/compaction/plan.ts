@@ -119,23 +119,17 @@ const textOf = (m: Message): string => m.parts.map((p) => (p.kind === 'text' ? p
 const sent = ({ role, parts }: Message) => ({ role, parts });
 
 const isResults = (m: Message) => m.role === 'user' && m.parts.some((p) => p.kind === 'tool-result');
-const isCarryOver = (m: Message) =>
-  m.label !== undefined
-    ? m.label.kind === LABEL_CARRY_OVER
-    : m.role === 'user' && textOf(m).startsWith(CARRY_OVER_HEADER);
+const isCarryOver = (m: Message) => m.label?.kind === LABEL_CARRY_OVER;
 
 /**
  * The guidance as it now stands, as the text a system message gives it: the last labelled guidance or guidance update
- * (its text after `GUIDANCE_UPDATE`); in a context written before labels, the last system text.
+ * (its text after `GUIDANCE_UPDATE`).
  */
 function latestGuidance(messages: readonly Message[]): string | undefined {
   const labelled = messages.findLast(
     (m) => m.label?.kind === LABEL_GUIDANCE || m.label?.kind === LABEL_GUIDANCE_UPDATE,
   );
-  if (labelled === undefined) {
-    const system = messages.filter((m) => m.role === 'system' && textOf(m).length > 0).at(-1);
-    return system && textOf(system);
-  }
+  if (labelled === undefined) return undefined;
   const text = textOf(labelled);
   const header = `${GUIDANCE_UPDATE}\n\n`;
   return labelled.label?.kind === LABEL_GUIDANCE_UPDATE && text.startsWith(header) ? text.slice(header.length) : text;
@@ -457,7 +451,7 @@ function sizeNoteText(n: { estimated: number; target: number; fixed: number }): 
  * A new head's size in tokens, estimated from the old head's size: the same tokens per character. Deferred tool
  * declarations do not count (a provider shows at most their names).
  */
-export function estimatedTokens(edit: HeadEdit, old: readonly HeadEntry[], oldTokens: number): number {
+export function editTokens(edit: HeadEdit, old: readonly HeadEntry[], oldTokens: number): number {
   const chars = (m: Message) =>
     JSON.stringify(
       m.role === 'system'

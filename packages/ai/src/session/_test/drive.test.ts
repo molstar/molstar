@@ -382,16 +382,22 @@ describe('a failing model call', () => {
 });
 
 describe('the model per turn', () => {
-  it('sizes each model by its own limits: the application’s window, the model’s output maximum', async () => {
+  it('sizes each model by its provider’s capabilities: the model’s window and output maximum', async () => {
     const f = fixture([{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.' }], {}, {});
-    // A provider that knows one model and refuses the others.
+    // A provider that knows two models and refuses the others.
     const inner = f.model.provider;
     const seen: { model: string; window: number; output: number | undefined; reasoning: unknown }[] = [];
     const narrow = {
       ...inner,
       capabilities: async (c: { target: { model: string } }) => {
-        if (c.target.model !== 'scripted-1') throw new Error(`Unknown model ${c.target.model}.`);
-        return { ...(await inner.capabilities(c as never)), contextWindowTokens: 1_114_112, maxOutputTokens: 8192 };
+        const limits = { 'scripted-1': [1_114_112, 8192], 'gemini-2.5-pro-custom': [200_000, 4096] }[c.target.model];
+        if (limits === undefined)
+          throw new Error(`Unknown model ${c.target.model}; supply a modelLimits override with explicit token limits.`);
+        return {
+          ...(await inner.capabilities(c as never)),
+          contextWindowTokens: limits[0],
+          maxOutputTokens: limits[1],
+        };
       },
       project: async (input: Parameters<typeof inner.project>[0]) => {
         seen.push({
@@ -406,27 +412,27 @@ describe('the model per turn', () => {
     const session = new AgentSession<Toy>({
       models: {
         providerFor: () => narrow,
-        default: { provider: 'google', model: 'scripted-1', contextWindow: 1_000_000 },
+        default: { provider: 'google', model: 'scripted-1' },
       },
       toolkit: toyToolkit(),
       api: toy(),
       guidance,
     });
     await session.turn({ prompt: 'One.' });
-    // A model the provider does not know runs with the window the application gives it.
+    // Another model runs with the limits the provider gives for it.
     const custom = await session.turn({
       prompt: 'Two.',
-      model: { provider: 'google', model: 'gemini-2.5-pro-custom', contextWindow: 200_000, maxOutput: 4096 },
+      model: { provider: 'google', model: 'gemini-2.5-pro-custom' },
     });
     expect(custom.status).toBe('completed');
-    // Without a window it cannot be sized, and says so.
+    // A model the provider does not know cannot be sized: its error reaches the turn.
     const unknown = await session.turn({ prompt: 'Three.', model: { provider: 'google', model: 'gemini-9' } });
     expect(unknown.status).toBe('failed');
-    expect(unknown.error).toContain('give its context window');
-    expect(session.contextWindow()).toBe(1_000_000);
+    expect(unknown.error).toContain('modelLimits');
+    expect(session.contextWindow()).toBe(1_114_112);
     expect(seen).toEqual([
-      // The asked-for 16k clamped to the model's 8k; the application's window over the provider's.
-      { model: 'scripted-1', window: 1_000_000, output: 8192, reasoning: undefined },
+      // The asked-for 16k clamped to the model's 8k.
+      { model: 'scripted-1', window: 1_114_112, output: 8192, reasoning: undefined },
       // No thinking asked for, none sent.
       { model: 'gemini-2.5-pro-custom', window: 200_000, output: 4096, reasoning: undefined },
     ]);

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { Clock } from '../../messages/index.js';
 import {
-  type ThreadClock,
   type ThreadEntryId,
   type ThreadId,
   type ThreadLimits,
@@ -21,7 +21,7 @@ import {
 } from '../index.js';
 import { threadConformanceEnvelope, threadConformanceLimits } from './generators.js';
 
-export class ThreadManualClock implements ThreadClock {
+export class ThreadManualClock implements Pick<Clock, 'now'> {
   #nowMs: number;
 
   constructor(startMs = 1_000) {
@@ -69,7 +69,10 @@ export type ThreadFixtureFactoryOptions = {
 };
 
 export type ThreadFixtureDependencies = {
-  readonly createThread: (options: { readonly clock: ThreadClock; readonly limits: ThreadLimits }) => ThreadBackend;
+  readonly createThread: (options: {
+    readonly clock: Pick<Clock, 'now'>;
+    readonly limits: ThreadLimits;
+  }) => ThreadBackend;
 };
 
 export function createDeterministicThreadFixture(

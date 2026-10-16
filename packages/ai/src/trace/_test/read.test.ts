@@ -11,6 +11,7 @@ import type { Message } from '../../messages/index.js';
 import type { HarnessReader } from '../../harness/index.js';
 import { declareTools, toolDefinition, user } from '../../testing/index.js';
 import {
+  createTraceCache,
   defaultRequestOf,
   defaultWindowPart,
   formatUsage,
@@ -18,6 +19,7 @@ import {
   type ModelStepView,
   readTrace,
   type ToolStepView,
+  type TraceCache,
   type TurnView,
 } from '../index.js';
 import { adapterState, configured, createSession, first, request, turn, until, with_ } from './helpers.js';
@@ -305,7 +307,7 @@ describe('readTrace: where the provider’s cache breaks (harness.md §11)', () 
     await turn(s, 'Request: again');
     const trace = await readTrace(s.harness);
     expect(trace.turns.flatMap(breaks)).toEqual([undefined, undefined, undefined]);
-    // Without segments from the provider there is nothing to compare.
+    // Without a request prefix from the provider there is nothing to compare.
     const t = createSession({ declare: [], model: [{ text: 'a' }, { text: 'b' }] });
     await t.send(first(t, request('one')));
     await t.send('Request: two');
@@ -560,7 +562,7 @@ describe('readTrace: the profile (the host’s part)', () => {
         return got;
       },
     };
-    const cache = { entries: new Map(), heads: new Map(), blobs: new Map() };
+    const cache: TraceCache = createTraceCache();
     const one = await readTrace(reader, { cache });
     const fetched = { ...counts };
     expect(fetched.entries).toBeGreaterThan(0);
@@ -587,10 +589,9 @@ describe('the default profile reads labels (a session’s and a toolkit’s)', (
       data: { prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' },
     });
     expect(defaultRequestOf(labelled)).toEqual({ prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' });
-    // Before labels: by the markers.
+    // Without the label no request is read from the text.
     expect(defaultRequestOf(text('user', 'State.\n\nFocus: A:45\n\nRequest: go'))).toEqual({
-      prompt: 'go',
-      focus: 'A:45',
+      prompt: '(no request recorded)',
     });
   });
 
@@ -604,7 +605,12 @@ describe('the default profile reads labels (a session’s and a toolkit’s)', (
     expect(defaultWindowPart({ ...declareTools([toolDefinition('a')]), label: { kind: LABELS.definitions } })).toBe(
       'tools',
     );
-    // Unlabelled, as before: a user message is conversation unless something precedes its request marker.
+    // Unlabelled, a user message is conversation, whatever its text.
     expect(defaultWindowPart(text('user', 'Updated guidance:\n\nBe brief.'))).toBe('conversation');
+    expect(defaultWindowPart(text('user', 'State.\n\nRequest: go'))).toBe('conversation');
+    // A request entry with something before its request is the state.
+    const request = (body: string) => text('user', body, { kind: LABELS.request, data: { prompt: 'go' } });
+    expect(defaultWindowPart(request('State.\n\nRequest: go'))).toBe('state');
+    expect(defaultWindowPart(request('Request: go'))).toBe('conversation');
   });
 });

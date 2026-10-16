@@ -451,8 +451,6 @@
                   },
                   {
                     "group": [
-                      "**/messages",
-                      "**/messages/**",
                       "**/harness",
                       "**/harness/**",
                       "**/providers",
@@ -468,7 +466,7 @@
                       "**/narration",
                       "**/narration/**"
                     ],
-                    "message": "Threads import nothing of the other folders: they need no harness."
+                    "message": "Threads import nothing of the other folders but messages (their JSON and clock): they need no harness."
                   },
                   {
                     "group": ["node:*"],

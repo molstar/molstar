@@ -3,8 +3,9 @@
 A thread is an owner-scoped, append-only list of entries with idempotent commands. An entry is appended settled, or
 streams byte-offset deltas and then settles or aborts. Reads are bounded windows by position and delta pages with gap
 detection. It is what the harness lacks for a person-facing history: the journal is what the model sees (compaction
-drops turns from it) and turns have no records with a prompt and a reply. Independent of the harness: it imports nothing
-of the other folders and has its own storage port. Background: `.v6/ai/analysis/viewer-mode.md` §6.
+drops turns from it) and turns have no records with a prompt and a reply. Independent of the harness: it imports only
+`messages/` (`canonicalJson`, the `Clock` type) of the other folders and has its own storage port. Background:
+`.v6/ai/analysis/viewer-mode.md` §6.
 
 **Status**: built and conformance-tested; no production code uses it yet. A building block an application composes: for
 example an app writing an entry per turn from the session's hooks, and its History reading them in windows.
@@ -20,7 +21,7 @@ example an app writing an entry per turn from the session's hooks, and its Histo
 | `storage.ts` | the row-store port `RowStore`, `RowConflict`; `memory.ts`: `createMemoryRows`                        |
 | `limits.ts`  | `ThreadLimits`, `createThreadLimits`, `THREAD_LIMIT_HARD_BOUNDS`, `THREAD_CONFORMANCE_LIMITS`        |
 | `ids.ts`     | branded ids (`ThreadId`, `ThreadEntryId`, `ThreadOwnerId`, `ThreadCommandId`) and their constructors |
-| `data.ts`    | strict JSON checks, `cloneData`, canonical JSON (fingerprints and byte sizes)                        |
+| `data.ts`    | strict JSON checks and `cloneData`; fingerprints and byte sizes use `messages/`' `canonicalJson`     |
 
 ## Using it
 

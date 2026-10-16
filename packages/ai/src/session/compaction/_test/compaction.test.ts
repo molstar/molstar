@@ -140,11 +140,22 @@ describe('compaction settings', () => {
 
 // ------------------------------------------------------------------ the new head
 
+/** The label a session gives the entry a test writes by its words (entries are read by label, never by text). */
+function labelFor(role: 'system' | 'user' | 'assistant', body: string): Message['label'] | undefined {
+  const at = body.lastIndexOf('Request: ');
+  if (role === 'user' && at >= 0) return { kind: LABEL_REQUEST, data: { prompt: body.slice(at + 'Request: '.length) } };
+  if (role === 'user' && body.startsWith(GUIDANCE_UPDATE))
+    return guidanceLabel(body.slice(`${GUIDANCE_UPDATE}\n\n`.length), true);
+  if (role === 'user' && body.startsWith(CARRY_OVER_HEADER)) return { kind: LABEL_CARRY_OVER };
+  if (role === 'system' && body !== '') return guidanceLabel(body);
+  return undefined;
+}
+
 /** Head entries for the plan: ids are the messages' labels. */
-const text = (id: string, role: 'system' | 'user' | 'assistant', body: string): HeadEntry => ({
-  id,
-  message: { role, parts: [{ kind: 'text', text: body }] },
-});
+const text = (id: string, role: 'system' | 'user' | 'assistant', body: string): HeadEntry => {
+  const label = labelFor(role, body);
+  return { id, message: { role, parts: [{ kind: 'text', text: body }], ...(label ? { label } : {}) } };
+};
 const definition = (id: string, entryId: string, deferred = false): HeadEntry => ({
   id: entryId,
   message: {
@@ -177,12 +188,15 @@ describe('the toolkit’s domain', () => {
     expect(domain.isRequest(labelled(LABEL_CARRY_OVER, 'Request: go').message)).toBe(false);
   });
 
-  it('knows the core, the groups and a request by its marker', () => {
+  it('knows the core, the groups and a request by its label', () => {
     expect(domain.coreToolIds).toEqual(['get_state', 'set_look', 'disclose_skills', 'disclose_tools']);
     expect(domain.groups.map((g) => g.id)).toEqual(['volumes', 'shapes']);
     expect(domain.isRequest(text('u', 'user', 'State.\n\nRequest: go').message)).toBe(true);
     expect(domain.isRequest(text('a', 'assistant', 'Request: go').message)).toBe(false);
     expect(domain.isRequest(text('u', 'user', 'Skill volumes: load maps.').message)).toBe(false);
+    // Not by its text: without the label, a message with the marker is no request.
+    const { label: _label, ...unlabelled } = text('u', 'user', 'State.\n\nRequest: go').message;
+    expect(domain.isRequest(unlabelled)).toBe(false);
   });
 });
 
@@ -200,7 +214,7 @@ describe('the new head', () => {
       ...plain,
     });
     const systems = added(plan.edit).filter((m) => m.role === 'system');
-    expect(systems.map(textOf)).toEqual(['Guidance one.']);
+    expect(systems.map(textOf)).toEqual(['Guidance two.']);
     expect(kept(plan.edit).at(-1)).toBe('u2');
   });
 
@@ -528,8 +542,16 @@ Reading the state again and again; five reads done, the last next.
 
   it('follows each turn’s model: its window sets the turn’s budget', async () => {
     const m = growingModel([{ calls: [callOf('get_state')] }, { text: 'Done.' }], '');
+    // The provider reports a 1M window for the model "big" and 10M for the others.
+    const provider: Provider = {
+      ...m.provider,
+      capabilities: async (c) => ({
+        ...(await m.provider.capabilities(c)),
+        contextWindowTokens: c.target.model === 'big' ? 1_000_000 : 10_000_000,
+      }),
+    };
     const session = new AgentSession<Toy>({
-      models: modelsOf(m.provider),
+      models: modelsOf(provider),
       toolkit: kit(),
       api: toy(),
       guidance,
@@ -538,7 +560,7 @@ Reading the state again and again; five reads done, the last next.
     // While the turn runs, the limit on its uncached input: 4 × the trigger (80% of a 1M window).
     let limit: number | undefined;
     await session.turn(
-      { prompt: 'hello', model: { provider: 'scripted', model: 'big', contextWindow: 1_000_000 } },
+      { prompt: 'hello', model: { provider: 'scripted', model: 'big' } },
       {
         onTool: (e) => {
           if (e.status === 'started')

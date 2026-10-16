@@ -63,3 +63,28 @@ rewrite.
 `@molstar/ai-components` exists so that "only one package touches the platform" (`.v6/ai/README.md` decision 8), which
 with IndexedDB gone means it holds a memory store and the in-process supervisor, both platform-free. As folders,
 `messages/` and `harness/` take them (packaging.md §2).
+
+## As done (slice 9, 2026-10-16)
+
+- **§1 markers**: the trace still needs `REQUEST_MARKER` (to tell a request entry's state from its words, by the
+  label's prompt), so it imports it from `session/compose.ts` (the one file its Biome block allows); its copies and
+  `FOCUS_MARKER` are gone. Every reading of an entry by its text or marker is gone (persistence.md §5): the toolkit's
+  `groupsIn`, the session's `catchUp`, compaction's `isRequest`, `requestTextOf`, `isCarryOver` and `latestGuidance`,
+  the trace's `defaultRequestOf` and `defaultWindowPart`. Without a label an entry is no request, no guidance, no
+  skill.
+- **§2 estimates**: `estimatedTokens(text)` (four characters a token) is in `messages/estimate.ts`, used by the trace,
+  the harness's context and output sizes, and the scripted model. The compaction's per-edit estimate is `editTokens`;
+  its `sizeOf` (three characters a token, cautious on purpose) and the providers' calibrated `estimateTextTokens` stay
+  theirs.
+- **§4 limits**: nothing outside `packages/ai` set `ModelChoice.contextWindow` / `maxOutput` or
+  `AgentSessionOptions.contextWindow` (Prism's settings model builds its providers without `modelLimits`, so an own
+  endpoint's models, known only by `modelLimits`, fail the turn with the provider's error; it did already, as no model
+  choice gave a window). They are removed; the session reads the provider's `capabilities()` and `contextWindow()` is
+  200k until the first call has asked. An own endpoint's limits, when the assistant adds them, go to the provider's
+  `modelLimits`.
+- **§5 clock and JSON**: `Clock` (with `sleep`) is defined in `messages/` and re-exported by the harness's
+  `contracts/runner.ts`; threads read `Pick<Clock, 'now'>` (`ThreadClock` is gone) and use `canonicalJson` of
+  `messages/` (`canonicalData` and the unused `strictCanonicalData` are gone). The threads' Biome block allows
+  `messages/`; the strict-JSON checks (`assertStrictJsonData`) stay.
+- **§6 segments**: the providers' request digests are `ProjectedRequest.prefix` (the model call's evidence and the
+  trace follow); no other `segments` remains in `packages/ai`.

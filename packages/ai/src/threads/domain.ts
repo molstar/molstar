@@ -108,8 +108,6 @@ export type ThreadCommandResult<T> =
   | Readonly<{ readonly status: 'accepted'; readonly value: T; readonly commandId: ThreadCommandId }>
   | ThreadFailure;
 
-export type ThreadClock = Readonly<{ now(): number }>;
-
 export type CreateThreadCommand = Readonly<{
   readonly commandId: ThreadCommandId;
   readonly threadId: ThreadId;

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Message } from '../../messages/index.js';
+import type { JsonObject, Message } from '../../messages/index.js';
 import {
   cachedShare,
   credits,
@@ -15,6 +15,7 @@ import {
   defaultWindowPart,
   formatUsage,
   k,
+  LABELS,
   ms,
   tokensOf,
   turnStatusOf,
@@ -95,22 +96,20 @@ describe('formatting', () => {
 });
 
 describe('the default profile', () => {
-  it('requestOf: the text after the request marker, and the Focus line before it', () => {
-    expect(defaultRequestOf(text('Request: make it red'))).toEqual({ prompt: 'make it red' });
-    expect(defaultRequestOf(text('Counter at 0.\n\nFocus: the display\n\nRequest: make it red'))).toEqual({
+  it('requestOf: the prompt and focus in the request label, nothing from the text', () => {
+    const labelled = (data: JsonObject, body = 'ignored') => ({ ...text(body), label: { kind: LABELS.request, data } });
+    expect(defaultRequestOf(labelled({ prompt: 'make it red' }))).toEqual({ prompt: 'make it red' });
+    expect(defaultRequestOf(labelled({ prompt: 'make it red', focus: 'the display' }))).toEqual({
       prompt: 'make it red',
       focus: 'the display',
     });
-    expect(
-      defaultRequestOf(
-        text('State.\n\nFocus: a\n\nNotes since your last turn:\n- x\n\nRequest: do\nit\n\nRequest: twice'),
-      ),
-    ).toEqual({ prompt: 'do\nit\n\nRequest: twice', focus: 'a' });
     // A Focus line in the prompt is the person’s words, not the host’s.
-    expect(defaultRequestOf(text('Request: a\nFocus: b'))).toEqual({ prompt: 'a\nFocus: b' });
-    expect(defaultRequestOf(text('just words'))).toEqual({ prompt: 'just words' });
-    expect(defaultRequestOf(text(''))).toEqual({ prompt: '(no request recorded)' });
-    expect(defaultRequestOf(text('Focus: \n\nRequest: x'))).toEqual({ prompt: 'x' });
+    expect(defaultRequestOf(labelled({ prompt: 'a\nFocus: b' }))).toEqual({ prompt: 'a\nFocus: b' });
+    expect(defaultRequestOf(labelled({ prompt: ' ' }))).toEqual({ prompt: '(no request recorded)' });
+    expect(defaultRequestOf(labelled({ prompt: 'x', focus: '' }))).toEqual({ prompt: 'x' });
+    // Without the label, or without a prompt in it, no request is recorded.
+    expect(defaultRequestOf(text('Request: just words'))).toEqual({ prompt: '(no request recorded)' });
+    expect(defaultRequestOf(labelled({}))).toEqual({ prompt: '(no request recorded)' });
   });
 
   it('windowPart: guidance, tools, state or conversation', () => {
@@ -119,10 +118,15 @@ describe('the default profile', () => {
     expect(
       defaultWindowPart({ role: 'system', parts: [{ kind: 'tool-definition', definition, deferred: false }] }),
     ).toBe('tools');
-    expect(defaultWindowPart(text('Counter at 0.\n\nRequest: go'))).toBe('state');
-    expect(defaultWindowPart(text('Request: go'))).toBe('conversation');
+    const request = (body: string, role: 'user' | 'assistant' = 'user'): Message => ({
+      ...text(body, role),
+      label: { kind: LABELS.request, data: { prompt: 'go' } },
+    });
+    expect(defaultWindowPart(request('Counter at 0.\n\nRequest: go'))).toBe('state');
+    expect(defaultWindowPart(request('Request: go'))).toBe('conversation');
     expect(defaultWindowPart(text('plain'))).toBe('conversation');
-    expect(defaultWindowPart(text('Counter at 0.\n\nRequest: go', 'assistant'))).toBe('conversation');
+    // Not by the text: without a request label there is no state to find.
+    expect(defaultWindowPart(text('Counter at 0.\n\nRequest: go'))).toBe('conversation');
     expect(
       defaultWindowPart({
         role: 'user',

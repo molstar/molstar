@@ -104,8 +104,6 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   /** System guidance (the first message of a conversation). */
   guidance: string;
   clock?: Clock;
-  /** The default model's context window in tokens; default: what its provider reports. */
-  contextWindow?: number;
   /**
    * Compaction (tools-and-session.md §6): sizes to override, or false for none. Default: from each turn's model's
    * context window (`compactionFor`: at 80% of it).
@@ -190,16 +188,12 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   /** No turn has ever run in this harness (or it was forgotten): the first turn carries guidance and tool definitions. */
   private fresh = true;
 
-  /** Context windows by model ("provider:model"), as the turns' choices gave them. */
-  private readonly windows = new Map<string, number>();
-  /** Limits the providers gave, by model. */
+  /** Limits the providers gave, by model ("provider:model"): the one source of a model's window and output maximum. */
   private readonly known = new Map<string, ModelCapabilities>();
   /** The conversation's size after the last model call, in tokens, as the provider counted it. */
   private contextTokens: number | undefined;
   /** The running turn's model's output maximum (a widened retry stays within it). */
   private outputCap: number | undefined;
-  /** Output limits by model ("provider:model"), for models the providers do not know. */
-  private readonly outputs = new Map<string, number>();
 
   constructor(options: AgentSessionOptions<Api, M>) {
     this.options = options;
@@ -209,73 +203,35 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     this.repeats = options.version
       ? new RepeatedReads({ version: options.version, exempt: [names.skills, names.tools] })
       : undefined;
-    this.remember(options.models.default);
   }
 
   get busy(): boolean {
     return this.activeTurn !== undefined;
   }
 
-  /** The window and output limit a choice gives, kept for the model it names. */
-  private remember(choice: ModelChoice): void {
-    const key = `${choice.provider}:${choice.model}`;
-    if (choice.contextWindow) this.windows.set(key, choice.contextWindow);
-    if (choice.maxOutput) this.outputs.set(key, choice.maxOutput);
-  }
-
   private providerFor(provider: string): Provider | undefined {
     return this.options.models.providerFor(provider);
   }
 
-  /** A model's context window as the application gives it (its catalog, a custom model's), if it does. */
-  private givenWindow(provider: string, model: string): number | undefined {
-    const preferred = this.options.models.default;
-    if (provider === preferred.provider && model === preferred.model && this.options.contextWindow)
-      return this.options.contextWindow;
-    return this.windows.get(`${provider}:${model}`);
-  }
-
-  /** The default model's context window in tokens (the application's, else the provider's last word). */
+  /**
+   * The default model's context window in tokens: what its provider reported (its catalog, or the host's
+   * `modelLimits` for a custom endpoint); 200k until the first call has asked.
+   */
   contextWindow(): number {
     const { provider, model } = this.options.models.default;
     return this.windowOf(provider, model);
   }
 
   private windowOf(provider: string, model: string): number {
-    return this.givenWindow(provider, model) ?? this.known.get(`${provider}:${model}`)?.contextWindowTokens ?? 200_000;
+    return this.known.get(`${provider}:${model}`)?.contextWindowTokens ?? 200_000;
   }
 
-  /**
-   * A model's limits: the provider's for a model it knows, with the application's window when it gives one; for a
-   * model the provider does not know (a custom one), the application's window and output limit.
-   */
+  /** A model's limits: the provider's `capabilities()`, the one source (a model it does not know fails the turn). */
   private async capabilitiesOf(found: Provider, configuration: ModelConfiguration): Promise<ModelCapabilities> {
     const { provider, model } = configuration.target;
-    const window = this.givenWindow(provider, model);
-    let known: ModelCapabilities | undefined;
-    try {
-      known = await found.capabilities(configuration);
-      this.known.set(`${provider}:${model}`, known);
-    } catch (e) {
-      if (window === undefined)
-        throw new Error(
-          `The provider does not know ${provider} model "${model}": give its context window in the model options. (${e instanceof Error ? e.message : String(e)})`,
-        );
-    }
-    if (known && window === undefined) return known;
-    if (known && window !== undefined)
-      return {
-        ...known,
-        contextWindowTokens: window,
-        ...(known.maxInputTokens !== undefined ? { maxInputTokens: Math.min(known.maxInputTokens, window) } : {}),
-      };
-    return {
-      contextWindowTokens: window ?? 200_000,
-      maxOutputTokens: this.outputs.get(`${provider}:${model}`) ?? 32_768,
-      outputLimitIncludesReasoning: true,
-      appendsTools: false,
-      cacheScope: false,
-    };
+    const capabilities = await found.capabilities(configuration);
+    this.known.set(`${provider}:${model}`, capabilities);
+    return capabilities;
   }
 
   /** Compaction for a model's window, or none. */
@@ -338,8 +294,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     const seen = new Map<string, string>();
     const loaded = new Set<string>();
     const text = (d: ToolDefinition) => JSON.stringify([d.name, d.description, d.inputSchema]);
-    // The current guidance is in the context when an entry labelled with its fingerprint is (one written before labels:
-    // when a text ends with it).
+    // The current guidance is in the context when an entry labelled with its fingerprint is.
     const { key } = guidanceLabel(guidance);
     let current = false;
     for (const message of await this.head(client)) {
@@ -350,7 +305,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         if (part.kind === 'tool-definition') {
           seen.set(part.definition.tool.id, text(part.definition));
           if (!part.deferred) loaded.add(part.definition.tool.id);
-        } else if (label === undefined && part.kind === 'text' && part.text.endsWith(guidance)) current = true;
+        }
       }
     }
     const all = this.options.toolkit.allDefinitions();
@@ -779,7 +734,6 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     const chosen = choice ?? this.options.models.default;
     const found = this.providerFor(chosen.provider);
     if (!found) throw new Error(`No provider for ${chosen.provider}.`);
-    this.remember(chosen);
     const model = this.modelConfiguration(choice);
     const capabilities = await this.capabilitiesOf(found, model);
     this.outputCap = capabilities.maxOutputTokens;

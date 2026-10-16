@@ -106,7 +106,7 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
   through the API's `disclosure` module (`DisclosureModule { loaded(), skills() }`), which the session provides.
 - `groupKey(x)` is `skill:<id>@<fingerprint>` or `entry:<id>@<fingerprint>`; `groupsIn(messages)` finds the loaded ones
   by their labels' keys, and only keys of the groups' current text, so a changed guidance text is given again (an entry
-  written before labels: by its exact text).
+  without a label is never read by its text).
 - `coreDefinitions()`, `allDefinitions()`, `placementOf(id)`, `groupEntry(x)`, `disclosureTools()` serve the session and
   compaction.
 - **Dynamic** (README decision 25): `toolkit.add({ tools, core, groups, entries })` adds a part after creation (the same

@@ -204,7 +204,7 @@ export function createProvider(spec: ProviderSpec): Provider {
         revision: spec.revision,
         inputTokens: estimate(spec, layout, capabilities.appendsTools),
         // The parts in the order providers cache them: tools, system, then each message (harness.md §11).
-        segments: [short(payload.tools ?? {}), short(payload.system ?? ''), ...payload.messages.map(short)],
+        prefix: [short(payload.tools ?? {}), short(payload.system ?? ''), ...payload.messages.map(short)],
       };
     },
     async *invoke({ request, signal }) {

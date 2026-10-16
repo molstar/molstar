@@ -48,7 +48,7 @@ describe('a dynamic toolkit', () => {
     expect(kit.disclosureTools()[0].definition.description).toMatch(/"anim" \(moves\)/);
     remove();
     expect(kit.registration('spin')).toBeUndefined();
-    expect(kit.removed().sort()).toEqual(['spin', 'zoom']);
+    expect([...kit.removed()].sort()).toEqual(['spin', 'zoom']);
     expect(kit.version).toBe(2);
     // Added again: no longer evicted.
     kit.add({ tools: [make('spin')] });

@@ -12,7 +12,7 @@
     provider's replay data: thinking signatures, encrypted reasoning).
 - `ToolDefinition { tool: { id }, name, description, inputSchema }`; the provider-safe wire name is derived from the id.
 - `hashMessage(message)` (MurmurHash3_x86_128 over a structural encoding, synchronous) is an entry's id; `digest(json)`
-  addresses blobs, segments and heads; `canonicalJson`, `encodeMessage` are the encodings (`src/messages/hash.ts`).
+  addresses blobs and heads; `canonicalJson`, `encodeMessage` are the encodings (`src/messages/hash.ts`).
 - **`label?: EntryLabel { kind, key?, data? }`** says what an entry is, for the code that reads the journal: `kind` is
   namespaced by the package that writes it, `key` names which one, `data` holds small facts the parts also say.
   - Part of the message, so of its hash (an absent label leaves the hash as before; the same text under another label is
@@ -43,9 +43,10 @@ interface ProviderBindings { resolve(target: ModelTarget): Promise<Provider> }
 - `ModelCapabilities`: `contextWindowTokens`, `maxInputTokens?`, `maxOutputTokens?`, `defaultMaxOutputTokens?`,
   `outputLimitIncludesReasoning`, `appendsTools`, `cacheScope`.
 - `ProjectInput { messages, tools (available: enabled and loaded), configuration, capabilities }` →
-  `ProjectedRequest { payload, digest, revision, inputTokens (an estimate, for admission), segments? }`. `segments` are
-  short digests of tools, system, then each message: a request can reuse a cache when the previous one's segments are a
-  prefix of its own (the trace's "prefix break").
+  `ProjectedRequest { payload, digest, revision, inputTokens (an estimate, for admission), prefix? }`. `prefix` is the
+  short digests of tools, system, then each message: a request can reuse a cache when the previous one's `prefix` is a
+  prefix of its own (the trace's "prefix break"). (`inputTokens` is the providers' calibrated estimate,
+  `providers/common/estimate.ts`; the plain four-characters-a-token one is `estimatedTokens` of `messages/`.)
 - `ModelFrame`: `text-delta`, `reasoning-delta`, `usage` (totals so far), then exactly one
   `result { message, finish, usage }`, last. `ModelFinish`: `complete`, `tool-calls`, `output-limit`, `filtered`.
 - `ProviderUsage`: `inputTokens` (total, cache included), `outputTokens`, `cacheReadInputTokens`,
@@ -73,7 +74,7 @@ so a host imports only the SDKs it uses (`@molstar/ai/providers/{anthropic,opena
 - **The payload is `streamText`'s own arguments**, as JSON:
   `{ provider, revision, model, toolIds, system?, messages: ModelMessage[], allowSystemInMessages?, tools?: { [wireName]: { description, inputSchema, providerOptions? } }, providerOptions?, maxOutputTokens, temperature?, topP?, appended? }`.
   `project` builds it once (`common/messages.ts`: one `Message` → `ModelMessage` converter, tool calls carrying their
-  replay `providerOptions`), digests it with the synchronous `digest`, and gives its segments; `invoke` checks it is
+  replay `providerOptions`), digests it with the synchronous `digest`, and gives its `prefix`; `invoke` checks it is
   this provider's (revision, digest, provider: a `ModelError` with effect `none` otherwise), strips the identity fields,
   wraps each tool's schema in `jsonSchema` and passes the rest to `streamText` as it is (`common/stream.ts`). `toolIds`
   maps a returned call's wire name back to its tool id (a call to an unknown name keeps it).
@@ -149,6 +150,6 @@ new AgentSession({ models: { providerFor: (id) => providers[id], default: { prov
 `src/providers/_test/`: SSE fixtures and a recording `fetch` (`support.ts`); `port.test.ts` (projection pure, digests, a
 retained request of another revision, digest or provider refused, `UnrepresentableInput`, tool definitions never text),
 one round trip per provider (`anthropic`, `openai`, `openai-chat`: a foreign endpoint, `google`: text, a tool call,
-reasoning replay), `prefix.test.ts` (an appended turn's payload and segments extend the previous ones),
+reasoning replay), `prefix.test.ts` (an appended turn's payload and `prefix` extend the previous ones),
 `deferred-tools.test.ts` (the appended layout), `attachments`, `capabilities`, `stream` (failure mapping, retry-after,
 key redaction), `labels`, `models` (the catalog). No test reaches the network.

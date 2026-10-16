@@ -120,8 +120,4 @@ export interface ModelChoice {
   model: string;
   /** The model's thinking, over `AgentSessionOptions.thinking`; "model" leaves it to the model. */
   thinking?: ReasoningParameters | 'model';
-  /** Its context window in tokens (the application's catalog, or what the person gave for a custom model). */
-  contextWindow?: number;
-  /** Its output limit in tokens, for a model the provider does not know (default 32k). */
-  maxOutput?: number;
 }

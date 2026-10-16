@@ -31,11 +31,6 @@ export function assertStrictJsonData(value: unknown, depth = 0): void {
   throw new Error('data must contain only plain JSON-compatible values');
 }
 
-export function strictCanonicalData(value: unknown): string {
-  assertStrictJsonData(value);
-  return canonicalData(value);
-}
-
 export function cloneData<T>(value: T, depth = 0): T {
   if (depth > 64) throw new Error('data is too deeply nested');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
@@ -51,23 +46,6 @@ export function cloneData<T>(value: T, depth = 0): T {
         .filter(([, item]) => item !== undefined)
         .map(([key, item]) => [key, cloneData(item, depth + 1)]),
     ) as T;
-  }
-  throw new Error('data must contain only plain JSON-compatible values');
-}
-
-export function canonicalData(value: unknown): string {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error('data contains a non-finite number');
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map(canonicalData).join(',')}]`;
-  if (typeof value === 'object' && value !== null && isPlainObject(value)) {
-    return `{${Object.entries(value)
-      .filter(([, item]) => item !== undefined)
-      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalData(item)}`)
-      .join(',')}}`;
   }
   throw new Error('data must contain only plain JSON-compatible values');
 }

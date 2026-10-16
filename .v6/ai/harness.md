@@ -110,7 +110,7 @@ Gone (2026-10-16): no inbox, steering, interrupts or `withdraw`; each prompt is 
 ## 11. Projection, caching and budgets
 
 - Projection is pure (head, configuration, available tools), and appending keeps the projected prefix byte-stable, so
-  provider caches hold. Providers report the request's segments so a trace can say where a cache broke.
+  provider caches hold. Providers report the request's `prefix` so a trace can say where a cache broke.
 - A request is admitted only if its estimate plus the reserved output fits the window (else `capacity`).
 - **Budgets** are limits plus consumption per turn and per nested run, over calls, tokens by kind, `cost` (with an app
   price) and `endBy`. Every ended attempt is charged once; estimates where usage is missing.

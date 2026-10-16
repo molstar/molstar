@@ -8,12 +8,12 @@
 
 import type { Message } from '../../messages/index.js';
 import type { DisclosableEntry, ToolGroup, Toolkit } from '../../tools/index.js';
-import { LABEL_REQUEST, REQUEST_MARKER } from '../compose.js';
+import { LABEL_REQUEST } from '../compose.js';
 
 /**
  * What compaction keeps is the host's (tools-and-session.md §6): what a request is, the core tools, the groups
  * (skills) with their guidance, the memory, the pins. A session builds the domain from its toolkit and the request
- * marker; the host adds the rest.
+ * label; the host adds the rest.
  */
 
 /** A skill or another disclosable text: what compaction needs to know of it. */
@@ -26,7 +26,7 @@ export interface CompactionGroup {
 export interface CompactionDomain {
   /** Whether a message is a turn's request: a turn starts at each request and runs to the next. */
   isRequest(message: Message): boolean;
-  /** The person's own words in a request message (default: the text after the request marker). */
+  /** The person's own words in a request message (default: the prompt in its `LABEL_REQUEST` label). */
   requestText?(message: Message): string;
   /** The tools every conversation has loaded: always kept. */
   coreToolIds: readonly string[];
@@ -47,22 +47,18 @@ export interface CompactionDomain {
 
 const textOf = (m: Message): string => m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
 
-/** The person's request in a turn's user message: its label's prompt (one written before labels: after the marker). */
+/** The person's request in a turn's user message: its label's prompt (a message without one: all its text). */
 export function requestTextOf(m: Message): string {
   const prompt = m.label?.kind === LABEL_REQUEST ? m.label.data?.prompt : undefined;
-  if (typeof prompt === 'string') return prompt;
-  const t = textOf(m);
-  const at = t.lastIndexOf(REQUEST_MARKER);
-  return at >= 0 ? t.slice(at + REQUEST_MARKER.length) : t;
+  return typeof prompt === 'string' ? prompt : textOf(m);
 }
 
-/** The domain a toolkit gives: its core, its groups and entries, a request marked by `REQUEST_MARKER`. */
+/** The domain a toolkit gives: its core, its groups and entries, a request labelled `LABEL_REQUEST`. */
 export function toolkitDomain<Api>(toolkit: Toolkit<Api>): CompactionDomain {
   const all: (ToolGroup<Api> | DisclosableEntry)[] = [...toolkit.groups, ...toolkit.entries];
   const byId = new Map(all.map((x) => [x.id, x] as const));
   return {
-    isRequest: (m) =>
-      m.label !== undefined ? m.label.kind === LABEL_REQUEST : m.role === 'user' && textOf(m).includes(REQUEST_MARKER),
+    isRequest: (m) => m.label?.kind === LABEL_REQUEST,
     requestText: requestTextOf,
     coreToolIds: toolkit.coreDefinitions().map((d) => d.tool.id),
     groups: all.map((x) => ({ id: x.id, ...(x.tools ? { tools: x.tools } : {}) })),

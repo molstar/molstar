@@ -22,7 +22,7 @@ export {
   type CompactionPlan,
   type CompactionReport,
   digestOf,
-  estimatedTokens,
+  editTokens,
   type HeadEntry,
   normalizedForQuotes,
   type PlanInput,

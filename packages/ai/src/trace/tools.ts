@@ -6,8 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ToolDefinition } from '../messages/index.js';
-import { estimatedTokens } from './read.js';
+import { estimatedTokens, type ToolDefinition } from '../messages/index.js';
 import type { ToolGroupView, ToolsData, ToolView } from './types.js';
 
 /**

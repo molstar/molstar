@@ -6,7 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { canonicalJson, type Json, type JsonObject, type Message, type ModelFinish } from '../messages/index.js';
+import { REQUEST_MARKER } from '../session/compose.js';
+import {
+  canonicalJson,
+  estimatedTokens,
+  type Json,
+  type JsonObject,
+  type Message,
+  type ModelFinish,
+} from '../messages/index.js';
 import {
   type AttemptRecord,
   type CallRecord,
@@ -46,14 +54,9 @@ import type {
  * a default.
  */
 
-/** Opens the person's words in a request. The same text as `session/compose.ts`'s, which this folder does not import. */
-export const REQUEST_MARKER = 'Request: ';
-/** Opens the Focus line of a request. The same text as `session/compose.ts`'s. */
-export const FOCUS_MARKER = 'Focus: ';
-
 /**
  * The labels (`EntryLabel.kind`) of the entries a session and its toolkit write, by the names `session/`
- * and `tools/` give them. A labelled entry is read by its label; one written before labels, by its text.
+ * and `tools/` give them. An entry is read by its label, never by its text.
  */
 export const LABELS = {
   request: 'session:request',
@@ -146,9 +149,6 @@ const KIND_NAMES: Record<BudgetKind, string> = {
 };
 const KINDS = Object.keys(KIND_NAMES) as BudgetKind[];
 
-/** A text's size in tokens, as the trace estimates it (about four characters a token). */
-export const estimatedTokens = (text: string): number => Math.max(1, Math.round(text.length / 4));
-
 /** A turn's state (the mapping is documented at `TurnStatus`). */
 export function turnStatusOf(
   status: TurnSummary['status'] | undefined,
@@ -186,41 +186,21 @@ function textParts(m: Message): string {
   return m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
 }
 
-/** The index of a marker that opens the text or a paragraph, or -1. */
-function paragraphAt(text: string, marker: string): number {
-  if (text.startsWith(marker)) return 0;
-  const at = text.indexOf(`\n\n${marker}`);
-  return at < 0 ? -1 : at + 2;
-}
-
-/** The rest of the line that starts with a marker, if any line does. */
-function lineAfter(text: string, marker: string): string | undefined {
-  for (const line of text.split('\n')) if (line.startsWith(marker)) return line.slice(marker.length).trim();
-  return undefined;
-}
-
 /**
- * The request is the text after the request marker (the first that opens a paragraph, so a prompt that contains
- * the marker is kept whole), the focus the Focus line before it.
+ * The request is the prompt and focus in the label of the turn's request entry (`session:request`); a message without
+ * that label records no request.
  */
 export function defaultRequestOf(message: Message): TraceRequest {
   const data = message.label?.kind === LABELS.request ? message.label.data : undefined;
-  if (typeof data?.prompt === 'string')
-    return {
-      prompt: data.prompt.trim() || '(no request recorded)',
-      ...(typeof data.focus === 'string' && data.focus ? { focus: data.focus } : {}),
-    };
-  const text = textParts(message);
-  const at = paragraphAt(text, REQUEST_MARKER);
-  const prompt = (at >= 0 ? text.slice(at + REQUEST_MARKER.length) : text).trim() || '(no request recorded)';
-  const focus = at > 0 ? lineAfter(text.slice(0, at), FOCUS_MARKER) : undefined;
-  return { prompt, ...(focus ? { focus } : {}) };
+  return {
+    prompt: (typeof data?.prompt === 'string' ? data.prompt.trim() : '') || '(no request recorded)',
+    ...(typeof data?.focus === 'string' && data.focus ? { focus: data.focus } : {}),
+  };
 }
 
 /**
- * A system message of definitions only is the tools, other system text the guidance; a user message with something
- * before the request marker (the host's state, the Focus line, notes) is the state, any other message the
- * conversation.
+ * A system message of definitions only is the tools, other system text the guidance; a request entry with something
+ * before its request (the host's state, the Focus line, notes) is the state, any other message the conversation.
  */
 export function defaultWindowPart(message: Message): WindowPart {
   switch (message.label?.kind) {
@@ -234,10 +214,12 @@ export function defaultWindowPart(message: Message): WindowPart {
     return message.parts.some((p) => p.kind === 'tool-definition') && !message.parts.some((p) => p.kind === 'text')
       ? 'tools'
       : 'guidance';
-  if (message.role === 'user' && !message.parts.some((p) => p.kind === 'tool-result')) {
+  if (message.label?.kind === LABELS.request) {
+    // The entry's text ends with `REQUEST_MARKER` and the prompt the label holds: what precedes is the state.
+    const prompt = message.label.data?.prompt;
     const text = textParts(message);
-    const at = paragraphAt(text, REQUEST_MARKER);
-    if (at > 0 && text.slice(0, at).trim() !== '') return 'state';
+    const end = typeof prompt === 'string' ? text.length - prompt.length - REQUEST_MARKER.length : 0;
+    if (end > 0 && text.slice(0, end).trim() !== '') return 'state';
   }
   return 'conversation';
 }
@@ -293,7 +275,7 @@ function budgetView(
 
 /** A request as the cache sees it: its parts (provider-given digests) and its model. */
 interface RequestShape {
-  readonly segments: readonly string[];
+  readonly prefix: readonly string[];
   readonly model: string;
   readonly configuration: string;
 }
@@ -301,13 +283,13 @@ interface RequestShape {
 interface Evidence {
   readonly head?: string | null;
   readonly configuration?: { readonly target?: { readonly model?: string } };
-  readonly segments?: unknown;
+  readonly prefix?: unknown;
 }
 
 function requestShape(evidence: Evidence | undefined): RequestShape | undefined {
-  if (!Array.isArray(evidence?.segments)) return undefined;
+  if (!Array.isArray(evidence?.prefix)) return undefined;
   return {
-    segments: evidence.segments as string[],
+    prefix: evidence.prefix as string[],
     model: evidence.configuration?.target?.model ?? '',
     configuration: canonicalJson((evidence.configuration ?? null) as Json),
   };
@@ -319,11 +301,11 @@ function requestShape(evidence: Evidence | undefined): RequestShape | undefined 
  */
 function breakOf(previous: RequestShape | undefined, now: RequestShape): PrefixBreak | undefined {
   if (previous === undefined) return undefined;
-  const of = previous.segments.length;
+  const of = previous.prefix.length;
   if (previous.model !== now.model) return { reason: `another model (${now.model})`, kept: 0, of };
   if (previous.configuration !== now.configuration) return { reason: "the model's settings changed", kept: 0, of };
   let kept = 0;
-  while (kept < of && previous.segments[kept] === now.segments[kept]) kept++;
+  while (kept < of && previous.prefix[kept] === now.prefix[kept]) kept++;
   if (kept === of) return undefined;
   const reason =
     kept === 0

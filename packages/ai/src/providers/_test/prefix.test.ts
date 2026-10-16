@@ -41,11 +41,11 @@ describe('an appended turn', () => {
     expect(b.system).toEqual(a.system);
     expect(b.tools).toEqual(a.tools);
     expect((b.messages as unknown[]).slice(0, (a.messages as unknown[]).length)).toEqual(a.messages);
-    expect((first.segments ?? []).length).toBeGreaterThan(2);
-    expect(second.segments?.slice(0, first.segments?.length)).toEqual(first.segments);
+    expect((first.prefix ?? []).length).toBeGreaterThan(2);
+    expect(second.prefix?.slice(0, first.prefix?.length)).toEqual(first.prefix);
     // Other tools break the prefix at the tools (the appended layouts load a tool given late as a message).
-    const retooled = (await at([guide, user], [lookupTool, other])).segments ?? [];
-    const plain = (await at([guide, user])).segments ?? [];
+    const retooled = (await at([guide, user], [lookupTool, other])).prefix ?? [];
+    const plain = (await at([guide, user])).prefix ?? [];
     expect(retooled[0]).not.toBe(plain[0]);
     if (model === 'claude-haiku-4-5' || provider === 'google') expect(retooled.slice(1)).toEqual(plain.slice(1));
   });

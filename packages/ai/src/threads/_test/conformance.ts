@@ -7,10 +7,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { Clock } from '../../messages/index.js';
 import {
   THREAD_LIMIT_HARD_BOUNDS,
   type ThreadAppendDeltaResult,
-  type ThreadClock,
   type ThreadCommandResult,
   type ThreadFailure,
   type ThreadLimits,
@@ -73,7 +73,7 @@ export const THREAD_CONFORMANCE_CASE_NAMES = [
 export interface ThreadConformanceFixture {
   readonly name: string;
   /** A thread port over fresh, empty storage for one case, on the case's clock and limits. */
-  create(options: { readonly clock: ThreadClock; readonly limits: ThreadLimits }): ThreadBackend;
+  create(options: { readonly clock: Pick<Clock, 'now'>; readonly limits: ThreadLimits }): ThreadBackend;
   /** The storage outlives its port: `create`'s `reopen` gives a port over what the first one wrote. Default false. */
   readonly durable?: boolean;
 }

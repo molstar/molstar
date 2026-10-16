@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ToolDefinition } from '../../messages/index.js';
-import { definitionTokens, estimatedTokens, type ToolEntry, toolsView } from '../index.js';
+import { estimatedTokens, type ToolDefinition } from '../../messages/index.js';
+import { definitionTokens, type ToolEntry, toolsView } from '../index.js';
 
 const def = (id: string, description = `The ${id} tool.`): ToolDefinition => ({
   tool: { id },

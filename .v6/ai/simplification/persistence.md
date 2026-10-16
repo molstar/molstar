@@ -70,7 +70,7 @@ interrupts. About 2,750 of the harness's and components' ~4,950 source lines go,
 Consequence for later: persistence, a remote runner or a second tab are no longer "add a backend"; they are a redesign
 that can start from git (`packages/ai/{harness,components}` at `e91cf9bc0`) and the dropped conformance cases.
 
-## 5. Legacy fallbacks that go with persistence
+## 5. Legacy fallbacks that go with persistence (done, slice 9)
 
 Code that reads entries "written before labels" exists because stored conversations could predate labels (2026-10-14,
 `.v6/ai/README.md` decision 3). With nothing persisted there are no such entries:

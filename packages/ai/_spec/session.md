@@ -26,13 +26,12 @@ const session = new AgentSession<MyApi>({
 });
 ```
 
-Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` default, or `'all'`), `clock`,
-`contextWindow`, `compaction` (overrides or `false`), `compactionDomain`, `maxToolCalls` (200), `thinking` (one
-`ReasoningParameters` or per model; pass the catalog's `defaultReasoning`), `maxOutputTokens` (16384), `version()`
-(enables repeated-read answers), `afterWrite` (where a host saves after a write), `price`, `drive` (the host's own
-`DriveHandlers`, over the session's), and the `DrivePolicy` fields: `approve(call)`, `retries` (3), `retryDelayMs`
-(1500), `toolRetries` (2), `toolRetryDelayMs` (1000), `providerNames`. Also `notesHeading` (heads the notes; default
-`NOTES_HEADING`).
+Other options (`AgentSessionOptions`, `session.ts`): `startTools` (`'core'` default, or `'all'`), `clock`, `compaction`
+(overrides or `false`), `compactionDomain`, `maxToolCalls` (200), `thinking` (one `ReasoningParameters` or per model;
+pass the catalog's `defaultReasoning`), `maxOutputTokens` (16384), `version()` (enables repeated-read answers),
+`afterWrite` (where a host saves after a write), `price`, `drive` (the host's own `DriveHandlers`, over the session's),
+and the `DrivePolicy` fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2),
+`toolRetryDelayMs` (1000), `providerNames`. Also `notesHeading` (heads the notes; default `NOTES_HEADING`).
 
 The harness (made on first use) is `createHarness({ models, tools, drive, clock, price })`: `ProviderBindings` over
 `providerFor`, `createToolBindings(toolkit, api, { repeats, nested: NestedTools, afterWrite })` (resolved at call time)
@@ -43,7 +42,7 @@ long as the session (a reload ends the conversation).
 
 - `turn(request, hooks)` → `Promise<TurnResult>`; one at a time (a second throws). `TurnRequest`: `prompt`, `state?`,
   `focus?`, `notes?`, `preamble?`, `attachments?` (`Reference`s with their bytes), `model?` (a `ModelChoice`
-  `{ provider, model, thinking?, contextWindow?, maxOutput? }`).
+  `{ provider, model, thinking? }`).
 - **Composition** (`compose.ts`): the user message is
   `[preamble]\n\n[state]\n\nFocus: [focus]\n\nNotes since your last turn:\n- [note]…\n\nRequest: [prompt]` (absent parts
   dropped), plus the attachments. The first turn sends before it the guidance (a system message) and the tool
@@ -52,8 +51,8 @@ long as the session (a reload ends the conversation).
   `GUIDANCE_UPDATE`.
 - **Labels**: every message the session writes is labelled (`LABEL_REQUEST` with `{ prompt, focus? }` as data,
   `LABEL_GUIDANCE`/`LABEL_GUIDANCE_UPDATE` keyed by the text's fingerprint, `guidanceLabel(text)`, and the toolkit's
-  `tools:definitions`). Compaction, `catchUp` and the trace read labels; the markers stay in the text for the model and
-  are read only for entries written before labels.
+  `tools:definitions`). Compaction, `catchUp` and the trace read labels, and only labels; the markers stay in the text
+  for the model, and an entry without a label is read as no request, no guidance, no skill.
 - The turn begins with `harness.turn({ messages, configuration })` and the session awaits its `done`. Tool set: the
   toolkit's `toolSet()` as the turn begins (every registration enabled, all but `approval` ones preauthorized, and the
   tools lazy skills will bring; tools.md, "Dynamic").
@@ -107,7 +106,7 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
   `planCompaction` builds the `HeadEdit`: the latest guidance (a later update included), kept tools, the carry-over, the
   memory, kept groups' guidance, recent turns as they were, the current turn; each new message labelled
   (`session:guidance`, `tools:definitions`, `LABEL_CARRY_OVER`, `LABEL_MEMORY`). If the call fails, a digest stands in.
-  Sizes (`sizeOf`, `estimatedTokens`) count what is sent, not labels.
+  Sizes (`sizeOf`, `editTokens` of an edit) count what is sent, not labels.
 - **What it keeps is the host's**: `CompactionDomain` (`isRequest`, `requestText?`, `coreToolIds`, `groups`, `groupsIn`,
   `groupEntry`, `memory?`, `pins?`, `wishSources?`); the session builds it from the toolkit (`toolkitDomain`) and merges
   `compactionDomain`.
@@ -115,8 +114,9 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
 ## Gotchas
 
 - A session is one conversation: one harness, in memory.
-- Model choices are the host's: the session knows no models; context windows and output limits come from the choice, the
-  provider's capabilities, or `contextWindow`/`maxOutput` given for custom models.
+- Model choices are the host's: the session knows no models; a model's context window and output limit come from its
+  provider's `capabilities()` (the catalog, or the provider's `modelLimits` for a custom endpoint) and nowhere else;
+  `contextWindow()` is 200k until the first call has asked.
 - `onText` streams one model call at a time (it restarts with each top-level call); `TurnResult.text` is the last
   non-empty text, else the last assistant message; `turnText` is the whole turn's.
 - Only "a turn is already running" throws from `turn()`; a missing provider or unknown model is `status: 'failed'`.

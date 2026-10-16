@@ -80,7 +80,7 @@ describe('labels are never sent', () => {
     expect(a.payload).toEqual(b.payload);
     expect(a.digest).toBe(b.digest);
     expect(a.inputTokens).toBe(b.inputTokens);
-    expect(a.segments).toEqual(b.segments);
+    expect(a.prefix).toEqual(b.prefix);
     expect(JSON.stringify(a.payload)).not.toContain('session:request');
   });
 });

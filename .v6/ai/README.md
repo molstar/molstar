@@ -49,7 +49,8 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports it, and it imp
 2. **One home per concern**: the journal for what a model sees, the event log for evidence, the drive for choices.
 3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`. What
    an entry _is_ (the request, the guidance, a skill's guidance) is its optional `label`: content, so hashed, never sent
-   to a provider, and never read by the harness (2026-10-14).
+   to a provider, and never read by the harness (2026-10-14). Labels are the only way an entry is read: with nothing persisted, no entry
+   predates them, and nothing reads one by its text or markers (2026-10-16).
 4. ~~The runner is trusted~~: there is no host and no runner apart from the loop (2026-10-16): the harness is one
    in-memory loop that applies each step's writes at its end.
 5. **Nested runs are not durable**: they live in their parent's step, and nothing of them is written before it ends.

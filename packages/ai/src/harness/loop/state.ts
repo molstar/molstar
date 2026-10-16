@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { digest, type Json, type Message } from '../../messages/index.js';
+import { digest, estimatedTokens, type Json, type Message } from '../../messages/index.js';
 import type {
   ActiveTurn,
   AttemptRecord,
@@ -231,7 +231,7 @@ export class Store {
           found?.role === 'system' && found.parts.some((p) => p.kind === 'tool-definition' && p.deferred)
             ? found.parts.map((p) => (p.kind === 'tool-definition' && p.deferred ? p.definition.name : p))
             : found && { role: found.role, parts: found.parts };
-        tokens = Math.ceil(JSON.stringify(shown ?? null).length / 4);
+        tokens = estimatedTokens(JSON.stringify(shown ?? null));
         if (found !== undefined) this.tokens.set(id, tokens);
       }
       total += tokens;

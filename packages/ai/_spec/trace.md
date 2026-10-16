@@ -2,14 +2,14 @@
 
 A read-only projection of a harness's records into plain data for a trace view (Prism's Inspector: Trace, Tools,
 Limits). It shows only what is committed, so it is safe to call while a turn runs; re-read on `client.watch()`, not on
-every streamed token. Imports `messages/` and `harness/` only (and may import `session/compose.ts`, which it does not
-yet: its markers and label kinds, `LABELS`, are copied).
+every streamed token. Imports `messages/` and `harness/` only, and `session/compose.ts` for `REQUEST_MARKER` (the label
+kinds, `LABELS`, are copied).
 
 ## Files (`src/trace/`)
 
 | File        | What                                                                                                             |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `read.ts`   | `readTrace`, `TraceProfile`, `createTraceCache`, `defaultRequestOf`, `defaultWindowPart`, `estimatedTokens`      |
+| `read.ts`   | `readTrace`, `TraceProfile`, `createTraceCache`, `defaultRequestOf`, `defaultWindowPart`                         |
 | `types.ts`  | the views: `TraceData`, `TurnView`, `StepView`, `WindowView`, `BudgetView`, `TokensView`, tools and limits views |
 | `tools.ts`  | `toolsView(input)`: the Tools tab from plain inputs                                                              |
 | `format.ts` | `k`, `ms`, `credits`, `cachedShare`, `formatUsage` (`@molstar/ai/trace`)                                         |
@@ -17,16 +17,16 @@ yet: its markers and label kinds, `LABELS`, are copied).
 ## `readTrace(reader: HarnessReader, profile?: TraceProfile): Promise<TraceData>`
 
 Reads `execution()`, `events()` (paged, 500 per page), `turns()`, and the heads, entries and blobs the step events name.
-For a model call the request blob is its evidence (`head`, model, `segments`): the head is the window the model saw; the
+For a model call the request blob is its evidence (`head`, model, `prefix`): the head is the window the model saw; the
 result blob is its reply. For a tool call the request blob is `{ toolId, arguments }`, the result `{ status, parts }`. A
 turn's prompt is the last user message of its begin step's `main` head.
 
 `TraceProfile` (all optional): `requestOf(message)` (prompt and focus; default from the `session:request` label's data,
-else the `Request: ` / `Focus: ` markers), `windowPart(message)` (`guidance | tools | state | conversation`; default by
-the label for guidance, updates and definitions, else by shape and markers), `toolCall(call)` (title, read, changed:
-what the host knows of a call), `credits(model, usage)`, `ceilings` (by budget kind; default the turn's limits),
-`toolNames`, `window`, `now`, `cache` (a `TraceCache` kept across re-reads: heads, entries and blobs are immutable, so a
-re-read fetches only what is new).
+else no request recorded), `windowPart(message)` (`guidance | tools | state | conversation`; default by the label for
+guidance, updates, definitions and requests (state when text precedes the request), else by shape), `toolCall(call)`
+(title, read, changed: what the host knows of a call), `credits(model, usage)`, `ceilings` (by budget kind; default the
+turn's limits), `toolNames`, `window`, `now`, `cache` (a `TraceCache` kept across re-reads: heads, entries and blobs are
+immutable, so a re-read fetches only what is new).
 
 `TraceData`: `harnessId`, `execution` (seq, head, pending step, parked), `budget` (the kind nearest its ceiling in the
 latest turn), `preamble` (guidance and tool definitions with token estimates), `turns`, `loaded` and `declared` tools
@@ -37,10 +37,10 @@ latest turn), `preamble` (guidance and tool definitions with token estimates), `
 - `StepView` is a `ModelStepView` (model, tokens, reply, tool calls, `finish`, `window`, `prefixBreak`) or a
   `ToolStepView` (`toolId`, `name`, `title?`, `read?`, `args`, `status`, `result`, `changed`); each with `attempts` and
   `under?` (the parent call: a nested run, a compaction). Every call of the turn, nested included, in start order.
-- `WindowView`: the messages the model saw, each with its part, a token estimate (chars/4) and `fresh` (new since the
-  run's previous call).
-- `PrefixBreak { reason, kept, of }`: where a request stopped extending the previous one (by provider `segments`): model
-  or configuration changed, tools changed, system text changed, or the conversation changed at message N.
+- `WindowView`: the messages the model saw, each with its part, a token estimate (`estimatedTokens` of `messages/`,
+  chars/4) and `fresh` (new since the run's previous call).
+- `PrefixBreak { reason, kept, of }`: where a request stopped extending the previous one (by the provider's `prefix`):
+  model or configuration changed, tools changed, system text changed, or the conversation changed at message N.
 - `TokensView`: `input` (uncached + cache read + cache write), `output`, `cached`, `written`, `reasoning`, `estimated`,
   `credits` (display only).
 

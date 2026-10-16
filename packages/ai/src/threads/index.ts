@@ -15,7 +15,6 @@ export type {
   CreateThreadCommand,
   ThreadAbortReason,
   ThreadAppendDeltaResult,
-  ThreadClock,
   ThreadCommandResult,
   ThreadDeltaBatch,
   ThreadDeltaPage,

@@ -50,7 +50,7 @@ checker scan over import declarations; the components package's dynamic imports 
 | `ModelChoice.contextWindow` / `maxOutput`, `AgentSessionOptions.contextWindow`, adapter `modelLimits` | duplicates.md §4 | three ways to state a model's limits                                         |
 | Native tool additions                 | providers.md §3                                            | two catalog models                                                                         |
 
-## 3. Legacy paths
+## 3. Legacy paths (gone, slice 9)
 
 Reading entries "written before labels" (persistence.md §5): `session/src/compaction/domain.ts:50`,
 `compaction/plan.ts:129`, `session/src/session.ts:361`, `tools/src/toolkit.ts:330`, `trace/src/read.ts:56`; test
