@@ -8,7 +8,8 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Canvas3DParams, type Canvas3DProps, type PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
-import { type ApiContext, ApiResult, type OperationDefinition } from '../../api/area.js';
+import { type ApiContext, ApiResult, type ApiFailure, type OperationDefinition } from '../../api/area.js';
+import { checkValues } from '../../api/run.js';
 import { changeWords } from '../../api/change-words.js';
 
 // The `canvas-settings` feature's operations (operations.md §2, the `canvas` row; viewer-spec.md §3.1): added to the
@@ -139,6 +140,23 @@ export const ClippingParams = {
 
 const canvasModule = ['canvas'] as const;
 
+/** A section's values given, checked against its params: the fields it has, a mapped one with the name of an option. */
+function checkSection(section: CanvasSection, given: Record<string, unknown>): ApiFailure | undefined {
+  const params = CanvasSections[section].params as PD.Params;
+  const checked = checkValues(params, given);
+  if (ApiResult.isFailure(checked)) return checked;
+  for (const [key, value] of Object.entries(given)) {
+    const p = params[key];
+    if (!p || p.type !== 'mapped') continue;
+    const names = p.select.options.map((o) => o[0]);
+    const name = value && typeof value === 'object' ? (value as { name?: unknown }).name : undefined;
+    if (typeof name !== 'string' || !names.includes(name)) {
+      return ApiResult.fail('invalid', `'${key}' takes a name and params.`, `Names: ${names.join(', ')}.`);
+    }
+  }
+  return undefined;
+}
+
 function props(ctx: ApiContext): Canvas3DProps | undefined {
   return ctx.plugin.canvas3d?.props;
 }
@@ -178,6 +196,8 @@ export const canvasSettingsOperations = (): {
       async run({ section, values }, ctx) {
         const p = props(ctx);
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
+        const problem = checkSection(section, values);
+        if (problem) return problem;
         const current = sectionValues(section, p);
         const next = { ...current, ...values };
         if (PD.areEqual(CanvasSections[section].params, current, next)) {

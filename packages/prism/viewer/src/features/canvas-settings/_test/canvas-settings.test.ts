@@ -128,6 +128,17 @@ describe('canvas settings', () => {
     }
   });
 
+  it('checks the values of a section before it sets them', async () => {
+    const { v, sets } = await withCanvas();
+    const run = (section: string, values: Record<string, unknown>) =>
+      v.api.run('canvas.settings', { section, values } as never);
+    expect(await run('lighting', { occlusion: true })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await run('lighting', { nope: 1 })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await run('background', { transparent: 'yes' })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(sets).toEqual([]);
+    expectOk(await run('lighting', { fog: { name: 'off', params: {} } }));
+  });
+
   it('names the changed fields in words', async () => {
     const { v } = await withCanvas();
     const bg = await v.api.run('canvas.settings', {
