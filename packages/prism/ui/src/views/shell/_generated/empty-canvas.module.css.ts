@@ -31,9 +31,9 @@ defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-empty-canvas-splash {
+  inset: 0 calc(-1 * var(--msp-canvas-right-inset, 0px)) 0 0;
   animation: msp-shell-empty-canvas-fade-in 1.2s var(--msp-ease) both;
   position: absolute;
-  inset: 0;
 }
 
 .msp-shell-empty-canvas-mark {

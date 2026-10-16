@@ -165,10 +165,10 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
-  const rightInset = combineLatest([right.state, right.active, floating, pinned, railPx, expanded]).pipe(
+  const rightInset = combineLatest([right.state, right.active, floating, pinned, railPx, expanded, compact]).pipe(
     // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
-    // margin. Pinned, both are outside the canvas: only the margin is left.
-    map(([s, active, f, p, rail, e]) => (p || e ? Edge : rail + Edge + (f && active ? s.size + Edge : 0))),
+    // margin. Pinned, both are outside the canvas: only the margin is left. Compact, the rail is the bottom bar.
+    map(([s, active, f, p, rail, e, c]) => (p || e ? Edge : (c ? 0 : rail) + Edge + (f && active ? s.size + Edge : 0))),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -253,13 +253,11 @@ export function ShellView(props: ShellViewProps) {
           {/* The compact rail's button: in the rail's column, at the bottom, where the rail slides in around it. */}
           <Show when={railToggle}>{() => <RailToggle shell={shell} />}</Show>
           {/* The bottom of the canvas: the status on the left, and in the corner on the right the work in hand (the
-              selection) to the left of the canvas toolbar on its row. Compact: the status and the selection are docked under the
-              canvas; the toolbar stays in the corner. */}
+              selection) to the left of the canvas toolbar on its row. Compact: the selection is docked under the canvas; the
+              status stays on it, as here (a message coming and going moves nothing). */}
           <div class={canvasClasses.bottom}>
             <div class={canvasClasses.bottomGrid}>
-              <Show when={compact.pipe(map((c) => !c))}>
-                {() => <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />}
-              </Show>
+              <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>
                 <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} quiet={props.empty} />
                 <Show when={compact.pipe(map((c) => !c))}>
@@ -328,11 +326,10 @@ export function ShellView(props: ShellViewProps) {
           </Show>
         </div>
       </main>
-      {/* Compact: progress and the selection docked under the canvas, not over it. */}
+      {/* Compact: the selection docked under the canvas, not over it. */}
       <Show when={compact}>
         {() => (
           <div class={canvasClasses.compactStatus} data-docked="">
-            <StatusLine status={status} onOpenLog={props.onOpenLog} />
             <ContextChips status={status} lead={props.context?.()} />
           </div>
         )}

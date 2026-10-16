@@ -430,8 +430,15 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 @container bottom-bar (width < 560px) {
   .msp-shell-canvas-bottomGrid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "corner"
-                         "status";
+    grid-template-areas: "corner";
+    position: relative;
+  }
+
+  .msp-shell-canvas-bottomGrid > .msp-shell-canvas-status {
+    left: 0;
+    right: 0;
+    bottom: calc(100% + var(--msp-space-2));
+    position: absolute;
   }
 }
 

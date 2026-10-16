@@ -100,8 +100,9 @@ buttons) is the app's. The code is the truth for how.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.
 - **Compact** below `compactWidth` (720px) of the shell's own width (`ResizeObserver`, not media queries): the panel is
-  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; the status and
-  the selection dock between canvas and sheet; a card fills the canvas.
+  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; the selection
+  docks between canvas and sheet; a card fills the canvas. The status stays on the canvas: where the bottom bar is
+  narrow it floats above the toolbar's row, so a message coming or going moves nothing.
 - **Glass and canvas ink.** Everything over the canvas is flat glass whose theme follows the canvas background
   (`model/canvas-theme.ts`: relative luminance, threshold 0.179; a gradient averaged by opacity; transparent: the host's
   fallback) and is tinted from the canvas color (`ShellView`'s `ink`, a `CanvasInk`, sets `data-msp-theme` and

@@ -429,13 +429,20 @@
   }
 }
 
-/* Narrow: the corner on a row of its own, above the status. */
+/* Narrow: the corner takes the row; the status floats above it, growing upward, so a message coming and going moves
+   neither the toolbar nor the canvas. */
 @container bottom-bar (width < 560px) {
   .bottomGrid {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "corner"
-      "status";
+    grid-template-areas: "corner";
+  }
+
+  .bottomGrid > .status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + var(--msp-space-2));
   }
 }
 
@@ -698,8 +705,8 @@
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
 }
 
-/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below),
-   as plain full-width rows: no glass, no rounding, a hairline between them. */
+/* Compact: the selection docked between the canvas and the sheet, as plain full-width rows: no glass, no rounding, a
+   hairline between them (the status stays on the canvas: `.bottomGrid`). */
 .compactStatus {
   grid-area: status;
   display: grid;
