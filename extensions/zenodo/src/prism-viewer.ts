@@ -29,13 +29,13 @@ import {
 } from './prism-viewer-stub.js';
 
 declare module '@molstar/prism-viewer/api' {
-  // The `zenodo` area: the extension's own (operations.md §2, extensions add areas).
+  // The `zenodo` area: the extension's own (api.md §2, extensions add areas).
   interface ExtensionApis {
     zenodo: ZenodoApi;
   }
 }
 
-// Zenodo in the Prism viewer (plan 5.2, parity.md §6: Home's import slot; lazy): v5's Zenodo Import as two operations.
+// Zenodo in the Prism viewer (parity.md §6: Home's import slot; lazy): v5's Zenodo Import as two operations.
 // `zenodo.list` reads a record's files from Zenodo's API and says which the viewer reads (by the plugin's data formats,
 // as v5 did); `zenodo.load` loads one through the loaders feature's `load.url`, `load.volume` or `load.trajectory`, as
 // part of its own step (one Undo). Both reach only zenodo.org, which is what their `addresses` say: the agent's policy

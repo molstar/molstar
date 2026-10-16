@@ -159,7 +159,7 @@
 
 .stack {
   /* Compact: 38px, not the panels' 44 (still well over WCAG's 24): the canvas' own buttons stay small beside the
-     molecule (README §3.7). */
+     molecule (accessibility.md). */
   --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
 
   position: relative;

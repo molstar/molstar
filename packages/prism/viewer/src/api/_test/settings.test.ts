@@ -21,7 +21,7 @@ import {
 import type { PrismViewer } from '../../viewer.js';
 import { expectOk, headlessViewer } from '../../_test/harness.js';
 
-// The `settings` area (operations.md §2): the groups over the real params, `get` and `set`, Undo. Behaviors and Viewer
+// The `settings` area (api.md §2): the groups over the real params, `get` and `set`, Undo. Behaviors and Viewer
 // work headless; the canvas groups need a canvas, which a stand-in provides here (there is no WebGL).
 
 function merge(target: any, change: any) {

@@ -9,9 +9,9 @@
 import { describe, expect, it } from 'vitest';
 import { callOf, fixture, tool, toyToolkit } from './helpers.js';
 
-// A dynamic toolkit in a session (decision 25 of the prism-ui spec, `.v6/prism-ui/spec/README.md`; plan track A6):
-// tools added between turns are offered at the next; a lazy skill disclosed during a turn brings its tools in that
-// turn.
+// A dynamic toolkit in a session (decision 25 of the Prism viewer's spec, `packages/prism/viewer/_spec/README.md`; plan
+// track A6): tools added between turns are offered at the next; a lazy skill disclosed during a turn brings its tools
+// in that turn.
 
 const none = { kind: 'object', fields: {} } as const;
 const doubler = (id: string) =>

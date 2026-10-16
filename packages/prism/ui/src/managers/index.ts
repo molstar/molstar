@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The generic managers an app composes (spec library.md §1, README §3.3): DOM-free, no plugin.
+// The generic managers an app composes (spec library.md §1, api.md §11): DOM-free, no plugin.
 
 export * from './history.js';
 export * from './navigation.js';

@@ -9,7 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ApiContext, ApiResult, type OperationDefinition } from '../../api/area.js';
 
-// The `export-session` feature's operation (operations.md §2, the `session` row: "save arrives with export-session"):
+// The `export-session` feature's operation (api.md §2, the `session` row: "save arrives with export-session"):
 // `session.save` serializes the plugin's state with its snapshot manager and hands back the file's bytes; saving it
 // where the person can reach it (a download) is the page's, in the view. It changes nothing in the scene: no history
 // step, nothing to undo.

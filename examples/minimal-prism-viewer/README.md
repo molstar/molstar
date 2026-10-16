@@ -19,7 +19,7 @@ resolves workspace packages to their sources with the `molstar-src` export condi
 ## The composition
 
 [`src/spec.ts`](src/spec.ts) is a `PrismViewerSpec` written out from nothing, not `DefaultPrismViewerSpec()` with parts
-removed ([viewer-spec.md](../../.v6/prism-ui/spec/viewer-spec.md)):
+removed ([viewer-spec.md](../../packages/prism/viewer/_spec/viewer-spec.md)):
 
 | Spec field   | Here                                                                                                                           |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |

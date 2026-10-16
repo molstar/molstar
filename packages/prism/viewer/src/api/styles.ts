@@ -12,7 +12,7 @@ import { PostprocessingParams } from '@molstar/graphics/canvas3d/passes/postproc
 import { PluginConfig } from '@molstar/plugin/config';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 
-// `styles` (operations.md §2): Mol*'s Quick Styles as one operation. A representation style applies a preset to every
+// `styles` (api.md §2): Mol*'s Quick Styles as one operation. A representation style applies a preset to every
 // structure (through `structure.preset`, part of this step); a look sets how everything is lit and outlined (the
 // component options' `ignoreLight`, the canvas's outline and occlusion), as the classic panel does.
 

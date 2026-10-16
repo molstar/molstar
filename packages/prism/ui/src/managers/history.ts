@@ -10,7 +10,7 @@ import { type Observable, Subject } from 'rxjs';
 import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
-// One undo for everything (spec sequence.md §7.2–7.4, README §3.3): every undoable step, a person's call or an agent's
+// One undo for everything (spec sequence.md §7.2–7.4, api.md §11): every undoable step, a person's call or an agent's
 // whole turn, is one entry with a checkpoint taken before it; Undo restores the latest. Generic and DOM-free: the app
 // gives the checkpoints through a `HistoryPort` (the viewer's: the plugin's state and the sequence's).
 //
@@ -25,7 +25,7 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 // - A change outside the history (reported by the app with `invalidate`) makes every earlier step unsafe.
 // - A run that changes nothing undoable (an upload) is no step at all; one that changed nothing (`record` false: "it is
 //   already so") neither.
-// - No redo yet: entries hold only the checkpoint before them.
+// - Redo: Undo checkpoints the state it leaves, and Redo restores it, until a new step clears the list.
 
 /** Who ran it: `person`, `agent` (with its turn), `script`, `url`, `link`; the app's kinds. */
 export interface HistoryOrigin {

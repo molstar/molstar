@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, representationTypes } from '../../_test/harness.js';
 
-// `styles` (operations.md §2): quick styles.
+// `styles` (api.md §2): quick styles.
 
 describe('styles', () => {
   it('applies representation styles as one step each, and looks', async () => {

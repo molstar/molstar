@@ -29,7 +29,7 @@ declare module '../../api/canvas.js' {
   }
 }
 
-// The `canvas-settings` feature (viewer-spec.md §3.1, plan 3.2's first): the Canvas card and the canvas's lighting,
+// The `canvas-settings` feature (viewer-spec.md §3.1): the Canvas card and the canvas's lighting,
 // illumination, camera, clipping and XR operations, added to the core's `canvas` area. Its views are a chunk of their own.
 
 export const CanvasSettingsFeature: ViewerExtension = {
@@ -76,7 +76,7 @@ export const CanvasSettingsFeature: ViewerExtension = {
               category: 'Canvas',
               icon: 'glasses',
               alias: ['xr', 'vr', 'ar', 'webxr', 'headset'],
-              // The command flips it; the operation takes the state wanted (operations.md §1).
+              // The command flips it; the operation takes the state wanted (api.md §1).
               toggle: {
                 key: 'on',
                 current: async () => {

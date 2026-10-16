@@ -2,13 +2,25 @@
 
 `@molstar/prism-viewer`: Mol\*'s viewer on Prism, its new UI, over a real plugin. This spec is for working on or with
 the code without reading all of it: what the package holds, how a call flows through it, the contracts a host or an
-extension relies on, and where the code is. Why the design is so is in
-[.v6/prism-ui/spec](../../../../.v6/prism-ui/spec/README.md) (the decisions, the order of work, the reviews); code
-comments cite its sections (`operations.md §2`, `journal.md §6`). The code is the truth for how.
+extension relies on, where the code is, and the decisions below. Code comments cite these files' sections (`api.md §2`,
+`journal.md §6`, `README decision 30`). The code is the truth for how. The base it builds on:
+[prism-ui's \_spec](../../ui/_spec/README.md); the assistant: [its \_spec](../../assistant/_spec/README.md); what is
+missing: [../../TODO.md](../../TODO.md).
 
-| File                           | What it covers                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| [operations.md](operations.md) | every operation of the default spec: id, title, flags, params (generated from the code; a test keeps it true) |
+| File                             | What it covers                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [viewer-spec.md](viewer-spec.md) | `PrismViewerSpec`: fields, extensions, built-in features, parts and overrides, creation                       |
+| [api.md](api.md)                 | the API: operations, areas, run path, origins, groups, extensions' areas, commands over operations, coverage  |
+| [operations.md](operations.md)   | every operation of the default spec: id, title, flags, params (generated from the code; a test keeps it true) |
+| [targets.md](targets.md)         | the address language: keywords, addresses, query texts; MolQL underneath                                      |
+| [nodes.md](nodes.md)             | node selectors over the state tree                                                                            |
+| [marks.md](marks.md)             | marks on the scene: highlights and what views draw over it                                                    |
+| [state.md](state.md)             | the plugin's state area by area: sources, view models                                                         |
+| [journal.md](journal.md)         | the session record, History, what is kept in the browser                                                      |
+| [sequence.md](sequence.md)       | the sequence viewer (Seq\*) beside the 3D view, the link, the history's rules                                 |
+| [agent.md](agent.md)             | the agent: tools, skills, the account, policies, headless and evals                                           |
+| [parity.md](parity.md)           | v5 → Prism, feature by feature                                                                                |
+| [app.md](app.md)                 | `apps/prism-viewer`, the single file, embedding, URL parameters                                               |
 
 ## Entries
 
@@ -83,3 +95,66 @@ palette's; never the camera or the selection); Redo puts back the state Undo lef
 Headless with `src/_test/harness.ts` (`headlessViewer({ files: [cbs()] })`), no network (stubbed `fetch`), Vitest in
 `_test/` folders; DOM tests opt in with jsdom. Live agent runs are `*.live.ts` (`pnpm test:live`), never unit tests. The
 packed single file is checked by `smoke/browser/prism`.
+
+## Decisions
+
+Numbered as code cites them (`README decision 30`); numbers of dropped decisions are not reused.
+
+- **1. prism-ui is a library, not a framework**: runtime, components, shell, commands, ink, status, theme, params form,
+  the assistant's ports; no modules, no contributions registry, no modes. Apps compose it their own way.
+- **2. Opinionated apps on it**: the viewer (and later stories) owns its features in its own code.
+- **3. No modes**: the viewer and stories are separate apps; a link between them is a navigation.
+- **4. The public package builds the viewer; the app is thin**: `@molstar/prism-viewer` makes the viewer from a spec;
+  `apps/prism-viewer` (private) is the page, URL options, its extension list and the build.
+- **5. Extensions bring their own UI; the viewer overrides it by id**; heavy ones are lazy
+  ([viewer-spec.md](viewer-spec.md) §3–4).
+- **6. Parity with v5 in function, not form**: every v5 feature has a place, each panel designed for its task
+  ([parity.md](parity.md)).
+- **7. The agent can drive the whole viewer and the UI renders the result**: evals run it headless.
+- **8. Commands and tools are two surfaces over one API**, the only way state changes ([api.md](api.md) §11).
+- **9. Targets are MolQL underneath**: permissive text in, MolQL JSON stored and evaluated ([targets.md](targets.md)).
+- **10. Sessions**: `.molx`/`.molj` open and save; the viewer's own state rides in owner-keyed custom state of the
+  plugin's snapshot ([sequence.md](sequence.md) §7); remote states behind a setting.
+- **11. Deployment**: the app (ESM with chunks) on GitHub Pages, and a single-file ESM viewer, CSS included, lazy parts
+  inlined ([app.md](app.md)).
+- **12. Embedding**: `<prism-viewer>` with a shadow root (host CSS stops there), several on a page (`src/element.ts`).
+- **13. Extensions are code in this repository**: the extension API is the viewer's plain types, no stability promise
+  beyond the repository's.
+- **15. Mobile, touch and accessibility are required** ([accessibility.md](../../ui/_spec/accessibility.md)).
+- **16. Not ported**: Volumes & Segmentations (to be redesigned).
+- **18. Hiding part of a structure, two ways**: entity and chain level (`contents.visibility`, left out of the
+  components) and transparency layers over any target (`representation.transparency`, geometry kept) ([api.md](api.md)
+  §2).
+- **19. Tests**: stories with a real plugin and fixtures for every data type; headless integration tests over the API; a
+  smoke of the built single file.
+- **20. Theming is tokens**: a host restyles through `--msp-*` (they cross the shadow root).
+- **21. A session record**: runs, turns and undos kept in a thread, shown in History; in memory by default, kept only
+  when the person asks, never with state ([journal.md](journal.md)).
+- **22. One rxjs surface** (`src/viewer.ts`, `api/`, `sources/`): state is a `ReadonlyState<T>` (synchronous `value`,
+  replays current, emits on change only, never errors; writers private); happenings are non-replaying `Observable`
+  events (a run finished, a turn ended), never kept as state; streams made once and kept on their owner; no callbacks,
+  listener lists or mutable field plus `changed` in public APIs (sources adapt the plugin's). Seq\*'s `SeqState` passes
+  through; the AI packages use no rxjs, the assistant adapts them.
+- **23. Light state in the browser's small stores**: preferences in localStorage, a per-tab light restore in
+  sessionStorage; neither holds data ([journal.md](journal.md) §6).
+- **24. Selective about the plugin's managers**: use the state trees, builders, registries and engine managers; rewrite
+  those with UI-era policy (snapshot list, toasts, layout); call `plugin.state` directly where a manager adds side
+  effects ([state.md](state.md) §5).
+- **25. A dynamic toolkit**: tools and skills added and removed while a session runs (`@molstar/ai` `tools/`,
+  `session/`); the viewer decides what is registered ([agent.md](agent.md) §3).
+- **26. Approvals stay out of the way**: known data services allowed; another address asks (once, this domain, deny);
+  uploads and clearing ask each time ([agent.md](agent.md) §4).
+- **27. Extensions register commands first**: operations with commands and tools, UI only where a view is needed; v5
+  conveniences become commands ([parity.md](parity.md) §6).
+- **28. No changes to the GL layer** (WebGPU is being built): resizes improve at the shell and plugin level. Panels
+  float over the canvas and do not resize it (framing keeps the scene in the visible area, `sources/framing.ts`); only
+  the viewer's own size does. A ResizeObserver on the viewer's element sizes and draws the canvas in the same callback,
+  and an unchanged size is not set again (`sources/canvas-host.ts`).
+- **29. Several viewers on a page**: keys go to the viewer that has focus (`ownsKey`, never the window); stored state is
+  namespaced by `persist.key`, two live viewers with one key are refused (`src/page.ts`).
+- **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
+  ([api.md](api.md) §1).
+- **31. Colorblind-safe and high-contrast palettes** for the UI and the data
+  ([accessibility.md](../../ui/_spec/accessibility.md), [viewer-spec.md](viewer-spec.md) §2.8).
+- **32. Stored data is versioned, collected and shown**: a version on every stored value, collection by age and size, a
+  Storage view with Forget ([journal.md](journal.md) §7).

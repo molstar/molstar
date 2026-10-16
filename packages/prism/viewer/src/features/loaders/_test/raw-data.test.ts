@@ -11,7 +11,7 @@ import { exampleFile, expectOk, headlessViewer } from '../../../_test/harness.js
 import type { PrismViewer } from '../../../viewer.js';
 import { LoadersFeature, loadsFromUrl } from '../index.js';
 
-// parity.md §1 (phase 6): `load.data` (a file's contents as text, base64 or bytes, its format told) and the structure
+// parity.md §1: `load.data` (a file's contents as text, base64 or bytes, its format told) and the structure
 // options of `load.url` and `load.data` (every model, an assembly; v5's `loadAllModelsOrAssemblyFromUrl`), with the
 // URL's `all-models` and `assembly`. No network: `load.url` reads a stubbed `fetch`.
 

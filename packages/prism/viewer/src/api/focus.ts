@@ -18,7 +18,7 @@ import { LanguageParam, TargetParam } from './target-param.js';
 import { duration as cameraDuration } from './camera.js';
 import type { ApiAreaContext } from './area.js';
 
-// `focus` (operations.md §2, plan 2.3): Mol*'s focus (`managers.structure.focus`), the one part of a structure the
+// `focus` (api.md §2): Mol*'s focus (`managers.structure.focus`), the one part of a structure the
 // views dwell on, and, where the host has a canvas, the camera moves to it. View state: no history step
 // (sequence.md §7.3). The focus is the plugin's own state (state.md §3), so a headless viewer has one too.
 

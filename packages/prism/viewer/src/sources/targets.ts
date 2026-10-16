@@ -28,7 +28,7 @@ import {
   toMolqlJson,
 } from '../targets/index.js';
 
-// The target resolver over the plugin (targets.md §1–2, plan 2.1): a target, in any of its forms, compiled to MolQL
+// The target resolver over the plugin (targets.md §1–2): a target, in any of its forms, compiled to MolQL
 // (the `targets/` port) and evaluated on the structures it applies to. Named structure (a state ref or a label), else
 // the one being worked with (`workingStructure`: focused, else the one holding the selection), else every loaded one;
 // the result says which it was. `selection` and

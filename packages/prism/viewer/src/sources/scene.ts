@@ -80,7 +80,7 @@ import { createRepresentationQuick, type RepresentationQuickSource } from './rep
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
 // it changed. A structure's contents (entities, then chains) are computed when first expanded. Every action goes through
-// the API, bound to the person (README §3.3): the tree changes state only by operations.
+// the API, bound to the person (api.md §11): the tree changes state only by operations.
 
 const ReprIcons: Readonly<Record<string, IconName>> = {
   cartoon: 'cartoon',
@@ -532,7 +532,7 @@ export function createSceneSource(
     return n;
   };
 
-  // Volumes and particles (plan 2.5): top-level nodes like structures, their representations as children. Eyes and
+  // Volumes and particles: top-level nodes like structures, their representations as children. Eyes and
   // removes go through `volume.*` and `particles.*`.
   const volumeNode = (v: VolumeRef, name: string): Node => {
     const ref = v.cell.transform.ref;

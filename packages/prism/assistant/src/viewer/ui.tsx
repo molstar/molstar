@@ -25,7 +25,7 @@ import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs }
 import { domainsStorageSource, keptDomains, keysStorageSource } from './storage.js';
 import { createDomainRules } from '@molstar/prism-viewer/agent/policies';
 
-// The assistant in the viewer's page (viewer-spec.md §2.4, plan 4.4): its tab (the model setup, the Inspect rows), the
+// The assistant in the viewer's page (viewer-spec.md §2.4): its tab (the model setup, the Inspect rows), the
 // command menu's Ask row, the turn card under the status line, the Inspector (a page over the app, with its commands);
 // all over the viewer's agent, made with the models the person set up.
 

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { headlessViewer } from '../../_test/harness.js';
 import { applyExtensionPlugin } from '../extension-plugin.js';
 
-// A lazy extension's plugin part (README §3.4): applied whole or not at all, and its undo puts the config back.
+// A lazy extension's plugin part (viewer-spec.md §2.1): applied whole or not at all, and its undo puts the config back.
 
 const make = (name: string, category: 'custom-props' | 'misc') =>
   PluginBehavior.create({

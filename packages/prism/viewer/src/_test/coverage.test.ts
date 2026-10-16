@@ -11,9 +11,9 @@ import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { isLazyExtension } from '../spec.js';
 import { headlessViewer } from './harness.js';
 
-// Coverage (operations.md §4): every operation of the default viewer, the lazy features loaded, has a command or a tool,
-// or says why it has neither (`surface`). Tools come with the agent (plan phase 4); until then a command or a reason.
-// Reads (`def.read`) count as covered: they become the agent's read tools in plan phase 4 (agent.md §3).
+// Coverage (api.md §10): every operation of the default viewer, the lazy features loaded, has a command or a tool,
+// or says why it has neither (`surface`). Reads (`def.read`) count as covered: they are the agent's read tools
+// (agent.md §3).
 
 describe('coverage', () => {
   it('every operation has a command, or says why not', async () => {

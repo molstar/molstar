@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The performance pass's quick cases (.v6/seq/plans/lanes-input-perf.md §4.2; perf-pass-cases.ts), each with its
+// The performance pass's quick cases (seqspec:viewer#performance; perf-pass-cases.ts), each with its
 // positive control: quick-only, as a new hot path's first guard is (packages/sequences/AGENTS.md, Tests). The input
 // storms (the unobserved context menu, the streams with no subscriber and after one unsubscribed) are input.quick.ts's;
 // the strip lanes wrapped-lanes.quick.ts's.

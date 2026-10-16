@@ -15,7 +15,7 @@ import { map, Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, HistoryItem, RunStatus, TurnStatus } from '../model.js';
 import type { ViewerAISettings } from './settings-model.js';
 
-// The assistant's model over the viewer's agent (plan 4.4, agent.md §1): the latest turn from the session's hooks (its
+// The assistant's model over the viewer's agent (agent.md §1): the latest turn from the session's hooks (its
 // text, its calls, waiting for the person), asking with the model chosen in the setup, approvals answered as the turn
 // asks them, Undo turn through the viewer's history (the person's API), and the history as the viewer's History reads
 // the session's record (journal.md §3), read only while something watches it.
@@ -169,7 +169,7 @@ export function createViewerAgentModel(
     decided.clear();
     const status = r.status === 'completed' ? 'done' : r.status === 'stopped' ? 'stopped' : 'failed';
     const text = r.text || t.text || (r.error ?? '');
-    // The finished reply, said once (the card's text streams and is not live; README §3.7).
+    // The finished reply, said once (the card's text streams and is not live; accessibility.md).
     notifications.announce(
       status === 'done' ? `Assistant: ${text || 'done'}` : `Assistant ${status}${text ? `: ${text}` : ''}`,
     );

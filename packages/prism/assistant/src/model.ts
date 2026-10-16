@@ -8,7 +8,7 @@
 
 import type { ReadonlyState } from '@molstar/prism-ui';
 
-/** Who ran a command (design/agent.md §4): shown in the history, so an agent's work is never mistaken for the person's. */
+/** Who ran a command (_spec/README.md, "History"): so an agent's work is never mistaken for the person's. */
 export type RunSource =
   | { kind: 'person' }
   | { kind: 'assistant' }
@@ -43,8 +43,8 @@ export interface CommandRun {
 export type TurnStatus = 'thinking' | 'working' | 'waiting' | 'done' | 'stopped' | 'failed';
 
 /**
- * An agent turn: one request and everything done for it (design/agent.md §5). A checkpoint is taken before its first
- * change; undoing the turn restores it (data, camera, selection), however many commands ran.
+ * An agent turn: one request and everything done for it (_spec/README.md, "The turn card"). A checkpoint is taken
+ * before its first change; undoing the turn restores it (data, camera, selection), however many commands ran.
  */
 export interface AgentTurn {
   id: string;

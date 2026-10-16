@@ -17,7 +17,7 @@ declare module '../../api/area.js' {
   }
 }
 
-// The `measurements` feature (viewer-spec.md §3.1, plan 3.2): the `measure` area over Mol*'s measurement manager, and
+// The `measurements` feature (viewer-spec.md §3.1): the `measure` area over Mol*'s measurement manager, and
 // the Measure section of the Selection tab. Its views are a chunk of their own.
 
 const SelectionTab = 'core.tab.selection';

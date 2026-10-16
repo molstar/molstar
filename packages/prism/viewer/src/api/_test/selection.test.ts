@@ -13,7 +13,7 @@ import { createTargetResolver } from '../../sources/targets.js';
 import type { PrismViewer } from '../../viewer.js';
 import type { RunRecord } from '../run.js';
 
-// `select`, `focus`, `highlight` and `camera` (operations.md §2, plan 2.3) on a headless viewer (no canvas) with 1CBS.
+// `select`, `focus`, `highlight` and `camera` (api.md §2) on a headless viewer (no canvas) with 1CBS.
 
 const selection = (v: PrismViewer) => v.plugin.managers.structure.selection;
 const count = (v: PrismViewer) => selection(v).elementCount();
@@ -322,7 +322,7 @@ describe('camera', () => {
   });
 });
 
-describe('the selection history (gate G5)', () => {
+describe('the selection history', () => {
   it('gets what was added, not the whole selection', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     expectOk(await v.api.select.set({ target: 'ligand' }));

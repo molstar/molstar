@@ -19,9 +19,9 @@ import type { HostActions, HostStructure, StructureColoring } from '../sequence/
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
-// The sequence's side of the viewer (sequence.md §2–§5, plan 2.4): which structure it follows, the parse it shares
+// The sequence's side of the viewer (sequence.md §2–§5): which structure it follows, the parse it shares
 // with the 3D view, and the link's 3D side. Reads come from the plugin here; every write (highlight, selection, focus,
-// the camera, coloring from a track's menu) is an operation with origin `link` (sequence.md §4, review F21), so it is
+// the camera, coloring from a track's menu) is an operation with origin `link` (sequence.md §4), so it is
 // recorded and, where it changes content, a history step.
 
 export interface SequenceSource {

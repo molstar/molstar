@@ -11,7 +11,7 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PrismViewerPluginParts } from '../spec.js';
 
-// A lazy extension's plugin part on the running plugin (README §3.4, "Lazy extensions"): its registry entries
+// A lazy extension's plugin part on the running plugin (viewer-spec.md §2.1, "Lazy extensions"): its registry entries
 // registered (their undo kept), its config set (later wins, as at creation), its behaviors applied to the behavior tree
 // as `initBehaviors()` does, custom properties first. A conflict (a registration, a behavior that is there) throws with
 // nothing left changed: the behaviors are checked first, and what was done is undone when the apply fails. The undo

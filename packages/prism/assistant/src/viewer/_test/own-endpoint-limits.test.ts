@@ -12,8 +12,9 @@ import type { KeyScope, KeyStore } from '../../keys.js';
 import { checkLimits, OwnLimits } from '../../model.js';
 import { createAISettings, type SettingsPrefs } from '../settings-model.js';
 
-// An own OpenAI-compatible endpoint runs turns over the real provider (agent.md §4): its models' limits are the
-// person's, else 32,768 tokens of context and 4,096 of output. The endpoint is a recorded fetch: no network.
+// An own OpenAI-compatible endpoint runs turns over the real provider (_spec/README.md, "The setup"): its models'
+// limits are the person's, else 32,768 tokens of context and 4,096 of output. The endpoint is a recorded fetch:
+// no network.
 
 function memoryKeys(): KeyStore {
   const stored = new Map<string, string>();

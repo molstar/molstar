@@ -12,7 +12,7 @@ import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { extensionOf } from './input.js';
 
-// The loaders' formats (operations.md §1, "Inputs"): `format` is `'auto'` by default, read from the name's extension by
+// The loaders' formats (api.md §1, "Inputs"): `format` is `'auto'` by default, read from the name's extension by
 // Mol*'s format registry (`plugin.dataFormats`: each format's string and binary extensions, `autoOrder` and
 // `isApplicable`, as `DataFormatRegistry.auto` reads them), else from the data (data without a name: a few signatures);
 // whether an address or a file is binary follows from the extension or the format unless given. A format that cannot

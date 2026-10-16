@@ -11,7 +11,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { KeyScope, KeyStore } from '../../keys.js';
 import { checkEndpoint, createAISettings, lazyProvider, type SettingsPrefs } from '../settings-model.js';
 
-// The assistant's model setup (agent.md §4): the choice kept apart from the one in effect, failures said in words.
+// The assistant's model setup (_spec/README.md, "The setup"): the choice kept apart from the one in effect, failures
+// said in words.
 
 function memoryKeys(initial: Record<string, KeyScope> = {}, fail?: 'set' | 'list'): KeyStore {
   const keys = new Map<string, { key: string; scope: KeyScope }>(

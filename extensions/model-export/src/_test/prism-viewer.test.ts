@@ -13,8 +13,8 @@ import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelExportExtension } from '../prism-viewer.js';
 
-// Model export in the Prism viewer (plan 5.2) on a headless viewer: 1CBS (a protein and its retinoic acid, REA) written
-// as mmCIF, BinaryCIF and PDB, each loaded back. No network.
+// Model export in the Prism viewer on a headless viewer (parity.md §6): 1CBS (a protein and its retinoic acid, REA)
+// written as mmCIF, BinaryCIF and PDB, each loaded back. No network.
 
 const cbs = () =>
   new File([readFileSync(new URL('../../../../data/examples/1cbs_updated.cif', import.meta.url))], '1cbs.cif');

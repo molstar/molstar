@@ -12,7 +12,7 @@ import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
 
 /**
- * The selection commands (operations.md §3): select (the form has the mode), the selection's edits, the focus and the
+ * The selection commands (api.md §9): select (the form has the mode), the selection's edits, the focus and the
  * camera on a target. Each runs its operation as the person; none is a history step (sequence.md §7.3).
  */
 export function selectionCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {

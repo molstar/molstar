@@ -35,7 +35,7 @@ import {
   readMeasurements,
 } from './source.js';
 
-// The `measure` area (operations.md §2): Mol*'s measurement manager (`managers.structure.measurement`) as operations.
+// The `measure` area (api.md §2): Mol*'s measurement manager (`managers.structure.measurement`) as operations.
 //
 // A point is the center of what its target selects (Mol* measures between centers): an atom for `A:10@CA`, a residue's
 // or a ligand's center for `A:10` or `ligand`. A target that selects nothing is `invalid`; one that is on several
@@ -43,7 +43,7 @@ import {
 // selection (its additions history, newest first: distance = the last two), as the classic "Distance from the last
 // two picks"; an orientation and a plane take the current selection, as the classic ones do.
 //
-// Identity (operations.md §1, decision 30): a measurement is the same when its kind, its points in order and its text
+// Identity (api.md §1, decision 30): a measurement is the same when its kind, its points in order and its text
 // are (so A→B and B→A are two); adding it again is "already so" unless `copy` asks for another.
 
 export type { MeasureKind, MeasurementInfo } from './source.js';
@@ -239,7 +239,7 @@ export class MeasureApi extends ApiArea {
     id: 'measure.options',
     title: 'Set the measurement options',
     params: {
-      // Each absent: kept (operations.md §1).
+      // Each absent: kept (api.md §1).
       distanceUnitLabel: OptionalParam(PD.Text('Å', { description: 'The unit written after distances (Å)' })),
       textColor: OptionalParam(PD.Text('#000000', { description: 'The text color as #rrggbb' })),
     },
@@ -282,7 +282,7 @@ export class MeasureApi extends ApiArea {
     },
   });
 
-  /** @deprecated The former name of `list` (operations.md §1 "Words"), until the release. */
+  /** @deprecated The former name of `list` (api.md §1 "Words"), until the release. */
   readonly get = this.list;
 }
 

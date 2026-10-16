@@ -12,8 +12,8 @@ import { exampleFile, headlessViewer } from '../../_test/harness.js';
 import { type EvalTask, evalReport, runEval } from '../eval.js';
 import { FirstScope } from './first-scope.js';
 
-// The first eval (plan 4.5) with a scripted model: the runner, the checks and Undo turn, offline. Each task is run by a
-// script that does it right (it passes) and one that does it wrong (its check fails).
+// The first eval (agent.md §6) with a scripted model: the runner, the checks and Undo turn, offline. Each task is run
+// by a script that does it right (it passes) and one that does it wrong (its check fails).
 
 const call = (tool: string, args: Record<string, unknown> = {}) => ({ tool, arguments: args as never });
 const task = (id: string) => FirstScope.find((t) => t.id === id)!;

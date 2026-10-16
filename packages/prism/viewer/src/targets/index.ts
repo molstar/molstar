@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Targets: how the viewer names what it acts on (spec/targets.md). Permissive on the way in, MolQL underneath.
+// Targets: how the viewer names what it acts on (_spec/targets.md). Permissive on the way in, MolQL underneath.
 // DOM-free; imports the model and the query language, never the plugin. Ported from Stories Untold's `any-molql`.
 
 export { compactNumbers, compactResidues, parseAddressList, type AddressResult } from './addresses.js';

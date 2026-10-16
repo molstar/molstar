@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { scanImports, targetFolder } from './import-scan.js';
 
-// What a headless viewer uses is free of the DOM (spec library.md §1, README §3.3): these folders take no value import
+// What a headless viewer uses is free of the DOM (spec library.md §1, api.md §11): these folders take no value import
 // from the folders that touch it (types are fine: a view renderer's type is part of a contract). So no separate core
 // package is needed.
 const src = path.resolve(import.meta.dirname, '..');

@@ -8,7 +8,7 @@
 
 import type { ColorSchemeEntry, SvsRegistryEntry, ThemeRef } from '@molstar/seq-core/format';
 
-// The sequence model's own residue palette (prism-sequence.md §6): the residue classes of Zappo (aliphatic, aromatic,
+// The sequence model's own residue palette (sequence.md §10): the residue classes of Zappo (aliphatic, aromatic,
 // positive, negative, polar, the two special backbones, cysteine), in colder, softer hues, one set for a light ink and
 // one for a dark. A Seq* color scheme registered from the viewer's side (`colorSchemes` of a registry entry): the
 // document names it, the themes and the legend read it; Seq* knows nothing of Prism.

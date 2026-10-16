@@ -14,7 +14,7 @@ import { switchMap } from 'rxjs';
 import type { SequenceViewer, TrackColoring } from './model.js';
 import { classes } from './_generated/track-gutter.module.css.js';
 
-// The tracks' left gutter (prism-sequence.md §9, round 3): a coloring icon per track row that has one (the action of the
+// The tracks' left gutter (sequence.md §8): a coloring icon per track row that has one (the action of the
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
 // tops and heights are read from Seq*'s section layout when the layout is rebuilt, never per frame or pointer move; the
 // row the pointer is over is Seq*'s `interaction.hover` (its track, whatever part of the row), which fires only when

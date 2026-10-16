@@ -14,7 +14,7 @@ import { createDefaultPlugin } from './sources/create-plugin.js';
 import type { PrismViewerSpec } from './spec.js';
 import { createViewerCore, type PrismViewer } from './viewer.js';
 
-// `@molstar/prism-viewer/headless` (viewer-spec.md §6, README §3.3): the same viewer without a DOM: the same API, tools
+// `@molstar/prism-viewer/headless` (viewer-spec.md §6, api.md §11): the same viewer without a DOM: the same API, tools
 // and state account. With `plugin`, a `HeadlessPluginContext` (images) is made by the caller; without, a plain plugin
 // with no canvas, and canvas operations say why they cannot run.
 

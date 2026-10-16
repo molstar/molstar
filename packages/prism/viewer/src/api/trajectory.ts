@@ -15,7 +15,7 @@ import { ApiArea, type ApiContext, ApiResult } from './area.js';
 import { StructureParam, OptionalParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
 
-// `trajectory` (operations.md §2): the models of a structure built from a trajectory (an NMR ensemble, a simulation).
+// `trajectory` (api.md §2): the models of a structure built from a trajectory (an NMR ensemble, a simulation).
 // Its frame is the model index of the structure's model. Moving through frames is viewing, as the classic's arrows are:
 // no history step (sequence.md §7.3), and playing is the plugin's animation of the model index. A structure with one
 // model has no frames: it is not listed, and the operations say `not-found` when no structure has any.
@@ -53,7 +53,7 @@ export class TrajectoryApi extends ApiArea {
 
   readonly frame = this.operation({
     id: 'trajectory.frame',
-    // One operation per state (operations.md §1 "Words"): the model a structure shows; `structure.model` was another.
+    // One operation per state (api.md §1 "Words"): the model a structure shows; `structure.model` was another.
     aliases: ['structure.model'],
     title: 'Show a frame',
     params: {

@@ -15,8 +15,8 @@ import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GeoExportExtension } from '../prism-viewer.js';
 
-// Geometry export in the Prism viewer (plan 5.2) on a headless viewer, which has no canvas: the operation says so. The
-// export itself is checked over a stand-in canvas that hands out the render objects the headless plugin built for
+// Geometry export in the Prism viewer on a headless viewer (parity.md §6), which has no canvas: the operation says so.
+// The export itself is checked over a stand-in canvas that hands out the render objects the headless plugin built for
 // 1CBS (geometry needs no WebGL to read; only texture meshes do). No network.
 
 const cbs = () =>

@@ -18,7 +18,7 @@ import type { ViewerExtension } from '../../spec.js';
 import type { PrismViewer, ViewerPointerEvent } from '../../viewer.js';
 import { ApiArea, type ApiAreaContext, ApiResult } from '../area.js';
 
-// The run path (operations.md §1, api.md §5), through the viewer's API on a headless plugin.
+// The run path (api.md §1, §5), through the viewer's API on a headless plugin.
 
 const dataDir = path.resolve(import.meta.dirname, '../../../../../../data/examples');
 const crambin = () => new File([fs.readFileSync(path.join(dataDir, '1crn.cif'))], '1crn.cif');

@@ -18,7 +18,7 @@ import { sequenceShellUI } from '../shell-ui.js';
 import { headlessViewers, hostStructure } from './fixtures.js';
 
 // The band in the page: which section it mounts (a loaded SeqViewSpec's own, sequence.md §6) and how long its tab stays
-// (prism-sequence.md §2.2). jsdom has no 2D canvas: the surface is a stand-in that records the section it was given.
+// (sequence.md §8). jsdom has no 2D canvas: the surface is a stand-in that records the section it was given.
 
 const surfaces = vi.hoisted(() => [] as { section: string; disposed: boolean }[]);
 vi.mock('@molstar/seq-viewer/canvas', () => ({

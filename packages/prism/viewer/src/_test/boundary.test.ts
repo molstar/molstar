@@ -10,9 +10,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Only `api/`, `sources/` and features' `operations.ts` and `source.ts` read or change the plugin (operations.md §1,
-// contexts.md §7): elsewhere in the viewer, a plugin package is imported for its types only. The mocks (`testing/`),
-// the sequence's first slice (`sequence/`, on molstar-poc until plan 2.4) and stories are outside the rule.
+// Only `api/`, `sources/` and features' `operations.ts` and `source.ts` read or change the plugin (api.md §1,
+// README, Folders): elsewhere in the viewer, a plugin package is imported for its types only. The mocks (`testing/`),
+// the sequence (`sequence/`, on molstar-poc) and stories are outside the rule.
 
 const src = path.resolve(import.meta.dirname, '..');
 const Allowed = ['api', 'sources', 'testing', 'sequence'];
@@ -50,7 +50,7 @@ describe('the viewer', () => {
       const rel = path.relative(src, file);
       const top = rel.split(path.sep)[0];
       if (Allowed.includes(top) || rel.includes('.stories.')) continue;
-      // A feature's operations are API code (operations.md §1), and its `source.ts` a source (state.md §4); the rest of
+      // A feature's operations are API code (api.md §1), and its `source.ts` a source (state.md §4); the rest of
       // a feature reaches the plugin through them.
       if (/^features\/[^/]+\/(operations|source)\.ts$/.test(rel.split(path.sep).join('/'))) continue;
       if (top === 'features' && /\bctx\.plugin\b/.test(fs.readFileSync(file, 'utf8'))) {

@@ -35,7 +35,7 @@ export interface CommandMenuProps {
   prefixes?: readonly CommandMenuPrefix[];
   /** Opens inside this group (the Structure tab's Preset and Styles buttons open theirs). */
   group?: string;
-  /** The assistant (when the spec turns AI on): typed words get an Ask row (design/agent.md §5). */
+  /** The assistant (when the spec turns AI on): typed words get an Ask row (prism-assistant's _spec, "The Ask row"). */
   assistant?: CommandMenuAssistant;
   /**
    * Opened for one command from elsewhere (a component's action): its form is the menu, so Esc (and ⌫ past its first
@@ -140,7 +140,7 @@ export function CommandMenu(props: CommandMenuProps) {
     if (o.kind === 'done') props.onClose();
   });
   onCleanup(() => manager.close());
-  // A modal dialog (README §3.7): Tab stays inside it, and closing it gives the focus back to what opened it.
+  // A modal dialog (accessibility.md): Tab stays inside it, and closing it gives the focus back to what opened it.
   const restore = rememberFocus();
   let menu: HTMLElement | undefined;
   onCleanup(() => restore(menu));
@@ -291,7 +291,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     if (highlight.value >= picks().length) highlight.set(0);
   });
   // The rows rendered: a screenful first, more as the list scrolls or the highlight moves past them, so opening the menu
-  // builds what shows rather than every command (styling.md §5, G8 perf #3). A spacer keeps the scroll height of the
+  // builds what shows rather than every command (styling.md §5). A spacer keeps the scroll height of the
   // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its bind below runs before the
   // input's and the list's, so the list has grown to it by the time they read the highlight.
   const limit = observableState<{ of?: readonly Row[]; n: number }>({ n: Screenful });
@@ -532,8 +532,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
 }
 
 /**
- * The assistant, always at hand under the list (design/agent.md §5): it takes what is typed (⌘↵, or ↵ when no command
- * matches, which it then shows as the default); without a model it opens the setup.
+ * The assistant, always at hand under the list (prism-assistant's _spec/README.md, "The Ask row"): it takes what is
+ * typed (⌘↵, or ↵ when no command matches, which it then shows as the default); without a model it opens the setup.
  */
 function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Observable<boolean>; onAsk(): void }) {
   if (!props.ready)

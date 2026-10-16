@@ -13,7 +13,7 @@ import type { SceneNode } from '../model/scene.js';
 import type { PrismViewerSpec } from '../spec.js';
 import type { PrismViewer } from '../viewer.js';
 
-// The real viewer in a story (plan phase 7: the mocks retired for what is built): `createPrismViewer` over the given
+// The real viewer in a story: `createPrismViewer` over the given
 // spec, the repository's example files loaded through the API, then the story's own steps (open a tab, select, …).
 // Disposed with the story.
 

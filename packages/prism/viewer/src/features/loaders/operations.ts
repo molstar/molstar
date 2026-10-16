@@ -45,12 +45,12 @@ import { type Opened, openSession, SessionOpenParams, sessionAddresses } from '.
 import type { SequenceArchive } from '../../sequence/model.js';
 import { chooseFormat, type FormatChoice, type FormatScope, formatNameOf, providerFor } from '../../api/formats.js';
 
-// The `loaders` feature's operations (operations.md §2, the `load` row; README §3.2): Mol*'s own loaders
+// The `loaders` feature's operations (api.md §2, the `load` row; api.md §5): Mol*'s own loaders
 // (`@molstar/plugin-extension/loaders`: the plugin's state actions and builders) as operations of the core's `load`
-// area. That package declares `@molstar/plugin-ui` (React), which the viewer must not depend on (README §3.2 table), so
+// area. That package declares `@molstar/plugin-ui` (React), which the viewer must not depend on (api.md §5 table), so
 // the few calls are ported here over `@molstar/plugin` directly, with the same state they make. A load that fails
 // returns `failed` and the run's checkpoint restores: nothing half-built. Loading something that is loaded says so
-// instead (decision 30, operations.md §1: identity is the entry id, or the URL).
+// instead (decision 30, api.md §1: identity is the entry id, or the URL).
 
 const network = { modules: ['network'] as const, approval: 'network' as const };
 
@@ -325,7 +325,7 @@ const entry: OperationDefinition<typeof EntryParams, Loaded> = {
 
 // --- load.url, load.data ------------------------------------------------------------------------------------------
 
-/** `binary`, absent: from the extension or the format (operations.md §1, "Inputs"). */
+/** `binary`, absent: from the extension or the format (api.md §1, "Inputs"). */
 const BinaryParam = () =>
   OptionalParam(
     PD.Boolean(false, {
@@ -439,7 +439,7 @@ const urlAddresses = ({ url }: { url?: string }): string[] => (url?.trim() ? [ur
 
 /**
  * `load.url` and `load.data`: the input as a structure (or any data format Mol* reads), its format and whether it is
- * binary told when not given (operations.md §1, "Inputs"), with the structure options. One step; a failure leaves
+ * binary told when not given (api.md §1, "Inputs"), with the structure options. One step; a failure leaves
  * nothing.
  */
 async function loadContent(
@@ -562,7 +562,7 @@ export const MvsParams = {
     description: "'auto': from the name's extension (.mvsj, .mvsx), else the content (a zip is mvsx)",
   }),
   keepCamera: PD.Boolean(false, { description: "Keep the camera as it is, ignoring the MolViewSpec's" }),
-  // v5's `loadMvs*` options (`MVSLoadOptions`, parity review M6).
+  // v5's `loadMvs*` options (`MVSLoadOptions`, parity.md).
   append: PD.Boolean(false, {
     description: "Add the MolViewSpec's snapshots to the Snapshots list instead of replacing the list",
   }),
@@ -840,7 +840,7 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
 // --- load.snapshot ------------------------------------------------------------------------------------------------
 
 /**
- * `session.open` under the loaders' name (the branch review's A6): the same params and the same run (`openSession`), for
+ * `session.open` under the loaders' name (api.md §1, "Inputs"): the same params and the same run (`openSession`), for
  * the app's `snapshot-url` and `snapshot-id` URL options and v5's scripts. New code opens sessions with `session.open`.
  */
 const snapshot: OperationDefinition<typeof SessionOpenParams, Opened> = {

@@ -16,7 +16,7 @@ import { sameItems } from '../../sources/state.js';
 import { watchedState } from '../../sources/watched.js';
 
 // The animations as the views read them (state.md §4, row 2): the plugin's animation manager (the animations
-// registered, which plays) and the structures' procedural animation (the wiggle). Sources by role (contexts.md §7):
+// registered, which plays) and the structures' procedural animation (the wiggle). Sources by role (README, Folders):
 // this one may read the plugin, so the feature's views never do. The animation area owns it (`api.animation.state`);
 // it listens to the plugin only while something watches it (prism AGENTS.md, hidden UI).
 

@@ -8,7 +8,7 @@
 
 import { DefaultNavigators, type PresetEntry } from '@molstar/seq-viewer';
 
-// The sequence model's presets (prism-sequence.md §4): the tracks version without Seq*'s header column (the `strip`
+// The sequence model's presets (sequence.md §8): the tracks version without Seq*'s header column (the `strip`
 // preset's look: `headerWidth` 0), its rail the person's or the host's choice: which navigator, how tall. Registered by
 // the model as a host preset, so Seq* needs no mode of its own.
 

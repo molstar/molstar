@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import { ApiResult } from '../area.js';
 
-// `annotations` (operations.md §2) and Home's loading actions (`load.action`).
+// `annotations` (api.md §2) and Home's loading actions (`load.action`).
 
 describe('annotations', () => {
   it('lists what a structure carries and shows it as one step', async () => {

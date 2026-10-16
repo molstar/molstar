@@ -8,7 +8,7 @@
 
 import type { LazyViewerExtension } from '../../spec.js';
 
-// The heavier features as lazy stubs (viewer-spec.md §3.1, review F44): each declares every part, operation and command
+// The heavier features as lazy stubs (viewer-spec.md §3.1): each declares every part, operation and command
 // it brings, and its `load` imports the feature's module, so importing this list pulls in none of their code. An app
 // that wants one up front lists the feature itself, or sets `preload: true`.
 

@@ -18,7 +18,7 @@ declare module '../../api.js' {
   }
 }
 
-// The `state-tree` feature (viewer-spec.md §3.1, plan 3.2): the State tree tab, and the `state` area over the plugin's
+// The `state-tree` feature (viewer-spec.md §3.1): the State tree tab, and the `state` area over the plugin's
 // data tree: `get`, `remove`, `visibility`, `update`, `action`. Its views are a chunk of their own.
 
 export const StateTreeFeature: ViewerExtension = {

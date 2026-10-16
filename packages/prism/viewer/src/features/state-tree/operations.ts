@@ -16,7 +16,7 @@ import { mergeParams, NodeParam } from '../../api/params.js';
 import { checkValues } from '../../api/run.js';
 import { chainBase, createStateTreeSource, foldChain, type StateCellNode, type StateTreeSource } from './source.js';
 
-// `state` (operations.md §2, the `state-tree` feature): the plugin's state tree for advanced use. `get` reads it and
+// `state` (api.md §2, the `state-tree` feature): the plugin's state tree for advanced use. `get` reads it and
 // `select` lists what a node selector matches (api/nodes.ts); `visibility`, `update` and `remove` change every cell the
 // selector matches, `action` one, and `apply` adds a transform under each, through `plugin.state.data` as the classic
 // tree does. Cells the other areas manage (a structure, a representation) are the same cells: removing a structure
@@ -396,7 +396,7 @@ export class StateApi extends ApiArea {
     },
   });
 
-  // operations.md §2: what a node selector matches, as a list (the tree's reading of a selector; nothing changes).
+  // api.md §2: what a node selector matches, as a list (the tree's reading of a selector; nothing changes).
   readonly select = this.operation({
     id: 'state.select',
     title: 'Find state cells',
@@ -427,7 +427,7 @@ export class StateApi extends ApiArea {
     },
   });
 
-  // operations.md §2: a transform applied under every cell a selector matches (Mol*'s `build().to(ref).apply(...)`);
+  // api.md §2: a transform applied under every cell a selector matches (Mol*'s `build().to(ref).apply(...)`);
   // the new cells' refs are the value. One history step: undo removes them.
   readonly apply = this.operation({
     id: 'state.apply',

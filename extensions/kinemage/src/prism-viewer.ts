@@ -18,8 +18,8 @@ declare module '@molstar/prism-viewer/api' {
   }
 }
 
-// Kinemage (.kin, MolProbity's output) in the Prism viewer (plan 5.2, README decision 27): the plugin gets the format,
-// so `load.files` of a .kin shows it; what the v5 right-panel controls did (groups, masters, views, animate) is
+// Kinemage (.kin, MolProbity's output) in the Prism viewer (parity.md §6, README decision 27): the plugin gets the
+// format, so `load.files` of a .kin shows it; what the v5 right-panel controls did (groups, masters, views, animate) is
 // operations with commands and tools. No view of its own: the controls were buttons and checkboxes over those.
 
 export const KinemageSkill: ViewerSkill = {

@@ -37,7 +37,7 @@ import { sameItems } from '../../sources/state.js';
 import { watchedState } from '../../sources/watched.js';
 import type { QueryLanguage, Scoped } from '../../targets/types.js';
 
-// The `superpose` area (operations.md §2, state.md: "the algorithms move out of the view into the API"): each operation
+// The `superpose` area (api.md §2, state.md: "the algorithms move out of the view into the API"): each operation
 // superposes structures onto a reference (the first) and records the transforms as one history step, so Undo puts them
 // back. The algorithms are the classic Superposition panel's, DOM-free; the transform is Mol*'s own
 // `TransformStructureConformation` tagged `SuperpositionTransform`, so the panel and this API leave the same state.
@@ -496,7 +496,7 @@ export class SuperposeApi extends ApiArea {
       const made = readSuperposed(ctx.plugin);
       if (!made.length) return ApiResult.already('No structure is superposed.');
       let doomed = made;
-      // An empty remove is the only one (operations.md §1 "Words"); `all` clears.
+      // An empty remove is the only one (api.md §1 "Words"); `all` clears.
       if (!structure && !every && made.length > 1) {
         return ApiResult.fail(
           'ambiguous',

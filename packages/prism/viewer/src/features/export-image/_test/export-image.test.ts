@@ -19,7 +19,7 @@ import { createImageExportModel, imageValues } from '../model.js';
 // The page's save is stubbed: the command hands the operation's bytes to it.
 vi.mock('../../../ui/download.js', () => ({ downloadBlob: vi.fn() }));
 
-// The `export-image` feature (operations.md §2, `export`): its operations on a stand-in `ViewportScreenshotHelper`
+// The `export-image` feature (api.md §2, `export`): its operations on a stand-in `ViewportScreenshotHelper`
 // (the real one needs a canvas, WebGL and a page: what it renders is not tested here).
 
 const Crop = { x: 0.1, y: 0.2, width: 0.5, height: 0.4 };

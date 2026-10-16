@@ -14,7 +14,7 @@ import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import { ApiArea, type ApiAreaContext, ApiResult } from '../../api/area.js';
 import type { LazyViewerExtension, ViewerExtension } from '../../spec.js';
 
-// The extension API (viewer-spec.md §3–§4, plan 3.1): eager and lazy extensions, stubs, replay, overrides.
+// The extension API (viewer-spec.md §3–§4): eager and lazy extensions, stubs, replay, overrides.
 
 /** A behavior that does nothing, for the plugin part of a lazy extension. */
 const Quiet = PluginBehavior.create({

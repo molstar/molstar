@@ -16,7 +16,7 @@ import { EveryStructureParam, OptionalParam, StructureParam } from './params.js'
 import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 
-// `camera` (operations.md §2, plan 2.3): view state, never a history step (sequence.md §7.3). `reset`, `frame` (a
+// `camera` (api.md §2): view state, never a history step (sequence.md §7.3). `reset`, `frame` (a
 // target), `zoom`, `orient`, `set` (position, target, up: v5's camera info, parity.md; the projection is `canvas.camera`'s) and `get`. What moves the camera needs the canvas (`modules: ['canvas']`); a headless
 // viewer says so instead of running.
 
@@ -300,7 +300,7 @@ export function parseVec(value: unknown): Vec3 | undefined | null {
   return Vec3.create(parts[0], parts[1], parts[2]);
 }
 
-/** The camera's animation, or a cut when not asked for or where the person prefers reduced motion (README §3.7). */
+/** The camera's animation, or a cut where not asked for or the person prefers reduced motion (accessibility.md). */
 export function duration(ctx: { modules: { has(key: 'page'): boolean } }, animate = true): number {
   return !animate || (ctx.modules.has('page') && prefersReducedMotion()) ? 0 : ZoomDurationMs;
 }

@@ -10,7 +10,7 @@ import type { LegendItem, LegendRamp } from '@molstar/prism-ui';
 import { type ColorSchemeEntry, type ColorStop, KernelColorSchemes, schemeLegend } from '@molstar/seq-core/format';
 import { PrismResidues, SecondaryLegendItems } from './palette.js';
 
-// What the colors of the letters mean (prism-sequence.md §6): read from the color scheme the model chose, its public
+// What the colors of the letters mean (sequence.md §10): read from the color scheme the model chose, its public
 // definition (`KernelColorSchemes`), in Prism's `Legend` terms. Seq*'s own legend model stays inside its UIs.
 
 export interface SequenceLegend {

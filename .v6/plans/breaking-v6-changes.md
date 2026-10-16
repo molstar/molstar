@@ -655,7 +655,7 @@ valid expression after JSON serialization. Passing flags explicitly preserves th
 
 ## Planned: with the classic UI's retirement (Prism)
 
-Not made in v6: both remove public API, Prism ([../prism-ui/README.md](../prism-ui/README.md)) needs neither, and the
+Not made in v6: both remove public API, Prism ([its spec](../../packages/prism/viewer/_spec/README.md)) needs neither, and the
 UI-only maps are still filled and read by the classic UI and its extensions. They land when the classic UI is retired,
 each with a migration note.
 

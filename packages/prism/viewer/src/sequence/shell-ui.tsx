@@ -20,7 +20,7 @@ import type { SequenceViewers } from './model.js';
 import type { MarksView } from '../sources/marks.js';
 import { SequenceControl } from './sequence-control.js';
 
-// The sequence's parts in the page's shell (prism-sequence.md §2.2): its commands, the legend card, the band (a tab of
+// The sequence's parts in the page's shell (sequence.md §8): its commands, the legend card, the band (a tab of
 // the top dock, there from the first document in until the host shows no structure; the first one shows it) and its
 // canvas button. In the sequence's chunk (`runtime.ts`): the shell mounts them once the runtime is in, as a structure is
 // first shown.

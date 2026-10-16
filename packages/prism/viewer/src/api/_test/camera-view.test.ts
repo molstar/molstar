@@ -166,7 +166,7 @@ describe('view.expand and view.fullscreen', () => {
     expectOk(await v.api.view.expand({ on: true }));
     expect(nav.expanded.value).toBe(true);
     expect(nav.state.value.card).toBeUndefined();
-    // The state wanted, never a toggle (operations.md §1): asked again, it is already so.
+    // The state wanted, never a toggle (api.md §1): asked again, it is already so.
     expect(await v.api.view.expand({ on: true })).toMatchObject({ ok: true, unchanged: true });
     expect(await v.api.view.expand({})).toMatchObject({ ok: true, unchanged: true });
     expectOk(await v.api.view.expand({ on: false }));

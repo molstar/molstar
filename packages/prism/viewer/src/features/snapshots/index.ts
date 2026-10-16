@@ -12,7 +12,7 @@ import type { ViewerExtension } from '../../spec.js';
 import { SnapshotApi } from './operations.js';
 
 declare module '../../api/area.js' {
-  // The `snapshot` area (operations.md §2): the plugin's snapshot manager as operations.
+  // The `snapshot` area (api.md §2): the plugin's snapshot manager as operations.
   interface BuiltInApis {
     snapshot: SnapshotApi;
   }

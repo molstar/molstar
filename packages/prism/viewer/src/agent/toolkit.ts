@@ -22,7 +22,7 @@ import { type AgentViewer, operationTool, tool, toolResult, type ViewerAgentApi 
 export type { SkillDeclaration } from './skills.js';
 
 // The core and the skills (agent.md §3): a small core from the first turn (Stories' is about 24 tools); the rest in
-// skills, disclosed on request. A skill over a lazy feature is a lazy skill (plan track A6): in the catalog by its
+// skills, disclosed on request. A skill over a lazy feature is a lazy skill (README decision 25): in the catalog by its
 // summary; disclosing it loads the feature, then its tools. A tool whose operation the viewer does not have (a feature
 // left out of the spec) is left out of its skill, and a skill with none is left out.
 

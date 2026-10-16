@@ -11,9 +11,9 @@ import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { type DockId, DockIds } from './view-state.js';
 
-// What is open in the UI (spec README §3.3, §3.6): each dock's active tab and whether it is collapsed, the card over
-// the canvas and its section, the page over the app, and a tab shown at a section. DOM-free and serializable; the view
-// operations (`view.open`) and a light restore write it, `ShellModel` and the views read it.
+// What is open in the UI (api.md §11, prism-viewer README decision 22): each dock's active tab and whether it is
+// collapsed, the card over the canvas and its section, the page over the app, and a tab shown at a section. DOM-free
+// and serializable; the view operations (`view.open`) and a light restore write it, `ShellModel` and the views read it.
 
 export interface DockNavigation {
   readonly active: string | undefined;
@@ -32,7 +32,7 @@ export interface NavigationState {
   /** In a compact rail: whether its column is shown. */
   readonly railOpen: boolean;
   /**
-   * The canvas fills the viewer: the rail, the docks and the sequence band are hidden (operations.md §2, `view.expand`;
+   * The canvas fills the viewer: the rail, the docks and the sequence band are hidden (api.md §2, `view.expand`;
    * v5's Expand). Opening a dock leaves it. Not kept (a view of the moment).
    */
   readonly expanded: boolean;

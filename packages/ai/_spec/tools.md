@@ -112,7 +112,7 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
   without a label is never read by its text).
 - `coreDefinitions()`, `allDefinitions()`, `placementOf(id)`, `groupEntry(x)`, `disclosureTools()` serve the session and
   compaction.
-- **Dynamic** (Prism's [spec/README.md](../../../.v6/prism-ui/spec/README.md) decision 25):
+- **Dynamic** (Prism's [\_spec/README.md](../../prism/viewer/_spec/README.md) decision 25):
   `toolkit.add({ tools, core, groups, entries })` adds a part after creation (the same checks; a conflict throws and
   changes nothing) and returns its removal; `version`, `onChange`, `registration(id)` (bindings made over the toolkit
   resolve at call time), `removed()` (tools it no longer has: compaction drops their definitions, the eviction hint) and

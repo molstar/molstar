@@ -11,7 +11,7 @@ import { type ApiContext, type ApiFailure, type ApiModuleKey, ApiResult } from '
 import { FileParam, filesOf } from './files.js';
 import { OptionalParam } from './params.js';
 
-// One loading vocabulary (operations.md §1, "Inputs"; the branch review's A6): an operation that reads content takes
+// One loading vocabulary (api.md §1, "Inputs"): an operation that reads content takes
 // exactly one of `url`, `data` (text, `'base64,…'`, or bytes) and `file`, each optional; none or several is `invalid`.
 // `inputOf` checks the shape and says which one was given; `contentOf` reads it. What Mol* builds from it (a download,
 // raw data, a read file) is the loader's.

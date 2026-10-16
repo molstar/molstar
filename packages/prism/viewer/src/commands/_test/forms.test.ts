@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer } from '../../_test/harness.js';
 
-// Commands over operations, as the command menu runs them (operations.md §3; gate G3/G4 UX): the target is asked for;
+// Commands over operations, as the command menu runs them (api.md §9): the target is asked for;
 // fields that default (a structure left empty, a language, a mode) do not stop the run.
 
 describe('operation commands', () => {

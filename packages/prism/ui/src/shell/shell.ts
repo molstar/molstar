@@ -113,7 +113,7 @@ export interface ShellLayout {
 
 export interface ShellOptions {
   /**
-   * The layout's state (spec README §3.3): docks, sizes, mode, rail, buttons. Given, the shell reads and writes it and
+   * The layout's state (api.md §11): docks, sizes, mode, rail, buttons. Given, the shell reads and writes it and
    * the options below that it holds are ignored; absent, the shell makes one from them.
    */
   viewState?: ViewStateManager;
@@ -283,7 +283,7 @@ const LayoutKeys = ['tabs', 'size', 'floating', 'pinned'] as const;
 
 /**
  * The frame around the canvas: the parts registered into it (tabs, overlays, pages, sections, toolbar items) and what
- * a person does with them (show, select, move, resize, open a card). Its state is two managers' (spec README §3.3):
+ * a person does with them (show, select, move, resize, open a card). Its state is two managers' (api.md §11):
  * `viewState` (the layout) and `navigation` (what is open), so an app keeps, restores and drives them without a view.
  */
 export class ShellModel extends ReactiveModel {

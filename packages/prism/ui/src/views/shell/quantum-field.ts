@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The empty canvas's splash as a quantum system (beside prism-field.ts, the same surface; design/shell.md): the light is
+// The empty canvas's splash as a quantum system (beside prism-field.ts, the same surface; shell.md §1): the light is
 // a wave, ψ on a 128 × 128 grid round the star, moved on by the Schrödinger equation (ħ = m = 1, H = −∇²/2 + V) with the
 // split-step Fourier method: half a step of the potential, the kinetic step in momentum space (an FFT there and back),
 // the other half. Emitters at the left radiate wave packets, each of its own wavenumber (its color), the flow as strong

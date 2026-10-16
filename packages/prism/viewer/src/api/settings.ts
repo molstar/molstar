@@ -11,7 +11,7 @@ import { readSettings, SettingsMapping, type SettingsGroupId, type SettingsGroup
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
 import { changeWords } from './change-words.js';
 
-// `settings` (operations.md §2, parity.md §5, plan 3.3): the Settings tab's groups over the plugin's real params
+// `settings` (api.md §2, parity.md §5): the Settings tab's groups over the plugin's real params
 // (Canvas3D, its context, the interactivity manager, the behaviors) and the viewer's own (Undo). `settings.get` reads
 // them; `settings.set` changes one group's values (partial values are merged into the group's current ones) as a
 // history step: its checkpoint holds the canvas props and the behaviors, so Undo restores them. The canvas context's

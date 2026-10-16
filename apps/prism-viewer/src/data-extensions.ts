@@ -22,7 +22,7 @@ import { SbNcbrPartialChargesColorThemeProvider } from '@molstar/sb-ncbr-extensi
 import { SbNcbrPartialCharges } from '@molstar/sb-ncbr-extension/partial-charges/behavior';
 import { wwPDBChemicalComponentDictionary } from '@molstar/wwpdb-extension/ccd/behavior';
 
-// Mol*'s data-only extensions in the Prism viewer (plan 5.2, parity.md §6, README decision 27): what each registered
+// Mol*'s data-only extensions in the Prism viewer (parity.md §6, README decision 27): what each registered
 // for the v5 plugin (its behavior: custom properties, color themes, representations, presets, formats), nothing of
 // their own in the API or the UI. They are reached through the generic commands and tools (`representation.color`
 // with the theme's name, `load.files` for a format, `load.action` for a plugin action); what a structure carries of
@@ -110,7 +110,7 @@ export const DataOnlyExtensions: readonly ViewerExtension[] = [
     title: 'SB NCBR',
     // Partial charges (a model property, a color theme, a preset, labels) and the tunnels actions and preset.
     // Not its tunnels: their preset fetches from a service the agent's policy does not know, through the core preset
-    // operation, outside the step (G7).
+    // operation, outside the step (agent.md §4).
     plugin: { registry: [], behaviors: Behaviors(SbNcbrPartialCharges) },
     annotations: [
       themeAnnotation(SbNcbrPartialChargesColorThemeProvider, {

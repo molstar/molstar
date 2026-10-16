@@ -50,7 +50,7 @@ export const PrismViewerOptions = {
       ['secondary-zoom', 'Zoom only, secondary button'],
       ['disabled', 'Off'],
     ]),
-    /** README §3.7: the categorical themes' colors (`canvas.palette`). */
+    /** accessibility.md: the categorical themes' colors (`canvas.palette`). */
     palette: PD.Select<'prism' | 'classic' | 'colorblind'>(
       'prism',
       [

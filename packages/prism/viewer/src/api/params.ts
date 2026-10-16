@@ -28,14 +28,14 @@ export const ComponentParam = (description = 'A component by label or state ref;
   PD.Text('', { description });
 
 /**
- * A value an operation can leave as it is (operations.md §1): absent, it is kept; `checkValues` leaves it out (Mol*'s
+ * A value an operation can leave as it is (api.md §1): absent, it is kept; `checkValues` leaves it out (Mol*'s
  * `PD.Optional`). Its type stays the param's own, so read it in `run` as possibly undefined.
  */
 export function OptionalParam<P extends PD.Any>(p: P): P {
   return { ...p, isOptional: true };
 }
 
-/** A switch's value (operations.md §1): off, or on with its settings, only those given set (the rest keep theirs). */
+/** A switch's value (api.md §1): off, or on with its settings, only those given set (the rest keep theirs). */
 export type SwitchValue<S extends PD.Params = PD.Params> =
   | { readonly name: 'off'; readonly params?: Record<string, never> }
   | { readonly name: 'on'; readonly params?: Partial<PD.Values<S>> };
@@ -46,7 +46,7 @@ export type SwitchParamDef<S extends PD.Params> = Omit<PD.Mapped<any>, 'defaultV
 };
 
 /**
- * A switch with settings (operations.md §1), as Mol*'s own on/off props are: `{ name: 'off' }` or `{ name: 'on', params
+ * A switch with settings (api.md §1), as Mol*'s own on/off props are: `{ name: 'off' }` or `{ name: 'on', params
  * }`, each setting optional (given: set, absent: keep); the whole switch absent keeps it as it is.
  */
 export function SwitchParam<S extends PD.Params>(settings: S, info?: PD.Info): SwitchParamDef<S> {
@@ -78,7 +78,7 @@ const isPlain = (x: unknown): x is Record<string, any> =>
   !!x && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 
 /**
- * Nodes of the state tree (operations.md §1 "Nodes", `api/nodes.ts`): a selector such as
+ * Nodes of the state tree (api.md §1 "Nodes", `api/nodes.ts`): a selector such as
  * `component[label=Ligand] > representation[type=ball-and-stick]`, `#ref`, or a ref alone; in scripts also `node(...)`.
  */
 export function NodeParam(description = 'Nodes by selector (representation[type=cartoon], #ref) or a state ref') {

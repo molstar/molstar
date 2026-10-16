@@ -18,7 +18,7 @@ import { LazyZenodo } from '@molstar/zenodo-extension/prism-viewer-stub';
 import { DataOnlyExtensions } from './data-extensions.js';
 
 /**
- * Mol*'s extensions the app ships, after the viewer's built-in features (viewer-spec.md §5, app.md §1, plan phase 5):
+ * Mol*'s extensions the app ships, after the viewer's built-in features (viewer-spec.md §5, app.md §1):
  * those with operations and views, the heavy ones lazy (their stubs: the chunk loads on first use), then the data-only
  * ones (their plugin parts and annotations).
  */

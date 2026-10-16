@@ -21,7 +21,7 @@ import type { AgentTurn, HistoryItem } from '../../model.js';
 import { createViewerAgentModel } from '../agent-model.js';
 import type { ViewerAISettings } from '../settings-model.js';
 
-// The assistant's model over the viewer's agent (plan 4.4) on a headless viewer with a scripted model: no network.
+// The assistant's model over the viewer's agent (agent.md §1) on a headless viewer with a scripted model: no network.
 
 const cbs = () =>
   new File(

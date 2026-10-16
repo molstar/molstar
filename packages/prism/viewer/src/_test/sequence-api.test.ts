@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { sequenceCommands } from '../sequence/commands.js';
 import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 
-// The `sequence` area's operations (api/sequence.ts, operations.md §2, sequence.md §6), headless.
+// The `sequence` area's operations (api/sequence.ts, api.md §2, sequence.md §6), headless.
 
 describe('the sequence API', () => {
   it('colors the letters as a step: set, already so, and Undo restores', async () => {

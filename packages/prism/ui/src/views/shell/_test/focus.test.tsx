@@ -16,9 +16,9 @@ import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
 import { StatusModel } from '../../../shell/status.js';
 import { ShellView } from '../shell-view.js';
 
-// The keyboard in the shell (README §3.7): the rail's tabs are a tab list, a closed panel gives the focus to its tab,
-// an overlay card opened from the keyboard takes the focus and gives it back when it closes; the one live region says
-// what is announced.
+// The keyboard in the shell (accessibility.md): the rail's tabs are a tab list, a closed panel gives the focus to its
+// tab, an overlay card opened from the keyboard takes the focus and gives it back when it closes; the one live region
+// says what is announced.
 
 const frame = () => new Promise((r) => setTimeout(r, 32));
 

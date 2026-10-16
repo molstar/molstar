@@ -12,7 +12,7 @@ import type { OperationFn, ViewerApi } from '../api/area.js';
 import { filePickers, filesOf } from '../api/files.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 
-// Commands over operations (operations.md §3): one command per operation by default, with the operation's id, title
+// Commands over operations (api.md §9): one command per operation by default, with the operation's id, title
 // and params (resolved as the API describes them, so registry-driven params are current); its form is the params'
 // form, with file pickers for file values. It runs the operation through the API bound to the person, says why it
 // cannot run when the operation says so, and its result line is what the status column says.
@@ -31,7 +31,7 @@ export interface OperationCommandOptions {
   /** Values fixed for this command; the form shows the rest. */
   readonly values?: Readonly<Record<string, unknown>>;
   /**
-   * A switch the command flips (operations.md §1: operations take the state wanted, commands toggle): `key` is set to
+   * A switch the command flips (api.md §1: operations take the state wanted, commands toggle): `key` is set to
    * the other of `current()` when it runs, and is not asked for.
    */
   readonly toggle?: { readonly key: string; readonly current: () => boolean | Promise<boolean> };

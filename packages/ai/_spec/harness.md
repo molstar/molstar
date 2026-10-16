@@ -220,7 +220,7 @@ strategies (the harness has the edit; the session has the strategy), garbage col
 
 ## 18. How Prism hosts it
 
-`@molstar/prism-viewer`'s `src/agent/` (`.v6/prism-ui/spec/agent.md`):
+`@molstar/prism-viewer`'s `src/agent/` (`packages/prism/viewer/_spec/agent.md`):
 
 - **Tools are the viewer's operations**: a PD param set becomes a tool's field shapes (`paramsShape`); a tool runs the
   operation as a person's command would, with the origin `agent`.

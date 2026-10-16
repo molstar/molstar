@@ -11,9 +11,9 @@ import { PrismSecondaryColors } from './palette.js';
 import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import type { StructureFormat } from '@molstar/seq-molstar-poc';
 
-// The document the sequence model builds (prism-sequence.md §3): one view with one section over a `molstar:structure`
+// The document the sequence model builds (sequence.md §3): one view with one section over a `molstar:structure`
 // complex whose file the host already parsed; with no blocks the section takes every polymer unit in order, then the
-// ligands. The theme (§6) is written into it: Seq*'s themes draw the colors.
+// ligands. The theme (§10) is written into it: Seq*'s themes draw the colors.
 
 /** The complex's ref in the document, and the name the link maps the 3D structure onto. */
 export const ComplexRef = 'structure';

@@ -129,8 +129,9 @@ function ToolButton(props: {
     map(([a, b]) => a || b),
     distinctUntilChanged(),
   );
-  // The menu button pattern (README §3.7): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a button
-  // that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the next button.
+  // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a
+  // button that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the
+  // next button.
   const expanded = withMenu?.open.asReadonly.pipe(
     map((o) => o?.item === item),
     distinctUntilChanged(),
@@ -557,9 +558,9 @@ function OverlayCard(props: { shell: ShellModel }) {
   const { shell } = props;
   /** The overlay open now (the card lives while one is). */
   const current = () => shell.overlay.value as OpenOverlay;
-  // A card is a dialog (README §3.7: cards trap and restore focus): opened from the keyboard, the focus goes into it;
-  // Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to the button
-  // of the last card opened.
+  // A card is a dialog (accessibility.md: cards trap and restore focus): opened from the keyboard, the focus goes into
+  // it; Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to the
+  // button of the last card opened.
   let anchor = current().anchor as HTMLElement | undefined;
   const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');
@@ -656,7 +657,7 @@ export const KindIcons: Record<MessageKind, IconName> = {
 /** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
 export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
-  // One polite live region for results (README §3.7): the latest message only, not the tasks' progress or the
+  // One polite live region for results (accessibility.md): the latest message only, not the tasks' progress or the
   // assistant's streamed words (its card says when a turn is done).
   return (
     <div class={classes.status}>

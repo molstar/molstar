@@ -17,7 +17,7 @@ import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
 import { OptionalParam, StructureParam } from './params.js';
 import { isFailure, labelOf, oneStructure } from './scope.js';
 
-// `sequence` (operations.md §2, sequence.md §6): the one sequence viewer's style (Tracks or Text), the letters' colors,
+// `sequence` (api.md §2, sequence.md §6): the one sequence viewer's style (Tracks or Text), the letters' colors,
 // which structure it follows, the tracks' rail. Its style and colors are the sequence's state, saved with snapshots
 // (`prism-viewer.sequence`), so changing them is a step; following is view state. Present only when the spec has a
 // sequence (viewer-spec.md §2.3).

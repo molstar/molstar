@@ -61,7 +61,7 @@ describe('the agent policy', () => {
   it('asks for an address it cannot read whole, and for a network operation that does not say what it reaches', () => {
     const p = createAgentPolicy({ checkpointing: observableState(true).asReadonly });
     const net = op({ approval: 'network', addresses: ({ url }) => [url] });
-    // The forms that slipped past a check of top-level `scheme://` strings (G6).
+    // The forms that slip past a check of top-level `scheme://` strings (agent.md §4).
     for (const url of [' https://evil.example/x.cif', '//evil.example/x.cif', 'evil.example/x.cif', 'rcsb.org/x.cif']) {
       expect(p.approves(net, { url }), url).toBe(false);
     }

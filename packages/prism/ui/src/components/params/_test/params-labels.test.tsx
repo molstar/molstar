@@ -29,7 +29,7 @@ function nameOf(el: Element): string {
   return el.getAttribute('aria-label')?.trim() ?? '';
 }
 
-describe('ParamsForm labels (README §3.7, WCAG 4.1.2)', () => {
+describe('ParamsForm labels (accessibility.md, WCAG 4.1.2)', () => {
   it('names every control by its row label', () => {
     const form = new ParamsFormModel({
       pdbId: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'The entry to load' }),

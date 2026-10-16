@@ -45,8 +45,8 @@ export interface StatusChip {
 /**
  * What the status line on the canvas shows: the latest message (it fades after a while; errors stay until dismissed),
  * running tasks, and chips (selection, focus). Keeps a bounded history for the log overlay. The viewer's
- * `managers.notifications` (spec README §3.3, §3.6: `current`, `tasks`, `chips`; `posted`); `StatusModel` is its
- * older name, kept for the views.
+ * `managers.notifications` (api.md §11, prism-viewer README decision 22: `current`, `tasks`, `chips`; `posted`);
+ * `StatusModel` is its older name, kept for the views.
  */
 export class NotificationsManager extends ReactiveModel {
   readonly #current = observableState<StatusMessage | undefined>(undefined);
@@ -83,8 +83,8 @@ export class NotificationsManager extends ReactiveModel {
   }
 
   /**
-   * What the shell's one polite live region says (README §3.7): the latest message posted or announced. A repeat of the
-   * same words differs by a trailing no-break space, so it is said again.
+   * What the shell's one polite live region says (accessibility.md): the latest message posted or announced. A repeat
+   * of the same words differs by a trailing no-break space, so it is said again.
    */
   get spoken(): ReadonlyState<string> {
     return this.#spoken.asReadonly;

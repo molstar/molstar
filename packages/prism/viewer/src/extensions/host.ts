@@ -32,7 +32,7 @@ import type {
 import { isLazyExtension } from '../spec.js';
 import type { Overrides } from './overrides.js';
 
-// The extensions of a viewer (viewer-spec.md §3–§4, README §3.1): each activated in the list's order. An eager one
+// The extensions of a viewer (viewer-spec.md §3–§4): each activated in the list's order. An eager one
 // brings its API areas, operations into core areas (built-in features only), commands, annotations, and views when a
 // page attaches. A lazy one is its stub until first use: its operations (in its own areas, or a built-in feature's in a
 // core area), commands and views exist from the start as stubs; the first use loads the chunk (a task in the status
@@ -99,7 +99,7 @@ export class ExtensionHost {
   readonly #activated = new Subject<string>();
   readonly #failed = new Subject<{ id: string; message: string }>();
   #port: ExtensionUIPort | undefined;
-  /** Who brought each area an extension added (operations.md §2: an extension names its own areas, once). */
+  /** Who brought each area an extension added (api.md §2: an extension names its own areas, once). */
   readonly #areaOwners = new Map<string, string>();
   /** Set by `dispose`: a load in flight then stops at its next step and undoes what it did. */
   #disposed = false;

@@ -15,7 +15,7 @@ import { InteractivityManager } from '@molstar/plugin/state/manager/interactivit
 import type { IconName, ReadonlyState } from '@molstar/prism-ui/core';
 import { watchedState } from './watched.js';
 
-// The Settings tab's groups (parity.md §5, operations.md §2 `settings`): Canvas3D's params, the canvas context's,
+// The Settings tab's groups (parity.md §5, api.md §2 `settings`): Canvas3D's params, the canvas context's,
 // the interactivity manager's and the behaviors' params, mapped into groups by intent so no param is lost. The mapping
 // is one table (`SettingsMapping`): what it does not name lands in Advanced, so a param added to Canvas3D shows up
 // there. This file reads the plugin; the API (`api/settings.ts`) writes it.

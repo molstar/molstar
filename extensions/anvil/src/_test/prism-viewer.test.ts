@@ -17,7 +17,7 @@ import { AnvilExtension } from '../prism-viewer.js';
 import { MembraneOrientation } from '../prop.js';
 import type { MembraneOrientationProps } from '../representation.js';
 
-// ANVIL in the Prism viewer (plan 5.2) on a headless viewer: 1GRM (gramicidin A, a channel in the membrane, two
+// ANVIL in the Prism viewer on a headless viewer (parity.md §6): 1GRM (gramicidin A, a channel in the membrane, two
 // 16-residue chains), 1CBS (a soluble protein: ANVIL still places a membrane, as it does for any protein) and a .gro
 // (no protein chains it can use). Computed locally; no network.
 

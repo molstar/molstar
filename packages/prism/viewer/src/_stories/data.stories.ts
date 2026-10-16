@@ -12,7 +12,7 @@ import mvsFocus1cbs from '../../../../../data/examples/mvs/1cbs-focus.mvsj?raw';
 import { RealViewerStory } from '../testing/real-viewer.js';
 import type { PrismViewer } from '../viewer.js';
 
-// One story per kind of data (plan 2.5, decision 19): each opens the data as the person would (RCSB's files, as a
+// One story per kind of data (README decision 19): each opens the data as the person would (RCSB's files, as a
 // dropped file is) and calls the API for what shows it, then leaves the viewer usable. Most reach the network (RCSB,
 // PDBe); tests never do.
 

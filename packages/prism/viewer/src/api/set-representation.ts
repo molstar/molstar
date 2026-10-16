@@ -12,7 +12,7 @@ import { mergeParams } from './params.js';
 import { checkValues } from './run.js';
 import { isFailure } from './scope.js';
 
-// "Set a representation type with patched params" (operations.md §2), the one core of `representation.set`,
+// "Set a representation type with patched params" (api.md §2), the one core of `representation.set`,
 // `volume.representation` and `particles.representation`: the type exists, applies to the data (the hint lists the types
 // that do), the patch is checked against the type's params (`checkValues`), then the representations of that type that
 // exist are updated (equality by the type's params, the merge of `mergeParams`), else one is created.

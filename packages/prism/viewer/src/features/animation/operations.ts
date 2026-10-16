@@ -30,7 +30,7 @@ import {
   type WiggleMode,
 } from './source.js';
 
-// The `animation` feature's operations (operations.md §2): the plugin's animation manager as `play` (an animation by
+// The `animation` feature's operations (api.md §2): the plugin's animation manager as `play` (an animation by
 // name and its params) and `stop`, and the structures' procedural animation as `wiggle`. Playing is a presentation, not
 // an edit: no history step (sequence.md §7.3), and the history leaves the state it changes alone (sources/trajectory.ts,
 // `isViewing`). Wiggle changes representation state, so it is a step, and Undo restores it.
@@ -45,7 +45,7 @@ const listed = (list: readonly RegisteredAnimation[]) =>
   list.map((a) => `${shortName(a.name)} (${a.display.name})`).join(', ');
 
 /**
- * The animation a name means (operations.md §2): its full id exactly (`built-in.animate-camera-spin`), else the id
+ * The animation a name means (api.md §2): its full id exactly (`built-in.animate-camera-spin`), else the id
  * without its namespace (`animate-camera-spin`), else its display name ("Camera Spin"), the last two in any
  * case. A name several animations answer to is `ambiguous`, one none does `not-found`. No name is the one playing, else
  * the only one registered, else `invalid`: the manager's "current" is the first registered until something plays, so it

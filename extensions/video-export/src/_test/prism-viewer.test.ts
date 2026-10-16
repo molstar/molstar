@@ -16,8 +16,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cropOf, VideoExportExtension } from '../prism-viewer.js';
 import { LazyVideoExport, VideoCommands, VideoOperations } from '../prism-viewer-stub.js';
 
-// The video export in the Prism viewer (plan 5.2) on a headless viewer: no canvas, so no frame is rendered (WebGL and
-// WebCodecs are the browser's); what is tested is the stub, the load, the checks before rendering and the refusals.
+// The video export in the Prism viewer on a headless viewer (parity.md §6): no canvas, so no frame is rendered (WebGL
+// and WebCodecs are the browser's); what is tested is the stub, the load, the checks before rendering and the refusals.
 
 const viewers: PrismViewer[] = [];
 afterEach(async () => {

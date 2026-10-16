@@ -18,7 +18,7 @@ import { isFailure, labelOf, someStructures } from './scope.js';
 import { LanguageParam, TargetParam } from './target-param.js';
 import type { ResolveOptions } from './targets.js';
 
-// `select` (operations.md §2, plan 2.3): the selection of Mol*'s structure selection manager, as view state: no history
+// `select` (api.md §2): the selection of Mol*'s structure selection manager, as view state: no history
 // step (sequence.md §7.3, `history: false`). Every edit is computed per structure as the selection it should end as
 // (`next`), compared with the current one ("already so" when it is the same), and written through the manager, so
 // the markers, the sequence and the labels follow as for a click. Targets are exact: Mol*'s picking granularity does

@@ -18,7 +18,7 @@
     color-scheme: light;
     --msp-color-bg: #eeece7;
     --msp-color-text: #332b1f;
-    /* The accent and the status colors are also text: each at least 4.5:1 on a panel (README §3.7). */
+    /* The accent and the status colors are also text: each at least 4.5:1 on a panel (accessibility.md). */
     --msp-color-accent: #995103;
     --msp-color-accent-strong: #974102;
     --msp-color-danger: #c4091f;
@@ -30,7 +30,7 @@
     /* Shades go toward this color: darker on light themes, lighter on dark ones. */
     --msp-shade: #000;
     /* How far muted and subtle text go toward the background: as far as they can while they keep 4.5:1 (muted on
-       controls and hover fills, subtle on panels; README §3.7). */
+       controls and hover fills, subtle on panels; accessibility.md). */
     --msp-mix-muted: 24%;
     --msp-mix-subtle: 31%;
     /* The logo's colors, left to right (the wordmark's flash). */
@@ -68,7 +68,7 @@
     color-scheme: dark;
     --msp-color-bg: #2d3e50;
     --msp-color-text: #edf1f2;
-    /* Lighter than the classic blue theme's, for 4.5:1 as text on the mid-tone panels (README §3.7). */
+    /* Lighter than the classic blue theme's, for 4.5:1 as text on the mid-tone panels (accessibility.md). */
     --msp-color-accent: #77b6e5;
     --msp-color-accent-strong: #ffffff;
     --msp-color-danger: #ff9083;
@@ -90,7 +90,7 @@
     --msp-color-brand-4: #79bfe6;
   }
 
-  /* High contrast (README §3.7, decision 31): black and white, a yellow accent, and (below) borders and muted text
+  /* High contrast (accessibility.md, decision 31): black and white, a yellow accent, and (below) borders and muted text
      that keep their contrast. */
   [data-msp-theme="contrast"] {
     color-scheme: dark;

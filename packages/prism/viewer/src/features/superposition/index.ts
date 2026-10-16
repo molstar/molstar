@@ -15,7 +15,7 @@ import type { ViewerExtension } from '../../spec.js';
 import { SuperposeApi } from './operations.js';
 
 declare module '../../api.js' {
-  // The `superpose` area (operations.md §2): superposing structures by chains, TM-align, ligands, atoms or UniProt.
+  // The `superpose` area (api.md §2): superposing structures by chains, TM-align, ligands, atoms or UniProt.
   interface ExtensionApis {
     superpose: SuperposeApi;
   }

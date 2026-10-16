@@ -9,7 +9,7 @@
 import { type CanvasInk, parseColor } from '@molstar/prism-ui/core';
 import { DarkSkin, DefaultSkin, type Skin } from '@molstar/seq-viewer';
 
-// The sequence view's colors from the canvas ink (prism-sequence.md §5): Seq*'s skin, written from the ink's theme and
+// The sequence view's colors from the canvas ink (sequence.md §9): Seq*'s skin, written from the ink's theme and
 // background and Prism's palette for that theme (`theme.css`: the text and accent colors of the light and dark
 // themes). Nothing reads the DOM or CSS: the same ink gives the same skin in a story, a shadow root and a test.
 

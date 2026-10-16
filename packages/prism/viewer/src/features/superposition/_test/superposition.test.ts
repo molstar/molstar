@@ -19,7 +19,7 @@ import { SuperpositionFeature } from '../index.js';
 import { createSuperpositionModel } from '../model.js';
 import type { SuperposeApi } from '../operations.js';
 
-// The `superposition` feature (operations.md §2, `superpose`): each operation superposes structures onto the first and is
+// The `superposition` feature (api.md §2, `superpose`): each operation superposes structures onto the first and is
 // one history step. The fixtures are copies of one file, one of them moved by a known transform, so the answer is known:
 // the transform undoes the move and the RMSD is zero. No canvas here (the camera is not touched).
 

@@ -12,7 +12,7 @@ import type { MarkdownHost } from '@molstar/prism-ui';
 import type { ViewerApi } from '../../api/area.js';
 import type { MarkdownSource } from './source.js';
 
-// The descriptions' markdown host (B1): Mol*'s markdown extensions behind prism-ui's `Markdown`, as v5's
+// The descriptions' markdown host (parity.md §4): Mol*'s markdown extensions behind prism-ui's `Markdown`, as v5's
 // `controls/markdown.tsx` puts them behind react-markdown. Command links run through `snapshot.link` (the person's
 // API); images come from the snapshot area's markdown source (the audio player has its own bar in the card). The
 // inline renderers are v5's defaults (color swatch, color palette); an extension's own `reactRenderFn` is React and is

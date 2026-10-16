@@ -17,7 +17,7 @@ import type { PrismViewer } from '../../../viewer.js';
 import { chooseFormat, type FormatScope, formatNameOf } from '../../../api/formats.js';
 import { LoadersFeature } from '../index.js';
 
-// One loading vocabulary (operations.md §1, "Inputs"; the branch review's A6): `format` is 'auto' by default, told by
+// One loading vocabulary (api.md §1, "Inputs"): `format` is 'auto' by default, told by
 // Mol*'s format registry from the name's extension (else the data), binary told from the extension or the format; each
 // loader takes exactly one of url, data (text or bytes) and file; `session.open` takes them or a state server's id, and
 // `load.snapshot` is the same operation. Nothing reaches the network: `fetch` is stubbed.

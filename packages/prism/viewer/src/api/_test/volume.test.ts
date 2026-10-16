@@ -12,7 +12,7 @@ import type { PrismViewer } from '../../viewer.js';
 import type { VolumeInfo } from '../volume.js';
 import { mapFile } from './volume-fixtures.js';
 
-// `volume` (operations.md §2, plan 2.5) on a headless viewer, over small CCP4 maps made in memory.
+// `volume` (api.md §2) on a headless viewer, over small CCP4 maps made in memory.
 
 const infos = async (v: PrismViewer) => {
   const r = await v.api.volume.list();

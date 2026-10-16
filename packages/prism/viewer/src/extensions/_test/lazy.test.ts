@@ -16,7 +16,7 @@ import type { LazyViewerExtension, PrismViewerSpec, ViewerExtension, ViewerExten
 import type { PrismViewer, ViewerCore } from '../../viewer.js';
 import type { ExtensionUIPort } from '../host.js';
 
-// Lazy loading, all or nothing (viewer-spec.md §3–§4; gate G3/G4): stubs in core areas, a failed activation undone, a
+// Lazy loading, all or nothing (viewer-spec.md §3–§4): stubs in core areas, a failed activation undone, a
 // loaded extension held to its stub, overrides for every part, files loading what owns them.
 
 const open: PrismViewer[] = [];
