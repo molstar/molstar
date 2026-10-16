@@ -9,7 +9,7 @@
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
 import { archiveLoaders, type FormatResult, type Loaders, type SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { StructureSource } from '@molstar/seq-molstar-poc';
+import type { StructureSource } from './molstar/source.js';
 import {
   createSeqViewer,
   type Scheduler,

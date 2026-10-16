@@ -9,14 +9,14 @@
 import { readFileSync } from 'node:fs';
 import { OrderedSet } from '@molstar/core/data/int';
 import { StructureElement } from '@molstar/model/model/structure';
-import { type ChainInstance, chainsOf, readStructure, structureOf } from '@molstar/seq-molstar-poc';
+import { type ChainInstance, chainsOf, readStructure, structureOf } from '../../sequence/molstar/index.js';
 import { describe, expect, it } from 'vitest';
 import { selectionSummary } from '../selection.js';
 
 // The selection bar's summary over a recorded structure (1TUP: p53 and DNA chains, zinc ions): one thing is named, more
 // are counted by kind, nothing is nothing.
 
-const FILE = '../../../../../sequences/molstar-poc/_test/fixtures/structures/1tup.bcif';
+const FILE = '../../sequence/molstar/_test/fixtures/structures/1tup.bcif';
 
 describe('the selection summary', () => {
   const setup = async () => {

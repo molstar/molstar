@@ -11,7 +11,7 @@ import { type Structure, StructureElement } from '@molstar/model/model/structure
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import type { StructureFormat, StructureSource } from '@molstar/seq-molstar-poc';
+import type { StructureFormat, StructureSource } from '../sequence/molstar/source.js';
 import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';

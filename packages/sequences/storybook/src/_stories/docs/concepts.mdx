@@ -187,7 +187,7 @@ Focus, the UI state sent with a prompt, is a different thing.)
 **Loci** are many locations of one kind, held compactly: positions of a unit, cells of an
 alignment, rows, columns, items. Seq\*'s loci are the model's, as Mol\*'s are its structures'. To
 reach Mol\*, an event's positions go out with their coordinate system named; `@molstar/seq-core/translate`
-maps them to the host's own system (chain A's residues in the loaded structure), and the planned
-`@molstar/seq-molstar-poc` adapter turns them into a Mol\* `StructureElement.Loci`; a Mol\* hover comes back
+maps them to the host's own system (chain A's residues in the loaded structure), and the Mol\* adapter
+(`@molstar/prism-viewer/sequence/molstar`) turns them into a Mol\* `StructureElement.Loci`; a Mol\* hover comes back
 the same way. The interface between A and D, selected once, is one set of runs on chains A and D of
 the `1brs` complex, and one loci on the Mol\* side.

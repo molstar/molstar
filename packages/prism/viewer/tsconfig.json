@@ -32,7 +32,7 @@
       "path": "../../sequences/viewer"
     },
     {
-      "path": "../../sequences/molstar-poc"
+      "path": "../../io"
     },
     {
       "path": "../../mvs/runtime"

@@ -149,7 +149,7 @@ export interface SmokeCase {
   readonly allow?: readonly AllowedWarning[];
   /** The story streams: after its steps the stream manager has asked for regions, and none failed. */
   readonly streams?: true;
-  /** False: the story registers the structure extension itself (`@molstar/seq-molstar-poc`), so the fixture entries stay out. */
+  /** False: the story registers the structure extension itself (`@molstar/prism-viewer/sequence/molstar`), so the fixture entries stay out. */
   readonly fixtureStructures?: false;
 }
 

@@ -9,7 +9,7 @@
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { PrismSecondaryColors } from './palette.js';
 import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { StructureFormat } from '@molstar/seq-molstar-poc';
+import type { StructureFormat } from './molstar/source.js';
 
 // The document the sequence model builds (sequence.md §3): one view with one section over a `molstar:structure`
 // complex whose file the host already parsed; with no blocks the section takes every polymer unit in order, then the

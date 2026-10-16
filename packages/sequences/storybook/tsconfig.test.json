@@ -1,6 +1,6 @@
 {
   "extends": "../../../tsconfig.base.json",
-  // _test (no emit).
+  // _test and scripts (no emit).
   "compilerOptions": {
     "strict": true,
     "strictPropertyInitialization": true,
@@ -15,14 +15,19 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "webxr", "vite/client"]
   },
-  "include": ["_test"],
+  "include": ["_test", "scripts"],
   "references": [
     { "path": "../core" },
     { "path": "../viewer" },
     { "path": "../nightingale" },
-    { "path": "../molstar-poc" },
     { "path": "../../core" },
     { "path": "../../io" },
-    { "path": "../../prism/ui" }
+    { "path": "../../model" },
+    { "path": "../../query-language" },
+    { "path": "../../plugin/core" },
+    { "path": "../../mvs/builder" },
+    { "path": "../../mvs/runtime" },
+    { "path": "../../prism/ui" },
+    { "path": "../../prism/viewer" }
   ]
 }

@@ -15,12 +15,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ModelArchiveExtension, PlddtTrack } from '../prism-viewer.js';
 
 // Model Archive's quality in the Prism viewer on a headless viewer (parity.md §6): AlphaFold DB's P04637 model
-// (recorded, Seq*'s fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
+// (recorded, the Prism viewer's Mol* adapter fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
 
 const fixture = (path: string, name: string) => new File([readFileSync(new URL(path, import.meta.url))], name);
 const alphafold = () =>
   fixture(
-    '../../../../packages/sequences/molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
+    '../../../../packages/prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
     'AF-P04637-F1.bcif',
   );
 const cbs = () => fixture('../../../../data/examples/1cbs_updated.cif', '1cbs.cif');

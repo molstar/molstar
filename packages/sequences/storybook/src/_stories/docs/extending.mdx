@@ -131,7 +131,7 @@ the registration issues (`seqql.symbol.namespace`, `.duplicate`, `seqql.alias.re
 A symbol that evaluates also needs a runtime: a `QueryExtension` (`namespace`, `symbols`,
 `runtimes`, letter-class tables) for `@molstar/seq-core/model/query`. The viewer has no registry kind for query
 extensions yet: a host passes its own `QueryExtension` to the query environment it runs queries with.
-`@molstar/seq-molstar-poc`'s `molstarQueryExtension` is one: `(molql "resn ZN around 3")` runs a Mol\*
+The Mol\* adapter's `molstarQueryExtension` (`@molstar/prism-viewer/sequence/molstar`) is one: `(molql "resn ZN around 3")` runs a Mol\*
 selection on the linked structure, and the host passes Mol\*'s own selection as `(input structure)`
 (the Mol\* story's query panel).
 

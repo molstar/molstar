@@ -8,7 +8,7 @@
 
 // Two renderings of one document linked both ways, the Seq* viewer's and Nightingale's (the Introduction page's pair): the
 // hover and the selection of one light the other, and a zoom or a pan of one moves the other to the same range. The
-// shape of molstar-poc's `linkViews` (seqspec:libraries#the-mol-adapter): Nightingale is a host of the viewer, its
+// shape of the Mol* adapter's `linkViews` (Prism's) (seqspec:libraries#the-mol-adapter): Nightingale is a host of the viewer, its
 // events are the viewer's `host:nightingale` moves, and nothing a side hears from the other is sent back to it.
 //
 // The viewer's replays and carries are no one's move (seqspec:interaction#replays-and-carries): the viewport's and the

@@ -12,8 +12,12 @@ The code is the truth for how.
   interaction through the link (§4), content through sequence behaviors (§3). Actions on the 3D view go through the
   viewer's API (§5).
 - **The viewer owns the sequence as its own feature** (`src/sequence/`), not an extension: no new package, no prism-ui
-  abstraction; prism-ui stays free of Seq\*. Dependencies: `@molstar/seq-viewer`, `@molstar/seq-core`,
-  `@molstar/seq-molstar-poc` (`StructureLink`, `linkViews`, `MolstarSvsEntry`).
+  abstraction; prism-ui stays free of Seq\*. Dependencies: `@molstar/seq-viewer`, `@molstar/seq-core`.
+- **The Mol\* adapter is the viewer's** (`src/sequence/molstar/`, exported as `@molstar/prism-viewer/sequence/molstar`;
+  its contract is Seq\*'s `libraries.md` § The Mol\* adapter): structures read headless as Seq\* complexes, the
+  structure formats, services and providers (`MolstarSvsEntry`; `afdb_pae` among the formats), the link
+  (`StructureLink`, registered on the Seq\* viewer's `ctx.systems`, and `linkViews`) and SeqQL over Mol\*. The Seq\*
+  Storybook's Mol\* demo imports it through the export; its MVS composition and bare plugin are the demo's own.
 - **The sequence model owns every Seq\* context** (`createSequenceViewers`, `sequence/model.ts`), keyed by id with
   `'default'` the only one: one sequence viewer, switched between Text and Tracks. It takes what it follows as plain
   arguments (the ink, the host structure, the actions, a scheduler): no DOM, no plugin, testable headless.

@@ -23,7 +23,8 @@ Read by the core's, the viewer's and the Storybook's tests and stories. Tests ne
   (`[{"predicted_aligned_error": [[…]], "max_predicted_aligned_error": 31.75}]`, Å to one decimal). Not a prediction:
   made from `1brs.json` by a deterministic formula, low within each folded chain, high to and from barnase's first 47
   residues (its signal peptide and propeptide) and across the chains, but for a lower patch between the residues near
-  1BRS's contacts. Case 8 and `@molstar/seq-molstar-poc`'s PAE test read it.
+  1BRS's contacts. Case 8 and the Mol\* adapter's PAE test (Prism's,
+  `packages/prism/viewer/src/sequence/molstar/_test/pae.test.ts`) read it.
 
 - `variation-P04637-ends.json`: eight of P04637's Proteins API variants
   (https://www.ebi.ac.uk/proteins/api/variation/P04637, fetched 2026-10-14; CC BY 4.0) with the response's `accession`

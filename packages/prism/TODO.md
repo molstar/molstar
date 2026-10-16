@@ -79,7 +79,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
   a host's own bindings in Help ([parity.md §4–6](viewer/_spec/parity.md)).
 - Targets: `src/targets/` beside `@molstar/query-language`, so MolViewSpec and stories share it; a schema field for
   alternate locations (query text only today, [targets.md §5](viewer/_spec/targets.md)); SeqQL's `molstar.select` reads
-  with Mol\*'s transpilers, not the viewer's target compiler (`packages/sequences/molstar-poc/src/query.ts`).
+  with Mol\*'s transpilers, not the viewer's target compiler (`viewer/src/sequence/molstar/query.ts`).
 - The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
   test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
   on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring (Show in 3D,

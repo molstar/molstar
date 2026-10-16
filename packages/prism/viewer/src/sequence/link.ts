@@ -8,8 +8,8 @@
 
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { Extents } from '@molstar/seq-core/model';
-import { StructureLink } from '@molstar/seq-molstar-poc';
-import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from '@molstar/seq-molstar-poc/viewer';
+import { StructureLink } from './molstar/link.js';
+import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from './molstar/link-views.js';
 import type { MarksView } from '../sources/marks.js';
 import { lociSize } from '@molstar/seq-viewer';
 import type { SequenceViewer } from './model.js';

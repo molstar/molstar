@@ -27,8 +27,8 @@ biology at application level, never in the core.
   `SystemRegistry` (`viewer/src/systems.ts`), which runs on the viewer's `state` and the shown set.
 - The `Coordinates` type (runs by system key) and `coordinatesOf` live in `viewer/src/systems.ts` and
   `viewer/src/projection.ts`.
-- A Mol\* structure registers its complex system through a viewer's `ctx.systems` (`molstar-poc/src/link.ts`, Prism's
-  `sequence/link.ts`).
+- A Mol\* structure registers its complex system through a viewer's `ctx.systems`
+  (`packages/prism/viewer/src/sequence/molstar/link.ts`, Prism's `sequence/link.ts`).
 
 Move these into core, as a `@molstar/seq-core/systems` entry or into `/translate`: a registry over a `SeqSet` with no
 viewer, which reports changes through a plain callback; `Coordinates` and its conversions to and from loci and `Extents`
@@ -251,7 +251,7 @@ its canvas: a limitation. The design: a `pointerType` int on `PointerInput`; wra
 `touch-action: pan-y`, so a touch drag scrolls the page or the box; a long press (about 450 ms within the slop) starts a
 selection drag, and a tap selects as a click. _Trigger:_ a touch host, or a reader on a tablet.
 
-**The Mol\* adapter** (moving to Mol\*'s repository):
+**The Mol\* adapter** (now the Prism viewer's, `packages/prism/viewer/src/sequence/molstar/`):
 
 - `molql` returning one group per chain, not one group (`seqspec:libraries#the-mol-adapter`);
 - the query result line names units by `label_asym_id`; chain naming is to be solved on the host's side;

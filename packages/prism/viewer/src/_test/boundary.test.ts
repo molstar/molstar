@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 // Only `api/`, `sources/` and features' `operations.ts` and `source.ts` read or change the plugin (api.md §1,
 // README, Folders): elsewhere in the viewer, a plugin package is imported for its types only. The mocks (`testing/`),
-// the sequence (`sequence/`, on molstar-poc) and stories are outside the rule.
+// the sequence (`sequence/`, its Mol* adapter in `sequence/molstar/`) and stories are outside the rule.
 
 const src = path.resolve(import.meta.dirname, '..');
 const Allowed = ['api', 'sources', 'testing', 'sequence'];

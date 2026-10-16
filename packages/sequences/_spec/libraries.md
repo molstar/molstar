@@ -77,8 +77,10 @@ on the model only and keeps the registry the stateless model does not; the viewe
 
 ## The Mol\* adapter
 
-`@molstar/seq-molstar-poc`, a proof of concept, is the Seq\* package that reads Mol\*'s structures. It reads them
-headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs in a page, in Node and on a server.
+The adapter reads Mol\*'s structures for Seq\*. It is Mol\*'s, not a Seq\* package: it lives in the Prism viewer
+(`@molstar/prism-viewer/sequence/molstar`, `packages/prism/viewer/src/sequence/molstar`), whose sequence view is made on
+it, and the Seq\* Storybook's Mol\* demo imports it from there. It reads structures headless with Mol\*'s parsers (no
+canvas, no plugin UI), so its format half runs in a page, in Node and on a server.
 
 - **Formats and services**: `mmcif`, `bcif`, `pdb`, `sdf`, `mol2`, `afdb_pae`; `pdbe` (`structure`, `sifts`) and `afdb`
   (`structure`, `pae`). A file is parsed once; a host that parsed it for its 3D view shares the parse. Sequence and
@@ -118,11 +120,12 @@ headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs
   link's own mapping (a SeqQL result back in 3D included) is always exact.
 - **SeqQL**: `molstar.select` (`molql`) runs a PyMOL (or VMD, Jmol, MolScript) selection on the linked structure and
   returns its residues on their units; `(input structure)` reads Mol\*'s selection passed by the host.
-- **MVS**: the structure, its colors (as MVS annotation tables), sticks and a selection's label go to the 3D view as an
-  MVS state; highlight, select and focus go as Mol\* loci through the plugin glue. The polymer can take a Mol\* color
-  theme by name in place of its base color (`colorTheme`, one the plugin has registered). `ligandComps` names the
-  ligands shown, by chemical component id: residues of a non-polymer entity that is not an ion, so a polymer's modified
-  residue is never drawn as a ligand and an ion is drawn once, as an ion; absent, every ligand; empty, none.
+- **MVS** (the Storybook's Mol\* demo, a host of the adapter: `storybook/src/_stories/support`): the structure, its
+  colors (as MVS annotation tables), sticks and a selection's label go to the 3D view as an MVS state; highlight, select
+  and focus go as Mol\* loci through the demo's plugin glue. The polymer can take a Mol\* color theme by name in place
+  of its base color (`colorTheme`, one the plugin has registered). `ligandComps` names the ligands shown, by chemical
+  component id: residues of a non-polymer entity that is not an ion, so a polymer's modified residue is never drawn as a
+  ligand and an ion is drawn once, as an ion; absent, every ligand; empty, none.
 - **The viewer half** (`/viewer`): a track's colors as drawn, host actions ("Show in 3D"), and linking a viewer to a
   Mol\* plugin; `/plugin` mounts Mol\* as a canvas only, MolViewSpec's registry entries and the host's own beside them
   (`registry`: the color themes and representations its MVS states name).

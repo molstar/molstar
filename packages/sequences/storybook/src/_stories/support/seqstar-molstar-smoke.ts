@@ -7,15 +7,15 @@
  */
 
 // The `Seq*/Mol* › p53` story's document for the smoke test (seqstar-smoke.ts): the demo's document over the committed
-// fixtures, read through the test's `readFile`, with `@molstar/seq-molstar-poc`'s format half registered. No React. The
-// package is imported by a name held in a variable, so the packages that type-check this file (the smoke test's) do not
-// type-check Mol*'s sources with their own settings (only `@molstar/seq-molstar-poc` builds against tsconfig.molstar.json).
+// fixtures, read through the test's `readFile`, with the Mol* adapter's format half registered (Prism's,
+// `@molstar/prism-viewer/sequence/molstar`). No React. The adapter is imported by a name held in a variable, so the
+// smoke test loads it only when it runs this case.
 
 import type { SvsRegistryEntry } from '@molstar/seq-core/format';
-import { P53_STRUCTURES, p53DemoDoc, p53Loaders } from '../../../../molstar-poc/_test/p53-demo.js';
+import { P53_STRUCTURES, p53DemoDoc, p53Loaders } from './seqstar-p53-demo.js';
 import type { SmokeCase, SmokeEnv } from './seqstar-smoke.js';
 
-const MOLSTAR = '@molstar/seq-molstar-poc';
+const MOLSTAR = '@molstar/prism-viewer/sequence/molstar';
 interface Molstar {
   readonly MolstarSvsEntry: SvsRegistryEntry;
   structureUrl(ref: { source: { service: string; id: string } }): { url: string } | null;
@@ -34,7 +34,7 @@ export async function p53MolstarCase(env: SmokeEnv): Promise<SmokeCase> {
       structures.set(
         url,
         env.readFile(
-          `packages/sequences/molstar-poc/_test/fixtures/structures/${FILES[s.source.id] ?? s.source.id}.bcif`,
+          `packages/prism/viewer/src/sequence/molstar/_test/fixtures/structures/${FILES[s.source.id] ?? s.source.id}.bcif`,
         ),
       );
   }
@@ -44,9 +44,9 @@ export async function p53MolstarCase(env: SmokeEnv): Promise<SmokeCase> {
     loaders: p53Loaders({
       structures,
       fasta: `>sp|P04637|P53_HUMAN\n${sequence}\n`,
-      features: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/P04637.json')),
-      variants: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/variation-P04637.json')),
-      ptms: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/P04637-ptms.tsv')),
+      features: text(env.readFile('packages/sequences/storybook/_test/fixtures/p53/P04637.json')),
+      variants: text(env.readFile('packages/sequences/storybook/_test/fixtures/p53/variation-P04637.json')),
+      ptms: text(env.readFile('packages/sequences/storybook/_test/fixtures/p53/P04637-ptms.tsv')),
     }),
     registry: [{ svs: MolstarSvsEntry }],
     fixtureStructures: false,

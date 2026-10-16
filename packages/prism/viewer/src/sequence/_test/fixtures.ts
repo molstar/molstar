@@ -8,17 +8,17 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { readStructure, structureOf } from '@molstar/seq-molstar-poc';
 import { manualScheduler } from '@molstar/seq-viewer';
 import { fixtureMeasurer } from '@molstar/seq-viewer/testing';
 import { fixedInk, observableState } from '@molstar/prism-ui';
 import type { SequenceBehavior } from '../behaviors.js';
 import { createSequenceViewers, type HostActions, type HostStructure } from '../model.js';
+import { readStructure, structureOf } from '../molstar/index.js';
 
-// Headless host for the sequence model: Seq*'s molstar-poc recorded structures (the p53 demo's PDBe BinaryCIF files),
+// Headless host for the sequence model: the Mol* adapter's recorded structures (the p53 PDBe BinaryCIF files),
 // read from disk; no network, no new fixture.
 
-const FIXTURES = path.resolve(import.meta.dirname, '../../../../../sequences/molstar-poc/_test/fixtures/structures');
+const FIXTURES = path.resolve(import.meta.dirname, '../molstar/_test/fixtures/structures');
 
 /** A recorded structure as the host would give it: its parse and the structure its 3D view draws. */
 export async function hostStructure(id: '1tup' | '2ocj' | '1c26' = '1tup'): Promise<HostStructure> {

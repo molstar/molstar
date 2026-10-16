@@ -7,7 +7,7 @@
  */
 
 // The `Seq*/Cases/Mol*` demo: a Mol* canvas (a plugin, no Mol* UI) beside the Seq*
-// viewer over the p53 document (p53-demo.ts). What 3D shows is state here, `Shown`: a structure and the track coloring
+// viewer over the p53 document (seqstar-p53-demo.ts). What 3D shows is state here, `Shown`: a structure and the track coloring
 // it (null: its own default, pLDDT for the AlphaFold model, none for a PDB entry). Each change composes an MVS state
 // from the viewer's state at that moment (`composeStructureView`) and loads it; the structure is then linked to the
 // viewer: hover and selection both ways, a selection focusing the other view. "Show in 3D" comes from the hover card
@@ -18,33 +18,17 @@
 import { compileQuery, createQueryEnv, SeqSelection } from '@molstar/seq-core/model/query';
 import { bindQuery, readQuery, renderIssue } from '@molstar/seq-core/query';
 import {
+  linkViews,
   MolstarSvsEntry,
   molstarQueryExtension,
   StructureLink,
   type StructureRef,
+  type StructureView3D,
   selectionLoci,
   structureInput,
   structureReach,
   structureUrl,
-} from '@molstar/seq-molstar-poc';
-import {
-  mountPlugin,
-  type PluginContext,
-  pluginView3D,
-  selectedLoci,
-  setBackground,
-  showMvs,
-} from '@molstar/seq-molstar-poc/plugin';
-import {
-  colorByItemAction,
-  colorTracks,
-  composeStructureView,
-  linkViews,
-  type Shown,
-  type StructureView3D,
-  showInStructureAction,
-  structureTrackActions,
-} from '@molstar/seq-molstar-poc/viewer';
+} from '@molstar/prism-viewer/sequence/molstar';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -58,14 +42,25 @@ import { windowScheduler } from '@molstar/seq-viewer/canvas';
 import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { P53 } from '../../../../core/_test/format/load-fixtures.js';
-import features from '../../../../molstar-poc/_test/fixtures/p53/P04637.json?raw';
-import ptms from '../../../../molstar-poc/_test/fixtures/p53/P04637-ptms.tsv?raw';
-import variants from '../../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw';
-import c1c26 from '../../../../molstar-poc/_test/fixtures/structures/1c26.bcif?url';
-import c1tup from '../../../../molstar-poc/_test/fixtures/structures/1tup.bcif?url';
-import c2ocj from '../../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url';
-import c2xwr from '../../../../molstar-poc/_test/fixtures/structures/2xwr.bcif?url';
-import caf from '../../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
+import c1c26 from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/1c26.bcif?url';
+import c1tup from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/1tup.bcif?url';
+import c2ocj from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/2ocj.bcif?url';
+import c2xwr from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/2xwr.bcif?url';
+import caf from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
+import features from '../../../_test/fixtures/p53/P04637.json?raw';
+import ptms from '../../../_test/fixtures/p53/P04637-ptms.tsv?raw';
+import variants from '../../../_test/fixtures/p53/variation-P04637.json?raw';
+import { TextAction } from '../ui/index.js';
+import f from './seqstar-format.module.css';
+import m from './seqstar-molstar.module.css';
+import {
+  mountPlugin,
+  type PluginContext,
+  pluginView3D,
+  selectedLoci,
+  setBackground,
+  showMvs,
+} from './seqstar-molstar-plugin.js';
 import {
   coverageTrack,
   P53_STRUCTURES,
@@ -73,13 +68,18 @@ import {
   p53DemoDoc,
   p53Loaders,
   p53ShownPatch,
-} from '../../../../molstar-poc/_test/p53-demo.js';
-import { TextAction } from '../ui/index.js';
-import f from './seqstar-format.module.css';
-import m from './seqstar-molstar.module.css';
+} from './seqstar-p53-demo.js';
 import { storyPatch } from './seqstar-patch.js';
 import { PrismCanvas } from './seqstar-prism.js';
 import q from './seqstar-query-runtime.module.css';
+import {
+  colorByItemAction,
+  colorTracks,
+  composeStructureView,
+  type Shown,
+  showInStructureAction,
+  structureTrackActions,
+} from './seqstar-structure-actions.js';
 import { partSlots, STORY_CHROME, useStoryUi } from './seqstar-viewer.js';
 
 /** The p53 demo's `headerHover` limit, in its viewer spec: a header of more items lights its row band alone. */

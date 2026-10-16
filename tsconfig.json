@@ -237,9 +237,6 @@
     },
     {
       "path": "./packages/sequences/nightingale"
-    },
-    {
-      "path": "./packages/sequences/molstar-poc"
     }
   ]
 }

@@ -499,12 +499,6 @@
       "private": true
     },
     {
-      "name": "@molstar/seq-molstar-poc",
-      "path": "packages/sequences/molstar-poc",
-      "kind": "library",
-      "private": true
-    },
-    {
       "name": "@molstar/seq-scripts",
       "path": "packages/sequences/scripts",
       "kind": "library",
