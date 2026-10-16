@@ -1,10 +1,9 @@
 # The harness (`src/harness/` of `@molstar/ai`)
 
 Runs agent turns in memory: the model is called, the tools it asks for run, and the loop goes on until the turn ends or
-parks. Mechanism only; every choice is the drive's. Design and rationale:
-[.v6/ai/harness.md](../../../.v6/ai/harness.md) (the `§` numbers below are its sections). Until 2026-10-16 it was
-durable (storage port, host protocol, leases, a supervisor); that went
-([.v6/ai/simplification/harness.md](../../../.v6/ai/simplification/harness.md)).
+parks. Mechanism only; every choice is the drive's. One loop in the page that calls it, one turn at a time, nothing kept
+beyond that page's memory. Design and rationale: [.v6/ai/harness.md](../../../.v6/ai/harness.md) (the `§` numbers code
+comments cite are its sections).
 
 ## Files
 
@@ -19,6 +18,7 @@ durable (storage port, host protocol, leases, a supervisor); that went
 | `tools/`               | `plan.ts` (bind calls to definitions), `step.ts` (the tools step), `journal.ts` (a tool's journal)                                                              |
 | `nested/`              | `nest`: nested runs inside a call                                                                                                                               |
 | `drive/`               | `defaultDrive`, `drive(handlers, fallback)`, `legal`                                                                                                            |
+| `observe/`             | `Subject`, the hot observable behind `observe()` and `watch()`                                                                                                  |
 
 ## The data
 
@@ -60,9 +60,11 @@ durable (storage port, host protocol, leases, a supervisor); that went
 The reads are async (a reader may be remote: the trace and the Inspector take a `HarnessReader`). `emptyHead()` is the
 empty head (the same id in every harness; `forget` resets `main` to it).
 
-**Errors**: one `HarnessError { code, detail }`; codes `invalid` and `pointer-busy`. A model or tool attempt's failure
-is not an operation error: it is an `AttemptFailure { code, message, transient, effect, retryAfterMs? }` in the step's
-evidence, and it opens a `failure` decision.
+**Errors**: one `HarnessError { code, detail }`; codes `invalid` (a turn while one is active or without a configuration,
+a resume with none parked, an unknown head, entry or blob, an unprojectable edit) and `pointer-busy` (a tool writing
+`main` or another writer's pointer). A model or tool attempt's failure is not an operation error: it is an
+`AttemptFailure { code, message, transient, effect, retryAfterMs? }` in the step's evidence, and it opens a `failure`
+decision.
 
 ## The loop (`loop/index.ts`)
 

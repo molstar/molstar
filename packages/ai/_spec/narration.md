@@ -32,6 +32,7 @@ app.
 or Opus in WebM, by the browser's WebCodecs support, falling back to the next codec, then WAV.
 
 **No MP3 encoding, ever**: MP3 encoders are LGPL (LAME or shine). A provider's MP3 is stored as it arrives; only its
-duration is read (`mp3Duration`). Audio helpers in `audio.ts`: `wavSamples`, `pcmToWav`, `pcmDuration`, `mp3Duration`.
+duration is read (`mp3Duration`). Audio helpers in `audio.ts`: `wavSamples`, `pcmFromBytes`, `pcmToWav`, `pcmDuration`,
+`mp3Duration`; `extensionOf` (`encoder.ts`) maps a MIME type to a file extension.
 
 Tests (`_test/`) use injected `fetch`; nothing reaches a provider.

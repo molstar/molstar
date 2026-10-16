@@ -9,7 +9,7 @@ kinds, `LABELS`, are copied).
 
 | File        | What                                                                                                             |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `read.ts`   | `readTrace`, `TraceProfile`, `createTraceCache`, `defaultRequestOf`, `defaultWindowPart`                         |
+| `read.ts`   | `readTrace`, `TraceProfile`, `createTraceCache`, `defaultRequestOf`, `defaultWindowPart`, `LABELS`               |
 | `types.ts`  | the views: `TraceData`, `TurnView`, `StepView`, `WindowView`, `BudgetView`, `TokensView`, tools and limits views |
 | `tools.ts`  | `toolsView(input)`: the Tools tab from plain inputs                                                              |
 | `format.ts` | `k`, `ms`, `credits`, `cachedShare`, `formatUsage` (`@molstar/ai/trace`)                                         |
@@ -25,8 +25,8 @@ turn's prompt is the last user message of its begin step's `main` head.
 else no request recorded), `windowPart(message)` (`guidance | tools | state | conversation`; default by the label for
 guidance, updates, definitions and requests (state when text precedes the request), else by shape), `toolCall(call)`
 (title, read, changed: what the host knows of a call), `credits(model, usage)`, `ceilings` (by budget kind; default the
-turn's limits), `toolNames`, `window`, `now`, `cache` (a `TraceCache` kept across re-reads: heads, entries and blobs are
-immutable, so a re-read fetches only what is new).
+turn's limits), `toolNames`, `window` (the model's context window, for scale), `cache` (a `TraceCache` kept across
+re-reads: heads, entries and blobs are immutable, so a re-read fetches only what is new).
 
 `TraceData`: `harnessId`, `execution` (seq, head, pending step, parked), `budget` (the kind nearest its ceiling in the
 latest turn), `preamble` (guidance and tool definitions with token estimates), `turns`, `loaded` and `declared` tools

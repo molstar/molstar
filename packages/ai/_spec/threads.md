@@ -7,8 +7,10 @@ drops turns from it) and turns have no records with a prompt and a reply. Indepe
 `messages/` (`canonicalJson`, the `Clock` type) of the other folders and has its own storage port. Background:
 `.v6/ai/analysis/viewer-mode.md` §6.
 
-**Status**: built and conformance-tested; no production code uses it yet. A building block an application composes: for
-example an app writing an entry per turn from the session's hooks, and its History reading them in windows.
+**Status**: built and conformance-tested. A building block an application composes: the Prism viewer's record is a
+thread (`packages/prism/viewer/src/journal/record.ts`): every change the viewer's API runs and every agent turn (begun
+at the prompt, settled at its end) is an entry; History reads them in windows, and a kept record goes to the viewer's
+IndexedDB rows.
 
 ## Files (`src/threads/`)
 
@@ -26,7 +28,7 @@ example an app writing an entry per turn from the session's hooks, and its Histo
 ## Using it
 
 ```ts
-const threads = createThreadHost({ rows: createIndexedDbRows('my-app-threads') }); // or createMemoryRows()
+const threads = createThreadHost({ rows: createMemoryRows() }); // or a RowStore of the app's (Prism: IndexedDB)
 // ids are branded: threadId('…'), threadEntryId, threadOwnerId, threadCommandId (non-empty strings)
 await threads.create({ commandId, threadId, ownerId, limits: createThreadLimits({ ...THREAD_LIMIT_HARD_BOUNDS, maxActiveStreams: 4 }) });
 const envelope = (value: unknown) => ({ codec: 'my.turn.v1', version: THREAD_PAYLOAD_VERSION, value }); // strict JSON
@@ -48,19 +50,19 @@ const page = await threads.window({ threadId, start, limit: 20, direction: 'back
   is accepted with `kind: 'aborted'` (`limit-exceeded`) and the entry becomes terminal.
 - **Inactivity** is checked at the start of every operation, reads included (there is no timer): a stream idle for
   `inactivityTimeoutMs` is aborted, and that is persisted.
-- **Durability**: an accepted command has been written (`rows.apply` before it returns). Within a host, commands are
-  serial; across hosts or tabs, optimistic concurrency on a per-scope generation (`RowConflict`, retried up to 8 times).
-  No leases.
+- **Writes**: an accepted command has been written to the rows (`rows.apply` before it returns). Within a host, commands
+  are serial; across hosts or tabs, optimistic concurrency on a per-scope generation (`RowConflict`, retried up to 8
+  times). No leases.
 - **Observing**: `subscribe(listener)` for changes through this host, `watch(listener)` for other handles' (through
-  `RowStore.watch`; the IndexedDB rows post on a `BroadcastChannel`, memory rows have none). `forget(threadId)` drops
-  the rows.
+  `RowStore.watch`; memory rows have none, the viewer's IndexedDB rows post on a `BroadcastChannel`). `forget(threadId)`
+  drops the rows.
 
 ## Storage
 
 `RowStore<T>`: `load(scope)`, `apply(scope, expected, writes)` (atomic; generation `expected + 1` or `RowConflict`),
 `drop(scope)`, `generation(scope)`, optional `watch`. A thread is the scope `thread:<id>` with tables `thread`, `entry`,
-`stream`, `deltas`, `receipt`, each row `{ json }`. Backends: `createMemoryRows` (here), SQLite later. The IndexedDB
-rows are not in `@molstar/ai`: prism-viewer owns them (`createIndexedDbRows(name)`,
+`stream`, `deltas`, `receipt`, each row `{ json }`. The one backend here is `createMemoryRows`; a store that outlives
+the page is the application's. The viewer's IndexedDB rows are such a store (`createIndexedDbRows(name)`,
 `packages/prism/viewer/src/journal/indexeddb-rows.ts`), and its tests run the threads' conformance
 (`runThreadConformance` of `@molstar/ai/testing/threads`, the suite in `src/threads/_test/`) on them.
 

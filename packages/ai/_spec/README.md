@@ -4,17 +4,17 @@ The agent stack, the one package `@molstar/ai` (`packages/ai/`): an agent loop i
 (providers, tools) and what a host drives it through (the session). Generic: nothing here imports Prism, React or rxjs,
 and of Mol\* only `@molstar/core`'s hash file (in `messages/`). This spec is for working on or with the code without
 reading all of it: what each folder is, how they bind, the contracts a host relies on, and where the code is. Why the
-design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its sections (`harness.md §6`,
-`tools-and-session.md §5`), and those numbers are fixed. The code is the truth for how.
+design is so is in [.v6/ai](../../../.v6/ai/README.md) (its decisions, and the sections code comments cite:
+`harness.md §6`, `tools-and-session.md §5`). The code is the truth for how.
 
 | File                         | What it covers                                                                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| [harness.md](harness.md)     | the engine: journal, event log, Execution, the loop, steps, decisions, the tool handler        |
+| [harness.md](harness.md)     | the loop: journal, event log, Execution, steps, decisions, the tool handler, nested runs       |
 | [models.md](models.md)       | `messages/` and `providers/`: `Message`, the `Provider` port, the providers, the model catalog |
-| [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, the toolkit (skills), bindings                |
-| [session.md](session.md)     | `session/`: `AgentSession`, the drive's policies, budgets, compaction                          |
+| [tools.md](tools.md)         | `tools/`: defining tools, field shapes, results, bindings, the toolkit (skills)                |
+| [session.md](session.md)     | `session/`: `AgentSession`, composition, the drive's policies, budgets, compaction             |
 | [trace.md](trace.md)         | `trace/`: the trace read from a harness, for the Inspector                                     |
-| [threads.md](threads.md)     | `threads/`: durable append-only streams (transcripts), separate from the harness               |
+| [threads.md](threads.md)     | `threads/`: append-only transcripts over a row store, apart from the harness                   |
 | [narration.md](narration.md) | `narration/`: text to speech and audio encoding                                                |
 | [testing.md](testing.md)     | the harness cases, the test doubles (`testing/`), how to test a change                         |
 
@@ -22,10 +22,10 @@ design is so is in [.v6/ai](../../../.v6/ai/README.md); code comments cite its s
 
 ```
 messages ─┬─ harness ─┬─ tools ──── session
-          │           ├─ trace
+          │           ├─ trace ─── (session/compose.ts)
           │           └─ testing
-          └─ providers          (host passes providers in)
-messages ── threads ── threads/_test (the suite; testing/threads)
+          ├─ providers          (the host passes providers in)
+          └─ threads ── threads/_test (the suite)
 narration (nothing of the other folders)
 ```
 
@@ -33,28 +33,39 @@ narration (nothing of the other folders)
 | --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
 | `messages/`     | `Message` and parts, `ToolDefinition`, `ModelConfiguration`, the `Provider` port, `ModelError`, `hashMessage`      | none (`@molstar/core`'s hash file only)     |
 | `harness/`      | the contracts (`contracts/`), `createHarness` (the in-memory loop), `defaultDrive`/`drive`; its cases are `_test/` | `messages`                                  |
-| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK and zod only here    |
+| `providers/`    | Anthropic, OpenAI (Responses, chat completions), Google, on the AI SDK; `models.ts` (the catalog, no dependencies) | `messages`; the AI SDK only here            |
 | `tools/`        | `defineTool`, field shapes, results, bindings, repeated reads, nested tools, the toolkit                           | `messages`, `harness`; zod only here        |
 | `session/`      | `AgentSession`, the session's drive, budgets, composition, `compaction/`                                           | `messages`, `harness`, `tools`              |
 | `trace/`        | `readTrace` and the views the Inspector draws; `format.ts`                                                         | `messages`, `harness`, `session/compose.ts` |
-| `threads/`      | the thread kernel and host, its own storage port, the memory rows; the suite is `_test/`                           | `messages` (JSON, `Clock`)                  |
+| `threads/`      | the thread kernel and host, its row-store port, the memory rows; the suite is `_test/`                             | `messages` (`canonicalJson`, `Clock`)       |
 | `testing/`      | `createSession`; the clock, ids, scripted model and tools                                                          | `messages`, `harness`                       |
 | `narration/`    | TTS providers (Gemini, OpenAI), WAV encoding; `mediabunny.ts` for AAC/Opus                                         | none                                        |
 
-The entries (`package.json` `exports`, explicit, no deep imports): `.` re-exports what a host names (messages, the
-harness's types, tools, the session with `compaction/`, threads) and nothing that pulls the AI SDK; `./harness`,
-`./providers` and `./providers/{anthropic,openai,google}` (one SDK per lazy import), `./models`, `./trace` (with
-`format`), `./testing`, `./testing/threads` (the threads' conformance suite, which imports Vitest), `./narration`,
-`./narration/mediabunny`. The package is `"sideEffects": false`.
+The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports): zod is
+allowed only in `tools/` and `providers/` (and restricted everywhere outside `packages/ai`), the AI SDK only in
+`providers/`. They are architecture, so a failing import means "not here", not "loosen the rule". Each folder's
+`index.ts` is its public surface.
 
-The import rules are Biome's (`noRestrictedImports` per folder in the root `biome.json`, over relative imports); they
-are architecture, so a failing import means "not here", not "loosen the rule". Each folder's `index.ts` is its public
-surface.
+## The entries
+
+`package.json` `exports`, explicit (no `./*`, and `./_test/*` closed); the package is `"sideEffects": false`.
+
+| Entry                                                       | Source                                    | Holds                                                                                                                            |
+| ----------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/ai`                                               | `src/index.ts`                            | what a host names: messages, the harness's types, tools, the session with its compaction, threads; nothing that pulls the AI SDK |
+| `@molstar/ai/harness`                                       | `src/harness/index.ts`                    | `createHarness`, `emptyHead`, `defaultDrive`, `drive`, the contracts                                                             |
+| `@molstar/ai/providers`                                     | `src/providers/index.ts`                  | the three provider factories                                                                                                     |
+| `@molstar/ai/providers/anthropic`, `…/openai`, `…/google`   | `src/providers/<name>/provider.ts`        | one factory each, so a lazy import loads one SDK                                                                                 |
+| `@molstar/ai/models`                                        | `src/providers/models.ts`                 | the model catalog (data, no dependencies)                                                                                        |
+| `@molstar/ai/trace`                                         | `src/trace/index.ts`                      | `readTrace`, `toolsView`, the views, the formatters                                                                              |
+| `@molstar/ai/testing`                                       | `src/testing/index.ts`                    | `createSession`, `scriptedModel`, `scriptedTools`, the simulated clock and ids, message builders                                 |
+| `@molstar/ai/testing/threads`                               | `src/threads/_test/index.ts`              | `runThreadConformance`, the threads' suite (it imports Vitest)                                                                   |
+| `@molstar/ai/narration`, `@molstar/ai/narration/mediabunny` | `src/narration/index.ts`, `mediabunny.ts` | narration; the Mediabunny encoder apart, so Mediabunny stays out of a bundle that does not ask for it                            |
 
 ## How it binds: one turn, end to end
 
 1. **The host** makes an `AgentSession` (`session/`) with a model source (providers from `providers/`, looked up by
-   provider), a toolkit (`tools/`), its API object and guidance.
+   provider id), a toolkit (`tools/`), its API object and guidance.
 2. **`session.turn(request, hooks)`** composes the user message (`[preamble][state] Focus: … notes Request: …`), plus
    guidance and tool definitions on the first turn, and begins a turn of its **harness** (`createHarness`, `harness/`,
    in memory) with the `TurnConfiguration` (model, tool set, budget limits).
@@ -63,39 +74,51 @@ surface.
    if the model called tools, a tools step (repair, permission, schedule, run handlers, append the assistant message and
    every result in one move). Each step's writes apply at its end. Every choice on the way is a **decision** the drive
    answers (`createDrive` in the session, over `defaultDrive`).
-4. **Tool handlers** come from `createToolBindings(toolkit.tools, api, …)`; each tool's `run` gets only the API modules
-   it declared. Results are rendered to text for the model; effects (`none`/`applied`/`unknown`) steer retries.
+4. **Tool handlers** come from `createToolBindings(toolkit, api, …)`; each tool's `run` gets only the API modules it
+   declared. Results are rendered to text for the model; effects (`none`/`applied`/`unknown`) steer retries.
 5. **The session** follows `harness.observe()` (live deltas, each event) to fire `onText`/`onTool`/`onStatus`/`onTurn`,
    and resolves `TurnResult` when the turn's `done` settles: ended, or parked (`awaiting-approval`;
    `session.resume({ decisions, hooks })` goes on).
 6. **Afterwards** anything can read the harness through `session.client()` (a `HarnessReader`): `readTrace` (`trace/`)
-   for the Inspector, `turns()` and `events()` for history. Nothing outlives the page: a reload ends the conversation.
+   for the Inspector, `turns()` and `events()` for history.
+
+## What a host relies on
+
+- **One turn at a time.** `turn()` throws only while a turn runs (or is being composed); everything else (a parked turn
+  not yet resumed, a missing provider, an unknown model, a failed call) is a `TurnResult` with `status: 'failed'`.
+- **A turn always settles**: `completed`, `stopped`, `failed`, `reset`, or `awaiting-approval` until `resume`, `stop` or
+  `forget`. `stop()` keeps what tools already applied.
+- **The host owns its models, keys and prices**: the session knows no models; a window and an output limit come from the
+  provider's `capabilities()` (the catalog, or `modelLimits` for a custom endpoint).
+- **Entries are read by their labels** (`session:request`, `tools:skill`, …), never by text: models.md, § Messages.
+- **Nothing outlives the page**: the harness is in memory, and a reload ends the conversation. A host that keeps a
+  history composes it from the hooks and `TurnResult` (Prism's record is a thread, [threads.md](threads.md)).
+- **Reads are async and level-triggered**: re-read on `client().watch()`; a missed emission loses nothing.
 
 ## Where to start, by task
 
-| Task                                       | Read                                                                                                 |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| host an agent in an app                    | [session.md](session.md), then [tools.md](tools.md) and [models.md](models.md) § Hosting             |
-| add or change a tool                       | [tools.md](tools.md)                                                                                 |
-| change how a decision is answered          | [session.md](session.md) § The drive; [harness.md](harness.md) § Decisions                           |
-| change the loop or a record                | [harness.md](harness.md), then [testing.md](testing.md) (a contract change needs a conformance case) |
-| add a provider or a model                  | [models.md](models.md)                                                                               |
-| show what happened in a turn               | [trace.md](trace.md)                                                                                 |
-| keep a durable, windowed transcript or log | [threads.md](threads.md)                                                                             |
+| Task                              | Read                                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------- |
+| host an agent in an app           | [session.md](session.md), then [tools.md](tools.md) and [models.md](models.md) § Hosting |
+| add or change a tool              | [tools.md](tools.md)                                                                     |
+| change how a decision is answered | [session.md](session.md) § The drive; [harness.md](harness.md) § Decisions               |
+| change the loop or a record       | [harness.md](harness.md), then [testing.md](testing.md) (a contract change needs a case) |
+| add a provider or a model         | [models.md](models.md)                                                                   |
+| show what happened in a turn      | [trace.md](trace.md)                                                                     |
+| keep a windowed transcript or log | [threads.md](threads.md)                                                                 |
 
-## State of the code (2026-10-16)
+## State of the code
 
-- Built and tested: everything above. Consumers in the repository: the Prism viewer's agent
-  (`@molstar/prism-viewer/agent`: operations as tools, `createViewerAgent` over `AgentSession`, one undo step per turn;
-  `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector over
-  `@molstar/ai/trace`).
-- Not built: persistence of a conversation (removed 2026-10-16 with the storage backends), more than one active turn,
-  evals. What is missing and what was deferred: [../TODO.md](../TODO.md); the order:
-  [.v6/ai/plan.md](../../../.v6/ai/plan.md).
+- Built and tested: everything above. Consumers in the repository: the Prism viewer's agent (`@molstar/prism-viewer`'s
+  `agent/`: operations as tools, `createViewerAgent` over `AgentSession`, one undo step per turn; its record, a thread,
+  in `journal/`; `.v6/prism-ui/spec/agent.md`) and `@molstar/prism-assistant` (the setup, the turn card, the Inspector
+  over `@molstar/ai/trace`). Narration has no consumer yet.
+- Not built: persistence of a conversation, more than one active turn, evals. What is missing and what was deferred:
+  [../TODO.md](../TODO.md); the order: [.v6/ai/plan.md](../../../.v6/ai/plan.md).
 
 ## Rules for changes here
 
-- A change to a harness contract comes with a conformance case ([testing.md](testing.md)).
+- A change to a harness contract comes with a case in `src/harness/_test/` ([testing.md](testing.md)).
 - One home per concern ([.v6/ai/harness.md](../../../.v6/ai/harness.md) §1): if a change moves what a model sees out of
   the journal, evidence out of the event log, or a choice out of the drive, it is the wrong change.
 - Tests never call a real model; anything that does costs money, so ask before running it.

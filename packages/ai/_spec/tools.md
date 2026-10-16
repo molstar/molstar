@@ -1,23 +1,24 @@
 # Tools (`src/tools/` of `@molstar/ai`)
 
 How a host declares tools, what the model reads back, and how they become the harness's `ToolBindings`. Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this folder (and
-`providers/`): no export names it, and a Biome rule keeps it out of the rest of the repository.
+[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §1–3. zod is used only inside this folder: no export
+names it, and a Biome rule keeps it out of the rest of the repository.
 
 ## Files (`src/tools/`)
 
-| File          | What                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------- |
-| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`                                             |
-| `shape.ts`    | `FieldShape`, `ObjectShape`, `ArgsOf`, `normalize` (argument repair)                    |
-| `input.ts`    | `ToolInput` (shape, JSON Schema, `parse`), `shapeInput`                                 |
-| `result.ts`   | `ToolResult`, `render`, `failed`, `toFrame`, `Effect`                                   |
-| `registry.ts` | `ToolRegistration`, `registered` (the handler pump), `createToolBindings`, `AfterWrite` |
-| `toolkit.ts`  | `createToolkit`: core, groups (skills), entries, the disclosure tools                   |
-| `repeats.ts`  | `RepeatedReads`                                                                         |
-| `nest.ts`     | `NestedTools`, `Nest`, `NestRequest`: helper agents under a call                        |
-| `schedule.ts` | `toolSchedule`                                                                          |
-| `closest.ts`  | `suggest`, `closestHint` ("did you mean")                                               |
+| File          | What                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| `tool.ts`     | `defineTool`, `toolFor<Api>()`, `directRun`                                                          |
+| `shape.ts`    | `FieldShape`, `ObjectShape`, `ArgsOf`, `normalize` (argument repair)                                 |
+| `input.ts`    | `ToolInput` (shape, JSON Schema, `parse`), `shapeInput`                                              |
+| `result.ts`   | `ToolResult`, `render`, `failed`, `toFrame`, `Effect`                                                |
+| `registry.ts` | `ToolRegistration`, `registered` (the handler pump), `createToolBindings`, `AfterWrite`              |
+| `names.ts`    | the disclosure tools' default ids (`DISCLOSE_SKILLS`, `DISCLOSE_TOOLS`), the label kinds (`LABEL_*`) |
+| `toolkit.ts`  | `createToolkit`: core, groups (skills), entries, the disclosure tools                                |
+| `repeats.ts`  | `RepeatedReads`                                                                                      |
+| `nest.ts`     | `NestedTools`, `Nest`, `NestRequest`: helper agents under a call                                     |
+| `schedule.ts` | `toolSchedule`                                                                                       |
+| `closest.ts`  | `suggest`, `closestHint` ("did you mean")                                                            |
 
 ## Defining a tool
 
@@ -56,7 +57,7 @@ know the dialect) and the validator are made once.
 `normalize` repairs what small models send, before the check: `""` and `null` are absent; strings trimmed (not
 `verbatim`); `"3"` → number and `"true"` → boolean where asked; a number → string where a string is asked; a list of
 strings → one comma-joined string, `"A, B"` → a list; enums match in any case. Prism maps PD params to field shapes
-(`@molstar/prism-assistant` `src/tools/params.ts`, `paramsShape`).
+(`paramsShape`, `@molstar/prism-viewer`'s `src/agent/params.ts`).
 
 ## Results
 
@@ -73,9 +74,10 @@ if it throws, the call fails transient with effect `applied`.
 
 ## Bindings
 
-`createToolBindings(registrations, api, { repeats?, nested?, afterWrite? })` → the harness's `ToolBindings`: resolves a
-definition by tool id to `registration.handler(api, options)`, else to a nested helper's tool. The handler pumps
-progress frames while `run` works, then one result frame (`toFrame`).
+`createToolBindings(registrations | toolkit, api, { repeats?, nested?, afterWrite? })` → the harness's `ToolBindings`:
+resolves a definition by tool id to `registration.handler(api, options)`, else to a nested helper's tool. Given a
+toolkit, it resolves at call time, so tools added between turns are found. The handler pumps progress frames while `run`
+works, then one result frame (`toFrame`).
 
 - **`RepeatedReads({ version, streak = 6, exempt? })`**: the same read with the same arguments while `version()` is
   unchanged answers in one line ("Unchanged: … act on it"); after `streak` reads in a row each read says to act.
@@ -109,14 +111,15 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
   without a label is never read by its text).
 - `coreDefinitions()`, `allDefinitions()`, `placementOf(id)`, `groupEntry(x)`, `disclosureTools()` serve the session and
   compaction.
-- **Dynamic** (README decision 25): `toolkit.add({ tools, core, groups, entries })` adds a part after creation (the same
-  checks; a conflict throws and changes nothing) and returns its removal; `version`, `onChange`, `registration(id)`
-  (bindings made over the toolkit resolve at call time), `removed()` (tools it no longer has: compaction drops their
-  definitions, the eviction hint) and `toolSet()` (what a turn enables and preauthorizes). A turn's tool set is fixed
-  when it begins, so tools come and go between turns, except a **lazy skill**: a group with `load()` and `pending` tool
-  ids (with their `approval`), enabled from the turn's start; disclosing it calls `load`, which replaces the stub's part
-  with the real group and tools, and the disclosure answers with them in the same turn. A tool added between turns is
-  offered at the next (the session's catch-up appends what the conversation has not seen).
+- **Dynamic** (Prism's [spec/README.md](../../../.v6/prism-ui/spec/README.md) decision 25):
+  `toolkit.add({ tools, core, groups, entries })` adds a part after creation (the same checks; a conflict throws and
+  changes nothing) and returns its removal; `version`, `onChange`, `registration(id)` (bindings made over the toolkit
+  resolve at call time), `removed()` (tools it no longer has: compaction drops their definitions, the eviction hint) and
+  `toolSet()` (what a turn enables and preauthorizes). A turn's tool set is fixed when it begins, so tools come and go
+  between turns, except a **lazy skill**: a group with `load()` and `pending` tool ids (with their `approval`), enabled
+  from the turn's start; disclosing it calls `load`, which replaces the stub's part with the real group and tools, and
+  the disclosure answers with them in the same turn. A tool added between turns is offered at the next (the session's
+  catch-up appends what the conversation has not seen).
 
 ## Gotchas
 
@@ -125,4 +128,5 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
 - A tool needing approval must not be preauthorized: the session's tool set leaves `approval` tools out of
   `preauthorized`, which is what makes the harness ask `permission`.
 - Don't validate in the handler with your own schema: the input does it, after `normalize`.
-- A tool that is not idempotent and writes must use `call.key`/`call.prior` to avoid doing it twice after a crash.
+- A tool that is not idempotent and writes must use `call.key`/`call.prior` to avoid doing it twice when a retry follows
+  an attempt that may have run (a timeout, a transient failure).

@@ -3,7 +3,7 @@
 One conversation over one harness, with the policies an app would otherwise write: composition of requests, the drive,
 budgets, compaction, approvals, resume. This is what a host uses; it wires everything in
 [README.md § How it binds](README.md#how-it-binds-one-turn-end-to-end). Design:
-[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §4–7.
+[.v6/ai/tools-and-session.md](../../../.v6/ai/tools-and-session.md) §4–6.
 
 ## Files (`src/session/`)
 
@@ -13,6 +13,7 @@ budgets, compaction, approvals, resume. This is what a host uses; it wires every
 | `types.ts`    | `TurnRequest`, `TurnHooks`, `TurnResult`, `ToolEvent`, `StatusEvent`, `TurnEvent`, `ModelChoice`            |
 | `compose.ts`  | `turnInput`, `requestOf` and the markers (`REQUEST_MARKER`, `FOCUS_MARKER`, …)                              |
 | `drive.ts`    | `createDrive` (the session's decisions), `turnBudget`, `extendBudget`, `plainFailure`, `DENIED`             |
+| `state.ts`    | `TurnState`: what the session keeps of the running turn (made afresh per turn and per resume)               |
 | `compaction/` | `runCompaction`, `planCompaction`, `compactionFor`, `CompactionDomain`, `toolkitDomain` (`./compaction`)    |
 
 ## Making one
@@ -71,8 +72,6 @@ long as the session (a reload ends the conversation).
   composed keeps it from beginning), `forget()` (reset `main` to the empty head: a fresh conversation, history kept in
   the log; a parked turn ends reset), `dispose()` (a turn still running or parked ends stopped), `client()` (the
   harness's `HarnessReader`, for a trace and the Inspector), `isFresh()`, `contextWindow()`, `budget(choice?)`.
-- Gone 2026-10-16: the options `storage`, `harnessId`, `leaseMs`, `interrupted()` and the takeover of a turn after a
-  reload (nothing outlives the page).
 
 ## The drive (`createDrive`, `drive.ts`)
 
@@ -119,11 +118,13 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
   `contextWindow()` is 200k until the first call has asked.
 - `onText` streams one model call at a time (it restarts with each top-level call); `TurnResult.text` is the last
   non-empty text, else the last assistant message; `turnText` is the whole turn's.
-- Only "a turn is already running" throws from `turn()`; a missing provider or unknown model is `status: 'failed'`.
-  `resume()` returns `undefined` when busy or with nothing to resume; `forget()` throws while a turn runs.
+- Only "a turn is already running" throws from `turn()`; a missing provider, an unknown model or a parked turn not yet
+  resumed is `status: 'failed'`. `resume()` returns `undefined` when busy or with nothing to resume; `forget()` throws
+  while a turn runs.
 - Approval decisions passed to `resume` are kept for the conversation (a parked turn resumed without one for a call
   parks again). The pending calls are in `TurnResult.approval`.
-- Prompts during a running turn are not steered in; the host queues them (Stories kept one follow-up).
+- Prompts during a running turn are not steered in: each is its own turn, and the host holds it until the running one
+  ends.
 - `TurnResult` and hooks cover top-level calls; a helper's calls (nested runs, compaction) are only in the trace.
 - The session keeps no person-facing history: a durable transcript is the application's to compose (from the hooks and
   `TurnResult`, into a thread, [threads.md](threads.md)).

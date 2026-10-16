@@ -60,10 +60,9 @@ interface ProviderBindings { resolve(target: ModelTarget): Promise<Provider> }
 
 ## The providers (`src/providers/`)
 
-A thin layer over the Vercel AI SDK (`ai`, `@ai-sdk/*`;
-[.v6/ai/simplification/providers.md](../../../.v6/ai/simplification/providers.md)). Three factories, each its own entry
-so a host imports only the SDKs it uses (`@molstar/ai/providers/{anthropic,openai,google}`; all three from
-`@molstar/ai/providers`):
+A thin layer over the Vercel AI SDK (`ai`, `@ai-sdk/*`; [.v6/ai/README.md](../../../.v6/ai/README.md) decision 7). Three
+factories, each its own entry so a host imports only the SDKs it uses
+(`@molstar/ai/providers/{anthropic,openai,google}`; all three from `@molstar/ai/providers`):
 
 | Factory                   | Options (besides `resolveApiKey: () => string \| Promise<string>`, `fetch?`, `tokenEstimate?`, `modelLimits?`)            |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -84,7 +83,7 @@ so a host imports only the SDKs it uses (`@molstar/ai/providers/{anthropic,opena
   the catalog, else an error asking for an override). A provider (`anthropic/provider.ts`, `openai/provider.ts`,
   `google/provider.ts`) gives only what differs: the SDK model factory, its parameter checks, reasoning and caching as
   `providerOptions`, its attachment rule, how a call's reasoning is kept and replayed, and (Anthropic, OpenAI) the
-  appended layout (`project` of `native`; OpenAI's in `openai/native.ts`).
+  appended layout (`ProviderSpec.native`: which models, and their `project`; OpenAI's in `openai/native.ts`).
 - **Any endpoint of a dialect**: `createOpenAIProvider({ api: 'chat', baseURL, provider: 'lab', modelLimits })` serves a
   compatible endpoint under its own provider id. A foreign `baseURL` uses no catalog: limits come only from
   `modelLimits` (keyed by model id), and tools are never appended. Replay identity is the provider id, never a URL.
@@ -132,8 +131,8 @@ Data, no dependencies (only a `messages/` type). `MODEL_CATALOG: CatalogEntry[]`
 - `modelInfo(provider, id, catalog?)`, `listedModels(provider?)`, `defaultReasoning(provider, id)` (what a host passes
   to the session's `thinking`), `dollarsOf(price, usage)` (dollars per call; the long-prompt factor applies to the whole
   call).
-- Providers read only limits and the `appendsTools` quirk. Prices, labels and listing are for the host.
-- `dollarsOf(price, usage)` prices a call; the session knows no models.
+- Providers read only limits and the `appendsTools` quirk. Prices, labels and listing are for the host; the session
+  knows no models.
 
 ## Hosting
 

@@ -1,5 +1,25 @@
 # `packages/ai` simplification: the analysis
 
+> **Status (2026-10-16)**: slices 1–12a are done (11 in a worktree of its own, beside 10) and 12b is deferred
+> ([plan.md](plan.md)); the review gate, slice 13, is still to run. The spec ([`.v6/ai`](../README.md), [`packages/ai/_spec`](../../../packages/ai/_spec/README.md))
+> describes the result; the analysis below is as it was written, before the work.
+>
+> | Slice                                  | Commit      |
+> | -------------------------------------- | ----------- |
+> | 1 conformance suite cut to 59 cases    | `bce8b8a8c` |
+> | 2 the basic in-memory harness          | `ce4401c0d` |
+> | 3 dead code                            | `6362aaf7b` |
+> | 4 kept records into prism-viewer       | `2824c7a57` |
+> | 5 fiber cleanup pages out              | `f2cd5fc51` |
+> | 6 collapse into `@molstar/ai`          | `0b5463ea9` |
+> | 7 fibers → threads                     | `20ed4f3cb` |
+> | 8 providers                            | `d75fdb019` |
+> | 9 duplicates and legacy paths          | `c9da6ff06` |
+> | 10 the spec rewritten                  | the commit that added this block |
+> | 11 leave the serial Vitest project     | `870bafbde` |
+> | 12a zod isolated in `packages/ai`      | `70f84c488` |
+> | 12b tool schemas without zod           | deferred    |
+
 Read-only analysis of the agent harness (`packages/ai/*`) for a drastic simplification, 2026-10-16, on
 `v6-prism-impl-proto` at `e91cf9bc0`. No code was changed. The target is the owner's:
 

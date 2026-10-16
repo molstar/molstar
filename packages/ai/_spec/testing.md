@@ -14,10 +14,8 @@ calls a real model costs money; ask before running it.
 
 The 59 essential cases run on the in-memory harness (`createHarness`), as plain test files in `src/harness/_test/` (one
 per row below, `helpers.ts` beside them). They are the harness's contract: a change to a contract (a record, an
-operation, a decision, an ending) comes with a case here. The cases only a durable or shared store made reachable
-(backend faults, leases and launch races, supervisor liveness, schema versions, tombstones, crash re-runs, storage cost)
-and those of mechanisms the in-memory harness no longer has (keyed operations, commit batches, steering, interrupts) are
-gone (what was cut, and why: `.v6/ai/simplification/conformance.md`).
+operation, a decision, an ending) comes with a case here. Which cases were kept, and why:
+`.v6/ai/simplification/conformance.md`.
 
 | File (`src/harness/_test/`) | Ids | Cases | What                                                                             |
 | --------------------------- | --- | ----: | -------------------------------------------------------------------------------- |
@@ -33,6 +31,7 @@ gone (what was cut, and why: `.v6/ai/simplification/conformance.md`).
 | `performance.test.ts`       | P   |     1 | P11: no round hashes more than the first                                         |
 | `coverage.test.ts`          | V   |    12 | unbound calls, drive errors, reset, nested decisions, limits, defaults, filtered |
 | `regressions.test.ts`       | R   |     3 | bugs found, each pinned                                                          |
+| `state.test.ts`             | —   |     4 | not cases: the reads (empty state, one entry per message, paging, `watch`)       |
 
 Case names start with their id and cite the design section (`'R4 stop-refuses-exit: … (harness.md §5, §6)'`).
 
