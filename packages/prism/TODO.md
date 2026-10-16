@@ -106,8 +106,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   views (§7).
 - No lint rule against `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views
   (§5).
-- The viewer's scene and state trees are not virtualized (`VirtualList` only in
-  `viewer/src/_stories/performance.stories.tsx`; [view-models.md §3](ui/_spec/view-models.md)).
+- A visual check of the virtualized scene and state trees (light, dark, compact) in Storybook; no scene-tree case in the
+  performance story.
 - The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.
 - The `--msp-ink` tokens are unused outside the canvas layer.
 

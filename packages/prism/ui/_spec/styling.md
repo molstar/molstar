@@ -128,7 +128,7 @@ content loads.
   shadows.
 - **Hover is instant**: no transition on a hover's colors (it reads as lag and makes neighbours blink on a sweep).
 - **Containment**: panels and cards set `contain` (`layout paint`, or `content` where the size is known), so a change
-  inside does not relayout the shell; off-screen rows use `content-visibility: auto`.
+  inside does not relayout the shell; off-screen rows use `content-visibility: auto` where a list is not virtualized.
 - **Hidden UI is inert and does no UI updates.** What is hidden but kept mounted (a folded section, a panel behind an
   overlay card, a closing animation) is `inert` (no pointer, tooltip, focus or screen reader) and **paused**: its scope
   is inactive (`activity(flag, …)` in `dom/control-flow`, `Scope.setActive`), which drops every `bind` subscription

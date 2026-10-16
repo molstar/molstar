@@ -149,8 +149,8 @@ export function StructureTab(props: StructureTabProps) {
           </div>
         )}
       </Show>
-      <ScrollArea
-        edge
+      {/* The tree scrolls itself (virtualized: scene-tree.tsx); this holds its place and takes its rows' picks. */}
+      <div
         class={classes.tree}
         ref={(el: HTMLElement) => {
           // An extension's row picked (Membrane, Assembly symmetry): its controls in the inspector, as a node's.
@@ -173,7 +173,7 @@ export function StructureTab(props: StructureTabProps) {
         }}
       >
         <SceneTree scene={scene} shell={shell} filter={search.asReadonly.pipe(debounceTime(120))} />
-      </ScrollArea>
+      </div>
       <ScrollArea
         class={classes.inspector}
         contentClass={classes.inspectorContent}

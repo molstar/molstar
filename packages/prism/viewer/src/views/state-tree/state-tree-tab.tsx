@@ -9,23 +9,39 @@
  */
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
-import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
+import { flattenTree, keepRows, MenuPopover, VirtualList, type VirtualListHandle } from '@molstar/prism-ui';
+import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
+import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import { ScrollArea } from '@molstar/prism-ui';
-import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
-import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { ActionBlock } from '../home/home-tab.js';
 import { classes as tree } from '../structure/_generated/scene-tree.module.css.js';
 import { classes as tab } from '../structure/_generated/structure-tab.module.css.js';
 import { classes } from './_generated/state-tree-tab.module.css.js';
-import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
+
+/** A shown cell: the node, its depth (`aria-level` − 1). Where it is among its siblings is in `Places`. */
+interface CellRow {
+  readonly node: StateTreeNode;
+  readonly depth: number;
+}
+
+/** Each shown cell's place among its siblings (`aria-posinset`, `aria-setsize`), by ref. */
+type Places = ReadonlyMap<string, { readonly posinset: number; readonly setsize: number }>;
 
 /**
  * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with the updates, the
  * applicable actions and Remove), and under them at a fixed height the selected cell: its updates (its own transform's,
  * then the decorators folded into it) and its actions, each a form that folds open (Home's action blocks). The ⋯'s
  * entries select the cell and open theirs.
+ *
+ * Virtualized (view-models.md §3): the shown cells flattened into rows of one height (`VirtualList`), only the window
+ * rendered, each row following its cell's record (a cell that stays the same object keeps its row); the keyboard
+ * moves over the flattened rows (`TreeNavigation`), scrolling the target into view.
  */
 export function StateTreeTab(props: { model: StateTreeModel }) {
   const { model } = props;
@@ -41,26 +57,82 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     map(([ref, f]) => (ref ? `${f}\n${ref}` : undefined)),
     distinctUntilChanged(),
   );
+  // The shown cells as rows: a cell that is the same object at the same depth is the same row (its place is apart, so
+  // a sibling added does not render its siblings again).
+  const keep = keepRows<CellRow>(
+    (r) => r.node.ref,
+    (a, b) => a.node === b.node && a.depth === b.depth,
+  );
+  const rows = observableState<readonly CellRow[]>([]);
+  const places = observableState<Places>(new Map());
+  const flat = combineLatest([model.roots, collapsed.asReadonly]).pipe(
+    map(([roots, c]) =>
+      flattenTree(
+        roots,
+        (n) => n.children,
+        (n) => !c.has(n.ref),
+      ),
+    ),
+  );
+  let list: VirtualListHandle | undefined;
+  const nav = new TreeNavigation<CellRow>({
+    rows: () => rows.value,
+    key: (r) => r.node.ref,
+    level: (r) => r.depth + 1,
+    scrollTo: (i) => list?.scrollToIndex(i),
+    selected: () => model.selected.value,
+  });
+  const toggle = (ref: string) => {
+    const next = new Set(collapsed.value);
+    if (next.has(ref)) next.delete(ref);
+    else next.add(ref);
+    collapsed.set(next);
+  };
+  bind(flat, (all) => {
+    const p = new Map<string, { posinset: number; setsize: number }>();
+    for (const r of all) p.set(r.node.ref, { posinset: r.posinset, setsize: r.setsize });
+    batch(() => {
+      places.set(p);
+      rows.set(keep(all));
+    });
+  });
   return (
     <div class={tab.tab}>
-      <ScrollArea edge class={tab.tree}>
-        <div
+      <div class={tab.tree}>
+        <Show
+          when={rows.asReadonly.pipe(
+            map((r) => r.length === 0),
+            distinctUntilChanged(),
+          )}
+        >
+          {() => <p class={tree.empty}>Nothing in the state yet.</p>}
+        </Show>
+        <VirtualList
+          items={rows.asReadonly}
+          key={(r) => r.node.ref}
+          rowHeight={26}
           class={`${tree.tree} ${classes.tree}`}
+          edge
           role="tree"
           aria-label="State tree"
-          tabIndex={0}
-          onKeyDown={treeKeys}
-          onFocusIn={treeFocus}
+          contentRef={nav.tree}
+          ref={(l) => {
+            list = l;
+          }}
         >
-          <For
-            each={model.roots}
-            key={(n) => n.ref}
-            fallback={() => <p class={tree.empty}>Nothing in the state yet.</p>}
-          >
-            {(node) => <Cell model={model} node={node} depth={0} collapsed={collapsed} open={open} />}
-          </For>
-        </div>
-      </ScrollArea>
+          {(row) => (
+            <Cell
+              model={model}
+              row={row}
+              places={places.asReadonly}
+              collapsed={collapsed.asReadonly}
+              nav={nav}
+              toggle={toggle}
+              open={open}
+            />
+          )}
+        </VirtualList>
+      </div>
       <ScrollArea edge class={tab.inspector} contentClass={tab.inspectorContent} role="region" aria-label="Cell">
         <Show
           when={shown}
@@ -79,39 +151,48 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
 
 function Cell(props: {
   model: StateTreeModel;
-  node: StateTreeNode;
-  depth: number;
-  collapsed: ObservableState<ReadonlySet<string>>;
+  row: CellRow;
+  places: ReadonlyState<Places>;
+  collapsed: ReadonlyState<ReadonlySet<string>>;
+  nav: TreeNavigation<CellRow>;
+  toggle: (ref: string) => void;
   open: (ref: string, block: string) => void;
 }) {
-  const { model, node, depth, collapsed } = props;
+  const { model, row, collapsed } = props;
+  const { node, depth } = row;
   const hasChildren = !!node.children?.length;
-  const expanded = collapsed.asReadonly.pipe(
-    map((c) => hasChildren && !c.has(node.ref)),
-    distinctUntilChanged(),
+  // A leaf has no `aria-expanded` (the pattern's end node).
+  const expanded = hasChildren
+    ? collapsed.pipe(
+        map((c) => !c.has(node.ref)),
+        distinctUntilChanged(),
+      )
+    : undefined;
+  const place = props.places.pipe(
+    map((p) => p.get(node.ref)),
+    distinctUntilChanged((a, b) => a?.posinset === b?.posinset && a?.setsize === b?.setsize),
   );
   const selected = model.selected.pipe(
     map((s) => s === node.ref),
     distinctUntilChanged(),
   );
   const menuOpen = observableState(false);
+  let menuButton: HTMLElement | undefined;
   const hidden = node.visible === false;
-  const toggle = () => {
-    const next = new Set(collapsed.value);
-    if (next.has(node.ref)) next.delete(node.ref);
-    else next.add(node.ref);
-    collapsed.set(next);
-  };
-  // Named by its own label and description (not the whole subtree it holds).
+  // Named by its own label and description.
   const labelId = uniqueId('msp-tree-label');
   return (
     <div
       role="treeitem"
+      aria-level={depth + 1}
+      aria-posinset={place.pipe(map((p) => p?.posinset))}
+      aria-setsize={place.pipe(map((p) => p?.setsize))}
       aria-expanded={expanded}
       aria-selected={selected}
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={tree.item}
+      ref={props.nav.row(node.ref)}
     >
       <div
         data-tip-row=""
@@ -130,7 +211,7 @@ function Cell(props: {
           aria-label="Expand"
           onClick={(e) => {
             e.stopPropagation();
-            toggle();
+            props.toggle(node.ref);
           }}
         >
           <Icon name="chevron-right" size={14} />
@@ -162,7 +243,11 @@ function Cell(props: {
             class={tree.action}
             classList={{ [tree.keep]: menuOpen }}
             title="More"
+            aria-haspopup="menu"
             aria-expanded={menuOpen}
+            ref={(el: HTMLElement) => {
+              menuButton = el;
+            }}
             onClick={(e) => {
               e.stopPropagation();
               menuOpen.set(!menuOpen.value);
@@ -177,7 +262,11 @@ function Cell(props: {
           <CellMenu
             model={model}
             node={node}
-            depth={depth}
+            anchor={menuButton!}
+            onClose={(refocus) => {
+              menuOpen.set(false);
+              if (refocus) menuButton?.focus();
+            }}
             onPick={(block) => {
               menuOpen.set(false);
               props.open(node.ref, block);
@@ -189,43 +278,40 @@ function Cell(props: {
           />
         )}
       </Show>
-      <Show when={expanded} reveal>
-        {() => (
-          <div role="group">
-            <For each={node.children ?? []} key={(n) => n.ref}>
-              {(child) => <Cell {...props} node={child} depth={depth + 1} />}
-            </For>
-          </div>
-        )}
-      </Show>
     </div>
   );
 }
 
-/** The updates, the applicable actions, then Remove (set apart, in the danger color): Mol*'s cell menu, inline. */
+/**
+ * The updates, the applicable actions, then Remove (set apart, in the danger color): Mol*'s cell menu, as a popover
+ * from the row's ⋯ (not inline under the row: rows are of one height in a virtualized tree).
+ */
 function CellMenu(props: {
   model: StateTreeModel;
   node: StateTreeNode;
-  depth: number;
+  anchor: HTMLElement;
+  onClose: (refocus?: boolean) => void;
   onPick: (block: string) => void;
   onRemove: () => void;
 }) {
   const inspection = props.model.inspect(props.node.ref);
-  const item = (id: string, label: string, icon: IconName) => (
+  const item = (id: string, label: string) => (
     <button type="button" role="menuitem" class={tree.menuItem} onClick={() => props.onPick(id)}>
       <span />
       <span>{label}</span>
     </button>
   );
   return (
-    <div class={tree.menu} role="menu" style={{ '--msp-tree-depth': props.depth }}>
-      {inspection?.updates.map((u) => item(u.id, `${u.title}…`, 'pencil'))}
-      {inspection?.actions.map((a) => item(a.id, `${a.title}…`, a.icon))}
-      <button type="button" role="menuitem" class={tree.menuItem} data-danger="" onClick={props.onRemove}>
-        <span />
-        <span>Remove</span>
-      </button>
-    </div>
+    <MenuPopover anchor={props.anchor} onClose={props.onClose} aria-label={`${props.node.label}: actions`}>
+      <div class={tree.menu} data-popover="">
+        {inspection?.updates.map((u) => item(u.id, `${u.title}…`))}
+        {inspection?.actions.map((a) => item(a.id, `${a.title}…`))}
+        <button type="button" role="menuitem" class={tree.menuItem} data-danger="" onClick={props.onRemove}>
+          <span />
+          <span>Remove</span>
+        </button>
+      </div>
+    </MenuPopover>
   );
 }
 

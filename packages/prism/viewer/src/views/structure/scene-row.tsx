@@ -54,7 +54,8 @@ export interface SceneRowProps {
 
 /**
  * An extension's row in the scene tree (viewer-spec.md §3, `rows`), drawn as the tree draws its own: a label and a
- * description, an eye; picked, its controls in the inspector (`SceneRowPickEvent`; under it with no host to take them). Its depth comes from the tree (`--msp-tree-depth` on the
+ * description, an eye; picked, its controls in the inspector (`SceneRowPickEvent`; under it with no host to take them,
+ * outside the tree, whose rows are of one height). Its depth comes from the tree (`--msp-tree-depth` on the
  * row's host); it acts only through what it is given, so the extension's view calls its operations.
  */
 export function SceneRow(props: SceneRowProps) {
@@ -73,9 +74,11 @@ export function SceneRow(props: SceneRowProps) {
     gone.next();
     gone.complete();
   });
+  // In the scene tree (its rows are of one height: virtualized), nothing opens under it.
+  const inTree = () => !!rowEl?.parentElement?.closest('[data-scene-row]');
   // A click picks it, as the tree's other rows: its controls go to the inspector (the tree's host takes the event);
-  // with no host to take it (a row on its own), they open under it (a click on the row toggles them; the eye only opens
-  // them: `reveal`).
+  // with no host to take it (a row on its own, outside the tree), they open under it (a click on the row toggles them;
+  // the eye only opens them: `reveal`).
   const pick = (reveal = false) => {
     if (props.onOpen) {
       props.onOpen();
@@ -91,12 +94,12 @@ export function SceneRow(props: SceneRowProps) {
       gone,
     };
     const event = new CustomEvent(SceneRowPickEvent, { bubbles: true, composed: true, cancelable: true, detail });
-    if (rowEl?.dispatchEvent(event) !== false) {
+    if (rowEl?.dispatchEvent(event) !== false && !inTree()) {
       if (reveal) open.set(true);
       else toggleOpen();
     }
   };
-  const toggleOpen = () => props.body && open.set(!open.value);
+  const toggleOpen = () => props.body && !inTree() && open.set(!open.value);
   return (
     <div
       role="treeitem"

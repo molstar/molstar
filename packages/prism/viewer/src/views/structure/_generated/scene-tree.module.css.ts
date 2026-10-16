@@ -43,8 +43,6 @@ export const classes = {
 defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-viewer-scene-tree-tree {
   --msp-tree-indent: 14px;
-  grid-template-columns: minmax(0, 1fr);
-  display: grid;
 }
 
 .msp-viewer-scene-tree-empty {
@@ -55,14 +53,11 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 
 .msp-viewer-scene-tree-item {
   outline: none;
+  min-width: 0;
 }
 
-.msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-row {
+.msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-row, .msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-more, .msp-viewer-scene-tree-item:focus-visible > .msp-viewer-scene-tree-loading {
   box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
-}
-
-.msp-viewer-scene-tree-tree:focus-visible {
-  outline: none;
 }
 
 .msp-viewer-scene-tree-row {
@@ -70,8 +65,6 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   gap: var(--msp-space-2);
   min-width: 0;
   height: max(26px, var(--msp-touch-target, 0px));
-  content-visibility: auto;
-  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -256,7 +249,7 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   align-items: baseline;
   gap: var(--msp-space-2);
   width: 100%;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding-left: calc(var(--msp-space-1) +
     var(--msp-tree-depth, 0) *
     var(--msp-tree-indent, var(--msp-icon-sm)) +
@@ -264,8 +257,8 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-accent);
   font-size: var(--msp-font-size-sm);
+  line-height: max(26px, var(--msp-touch-target, 0px));
   text-align: left;
-  line-height: 26px;
   display: flex;
 
   &:hover {
@@ -279,14 +272,14 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 }
 
 .msp-viewer-scene-tree-loading {
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding-left: calc(var(--msp-space-1) +
     var(--msp-tree-depth, 0) *
     var(--msp-tree-indent, var(--msp-icon-sm)) +
     40px);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  line-height: 26px;
+  line-height: max(26px, var(--msp-touch-target, 0px));
 }
 
 .msp-viewer-scene-tree-inlineItem {

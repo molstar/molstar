@@ -45,8 +45,14 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
 - **One change, one emission**: code that sets several states for one change wraps it in `batch`, so each emits once
   with its final value; lists mark the current item with `keyedSelector`, so a pick notifies the two rows concerned.
 - **After the transaction**: sources update when the engine's transaction ends, not on intermediate trees.
-- **Long lists stay cheap**: off-screen rows skip layout (`content-visibility`); a list that can grow past thousands of
-  rows is virtualized (`components/virtual-list`).
+- **Long lists stay cheap**: a list that can grow past a screenful of rows is virtualized (`components/virtual-list`):
+  only the window is in the DOM. Rows are of one height, measured (compact mode's taller rows need nothing); what would
+  make one taller goes elsewhere (a menu to a popover, a row's controls to the inspector), and a tree's extra lines
+  (Show all, Loading…) are rows of their own. A tree is its shown nodes flattened (`flattenTree`, or the view's own walk
+  when rows open by their own states), kept by key (`keepRows`: a row the same node at the same depth keeps its DOM);
+  places (`aria-posinset`, `aria-setsize`) and open states come apart from the rows, so a sibling added renders none of
+  them again. Its keyboard works on the flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`). The viewer's
+  scene and state trees are built so.
 
 ### 4.3 Lifetimes
 

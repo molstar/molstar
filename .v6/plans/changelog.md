@@ -422,3 +422,17 @@ the [API change ledger](breaking-v6-changes.md).
   global command on the same key.
 - prism-ui: `commandItem` / `commandItems` (menu entries by command id) and `CommandButton` (a button by command id);
   context menu entries show a key. The canvas's camera Reset menu is made of commands.
+
+## Prism: virtualized scene and state trees
+
+- The Structure panel's scene tree and the State tree tab render only the rows on screen: a structure of thousands of
+  components or a state of 5,000 cells costs what a screenful does, and opening or closing a row only recomputes the
+  list. The keyboard (arrows, Home, End, Right and Left to open, close, enter and leave, Enter) moves across rows that
+  are not rendered, scrolling them into view; screen readers get each row's level and place (`aria-level`,
+  `aria-posinset`, `aria-setsize`).
+- The State tree's ⋯ menu is a popover (as the scene tree's), not a list under the row. An extension's row in the scene
+  tree never opens its controls under it: they are in the inspector.
+- prism-ui: `VirtualList` measures its rows' height, takes `edge`, `contentRef` and a handle (`scrollToIndex`);
+  `flattenTree` gives each node its place among its siblings; `keepRows` keeps a flattened list's unchanged rows;
+  `TreeNavigation` (`dom/tree-keys`) is the tree keyboard over a flattened, virtualized tree (it replaces `treeKeys` and
+  `treeFocus`).

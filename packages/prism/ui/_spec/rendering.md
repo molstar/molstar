@@ -11,8 +11,8 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **Chosen over Preact-in-elements, Lit, Solid and React** on a bench: the state tree at 5,000 cells, a burst of
   updates, the PD form, the command menu. What made the big lists fast is the runtime's and the models' to keep: `For`
   slices long lists (12 ms slices on Mol\*'s `setImmediate`; `timeSlicing`, off in jsdom), off-screen rows skip layout
-  (`content-visibility`), records per node ([view-models.md](view-models.md) §3), `batch` and `keyedSelector`,
-  `VirtualList`.
+  (`content-visibility`; trees are virtualized now), records per node ([view-models.md](view-models.md) §3), `batch` and
+  `keyedSelector`, `VirtualList`.
 - **The bench stays**: Internals › Runtime performance (`src/_stories/runtime-bench.stories.tsx`) runs the
   js-framework-benchmark operations on the runtime, rows written as the app writes them; run it after a runtime change.
 

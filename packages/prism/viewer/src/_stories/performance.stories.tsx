@@ -152,8 +152,17 @@ async function realTab(host: HTMLElement, out: Result[]) {
   const dispose = render(() => <StateTreeTab model={model} />, box);
   const tree = makeTree();
   const cells = count(tree);
-  const all = () => box.querySelectorAll('[role=treeitem]').length >= cells;
-  out.push(await time(`State tree tab: first render, ${cells} cells`, () => roots.set(tree), host, undefined, all));
+  // Virtualized (view-models.md §3): the window is all there is to render.
+  const all = () => box.querySelectorAll('[role=treeitem]').length > 10;
+  out.push(
+    await time(
+      `State tree tab: first render, ${cells} cells`,
+      () => roots.set(tree),
+      host,
+      'only the window is rendered',
+      all,
+    ),
+  );
   out.push(await time('State tree tab: select a cell (every row re-checks)', () => model.select('s12m2c30'), host));
   // A burst as path-copying records: 200 label changes, one per tick of the source.
   out.push(
@@ -167,22 +176,22 @@ async function realTab(host: HTMLElement, out: Result[]) {
         }
       },
       host,
-      'For re-creates an entry when its record changes: every touched root subtree is rebuilt',
+      'a changed cell and its ancestors render again, if on screen; nothing else',
       all,
     ),
   );
-  const collapseAll = box.querySelectorAll<HTMLButtonElement>('[aria-label=Expand]');
+  // The structures' rows (level 1) as they come into the window: closed one by one, then opened again.
+  const toggleAll = (open: boolean) => {
+    const at = `[aria-level="1"][aria-expanded="${open}"] [data-tree-toggle]`;
+    for (let b = box.querySelector<HTMLButtonElement>(at), n = 0; b && n < 100; b = box.querySelector(at), n++)
+      b.click();
+  };
   out.push(
     await time(
       'State tree tab: collapse and expand the 25 structures',
       () => {
-        for (let i = 0; i < collapseAll.length && i < 5000; i++) {
-          const b = collapseAll[i];
-          if (b.closest('[role=treeitem]')?.parentElement?.getAttribute('role') === 'tree') b.click();
-        }
-        for (const b of box.querySelectorAll<HTMLButtonElement>('[aria-label=Expand]')) {
-          if (b.closest('[role=treeitem]')?.parentElement?.getAttribute('role') === 'tree') b.click();
-        }
+        toggleAll(true);
+        toggleAll(false);
       },
       host,
     ),

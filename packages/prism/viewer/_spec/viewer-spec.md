@@ -113,8 +113,9 @@ beyond it (README decision 13).
 - **Views go in named slots** (`ViewerSlot`, closed: Home's import, Export, Selection, canvas settings, animation,
   Settings, inspector sections), plus `tabs`, `overlays` (cards), `pages` (over the app), scene tree `rows`, `toolbar`
   items. No cards or rail buttons of its own. A row's eye that turns something on (a row with controls; the viewer's
-  Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. Streaming starts in the Auto
-  view (around the whole structure, the selection while there is one).
+  Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. A scene tree row is one row
+  of the tree's height (`SceneRow`; the tree is virtualized, view-models.md §3): its controls go to the inspector, never
+  under it. Streaming starts in the Auto view (around the whole structure, the selection while there is one).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).

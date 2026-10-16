@@ -8,17 +8,28 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of, shareReplay, startWith } from 'rxjs';
-import { Button, colorToHex, MenuPopover } from '@molstar/prism-ui';
+import {
+  combineLatest,
+  distinctUntilChanged,
+  map,
+  merge,
+  type Observable,
+  of,
+  shareReplay,
+  skip,
+  startWith,
+  type Subscription,
+} from 'rxjs';
+import { Button, colorToHex, keepRows, MenuPopover, VirtualList, type VirtualListHandle } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
-import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { bind, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
+import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { bind, onActive, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
+import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
-import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
-import { treeFocus, treeKeys } from '@molstar/prism-ui/dom/tree-keys';
 
 /**
  * Where extensions' rows go (viewer-spec.md §3, `rows`): the extension host registers each as a shell section in this
@@ -28,9 +39,59 @@ export { SceneRowSlot } from './scene-row-slot.js';
 import { SceneRowSlot } from './scene-row-slot.js';
 
 /**
+ * One line of the tree, flattened (viewer-spec.md §3, the scene tree): a node; Show all, for the rest of a long list;
+ * Loading…, while a lazy node computes its rows; an extension's row under a node. All are rows of one height.
+ */
+type Row =
+  | { readonly kind: 'node'; readonly key: string; readonly node: SceneNode; readonly depth: number }
+  | {
+      readonly kind: 'more';
+      readonly key: string;
+      readonly node: SceneNode;
+      readonly depth: number;
+      /** The node's children: Show all says how many. */
+      readonly total: number;
+    }
+  | { readonly kind: 'loading'; readonly key: string; readonly node: SceneNode; readonly depth: number }
+  | {
+      readonly kind: 'row';
+      readonly key: string;
+      readonly node: SceneNode;
+      readonly depth: number;
+      readonly section: ShellSection;
+    };
+
+/** A row's place among its siblings, and whether it is open (undefined: it has nothing to open). */
+interface RowState {
+  readonly posinset: number;
+  readonly setsize: number;
+  readonly expanded?: boolean;
+}
+
+/** What the rows are flattened from: the search, its hits, the scene's roots, the extensions' rows. */
+interface Search {
+  readonly text: string;
+  readonly hits: SearchHits;
+  readonly roots: readonly SceneNode[];
+  readonly sections: readonly ShellSection[];
+}
+
+const sameRow = (a: Row, b: Row) =>
+  a.kind === b.kind &&
+  a.node === b.node &&
+  a.depth === b.depth &&
+  (a.kind !== 'more' || a.total === (b as typeof a).total) &&
+  (a.kind !== 'row' || a.section === (b as typeof a).section);
+
+/**
  * The scene as one tree: structures → components → representations, volumes, measurements. Rows are keyed by node, so
  * a hierarchy update touches only the rows that changed; hover highlights in 3D, a click picks the node for the
  * inspector, visibility toggles inline. Given the shell, extensions' rows (`SceneRowSlot`) follow a node's children.
+ *
+ * Virtualized (view-models.md §3): the shown rows are flattened (a node's children while it is open) into rows of one
+ * height in a `VirtualList`, so only the window is rendered; the flattening follows each shown node's `isExpanded` and
+ * `children` (nothing else), and a row follows its node's own states. The keyboard moves over the flattened rows
+ * (`TreeNavigation`), scrolling its target into view.
  */
 export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter?: Observable<string> }) {
   const { scene, shell } = props;
@@ -40,51 +101,255 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     startWith(''),
     map((t) => t.trim().toLowerCase()),
     distinctUntilChanged(),
-    shareReplay({ bufferSize: 1, refCount: true }),
   );
-  // One walk of the scene per search (and per change of the scene while searching), every row reading its result.
+  // One walk of the scene per search (and per change of the scene while searching), the rows flattened from its result.
   const sections: Observable<readonly ShellSection[]> = shell ? shell.sections(SceneRowSlot) : of([]);
-  const hits: Observable<SearchHits> = combineLatest([filter, scene.roots, sections]).pipe(
-    map(([t, roots, all]) =>
-      t ? searchHits(roots, t, (node) => !!shell && all.some((r) => rowMatches(shell, r, node, t))) : undefined,
-    ),
+  const search: Observable<Search> = combineLatest([filter, scene.roots, sections]).pipe(
+    map(([text, roots, all]) => ({
+      text,
+      roots,
+      sections: all,
+      hits: text
+        ? searchHits(roots, text, (node) => !!shell && all.some((r) => rowMatches(shell, r, node, text)))
+        : undefined,
+    })),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
-  // A row picked from elsewhere (the inspector's list, the canvas) is brought into view, once it is drawn (its rows
-  // open first): read once, the frame after.
-  let tree: HTMLElement | undefined;
+
+  const rows = observableState<readonly Row[]>([]);
+  const states = observableState<ReadonlyMap<string, RowState>>(new Map());
+  const keep = keepRows<Row>((r) => r.key, sameRow);
+  // Long lists shown whole (Show all), until closed; the nodes open at the last flattening (a node opening loads).
+  const showAll = new Set<SceneNode>();
+  let wasOpen = new Set<SceneNode>();
+  // The shown nodes' `isExpanded` and `children`: a change flattens again.
+  const watched = new Map<SceneNode, Subscription>();
+  let current: Search | undefined;
+  let building = false;
+  let again = false;
+
+  const flatten = (s: Search) => {
+    const out: Row[] = [];
+    const st = new Map<string, RowState>();
+    const open = new Set<SceneNode>();
+    const seen = new Set<SceneNode>();
+    const { hits, text } = s;
+    // The extensions' rows for a node (searching: those whose title matches).
+    const extensionRows = (node: SceneNode) =>
+      shell
+        ? s.sections.filter(
+            (r) => (!r.when || r.when({ shell, subject: node })) && (!text || r.title.toLowerCase().includes(text)),
+          )
+        : [];
+    const level = (items: readonly Row[]) => {
+      for (let i = 0; i < items.length; i++) {
+        const row = items[i];
+        out.push(row);
+        if (row.kind !== 'node') {
+          st.set(row.key, { posinset: i + 1, setsize: items.length });
+          continue;
+        }
+        const { node, depth } = row;
+        seen.add(node);
+        watch(node);
+        const extensions = extensionRows(node);
+        let children = node.children.value;
+        // A node with an extension's row can be opened before it has children.
+        const expandable = children.length + extensions.length > 0 || !!node.lazy;
+        // Searching, a row with matches under it is open; otherwise as the person left it.
+        const isOpen =
+          expandable &&
+          (node.isExpanded.value || (!!hits && (children.some((c) => hits.has(c)) || extensions.length > 0)));
+        st.set(row.key, { posinset: i + 1, setsize: items.length, expanded: expandable ? isOpen : undefined });
+        if (!isOpen) continue;
+        open.add(node);
+        if (!wasOpen.has(node)) {
+          // Children computed on first look (lazy nodes); open only for a search, a look (it stays lazy).
+          node.load?.(!node.isExpanded.value);
+          children = node.children.value;
+        }
+        const shown = hits ? children.filter((c) => hits.has(c)) : children;
+        // Many children: the first few, then Show all (until the row is closed: opened again, the few again).
+        const paged = !hits && Paged.has(node.kind) && !showAll.has(node) && children.length > PageSize + 1;
+        const next: Row[] = (paged ? shown.slice(0, PageSize) : shown).map((c) => ({
+          kind: 'node',
+          key: c.id,
+          node: c,
+          depth: depth + 1,
+        }));
+        if (paged) next.push({ kind: 'more', key: `${node.id}::more`, node, depth: depth + 1, total: children.length });
+        // Until they arrive, a quiet loading row (not when only extensions' rows are there: nothing is loading).
+        if (children.length === 0 && (node.lazy || extensions.length === 0))
+          next.push({ kind: 'loading', key: `${node.id}::loading`, node, depth: depth + 1 });
+        for (const section of extensions)
+          next.push({ kind: 'row', key: `${node.id}::row:${section.id}`, node, depth: depth + 1, section });
+        level(next);
+      }
+    };
+    level(
+      (hits ? s.roots.filter((r) => hits.has(r)) : s.roots).map((n) => ({
+        kind: 'node',
+        key: n.id,
+        node: n,
+        depth: 0,
+      })),
+    );
+    for (const n of wasOpen) if (!open.has(n)) showAll.delete(n);
+    wasOpen = open;
+    for (const [n, sub] of watched) {
+      if (seen.has(n)) continue;
+      sub.unsubscribe();
+      watched.delete(n);
+    }
+    batch(() => {
+      states.set(st);
+      rows.set(keep(out));
+    });
+  };
+  // A change while flattening (a lazy node's rows arriving as it opens) flattens again after.
+  const reflow = () => {
+    if (!current) return;
+    if (building) {
+      again = true;
+      return;
+    }
+    building = true;
+    try {
+      do {
+        again = false;
+        flatten(current);
+      } while (again);
+    } finally {
+      building = false;
+    }
+  };
+  const watch = (node: SceneNode) => {
+    if (watched.has(node)) return;
+    watched.set(node, merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow));
+  };
+  bind(search, (s) => {
+    current = s;
+    reflow();
+  });
+  // Hidden, nothing followed (prism AGENTS.md): the search's binding pauses itself, the nodes' watches go; shown again,
+  // the search replays and the flattening watches them again.
+  const unwatch = () => {
+    for (const sub of watched.values()) sub.unsubscribe();
+    watched.clear();
+  };
+  onActive((active) => {
+    if (!active) unwatch();
+  });
+  onCleanup(unwatch);
+
+  let list: VirtualListHandle | undefined;
+  const nav = new TreeNavigation<Row>({
+    rows: () => rows.value,
+    key: (r) => r.key,
+    level: (r) => r.depth + 1,
+    scrollTo: (i) => list?.scrollToIndex(i),
+    selected: () => scene.picked.value?.id,
+  });
+  // A row picked from elsewhere (the inspector's list, the canvas) is brought into view once its rows are open: the
+  // frame after.
   let frame = 0;
   bind(scene.picked.pipe(distinctUntilChanged()), (node) => {
-    if (!node || !tree) return;
+    if (!node) return;
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
-      const row = tree?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(node.id)}"]`);
-      row?.scrollIntoView?.({ block: 'nearest' });
+      const i = rows.value.findIndex((r) => r.kind === 'node' && r.node === node);
+      if (i >= 0) list?.scrollToIndex(i);
     });
   });
   onCleanup(() => cancelAnimationFrame(frame));
+  const stateOf = (key: string) =>
+    states.asReadonly.pipe(
+      map((m) => m.get(key)),
+      distinctUntilChanged(
+        (a, b) => a?.posinset === b?.posinset && a?.setsize === b?.setsize && a?.expanded === b?.expanded,
+      ),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
   return (
-    <div
-      class={classes.tree}
-      role="tree"
-      aria-label="Scene"
-      tabIndex={0}
-      onKeyDown={treeKeys}
-      onFocusIn={treeFocus}
-      ref={(el: HTMLElement) => (tree = el)}
-    >
-      <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
-        {(node) => <TreeNode scene={scene} shell={shell} node={node} depth={0} filter={filter} hits={hits} />}
-      </For>
+    <>
       <Show
-        when={hits.pipe(
-          map((h) => !!h && scene.roots.value.length > 0 && !scene.roots.value.some((r) => h.has(r))),
+        when={scene.roots.pipe(
+          map((r) => r.length === 0),
+          distinctUntilChanged(),
+        )}
+      >
+        {() => <p class={classes.empty}>Nothing loaded yet.</p>}
+      </Show>
+      <Show
+        when={search.pipe(
+          map((s) => !!s.hits && s.roots.length > 0 && !s.roots.some((r) => s.hits!.has(r))),
           distinctUntilChanged(),
         )}
       >
         {() => <p class={classes.empty}>Nothing matches.</p>}
       </Show>
-    </div>
+      <VirtualList
+        items={rows.asReadonly}
+        key={(r) => r.key}
+        rowHeight={26}
+        class={classes.tree}
+        edge
+        role="tree"
+        aria-label="Scene"
+        contentRef={nav.tree}
+        ref={(l) => {
+          list = l;
+        }}
+      >
+        {(row) => {
+          const state = stateOf(row.key);
+          switch (row.kind) {
+            case 'node':
+              return <TreeItem scene={scene} node={row.node} depth={row.depth} state={state} nav={nav} />;
+            case 'more':
+              return (
+                <MoreRow
+                  row={row}
+                  state={state}
+                  nav={nav}
+                  onShowAll={() => {
+                    showAll.add(row.node);
+                    reflow();
+                  }}
+                />
+              );
+            case 'loading':
+              return (
+                <div
+                  role="treeitem"
+                  aria-level={row.depth + 1}
+                  aria-posinset={state.pipe(map((s) => s?.posinset))}
+                  aria-setsize={state.pipe(map((s) => s?.setsize))}
+                  aria-busy="true"
+                  tabIndex={-1}
+                  class={classes.item}
+                  ref={nav.row(row.key)}
+                >
+                  <div class={classes.loading} style={{ '--msp-tree-depth': row.depth }}>
+                    Loading…
+                  </div>
+                </div>
+              );
+            case 'row':
+              return (
+                <ExtensionRow
+                  section={row.section}
+                  shell={shell!}
+                  node={row.node}
+                  depth={row.depth}
+                  state={state}
+                  register={nav.row(row.key)}
+                />
+              );
+          }
+        }}
+      </VirtualList>
+    </>
   );
 }
 
@@ -122,58 +387,18 @@ function searchHits(
   return hits;
 }
 
-function TreeNode(props: {
-  scene: SceneModel;
-  shell?: ShellModel;
-  node: SceneNode;
-  depth: number;
-  filter: Observable<string>;
-  hits: Observable<SearchHits>;
-}) {
-  const { node, hits } = props;
-  // Searching: shown when it or a row under it matches.
-  return (
-    <Show
-      when={hits.pipe(
-        map((h) => !h || h.has(node)),
-        distinctUntilChanged(),
-      )}
-    >
-      {() => <TreeItem {...props} />}
-    </Show>
-  );
-}
+type RowStateStream = Observable<RowState | undefined>;
 
 function TreeItem(props: {
   scene: SceneModel;
-  shell?: ShellModel;
   node: SceneNode;
   depth: number;
-  filter: Observable<string>;
-  hits: Observable<SearchHits>;
+  state: RowStateStream;
+  nav: TreeNavigation<Row>;
 }) {
-  const { scene, shell, node, depth, filter, hits } = props;
-  // The extensions' rows for this node: a node with one can be opened before it has children.
-  // Searching, an extension's row shows when its title matches.
-  const rows = shell
-    ? combineLatest([shell.sections(SceneRowSlot), filter]).pipe(
-        map(([all, t]) =>
-          all.filter((r) => (!r.when || r.when({ shell, subject: node })) && (!t || r.title.toLowerCase().includes(t))),
-        ),
-        distinctUntilChanged((a, b) => a.length === b.length && a.every((r, i) => r === b[i])),
-      )
-    : undefined;
-  const count = rows
-    ? combineLatest([node.children, rows]).pipe(map(([c, r]) => c.length + r.length))
-    : node.children.pipe(map((c) => c.length));
-  const hasChildren = count.pipe(
-    map((n) => n > 0 || !!node.lazy),
-    distinctUntilChanged(),
-  );
-  // Searching, a row with matches under it is open; otherwise as the person left it.
-  const searching = filter.pipe(map((t) => !!t));
-  const open = combineLatest([node.isExpanded, hasChildren, hits, rows ?? of([])]).pipe(
-    map(([e, h, s, r]) => h && (e || (!!s && (node.children.value.some((c) => s.has(c)) || r.length > 0)))),
+  const { scene, node, depth, state } = props;
+  const expanded = state.pipe(
+    map((s) => s?.expanded),
     distinctUntilChanged(),
   );
   const menuOpen = observableState(false);
@@ -182,16 +407,20 @@ function TreeItem(props: {
     map((p) => p === node),
     distinctUntilChanged(),
   );
-  // Named by its own label and description (not the whole subtree it holds).
+  // Named by its own label and description.
   const labelId = uniqueId('msp-tree-label');
   return (
     <div
       role="treeitem"
-      aria-expanded={open}
+      aria-level={depth + 1}
+      aria-posinset={state.pipe(map((s) => s?.posinset))}
+      aria-setsize={state.pipe(map((s) => s?.setsize))}
+      aria-expanded={expanded}
       aria-selected={picked}
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={classes.item}
+      ref={props.nav.row(node.id)}
     >
       <div
         data-tip-row=""
@@ -207,7 +436,7 @@ function TreeItem(props: {
         <button
           type="button"
           class={classes.expander}
-          classList={{ [classes.leaf]: hasChildren.pipe(map((h) => !h)) }}
+          classList={{ [classes.leaf]: expanded.pipe(map((e) => e === undefined)) }}
           data-tree-toggle=""
           tabIndex={-1}
           aria-label="Expand"
@@ -283,69 +512,56 @@ function TreeItem(props: {
           />
         )}
       </Show>
-      <Show when={open} reveal>
-        {() => {
-          // Children computed on first look (lazy nodes); until they arrive, a quiet loading row. Open only for a
-          // search, a look (it stays lazy).
-          node.load?.(!node.isExpanded.value);
-          // Many children: the first few, then Show all (until the row is closed: opened again, the few again).
-          const all = observableState(!Paged.has(node.kind));
-          const shown = combineLatest([node.children, all.asReadonly, searching]).pipe(
-            map(([c, a, s]) => (a || s || c.length <= PageSize + 1 ? c : c.slice(0, PageSize))),
-          );
-          const rest = combineLatest([node.children, all.asReadonly, searching]).pipe(
-            map(([c, a, s]) => (a || s || c.length <= PageSize + 1 ? 0 : c.length - PageSize)),
-            distinctUntilChanged(),
-          );
-          return (
-            <div role="group">
-              <For
-                each={shown}
-                key={(n) => n.id}
-                fallback={() =>
-                  // Only rows of extensions (no children of its own): nothing is loading.
-                  node.lazy || !rows ? (
-                    <div class={classes.loading} style={{ '--msp-tree-depth': depth + 1 }}>
-                      Loading…
-                    </div>
-                  ) : null
-                }
-              >
-                {(child) => (
-                  <TreeNode scene={scene} shell={shell} node={child} depth={depth + 1} filter={filter} hits={hits} />
-                )}
-              </For>
-              <Show when={rest.pipe(map((n) => n > 0))}>
-                {() => (
-                  <button
-                    type="button"
-                    class={classes.more}
-                    style={{ '--msp-tree-depth': depth + 1 }}
-                    onClick={() => all.set(true)}
-                  >
-                    {node.children.pipe(map((c) => `Show all ${c.length}`))}
-                    <span class={classes.moreCount}>{rest.pipe(map((n) => `${n} more`))}</span>
-                  </button>
-                )}
-              </Show>
-              {rows ? (
-                <For each={rows} key={(r) => r.id}>
-                  {(row) => <ExtensionRow section={row} shell={shell!} node={node} depth={depth + 1} />}
-                </For>
-              ) : null}
-            </div>
-          );
-        }}
-      </Show>
+    </div>
+  );
+}
+
+/** Show all: a quiet row where the rest of a long list would be, at the children's depth. */
+function MoreRow(props: {
+  row: Extract<Row, { kind: 'more' }>;
+  state: RowStateStream;
+  nav: TreeNavigation<Row>;
+  onShowAll: () => void;
+}) {
+  const { row, state } = props;
+  return (
+    <div
+      role="treeitem"
+      aria-level={row.depth + 1}
+      aria-posinset={state.pipe(map((s) => s?.posinset))}
+      aria-setsize={state.pipe(map((s) => s?.setsize))}
+      tabIndex={-1}
+      class={classes.item}
+      ref={props.nav.row(row.key)}
+    >
+      <button
+        type="button"
+        class={classes.more}
+        style={{ '--msp-tree-depth': row.depth }}
+        data-tree-action=""
+        tabIndex={-1}
+        onClick={props.onShowAll}
+      >
+        {`Show all ${row.total}`}
+        <span class={classes.moreCount}>{`${row.total - PageSize} more`}</span>
+      </button>
     </div>
   );
 }
 
 /**
  * An extension's row under a node: its view, mounted with the node as its subject, at the depth of the node's children
- * (`SceneRow` draws it as a tree row).
+ * (`SceneRow` draws it as a tree row; the tree gives it its place: level, position, set size). In the tree it is one
+ * row: its controls go to the host's inspector (`SceneRowPickEvent`), never under it.
  */
-function ExtensionRow(props: { section: ShellSection; shell: ShellModel; node: SceneNode; depth: number }) {
+function ExtensionRow(props: {
+  section: ShellSection;
+  shell: ShellModel;
+  node: SceneNode;
+  depth: number;
+  state: RowStateStream;
+  register: (el: HTMLElement) => void;
+}) {
   const host = (
     <div data-scene-row={props.section.id} style={{ display: 'contents', '--msp-tree-depth': props.depth }} />
   ) as HTMLElement;
@@ -355,6 +571,17 @@ function ExtensionRow(props: { section: ShellSection; shell: ShellModel; node: S
     requireScope('A scene row'),
   );
   onCleanup(dispose);
+  const item = () => host.querySelector<HTMLElement>('[role="treeitem"]');
+  // Nothing opens under it here: not expandable.
+  item()?.removeAttribute('aria-expanded');
+  item()?.setAttribute('aria-level', String(props.depth + 1));
+  bind(props.state, (s) => {
+    const el = item();
+    if (!el || !s) return;
+    el.setAttribute('aria-posinset', String(s.posinset));
+    el.setAttribute('aria-setsize', String(s.setsize));
+  });
+  props.register(host);
   return host;
 }
 

@@ -75,7 +75,13 @@ export {
   type SelectProps,
 } from './components/select/select.js';
 export { TextInput, type TextInputProps } from './components/text-input/text-input.js';
-export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
+export {
+  type FlatNode,
+  flattenTree,
+  keepRows,
+  VirtualList,
+  type VirtualListHandle,
+} from './components/virtual-list/virtual-list.js';
 
 export { HoverLabel } from './views/canvas/hover-label.js';
 export {

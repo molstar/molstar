@@ -21,9 +21,11 @@
   container-type: inline-size;
 }
 
-/* The tree takes what the inspector leaves and scrolls. */
+/* The tree takes what the inspector leaves; its list scrolls (a virtualized tree fills it). */
 .tree {
   flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
   min-height: 80px;
 }
 

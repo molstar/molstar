@@ -40,13 +40,6 @@ export const classes = {
   'options': 'msp-viewer-structure-tab-options',
   'optionsButton': 'msp-viewer-structure-tab-optionsButton',
   'optionsContent': 'msp-viewer-structure-tab-optionsContent',
-  'preset': 'msp-viewer-structure-tab-preset',
-  'presetCaption': 'msp-viewer-structure-tab-presetCaption',
-  'presetCheck': 'msp-viewer-structure-tab-presetCheck',
-  'presetGroup': 'msp-viewer-structure-tab-presetGroup',
-  'presets': 'msp-viewer-structure-tab-presets',
-  'presetsContent': 'msp-viewer-structure-tab-presetsContent',
-  'quickStyles': 'msp-viewer-structure-tab-quickStyles',
   'renameField': 'msp-viewer-structure-tab-renameField',
   'renameTitle': 'msp-viewer-structure-tab-renameTitle',
   'search': 'msp-viewer-structure-tab-search',
@@ -69,8 +62,10 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-tree {
+  flex-direction: column;
   flex: 1 1 0;
   min-height: 80px;
+  display: flex;
 }
 
 .msp-viewer-structure-tab-actions {
@@ -226,67 +221,6 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   & dd {
     font-variant-numeric: tabular-nums;
     margin: 0;
-  }
-}
-
-.msp-viewer-structure-tab-quickStyles {
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-  flex: none;
-  display: grid;
-}
-
-.msp-viewer-structure-tab-presets {
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-  flex: none;
-  max-height: 50%;
-}
-
-.msp-viewer-structure-tab-presetsContent {
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2);
-  grid-template-columns: minmax(0, 1fr);
-  display: grid;
-}
-
-.msp-viewer-structure-tab-presetGroup {
-  display: grid;
-}
-
-.msp-viewer-structure-tab-presetCaption {
-  padding: var(--msp-space-1) var(--msp-space-2);
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-}
-
-.msp-viewer-structure-tab-preset {
-  height: max(28px, var(--msp-touch-target, 0px));
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text);
-  text-align: left;
-  justify-content: space-between;
-  align-items: center;
-  display: flex;
-
-  &:hover {
-    background: var(--msp-color-hover);
-  }
-
-  &[aria-pressed="true"] {
-    color: var(--msp-color-accent);
-    font-weight: 600;
-  }
-}
-
-.msp-viewer-structure-tab-presetCheck {
-  visibility: hidden;
-
-  [aria-pressed="true"] > & {
-    visibility: visible;
   }
 }
 
