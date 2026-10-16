@@ -42,8 +42,12 @@ export const Entry: StoryObj<Args> = {
           const person = viewer.api.as({ kind: 'person' });
           const r = await person.run('dynamic-pdb.load', { entry: 'dpdb_gijqn2no' });
           if (!r.ok) throw new Error(r.message);
+          // Without the waters: the protein, its ligand and the density read better (the deposited model has 1,100).
+          const models = person['dynamic-pdb']?.loaded.value?.models ?? [];
+          for (const m of models)
+            if (m.ref) await person.run('component.remove', { component: 'Water', structure: m.ref });
           if (args.card) await person.view.open({ card: DpdbCard });
-          const deposited = person['dynamic-pdb']?.loaded.value?.models[0]?.ref;
+          const deposited = models[0]?.ref;
           if (args.density && deposited) await person.run('volume.streaming', { structure: deposited, on: true });
         },
       }),
