@@ -788,12 +788,18 @@ export class QuantumField {
           vy[i] = 0;
           continue;
         }
-        const dax = (re[i + 1] - re[i - 1]) / 2;
-        const dbx = (im[i + 1] - im[i - 1]) / 2;
-        const day = (re[i + N] - re[i - N]) / 2;
-        const dby = (im[i + N] - im[i - N]) / 2;
-        let u = (a * dbx - b * dax) / p;
-        let w = (a * dby - b * day) / p;
+        // ∇ of the phase from the phase differences to the neighbors (arg ψ(x+1)ψ*(x), and back), averaged: exact for a
+        // plane wave, where a central difference of ψ would give sin k (and the colors and speeds with it).
+        const r1 = re[i + 1];
+        const i1 = im[i + 1];
+        const r0 = re[i - 1];
+        const i0 = im[i - 1];
+        let u = (Math.atan2(i1 * a - r1 * b, r1 * a + i1 * b) + Math.atan2(b * r0 - a * i0, a * r0 + b * i0)) / 2;
+        const rd = re[i + N];
+        const id = im[i + N];
+        const ru = re[i - N];
+        const iu = im[i - N];
+        let w = (Math.atan2(id * a - rd * b, rd * a + id * b) + Math.atan2(b * ru - a * iu, a * ru + b * iu)) / 2;
         const s2 = u * u + w * w;
         if (s2 > cap2) {
           const k = cap / Math.sqrt(s2);
@@ -967,9 +973,12 @@ export class QuantumField {
     const tg = this.#tintG;
     const tb = this.#tintB;
     if (!this.#tinted) {
-      tr.fill(rgb[0]);
-      tg.fill(rgb[1]);
-      tb.fill(rgb[2]);
+      // From the middle of the logo's colors (brand-2 and -3); each cell finds its own as the wave comes.
+      const m = o.colors ? 2 * 3 : 0;
+      const n = o.colors ? 3 * 3 : 0;
+      tr.fill((rgb[m] + rgb[n]) / 2);
+      tg.fill((rgb[m + 1] + rgb[n + 1]) / 2);
+      tb.fill((rgb[m + 2] + rgb[n + 2]) / 2);
       this.#tinted = true;
     }
     const ease = Math.min(1, this.#frameDt * TintEase);
@@ -982,31 +991,29 @@ export class QuantumField {
         data[j + 3] = 0;
         continue;
       }
-      // Its light's color: the stream's while straight on, else between the logo's colors by its wavenumber; trusted
-      // only where the wave is dense (where it is thin its phase is noise).
+      // Its light's color: the logo's, by its wavenumber (brand-1 the longest waves to brand-4 the shortest, blended),
+      // followed only as far as the wave is dense (where it is thin its phase is noise: the cell keeps its color).
       let r = rgb[0];
       let g = rgb[1];
       let b = rgb[2];
+      let follow = 1;
       if (o.colors) {
         const u = this.#vx[i];
         const w = this.#vy[i];
-        const turn = Math.abs(Math.atan2(w, u));
-        let colorful = Math.min(1, Math.max(0, (turn - Straight * 0.5) / Straight)) * Math.min(1, p * 12);
-        colorful = colorful * colorful * (3 - 2 * colorful);
-        if (colorful > 0) {
-          const f = Math.min(2.999, Math.max(0, ((Math.sqrt(u * u + w * w) - lo) / span) * 4 - 0.5));
-          const k = f | 0;
-          const t = f - k;
-          const a = (1 + k) * 3;
-          const z = (2 + k) * 3;
-          r += (rgb[a] * (1 - t) + rgb[z] * t - r) * colorful;
-          g += (rgb[a + 1] * (1 - t) + rgb[z + 1] * t - g) * colorful;
-          b += (rgb[a + 2] * (1 - t) + rgb[z + 2] * t - b) * colorful;
-        }
+        const f = Math.min(2.999, Math.max(0, ((Math.sqrt(u * u + w * w) - lo) / span) * 4 - 0.5));
+        const k = f | 0;
+        const t = f - k;
+        const a = (1 + k) * 3;
+        const z = (2 + k) * 3;
+        r = rgb[a] * (1 - t) + rgb[z] * t;
+        g = rgb[a + 1] * (1 - t) + rgb[z + 1] * t;
+        b = rgb[a + 2] * (1 - t) + rgb[z + 2] * t;
+        follow = Math.min(1, p * 12);
       }
-      tr[i] += (r - tr[i]) * ease;
-      tg[i] += (g - tg[i]) * ease;
-      tb[i] += (b - tb[i]) * ease;
+      const e = ease * follow;
+      tr[i] += (r - tr[i]) * e;
+      tg[i] += (g - tg[i]) * e;
+      tb[i] += (b - tb[i]) * e;
       data[j] = tr[i];
       data[j + 1] = tg[i];
       data[j + 2] = tb[i];
