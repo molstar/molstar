@@ -24,30 +24,37 @@ import { classes } from './_generated/remote-states-panel.module.css.js';
  * Remote states (Mol*'s state server; present only when the spec turns it on): upload the current state under a name,
  * the states on the server (a click opens one; its ⋯ downloads or removes it), and the server's address.
  */
+/**
+ * Uploading the current state to the state server: an action like Home's (a name, then Upload across the footer). The
+ * Export card's section (the Remote states card lists what is there); nothing when the server takes no uploads.
+ */
+export function RemoteStatesUpload(props: { model: RemoteStatesModel }) {
+  const { model } = props;
+  if (!model.upload) return null;
+  const form = new ParamsFormModel({ name: PD.Text('', { label: 'Name', placeholder: 'Untitled' }) });
+  const upload: HomeAction = {
+    id: 'upload',
+    title: 'Upload the current state',
+    icon: 'cloud-upload',
+    form,
+    applyLabel: 'Upload',
+    apply: () => {
+      model.upload?.(form.values.value.name.trim() || 'Untitled');
+      form.reset();
+    },
+  };
+  return (
+    <section class={classes.upload} aria-label="Upload">
+      <ActionBlock action={upload} open />
+    </section>
+  );
+}
+
+/** The states on the state server (a click opens one; ⋯ downloads or removes) and the server's address. */
 export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
   const { model } = props;
-  // Uploading is an action like Home's: a name, set defaults, and Upload across the footer.
-  const form = new ParamsFormModel({ name: PD.Text('', { label: 'Name', placeholder: 'Untitled' }) });
-  const upload: HomeAction | undefined = model.upload
-    ? {
-        id: 'upload',
-        title: 'Upload the current state',
-        icon: 'cloud-upload',
-        form,
-        applyLabel: 'Upload',
-        apply: () => {
-          model.upload?.(form.values.value.name.trim() || 'Untitled');
-          form.reset();
-        },
-      }
-    : undefined;
   return (
     <div class={classes.panel}>
-      {upload ? (
-        <section class={classes.upload} aria-label="Upload">
-          <ActionBlock action={upload} open />
-        </section>
-      ) : null}
       <section class={classes.states} aria-label="On the server">
         <div class={classes.captionRow}>
           <p class={classes.caption}>On the server</p>

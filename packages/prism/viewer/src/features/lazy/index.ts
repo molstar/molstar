@@ -96,8 +96,16 @@ export const LazyRemoteStates: LazyViewerExtension = {
         icon: 'cloud',
         order: 10,
       },
+      {
+        id: 'remote-states.section.export',
+        kind: 'section',
+        slot: 'export',
+        title: 'Upload to the state server',
+        icon: 'cloud-upload',
+        order: 2,
+      },
+      // No button on the rail: Home's section and the command menu open it.
       { id: 'remote-states.overlay.states', kind: 'overlay', title: 'Remote states' },
-      { id: 'remote-states.toolbar.states', kind: 'toolbar', title: 'Remote states' },
     ],
     operations: [
       {
