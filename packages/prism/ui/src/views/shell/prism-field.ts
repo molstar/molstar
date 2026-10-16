@@ -28,6 +28,7 @@
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { Fluid } from './fluid.js';
 import { Glass } from './glass.js';
+import { GlassFootprint } from './glass-footprint.js';
 
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
@@ -158,6 +159,15 @@ const GustApart = 36;
 const GustRadius = 110;
 const GustSpeed = 160;
 
+/**
+ * The light out of sight under the glass (`glass-footprint.ts`), so the word stays clear, whole or in pieces: a grid of
+ * `CoverCell` px round the word, `CoverMargin` px past it each way (room for the flying pieces); a speck under glass
+ * shows `1 − cover × CoverHide` of itself.
+ */
+const CoverCell = 4;
+const CoverMargin = 200;
+const CoverHide = 1.6;
+
 /** How much faster (and denser) the stream is at the very start of its intro. */
 const IntroBoost = 8;
 /** Seconds a speck's speed takes to settle back after a push or a burst. */
@@ -247,6 +257,14 @@ export class PrismField {
   #wordScale = 1;
   #gradient: CanvasGradient | undefined;
   #burst = 0;
+  // Where the glass is: its footprint on the cover grid (from (coverX, coverY), canvas px), redrawn while it moves.
+  #footprint: GlassFootprint | undefined;
+  #cover = new Float32Array(0);
+  #coverX = 0;
+  #coverY = 0;
+  #coverW = 0;
+  #coverH = 0;
+  #coverDirty = true;
 
   /** The air the light goes through (none when still), and its eddies' phases. */
   readonly #air: Fluid | undefined;
@@ -343,6 +361,7 @@ export class PrismField {
     this.#wordX = x;
     this.#wordY = y;
     this.#wordScale = scale;
+    this.#layoutCover();
     if (this.#glass) return true;
     if (this.#still || typeof Path2D !== 'function') return false;
     const glass = new Glass(this.#options.seed + 8);
@@ -351,8 +370,29 @@ export class PrismField {
       this.#burst += this.#options.burst * 0.6;
     };
     this.#glass = glass;
+    this.#footprint = new GlassFootprint();
     glass.scatter();
     return true;
+  }
+
+  /** The cover grid round the word where it is now (grown when it must, else reused). */
+  #layoutCover(): void {
+    const w = Math.ceil((WordmarkGeometry.width * this.#wordScale + 2 * CoverMargin) / CoverCell);
+    const h = Math.ceil((WordmarkGeometry.height * this.#wordScale + 2 * CoverMargin) / CoverCell);
+    if (this.#cover.length < w * h) this.#cover = new Float32Array(w * h);
+    this.#coverX = this.#wordX - CoverMargin;
+    this.#coverY = this.#wordY - CoverMargin;
+    this.#coverW = w;
+    this.#coverH = h;
+    this.#coverDirty = true;
+  }
+
+  /** How much of a speck at (x, y) shows (0 under the glass, 1 clear of it). */
+  #clear(x: number, y: number): number {
+    const cx = (x - this.#coverX) / CoverCell;
+    const cy = (y - this.#coverY) / CoverCell;
+    if (cx < 0 || cy < 0 || cx >= this.#coverW || cy >= this.#coverH) return 1;
+    return 1 - Math.min(1, this.#cover[(cy | 0) * this.#coverW + (cx | 0)] * CoverHide);
   }
 
   /**
@@ -571,6 +611,23 @@ export class PrismField {
     const t = this.#time;
     this.#warmth = Math.max(0, this.#warmth - dt / WarmFade);
     this.#glass?.step(dt);
+    // Where the glass is, while its pieces move (or the word moved).
+    const glass = this.#glass;
+    if (glass && this.#footprint?.ready && this.#coverW && (this.#coverDirty || !glass.resting)) {
+      this.#footprint.rasterize(
+        glass,
+        this.#wordX,
+        this.#wordY,
+        this.#wordScale,
+        this.#coverX,
+        this.#coverY,
+        CoverCell,
+        this.#coverW,
+        this.#coverH,
+        this.#cover,
+      );
+      this.#coverDirty = false;
+    }
     // The star splits the light only while the glass is whole.
     const prism = !this.#glass || this.#glass.whole;
     // The intro: the stream rushes in at full speed for its first half, then eases (smoothly) to its pace.
@@ -734,6 +791,8 @@ export class PrismField {
       // Brightest just past the split, gone at the reach.
       a = o.alpha * Math.min(1, d * 12) * (1 - d) ** 1.6;
     }
+    // Out of sight under the glass.
+    a *= this.#clear(this.#x[i], this.#y[i]);
     // A twinkle, each at its own pace.
     a *=
       1 - o.twinkle + o.twinkle * (0.5 + 0.5 * Math.sin(this.#time * (1.4 + 2.6 * this.#pace[i]) + this.#shimmer[i]));

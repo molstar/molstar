@@ -25,6 +25,7 @@
 
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { Glass } from './glass.js';
+import { GlassFootprint } from './glass-footprint.js';
 
 export interface QuantumFieldOptions {
   /** Wave packets that come in per second. */
@@ -98,12 +99,6 @@ const MaxSteps = 4;
 /** The absorbing edge: cells wide, and how much it takes a step at the very edge. */
 const Edge = 14;
 const Absorb = 0.12;
-/**
- * The word as glass, sampled once: samples a drawing unit, and how much it is softened (units): the well follows the
- * letters and the star, filled, a little rounded.
- */
-const MaskRes = 4;
-const MaskSoft = 0.8;
 /**
  * What shows under the glass: the wave pools in its well (that is what refracts it), but in the picture the word stays
  * clear: no glow, no births, specks fading, where the glass covers a cell (its cover times this, at most 1).
@@ -349,11 +344,8 @@ export class QuantumField {
   #wordY = 0;
   #wordScale = 1;
   #wasWhole = true;
-  /** The filled word (0..1, `MaskRes` samples a unit from (−1, −1)), and a piece's place (`Glass.place`). */
-  #mask: Float32Array | undefined;
-  #maskWidth = 0;
-  #maskHeight = 0;
-  readonly #pose = new Float32Array(5);
+  /** Where the glass is (`glass-footprint.ts`): the well, and where the light is out of sight. */
+  #footprint: GlassFootprint | undefined;
   /** How much of each cell the glass covers now (0..1, from its pieces; `CoverHide`). */
   readonly #cover = new Float32Array(Cells);
   #wasPull = 0;
@@ -459,7 +451,7 @@ export class QuantumField {
       this.#bursts += 4;
     };
     this.#glass = glass;
-    this.#makeMask();
+    this.#footprint = new GlassFootprint();
     glass.scatter();
     return true;
   }
@@ -657,119 +649,32 @@ export class QuantumField {
     }
   }
 
-  /** The word filled (its letters and star as solid glass), softened a little, as a mask in drawing units. */
-  #makeMask(): void {
-    if (typeof document === 'undefined') return;
-    const w = (WordmarkGeometry.width + 2) * MaskRes;
-    const h = (WordmarkGeometry.height + 2) * MaskRes;
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const g = c.getContext('2d', { willReadFrequently: true });
-    if (!g) return;
-    g.filter = `blur(${MaskSoft * MaskRes}px)`;
-    g.setTransform(MaskRes, 0, 0, MaskRes, MaskRes, MaskRes);
-    g.fillStyle = '#000';
-    g.strokeStyle = '#000';
-    g.lineWidth = WordmarkGeometry.stroke(3);
-    g.lineJoin = 'miter';
-    for (const d of WordmarkGeometry.paths) {
-      const path = new Path2D(d);
-      g.fill(path);
-      g.stroke(path);
-    }
-    const data = g.getImageData(0, 0, w, h).data;
-    const mask = new Float32Array(w * h);
-    for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] / 255;
-    this.#mask = mask;
-    this.#maskWidth = w;
-    this.#maskHeight = h;
-  }
-
-  /** The glass's well: each grid cell (2 × 2 samples) inside a piece takes the word where that piece came from. */
-  #glassPotential(depth: number): void {
-    const glass = this.#glass;
-    const mask = this.#mask;
-    if (!glass || !mask) return;
-    const v = this.#v;
-    const pose = this.#pose;
-    const corners = glass.corners;
-    const scale = this.#wordScale;
-    const mw = this.#maskWidth;
-    const mh = this.#maskHeight;
-    for (let i = 0; i < glass.count; i++) {
-      glass.place(i, pose);
-      const mx = pose[0];
-      const my = pose[1];
-      const c = Math.cos(pose[2]);
-      const sn = Math.sin(pose[2]);
-      const hx = pose[3];
-      const hy = pose[4];
-      const ax = corners[i * 6];
-      const ay = corners[i * 6 + 1];
-      const bx = corners[i * 6 + 2];
-      const by = corners[i * 6 + 3];
-      const qx = corners[i * 6 + 4];
-      const qy = corners[i * 6 + 5];
-      // The piece's box on the grid, from its corners where they are now.
-      let x0 = N;
-      let x1 = -1;
-      let y0 = N;
-      let y1 = -1;
-      for (let k = 0; k < 3; k++) {
-        const lx = corners[i * 6 + 2 * k];
-        const ly = corners[i * 6 + 2 * k + 1];
-        const gx = (this.#wordX + (mx + lx * c - ly * sn) * scale - this.#gx) / Cell;
-        const gy = (this.#wordY + (my + lx * sn + ly * c) * scale - this.#gy) / Cell;
-        if (gx < x0) x0 = gx;
-        if (gx > x1) x1 = gx;
-        if (gy < y0) y0 = gy;
-        if (gy > y1) y1 = gy;
-      }
-      const cx0 = Math.max(0, Math.floor(x0));
-      const cx1 = Math.min(N - 1, Math.ceil(x1));
-      const cy0 = Math.max(0, Math.floor(y0));
-      const cy1 = Math.min(N - 1, Math.ceil(y1));
-      for (let y = cy0; y <= cy1; y++) {
-        for (let x = cx0; x <= cx1; x++) {
-          let sum = 0;
-          for (let sy = 0; sy < 2; sy++) {
-            for (let sx = 0; sx < 2; sx++) {
-              // The sample in the piece's own frame (drawing units about its middle).
-              const du = (this.#gx + (x + 0.25 + 0.5 * sx) * Cell - this.#wordX) / scale - mx;
-              const dv = (this.#gy + (y + 0.25 + 0.5 * sy) * Cell - this.#wordY) / scale - my;
-              const lx = du * c + dv * sn;
-              const ly = -du * sn + dv * c;
-              const e1 = (bx - ax) * (ly - ay) - (by - ay) * (lx - ax);
-              const e2 = (qx - bx) * (ly - by) - (qy - by) * (lx - bx);
-              const e3 = (ax - qx) * (ly - qy) - (ay - qy) * (lx - qx);
-              if (!((e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 <= 0 && e2 <= 0 && e3 <= 0))) continue;
-              // Where in the word it came from.
-              const mi = Math.round((hx + lx + 1) * MaskRes);
-              const mj = Math.round((hy + ly + 1) * MaskRes);
-              if (mi >= 0 && mj >= 0 && mi < mw && mj < mh) sum += mask[mj * mw + mi];
-            }
-          }
-          if (sum > 0) {
-            v[y * N + x] -= (depth * sum) / 4;
-            if (sum / 4 > this.#cover[y * N + x]) this.#cover[y * N + x] = sum / 4;
-          }
-        }
-      }
-    }
-  }
-
   /** The potential (the glass, or the star alone without it; the pointer's barrier, the snap back's well) and its half step. */
   #buildPotential(pull: number): void {
     const o = this.#options;
     const v = this.#v;
     v.fill(0);
-    this.#cover.fill(0);
     const e0 = (o.k * o.k) / 2;
     const sx = (this.#ox - this.#gx) / Cell;
     const sy = (this.#oy - this.#gy) / Cell;
-    if (this.#glass && this.#mask) this.#glassPotential(o.prism * e0);
-    else {
+    if (this.#glass && this.#footprint?.ready) {
+      // The glass: a well as deep as the glass covers each cell, carried by its pieces.
+      this.#footprint.rasterize(
+        this.#glass,
+        this.#wordX,
+        this.#wordY,
+        this.#wordScale,
+        this.#gx,
+        this.#gy,
+        Cell,
+        N,
+        N,
+        this.#cover,
+      );
+      const depth = o.prism * e0;
+      for (let i = 0; i < Cells; i++) v[i] -= depth * this.#cover[i];
+    } else {
+      this.#cover.fill(0);
       // The star: a well with eight arms.
       const r = PrismRadius / Cell;
       const depth = o.prism * e0;
