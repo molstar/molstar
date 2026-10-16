@@ -62,9 +62,13 @@ export function HomeTab(props: HomeTabProps) {
           </Show>
         ) : null}
         <section class={classes.group} aria-label="Actions">
+          {/* The first action (Download Structure, open), then Open Files, then the rest (folded). */}
+          <For each={home.actions.pipe(map((a) => a.slice(0, 1)))} key={(a) => a.id}>
+            {(action) => <ActionBlock action={action} open />}
+          </For>
           <OpenFiles home={home} />
-          <For each={home.actions} key={(a) => a.id}>
-            {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
+          <For each={home.actions.pipe(map((a) => a.slice(1)))} key={(a) => a.id}>
+            {(action) => <ActionBlock action={action} open={false} />}
           </For>
           {/* Extensions' loaders (Zenodo): among the actions, folded, as one of them. */}
           {props.more?.()}
