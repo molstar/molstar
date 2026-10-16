@@ -42,10 +42,14 @@
   font-size: var(--msp-font-size-xs);
 }
 
-/* The entities: a row each, a click opens it in the tree. */
+/* The entities: a row each, a click opens it in the tree; Show all after them. */
 .entities {
   display: grid;
   margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.list {
+  display: grid;
 }
 
 .entity {
@@ -60,6 +64,27 @@
   &:hover {
     background: var(--msp-color-hover);
   }
+}
+
+/* Many entities: the rest behind Show all. */
+.more {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 /* The entity's kind: a dot in its color. */

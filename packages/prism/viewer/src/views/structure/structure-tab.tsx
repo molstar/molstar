@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { debounceTime, map, type Observable } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, type Observable, of, type Subscription } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
@@ -71,8 +71,11 @@ export function StructureTab(props: StructureTabProps) {
     pickedRow.value.mark(false);
     pickedRow.set(undefined);
   });
+  // The picked row gone from the tree: its inspector goes with it (what it controls may be gone).
+  let gone: Subscription | undefined;
   onCleanup(() => {
     picks.unsubscribe();
+    gone?.unsubscribe();
     pickedRow.value?.mark(false);
   });
   const searchOpen = observableState(false);
@@ -179,6 +182,10 @@ export function StructureTab(props: StructureTabProps) {
             scene.pick(undefined);
             pick.mark(true);
             pickedRow.set(pick);
+            gone?.unsubscribe();
+            gone = pick.gone.subscribe(() => {
+              if (pickedRow.value === pick) pickedRow.set(undefined);
+            });
           };
           el.addEventListener(SceneRowPickEvent, onPick);
           onCleanup(() => el.removeEventListener(SceneRowPickEvent, onPick));
@@ -199,7 +206,14 @@ export function StructureTab(props: StructureTabProps) {
               when={scene.picked}
               fallback={() => <p class={classes.inspectorEmpty}>Select an item in the tree to edit its properties.</p>}
             >
-              {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} onPick={(n) => scene.pick(n)} />}
+              {(node) => (
+                <Inspector
+                  shell={shell}
+                  inspection={scene.inspect(node)}
+                  updates={scene.inspection}
+                  onPick={(n) => scene.pick(n)}
+                />
+              )}
             </Show>
           )}
         >
@@ -308,8 +322,21 @@ function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean
 /** Rows that stand for a feature (on or off), not for something drawn (shown or hidden). */
 const TurnsOn: ReadonlySet<string> = new Set(['extension', 'unit-cell']);
 
-function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPick(node: SceneNode): void }) {
+function Inspector(props: {
+  shell: ShellModel;
+  inspection: SceneInspection;
+  /** The node's inspection built anew (`SceneModel.inspection`): its facts, contents, levels and transfer follow. */
+  updates?: Observable<SceneInspection | undefined>;
+  onPick(node: SceneNode): void;
+}) {
   const { node, form, slot } = props.inspection;
+  // What is built anew follows (the form, the header and the sections stay, a gesture on them going on).
+  const current = (props.updates ?? of(props.inspection)).pipe(filter((i): i is SceneInspection => i?.node === node));
+  const part = <K extends keyof SceneInspection>(key: K) =>
+    current.pipe(
+      map((i) => i[key]),
+      distinctUntilChanged(),
+    );
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
@@ -328,16 +355,20 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPi
           onToggle={() => node.toggleVisibility()}
         />
       </header>
-      {props.inspection.facts?.length ? (
-        <dl class={classes.facts}>
-          {props.inspection.facts.map(([label, value]) => (
-            <div class={classes.fact}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      <Show when={part('facts')}>
+        {(facts) =>
+          facts.length ? (
+            <dl class={classes.facts}>
+              {facts.map(([label, value]) => (
+                <div class={classes.fact}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null
+        }
+      </Show>
       {props.inspection.actions?.length ? (
         <div class={classes.inspectorActions}>
           {props.inspection.actions.map((a) => (
@@ -351,17 +382,13 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPi
           tree's chevron. */}
       {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
-      {props.inspection.contents ? <ContentsSummaryView summary={props.inspection.contents} /> : null}
+      <Show when={part('contents')}>{(contents) => <ContentsSummaryView summary={contents} />}</Show>
       {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}
-      {props.inspection.quick ? <RepresentationQuick model={props.inspection.quick} /> : null}
+      <Show when={part('quick')}>{(quick) => <RepresentationQuick model={quick} />}</Show>
       {/* A map's levels (the iso values and colors people change most), above the whole form. */}
-      {props.inspection.levels?.map((levels) => (
-        <VolumeLevels model={levels} />
-      ))}
+      <Show when={part('levels')}>{(levels) => levels.map((l) => <VolumeLevels model={l} />)}</Show>
       {/* A direct volume's transfer function (opacity and colors over the map's values). */}
-      {props.inspection.transfer?.map((transfer) => (
-        <VolumeTransfer model={transfer} />
-      ))}
+      <Show when={part('transfer')}>{(transfer) => transfer.map((t) => <VolumeTransfer model={t} />)}</Show>
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
       {/* Nothing to set (no form or actions of its own): what can be done with it is shown here, its row menu's

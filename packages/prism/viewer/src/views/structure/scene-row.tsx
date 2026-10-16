@@ -8,11 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable, of } from 'rxjs';
+import { map, type Observable, of, Subject } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 
@@ -27,6 +28,11 @@ export interface SceneRowPick {
   onToggle?(): void;
   readonly body?: () => Child;
   mark(on: boolean): void;
+  /**
+   * Emits once the row is gone (its structure removed, its `when` false, a search leaving it out): what it controls may
+   * be gone too, so the inspector lets it go.
+   */
+  readonly gone: Observable<void>;
 }
 
 export interface SceneRowProps {
@@ -57,6 +63,11 @@ export function SceneRow(props: SceneRowProps) {
   const hidden = shown.pipe(map((s) => !s));
   const labelId = uniqueId('msp-tree-label');
   let rowEl: HTMLElement | undefined;
+  const gone = new Subject<void>();
+  onCleanup(() => {
+    gone.next();
+    gone.complete();
+  });
   // A click picks it, as the tree's other rows: its controls go to the inspector (the tree's host takes the event);
   // with no host to take it (a row on its own), they open under it.
   const pick = () => {
@@ -71,6 +82,7 @@ export function SceneRow(props: SceneRowProps) {
       ...(props.onToggle ? { onToggle: () => props.onToggle?.() } : {}),
       ...(props.body ? { body: props.body } : {}),
       mark: (on) => rowEl?.classList.toggle(classes.picked, on),
+      gone,
     };
     const event = new CustomEvent(SceneRowPickEvent, { bubbles: true, composed: true, cancelable: true, detail });
     if (rowEl?.dispatchEvent(event) !== false) toggleOpen();

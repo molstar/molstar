@@ -115,7 +115,7 @@ class Node implements SceneNode {
   menu?: readonly SceneMenuItem[];
   removable?: boolean;
   lazy?: boolean;
-  load?: () => void;
+  load?: (peek?: boolean) => void;
 
   constructor(
     readonly id: string,
@@ -212,7 +212,12 @@ export function createSceneSource(
   const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, selection.events.changed);
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
+  // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
+  // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
+  // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
   const inspections = new Map<string, SceneInspection>();
+  const inspectionKeys = new Map<string, unknown>();
+  const inspection = observableState<SceneInspection | undefined>(undefined);
   /** The structure a unit cell row is under (its operations name the structure). */
   const unitCellOwners = new Map<string, string>();
   /** The structure a volume streaming row is under, and the streaming's behavior cell (its params change). */
@@ -351,14 +356,15 @@ export function createSceneSource(
     return n;
   };
 
-  const reprNode = (r: StructureRepresentationRef, componentRef: string, structureRef: string): Node => {
+  const reprNode = (r: StructureRepresentationRef): Node => {
     const ref = r.cell.transform.ref;
     let n = nodes.get(ref);
     const type = (r.cell.transform.params as { type?: { name: string } } | undefined)?.type?.name ?? '';
     if (!n) {
       n = new Node(ref, 'representation', ReprIcons[type] ?? 'cartoon', reprLabel(plugin, r), false, {
         visibility: (hide) => void api.run('representation.visibility', { representation: ref, visible: !hide }),
-        remove: () => void api.run('representation.remove', { component: componentRef, type, structure: structureRef }),
+        // This one by its ref: its type may have changed since, and another of that type may sit beside it.
+        remove: () => void api.run('representation.remove', { representation: ref }),
       });
       n.removable = true;
       nodes.set(ref, n);
@@ -383,10 +389,14 @@ export function createSceneSource(
       nodes.set(id, n);
     }
     // The structure as it is now: a load computes the rows, and once they are shown each sync refreshes them (what is
-    // hidden, a changed structure).
+    // hidden, a changed structure). A search's look (`peek`) leaves it lazy: computed once until the next sync, so a
+    // search does not make every later sync compute every structure's rows.
     const node = n;
-    node.load = () => {
-      node.lazy = false;
+    let peeked = false;
+    node.load = (peek) => {
+      if (peek && peeked) return;
+      peeked = !!peek;
+      if (!peek) node.lazy = false;
       const data = s.cell.obj?.data;
       if (data) node.setChildren(entities(plugin, data, structureRef, nodes, api));
     };
@@ -606,7 +616,7 @@ export function createSceneSource(
         if (isFocus) cn.removable = false;
         seen.add(cn.id);
         const reprs = c.representations.map((r) => {
-          const rn = reprNode(r, cn.id, ref);
+          const rn = reprNode(r);
           seen.add(rn.id);
           return rn;
         });
@@ -711,13 +721,49 @@ export function createSceneSource(
       if (!seen.has(id) && !seen.has(owner)) {
         nodes.delete(id);
         inspections.delete(id);
+        inspectionKeys.delete(id);
         unitCellOwners.delete(id);
         streamingOwners.delete(id);
         if (picked.value === n) picked.set(undefined);
       }
     }
+    // An inspection built from what has changed since (a structure's assembly or model, a volume's representations) is
+    // built anew: its facts, contents, levels and transfer functions are fixed when built. Its form stays (it follows
+    // the cell as it is, and the inspector keeps it, a gesture on it going on).
+    for (const [id, key] of inspectionKeys) {
+      const n = nodes.get(id);
+      if (!n || Object.is(inspectionKey(plugin, n), key)) continue;
+      const form = inspections.get(id)?.form;
+      const fresh = build(n);
+      inspections.set(id, form && fresh.form ? { ...fresh, form } : fresh);
+      inspectionKeys.set(id, inspectionKey(plugin, n));
+      if (picked.value === n) inspection.set(inspections.get(id));
+    }
     roots.set(top);
   };
+
+  const build = (n: SceneNode) =>
+    inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) => picked.set(row));
+  const inspectNode = (n: SceneNode): SceneInspection => {
+    let built = inspections.get(n.id);
+    if (!built) {
+      built = build(n);
+      inspections.set(n.id, built);
+      inspectionKeys.set(n.id, inspectionKey(plugin, n));
+    }
+    return built;
+  };
+
+  scope.add(
+    picked.asReadonly.subscribe((n) => {
+      for (const id of inspections.keys()) {
+        if (id === n?.id) continue;
+        inspections.delete(id);
+        inspectionKeys.delete(id);
+      }
+      inspection.set(n && inspectNode(n));
+    }),
+  );
 
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
@@ -773,18 +819,38 @@ export function createSceneSource(
       picked.set(found[found.length - 1]);
       return true;
     },
-    inspect: (n) => {
-      let inspection = inspections.get(n.id);
-      if (!inspection) {
-        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
-          picked.set(row),
-        );
-        inspections.set(n.id, inspection);
-      }
-      return inspection;
-    },
+    inspection: inspection.asReadonly,
+    inspect: inspectNode,
     sync,
   };
+}
+
+/**
+ * What a node's inspection is built from, where the inspection fixes it when built: a structure's facts and its
+ * contents' summary come from the structure (an assembly or a model changes it), a volume's levels and transfer functions
+ * from its representations and their types, an isosurface's or a direct volume's from its type. Others: nothing.
+ */
+function inspectionKey(plugin: PluginContext, node: SceneNode): unknown {
+  switch (node.kind) {
+    case 'structure':
+      return dataOf(plugin, node.id);
+    case 'contents':
+      return dataOf(plugin, node.id.slice(0, node.id.indexOf('#')));
+    case 'volume': {
+      let key = '';
+      for (const r of volumeRefOf(plugin, node.id)?.representations ?? []) {
+        key += `${r.cell.transform.ref}:${typeName(r.cell.transform.params)};`;
+      }
+      return key;
+    }
+    case 'volume-representation':
+      return typeName(plugin.state.data.cells.get(node.id)?.transform.params);
+  }
+  return undefined;
+}
+
+function typeName(params: unknown): string {
+  return (params as { type?: { name: string } } | undefined)?.type?.name ?? '';
 }
 
 /** A volume of the hierarchy by its ref. */

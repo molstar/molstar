@@ -207,6 +207,24 @@ describe('representation', () => {
     expect(reprs(v)).toHaveLength(count);
   });
 
+  it('removes one representation by its ref, another of its type staying', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const polymer = components(v).find((c) => c.representations.length > 0)!;
+    const type = (polymer.representations[0].cell.transform.params as any).type.name as string;
+    await v.plugin.builders.structure.representation.addRepresentation(polymer.cell, { type: type as never });
+    const ofPolymer = () =>
+      components(v).find((c) => c.cell.transform.ref === polymer.cell.transform.ref)?.representations ?? [];
+    const [first, second] = ofPolymer().map((r) => r.cell.transform.ref);
+    expect(second).toBeDefined();
+
+    expectOk(await v.api.representation.remove({ representation: first }));
+    expect(ofPolymer().map((r) => r.cell.transform.ref)).toEqual([second]);
+    expect(await v.api.representation.remove({ representation: first })).toMatchObject({
+      ok: false,
+      code: 'not-found',
+    });
+  });
+
   it('sets the size factor and the material on representations', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const component = polymerLabel(v);

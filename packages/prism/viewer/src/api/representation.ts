@@ -155,7 +155,8 @@ export class RepresentationApi extends ApiArea {
     },
   });
 
-  // operations.md §2: removes that type (or all) from the component.
+  // operations.md §2: removes that type (or all) from the component; or one representation by state ref (a tree row's,
+  // which another of the same type may sit beside).
   readonly remove = this.operation({
     id: 'representation.remove',
     title: 'Remove a representation',
@@ -163,9 +164,16 @@ export class RepresentationApi extends ApiArea {
       component: ComponentParam(),
       type: PD.Text('', { description: 'A representation type; empty: all of the component' }),
       structure: StructureParam(),
+      representation: PD.Text('', { description: 'One representation by state ref (instead of a component and type)' }),
     },
     approval: 'destructive',
-    async run({ component, type, structure }, ctx) {
+    async run({ component, type, structure, representation }, ctx) {
+      if (representation) {
+        const r = representationRef(ctx, representation);
+        if (!r) return ApiResult.fail('not-found', `There is no representation '${representation}'.`);
+        await ctx.plugin.managers.structure.hierarchy.remove([r], false);
+        return ApiResult.ok(`Removed ${typeOf(r)} from ${componentName(r.component)}.`, { nodes: [representation] });
+      }
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const found = findComponent(ctx, [s], component);

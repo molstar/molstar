@@ -18,6 +18,7 @@ import { domView } from '@molstar/prism-ui/dom/view';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { SceneRow } from '../scene-row.js';
 import { SceneRowSlot } from '../scene-tree.js';
+import type { SceneInspection } from '../../../model/scene.js';
 
 function mount() {
   const scene = mockScene();
@@ -113,6 +114,56 @@ describe('StructureTab', () => {
     // A node picked takes its place.
     scene.pick(scene.roots.value[0]);
     expect(container.querySelector('[aria-label="Inspector"]')!.textContent).not.toContain('Fit…');
+  });
+
+  it("lets an extension row's inspector go with the row (its structure removed)", () => {
+    const scene = mockScene();
+    const shell = new ShellModel();
+    shell.registerSections([
+      {
+        id: 'x.row.membrane',
+        slot: SceneRowSlot,
+        title: 'Membrane',
+        when: (ctx) => (ctx.subject as { kind: string }).kind === 'structure',
+        render: domView(() => <SceneRow label="Membrane" body={() => <button type="button">Fit…</button>} />),
+      },
+    ]);
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <StructureTab shell={shell} scene={scene} />, container);
+    const rows = () =>
+      [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].filter((r) =>
+        r.textContent?.startsWith('Membrane'),
+      );
+    const before = rows().length;
+    rows()[0].click();
+    const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
+    expect(inspector().textContent).toContain('Fit…');
+    // Its structure goes, and the row with it: its controls would act on nothing.
+    scene.roots.value[0].remove();
+    expect(rows().length).toBe(before - 1);
+    expect(inspector().textContent).not.toContain('Fit…');
+    expect(inspector().textContent).toContain('Select an item in the tree');
+  });
+
+  it('follows an inspection built anew (its facts), keeping its form as it is', () => {
+    const base = mockScene();
+    const updates = observableState<SceneInspection | undefined>(undefined);
+    const scene = Object.assign(base, { inspection: updates.asReadonly });
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
+    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
+      r.textContent?.startsWith('Cartoon'),
+    )!;
+    row.click();
+    const picked = scene.picked.value!;
+    const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
+    const type = inspector().querySelector('button[aria-haspopup=listbox][aria-label=Type]');
+    expect(type).not.toBeNull();
+    updates.set({ ...scene.inspect(picked), facts: [['Atoms', '4,242']] });
+    expect(inspector().textContent).toContain('4,242');
+    expect(inspector().querySelector('button[aria-haspopup=listbox][aria-label=Type]')).toBe(type);
   });
 
   it('picks a node into the inspector, and form edits change the tree', () => {

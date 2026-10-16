@@ -21,7 +21,10 @@ export const classes = {
   'entity': 'msp-viewer-contents-summary-entity',
   'label': 'msp-viewer-contents-summary-label',
   'ligand': 'msp-viewer-contents-summary-ligand',
+  'list': 'msp-viewer-contents-summary-list',
   'meta': 'msp-viewer-contents-summary-meta',
+  'more': 'msp-viewer-contents-summary-more',
+  'moreCount': 'msp-viewer-contents-summary-moreCount',
   'name': 'msp-viewer-contents-summary-name',
   'other': 'msp-viewer-contents-summary-other',
   'polymer': 'msp-viewer-contents-summary-polymer',
@@ -71,6 +74,10 @@ defineStyles('viewer/views/structure/contents-summary.module.css', `@layer msp.c
   display: grid;
 }
 
+.msp-viewer-contents-summary-list {
+  display: grid;
+}
+
 .msp-viewer-contents-summary-entity {
   align-items: center;
   gap: var(--msp-space-3);
@@ -83,6 +90,26 @@ defineStyles('viewer/views/structure/contents-summary.module.css', `@layer msp.c
   &:hover {
     background: var(--msp-color-hover);
   }
+}
+
+.msp-viewer-contents-summary-more {
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-contents-summary-moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 .msp-viewer-contents-summary-dot {

@@ -56,8 +56,12 @@ export interface SceneNode {
    * structure with thousands of chains costs nothing until someone looks. Expandable before it has any.
    */
   lazy?: boolean;
-  /** Computes the children (once; `children` updates when they arrive). */
-  load?(): void;
+  /**
+   * Computes the children (`children` updates when they arrive); from then on they follow the scene. With `peek` (a
+   * search looking in), they are computed while it stays lazy: they do not follow the scene, and are computed again at
+   * the next look after it changed.
+   */
+  load?(peek?: boolean): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
   /** Highlights it in 3D while hovered. */
@@ -137,6 +141,12 @@ export interface SceneModel {
   picked: ReadonlyState<SceneNode | undefined>;
   pick(node: SceneNode | undefined): void;
   inspect(node: SceneNode): SceneInspection;
+  /**
+   * The picked node's inspection, built anew when what it shows is no longer what it was built from (a structure's
+   * facts and contents after an assembly change, a volume's levels and transfer functions as its representations
+   * change); its form stays the same. Absent: `inspect(picked)` holds.
+   */
+  inspection?: ReadonlyState<SceneInspection | undefined>;
   /** Picks a node by id, its ancestors expanded so the tree shows where it is; false while it is not in the tree. */
   reveal?(id: string): boolean;
 }

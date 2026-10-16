@@ -73,6 +73,44 @@ describe('the scene tree with many rows', () => {
     expect(t.labels().filter((l) => l?.startsWith('RIBOSOMAL'))).toHaveLength(5);
   });
 
+  it('looks into lazy contents once per search, leaving them lazy (later syncs do not compute them)', () => {
+    const entities = observableState<readonly SceneNode[]>([]);
+    const rows = [node('e1', 'entity', 'RETINOIC ACID BINDING PROTEIN'), node('e2', 'entity', 'WATER')];
+    const loads: (boolean | undefined)[] = [];
+    const contents = {
+      ...node('contents', 'contents', 'Contents'),
+      children: entities.asReadonly,
+      lazy: true,
+      load(peek?: boolean) {
+        loads.push(peek);
+        if (!peek) contents.lazy = false;
+        entities.set(rows);
+      },
+    } as SceneNode;
+    const structure = node('s', 'structure', '1CBS', [contents, node('c', 'component', 'Polymer')], true);
+    const scene = {
+      roots: observableState([structure]).asReadonly,
+      picked: observableState<SceneNode | undefined>(undefined).asReadonly,
+      pick: () => {},
+    } as unknown as SceneModel;
+    const filter = observableState('');
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <SceneTree scene={scene} filter={filter.asReadonly} />, container);
+    const labels = () =>
+      [...container.querySelectorAll('[data-tree-row]')].map((r) => r.querySelector('[id]')!.textContent);
+
+    filter.set('retinoic');
+    expect(labels()).toEqual(['1CBS', 'Contents', 'RETINOIC ACID BINDING PROTEIN']);
+    filter.set('water');
+    expect(labels()).toEqual(['1CBS', 'Contents', 'WATER']);
+    // Looks only (never a load that keeps them): one walk per search whatever the rows reading it, and the opening's.
+    expect(loads).toEqual([true, true, true]);
+    expect(contents.lazy).toBe(true);
+    filter.set('');
+    expect(labels()).toEqual(['1CBS', 'Contents', 'Polymer']);
+  });
+
   it('searches every row, opening the rows the matches are in', () => {
     const t = mount();
     t.contents.toggleExpanded();

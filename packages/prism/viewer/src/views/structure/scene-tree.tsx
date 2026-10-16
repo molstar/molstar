@@ -34,12 +34,17 @@ import { SceneRowSlot } from './scene-row-slot.js';
  */
 export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter?: Observable<string> }) {
   const { scene, shell } = props;
-  // A search: the rows that match, with the rows they are in (opened); lazy contents load to be searched.
+  // A search: the rows that match, with the rows they are in (opened); lazy contents are looked into to be searched.
   const filter = (props.filter ?? of('')).pipe(
     // No search until the first (a debounced filter emits late).
     startWith(''),
     map((t) => t.trim().toLowerCase()),
     distinctUntilChanged(),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
+  // One walk of the scene per search (and per change of the scene while searching), every row reading its result.
+  const hits: Observable<SearchHits> = combineLatest([filter, scene.roots]).pipe(
+    map(([t, roots]) => (t ? searchHits(roots, t) : undefined)),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   // A row picked from elsewhere (the inspector's list, the canvas) is brought into view, once it is drawn (its rows
@@ -66,11 +71,11 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
       ref={(el: HTMLElement) => (tree = el)}
     >
       <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
-        {(node) => <TreeNode scene={scene} shell={shell} node={node} depth={0} filter={filter} />}
+        {(node) => <TreeNode scene={scene} shell={shell} node={node} depth={0} filter={filter} hits={hits} />}
       </For>
       <Show
-        when={combineLatest([filter, scene.roots]).pipe(
-          map(([t, roots]) => !!t && roots.length > 0 && !roots.some((r) => matches(r, t))),
+        when={hits.pipe(
+          map((h) => !!h && scene.roots.value.length > 0 && !scene.roots.value.some((r) => h.has(r))),
           distinctUntilChanged(),
         )}
       >
@@ -84,12 +89,25 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
 const Paged: ReadonlySet<SceneNode['kind']> = new Set(['contents', 'entity']);
 const PageSize = 5;
 
-/** Whether a node or a row under it matches a search (its label or description); lazy rows load to be searched. */
-function matches(node: SceneNode, text: string): boolean {
-  if (node.lazy) node.load?.();
+/** The rows a search shows: those that match and the rows they are in; undefined: no search. */
+type SearchHits = ReadonlySet<SceneNode> | undefined;
+
+/**
+ * The rows that match a search (their label or description) and the rows they are in, in one walk; lazy rows are
+ * looked into (`load(true)`: they stay lazy, so later syncs do not compute them).
+ */
+function searchHits(roots: readonly SceneNode[], text: string): ReadonlySet<SceneNode> {
+  const hits = new Set<SceneNode>();
   const hit = (v: string | undefined) => !!v && v.toLowerCase().includes(text);
-  if (hit(node.label.value) || hit(node.description.value)) return true;
-  return node.children.value.some((c) => matches(c, text));
+  const walk = (node: SceneNode): boolean => {
+    if (node.lazy) node.load?.(true);
+    let any = hit(node.label.value) || hit(node.description.value);
+    for (const c of node.children.value) if (walk(c)) any = true;
+    if (any) hits.add(node);
+    return any;
+  };
+  for (const r of roots) walk(r);
+  return hits;
 }
 
 function TreeNode(props: {
@@ -98,13 +116,14 @@ function TreeNode(props: {
   node: SceneNode;
   depth: number;
   filter: Observable<string>;
+  hits: Observable<SearchHits>;
 }) {
-  const { node, filter } = props;
+  const { node, hits } = props;
   // Searching: shown when it or a row under it matches.
   return (
     <Show
-      when={filter.pipe(
-        map((t) => !t || matches(node, t)),
+      when={hits.pipe(
+        map((h) => !h || h.has(node)),
         distinctUntilChanged(),
       )}
     >
@@ -119,8 +138,9 @@ function TreeItem(props: {
   node: SceneNode;
   depth: number;
   filter: Observable<string>;
+  hits: Observable<SearchHits>;
 }) {
-  const { scene, shell, node, depth, filter } = props;
+  const { scene, shell, node, depth, filter, hits } = props;
   // The extensions' rows for this node: a node with one can be opened before it has children.
   // Searching, an extension's row shows when its title matches.
   const rows = shell
@@ -140,8 +160,8 @@ function TreeItem(props: {
   );
   // Searching, a row with matches under it is open; otherwise as the person left it.
   const searching = filter.pipe(map((t) => !!t));
-  const open = combineLatest([node.isExpanded, hasChildren, filter]).pipe(
-    map(([e, h, t]) => h && (e || (!!t && node.children.value.some((c) => matches(c, t))))),
+  const open = combineLatest([node.isExpanded, hasChildren, hits]).pipe(
+    map(([e, h, s]) => h && (e || (!!s && node.children.value.some((c) => s.has(c))))),
     distinctUntilChanged(),
   );
   const menuOpen = observableState(false);
@@ -253,8 +273,9 @@ function TreeItem(props: {
       </Show>
       <Show when={open} reveal>
         {() => {
-          // Children computed on first look (lazy nodes); until they arrive, a quiet loading row.
-          node.load?.();
+          // Children computed on first look (lazy nodes); until they arrive, a quiet loading row. Open only for a
+          // search, a look (it stays lazy).
+          node.load?.(!node.isExpanded.value);
           // Many children: the first few, then Show all (until the row is closed: opened again, the few again).
           const all = observableState(!Paged.has(node.kind));
           const shown = combineLatest([node.children, all.asReadonly, searching]).pipe(
@@ -278,7 +299,9 @@ function TreeItem(props: {
                   ) : null
                 }
               >
-                {(child) => <TreeNode scene={scene} shell={shell} node={child} depth={depth + 1} filter={filter} />}
+                {(child) => (
+                  <TreeNode scene={scene} shell={shell} node={child} depth={depth + 1} filter={filter} hits={hits} />
+                )}
               </For>
               <Show when={rest.pipe(map((n) => n > 0))}>
                 {() => (
