@@ -26,7 +26,7 @@ import {
 } from '@molstar/ai';
 import type { HistoryStep } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
-import type { RunOrigin, ViewerApi, OperationDefinition } from '../api/area.js';
+import type { Changed, RunOrigin, ViewerApi, OperationDefinition } from '../api/area.js';
 import type { RunRecord } from '../api/run.js';
 
 // The session's record (journal.md): what the person did and what the agent did, in order, in a thread
@@ -46,19 +46,49 @@ export const RecordWindowMax = THREAD_LIMIT_HARD_BOUNDS.maxWindowEntries;
 const HeartbeatMs = 5 * 60_000;
 /** A kept record's index entry is touched at most this often while it is appended to (and at a turn's end). */
 const TouchMs = 60_000;
+/** A reply streams into its turn at most this often (journal.md §2). */
+export const ReplyMs = 300;
+/** A reply longer than this is not previewed (the final text carries it), nor are more deltas than this written for one turn. */
+const ReplyPreviewMax = 32_000;
+const ReplyDeltasMax = 1_000;
+/** A run's `changed` keeps this many node refs; the rest are counted. */
+export const ChangedNodesMax = 8;
+/** A run's target text is cut at this length. */
+const TargetMax = 80;
+/** The values that say what a run was pointed at, in the order History reads them. */
+const TargetKeys = ['structure', 'component', 'node', 'target'] as const;
 
 export interface RunEntry {
   readonly kind: 'run';
   readonly operation: string;
   readonly title: string;
   readonly values: Json;
-  readonly origin: { readonly kind: RunOrigin['kind']; readonly turn?: string };
+  readonly origin: RecordActor;
   readonly result:
     | { readonly ok: true; readonly did: string }
     | { readonly ok: false; readonly code: string; readonly message: string };
+  /** What it was pointed at, in words: the `structure`, `component`, `node` and `target` values it ran with (`targetsOf`). */
+  readonly targets?: readonly string[];
+  /** What it changed, as the operation said (`changedOf`): the nodes (a few refs, the rest counted), the selection, the view. */
+  readonly changed?: RunChanged;
   readonly at: number;
   readonly ms: number;
   readonly step?: number;
+}
+
+/** A run's `changed`, small (journal.md §2): at most `ChangedNodesMax` node refs, `more` counts the rest. */
+export interface RunChanged {
+  readonly nodes?: readonly string[];
+  readonly more?: number;
+  readonly selection?: true;
+  readonly view?: true;
+  readonly sequence?: true;
+}
+
+/** Who did a thing: a run's origin, and the actor of an undo or a redo. */
+export interface RecordActor {
+  readonly kind: RunOrigin['kind'];
+  readonly turn?: string;
 }
 
 export interface TurnEntry {
@@ -68,6 +98,7 @@ export interface TurnEntry {
   readonly focus?: string;
   readonly reply?: string;
   readonly outcome?: 'done' | 'stopped' | 'failed';
+  /** The model that ran it, `provider:model` (known at the prompt, so a turn under way has it). */
   readonly model?: string;
   readonly usage?: Json;
   readonly at: number;
@@ -75,11 +106,15 @@ export interface TurnEntry {
 
 export interface UndoEntry {
   readonly kind: 'undo';
-  /** The step undone (a run's `step`), and its words. */
+  /** The step undone (a run's `step`), and its words. An Undo turn is one entry: the newest step here, all in `steps`. */
   readonly step: number;
+  /** Every step an Undo turn took back (newest first), when it was more than one. */
+  readonly steps?: readonly number[];
   readonly what: string;
   /** The agent's turn it was part of. */
   readonly turn?: string;
+  /** Who undid it (the origin of the call); absent when the history was driven outside the API. */
+  readonly by?: RecordActor;
   readonly at: number;
 }
 
@@ -89,6 +124,8 @@ export interface RedoEntry {
   readonly step: number;
   readonly what: string;
   readonly turn?: string;
+  /** Who redid it. */
+  readonly by?: RecordActor;
   readonly at: number;
 }
 
@@ -118,6 +155,12 @@ export interface RecordPage {
 }
 
 export interface TurnWriter {
+  /**
+   * The reply so far (the model's text of the call under way): written to the turn's stream as the text appended
+   * since, coalesced (at most once per `ReplyMs`), so History shows it as it arrives. The final text of `settle`
+   * replaces it. A reply too long to preview, or a stream that cannot be written, is simply not shown until the end.
+   */
+  reply(text: string): void;
   /** Ends the turn's entry (once; later calls do nothing). Never rejects: a failure is logged. */
   settle(end: { reply: string; outcome: 'done' | 'stopped' | 'failed'; model?: string; usage?: Json }): Promise<void>;
 }
@@ -138,7 +181,7 @@ export interface SessionRecord {
   /** Called after each write; a listener that throws is logged and does not stop the others. */
   onChange(listener: () => void): () => void;
   /** An agent's turn, begun at its prompt; settled at its end. Alive (a heartbeat) until then. */
-  beginTurn(turn: string, prompt: string, focus?: string): TurnWriter;
+  beginTurn(turn: string, prompt: string, focus?: string, model?: string): TurnWriter;
   /**
    * Copies the record into these rows and goes on there; it is listed in the index (journal.md §1). In the write order:
    * what is appended meanwhile waits for the copy and goes to the kept record. One keep at a time (a second call gets the
@@ -204,6 +247,50 @@ export function summarizeValues(values: Readonly<Record<string, unknown>>, max =
   return JSON.stringify(out).length > max ? '(values too large to keep)' : out;
 }
 
+/** A text with its URLs bare (no credentials, query, fragment), cut at `max`. */
+function plainText(v: string, max: number): string {
+  const s = v.includes('://') ? v.replace(UrlIn, bareUrl) : v;
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+/**
+ * What a run was pointed at, in words (journal.md §2): the text of its `structure`, `component`, `node` and `target`
+ * values, in that order, each once and cut; loci picked in the page and query objects said in a word. The values are
+ * the runner's own (checked, merged over the defaults), so nothing is resolved again.
+ */
+export function targetsOf(values: Readonly<Record<string, unknown>>): string[] {
+  const out: string[] = [];
+  for (const key of TargetKeys) {
+    const v = values[key];
+    let text: string | undefined;
+    if (typeof v === 'string') text = v.trim() ? plainText(v.trim(), TargetMax) : undefined;
+    else if (v && typeof v === 'object') text = 'loci' in v ? 'atoms picked in the view' : '(a selector)';
+    if (text && !out.includes(text)) out.push(text);
+  }
+  return out;
+}
+
+/** A result's `changed`, small (journal.md §2); undefined when it changed nothing a reader re-reads. */
+export function changedOf(changed: Changed | undefined): RunChanged | undefined {
+  if (!changed) return undefined;
+  const nodes = changed.nodes?.length ? changed.nodes : undefined;
+  const out: {
+    nodes?: readonly string[];
+    more?: number;
+    selection?: true;
+    view?: true;
+    sequence?: true;
+  } = {};
+  if (nodes) {
+    out.nodes = nodes.slice(0, ChangedNodesMax);
+    if (nodes.length > ChangedNodesMax) out.more = nodes.length - ChangedNodesMax;
+  }
+  if (changed.selection) out.selection = true;
+  if (changed.view) out.view = true;
+  if (changed.sequence) out.sequence = true;
+  return Object.keys(out).length ? out : undefined;
+}
+
 const envelope = (value: Json) => ({ codec: RecordCodec, version: THREAD_PAYLOAD_VERSION as 1, value });
 const limits = () => createThreadLimits({ ...THREAD_LIMIT_HARD_BOUNDS, maxActiveStreams: 8 });
 
@@ -223,6 +310,8 @@ export interface SessionRecordOptions {
   readonly clock?: () => number;
   /** Runs `fn` every `ms` until the returned function is called (`setInterval` by default): the turns' heartbeat. */
   readonly every?: (fn: () => void, ms: number) => () => void;
+  /** Runs `fn` once after `ms`, unless the returned function is called first (`setTimeout` by default): reply deltas' coalescing. */
+  readonly after?: (fn: () => void, ms: number) => () => void;
 }
 
 const everyInterval = (fn: () => void, ms: number) => {
@@ -230,10 +319,19 @@ const everyInterval = (fn: () => void, ms: number) => {
   return () => clearInterval(handle);
 };
 
+const afterTimeout = (fn: () => void, ms: number) => {
+  const handle = setTimeout(fn, ms);
+  return () => clearTimeout(handle);
+};
+
+/** The operations whose runs undo or redo steps: the actor of an undo is the origin of its run. */
+const UndoOperations = new Set(['history.undo', 'history.undo-turn', 'history.redo']);
+
 export async function createSessionRecord(o: SessionRecordOptions): Promise<SessionRecord> {
   const now = o.clock ?? Date.now;
   const clock = { now };
   const every = o.every ?? everyInterval;
+  const after = o.after ?? afterTimeout;
   const id = o.id ?? `session-${now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const fid = threadId(id);
   let host: ThreadHost = createThreadHost({ rows: o.rows ?? createMemoryRows(), clock });
@@ -339,13 +437,50 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     }
   };
 
+  // The runs of Undo, Undo turn and Redo under way: their origin is the actor of the steps the history reports meanwhile
+  // (it emits them inside the run), and an Undo turn's steps are one entry, written when the run ends.
+  const undoing = new Map<
+    number,
+    { readonly operation: string; readonly by: RecordActor; readonly steps: HistoryStep[] }
+  >();
+  const actorOf = (origin: RunOrigin): RecordActor =>
+    origin.kind === 'agent' ? { kind: origin.kind, turn: origin.turn } : { kind: origin.kind };
+  const startedSub = o.api.events.started?.subscribe((r) => {
+    if (UndoOperations.has(r.operation))
+      undoing.set(r.id, { operation: r.operation, by: actorOf(r.origin), steps: [] });
+  });
+  const latestUndoing = () => {
+    let last: ReturnType<typeof undoing.get>;
+    for (const u of undoing.values()) last = u;
+    return last;
+  };
+
   const sub = o.api.events.finished.subscribe((r) => {
+    const turnUndo = undoing.get(r.id);
+    if (turnUndo) {
+      undoing.delete(r.id);
+      // An Undo turn: every step it took back, one entry.
+      if (turnUndo.operation === 'history.undo-turn' && turnUndo.steps.length) {
+        const steps = turnUndo.steps;
+        const oldest = steps[steps.length - 1];
+        const turn = oldest.origin.turn ?? (typeof r.values.turn === 'string' ? r.values.turn : undefined);
+        append({
+          kind: 'undo',
+          step: steps[0].id,
+          ...(steps.length > 1 ? { steps: steps.map((st) => st.id) } : {}),
+          what: oldest.label,
+          ...(turn ? { turn } : {}),
+          by: turnUndo.by,
+          at: now(),
+        });
+      }
+    }
     if (r.nested || !r.result) return;
     // The definition only (not `describe`, which resolves params and availability): this runs for every hover.
     const def = o.api.definitions.value.get(r.operation);
     if (isQuiet(r, def)) return;
     const at = r.started;
-    const origin = r.origin.kind === 'agent' ? { kind: r.origin.kind, turn: r.origin.turn } : { kind: r.origin.kind };
+    const origin = actorOf(r.origin);
     // Undos are written from the history's own event, naming the step (below).
     if (r.operation === 'history.undo' || r.operation === 'history.undo-turn') return;
     if (
@@ -356,6 +491,8 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       append({ kind: 'session', event, detail: r.result.did, at });
       return;
     }
+    const targets = targetsOf(r.values);
+    const changed = r.result.ok ? changedOf(r.result.changed) : undefined;
     append({
       kind: 'run',
       operation: r.operation,
@@ -365,31 +502,42 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       result: r.result.ok
         ? { ok: true, did: r.result.did }
         : { ok: false, code: r.result.code, message: r.result.message },
+      ...(targets.length ? { targets } : {}),
+      ...(changed ? { changed } : {}),
       at,
       ms: Math.round(r.ms ?? 0),
       ...(r.step !== undefined ? { step: r.step } : {}),
     });
   });
 
-  const undoneSub = o.undone?.subscribe((step) =>
+  const undoneSub = o.undone?.subscribe((step) => {
+    const u = latestUndoing();
+    // Inside an Undo turn: collected, one entry at the run's end.
+    if (u?.operation === 'history.undo-turn') {
+      u.steps.push(step);
+      return;
+    }
     append({
       kind: 'undo',
       step: step.id,
       what: step.label,
       ...(step.origin.turn ? { turn: step.origin.turn } : {}),
+      ...(u ? { by: u.by } : {}),
       at: now(),
-    }),
-  );
+    });
+  });
 
-  const redoneSub = o.redone?.subscribe((step) =>
+  const redoneSub = o.redone?.subscribe((step) => {
+    const u = latestUndoing();
     append({
       kind: 'redo',
       step: step.id,
       what: step.label,
       ...(step.origin.turn ? { turn: step.origin.turn } : {}),
+      ...(u ? { by: u.by } : {}),
       at: now(),
-    }),
-  );
+    });
+  });
 
   let keeping: Promise<void> | undefined;
 
@@ -411,14 +559,28 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    beginTurn(turn, prompt, focus) {
-      if (disposed) return { settle: async () => {} };
+    beginTurn(turn, prompt, focus, model) {
+      if (disposed) return { reply: () => {}, settle: async () => {} };
       const n = ++seq;
       const entryId = threadEntryId(`turn-${n}`);
-      const begun: TurnEntry = { kind: 'turn', turn, prompt, ...(focus ? { focus } : {}), at: now() };
+      const begun: TurnEntry = {
+        kind: 'turn',
+        turn,
+        prompt,
+        ...(focus ? { focus } : {}),
+        ...(model ? { model } : {}),
+        at: now(),
+      };
+      /** The stream's next offset (from `begin`), what was streamed, and the newest text waiting to be. */
+      let offset: number | undefined;
+      let sent = '';
+      let latest = '';
+      let deltas = 0;
+      let cancel: (() => void) | undefined;
+      let streaming = true;
       void quiet(
         write(async () => {
-          ok(
+          const began = ok(
             await host.begin({
               commandId: threadCommandId(`${id}:${n}`),
               threadId: fid,
@@ -427,17 +589,60 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
             }),
             'begin a turn',
           );
+          const state = began.status === 'accepted' ? began.value.entry.state : undefined;
+          offset = state?.kind === 'streaming' ? state.nextOffset : undefined;
           dirty = true;
         }),
       );
+      /** The text since the last delta, or the whole of it when it is not an extension of what was sent. */
+      const flush = () => {
+        cancel = undefined;
+        if (!streaming || !open.has(n)) return;
+        void quiet(
+          write(async () => {
+            // Decided here, in the write order: the newest text against what the last delta left.
+            const text = latest;
+            if (!streaming || !open.has(n) || offset === undefined || text === sent) return;
+            if (text.length > ReplyPreviewMax || deltas >= ReplyDeltasMax) {
+              streaming = false;
+              return;
+            }
+            const r = await host.appendDelta({
+              commandId: threadCommandId(`${id}:${n}:d${++deltas}`),
+              threadId: fid,
+              entryId,
+              start: offset,
+              payload: envelope(text.startsWith(sent) ? { text: text.slice(sent.length) } : { replace: text }),
+            });
+            // A stream that cannot be written (kept meanwhile, or at its limits) is not previewed any more; the
+            // final text still arrives with `settle`.
+            if (r.status !== 'accepted' || r.value.kind !== 'appended') {
+              streaming = false;
+              return;
+            }
+            offset = r.value.nextOffset;
+            sent = text;
+          }),
+        );
+      };
+      const reply: TurnWriter['reply'] = (text) => {
+        if (!streaming || !open.has(n)) return;
+        latest = text;
+        cancel ??= after(flush, ReplyMs);
+      };
       const settle: TurnWriter['settle'] = (end) => {
         if (!open.delete(n)) return chain;
+        streaming = false;
+        cancel?.();
+        cancel = undefined;
         beating();
+        // Settled with nothing to say (stopped while parked, or at the end of the page): what had streamed stays.
+        const said = end.reply || latest;
         return quiet(
           write(async () => {
             const done: TurnEntry = {
               ...begun,
-              reply: end.reply,
+              reply: said,
               outcome: end.outcome,
               ...(end.model ? { model: end.model } : {}),
               ...(end.usage ? { usage: end.usage } : {}),
@@ -458,7 +663,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       };
       open.set(n, { entryId, stop: () => settle({ reply: '', outcome: 'stopped' }) });
       beating();
-      return { settle };
+      return { reply, settle };
     },
     keep(rows, index, title, release) {
       if (kept || disposed) release?.();
@@ -532,6 +737,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       if (!disposed) {
         disposed = true;
         sub.unsubscribe();
+        startedSub?.unsubscribe();
         undoneSub?.unsubscribe();
         redoneSub?.unsubscribe();
         // A turn still open ends as stopped (journal.md §4), so it is neither "under way" forever nor left to abort.
@@ -572,7 +778,7 @@ async function readBackward(host: ThreadHost, fid: ThreadId, limit: number, befo
     }
     end ??= page.endExclusive;
     for (let i = page.entries.length - 1; i >= 0; i--) {
-      const item = itemOf(page.entries[i]);
+      const item = await itemOf(host, fid, page.entries[i]);
       if (item) items.push(item);
     }
     more = page.hasMore;
@@ -607,7 +813,7 @@ async function readForward(host: ThreadHost, fid: ThreadId, from: number, limit:
   }
   const items: RecordItem[] = [];
   for (let i = entries.length - 1; i >= 0; i--) {
-    const item = itemOf(entries[i]);
+    const item = await itemOf(host, fid, entries[i]);
     if (item) items.push(item);
   }
   return { items, more, start: from, end: start };
@@ -692,7 +898,7 @@ export function recordFromLines(text: string): FileRecord | undefined {
   return { reader, count: n, first: entries[0].at, last: entries[n - 1].at };
 }
 
-function itemOf(e: ThreadEntry): RecordItem | undefined {
+async function itemOf(host: ThreadHost, fid: ThreadId, e: ThreadEntry): Promise<RecordItem | undefined> {
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;
     if (!begun || typeof begun !== 'object' || begun.kind !== 'turn') return undefined;
@@ -700,7 +906,39 @@ function itemOf(e: ThreadEntry): RecordItem | undefined {
   }
   const value = (e.state.kind === 'settled' ? e.state.payload : e.descriptor).value as unknown as RecordEntry;
   if (!value || typeof value !== 'object' || !('kind' in value) || !('at' in value)) return undefined;
+  if (e.state.kind === 'streaming' && value.kind === 'turn') {
+    // A turn under way: the reply as it streams (the final text replaces it when the turn settles).
+    const said = await previewOf(host, fid, e.entryId);
+    return { id: e.entryId, position: e.position, entry: said ? { ...value, reply: said } : value, open: true };
+  }
   return { id: e.entryId, position: e.position, entry: value, open: e.state.kind !== 'settled' };
+}
+
+/** The reply streamed so far per stream, read incrementally: a read of a turn under way costs what was added since. */
+const previews = new WeakMap<ThreadHost, Map<string, { offset: number; text: string }>>();
+
+/** A turn's streamed reply: the deltas folded (`{ text }` appends, `{ replace }` starts over). Empty when there is none. */
+async function previewOf(host: ThreadHost, fid: ThreadId, entryId: ThreadEntryId): Promise<string> {
+  let cache = previews.get(host);
+  if (!cache) previews.set(host, (cache = new Map()));
+  const seen = cache.get(entryId) ?? { offset: 0, text: '' };
+  cache.set(entryId, seen);
+  try {
+    for (;;) {
+      const page = await host.deltas({ threadId: fid, entryId, afterOffset: seen.offset, limit: 256 });
+      if ('status' in page) break;
+      for (const b of page.batches) {
+        const v = b.payload.value as { text?: unknown; replace?: unknown } | null;
+        if (typeof v?.replace === 'string') seen.text = v.replace;
+        else if (typeof v?.text === 'string') seen.text += v.text;
+      }
+      seen.offset = page.nextOffset;
+      if (!page.hasMore || !page.batches.length) break;
+    }
+  } catch {
+    // a stream that cannot be read shows nothing
+  }
+  return seen.text;
 }
 
 /** Every entry of a thread into another, in order, at the same positions (keep, and unkeep back into memory). */
@@ -791,63 +1029,143 @@ export interface RecordIndex {
   touch(id: string, title: string, at: number): Promise<void>;
   /** A record forgotten. */
   forget(id: string): Promise<void>;
+  /** A fold of the index under way is done (journal.md §1): the index folds itself in the background. */
+  idle(): Promise<void>;
 }
 
-/** The index as a thread of its own in the same rows: append-only changes, folded when listed. */
+/**
+ * The index thread is folded when it holds more than this many entries (journal.md §1): every keep, touch and forget is
+ * an entry, so it would grow with the time records are appended to. Folded, it holds one entry per kept record.
+ */
+export const IndexFoldAt = 64;
+
+/** One index entry as the index folds them: a record's newest title and last time, and when it was first listed. */
+interface IndexValue {
+  readonly id: string;
+  readonly title?: string;
+  readonly at?: number;
+  readonly first?: number;
+  readonly forget?: true;
+}
+
+/**
+ * The index as a thread of its own in the same rows: append-only changes, folded when listed. Past `IndexFoldAt` entries
+ * it is rewritten as one entry per kept record (its newest title and time, and the time it was first listed), which
+ * drops the superseded touches and the forgotten records' tombstones. A record is never dropped by folding (a kept record
+ * idle for 90 days is only marked in Home's list, and the person forgets it, journal.md §7).
+ */
 export async function createRecordIndex(rows: ThreadRows): Promise<RecordIndex> {
   const host = createThreadHost({ rows });
   const fid = threadId('prism-viewer-records');
-  const created = await host.create({
-    commandId: threadCommandId('records:create'),
-    threadId: fid,
-    ownerId: Owner,
-    limits: limits(),
-  });
-  if (created.status !== 'accepted' && created.status !== 'conflict')
-    throw new Error('The records index could not start.');
-  let n = 0;
-  const put = async (value: Json) => {
-    const r = await host.append({
-      commandId: threadCommandId(`records:${Date.now().toString(36)}:${++n}:${Math.random().toString(36).slice(2, 8)}`),
+  const create = async () => {
+    const created = await host.create({
+      commandId: threadCommandId('records:create'),
       threadId: fid,
-      entryId: threadEntryId(`r-${Date.now().toString(36)}-${n}-${Math.random().toString(36).slice(2, 6)}`),
+      ownerId: Owner,
+      limits: limits(),
+    });
+    if (created.status !== 'accepted' && created.status !== 'conflict')
+      throw new Error('The records index could not start.');
+  };
+  await create();
+  let n = 0;
+  const unique = () => `${Date.now().toString(36)}-${++n}-${Math.random().toString(36).slice(2, 8)}`;
+  const append = async (value: Json) =>
+    host.append({
+      commandId: threadCommandId(`records:${unique()}`),
+      threadId: fid,
+      entryId: threadEntryId(`r-${unique()}`),
       descriptor: envelope({ kind: 'index' }),
       payload: envelope(value),
     });
-    if (r.status !== 'accepted') throw new Error(`The records index could not be written (${r.status}).`);
-  };
-  // Every touch is an entry, folded here; folding the thread into one entry per record when it grows is for later.
-  return {
-    async list() {
-      const out = new Map<string, KeptRecord>();
-      let start = 0;
-      for (;;) {
-        const page = await host.window({ threadId: fid, start, limit: RecordWindowMax, direction: 'forward' });
-        if ('status' in page) break;
-        for (const e of page.entries) {
-          if (e.state.kind !== 'settled') continue;
-          const v = e.state.payload.value as { id: string; title?: string; at?: number; forget?: true };
-          if (v.forget) out.delete(v.id);
-          else {
-            const had = out.get(v.id);
-            out.set(v.id, {
-              id: v.id,
-              title: v.title ?? had?.title ?? v.id,
-              first: had?.first ?? v.at ?? 0,
-              last: v.at ?? 0,
-            });
-          }
+
+  /** The entries folded: one per record, oldest listed first; and how many entries there were. */
+  const read = async () => {
+    const out = new Map<string, KeptRecord>();
+    let count = 0;
+    let start = 0;
+    for (;;) {
+      const page = await host.window({ threadId: fid, start, limit: RecordWindowMax, direction: 'forward' });
+      if ('status' in page) break;
+      for (const e of page.entries) {
+        if (e.state.kind !== 'settled') continue;
+        count++;
+        const v = e.state.payload.value as IndexValue;
+        if (v.forget) out.delete(v.id);
+        else {
+          const had = out.get(v.id);
+          out.set(v.id, {
+            id: v.id,
+            title: v.title ?? had?.title ?? v.id,
+            first: had?.first ?? v.first ?? v.at ?? 0,
+            last: v.at ?? had?.last ?? 0,
+          });
         }
-        if (!page.hasMore) break;
-        start = page.endExclusive;
       }
-      return [...out.values()].sort((a, b) => b.last - a.last);
-    },
-    async touch(id, title, at) {
-      await put({ id, title, at });
-    },
-    async forget(id) {
-      await put({ id, forget: true });
+      if (!page.hasMore) break;
+      start = page.endExclusive;
+    }
+    return { records: [...out.values()], count };
+  };
+
+  // One thing at a time in this index (a fold rewrites the thread: nothing is appended or read meanwhile). Other pages
+  // writing to the same rows are not fenced; a touch they lose is the next one's to write.
+  let tail: Promise<unknown> = Promise.resolve();
+  const exclusive = <T>(work: () => Promise<T>): Promise<T> => {
+    const run = tail.then(work, work);
+    tail = run.catch(() => undefined);
+    return run;
+  };
+
+  /** How many records the index held when last read: folding is for when the entries are far more than that. */
+  let known = 0;
+  const foldAt = () => Math.max(IndexFoldAt, 2 * known);
+  let folding: Promise<void> | undefined;
+
+  /** Appends a change; on a thread folded away by another page, once more on the new one. */
+  const put = async (value: IndexValue): Promise<number> => {
+    let r = await append(value as unknown as Json);
+    if (r.status === 'not-found') {
+      await create();
+      r = await append(value as unknown as Json);
+    }
+    if (r.status !== 'accepted') throw new Error(`The records index could not be written (${r.status}).`);
+    return r.value.thread.nextPosition;
+  };
+
+  /** Rewrites the thread as one entry per record, queued behind what is under way; once at a time. */
+  const fold = () =>
+    (folding ??= exclusive(async () => {
+      const { records, count } = await read();
+      known = records.length;
+      if (count <= foldAt()) return;
+      await host.forget(fid);
+      await create();
+      for (const r of records) await put({ id: r.id, title: r.title, at: r.last, first: r.first });
+    })
+      .catch((e) => console.error('[prism-viewer] the records index could not be folded:', e))
+      .finally(() => {
+        folding = undefined;
+      }));
+
+  const change = (value: IndexValue) =>
+    exclusive(async () => {
+      const size = await put(value);
+      if (size > foldAt()) void fold();
+    });
+
+  return {
+    list: () =>
+      exclusive(async () => {
+        const { records, count } = await read();
+        known = records.length;
+        if (count > foldAt()) void fold();
+        return records.sort((a, b) => b.last - a.last);
+      }),
+    touch: (id, title, at) => change({ id, title, at }),
+    forget: (id) => change({ id, forget: true }),
+    idle: async () => {
+      await folding;
     },
   };
 }

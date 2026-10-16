@@ -381,3 +381,22 @@ the [API change ledger](breaking-v6-changes.md).
 
 - The Canvas card has an XR section (the headset view's resolution scale, scene size, post-processing and minimum target distance).
 - `options.ui.xr` (`auto`, `always`, `never`; classic `ShowXR`) decides the toolbar's XR button: with `always` it shows where WebXR is not too, and clicking says so.
+
+## Prism session record
+
+- History shows what a run was pointed at and what it changed ("1CBS · A:10-20 · 3 nodes, view"), the agent turn's model
+  (subtly), and the reply as the model says it, not only at the end.
+- An Undo turn is one record entry (naming every step), and an undo or redo records who made it (the person, the
+  assistant, a script): History says "Undone by the assistant".
+- The kept records' index folds itself (one entry per record) once it has grown, so keeping and touching records for long
+  does not grow the browser's storage without bound; no kept record is ever dropped by it.
+
+## Prism layout
+
+- The viewer keeps the layout the person leaves (docks, sizes, hidden tabs, which panel each dock shows) in its
+  preferences and restores it at start (`persist.layout`, on by default; not for an embedded layout).
+- Reset layout (`view.reset-layout`, and a rail tab's menu) puts the layout back to the spec's.
+- A rail tab's menu (right click, Shift+F10) hides that tab or shows a hidden one; `view.show-tabs` shows them all, and
+  opening a hidden tab by name brings it back.
+- `ui.layout.mode: 'embedded'` is the layout for a viewer inside a page: the rail behind its corner button, the panel
+  floating and never pinned, compact where narrow, no panel open at start.

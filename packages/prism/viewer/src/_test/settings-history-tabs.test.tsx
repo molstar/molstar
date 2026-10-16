@@ -14,7 +14,7 @@ import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { afterEach, describe, expect, it } from 'vitest';
 import { historyTab } from '../ui/history.js';
 import { settingsTab } from '../ui/settings.js';
-import { expectOk, headlessViewer, until } from './harness.js';
+import { cbs, expectOk, headlessViewer, until } from './harness.js';
 
 // The History and Settings tabs over a headless viewer's managers, sources and person API (the page's shell mounts the
 // same tabs): what they show, and that their buttons and forms act through the API.
@@ -85,6 +85,28 @@ describe('the History tab', () => {
     expect(row.textContent).toContain('Turn the checkpoints off');
     expect(row.textContent).toContain('Done.');
     expect(row.textContent).toContain('1 change');
+  });
+
+  it("shows a run's targets and changes, a turn's model and streaming reply, and who undid a turn", async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications));
+    expectOk(await v.api.as({ kind: 'person' }).select.set({ target: 'ligand' }));
+    await until(() => host.textContent?.includes('ligand · selection') === true);
+    const turn = v.record.beginTurn('t1', 'Make it a surface', undefined, 'anthropic:claude-sonnet');
+    const end = v.managers.history.beginGroup('Assistant', { kind: 'agent', turn: 't1' });
+    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'surface' }));
+    end();
+    turn.reply('Working on it');
+    await until(() => host.textContent?.includes('Under way') === true);
+    expect(host.textContent).toContain('claude-sonnet');
+    expect(host.querySelector('[title="anthropic:claude-sonnet"]')).not.toBeNull();
+    // The reply streams (coalesced to ~300 ms), then the final text replaces it.
+    await until(() => host.textContent?.includes('Working on it') === true, 3000);
+    await turn.settle({ reply: 'Done.', outcome: 'done' });
+    await until(() => host.textContent?.includes('Done.') === true);
+    expect(host.textContent).not.toContain('Working on it');
+    expectOk(await v.api.as({ kind: 'agent', turn: 't2' }).history.undoTurn({ turn: 't1' }));
+    await until(() => host.textContent?.includes('Undone by the assistant') === true);
   });
 
   it('keeps the record on a button, and says so', async () => {

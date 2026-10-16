@@ -33,8 +33,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
   every page that imports it)? `StateTransforms` for full v5 parity
   ([architecture.md](../../.v6/designs/architecture.md) §9.3 keeps it for the classic Viewer)?
 - **Choices to keep or change**: built-in areas typed as present and throwing when left out; panels keeping their tab
-  ids; History and Settings in the core; the runner re-checking `exists` only for loads; the kept-records index growing
-  (journal.md §1).
+  ids; History and Settings in the core; the runner re-checking `exists` only for loads.
 - **Mol\*'s other apps on Prism**: docking-viewer (its preset buttons as toolbar items and commands), mesoscale-explorer
   (its panels as views; the test of the shell's modularity), mvs-stories (embeddable viewport and snapshot-stepper
   elements), and examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`): port, or leave them on the classic
@@ -54,8 +53,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Themes and presets that fetch as they apply carry no addresses (only known services today;
   `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
   (`extensions/model-archive/src/prism-viewer.ts`).
-- The record: a run's targets and `changed`, the turn's model, reply deltas, who undid a step, one entry per Undo turn,
-  the index's size and folding, the record inside a `.molx` ([journal.md §1–2](viewer/_spec/journal.md)).
 - The sequence's caches and its edits overlay ([sequence.md](viewer/_spec/sequence.md) §2, §7).
 - Mol*'s first framing of a scene (on load) frames it in the whole canvas, partly under the sequence band; resets frame
   below it (`viewer/src/sources/framing.ts`, [README](viewer/_spec/README.md) decision 28). Needs a reset hook in the

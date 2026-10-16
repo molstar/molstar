@@ -62,8 +62,40 @@ describe('the viewer agent', () => {
     await v.record.flush();
     const turnItem = (await v.record.read(10)).items.find((i) => i.entry.kind === 'turn');
     expect(turnItem?.entry).toMatchObject({ prompt: 'show it as a surface, the ligand red', outcome: 'done' });
-    expectOk(await v.api.history.undoTurn({ turn: agent.lastTurn! }));
+    // The model that ran it is on the entry (journal.md §2).
+    expect(turnItem?.entry).toMatchObject({ model: 'scripted:scripted' });
+    // The agent's Undo turn is one entry, by the person who asked for it.
+    expectOk(await v.api.as({ kind: 'person' }).history.undoTurn({ turn: agent.lastTurn! }));
     expect(representationTypes(v)).toEqual(before);
+    await v.record.flush();
+    const undos = (await v.record.read(20)).items.filter((i) => i.entry.kind === 'undo');
+    expect(undos).toHaveLength(1);
+    expect(undos[0].entry).toMatchObject({ by: { kind: 'person' }, turn: agent.lastTurn });
+    agent.dispose();
+  });
+
+  it("streams the model's reply into the record as it says it, and records the model a turn was given", async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const replies: string[] = [];
+    const begin = v.record.beginTurn.bind(v.record);
+    const models: (string | undefined)[] = [];
+    v.record.beginTurn = (turn, prompt, focus, model) => {
+      models.push(model);
+      const writer = begin(turn, prompt, focus, model);
+      return { ...writer, reply: (text) => (replies.push(text), writer.reply(text)) };
+    };
+    const { agent } = agentOn(v, [{ text: 'It is a heme.' }]);
+    const heard: string[] = [];
+    await agent.turn('what is the ligand?', { onText: (t) => heard.push(t) });
+    expect(models).toEqual(['scripted:scripted']);
+    // The record's writer heard what the caller's hook did.
+    expect(replies.length).toBeGreaterThan(0);
+    expect(replies.at(-1)).toBe(heard.at(-1));
+    await v.record.flush();
+    expect((await v.record.read(5)).items.find((i) => i.entry.kind === 'turn')?.entry).toMatchObject({
+      reply: 'It is a heme.',
+      model: 'scripted:scripted',
+    });
     agent.dispose();
   });
 

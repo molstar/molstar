@@ -51,6 +51,13 @@ const Origins: Readonly<Record<string, { icon: IconName; title: string }>> = {
   link: { icon: 'link', title: 'The sequence' },
 };
 
+/** "Undone", and by whom when it was not the person (journal.md §2). */
+const undoneText = (by: string | undefined) =>
+  by === 'agent' ? 'Undone by the assistant' : by === 'script' ? 'Undone by a script' : 'Undone';
+
+/** The model of a turn without its provider ("claude-sonnet-4"); the whole is its tooltip. */
+const modelName = (model: string) => model.slice(model.indexOf(':') + 1);
+
 const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** The name IndexedDB keeps the record in (journal.md §1). */
@@ -453,9 +460,10 @@ function Run(props: { row: HistoryRunRow; nested?: boolean }) {
       <time class={classes.time} dateTime={new Date(row.at).toISOString()}>
         {time.format(row.at)}
       </time>
-      {row.undone || row.failed ? (
+      {row.undone || row.failed || row.meta ? (
         <div class={classes.detail}>
-          <span>{row.failed ? 'Failed' : 'Undone'}</span>
+          {row.meta ? <span class={classes.meta}>{row.meta}</span> : null}
+          {row.undone || row.failed ? <span>{row.failed ? 'Failed' : undoneText(row.undoneBy)}</span> : null}
         </div>
       ) : null}
     </div>
@@ -489,7 +497,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
   const caption = row.open
     ? 'Under way'
     : row.undone
-      ? 'Undone'
+      ? undoneText(row.undoneBy)
       : row.outcome === 'stopped'
         ? 'Stopped'
         : row.outcome === 'failed'
@@ -532,6 +540,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
       </Show>
       <div class={classes.detail}>
         {caption ? <span>{caption}</span> : null}
+        {row.model ? <span title={row.model}>{modelName(row.model)}</span> : null}
         {row.runs.length ? (
           <span>
             {row.runs.length} change{row.runs.length === 1 ? '' : 's'}

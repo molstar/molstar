@@ -23,7 +23,8 @@ truth for how.
 - **A turn at a time**: `turn()` throws while one runs or is `parked` (waits for an approval); `stop()` ends either, a
   parked turn settled as stopped (record entry, history group).
 - **One run path**: tools run `viewer.api.as({ kind: 'agent', turn })`; the turn is one history group (Undo turn undoes
-  it at once; [sequence.md](sequence.md) §7.3) and one record entry ([journal.md](journal.md) §2).
+  it at once; [sequence.md](sequence.md) §7.3) and one record entry ([journal.md](journal.md) §2), which has the turn's
+  model (`provider:model`) from the prompt on and the reply as the model says it (`onText` to `TurnWriter.reply`).
 
 ## 2. Tools
 

@@ -17,22 +17,47 @@ the truth for how.
   removed and the record stays in memory. `unkeep` copies back into memory and forgets the kept rows.
 - **Index of kept records** (threads have no listing by owner): an append-only thread in the same rows, folded when
   listed; touched on keep, at most once a minute while appended to, at a turn's end, on dispose.
+- **The index stays small by folding** (`createRecordIndex`, `IndexFoldAt` = 64): past that many entries, and past twice
+  its records, the thread is rewritten as one entry per kept record (newest title and time, the time first listed); the
+  superseded touches and the forgotten records' tombstones go. Done in the background after a touch or a list, queued
+  with them in this page (nothing is read or appended mid-rewrite); another page writing the same rows is not fenced
+  (its lost touch is the next one's to write; a thread folded away under it is made again). **Folding never drops a
+  record**: a kept record idle for 90 days stays listed, marked in Home, and only the person forgets it (§7); the number
+  of records is bounded by `keptRecordsMax` where the person keeps them, so the index is that many entries plus at most
+  the fold bound.
 
 ## 2. Entries
 
 - **Envelope** `{ codec: 'prism-viewer.record.v1', version: 1, value }`, strict JSON; kinds in `RecordEntry`.
+- **A run** (`RunEntry`) holds its operation, summarized `values`, `origin`, result, and what it touched: `targets` (the
+  text of its `structure`, `component`, `node` and `target` values, from the runner's checked values, cut at 80
+  characters, URLs bare: `targetsOf`) and `changed` (the result's `changed`, small: at most 8 node refs, `more` counts
+  the rest, and the `selection`, `view`, `sequence` flags: `changedOf`; a failure has targets, no `changed`). Fields a
+  reader of an older record lacks are optional.
 - **Values summarized** (`summarizeValues`): non-JSON said in words, long text cut, URLs without credentials, query and
   fragment (tokens stay out of kept records and `.molx`), oversized values replaced by a note.
-- **Append-only**: an undo is a new entry naming the step (one per step of an Undo turn).
+- **Append-only**: an undo is a new entry naming the step and its actor (`by`, the origin of the Undo, Undo turn or Redo
+  run, as a run's `origin`; absent when the history is driven outside the API). **An Undo turn is one entry** naming
+  every step it took back (`step` is the newest, `steps` all of them when more than one), written when its run ends;
+  History reads all of them as undone. A redo is an entry too.
 - **A turn under way** is a begun streaming entry (`beginTurn`, from `agent/session.ts`), kept alive by a five-minute
   heartbeat against the thread's inactivity timeout; settled with reply, outcome, usage. An aborted turn reads as
-  stopped.
+  stopped. The entry has the turn's `model` (`provider:model`) from the prompt on.
+- **The reply streams**: the agent's `onText` (the text of the model call under way) goes to `TurnWriter.reply`, which
+  writes thread deltas coalesced to one per `ReplyMs` (300 ms): `{ text }` with what was appended since, `{ replace }`
+  when the text is not an extension of what was sent (a retried call). A read of an open turn folds its deltas into
+  `reply` (incrementally: a read costs what was added); the final text of `settle` replaces them (a settle with none
+  keeps what had streamed). Not previewed: a reply over 32,000 characters, more than 1,000 deltas, a stream that cannot
+  be written (the record was kept meanwhile; the settle carries the text). An aborted turn (the page went away) shows no
+  reply: the thread does not give an ended stream's deltas back.
 - **Reads are windows**, newest first, at most 256 entries per page.
 
 ## 3. Shown back
 
 - **History** (`ui/history.tsx`, Steps beside the Log): newest first; a run is a row, an agent turn one group, undone
-  steps struck. Undo the latest step; Undo turn asks first when later steps would go too.
+  steps struck. Undo the latest step; Undo turn asks first when later steps would go too. A run's second line says what
+  it was pointed at and changed ("1CBS · A:10-20 · 3 nodes, view", `metaOf`) and "Undone by the assistant" when it was
+  not the person who undid it; a turn shows its reply as it streams, and its model's name (the provider in the tooltip).
 - **`journal/history-model.ts`** reads only while the tab shows: a window, "Show earlier", then once per frame only what
   came since (from the oldest open turn). Loaded rows are bounded.
 - **The assistant's history** (`AgentModel.history`) maps History's rows; the turn card holds Undo turn while the newest
@@ -56,9 +81,15 @@ the truth for how.
 ## 6. Light state in the browser's storage
 
 - **Two stores**, never for data (`persist/stores.ts`, `webStore('local' | 'session', { prefix, version, budget })`):
-  `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme) and `persist.restore`
-  (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over budget is dropped; a blocked
-  store fails nothing.
+  `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme, the layout) and
+  `persist.restore` (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over budget is
+  dropped; a blocked store fails nothing. Settings are not kept.
+- **The layout** (`ui/layout.ts`, key `layout`; `persist.layout`, viewer-spec.md §2.6): `viewState.save()` (docks,
+  sizes, float, pin, hidden tabs) and `navigation.save()`'s docks (their open tab and collapse; not the card or the
+  page, which are summoned), written 500 ms after a change that differs from what was written, again on `pagehide` and
+  on dispose (before the tabs unregister). Restored at start before the tabs register, with the host's parts (mode,
+  compact rail, buttons) left as the spec has them; the start rule still decides whether the main panel opens. Either
+  part of another version, or not a layout, is ignored.
 - **The light restore** (`sources/restore.ts`): a second after the last step (longer after a slow write), the plugin's
   snapshot without data, when every data cell comes from an address; with a local file or inline data nothing is kept,
   said once.

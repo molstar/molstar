@@ -164,12 +164,21 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
   let endGroup: (() => void) | undefined;
   let prompt = '';
   let focus: string | undefined;
+  /** The model the next turn runs on, and the open turn's (`provider:model`), for the record (journal.md §2). */
+  let modelId: string | undefined;
+  let turnModel: string | undefined;
   let parked = false;
   /** Settles the open turn (its record entry, its history group) and makes it the last one. */
   const close = (outcome: 'done' | 'stopped' | 'failed', reply = '', usage?: TurnResult['usage']) => {
     parked = false;
-    void writer?.settle({ reply, outcome, ...(usage ? { usage: usage as never } : {}) });
+    void writer?.settle({
+      reply,
+      outcome,
+      ...(turnModel ? { model: turnModel } : {}),
+      ...(usage ? { usage: usage as never } : {}),
+    });
     writer = undefined;
+    turnModel = undefined;
     endGroup?.();
     endGroup = undefined;
     if (current) last = current;
@@ -181,12 +190,18 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       if (e.kind === 'begun' && current !== e.turnId) {
         // A turn left open (never settled) ends here, as stopped.
         if (writer || endGroup) close('stopped');
+        turnModel = modelId;
         policy.beginTurn(addressesInRequest(prompt));
         current = e.turnId;
-        writer = viewer.record.beginTurn(e.turnId, prompt, focus);
+        writer = viewer.record.beginTurn(e.turnId, prompt, focus, turnModel);
         endGroup = viewer.managers.history.beginGroup(label, { kind: 'agent', turn: e.turnId });
       }
       hooks?.onTurn?.(e);
+    },
+    // The reply as it streams: History shows it before the turn ends (journal.md §2).
+    onText: (text) => {
+      writer?.reply(text);
+      hooks?.onText?.(text);
     },
   });
   const settle = (r: TurnResult) => {
@@ -229,6 +244,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
       toolkit.refresh();
       prompt = request;
       focus = api.account.focus();
+      const chosen = model ?? o.models.default;
+      modelId = `${chosen.provider}:${chosen.model}`;
       const said = notes.splice(0);
       const r = await session.turn(
         {
