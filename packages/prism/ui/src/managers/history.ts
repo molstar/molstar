@@ -158,6 +158,7 @@ export class HistoryManager<C = unknown> {
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
   readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
+  readonly #redone = new Subject<HistoryStep>();
   /**
    * What Undo took back, newest first, each with the state it left (a checkpoint taken before the restore): Redo puts
    * it back. Any new step, or a change outside the history, empties it.
@@ -206,14 +207,19 @@ export class HistoryManager<C = unknown> {
     return this.#checkpointing.asReadonly;
   }
 
-  /** A step undone. */
   /** The steps Redo would put back, newest first. */
   get redoable(): ReadonlyState<readonly HistoryStep[]> {
     return this.#redoable.asReadonly;
   }
 
+  /** A step undone. */
   get undone(): Observable<HistoryStep> {
     return this.#undone.asObservable();
+  }
+
+  /** A step Redo put back (the one an Undo took back). */
+  get redone(): Observable<HistoryStep> {
+    return this.#redone.asObservable();
   }
 
   /** Checkpoints just turned off for a large scene, with the measurement that did it (say so once). */
@@ -389,6 +395,7 @@ export class HistoryManager<C = unknown> {
       this.#entries = [next.entry, ...this.#entries].slice(0, this.#options.capacity);
       this.#setRedo(this.#redo.slice(1));
       this.#publish();
+      this.#redone.next(next.entry.step);
       return { ok: true, step: next.entry.step };
     } finally {
       release();
@@ -469,6 +476,7 @@ export class HistoryManager<C = unknown> {
     this.#entries = [];
     this.#open.clear();
     this.#undone.complete();
+    this.#redone.complete();
     this.#checkpointingOff.complete();
   }
 

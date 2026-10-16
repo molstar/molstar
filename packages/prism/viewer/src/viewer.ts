@@ -319,7 +319,12 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it, in the spec's
     // rows when it gives them (`persist.rows`, viewer-spec.md §2.6; typed loosely there, a `FiberRows` here).
     const keepIn = spec.persist?.rows as FiberRows | undefined;
-    const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
+    const record = await createSessionRecord({
+      api: host.api,
+      undone: history.undone,
+      redone: history.redone,
+      ...(keepIn ? { keepIn } : {}),
+    });
     disposers.push(() => record.dispose());
     // The kept records after a reload (journal.md §3, §5): Home lists them, History opens one read-only.
     const keptRecords = createKeptRecordsModel({

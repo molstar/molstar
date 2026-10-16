@@ -16,7 +16,11 @@ import { fakeApi } from './runs.js';
 
 async function setup() {
   const v = await headlessViewer({ files: [cbs()] });
-  const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });
+  const record = await createSessionRecord({
+    api: v.api,
+    undone: v.managers.history.undone,
+    redone: v.managers.history.redone,
+  });
   const model = createHistoryModel(record, { window: 200 });
   return { v, record, model };
 }
@@ -42,6 +46,18 @@ describe('the History model', () => {
     const after = model.rows.value as HistoryRunRow[];
     // The undo is no row; it marks the latest run.
     expect(after.map((r) => r.undone)).toEqual([true, false]);
+
+    // Redo puts it back: done again (the redo itself is a run row); undone once more after another Undo.
+    const cartoon = () =>
+      (model.rows.value as HistoryRunRow[]).find((r) => r.kind === 'run' && r.text.startsWith('Applied the Cartoon'));
+    expectOk(await v.api.history.redo());
+    await record.flush();
+    await model.idle();
+    expect(cartoon()?.undone).toBe(false);
+    expectOk(await v.api.history.undo());
+    await record.flush();
+    await model.idle();
+    expect(cartoon()?.undone).toBe(true);
     model.dispose();
     record.dispose();
   });

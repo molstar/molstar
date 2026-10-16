@@ -271,8 +271,15 @@ const runRow = (item: RecordItem, e: RunEntry, undone: ReadonlySet<number>): His
 
 /** The rows of the loaded entries (newest first in, newest first out). */
 export function rowsOf(items: readonly RecordItem[]): HistoryRow[] {
+  // A step is undone when its newest undo or redo is an undo (newest first: the first one met decides).
   const undone = new Set<number>();
-  for (const i of items) if (i.entry.kind === 'undo') undone.add(i.entry.step);
+  const decided = new Set<number>();
+  for (const i of items) {
+    const e = i.entry;
+    if ((e.kind !== 'undo' && e.kind !== 'redo') || decided.has(e.step)) continue;
+    decided.add(e.step);
+    if (e.kind === 'undo') undone.add(e.step);
+  }
 
   interface Turn {
     readonly item: RecordItem;

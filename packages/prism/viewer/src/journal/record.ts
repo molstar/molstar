@@ -83,6 +83,15 @@ export interface UndoEntry {
   readonly at: number;
 }
 
+/** A step Redo put back: after its `undo`, History shows it done again. */
+export interface RedoEntry {
+  readonly kind: 'redo';
+  readonly step: number;
+  readonly what: string;
+  readonly turn?: string;
+  readonly at: number;
+}
+
 export interface SessionEntry {
   readonly kind: 'session';
   readonly event: 'opened' | 'cleared' | 'saved';
@@ -90,7 +99,7 @@ export interface SessionEntry {
   readonly at: number;
 }
 
-export type RecordEntry = RunEntry | TurnEntry | UndoEntry | SessionEntry;
+export type RecordEntry = RunEntry | TurnEntry | UndoEntry | RedoEntry | SessionEntry;
 
 /** An entry as History reads it: its value, and whether it is still being written (a turn under way). */
 export interface RecordItem {
@@ -198,6 +207,8 @@ export interface SessionRecordOptions {
   readonly api: ViewerApi;
   /** The steps the history undoes (an `undo` entry each, naming it). */
   readonly undone?: Observable<HistoryStep>;
+  /** The steps Redo puts back (a `redo` entry each). */
+  readonly redone?: Observable<HistoryStep>;
   /** Where it is written (memory by default). */
   readonly rows?: FiberRows;
   /** Where "Keep" puts it (the spec's `persist.rows`); the browser's IndexedDB when absent. */
@@ -366,6 +377,16 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     }),
   );
 
+  const redoneSub = o.redone?.subscribe((step) =>
+    append({
+      kind: 'redo',
+      step: step.id,
+      what: step.label,
+      ...(step.origin.turn ? { turn: step.origin.turn } : {}),
+      at: now(),
+    }),
+  );
+
   let keeping: Promise<void> | undefined;
 
   const record: SessionRecord = {
@@ -508,6 +529,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         disposed = true;
         sub.unsubscribe();
         undoneSub?.unsubscribe();
+        redoneSub?.unsubscribe();
         // A turn still open ends as stopped (journal.md §4), so it is neither "under way" forever nor left to abort.
         for (const t of [...open.values()]) void t.stop();
         stopBeat?.();
