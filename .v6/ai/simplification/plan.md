@@ -31,6 +31,7 @@ Never `pnpm test:live` (real models, money) unless the owner asks.
 | 9   | **Duplicates and legacy paths** (duplicates.md, persistence.md §5): markers, estimates, one `Clock`, one limits source, pre-label fallbacks | `packages/ai/src/{trace,session,tools,threads}` | ai, prism | 6 |
 | 10  | **The spec, rewritten for the simplified code**: `packages/ai/_spec/*` and `.v6/ai/*` (README packages table → one package and its folders; decisions 7–9; `harness.md` §1, §14, §18; `plan.md` "Where it comes from" gets a line on this simplification), `packages/ai/AGENTS.md`, `packages/ai/TODO.md` (its SQLite, data-migration and suite-waits entries no longer apply as written); this folder marked done | docs only                                                                                                   | `npx prettier --check` on them | 6–9 |
 | 11  | **Leave the serial Vitest project** if the AI tests pass in parallel under load (conformance.md §4) | `vitest.config.ts`                                                                                          | several full `pnpm test:unit` runs | 1, 6 |
+| 12  | **Tool schemas without zod** (tool-schemas.md): field shape → JSON Schema and the check in our code, an open enum for the disclosure tools, `zod.ts` and `./zod` gone; first a one-off test that today's schemas for every viewer tool equal the new generator's | `packages/ai/src/tools/`, `_spec/tools.md`, `.v6/ai/tools-and-session.md` §1–2, the Biome zod rule | ai, prism | 6 |
 
 Slices 1–5 each also update the docs they touch; slice 10 is the pass that makes the spec read as one design rather
 than a list of edits.
@@ -51,7 +52,31 @@ than a list of edits.
 - **7 and 8** both follow 6 and touch different folders (`threads/` and prism-viewer's journal; `providers/` and
   prism-assistant's settings): they can run in parallel. **9** touches `trace/`, `session/`, `tools/`: parallel with 7
   and 8 except where 9 changes the session's model limits (with 8).
+- **12** follows 6 and touches only `src/tools/`: parallel with 7–9.
 - **10** last; **11** whenever 1 and 6 are in.
+
+## Who implements which slice
+
+Most slices are mechanical once the design files here say what moves; Sonnet can do those, each from a brief that
+names the files, the lists (case names, symbols, rename maps) and the checks, with an Opus review of the diff before it
+lands. The design-heavy ones stay with Opus.
+
+| #   | Slice                         | Model                  | Why                                                                                                                                       |
+| --- | ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | cut the conformance suite     | **Sonnet**             | deletion by a list (conformance.md §2 names every kept and dropped case); the checks say whether it worked                                 |
+| 2   | the basic in-memory harness   | **Opus**               | a rewrite of the runner's loop and the session over it, with judgment on every case ported (harness.md §3–5); the one slice that designs  |
+| 3   | dead code                     | **Sonnet**             | deletions listed with paths (dead-code.md §1), after the owner's three decisions                                                         |
+| 4   | kept records into prism-viewer | **Sonnet**             | one file moved, four import sites, two tests; coordination with the Prism sessions is the hard part, not the code                       |
+| 5   | fiber deltas and cleanup out  | **Sonnet**, Opus review | functions named with line ranges (threads.md §3), but kernel and host code with invariants: the review matters                        |
+| 6   | collapse into `@molstar/ai`   | **Sonnet**, Opus for the exports map and folder rules | scripted `git mv` and import rewrites (packaging.md §2–4 list every site); the exports map, the name collisions and the Biome folder rules are decisions already written down but worth a second look |
+| 7   | fibers → threads              | **Sonnet**             | a rename map with a stated scope (threads.md §2), including what must not be renamed (the molecular fibers)                              |
+| 8   | providers                     | **Opus**               | a new layer: the `Message` → `ModelMessage` converter, stream mapping, reasoning replay, cache options per provider (providers.md §2–3)   |
+| 9   | duplicates and legacy paths   | **Sonnet**             | small, each item located (duplicates.md, persistence.md §5)                                                                              |
+| 10  | the spec rewritten            | **Opus**               | the design written as one coherent document in the repository's voice, not a list of edits                                               |
+| 11  | leave the serial project      | **Sonnet** (or Haiku)  | a config change and repeated full runs                                                                                                   |
+| 12  | tool schemas without zod      | **Sonnet**             | the behavior is pinned by `input.test.ts` and the one-off equivalence test (tool-schemas.md §3); the code is ~180 lines over a closed vocabulary |
+
+So 9 of 12 slices can go to Sonnet (three of them with an Opus review), and Opus keeps 2, 8 and 10.
 
 ## Later (not in these slices)
 
