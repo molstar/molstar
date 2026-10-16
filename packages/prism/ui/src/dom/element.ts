@@ -8,7 +8,7 @@
 
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import '../styles/base.js';
-import { adoptStyles } from '../styles/registry.js';
+import { adoptStyles, releaseStyles, type StyleRoot } from '../styles/registry.js';
 import type { Child, CommonProps } from './jsx-types.js';
 import { delegateEvents, insert } from './render.js';
 import { runInScope, Scope } from './scope.js';
@@ -22,8 +22,9 @@ const ElementBase = (typeof HTMLElement === 'undefined' ? class {} : HTMLElement
  * - Rendering starts when the element is connected and has a model; setting another model renders again.
  * - Disconnecting disposes the rendering on the next microtask, unless the element is connected again before then:
  *   moving an element (between docks, into a dialog) keeps its DOM and bindings.
- * - On connect it adopts the registered styles into its document; a top-level element (not inside another prism-ui root)
- *   becomes a root (`.msp-root`), which scopes the reset and the theme tokens.
+ * - On connect it adopts the registered styles into its document (or shadow root), and releases them once it is
+ *   disconnected and not connected again (so a shadow root it was in is not kept); a top-level element (not inside
+ *   another prism-ui root) becomes a root (`.msp-root`), which scopes the reset and the theme tokens.
  * - The element does not own its model: whoever created the model mounts and retires it. An element that creates its
  *   own model (`createModel`) mounts it while rendered and unmounts it when the rendering is disposed.
  */
@@ -32,6 +33,7 @@ export abstract class MspElement<M = unknown> extends ElementBase {
   #owned = false;
   #scope: Scope | undefined;
   #pendingDispose = false;
+  #styleRoot: StyleRoot | undefined;
 
   constructor() {
     super();
@@ -64,7 +66,12 @@ export abstract class MspElement<M = unknown> extends ElementBase {
   connectedCallback(): void {
     // In a page or in a shadow root (a `<prism-viewer>`): the styles go where the element is.
     const root = this.getRootNode();
-    adoptStyles(root instanceof ShadowRoot ? root : this.ownerDocument);
+    const styleRoot = root instanceof ShadowRoot ? root : this.ownerDocument;
+    if (styleRoot !== this.#styleRoot) {
+      if (this.#styleRoot) releaseStyles(this.#styleRoot);
+      adoptStyles(styleRoot);
+      this.#styleRoot = styleRoot;
+    }
     if (!this.parentElement?.closest('.msp-root')) this.classList.add('msp-root');
     if (this.#pendingDispose) {
       this.#pendingDispose = false;
@@ -74,6 +81,11 @@ export abstract class MspElement<M = unknown> extends ElementBase {
   }
 
   disconnectedCallback(): void {
+    queueMicrotask(() => {
+      if (this.isConnected || !this.#styleRoot) return;
+      releaseStyles(this.#styleRoot);
+      this.#styleRoot = undefined;
+    });
     if (!this.#scope) return;
     this.#pendingDispose = true;
     queueMicrotask(() => {

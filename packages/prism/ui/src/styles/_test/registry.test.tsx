@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { classes } from '../../components/button/_generated/button.module.css.js';
 import { defineElements, MspElement } from '../../dom/element.js';
 import { adoptStyles, defineStyles, releaseStyles, styleText } from '../registry.js';
@@ -124,5 +124,51 @@ describe('styles in shadow roots', () => {
     expect(cssOf(a)).toContain('shadow-shared');
     releaseStyles(a);
     expect(cssOf(a)).toBe('');
+  });
+
+  it('shares one constructed sheet between the roots of a document, parsed once per registration', async () => {
+    // jsdom has constructed sheets but no `adoptedStyleSheets`: give these roots one.
+    const withSheets = () => {
+      const root = shadow();
+      Object.defineProperty(root, 'adoptedStyleSheets', { value: [], writable: true });
+      return root as ShadowRoot & { adoptedStyleSheets: CSSStyleSheet[] };
+    };
+    const a = withSheets();
+    const b = withSheets();
+    adoptStyles(a);
+    adoptStyles(b);
+    expect(a.adoptedStyleSheets.length).toBe(1);
+    expect(b.adoptedStyleSheets[0]).toBe(a.adoptedStyleSheets[0]);
+
+    const replace = vi.spyOn(CSSStyleSheet.prototype, 'replaceSync');
+    defineStyles('test/shared-late.css', '.shared-late { color: red }');
+    await tick();
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(cssOf(b)).toContain('shared-late');
+    replace.mockRestore();
+
+    releaseStyles(a);
+    expect(a.adoptedStyleSheets.length).toBe(0);
+    expect(cssOf(b)).toContain('shared-late');
+    releaseStyles(b);
+    expect(b.adoptedStyleSheets.length).toBe(0);
+  });
+
+  it('an element releases the styles of the shadow root it leaves, and keeps them when moved within it', async () => {
+    const root = shadow();
+    const el = document.createElement('msp-test-styled') as StyledElement;
+    el.model = 'in a shadow root';
+    root.append(el);
+    expect(cssOf(root)).toContain('.msp-button-button');
+
+    const box = document.createElement('div');
+    root.append(box);
+    box.append(el);
+    await tick();
+    expect(cssOf(root)).toContain('.msp-button-button');
+
+    el.remove();
+    await tick();
+    expect(cssOf(root)).toBe('');
   });
 });
