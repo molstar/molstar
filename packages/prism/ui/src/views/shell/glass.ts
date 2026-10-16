@@ -103,8 +103,12 @@ export class Glass {
   /** Told when it snaps back together after a break (the light pops). */
   onSnap: () => void = () => {};
 
-  constructor(seed = 11) {
+  /** How far the pieces travel (a factor: 1 for the empty canvas's, less for a small wordmark). */
+  readonly #travel: number;
+
+  constructor(seed = 11, travel = 1) {
     this.#random = generator(seed);
+    this.#travel = travel;
     this.#word = WordmarkGeometry.paths.map((d) => new Path2D(d));
     // The grid over the word (with its line), its inner corners moved: broken glass, not a lattice.
     const x0 = -1;
@@ -150,6 +154,11 @@ export class Glass {
     }
   }
 
+  /** Whole and still: nothing to draw again until something happens (no frames while nothing moves). */
+  get resting(): boolean {
+    return this.#still;
+  }
+
   get phase(): GlassPhase {
     return this.#phase;
   }
@@ -163,7 +172,7 @@ export class Glass {
   scatter(): void {
     for (let i = 0; i < Shards; i++) {
       const a = this.#random() * Math.PI * 2;
-      const d = 18 + this.#random() * 36;
+      const d = (18 + this.#random() * 36) * this.#travel;
       this.#fx[i] = Math.cos(a) * d;
       this.#fy[i] = Math.sin(a) * d * 0.7;
       this.#fr[i] = (this.#random() * 2 - 1) * 1.6;
@@ -191,7 +200,7 @@ export class Glass {
       const dx = this.#cx[i] + this.#ox[i] - x;
       const dy = this.#cy[i] + this.#oy[i] - y;
       const d = Math.hypot(dx, dy) || 1;
-      const v = (26 + this.#random() * 34) / (1 + d * 0.04);
+      const v = ((26 + this.#random() * 34) / (1 + d * 0.04)) * this.#travel;
       this.#vx[i] = (dx / d) * v + (this.#random() - 0.5) * 6;
       this.#vy[i] = (dy / d) * v + (this.#random() - 0.5) * 6;
       this.#vr[i] = (this.#random() * 2 - 1) * 6;
@@ -208,6 +217,7 @@ export class Glass {
     const wasWhole = this.#phase === 'whole';
     this.#phase = phase;
     this.#since = this.#time;
+    this.#still = false;
     if (wasWhole && phase !== 'whole') this.onWhole(false);
   }
 

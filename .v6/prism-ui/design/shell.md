@@ -257,8 +257,9 @@ extension UI) are placed.
   pointer it comes alive (a vertical strip at the cursor: the logo's colors running across it, centred on the cursor,
   the line itself unchanged; fading out when it leaves); it fades out, faster (250 ms), when something loads. Clicks
   pass through.
-- **Home's heading** is the Mol* wordmark, outlined in the text color: the logo's colors flash along it now and then,
-  and under the pointer the same live strip as on the empty canvas runs across it, back to the plain outline on leave.
+- **Home's heading** is the Mol* wordmark as glass, in the logo's colors (2026-10-16; `GlassWordmark`, the splash's
+  glass without the light; no Prism triangle): it assembles from its pieces each time Home opens, its pieces lean under
+  the pointer, and a press shatters it before it snaps back. It draws only while something moves.
 - **Dropping files.** Files dragged anywhere over the plugin bring up a drop overlay over everything (Mol*'s drag
   overlay: "Drop to open" and the formats it reads, `dropFormats`); only drags that carry files show it, and dropped
   files go to the plugin's drag-and-drop manager (`onDropFiles`). On unless the spec sets

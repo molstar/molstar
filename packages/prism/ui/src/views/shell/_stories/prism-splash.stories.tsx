@@ -10,6 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { MolstarWordmark } from '../../../components/icon/wordmark.js';
+import { GlassWordmark } from '../glass-wordmark.js';
 import { story } from '../../../testing/story-root.js';
 import { PrismFieldDefaults, type PrismFieldOptions, PrismSplash } from '../prism-splash.js';
 
@@ -82,6 +83,27 @@ export const Splash: StoryObj<Args> = {
       <div style="display: grid; gap: var(--msp-space-5); padding: var(--msp-space-5)">
         <Canvas theme="light" options={args} />
         <Canvas theme="dark" options={args} />
+      </div>
+    )),
+};
+
+/**
+ * The wordmark as glass without the light: Home's heading. It assembles as it shows; move over it, press it. It draws
+ * nothing while it is whole and nothing moves.
+ */
+export const Glass: StoryObj<Args> = {
+  render: () =>
+    story(() => (
+      <div style="display: grid; gap: var(--msp-space-5); padding: 48px">
+        {(['light', 'dark'] as const).map((theme) => (
+          <div
+            data-msp-theme={theme}
+            style="display: flex; gap: 48px; align-items: end; padding: 32px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel)"
+          >
+            <GlassWordmark />
+            <GlassWordmark scale={2} />
+          </div>
+        ))}
       </div>
     )),
 };

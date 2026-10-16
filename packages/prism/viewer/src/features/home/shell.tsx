@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type DockId, domView, mapState, MolstarWordmark, SectionList } from '@molstar/prism-ui';
+import { type DockId, domView, GlassWordmark, mapState, SectionList } from '@molstar/prism-ui';
 import { createAnnotationOffer, type HomeModel } from '../../model/home.js';
 import type { BuiltInShellContext } from '../../spec.js';
 import { HomeTab } from '../../views/home/home-tab.js';
@@ -71,7 +71,8 @@ export function homeShell({ shell, core, person, own, openCommandMenu, openFiles
         id: 'home',
         compactBar: true,
         title: 'Home',
-        heading: () => <MolstarWordmark live />,
+        // The wordmark as glass: it assembles as Home opens (prism-ui `GlassWordmark`).
+        heading: () => <GlassWordmark />,
         icon: 'prism',
         order: 0,
         place: 'head',
