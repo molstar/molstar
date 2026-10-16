@@ -375,9 +375,9 @@ export class Glass {
   }
 
   /**
-   * Draws the glass: the word whole in one go while at rest, else piece by piece: the word's line in `stroke` (the logo's gradient,
-   * made in drawing units), each piece its part of it, and the piece's edges in `edge`, glinting while it moves. The
-   * context is in canvas CSS pixels; the word's drawing origin is at (x, y), `scale` px a unit.
+   * Draws the glass: the word whole in one go while at rest, else piece by piece: the word's line in `stroke` (the
+   * logo's gradient, made in drawing units), each piece its part of it, and the piece's edges in `edge`, glinting while
+   * it moves. The context is in canvas CSS pixels; the word's drawing origin is at (x, y), `scale` px a unit.
    */
   draw(
     ctx: CanvasRenderingContext2D,

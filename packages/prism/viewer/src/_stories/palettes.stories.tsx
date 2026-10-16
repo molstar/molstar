@@ -14,9 +14,9 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import type { DataPalette } from '../sources/palette.js';
 import { RealViewerStory } from '../testing/real-viewer.js';
 
-// The data palettes (accessibility.md, viewer-spec.md §2.8): the colors the categorical themes give chains, entities and the
-// other categories, in the order they take them (chain A the first). `canvas.palette` picks one (Prism's by default);
-// `spec.palettes` gives Prism's and the colorblind-safe lists. The structures come from RCSB (the network).
+// The data palettes (accessibility.md, viewer-spec.md §2.8): the colors the categorical themes give chains, entities
+// and the other categories, in the order they take them (chain A the first). `canvas.palette` picks one (Prism's by
+// default); `spec.palettes` gives Prism's and the colorblind-safe lists. The structures come from RCSB (the network).
 
 interface PaletteInfo {
   readonly id: DataPalette;

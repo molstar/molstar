@@ -130,8 +130,9 @@ export interface Toolkit<Api> {
   /** A registration by tool id, as the toolkit is now (bindings resolve through it at call time). */
   registration(toolId: string): ToolRegistration<Api> | undefined;
   /**
-   * A dynamic toolkit (decision 25 of the Prism viewer's spec, `packages/prism/viewer/_spec/README.md`): adds tools, groups and entries between and during turns; the same checks
-   * as at creation (one place for each tool), nothing changed when they fail. Returns the removal.
+   * A dynamic toolkit (decision 25 of the Prism viewer's spec, `packages/prism/viewer/_spec/README.md`): adds tools,
+   * groups and entries between and during turns; the same checks as at creation (one place for each tool), nothing
+   * changed when they fail. Returns the removal.
    */
   add(part: ToolkitPart<Api>): () => void;
   /** Bumped by every change. */

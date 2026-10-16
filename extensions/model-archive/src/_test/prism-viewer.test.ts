@@ -14,8 +14,8 @@ import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelArchiveExtension, PlddtTrack } from '../prism-viewer.js';
 
-// Model Archive's quality in the Prism viewer on a headless viewer (parity.md §6): AlphaFold DB's P04637 model (recorded,
-// Seq*'s fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
+// Model Archive's quality in the Prism viewer on a headless viewer (parity.md §6): AlphaFold DB's P04637 model
+// (recorded, Seq*'s fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
 
 const fixture = (path: string, name: string) => new File([readFileSync(new URL(path, import.meta.url))], name);
 const alphafold = () =>

@@ -123,9 +123,9 @@ export interface TrackColoring extends TrackAction {
 }
 
 /**
- * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (sequence.md §10);
- * behaviors offer their tracks' (`SequenceOffer.menus`). The 3D coloring each track stands for: its own track colors the
- * structure the same way.
+ * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (sequence.md
+ * §10); behaviors offer their tracks' (`SequenceOffer.menus`). The 3D coloring each track stands for: its own track
+ * colors the structure the same way.
  */
 const TrackMenus: Readonly<Record<string, readonly SequenceTrackMenuItem[]>> = {
   [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', theme: 'default' }],

@@ -105,8 +105,8 @@ export function isBehaviorOwned(transform: StateTransform): boolean {
 }
 
 /**
- * Watches the data tree for changes outside the API (sequence.md §7.3): a cell created, removed or updated while the history
- * is not applying a run or a restore, and not owned by a behavior, makes every earlier checkpoint unsafe.
+ * Watches the data tree for changes outside the API (sequence.md §7.3): a cell created, removed or updated while the
+ * history is not applying a run or a restore, and not owned by a behavior, makes every earlier checkpoint unsafe.
  */
 export function watchOutsideChanges(plugin: PluginContext, history: HistoryManager<ViewerCheckpoint>): () => void {
   const state = plugin.state.data;

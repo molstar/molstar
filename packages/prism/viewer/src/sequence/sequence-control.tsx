@@ -40,7 +40,7 @@ export interface SequenceControlProps {
    * Over the real plugin it is `pluginView3D(plugin, structure)` (sources/).
    */
   view3d?: (structure: Structure) => SequenceView3D | undefined;
-  /** The shell and its dock, for the height rules (sequence.md §8): tracks follow their content, the text has a fixed height. */
+  /** The shell and its dock, for the height rules (sequence.md §8): tracks fit their content, text a fixed height. */
   shell?: ShellModel;
   dock?: DockId;
   /** The text version's lines' height, px (the band is this and its air and fade). */
@@ -289,8 +289,9 @@ export function SequenceControl(props: SequenceControlProps) {
     bind(height, (h) => shell.setSize(dockId, (h > 0 ? h : text) + BandExtra));
   }
 
-  // The keyboard cursor, said (accessibility.md): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the cursor
-  // holds the hover), once the arrows rest, in a polite region of the control's own; nothing while the pointer hovers.
+  // The keyboard cursor, said (accessibility.md): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the
+  // cursor holds the hover), once the arrows rest, in a polite region of the control's own; nothing while the pointer
+  // hovers.
   const cursorSaid = (<span class={classes.said} aria-live="polite" />) as HTMLElement;
   {
     let timer: ReturnType<typeof setTimeout> | undefined;

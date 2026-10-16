@@ -88,9 +88,9 @@ export interface PrismViewerPluginParts {
 }
 
 /**
- * §2.8: the lists the data palettes take (accessibility.md), the categorical themes' colors (chains, entities, …), in the
- * order categories take them: each color `0xRRGGBB` or `'#rrggbb'`. `options.canvas.palette` picks among them (`prism`
- * by default; `classic` is Mol*'s own many-distinct).
+ * §2.8: the lists the data palettes take (accessibility.md), the categorical themes' colors (chains, entities, …), in
+ * the order categories take them: each color `0xRRGGBB` or `'#rrggbb'`. `options.canvas.palette` picks among them
+ * (`prism` by default; `classic` is Mol*'s own many-distinct).
  */
 export interface PrismViewerPalettes {
   /** Prism's own; Many-Distinct (Prism) when not given (Mol*'s green and orange first). */

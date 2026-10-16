@@ -12,9 +12,9 @@ import { domView } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { MeasurementsAdd } from '../../views/structure/measurements-add.js';
 
-// The Measure section of the Selection tab (parity.md §2; the mock's `registerMockMeasurements`): the picks, what can be
-// measured from them, the measurements made and their options, over the `measure` area as the person. The measurement
-// nodes of the scene tree are the scene source's (not this feature's).
+// The Measure section of the Selection tab (parity.md §2; the mock's `registerMockMeasurements`): the picks, what can
+// be measured from them, the measurements made and their options, over the `measure` area as the person. The
+// measurement nodes of the scene tree are the scene source's (not this feature's).
 
 export function measurementsUI(ctx: ViewerUIContext): ViewerExtensionUI {
   return {

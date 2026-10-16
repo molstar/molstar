@@ -161,9 +161,10 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
 }
 
 /**
- * The plugin's markdown extensions as the descriptions read them (parity.md §4; v5's `controls/markdown.tsx`): which links and
- * image sources are commands (`!name=value&…`, by the plugin's parsers), images resolved by the plugin's resolvers (an
- * MVSX archive's files), and the audio player a command made. Running a command is an operation (`snapshot.link`).
+ * The plugin's markdown extensions as the descriptions read them (parity.md §4; v5's `controls/markdown.tsx`): which
+ * links and image sources are commands (`!name=value&…`, by the plugin's parsers), images resolved by the plugin's
+ * resolvers (an MVSX archive's files), and the audio player a command made. Running a command is an operation
+ * (`snapshot.link`).
  */
 export interface MarkdownSource {
   /** A link's or an image's commands, or undefined when it is not a command. */

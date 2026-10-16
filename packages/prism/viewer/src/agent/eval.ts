@@ -12,8 +12,8 @@ import type { PrismViewer } from '../viewer.js';
 import { createAccount } from './account.js';
 import { createViewerAgent, type ViewerAgent } from './session.js';
 
-// Evals (api.md §11, agent.md §6): a task runs the agent over a headless viewer and is checked on the scene (the state the
-// tools changed), not on the model's words. The result carries the run log (the API's runs with their arguments and
+// Evals (api.md §11, agent.md §6): a task runs the agent over a headless viewer and is checked on the scene (the state
+// the tools changed), not on the model's words. The result carries the run log (the API's runs with their arguments and
 // origins), which replays in the app to show what the agent did. DOM-free: the host makes the viewer and gives the
 // models (a scripted one in unit tests, real ones in `*.live.ts`).
 

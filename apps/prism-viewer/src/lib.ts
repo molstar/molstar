@@ -38,7 +38,8 @@ import { FullPrismViewerSpec } from './full-spec.js';
  * (`apps/viewer/src/lib.ts`) where the Prism app has them; left out are the classic UI's (`PluginUIContext`,
  * `DefaultPluginUISpec`, the extensions' view models) and `StateTransforms` (the classic Viewer's 5.x carve-out,
  * `.v6/designs/architecture.md` §9.3; import a transformer from its module instead). `prism` holds the Prism viewer's
- * own entry points. The app loads it beside the viewer, in a chunk of its own; `@molstar/prism-viewer` does not export it.
+ * own entry points. The app loads it beside the viewer, in a chunk of its own; `@molstar/prism-viewer` does not
+ * export it.
  */
 export const lib = {
   structure: {

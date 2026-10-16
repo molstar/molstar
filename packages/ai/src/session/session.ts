@@ -148,7 +148,10 @@ const COMPOSING = 'composing';
 export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = ModelChoice> {
   private readonly options: AgentSessionOptions<Api, M>;
   private readonly clock: Clock;
-  /** Tools by id, as the toolkit is now (a dynamic toolkit: decision 25 of the Prism viewer's spec, `packages/prism/viewer/_spec/README.md`). */
+  /**
+   * Tools by id, as the toolkit is now (a dynamic toolkit: decision 25 of the Prism viewer's spec,
+   * `packages/prism/viewer/_spec/README.md`).
+   */
   private registration(toolId: string): ToolRegistration<Api> | undefined {
     return this.options.toolkit.registration(toolId);
   }

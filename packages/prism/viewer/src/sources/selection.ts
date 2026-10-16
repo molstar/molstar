@@ -13,8 +13,8 @@ import { isSingleLigandLoci } from '@molstar/model/model/structure/structure/uti
 import { polymer } from '@molstar/plugin/state/queries/structure/type';
 import { summarize } from '../targets/index.js';
 
-// The plugin's selection as the selection bar says it (README, Folders: the plugin is read here, in `sources/`): what is
-// selected, in Mol*'s own words and as granular as the selection is (a residue's label, a chain's, "12 Residues"),
+// The plugin's selection as the selection bar says it (README, Folders: the plugin is read here, in `sources/`): what
+// is selected, in Mol*'s own words and as granular as the selection is (a residue's label, a chain's, "12 Residues"),
 // and nothing when nothing is.
 
 /**

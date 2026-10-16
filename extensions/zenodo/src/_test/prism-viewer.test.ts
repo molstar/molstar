@@ -17,8 +17,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ZenodoRecordInfo, ZenodoExtension } from '../prism-viewer.js';
 import { LazyZenodo, ZenodoCommands, ZenodoOperations, zenodoRecordId } from '../prism-viewer-stub.js';
 
-// Zenodo in the Prism viewer on a headless viewer (parity.md §6). No network: `fetch` (what the plugin's download uses in
-// Node) answers from a record written here in Zenodo's API shape, and the file is 1CBS from data/examples.
+// Zenodo in the Prism viewer on a headless viewer (parity.md §6). No network: `fetch` (what the plugin's download uses
+// in Node) answers from a record written here in Zenodo's API shape, and the file is 1CBS from data/examples.
 
 const Id = '1234567';
 const Api = `https://zenodo.org/api/records/${Id}`;

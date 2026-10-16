@@ -11,9 +11,9 @@ import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { type DockId, DockIds } from './view-state.js';
 
-// What is open in the UI (api.md §11, prism-viewer README decision 22): each dock's active tab and whether it is collapsed, the card over
-// the canvas and its section, the page over the app, and a tab shown at a section. DOM-free and serializable; the view
-// operations (`view.open`) and a light restore write it, `ShellModel` and the views read it.
+// What is open in the UI (api.md §11, prism-viewer README decision 22): each dock's active tab and whether it is
+// collapsed, the card over the canvas and its section, the page over the app, and a tab shown at a section. DOM-free
+// and serializable; the view operations (`view.open`) and a light restore write it, `ShellModel` and the views read it.
 
 export interface DockNavigation {
   readonly active: string | undefined;

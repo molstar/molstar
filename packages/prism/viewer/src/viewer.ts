@@ -72,7 +72,7 @@ import { initDataPalette, paletteLists, setDataPalette } from './sources/palette
 
 export type { ViewerPointerEvent } from './sources/pointer.js';
 
-/** The root view models (api.md §11): the shell's on a page; the scene, the selection and the rest as they are built. */
+/** The root view models (api.md §11): the shell's on a page; the scene, the selection and the rest as built. */
 /**
  * The viewer's view models. The built-in features' (`BuiltInViews`: the Structure panel's `scene`, Home's
  * `homeActions`) are typed as present, as in the default spec; in a viewer whose spec left the feature out, reading one
@@ -135,8 +135,8 @@ export interface PrismViewer {
     readonly error: Observable<ViewerError>;
   };
   /**
-   * The extensions: which are loaded, each lazy one's status, loading one (README decision 22), and mounting one the spec did
-   * not list, at runtime (viewer-spec.md §3).
+   * The extensions: which are loaded, each lazy one's status, loading one (README decision 22), and mounting one the
+   * spec did not list, at runtime (viewer-spec.md §3).
    */
   readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor' | 'mount'>;
   /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */

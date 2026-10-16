@@ -19,11 +19,11 @@ declare module '@molstar/prism-viewer/api' {
   }
 }
 
-// ANVIL's membrane orientation in the Prism viewer (parity.md §6, README decision 27): designed anew as commands. Show, hide
-// and fit the membrane, set how it looks, say where it is; the plugin gets v5's behavior (the property, the membrane
-// representation, its preset and the "Residues Embedded in Membrane" selection query), which brings no UI. Its view is
-// a row under each structure ANVIL applies to (`anvil.row.membrane`, parity.md §6; viewer-spec.md §3, `rows`), in a
-// chunk of its own.
+// ANVIL's membrane orientation in the Prism viewer (parity.md §6, README decision 27): designed anew as commands. Show,
+// hide and fit the membrane, set how it looks, say where it is; the plugin gets v5's behavior (the property, the
+// membrane representation, its preset and the "Residues Embedded in Membrane" selection query), which brings no UI. Its
+// view is a row under each structure ANVIL applies to (`anvil.row.membrane`, parity.md §6; viewer-spec.md §3, `rows`),
+// in a chunk of its own.
 
 export const MembraneSkill: ViewerSkill = {
   id: 'membrane',

@@ -11,9 +11,9 @@ import type { ReadonlyState } from './readonly-state.js';
 import { sameShallow } from './same-shallow.js';
 
 /**
- * A state derived from another (prism-viewer README decision 22): its `value` is computed from the source's on read, and it emits
- * when the derived value changes (`compare`, shallow by default). Nothing is held: no subscription until someone
- * subscribes.
+ * A state derived from another (prism-viewer README decision 22): its `value` is computed from the source's on read,
+ * and it emits when the derived value changes (`compare`, shallow by default). Nothing is held: no subscription until
+ * someone subscribes.
  */
 export function mapState<S, T>(
   source: ReadonlyState<S>,

@@ -129,8 +129,9 @@ function ToolButton(props: {
     map(([a, b]) => a || b),
     distinctUntilChanged(),
   );
-  // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a button
-  // that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the next button.
+  // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a
+  // button that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the
+  // next button.
   const expanded = withMenu?.open.asReadonly.pipe(
     map((o) => o?.item === item),
     distinctUntilChanged(),
@@ -557,9 +558,9 @@ function OverlayCard(props: { shell: ShellModel }) {
   const { shell } = props;
   /** The overlay open now (the card lives while one is). */
   const current = () => shell.overlay.value as OpenOverlay;
-  // A card is a dialog (accessibility.md: cards trap and restore focus): opened from the keyboard, the focus goes into it;
-  // Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to the button
-  // of the last card opened.
+  // A card is a dialog (accessibility.md: cards trap and restore focus): opened from the keyboard, the focus goes into
+  // it; Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to the
+  // button of the last card opened.
   let anchor = current().anchor as HTMLElement | undefined;
   const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');

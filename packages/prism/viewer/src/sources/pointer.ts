@@ -16,8 +16,8 @@ import { hoverLines } from './hover-lines.js';
 import { structureNames } from './naming.js';
 import { fromChanged, type SourceScope } from './state.js';
 
-// What is under the pointer (api.md §8: v5's `structureInteractivity`; README decision 22): the hover label's lines, and the
-// hover and click events embedding hosts read, each with the target in the address language (targets.md §1).
+// What is under the pointer (api.md §8: v5's `structureInteractivity`; README decision 22): the hover label's lines,
+// and the hover and click events embedding hosts read, each with the target in the address language (targets.md §1).
 
 export interface ViewerPointerEvent {
   /** The plugin's label of it, as lines; empty: nothing. */

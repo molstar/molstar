@@ -15,7 +15,8 @@ import { type DataPalette, dataPaletteOf, setDataPalette } from '../sources/pale
 import { ApiArea, ApiResult } from './area.js';
 
 // `canvas` (api.md §2): the background in the core; illumination, lighting, clipping and XR come with
-// `canvas-settings`. Canvas props are set through the plugin's emitting path, so the canvas source follows (state.md §3).
+// `canvas-settings`. Canvas props are set through the plugin's emitting path, so the canvas source follows
+// (state.md §3).
 
 export class CanvasApi extends ApiArea {
   readonly id = 'canvas';
@@ -46,8 +47,8 @@ export class CanvasApi extends ApiArea {
     },
   });
 
-  // accessibility.md: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations on
-  // the old default follow.
+  // accessibility.md: the categorical themes' palette (Prism's, Mol*'s classic or colorblind-safe); the representations
+  // on the old default follow.
   readonly palette = this.operation({
     id: 'canvas.palette',
     title: 'Set the data palette',

@@ -330,10 +330,10 @@ const loads = (id: string) => id.startsWith('load.') || id === 'session.open' ||
 const listOf = (s: SnapshotsState) => s.entries.map((e) => e.id).join(' ');
 
 /**
- * The playback card on a load (parity.md §4, the playback row): a load that brings a story (two or more snapshots, or one with a description)
- * opens the playback card, once per load, as v5 shows the description and the stepper at once; one that finished before
- * the views came (their chunk loads lazily) opens it when they do. A load that leaves the
- * list as it was (another structure) opens nothing. Returns its disposer.
+ * The playback card on a load (parity.md §4, the playback row): a load that brings a story (two or more snapshots, or
+ * one with a description) opens the playback card, once per load, as v5 shows the description and the stepper at once;
+ * one that finished before the views came (their chunk loads lazily) opens it when they do. A load that leaves the list
+ * as it was (another structure) opens nothing. Returns its disposer.
  */
 export function openPlaybackOnLoad(
   api: Pick<ViewerApi, 'events' | 'view'> & Partial<Pick<ViewerApi, 'running'>>,

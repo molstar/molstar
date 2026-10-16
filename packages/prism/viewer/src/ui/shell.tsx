@@ -146,8 +146,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const xr = createXrSource(core.plugin);
 
     // The canvas: the plugin is mounted here once the shell is in the page and has a size.
-    // Its text alternative (accessibility.md): what is loaded and what is selected, in words, for a screen reader; kept in
-    // step with the scene, coalesced (one update per settle), and never announced (a description, not a live region).
+    // Its text alternative (accessibility.md): what is loaded and what is selected, in words, for a screen reader; kept
+    // in step with the scene, coalesced (one update per settle), and never announced (a description, not a live
+    // region).
     const canvasText = (
       <div
         id="msp-canvas-text"
@@ -473,8 +474,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
     unregister.push(() => extensionFailed.unsubscribe());
 
-    // The assistant, when the spec has one (viewer-spec.md §2.4): loaded on first use, with the agent's code (both chunks
-    // of their own, with the AI SDK), then its tab, the command menu's Ask row, and its turn card under the
+    // The assistant, when the spec has one (viewer-spec.md §2.4): loaded on first use, with the agent's code (both
+    // chunks of their own, with the AI SDK), then its tab, the command menu's Ask row, and its turn card under the
     // status line. Until then its tab is a placeholder whose opening loads it, and the Ask row loads it and then asks.
     const assistantMenu = observableState<CommandMenuAssistant | undefined>(undefined);
     const agentView = observableState<(() => Child) | undefined>(undefined);

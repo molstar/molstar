@@ -70,7 +70,7 @@ export function composePluginSpec(input: ComposeInput): PluginSpec {
 
   config.push(...optionsConfig(options), ...FixedConfig.map(([k, v]) => [k, v] as [PluginConfigItem, unknown]));
   canvas3d = mergeCanvas(canvas3d, optionsCanvas(options));
-  // Reduced motion (accessibility.md): the plugin's own camera moves are cuts too (the framing on load, a focus by click).
+  // Reduced motion (accessibility.md): the plugin's own camera moves are cuts too (framing on load, focus by click).
   const reduced = prefersReducedMotion();
   if (reduced) canvas3d = mergeCanvas(canvas3d, { cameraResetDurationMs: 0 });
 

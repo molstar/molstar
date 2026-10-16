@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The vitest configs the opt-in tiers share (RB0; packages/sequences/AGENTS.md, Tests). A package's own configs call these: the slow
-// Node tier (`test:slow`), the heap guards, the browser suite (and its heap guards, `HEAP=1`) and the bench. The fast
-// tier (`test`) is the repository's one run (`pnpm test:unit packages/sequences/<package>`, the root `vitest.config.ts`),
-// which reads the same rules; `nodeTests` still serves the slow tier and the composer proof. They return plain objects:
-// this folder has no vitest of its own to import from.
+// The vitest configs the opt-in tiers share (RB0; packages/sequences/AGENTS.md, Tests). A package's own configs call
+// these: the slow Node tier (`test:slow`), the heap guards, the browser suite (and its heap guards, `HEAP=1`) and the
+// bench. The fast tier (`test`) is the repository's one run (`pnpm test:unit packages/sequences/<package>`, the root
+// `vitest.config.ts`), which reads the same rules; `nodeTests` still serves the slow tier and the composer proof. They
+// return plain objects: this folder has no vitest of its own to import from.
 
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

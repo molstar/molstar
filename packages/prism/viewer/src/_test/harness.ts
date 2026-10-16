@@ -16,8 +16,8 @@ import { createPrismViewerHeadless } from '../headless.js';
 import type { PrismViewerSpec, ViewerExtension } from '../spec.js';
 import type { PrismViewer } from '../viewer.js';
 
-// A headless viewer for tests (viewer-spec.md §6): made per test, disposed after it, with the repository's example files.
-// Tests never reach the network.
+// A headless viewer for tests (viewer-spec.md §6): made per test, disposed after it, with the repository's example
+// files. Tests never reach the network.
 
 const dataDir = path.resolve(import.meta.dirname, '../../../../../data/examples');
 

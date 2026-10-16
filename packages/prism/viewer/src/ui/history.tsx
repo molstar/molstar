@@ -38,9 +38,9 @@ import { recordSpan } from '../views/home/kept-records.js';
 import type { PrismViewer } from '../viewer.js';
 import { classes } from './_generated/history.module.css.js';
 
-// The History tab (api.md §11, journal.md §3): the session's record, newest first. A person's run is a row (who made it,
-// what it did, when), an agent's turn a group (its prompt, its reply, its runs under it), an undone step is struck, a
-// session event a small separator. Undo takes back the latest step, "Undo turn" the agent's latest turn. The model
+// The History tab (api.md §11, journal.md §3): the session's record, newest first. A person's run is a row (who made
+// it, what it did, when), an agent's turn a group (its prompt, its reply, its runs under it), an undone step is struck,
+// a session event a small separator. Undo takes back the latest step, "Undo turn" the agent's latest turn. The model
 // (`journal/history-model.ts`) reads the record while the tab shows and not otherwise.
 
 const Origins: Readonly<Record<string, { icon: IconName; title: string }>> = {

@@ -15,8 +15,8 @@ truth for how.
 - **Deployment** (`scripts/distribution.mjs`, `scripts/deploy.js`): GitHub Pages at `prism/`; a publish adds files, so
   earlier hashed chunks stay for open tabs (journal.md §7).
 - **`window.molstar = { viewer, api, lib }`**: `lib` is v5's `molstar.lib` where the app has the parts (not the classic
-  UI's, not `StateTransforms`: [architecture.md](../../../../.v6/designs/architecture.md) §9.3) plus `lib.prism`. Its own lazy chunk; neither
-  `@molstar/prism-viewer` nor the single file exports it.
+  UI's, not `StateTransforms`: [architecture.md](../../../../.v6/designs/architecture.md) §9.3) plus `lib.prism`. Its
+  own lazy chunk; neither `@molstar/prism-viewer` nor the single file exports it.
 
 ## 2. The single-file viewer
 

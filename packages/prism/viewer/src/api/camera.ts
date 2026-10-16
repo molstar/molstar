@@ -300,7 +300,7 @@ export function parseVec(value: unknown): Vec3 | undefined | null {
   return Vec3.create(parts[0], parts[1], parts[2]);
 }
 
-/** The camera's animation, or a cut when not asked for or where the person prefers reduced motion (accessibility.md). */
+/** The camera's animation, or a cut where not asked for or the person prefers reduced motion (accessibility.md). */
 export function duration(ctx: { modules: { has(key: 'page'): boolean } }, animate = true): number {
   return !animate || (ctx.modules.has('page') && prefersReducedMotion()) ? 0 : ZoomDurationMs;
 }

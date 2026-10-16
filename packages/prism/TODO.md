@@ -37,8 +37,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   shared chunks since `lib`'s lazy import): a budget over the start closure (65 files, 4.4 MB, 1.29 MB gzipped); lower
   the 8 MB `prism-viewer.js` budget (6.2 MB today).
 - **`molstar.lib`** (`apps/prism-viewer/src/lib.ts`): also from the single file `prism-viewer.js` (+32 kB gzipped on
-  every page that imports it)? `StateTransforms` for full v5 parity ([architecture.md](../../.v6/designs/architecture.md) §9.3 keeps it for the classic
-  Viewer)?
+  every page that imports it)? `StateTransforms` for full v5 parity
+  ([architecture.md](../../.v6/designs/architecture.md) §9.3 keeps it for the classic Viewer)?
 - **Choices to keep or change**: built-in areas typed as present and throwing when left out; panels keeping their tab
   ids; History and Settings in the core; the runner re-checking `exists` only for loads; the kept-records index growing
   (journal.md §1).
@@ -75,6 +75,29 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Before Prism becomes the default viewer: accessibility and touch, compact mode, several viewers on a page, performance
   budgets (a one-node change in a scene tree of 1,000 components or a state tree of 5,000 cells within a frame), and
   [parity.md](viewer/_spec/parity.md)'s missing rows; the classic `apps/viewer` stays beside it for a major version.
+- Kept data: preferences keep only the theme (not the layout, `viewState.save()`, or settings); kept records past 90
+  days are only marked; the Storage view does not refresh while open and does not list the assistant's own stores
+  (`prism-assistant.*` in localStorage, `prism-assistant-keys` in IndexedDB)
+  ([journal.md §6–7](viewer/_spec/journal.md)).
+- Sources: no state of the latest registered presets, themes and actions (only Home's actions follow registrations,
+  `viewer/src/sources/home.ts`); none for trajectories from coordinate files or segmentations; the trajectory bar cannot
+  choose among several trajectories ([state.md §1](viewer/_spec/state.md)).
+- Parity gaps: SB-NCBR tunnels (their preset fetches from a service the policy does not know), Volumes & Segmentations
+  and the PAE view (to be redesigned), XR checked on a headset, an extension's `reactRenderFn` in snapshot descriptions,
+  a host's own bindings in Help ([parity.md §4–6](viewer/_spec/parity.md)).
+- Targets: `src/targets/` beside `@molstar/query-language`, so MolViewSpec and stories share it; a schema field for
+  alternate locations (query text only today, [targets.md §5](viewer/_spec/targets.md)); SeqQL's `molstar.select` reads
+  with Mol\*'s transpilers, not the viewer's target compiler (`packages/sequences/molstar-poc/src/query.ts`).
+- The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
+  test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
+  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring (Show in 3D,
+  results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several sequence views,
+  focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
+  (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
+  [marks.md](viewer/_spec/marks.md)).
+- Embeddable parts: a viewport alone (canvas, hover label, toolbar) for mvs-stories and the docking viewer, and the
+  island elements (`<msp-viewport>`, `<msp-sequence>`, `<msp-params-form>`, `<msp-snapshot-stepper>`;
+  [rendering.md §3](ui/_spec/rendering.md)).
 - Stories, its own app on prism-ui (there are no modes; `ModeChooser` is gone), is not built.
 - Turning illumination on waits on its shaders' linking (core graphics, `packages/graphics`).
 - The `dom` runtime's edge cases (`ui/src/dom/control-flow.ts`, `render.ts`): `For` shows its fallback while every entry
@@ -93,6 +116,23 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
   (`.github/workflows/node.yml`).
 
+## Missing: prism-ui
+
+- Commands: a `select` group with a shared mode, generated selection-query commands, previews while browsing, counts on
+  the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6); a
+  duplicate command id replaces the earlier one silently (`ui/src/commands/manager.ts`, §4); contextual commands, menus
+  and buttons by command id.
+- The shell's layout: restore and reset, `hideTab`, a layout of its own for `embedded`
+  ([shell.md §3](ui/_spec/shell.md)).
+- `ReactiveModel` has no mount-scope `AbortSignal` ([view-models.md §2](ui/_spec/view-models.md)); no lint rule against
+  `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views (§5).
+- The viewer's scene and state trees are not virtualized (`VirtualList` only in
+  `viewer/src/_stories/performance.stories.tsx`; [view-models.md §3](ui/_spec/view-models.md)).
+- The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.
+- [styling.md §4](ui/_spec/styling.md) broken: `text-overflow: ellipsis` in `viewer/src/ui/history.module.css` and
+  `viewer/src/views/home/home-tab.module.css`; `overflow-y: auto` outside a ScrollArea in
+  `ui/src/views/shell/dock.module.css`. The `--msp-ink` tokens are unused outside the canvas layer.
+
 ## Missing: the agent and the assistant
 
 - Skills: SeqQL selections and the sequence skill, `viewer-code` (TypeScript against the API, api.md §7), opening panels
@@ -107,6 +147,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
   ([agent.md §6](viewer/_spec/agent.md)).
 - The setup: models asked from each provider's `/models`, an own endpoint's models listed
   (`assistant/src/viewer/settings-model.ts`).
+- The Assistant tab always says stored keys are scrambled; `KeyStore.protection()` (protected by a per-browser key, or
+  only scrambled) is not shown (`assistant/src/views/ai-setup.tsx`).
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
 
 ## Considered and deferred
