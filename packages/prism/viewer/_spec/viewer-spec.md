@@ -35,7 +35,7 @@ import of the plugin.
   config items and canvas props, the camera behaviors (`focusBehavior`), or hidden parts (`ui.buttons.x: false` is
   `overrides: { 'core.toolbar.x': null }`). `auto` values leave the plugin's own detection.
 - `ui.homeWhenEmpty` (off): Home at start while nothing is loaded; the app turns it on when its URL loads nothing.
-  `ui.splash` (on): the empty canvas's splash.
+  `ui.splash` (`random`; `quantum`, `light`, `off`; the app's `?splash=`): the empty canvas's splash.
 - Extension settings are the extension's own group (`ViewerExtension.settings`, reserved), not here.
 
 ### 2.3 `sequence`: the one sequence viewer

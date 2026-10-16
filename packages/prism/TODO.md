@@ -19,10 +19,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
   gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
   Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
   JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
-- **The splash: the light or the light as a wave** (2026-10-16). The empty canvas runs the light (`prism-field.ts`, with
-  its air, `fluid.ts`); the light as a wave (`quantum-field.ts`: Schrödinger by split-step FFT, Bohmian specks) is in
-  Storybook only (Components / Splash: Quantum, Side by side). Pick one, or offer both
-  (`ui.splash: 'light' | 'quantum'`).
 - **Duplicates**: `StatusModel` kept as an alias of `NotificationsManager` (`ui/src/managers/notifications.ts`);
   `ShellModel.layout` beside `viewState.save()` (`ui/src/shell/shell.ts`, `ui/src/managers/view-state.ts`); three ways
   to run Preset and Styles in the Structure tab (`viewer/src/views/structure/structure-tab.tsx`).

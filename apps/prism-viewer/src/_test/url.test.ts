@@ -35,6 +35,12 @@ describe('unknownUrlParameters', () => {
 });
 
 describe('optionsFromUrl', () => {
+  it('reads the splash: one of its four, else the default', () => {
+    expect(optionsFromUrl('?splash=light').ui?.splash).toBe('light');
+    expect(optionsFromUrl('?splash=off').ui?.splash).toBe('off');
+    expect(optionsFromUrl('?splash=nope').ui?.splash).toBeUndefined();
+  });
+
   it("maps v5's map-provider to the volume streaming server; an explicit server wins", () => {
     expect(optionsFromUrl('?map-provider=rcsb').data?.volumeStreamingServer).toBe('https://maps.rcsb.org');
     expect(optionsFromUrl('?map-provider=pdbe').data?.volumeStreamingServer).toBe(

@@ -61,6 +61,8 @@ export function optionsFromUrl(search: string): PartialOptions {
     },
     ui: {
       collapsed: flag('collapse-left-panel') ?? flag('hide-controls'),
+      // The empty canvas's splash: `?splash=quantum` (or `light`, `random`, `off`).
+      splash: pick('splash', ['random', 'quantum', 'light', 'off'] as const),
       // v5 hides the button unless asked; Prism shows it: the parameter only says so when given. A partial group
       // keeps the other buttons' defaults (`resolveOptions`).
       ...(fullscreen === undefined ? {} : { buttons: { fullscreen } }),
@@ -106,6 +108,8 @@ export const KnownUrlParameters: readonly string[] = [
   'assistant',
   // The embedded layout: the rail hidden behind a button in the canvas's corner.
   'hide-rail',
+  // The empty canvas's splash: random, quantum, light or off.
+  'splash',
   // This tab's scene comes back after a reload (the journal's light restore).
   'restore',
   'pdb-provider',

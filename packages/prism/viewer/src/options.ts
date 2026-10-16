@@ -96,8 +96,20 @@ export const PrismViewerOptions = {
      * page drives itself).
      */
     homeWhenEmpty: PD.Boolean(false),
-    /** The empty canvas's splash: light through Prism's mark, once the viewer has been idle on it a while. */
-    splash: PD.Boolean(true),
+    /**
+     * The empty canvas's splash, once the viewer has been idle on it a while: light through Prism's mark as particles
+     * (`light`), as a wave (`quantum`), either at random each time it shows (the wave two times in three), or none.
+     */
+    splash: PD.Select<'random' | 'quantum' | 'light' | 'off'>(
+      'random',
+      [
+        ['random', 'Random'],
+        ['quantum', 'Waves'],
+        ['light', 'Particles'],
+        ['off', 'Off'],
+      ],
+      { description: 'The light behind the empty canvas’s mark' },
+    ),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

@@ -32,6 +32,7 @@ import {
 } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 import { EmptyCanvas } from './empty-canvas.js';
+import type { SplashKind } from './prism-splash.js';
 import { FileDropOverlay } from './file-drop.js';
 import { PageHost } from './page-host.js';
 
@@ -75,8 +76,12 @@ export interface ShellViewProps {
   onOpenLog?: () => void;
   /** Nothing loaded: a while after, the Mol* wordmark shows in the middle of the canvas. */
   empty?: Observable<boolean>;
-  /** The splash under the mark once the viewer has been idle on the empty canvas a while (on by default). */
+  /**
+   * The splash under the mark once the viewer has been idle on the empty canvas a while (on by default), and which:
+   * the light's particles, the light as a wave, or either at random each time it shows (the default).
+   */
   splash?: boolean;
+  splashField?: SplashKind | 'random';
   /** The viewer is working: the splash waits for it to be idle. */
   busy?: Observable<boolean>;
   /**
@@ -238,6 +243,7 @@ export function ShellView(props: ShellViewProps) {
             <EmptyCanvas
               empty={props.empty}
               splash={props.splash ?? true}
+              field={props.splashField ?? 'random'}
               onCanvasShown={canvasShown}
               {...(props.busy ? { busy: props.busy } : {})}
             />

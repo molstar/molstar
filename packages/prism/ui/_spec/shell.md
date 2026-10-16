@@ -17,11 +17,12 @@ buttons) is the app's. The code is the truth for how.
   empty and idle (any work restarts the wait; a load never flashes it), with a splash behind it (`PrismSplash`:
   `prism-field.ts`, light through the star; `quantum-field.ts`, the same as a wave, `field: 'quantum'`); the word is
   glass (`glass.ts`, `GlassWordmark`) that assembles, leans under the pointer and shatters on a press; the light stays
-  out of where the glass covers it (`glass-footprint.ts`). Which splash: random each time it shows, the wave 4 in 5
-  (`EmptyCanvas` `field`). The wave: colored by wavenumber in the logo's colors; enters as a broad front, already
-  flowing at the start, as strong as the glass is assembled. The canvas starts quiet (transparent, its axes too) and is
-  quiet while the mark is up; whatever is in it brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s,
-  over the canvas's own color; same guards as the mark). `ShellView`'s `splash` turns it off.
+  out of where the glass covers it (`glass-footprint.ts`). Which splash: random each time it shows, the wave 2 in 3
+  (`EmptyCanvas` `field`; the viewer's `ui.splash`: `random`, `quantum`, `light`, `off`). The wave: colored by
+  wavenumber in the logo's colors; enters as a broad front, already flowing at the start, as strong as the glass is
+  assembled. The canvas starts quiet (transparent, its axes too) and is quiet while the mark is up; whatever is in it
+  brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s, over the canvas's own color; same guards as
+  the mark). `ShellView`'s `splash` turns it off.
 - **Motion.** Open and close by `Show`'s `reveal`: grow (`data-reveal`) for lists and sections, `'side'` for panels,
   `'fade'` (opacity only) for what must not change size, like the sequence band drawn on a canvas, and the canvas
   toolbar (`CanvasStack` `quiet`; its buttons stay `CanvasStackFadeMs` as it fades out) (re-laid out every frame if it
