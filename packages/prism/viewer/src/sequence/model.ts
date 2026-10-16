@@ -94,6 +94,8 @@ export interface SequenceStructure {
   readonly structure: Structure;
   /** The Seq* complex made from it. */
   readonly complex: string;
+  /** The section the band shows: the built document's, or a loaded SeqViewSpec's first with tracks (sequence.md §6). */
+  readonly section: string;
 }
 
 /**
@@ -486,7 +488,8 @@ class Viewer implements SequenceViewer {
     this.sections = svs?.sections ?? [SectionRef];
     for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
     const complex = svs?.complex ?? ComplexRef;
-    this.structureState.set({ title: host.title, structure: host.structure, complex });
+    const section = svs?.section ?? SectionRef;
+    this.structureState.set({ title: host.title, structure: host.structure, complex, section });
     // The behaviors add theirs to this document (sequence.md §3).
     this.shownState.set({
       key: host.key,
@@ -494,7 +497,7 @@ class Viewer implements SequenceViewer {
       structure: host.structure,
       complex,
       data: svs?.data ?? DataRef,
-      section: svs?.section ?? SectionRef,
+      section,
       after: svs?.after ?? SecondaryTrack,
     });
     return result;

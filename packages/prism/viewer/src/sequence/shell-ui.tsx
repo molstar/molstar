@@ -10,7 +10,7 @@
 
 import { type CommandDefinition, domView, type ShellModel, type ShellOverlay, type ShellTab } from '@molstar/prism-ui';
 import type { CanvasToolbarItem } from '@molstar/prism-ui/shell/shell';
-import { map } from 'rxjs';
+import { combineLatest, map } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { SequenceSource } from '../sources/sequence.js';
@@ -21,8 +21,9 @@ import type { MarksSource } from '../sources/marks.js';
 import { SequenceControl } from './sequence-control.js';
 
 // The sequence's parts in the page's shell (prism-sequence.md §2.2): its commands, the legend card, the band (a tab of
-// the top dock, there while a structure is shown; the first one shows it) and its canvas button. In the sequence's
-// chunk (`runtime.ts`): the shell mounts them once the runtime is in, as a structure is first shown.
+// the top dock, there from the first document in until the host shows no structure; the first one shows it) and its
+// canvas button. In the sequence's chunk (`runtime.ts`): the shell mounts them once the runtime is in, as a structure is
+// first shown.
 
 export interface SequenceShellDeps {
   readonly viewers: SequenceViewers;
@@ -55,13 +56,15 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
   );
   let dropTab: (() => void) | undefined;
   let shownBefore = false;
-  const bandSub = viewer.structure.subscribe((shown) => {
-    if (!shown) {
+  // Another structure's document being made (`viewer.structure` undefined meanwhile) keeps the band: its surface, link
+  // and the dock's size are not torn down and made again on each switch.
+  const bandSub = combineLatest([viewer.structure, d.source.structure]).subscribe(([shown, host]) => {
+    if (!host) {
       dropTab?.();
       dropTab = undefined;
       return;
     }
-    if (dropTab) return;
+    if (!shown || dropTab) return;
     const tabs = own<ShellTab>('tab', [
       {
         id: 'sequence',

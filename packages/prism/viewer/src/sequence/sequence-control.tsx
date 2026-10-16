@@ -9,10 +9,18 @@
  */
 
 import type { Structure } from '@molstar/model/model/structure';
-import { BandFadePx, bind, type DockId, onCleanup, openContextMenu, type ShellModel } from '@molstar/prism-ui';
+import {
+  BandFadePx,
+  bind,
+  type DockId,
+  observableState,
+  onCleanup,
+  openContextMenu,
+  type ShellModel,
+} from '@molstar/prism-ui';
 import type { HoverLabel } from '@molstar/seq-viewer';
-import { mountSection } from '@molstar/seq-viewer/canvas';
-import { combineLatest, of, switchMap } from 'rxjs';
+import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
+import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
 import type { MarksSource } from '../sources/marks.js';
@@ -76,8 +84,21 @@ export function SequenceControl(props: SequenceControlProps) {
 
   // Its hover feeds the shell's label, shown while the pointer is here (`data-msp-hover-source`).
   const surface = (<div class={classes.surface} data-msp-hover-source="" />) as HTMLElement;
-  const section = mountSection(seq, SectionRef, surface);
-  onCleanup(() => section.dispose());
+  // The section the band shows is the model's (`structure.section`: a loaded SeqViewSpec names its own, sequence.md §6),
+  // kept while a new document is made; another one mounts that section in place of the last.
+  const bandState = observableState(viewer.structure.value?.section ?? SectionRef);
+  const band = bandState.asReadonly;
+  const bandSub = viewer.structure.subscribe((s) => s && bandState.set(s.section));
+  let section: Surface | undefined;
+  const mounted = band.subscribe((ref) => {
+    section?.dispose();
+    section = mountSection(seq, ref, surface);
+  });
+  onCleanup(() => {
+    bandSub.unsubscribe();
+    mounted.unsubscribe();
+    section?.dispose();
+  });
 
   // The fonts: the host's tokens, read once at the start of a frame (the control is in the document by then).
   const fontFrame = requestAnimationFrame(() => {
@@ -98,7 +119,9 @@ export function SequenceControl(props: SequenceControlProps) {
   // own menu is suppressed only over a track that offers one.
   {
     let close: (() => void) | undefined;
-    const menus = seq.interaction.on('menu', { section: SectionRef, part: ['data', 'header', 'gutter'] });
+    const menus = band.pipe(
+      switchMap((ref) => seq.interaction.on('menu', { section: ref, part: ['data', 'header', 'gutter'] })),
+    );
     const asked = menus.subscribe((e) => {
       const actions = e.part.track === null ? [] : viewer.trackActions(e.part.track);
       if (actions.length === 0) return;
@@ -166,8 +189,8 @@ export function SequenceControl(props: SequenceControlProps) {
     const follow = () => {
       stopVp?.();
       stopVp = undefined;
-      const vp = seq.viewports.get(SectionRef);
-      const layout = seq.layout.get(SectionRef);
+      const vp = seq.viewports.get(band.value);
+      const layout = seq.layout.get(band.value);
       if (!vp || !layout) return fade(false, false);
       const sub = vp.live.version.subscribe(() => {
         const s = vp.live.current;
@@ -180,9 +203,11 @@ export function SequenceControl(props: SequenceControlProps) {
     };
     const sections = seq.viewports.sections.subscribe(follow);
     const style = viewer.style.subscribe(follow);
+    const shown = band.subscribe(follow);
     onCleanup(() => {
       sections.unsubscribe();
       style.unsubscribe();
+      shown.unsubscribe();
       stopVp?.();
     });
   }
@@ -219,7 +244,7 @@ export function SequenceControl(props: SequenceControlProps) {
     const follow = () => {
       stopScroll?.();
       stopScroll = undefined;
-      const vp = seq.viewports.get(SectionRef);
+      const vp = seq.viewports.get(band.value);
       if (!vp) return;
       const sub = vp.live.version.subscribe(() => {
         const y = vp.live.current.scrollY;
@@ -235,30 +260,31 @@ export function SequenceControl(props: SequenceControlProps) {
       stopScroll = () => sub.unsubscribe();
     };
     const sections = seq.viewports.sections.subscribe(follow);
+    const shown = band.subscribe(follow);
     onCleanup(() => {
       surface.removeEventListener('pointerenter', enter);
       surface.removeEventListener('pointerleave', leave);
       drag.unsubscribe();
       sections.unsubscribe();
+      shown.unsubscribe();
       stopScroll?.();
       if (timer !== undefined) clearTimeout(timer);
     });
   }
 
   // The height rules: tracks follow Seq*'s content height, the text has its own; the dock is restored when the control
-  // goes. Written only when the size changes.
+  // goes. Written only when the size changes, and not while a new document is made (the band keeps its height).
   if (props.shell) {
     const { shell } = props;
     const dockId = props.dock ?? 'top';
     const before = shell.dock(dockId).state.value.size;
     const text = props.textHeight ?? TextHeight;
     onCleanup(() => shell.setSize(dockId, before));
-    const content = combineLatest([viewer.style, viewer.structure]).pipe(
-      switchMap(([style]) => (style === 'tracks' ? (seq.layout.contentHeight(SectionRef) ?? of(0)) : of(0))),
+    const height = combineLatest([viewer.style, viewer.structure]).pipe(
+      filter(([, shown]) => shown !== undefined),
+      switchMap(([style, shown]) => (style === 'tracks' ? (seq.layout.contentHeight(shown!.section) ?? of(0)) : of(0))),
     );
-    bind(combineLatest([viewer.style, content]), ([style, height]) => {
-      shell.setSize(dockId, (style === 'tracks' && height > 0 ? height : text) + BandExtra);
-    });
+    bind(height, (h) => shell.setSize(dockId, (h > 0 ? h : text) + BandExtra));
   }
 
   // The keyboard cursor, said (README §3.7): where Seq*'s cursor is ("A 23 LYS, …", its hover label while the cursor
@@ -297,6 +323,6 @@ export function SequenceControl(props: SequenceControlProps) {
     </div>
   ) as HTMLElement;
   // The coloring icons of the tracks (round 3), where the host offers colorings.
-  onCleanup(mountTrackGutter(viewer, surface, root));
+  onCleanup(mountTrackGutter(viewer, surface, root, band));
   return root;
 }

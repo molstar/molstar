@@ -78,8 +78,9 @@ export function createSequenceViewers(deps: { ink: ReadonlyState<CanvasInk>; /* 
 ### 2.2 The dock tab
 
 The viewer registers the tab itself, as the mock registers the strip today: `{ id: 'sequence', title: 'Sequence',
-icon: 'sequence', dock: 'top', frame: 'none', render: domView(SequenceControl) }`, registered while a structure is
-shown, replacing `SequenceStrip`. The canvas stack's "Sequence" button (always shown while a structure is, with the menu of
+icon: 'sequence', dock: 'top', frame: 'none', render: domView(SequenceControl) }`, registered from the first document
+in until the host shows no structure (another structure's document being made keeps it mounted), replacing
+`SequenceStrip`. The canvas stack's "Sequence" button (always shown while a structure is, with the menu of
 §4) and the `view.sequence` command address the tab.
 
 ### 2.3 The link: subscribed while the control is rendered
@@ -151,7 +152,8 @@ the rest of the mock UI:
 └ (the structure may pass under the faded part; the camera frames it below) ──────┘
 ```
 
-- **The surface**: `mountSection(seq, 'main', host)` from `@molstar/seq-viewer/canvas`, one section, no loop over
+- **The surface**: `mountSection(seq, section, host)` from `@molstar/seq-viewer/canvas`, one section (`'main'`, or a
+  loaded SeqViewSpec's first with tracks: `SequenceStructure.section`, mounted again when it changes), no loop over
   sections, none of Seq\*'s DOM or React UI. The engine draws the letters, ruler, hover, selection and focus itself and
   handles wheel, drag, click and keys. **The control has no controls of its own** (round 2): the version, the colors and
   the legend are the canvas stack's **Sequence** button (§2.2), always shown while a structure is, with a menu: one single choice of **No sequence, Text, Tracks** (each with its own icon, the current one in the accent as the picking
