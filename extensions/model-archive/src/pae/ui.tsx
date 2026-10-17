@@ -133,6 +133,8 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
       {
         id: PaeRow,
         when: (node) => node.kind === 'structure' && area.hasPae(node.id),
+        // A fetched PAE is a state cell, not a change of the scene: the tree asks `when` again on the area's changes.
+        whenChanged: changed,
         render: domView(({ ctx: view }) => {
           const structure = (view.subject as SceneNode).id;
           return (

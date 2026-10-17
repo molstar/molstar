@@ -183,6 +183,16 @@ export function SceneTree(props: {
     readonly st: Map<string, RowState>;
     readonly open: Set<SceneNode>;
   }
+  // The extensions' rows for a node (searching: those whose title matches), and what they were at its last flattening
+  // (their ids): a `whenChanged` asks them again (below).
+  const extensionsOf = (s: Search, node: SceneNode): readonly ShellSection[] =>
+    shell
+      ? s.sections.filter(
+          (r) => (!r.when || r.when({ shell, subject: node })) && (!s.text || r.title.toLowerCase().includes(s.text)),
+        )
+      : NoSections;
+  const idsOf = (list: readonly ShellSection[]) => (list.length ? list.map((r) => r.id).join('\n') : '');
+  const extOf = new WeakMap<SceneNode, string>();
   // Flattens `row` (at its place among its siblings) and what is open under it, into `f`.
   const emit = (s: Search, f: Flat, row: Row, posinset: number, setsize: number) => {
     f.out.push(row);
@@ -190,15 +200,12 @@ export function SceneTree(props: {
       f.st.set(row.key, { posinset, setsize });
       return;
     }
-    const { hits, text } = s;
+    const { hits } = s;
     const { node, depth } = row;
     if (!scene.changes) followNode(node);
     // The extensions' rows for a node (searching: those whose title matches).
-    const extensions = shell
-      ? s.sections.filter(
-          (r) => (!r.when || r.when({ shell, subject: node })) && (!text || r.title.toLowerCase().includes(text)),
-        )
-      : [];
+    const extensions = extensionsOf(s, node);
+    if (extensions.length || extOf.has(node)) extOf.set(node, idsOf(extensions));
     let children = node.children.value;
     // A node with an extension's row can be opened before it has children.
     const expandable = children.length + extensions.length > 0 || !!node.lazy;
@@ -397,6 +404,37 @@ export function SceneTree(props: {
       }
       for (const id of c.nodes) changed.add(id);
       work.want('flatten', reflowNow);
+    });
+  }
+  // The extensions' rows whose `when` follows more than the scene (`whenChanged`: a PAE fetched is a state cell, no
+  // change of the scene): asked again for the node rows shown, once a burst; the nodes whose rows changed flattened
+  // again (searching, all of it: the hits may change).
+  if (sections) {
+    let offs: (() => void)[] = [];
+    const recheckNow = () => {
+      const s = current;
+      if (!s) return;
+      let any = false;
+      for (const r of rows.value) {
+        if (r.kind !== 'node' || idsOf(extensionsOf(s, r.node)) === (extOf.get(r.node) ?? '')) continue;
+        changed.add(r.node.id);
+        any = true;
+      }
+      if (!any) return;
+      if (s.text) {
+        rehit = true;
+        full = true;
+      }
+      work.want('flatten', reflowNow);
+    };
+    const recheck = () => work.want('extensions', recheckNow);
+    effect(sections, (list) => {
+      for (const off of offs) off();
+      offs = [];
+      for (const r of list) if (r.whenChanged) offs.push(listen(r.whenChanged, recheck));
+    });
+    onCleanup(() => {
+      for (const off of offs) off();
     });
   }
   // Hidden, nothing followed (prism AGENTS.md): the bindings pause themselves, the nodes' watches go; shown again, the

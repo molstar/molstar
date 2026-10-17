@@ -402,7 +402,16 @@ export interface ViewerExtensionUI {
    */
   readonly rows?: readonly {
     readonly id: PartId;
+    /**
+     * The nodes it is for. A row whose `when` holds takes a slot in the tree (its rows are of one height), so its view
+     * renders a row whenever `when` holds: one that renders nothing leaves a gap.
+     */
     readonly when: (node: SceneNode) => boolean;
+    /**
+     * Told when `when` may answer otherwise without a change of the scene (a PAE fetched): the tree asks it again for
+     * the nodes it shows. Not needed when `when` reads only the node and its structure.
+     */
+    readonly whenChanged?: import('@molstar/prism-ui/core').ReadonlyState<unknown>;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /** The canvas stack only: a command by id, or a card to open. */

@@ -36,11 +36,12 @@ import of the plugin.
   `overrides: { 'core.toolbar.x': null }`). `auto` values leave the plugin's own detection.
 - `ui.homeWhenEmpty` (off): Home at start while nothing is loaded; the app turns it on when its URL loads nothing.
   `ui.splash` (`random`; `quantum`, `light`, `off`; the app's `?splash=`): the empty canvas's splash. `ui.hoverLabel`
-  (`corner`, the default as in v5: at the canvas' bottom right, clear of the rail and a floating panel, above the
-  toolbar; `cursor`: beside the pointer): where the canvas' hover label shows. `ui.xr` (`auto`; `always`, `never`;
-  classic `ShowXR`): the toolbar's XR button, only where WebXR is, everywhere (where it is not, clicking says so in a
-  notification), or not at all; never where the `canvas.xr` operation is not. The XR params are the Canvas card's XR
-  section.
+  (`corner`, the default as in v5: at the canvas' bottom right, clear of the rail, a floating panel and an open card,
+  above the toolbar; `cursor`: beside the pointer): where the canvas' hover label shows. A long label (Markdown, a long
+  entity name) is cut at `--msp-hover-label-height` (16rem) and fades out there; it takes no pointer, so it cannot
+  scroll. `ui.xr` (`auto`; `always`, `never`; classic `ShowXR`): the toolbar's XR button, only where WebXR is,
+  everywhere (where it is not, clicking says so in a notification), or not at all; never where the `canvas.xr` operation
+  is not. The XR params are the Canvas card's XR section.
 - Extension settings are the extension's own group (`ViewerExtension.settings`, reserved), not here.
 
 ### 2.3 `sequence`: the one sequence viewer
@@ -132,7 +133,11 @@ beyond it (README decision 13).
   items. No cards or rail buttons of its own. A row's eye that turns something on (a row with controls; the viewer's
   Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. A scene tree row is one row
   of the tree's height (`SceneRow`; the tree is virtualized, view-models.md §3): its controls go to the inspector, never
-  under it. Streaming starts in the Auto view (around the whole structure, the selection while there is one).
+  under it. A row whose `when` holds takes a slot, so its view renders a row whenever `when` holds (one that renders
+  nothing leaves a gap); `when` says what the view would (assembly symmetry: only a PDB entry's assembly). A `when` that
+  follows more than the node and its structure passes `whenChanged`, told when it may answer otherwise (a PAE fetched is
+  a state cell, no change of the scene): the tree asks it again for the rows it shows. Streaming starts in the Auto view
+  (around the whole structure, the selection while there is one).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).

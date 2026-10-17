@@ -250,3 +250,32 @@ describe('the search field of the Structure tab', () => {
     expect(typed.rows).toBeLessThan(typed.all);
   });
 });
+
+describe("an extension row's whenChanged", () => {
+  it('asks `when` again without a change of the scene: the row comes and goes under its node', () => {
+    const t = mount({ count: 3 });
+    // Whether the structure has the extension's data (a PAE fetched): a state cell, not a change of the scene.
+    const has = observableState(false);
+    const told = observableState(0);
+    t.port.register('x', {
+      rows: [
+        {
+          id: 'x.row.pae',
+          when: (n) => n.kind === 'structure' && has.value,
+          whenChanged: told.asReadonly,
+          render: domView(() => <SceneRow label="Predicted aligned error" />),
+        },
+      ],
+    });
+    const host = () => t.container.querySelector('[data-scene-row="x.row.pae"]');
+    expect(t.labels()).not.toContain('Predicted aligned error');
+    expect(host()).toBeNull();
+    has.set(true);
+    told.set(1);
+    expect(t.labels()).toContain('Predicted aligned error');
+    has.set(false);
+    told.set(2);
+    expect(t.labels()).not.toContain('Predicted aligned error');
+    t.dispose();
+  });
+});

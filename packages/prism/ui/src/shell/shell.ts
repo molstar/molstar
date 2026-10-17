@@ -177,6 +177,11 @@ export interface ShellSection {
   order?: number;
   /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
   when?(ctx: ShellViewContext): boolean;
+  /**
+   * Told when `when` may answer otherwise for reasons a list cannot see (a PAE fetched for a structure: no change of the
+   * scene); a list that shows its sections by `when` asks it again then. Not needed for what the list already follows.
+   */
+  whenChanged?: ReadonlyState<unknown>;
   /** Open until the person folds it, in a list whose sections start folded (`SectionList`'s `collapsed`). */
   open?: boolean;
   render: ViewRenderer<ShellViewContext>;

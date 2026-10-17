@@ -143,8 +143,11 @@ describe("the assembly symmetry's row", () => {
 
   it('is not shown for a structure that is not a PDB assembly', async () => {
     const v = await viewer('test.gro');
-    const { host, node } = mountRow(v);
+    const { ui, host, node } = mountRow(v);
     expect(v.api['assembly-symmetry']!.rowState(node.id).value.applicable).toBe(false);
+    // Its `when` says so too: the Structure panel's rows are of one height, so a row that renders nothing would leave
+    // an empty slot in the tree.
+    expect(ui.rows![0].when!(node)).toBe(false);
     expect(host.textContent).toBe('');
   });
 });

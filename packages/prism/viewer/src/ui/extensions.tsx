@@ -116,6 +116,7 @@ export function extensionUIPort(
               slot: SceneRowSlot,
               title: r.id,
               when: (c) => !!c.subject && r.when(c.subject as SceneNode),
+              ...(r.whenChanged ? { whenChanged: r.whenChanged } : {}),
               render: r.render,
             })),
           ),
