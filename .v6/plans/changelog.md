@@ -704,3 +704,27 @@ the [API change ledger](breaking-v6-changes.md).
   secondary-structure hover outline sits on the shapes when labels are shown; a sequence band shown again after being
   hidden resumes its loading shimmer or fade; a unit's coordinate-system descriptor lists a numbering added to its
   molecule.
+- Prism: in the scene tree, a picked extension row (membrane, assembly symmetry) stays picked when it scrolls out of
+  view; rows keep their identity across partial reflows (open menus no longer close on a tab switch or a search); a
+  search follows the scene while it changes. `VirtualList` takes `itemKey` (its `key` never reached it: the JSX runtime
+  keeps `key` for itself) and measures its row height from the rows made.
+- Prism: the command menu shows re-ranked results in the right order, and the snapshot inspector follows the applied
+  snapshot. Forget on "Keyboard shortcuts" in Storage also resets the in-memory remaps.
+- Prism viewer: overrides and keybindings of Select commands made from the loaded structures (`select.chain.A`, …) no
+  longer fail viewer creation, and Select previews follow the structure's data.
+- Prism: the collapsed toolbar drops the rows of removed items; timers of paused UI wait for resume (`restartable`); the
+  splash shatters and reassembles at full rate; slider, Vec3 and Mat4 number fields show the committed value after an
+  edit; hover-label parsing is linear on adversarial labels.
+- Prism sequence: dropping the sequence link clears the 3D highlight and the label state; "Show all tracks" is one edit
+  (`setTracksHidden`).
+- Prism viewer: a streaming reply no longer shows twice when History and the assistant read it at the same time, and a
+  retried reply of the same length replaces the old one in History.
+- Prism viewer: the kept-records index is fenced per database (Web Locks across tabs where the browser has them, else
+  within the page), so Home, Storage and Keep never see an empty or half-folded index, and a tab that closes mid-fold no
+  longer wipes it.
+- Prism viewer: a viewer without a `persist.key` keeps its records under `prism-default` (`prism-default-records`)
+  instead of the Prism app's `prism-viewer`; viewers without a key on one origin share one list of kept records. Records
+  kept earlier by unkeyed viewers under `prism-viewer-records` are not migrated.
+- Prism viewer: a fetched AlphaFold DB PAE lives under the structure's model, so deleting or reloading the structure
+  removes it; "Fetch PAE" can be stopped, two clicks fetch once, it uses the PAE of the model file's own version (and
+  says so when only another exists), and isoform entries (`AF-P04637-2-F1`) are recognised.
