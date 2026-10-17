@@ -9,7 +9,16 @@
 import { type MarkdownBlock, type MarkdownInline, parseMarkdown } from '@molstar/core/util/markdown';
 import type { HoverLine, HoverRun } from '@molstar/prism-ui/model/playback';
 
-const Entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" };
+// A Map, not an object literal: `&constructor;` must not find `Object.prototype.constructor`.
+const Entities = new Map([
+  ['amp', '&'],
+  ['lt', '<'],
+  ['gt', '>'],
+  ['quot', '"'],
+  ['apos', "'"],
+  ['nbsp', ' '],
+  ['#39', "'"],
+]);
 
 /**
  * Mol*'s loci labels (`plugin.behaviors.labels.highlight`: strings with `</br>` between lines and a `<small>` count)
@@ -22,7 +31,7 @@ export function hoverLines(labels: readonly unknown[]): readonly string[] {
     const text = label
       .replace(/<\s*\/?\s*br\s*\/?\s*>/gi, '\n')
       .replace(/<[^>]*>/g, '')
-      .replace(/&(#?\w+);/g, (m, name: string) => Entities[name] ?? m)
+      .replace(/&(#?\w+);/g, decodeEntity)
       .replace(/\s*\|\|\s*/g, ' ');
     for (const line of text.split('\n')) {
       const trimmed = line.trim();
@@ -51,7 +60,11 @@ export function hoverRich(labels: readonly unknown[]): readonly HoverLine[] {
   return out;
 }
 
-const decode = (s: string) => s.replace(/&(#?\w+);/g, (m, name: string) => Entities[name] ?? m);
+function decodeEntity(m: string, name: string): string {
+  return Entities.get(name) ?? m;
+}
+
+const decode = (s: string) => s.replace(/&(#?\w+);/g, decodeEntity);
 
 /** Mol*'s HTML: a line per `<br>`, runs by the allowed tags. The first line of the label is its title. */
 function htmlLines(label: string, out: HoverLine[], first: boolean): void {
