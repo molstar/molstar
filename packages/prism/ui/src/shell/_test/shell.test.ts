@@ -139,6 +139,20 @@ describe('ShellModel', () => {
     expect(shell.dock('right').state.value).toMatchObject({ floating: false, pinned: true });
   });
 
+  it('pins the right panel by default on the desktop only: compact reads it as unpinned and keeps the pin', () => {
+    const viewState = new ViewStateManager();
+    const shell = new ShellModel({ viewState });
+    shell.registerTabs([tab('a')]);
+    shell.show('a');
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+    // A phone: the panel is a bottom sheet, never pinned (Escape and a click outside close it).
+    shell.setMode('compact');
+    expect(shell.dock('right').state.value.pinned).toBe(false);
+    expect(viewState.layout.value.docks.right.pinned).toBe(true);
+    shell.setMode('desktop');
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+  });
+
   it('hides a tab without unregistering it, and shows it again where it was', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('a', { order: 1 }), tab('b', { order: 2 }), tab('c', { order: 3 })]);
@@ -169,10 +183,10 @@ describe('ShellModel', () => {
     shell.show('b');
     shell.move('a', 'left');
     shell.setSize('right', 600);
-    shell.setPinned('right', true);
+    shell.setPinned('right', false);
     shell.hideTab('seq');
     shell.resetLayout();
-    expect(viewState.layout.value.docks.right).toMatchObject({ tabs: ['a', 'b'], size: 400, pinned: false });
+    expect(viewState.layout.value.docks.right).toMatchObject({ tabs: ['a', 'b'], size: 400, pinned: true });
     expect(viewState.layout.value.docks.left.tabs).toEqual([]);
     expect(viewState.layout.value.hiddenTabs).toEqual([]);
     expect(shell.dock('top').tabs.value.map((t) => t.id)).toEqual(['seq']);

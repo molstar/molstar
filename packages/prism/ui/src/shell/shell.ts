@@ -108,7 +108,8 @@ export type DockState = {
   floating: boolean;
   /**
    * A floating side dock pinned open: the canvas gives it room instead of running under it (some workflows keep a
-   * panel open the whole time and want the whole molecule beside it). Only while floating; off by default.
+   * panel open the whole time and want the whole molecule beside it). Only while floating, on the desktop; the right
+   * dock's default (compact and embedded never pin: the layout keeps it for the desktop).
    */
   pinned: boolean;
 };
@@ -731,6 +732,9 @@ export class ShellModel extends ReactiveModel {
     if (this.#effectiveMode.value === 'embedded') {
       return { ...state, floating: id === 'right' ? true : state.floating, pinned: false };
     }
+    // Compact (a phone): the panel is a bottom sheet, never pinned (the person's pin is kept for the desktop): Escape
+    // and a click outside close it, and a card over it is a dialog.
+    if (this.#effectiveMode.value === 'compact' && state.pinned) return { ...state, pinned: false };
     return state;
   }
 

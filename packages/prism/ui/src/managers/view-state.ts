@@ -32,7 +32,8 @@ export interface DockLayout {
   readonly floating: boolean;
   /**
    * A floating side dock pinned open: the canvas gives it room instead of running under it (some workflows keep a
-   * panel open the whole time and want the whole molecule beside it). Only while floating; off by default.
+   * panel open the whole time and want the whole molecule beside it). Only while floating, on the desktop; on by default
+   * for the right dock (compact and embedded never pin: `ShellModel` reads it as off there, the layout keeps it).
    */
   readonly pinned: boolean;
 }
@@ -63,7 +64,13 @@ export const MinDockSizes: Readonly<Record<DockId, number>> = { left: 180, right
 export function defaultViewLayout(): ViewLayout {
   const docks = {} as Record<DockId, DockLayout>;
   for (const id of DockIds) {
-    docks[id] = { tabs: [], size: DefaultDockSizes[id], floating: id === 'right' || id === 'top', pinned: false };
+    // The right panel pinned by default (the desktop: the canvas ends at it); compact and embedded never pin it.
+    docks[id] = {
+      tabs: [],
+      size: DefaultDockSizes[id],
+      floating: id === 'right' || id === 'top',
+      pinned: id === 'right',
+    };
   }
   return { docks, mode: 'auto', compactRail: false, buttons: {}, hiddenTabs: [] };
 }

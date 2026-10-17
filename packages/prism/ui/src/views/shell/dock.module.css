@@ -216,6 +216,8 @@
     align-self: stretch;
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-panel-bg);
+    /* What paints a surface of its own inside (a virtual list's rows) paints the panel's. */
+    --msp-surface: var(--msp-glass-panel-bg);
     box-shadow: var(--msp-glass-shadow);
     backdrop-filter: var(--msp-glass-filter);
     -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -250,8 +252,17 @@
     height: var(--msp-rail-icon, 20px);
   }
 
+  /* Selected: its background only. The strip's inset outline would draw 1px lines beside the panel's top and its edge
+     (reading as a misalignment) and double the rail's hairline. */
   & .tab[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: none;
+  }
+
+  /* The panel's header is as tall as a rail button (its step, set from the rail's height: dock-view.tsx), so the
+     panel's content starts where the rail's first button ends. */
+  & .header {
+    height: max(var(--msp-rail-head, 40px), var(--msp-touch-target, 0px));
   }
 }
 
@@ -274,6 +285,10 @@
   }
 
   & .rail {
+    /* Above the panel beside it: its hairline is the line between them, and what fills the panel to its edge (a tree's
+       rows) does not cover it. */
+    position: relative;
+    z-index: 1;
     border-radius: 0;
     background: var(--msp-glass-panel-bg);
     box-shadow: -1px 0 0 var(--msp-glass-edge);
@@ -311,10 +326,13 @@
   & .content {
     margin: 0;
     border-radius: 0;
-    /* Hairlines on both sides: the canvas on the left, the rail on the right. */
-    box-shadow:
-      -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    /* Nothing under it (the canvas ends at it): opaque, no glass, its rows the same color. The hairline on the left is
+       its own, the canvas's side; the one on the right is the rail's (above it). */
+    background: var(--msp-color-panel);
+    --msp-surface: var(--msp-color-panel);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: -1px 0 0 var(--msp-glass-edge);
   }
 }
 

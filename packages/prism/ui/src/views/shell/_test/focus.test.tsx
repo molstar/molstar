@@ -24,6 +24,8 @@ const frame = () => new Promise((r) => setTimeout(r, 32));
 
 function mount() {
   const shell = new ShellModel();
+  // A floating panel (pinned is the default): its cards are dialogs, closed by Escape and a click elsewhere.
+  shell.setPinned('right', false);
   shell.registerTabs([
     { id: 'home', title: 'Home', icon: 'house', render: domView<ShellViewContext>(() => <i>home</i>) },
     {

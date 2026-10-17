@@ -736,3 +736,6 @@ the [API change ledger](breaking-v6-changes.md).
   in the corner keeps clear of an open card.
 - Prism assistant: a viewer without a `persist.key` keeps its assistant choices under `prism-default`
   (`prism-assistant@prism-default.`), apart from the Prism app's.
+- Prism: the right panel is pinned by default on the desktop (the canvas ends at it); a phone's bottom sheet and an
+  embedded viewer never pin. The panel's header is as tall as a rail button at every rail size, a selected rail button
+  has no outline, and a pinned panel is opaque with its tree rows the same color and the rail's hairline unbroken.

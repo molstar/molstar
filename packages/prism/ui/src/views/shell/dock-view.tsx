@@ -26,7 +26,7 @@ import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
 import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
-import { type RailEntry, RailLayout } from './rail.js';
+import { type RailEntry, RailLayout, RailSteps, railStep } from './rail.js';
 import { ViewHost } from './view-host.js';
 
 /** What the views of a dock read of its state: one derived value each, shared by them all. */
@@ -185,10 +185,13 @@ export function FloatingDock(props: {
       </div>
     );
   }
+  // A rail button's height at the rail's step (rail.ts; the CSS steps the buttons themselves): the panel's header takes
+  // it, so the content starts where the rail's first button ends. Before the rail is measured, the normal step.
+  const railHead = derive(rail.height.asReadonly, (h) => `${(h > 0 ? railStep(h) : RailSteps[0]).button}px`);
   const root = (
     <div
       class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}
-      style={size}
+      style={{ ...size, '--msp-rail-head': railHead }}
     >
       <div
         class={`${classes.rail} ${canvasClasses.frame}`}
@@ -465,7 +468,8 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   const { shell } = props;
   const dock = shell.dock(props.dock);
   // Embedded, nothing is pinned (shell.md §3): no pin to offer.
-  const pinnable = derive(shell.mode, (m) => m !== 'embedded');
+  // Only on the desktop: compact (a bottom sheet) and embedded never pin (ShellModel).
+  const pinnable = derive(shell.mode, (m) => m !== 'embedded' && m !== 'compact');
   return (
     <Show when={pinnable}>
       {() => (

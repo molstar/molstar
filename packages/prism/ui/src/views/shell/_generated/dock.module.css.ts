@@ -237,6 +237,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   & .msp-shell-dock-content {
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-panel-bg);
+    --msp-surface: var(--msp-glass-panel-bg);
     box-shadow: var(--msp-glass-shadow);
     -webkit-backdrop-filter: var(--msp-glass-filter);
     align-self: stretch;
@@ -270,6 +271,11 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & .msp-shell-dock-tab[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: none;
+  }
+
+  & .msp-shell-dock-header {
+    height: max(var(--msp-rail-head, 40px), var(--msp-touch-target, 0px));
   }
 }
 
@@ -288,9 +294,11 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-rail {
+    z-index: 1;
     background: var(--msp-glass-panel-bg);
     box-shadow: -1px 0 0 var(--msp-glass-edge);
     border-radius: 0;
+    position: relative;
   }
 
   &[data-rail-overlay] {
@@ -318,8 +326,10 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   gap: 0;
 
   & .msp-shell-dock-content {
-    box-shadow: -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-color-panel);
+    --msp-surface: var(--msp-color-panel);
+    -webkit-backdrop-filter: none;
+    box-shadow: -1px 0 0 var(--msp-glass-edge);
     border-radius: 0;
     margin: 0;
   }

@@ -92,12 +92,13 @@ describe('viewState and navigation', () => {
 
   it('resets to the layout it started with', () => {
     const v = new ViewStateManager({ compactRail: true, docks: { right: { size: 400 } }, buttons: { xr: false } });
-    v.setDock('right', { size: 500, pinned: true });
+    v.setDock('right', { size: 500, pinned: false });
     v.setTabHidden('a', true);
     v.setButtons({ xr: true });
     v.reset();
     expect(v.layout.value).toEqual(v.initial);
-    expect(v.layout.value.docks.right).toMatchObject({ size: 400, pinned: false });
+    // Pinned is the right dock's default (the seed does not say).
+    expect(v.layout.value.docks.right).toMatchObject({ size: 400, pinned: true });
     expect(v.layout.value.buttons).toEqual({ xr: false });
     expect(v.layout.value.hiddenTabs).toEqual([]);
     expect(v.layout.value.compactRail).toBe(true);

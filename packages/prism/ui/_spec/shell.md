@@ -38,8 +38,12 @@ buttons) is the app's. The code is the truth for how.
   width, the rail sits at the right edge, the active tab is a glass card beside it. Its header: title (or `heading`),
   pin, ✕. Its inner edge resizes it (`setSize`, at least 180px; double-click back to 340). `setFloating(dock, false)`
   docks it beside the canvas. One margin frames the canvas (`--msp-canvas-edge`, 8px).
-- **Pinned** (`setPinned`): the rail and the open panel move beside the canvas, which ends where they begin; Escape and
-  clicks outside leave a pinned panel or card.
+- **Pinned** (`setPinned`; the right dock's default, David 2026-10-17): the rail and the open panel move beside the
+  canvas, which ends where they begin; Escape and clicks outside leave a pinned panel or card. Only on the desktop:
+  compact (a bottom sheet) and embedded read the pin as off (`DockState`; the layout keeps it, no pin button). Pinned,
+  the panel is opaque (nothing under it), its rows the panel's color; the rail's hairline is the line between them.
+- **The panel's header is a rail button tall** (the rail's step, `--msp-rail-head`): the content starts where the rail's
+  first button ends. A selected rail button is its background only (an outline drew 1px lines beside the panel's edges).
 - **The canvas never shrinks for the floating panel or the rail**: the app's camera framing keeps the scene in the
   visible area.
 - **Rail.** Full height at the right edge, buttons edge to edge, no labels (tooltips name them): the `head` tab, the tab
