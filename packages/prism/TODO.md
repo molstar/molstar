@@ -46,6 +46,13 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Missing: the viewer
 
+- **Trajectories in the Structure panel** (David, 2026-10-17). A structure with several models or frames is shown like
+  any other: the root row does not say it is a trajectory, the inspector offers the model index as a dropdown, and the
+  real control is the canvas' trajectory bar. Wanted: the root row says so (a trajectory or ensemble mark; "5 models",
+  "frame 4/5": models for an NMR ensemble, frames for MD) with an inline compact scrubber (slider, ‹ ›, play) on the
+  row; the inspector's dropdown replaced by the same scrubber and the playback options; the canvas bar much simpler (a
+  play/step chip for the picked trajectory, or only while playing). Per-row controls also answer several trajectories at
+  once (sources, below); a long trajectory's scrubber seeks throttled (the frame lane of the runtime work).
 - A fast path in the runner for pointer-rate view operations; measure first: the hover is per element, not per frame
   (`viewer/src/api/run.ts`).
 - `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
