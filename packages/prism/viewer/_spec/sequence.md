@@ -248,6 +248,9 @@ The code is the truth for how.
 - **The legend** (`legendOf`, `withTracks`, `sequence/legend.ts`) is read from the scheme's public definition
   (`KernelColorSchemes`), plus the secondary structure's classes and the behaviors' offered blocks; shown in prism-ui's
   `Legend` in an overlay card (`LegendCard`, `sequence.legend`). Seq\*'s own legend model stays inside its UIs.
-- **One hover label**: the band's Seq\* label (`seq.labels.current`, at most once a frame and only when its lines
-  change) feeds the shell's cursor-following `HoverLabel`, which listens on the viewport (`data-msp-hover-source`) and
-  prefers the sequence's lines over the canvas's (`ui/shell.tsx`).
+- **One hover label, Mol\*'s where it can be**: a sequence hover the link maps into the structure lights its residues in
+  3D, and Mol\*'s label providers label that highlight, so the label is the same as hovering those atoms in 3D
+  (`pickHoverLabel`, `sources/hover-lines.ts`; `SequenceSource.hoverMapped` says the hover mapped). The band's own Seq\*
+  label (`seq.labels.current`, at most once a frame and only when its lines change) shows only for a hover that does not
+  map (a gap, an annotation track with no counterpart in the structure). The shell's `HoverLabel` listens on the
+  viewport (`data-msp-hover-source`), in the corner or at the cursor (`options.ui.hoverLabel`).

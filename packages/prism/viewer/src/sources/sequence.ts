@@ -44,6 +44,12 @@ export interface SequenceSource {
   readonly dataByUrl: DataByUrl;
   /** The link's 3D side over a structure. */
   view3d(structure: Structure, resetCamera?: () => void): SequenceView3D;
+  /**
+   * Whether the sequence's hover maps into the structure now (the link lit residues in 3D): then the hover label is
+   * Mol*'s, of those residues (its label providers label every highlight), and Seq*'s own label is for what does not
+   * map (sequence.md §10).
+   */
+  readonly hoverMapped: ReadonlyState<boolean>;
 }
 
 /** The format the plugin parsed a trajectory from, as the sequence's structure source names it. */
@@ -73,6 +79,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   const structure = observableState<HostStructure | undefined>(undefined, { compare: (a, b) => a?.key === b?.key });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
+  const hoverMapped = observableState(false);
   /** What was there when `show` was called: a structure added since, or another focus, ends it. */
   let showsSince: { refs: ReadonlySet<string>; focus: unknown } | undefined;
   let latestSelected: string | undefined;
@@ -207,6 +214,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   };
 
   return {
+    hoverMapped: hoverMapped.asReadonly,
     structure: structure.asReadonly,
     dataByUrl: createDataByUrl(scope, plugin),
     followed: followed.asReadonly,
@@ -236,8 +244,12 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       const select = channel();
       const focus = channel();
       return {
-        highlight: (loci) =>
-          highlight(() => (loci?.elements.length ? link.highlight.set({ target: { loci } }) : link.highlight.clear())),
+        highlight: (loci) => {
+          hoverMapped.set(!!loci?.elements.length);
+          return highlight(() =>
+            loci?.elements.length ? link.highlight.set({ target: { loci } }) : link.highlight.clear(),
+          );
+        },
         select: (loci) =>
           select(() =>
             loci?.elements.length ? link.select.set({ target: { loci }, mode: 'set' }) : link.select.clear(),

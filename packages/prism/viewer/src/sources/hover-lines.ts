@@ -181,3 +181,17 @@ const sameStyle = (a: HoverRun, b: HoverRun) =>
   !!a.sup === !!b.sup &&
   !!a.code === !!b.code &&
   !!a.link === !!b.link;
+
+/**
+ * Which label the canvas shows (sequence.md §10): Mol*'s whenever there is one (a sequence hover the link maps into the
+ * structure is lit in 3D, and Mol* labels it), the sequence's own for a hover that does not map, else none (a mapped
+ * hover whose Mol* label has not come yet: the label holds a frame meanwhile).
+ */
+export function pickHoverLabel(
+  molstar: readonly HoverLine[],
+  sequence: readonly HoverLine[],
+  sequenceMapped: boolean,
+): readonly HoverLine[] {
+  if (molstar.length) return molstar;
+  return sequence.length && !sequenceMapped ? sequence : [];
+}

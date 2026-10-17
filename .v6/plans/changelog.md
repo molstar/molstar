@@ -527,5 +527,7 @@ the [API change ledger](breaking-v6-changes.md).
   label with several lines, Markdown (headings, lists, emphasis, code, link text). It is built from text, never from
   markup, so a loaded document's labels cannot inject anything. A label that empties or a pointer that leaves waits a
   frame before hiding, so moving fast between atoms swaps the text instead of blinking.
+- Hovering the sequence shows Mol*'s label of the residues it lights in 3D (the same as hovering them there); the
+  sequence's own short label shows only for what has no counterpart in the structure.
 - `@molstar/core/util/markdown`: a small Markdown tokenizer (`parseMarkdown`, `parseMarkdownInline`, a typed tree, HTML
   dropped; `isSafeMarkdownHref` for renderers that follow links).

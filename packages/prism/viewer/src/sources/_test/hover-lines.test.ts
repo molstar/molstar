@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hoverLines, hoverRich } from '../hover-lines.js';
+import { hoverLines, hoverRich, pickHoverLabel } from '../hover-lines.js';
 
 it('Mol* loci labels become plain lines', () => {
   expect(hoverLines([])).toEqual([]);
@@ -64,5 +64,18 @@ describe('hoverRich', () => {
     const runs = lines.flatMap((l) => (typeof l === 'string' ? [] : l.runs));
     expect(runs.find((r) => r.code)?.text).toBe('<b>code</b>');
     expect(runs.find((r) => r.link)?.text).toBe('x');
+  });
+});
+
+describe('pickHoverLabel', () => {
+  it("prefers Mol*'s label, the sequence's only where its hover does not map", () => {
+    const mol = ['CRABP2', '1CBS | A | ARG 59'];
+    const seq = ['A R59'];
+    expect(pickHoverLabel(mol, seq, true)).toBe(mol);
+    expect(pickHoverLabel(mol, seq, false)).toBe(mol);
+    expect(pickHoverLabel([], seq, false)).toBe(seq);
+    // Mapped, Mol*'s label not in yet: nothing new (the label holds what it had a frame).
+    expect(pickHoverLabel([], seq, true)).toEqual([]);
+    expect(pickHoverLabel([], [], false)).toEqual([]);
   });
 });
