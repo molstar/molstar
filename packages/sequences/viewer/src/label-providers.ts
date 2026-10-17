@@ -146,11 +146,33 @@ const position: LabelProvider = {
     const stored = mol.element ? 0 : mol.lazy ? streamedLetter(h, lc, b, i) : mol.code[i];
     const shown = mol.element || stored === 0 ? 0 : shownCode(h, lc, stored, u);
     const residue = mol.element ? name(set, mol.chemCompId?.[0] ?? -1) : shown ? String.fromCharCode(shown) : '';
-    const number = bn ? fmt(lc, bn, at) : `${i + 1}`;
+    let number = bn ? fmt(lc, bn, at) : `${i + 1}`;
+    // The block's numbering has no value here (an unobserved residue has no author number): the first numbering that
+    // has one, else the position in the sequence, said in a line, so the title always places the residue.
+    let numberedBy: string | undefined;
+    if (!number) {
+      for (const n of [...set.units.numberings[u].items, ...mol.numberings.items]) {
+        const v = fmt(lc, n, i);
+        if (v) {
+          number = v;
+          numberedBy = name(set, n.name);
+          break;
+        }
+      }
+      if (!number) {
+        number = `${i + 1}`;
+        numberedBy = 'ordinal';
+      }
+    }
     // A construct position whose source residue has several copies says which, past the first (the ruler's rule).
     const copy = np >= 0 && bn ? copyAt(r.paths[np], i) : 1;
     out.title(`${label} ${residue}${mol.element ? ' ' : ''}${number}${copy > 1 ? ` (copy ${copy})` : ''}`.trim());
     if (shown !== stored) out.line('stored', String.fromCharCode(stored));
+    if (numberedBy)
+      out.line(
+        'numbered by',
+        numberedBy === 'label' || numberedBy === 'ordinal' ? 'position in the sequence' : numberedBy,
+      );
     P.lc = lc;
     P.out = out;
     P.bn = bn;

@@ -12,7 +12,8 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { distinctUntilChanged, map, type Observable, share } from 'rxjs';
 import { summarize } from '../targets/index.js';
-import { hoverLines } from './hover-lines.js';
+import { hoverLines, hoverRich } from './hover-lines.js';
+import type { HoverLine } from '@molstar/prism-ui/model/playback';
 import { structureNames } from './naming.js';
 import { FrameState } from '@molstar/prism-ui/reactive/frame-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -41,6 +42,8 @@ export interface ViewerPointerEvent {
 export interface PointerSources {
   /** The 3D hover label, as lines (`labels.highlight`). */
   readonly hoverLines: ReadonlyState<readonly string[]>;
+  /** The same label with its formatting (Markdown or Mol*'s HTML as runs), for the shell's hover label. */
+  readonly hoverLabel: ReadonlyState<readonly HoverLine[]>;
   readonly hover: Observable<ViewerPointerEvent>;
   readonly click: Observable<ViewerPointerEvent>;
 }
@@ -55,6 +58,8 @@ export function createPointerSources(scope: SourceScope, plugin: PluginContext):
   scope.add(plugin.behaviors.labels.highlight.subscribe(() => hovered.offer((n = (n + 1) & 0xffff))));
   scope.add(() => hovered.dispose());
   const lines = derive(hovered, () => hoverLines(plugin.behaviors.labels.highlight.value.labels), sameLines);
+  // The same label with its formatting (the shell's hover label), from the same frame's read.
+  const rich = derive(hovered, () => hoverRich(plugin.behaviors.labels.highlight.value.labels), sameRich);
   const toEvent = (e: {
     current: { loci: unknown };
     button: number;
@@ -78,6 +83,7 @@ export function createPointerSources(scope: SourceScope, plugin: PluginContext):
   };
   return {
     hoverLines: lines,
+    hoverLabel: rich,
     // Mol* emits the hover after every pick while the pointer moves: the same element under the same keys is one event.
     hover: plugin.behaviors.interaction.hover.pipe(distinctUntilChanged(sameHover), map(toEvent), share()),
     click: plugin.behaviors.interaction.click.pipe(map(toEvent), share()),
@@ -102,4 +108,16 @@ function sameHover(
 
 function sameLines(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((l, i) => l === b[i]);
+}
+
+function sameRich(a: readonly HoverLine[], b: readonly HoverLine[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (typeof x === 'string' || typeof y === 'string') {
+      if (x !== y) return false;
+    } else if (x.role !== y.role || JSON.stringify(x.runs) !== JSON.stringify(y.runs)) return false;
+  }
+  return true;
 }

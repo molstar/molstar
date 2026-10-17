@@ -664,3 +664,17 @@ the [API change ledger](breaking-v6-changes.md).
 - Exports and snapshot thumbnails hold the canvas while they render (a released context comes back first; the loop is
   the export's). `options.ui.pauseOutOfView` (`auto`, `always`, `never`): `auto` pauses except in an automated browser
   (Playwright, Puppeteer, capture services), which renders on purpose.
+
+## Prism: the hover label in the corner
+
+- The canvas' hover label shows at the canvas' bottom right by default, as in v5: it stays put, clear of the rail and a
+  floating panel, above the toolbar. `options.ui.hoverLabel: 'cursor'` puts it beside the pointer (the story Viewer ›
+  Shell › Hover label at the cursor).
+- The hover label keeps its formatting, as v5 did: Mol*'s emphasis (bold, italic, small, sub and superscript) and, for a
+  label with several lines, Markdown (headings, lists, emphasis, code, link text). It is built from text, never from
+  markup, so a loaded document's labels cannot inject anything. A label that empties or a pointer that leaves waits a
+  frame before hiding, so moving fast between atoms swaps the text instead of blinking.
+- Hovering the sequence shows Mol*'s label of the residues it lights in 3D (the same as hovering them there); the
+  sequence's own short label shows only for what has no counterpart in the structure.
+- `@molstar/core/util/markdown`: a small Markdown tokenizer (`parseMarkdown`, `parseMarkdownInline`, a typed tree, HTML
+  dropped; `isSafeMarkdownHref` for renderers that follow links).

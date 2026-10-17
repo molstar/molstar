@@ -20,9 +20,8 @@
   pointer-events: none;
   will-change: transform;
 
-  &[hidden] {
-    display: none;
-  }
+  /* Appears at once: the transition is the hiding's (`.out`). */
+  transition: none;
 
   /* An (almost) opaque panel surface with the hairline edge, and no backdrop filter: a blur under a label that follows
      the pointer would re-blur every frame over the canvas (styling.md §5), and over the structure the glass read as too
@@ -32,10 +31,51 @@
   box-shadow: var(--msp-glass-shadow);
 }
 
+/* Hidden: fades out over a short beat, so it does not vanish mid-glance, yet starts at once; visibility follows when the
+   fade ends (out of the accessibility tree and hit testing). */
+.out {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--msp-motion-fast) ease-out,
+    visibility 0s var(--msp-motion-fast);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* In the corner (`placement: 'corner'`): at the canvas' bottom right, clear of the rail and an open floating panel
+   (`--msp-canvas-right-inset`), above the toolbar's row (`--msp-corner-room`); it does not follow the pointer. */
+.corner {
+  top: auto;
+  left: auto;
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, var(--msp-space-3)));
+  bottom: calc(var(--msp-canvas-edge, var(--msp-space-3)) + var(--msp-corner-room, 0px));
+  will-change: auto;
+}
+
 .primary {
   font-weight: 600;
 }
 
 .secondary {
   color: var(--msp-color-text-muted);
+}
+
+/* A list item of a Markdown label: its marker hangs, the text wraps under itself. */
+.item {
+  padding-inline-start: 1em;
+  text-indent: -1em;
+}
+
+/* Link text of a Markdown label: shown as a link (the label takes no pointer, it is not followed). */
+.link {
+  color: var(--msp-color-accent);
+  text-decoration: underline;
+}
+
+.code {
+  font-family: var(--msp-font-mono, ui-monospace, monospace);
+  font-size: 0.95em;
 }

@@ -37,6 +37,8 @@ import {
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
+import type { HoverLine } from '@molstar/prism-ui/model/playback';
+import { pickHoverLabel } from '../sources/hover-lines.js';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
@@ -275,13 +277,27 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
     const sequence = core.views.sequence;
     const seqLines = observableState<readonly string[]>([]);
-    const hoverLines = observableState<readonly string[]>([]);
-    const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLines.value);
+    const hoverLines = observableState<readonly HoverLine[]>([]);
+    // The label is Mol*'s whenever there is one: a sequence hover the link maps into the structure lights it in 3D, and
+    // Mol*'s label providers label that (sequence.md §10). Seq*'s own label is for what does not map (a gap, an
+    // annotation track); while a mapped hover waits for Mol*'s label, nothing new is shown (the label holds a frame).
+    // Seq*'s lines come a frame after the mapped flag (sequence-control.tsx hands them on per frame): lines seen while
+    // mapped stay Mol*'s after the flag drops, so leaving a mapped residue never shows Seq*'s label of it.
+    let mappedSeq: readonly string[] | undefined;
+    const mergeHover = () => {
+      const mol = sources.pointer.hoverLabel.value;
+      const seq = seqLines.value;
+      const mapped = sequence?.source.hoverMapped.value ?? false;
+      if (mapped) mappedSeq = seq;
+      hoverLines.set(pickHoverLabel(mol, seq, mapped || seq === mappedSeq));
+    };
     const seqHoverSub = seqLines.asReadonly.subscribe(mergeHover);
-    const pointerHoverSub = sources.pointer.hoverLines.subscribe(mergeHover);
+    const pointerHoverSub = sources.pointer.hoverLabel.subscribe(mergeHover);
+    const mappedSub = sequence ? sequence.source.hoverMapped.subscribe(mergeHover) : undefined;
     unregister.push(() => {
       seqHoverSub.unsubscribe();
       pointerHoverSub.unsubscribe();
+      if (mappedSub) mappedSub.unsubscribe();
     });
     // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays. Its views come with its
     // runtime (its own chunk), once the core has loaded it (a structure shown).
@@ -669,6 +685,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                   area={() => canvasHost.closest<HTMLElement>('[data-msp-viewport]') ?? canvasHost.parentElement}
                   // Over the canvas or the sequence, not a panel over them (a tree row has its own card).
                   over={(t) => !!t.closest?.('[data-msp-canvas], [data-msp-hover-source]')}
+                  placement={core.options.ui.hoverLabel}
                 />
               )}
             </Show>

@@ -35,9 +35,11 @@ import of the plugin.
   config items and canvas props, the camera behaviors (`focusBehavior`), or hidden parts (`ui.buttons.x: false` is
   `overrides: { 'core.toolbar.x': null }`). `auto` values leave the plugin's own detection.
 - `ui.homeWhenEmpty` (off): Home at start while nothing is loaded; the app turns it on when its URL loads nothing.
-  `ui.splash` (`random`; `quantum`, `light`, `off`; the app's `?splash=`): the empty canvas's splash. `ui.xr` (`auto`;
-  `always`, `never`; classic `ShowXR`): the toolbar's XR button, only where WebXR is, everywhere (where it is not,
-  clicking says so in a notification), or not at all. The XR params are the Canvas card's XR section.
+  `ui.splash` (`random`; `quantum`, `light`, `off`; the app's `?splash=`): the empty canvas's splash. `ui.hoverLabel`
+  (`corner`, the default as in v5: at the canvas' bottom right, clear of the rail and a floating panel, above the
+  toolbar; `cursor`: beside the pointer): where the canvas' hover label shows. `ui.xr` (`auto`; `always`, `never`;
+  classic `ShowXR`): the toolbar's XR button, only where WebXR is, everywhere (where it is not, clicking says so in a
+  notification), or not at all. The XR params are the Canvas card's XR section.
 - Extension settings are the extension's own group (`ViewerExtension.settings`, reserved), not here.
 
 ### 2.3 `sequence`: the one sequence viewer

@@ -128,6 +128,14 @@ export const PrismViewerOptions = {
       ['always', 'Always'],
       ['never', 'Never'],
     ]),
+    /**
+     * Where the canvas' hover label shows (v5: the corner): `corner`, at the canvas' bottom right above the toolbar, still
+     * and out of the way; `cursor`, beside the pointer.
+     */
+    hoverLabel: PD.Select<'corner' | 'cursor'>('corner', [
+      ['corner', 'Bottom right'],
+      ['cursor', 'At the cursor'],
+    ]),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({
