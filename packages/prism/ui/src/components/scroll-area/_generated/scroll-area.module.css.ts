@@ -56,7 +56,7 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
     overflow-y: hidden;
   }
 
-  .msp-scroll-area-root:not([data-axis="x"]) > & {
+  .msp-scroll-area-root:not([data-axis="x"], [data-no-fade]) > & {
     mask-image: linear-gradient(to bottom,
       transparent,
       #000 var(--msp-fade-top),

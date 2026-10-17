@@ -145,6 +145,9 @@ class Node implements SceneNode {
   get menu(): readonly SceneMenuItem[] | undefined {
     return this.menuSource?.() ?? this.#menu;
   }
+  get hasMenu(): boolean {
+    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0;
+  }
   set menu(items: readonly SceneMenuItem[] | undefined) {
     this.#menu = items;
   }

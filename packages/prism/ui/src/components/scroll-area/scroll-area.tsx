@@ -40,6 +40,12 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
    * panel, a popover).
    */
   chain?: boolean;
+  /**
+   * The edges' fade where there is more to scroll (default on). A virtual list turns it off: the fade is a mask that a
+   * scroll-driven animation changes every scroll frame, a repaint of the whole area on the main thread while it
+   * scrolls, which a list that also swaps its rows cannot afford.
+   */
+  fade?: boolean;
 };
 
 /**
@@ -48,7 +54,17 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
  * of the UI that scrolls uses it.
  */
 export function ScrollArea(props: ScrollAreaProps) {
-  const { class: rootClass, contentClass, axis = 'y', viewportRef, edge, chain, children, ...contentProps } = props;
+  const {
+    class: rootClass,
+    contentClass,
+    axis = 'y',
+    viewportRef,
+    edge,
+    chain,
+    fade = true,
+    children,
+    ...contentProps
+  } = props;
   let root!: HTMLDivElement;
   let viewport!: HTMLDivElement;
   let content!: HTMLDivElement;
@@ -157,6 +173,7 @@ export function ScrollArea(props: ScrollAreaProps) {
       data-axis={axis}
       data-edge={edge ? '' : undefined}
       data-chain={chain ? '' : undefined}
+      data-no-fade={fade ? undefined : ''}
     >
       <div
         class={classes.viewport}

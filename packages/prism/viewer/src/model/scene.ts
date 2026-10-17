@@ -76,6 +76,11 @@ export interface SceneNode {
    * inline.
    */
   menu?: readonly SceneMenuItem[];
+  /**
+   * Whether it has a menu, without building it (a menu read when it opens may be built then, from the state: a row
+   * asks this when it is made, and a virtualized tree makes rows as it scrolls). Absent: `menu` is read.
+   */
+  readonly hasMenu?: boolean;
 }
 
 export interface SceneMenuItem {

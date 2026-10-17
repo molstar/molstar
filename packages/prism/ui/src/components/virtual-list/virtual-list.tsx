@@ -11,7 +11,7 @@
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { onCleanup } from '../../dom/scope.js';
+import { bind, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
@@ -23,7 +23,7 @@ export interface VirtualListHandle {
 }
 
 /**
- * A long list that renders only what is on screen (and `overscan` rows around it): rows of one height, in a
+ * A long list that renders only what is on screen (and a screenful around it, at least `overscan` rows): rows of one height, in a
  * `ScrollArea`. A tree is a list here too: its shown nodes, flattened (`flattenTree`), so 5,000 cells cost what 40 do,
  * expanding one only recomputes the list, and scrolling swaps a few rows. Rows are keyed: one that stays in the window
  * keeps its nodes while its item is the same value (`keepRows`), so it should follow its own record (by id) for changes.
@@ -61,13 +61,70 @@ export function VirtualList<T>(props: {
   };
   // Before the first measure (no height yet), a screenful.
   const viewHeight = (h: number) => h || 800;
-  // The window: first and last index on screen, padded; changes only when a row enters or leaves it.
-  const range = combineLatest([props.items, top.asReadonly, height.asReadonly, rowHeight.asReadonly]).pipe(
-    map(([items, t, h, rh]) => {
-      const first = Math.max(0, Math.floor(t / rh) - overscan);
-      const shown = Math.ceil(viewHeight(h) / rh) + 2 * overscan;
-      return { items, first, last: Math.min(items.length, first + shown), rh };
-    }),
+  // The window: the rows in the DOM, [first, last). It stays while what shows (and a few rows past it) is in it, so a
+  // scroll within it costs nothing; past that, it moves ahead of the scroll by a screenful and keeps `overscan` rows
+  // behind: the browser scrolls before the scroll event reaches the list (a wheel or a flick moves the content on the
+  // compositor first), so what it uncovers must already be there or the rows blink in a frame late. A jump (a
+  // scrollbar's drag, a far wheel step) makes only what shows and `overscan` rows around it, about a screenful, and the
+  // window grows a screenful each way once the scrolling rests: making a row costs, and a drag makes a window a frame.
+  const win = observableState({ first: 0, last: 0 });
+  let items: readonly unknown[] = [];
+  let lastTop = 0;
+  let resting: ReturnType<typeof setTimeout> | undefined;
+  const RestMs = 120;
+  const place = (rest: boolean) => {
+    const n = items.length;
+    const rh = rowHeight.value;
+    const t = top.value;
+    const screenFirst = Math.min(n, Math.floor(t / rh));
+    const screenLast = Math.min(n, Math.ceil((t + viewHeight(height.value)) / rh));
+    const screen = screenLast - screenFirst;
+    const down = t >= lastTop;
+    lastTop = t;
+    const { first: wf, last: wl } = win.value;
+    const guard = Math.min(4, overscan);
+    const covered = wf <= Math.max(0, screenFirst - guard) && wl >= Math.min(n, screenLast + guard) && wl <= n;
+    let first: number;
+    let last: number;
+    if (rest) {
+      first = screenFirst - screen;
+      last = screenLast + screen;
+    } else if (covered) return;
+    else if (screenLast <= wf || screenFirst >= wl) {
+      first = screenFirst - overscan;
+      last = screenLast + overscan;
+    } else {
+      const ahead = Math.max(overscan, screen);
+      first = screenFirst - (down ? overscan : ahead);
+      last = screenLast + (down ? ahead : overscan);
+    }
+    first = Math.max(0, first);
+    last = Math.min(n, last);
+    if (first !== wf || last !== wl) win.set({ first, last });
+  };
+  const scrolled = () => {
+    place(false);
+    if (resting !== undefined) clearTimeout(resting);
+    resting = setTimeout(() => {
+      resting = undefined;
+      place(true);
+    }, RestMs);
+  };
+  onCleanup(() => {
+    if (resting !== undefined) clearTimeout(resting);
+  });
+  bind(combineLatest([props.items, height.asReadonly, rowHeight.asReadonly]), ([next]) => {
+    items = next;
+    place(true);
+  });
+  bind(top.asReadonly, scrolled);
+  const range = combineLatest([props.items, win.asReadonly, rowHeight.asReadonly]).pipe(
+    map(([list, w, rh]) => ({
+      items: list,
+      first: Math.min(w.first, list.length),
+      last: Math.min(w.last, list.length),
+      rh,
+    })),
     distinctUntilChanged((a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh),
   );
   // How many rows the window holds now (the measure's divisor).
@@ -97,6 +154,7 @@ export function VirtualList<T>(props: {
       class={`${classes.list} ${props.class ?? ''}`}
       contentClass={classes.content}
       edge={props.edge}
+      fade={false}
       viewportRef={(el) => {
         viewport = el;
         el.addEventListener('scroll', measure, { passive: true });

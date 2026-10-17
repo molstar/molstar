@@ -480,7 +480,7 @@ function TreeItem(props: {
               {() => <Icon name="eye-off" size={14} />}
             </Show>
           </button>
-          {menuOf(node).length ? (
+          {hasMenu(node) ? (
             <button
               type="button"
               class={classes.action}
@@ -600,6 +600,11 @@ export function NodeActions(props: { node: SceneNode }) {
       <MenuItems items={items} onDone={() => {}} />
     </div>
   );
+}
+
+/** Whether a row has a "…" menu, without building it (rows are made as the tree scrolls). */
+function hasMenu(node: SceneNode): boolean {
+  return node.removable !== false || (node.hasMenu ?? (node.menu?.length ?? 0) > 0);
 }
 
 export function menuOf(node: SceneNode): SceneMenuItem[] {

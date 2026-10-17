@@ -556,22 +556,34 @@ export const Interactive: StoryObj = {
         wrap.append(heading, readout, box);
         const el = body();
         box.append(el);
+        // The readout follows the window's rows (a mutation of the list's own window, not a poll of the page: the poll
+        // and a body-wide observer cost 5–10 ms a call, a hitch while scrolling).
+        let watched: MutationObserver | undefined;
+        let pending = false;
         const update = () => {
+          pending = false;
           const tree = box.querySelector<HTMLElement>('[role=tree]');
           if (!tree) return;
           const rendered = tree.querySelectorAll('[role=treeitem]').length;
           const total = Math.round((parseFloat(tree.style.height) || 0) / 26);
           readout.textContent = `${rendered} rows rendered of ${total}`;
-        };
-        const timer = setInterval(update, 250);
-        const stop = new MutationObserver(() => {
-          if (!wrap.isConnected) {
-            clearInterval(timer);
-            stop.disconnect();
+          if (!watched) {
+            watched = new MutationObserver(() => {
+              if (!wrap.isConnected) return watched?.disconnect();
+              if (pending) return;
+              pending = true;
+              requestAnimationFrame(update);
+            });
+            watched.observe(tree, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
           }
-        });
-        stop.observe(document.body, { childList: true, subtree: true });
-        update();
+        };
+        // The tree mounts a moment later; until it does, look once a frame (for a few seconds at most).
+        let tries = 300;
+        const first = () => {
+          if (box.querySelector('[role=tree]')) update();
+          else if (--tries > 0) requestAnimationFrame(first);
+        };
+        requestAnimationFrame(first);
         return wrap;
       };
       const mount = (view: () => Node) => () => {

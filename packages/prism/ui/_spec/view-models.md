@@ -53,6 +53,13 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   places (`aria-posinset`, `aria-setsize`) and open states come apart from the rows, so a sibling added renders none of
   them again. Its keyboard works on the flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`). The viewer's
   scene and state trees are built so.
+- **A virtual list scrolls without work or blanks**: the browser scrolls before the scroll event reaches the list, so
+  what it uncovers must already be there. The window stays while what shows (and a few rows) is in it, so most scroll
+  events make nothing; past that it moves ahead of the scroll by a screenful; a jump (a scrollbar drag, a far wheel
+  step) makes about a screenful and the window grows a screenful each way once the scrolling rests (making rows is what
+  costs: a drag makes a window a frame). A row tells whether it has a menu without building it (`hasMenu`). Its area
+  does not fade at its edges (`ScrollArea` `fade={false}`): the fade is a mask a scroll-driven animation repaints every
+  frame.
 
 ### 4.3 Lifetimes
 
