@@ -305,7 +305,16 @@ describe('the PAE card', () => {
     toggle.click();
     expect(legend.style.display).toBe('flex');
     const pointer = (type: string, x: number, y: number) =>
-      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
+      // The main button held but on the release (a drag ends on a move without it, as a lost release).
+      plot.dispatchEvent(
+        new MouseEvent(type, {
+          clientX: x,
+          clientY: y,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          bubbles: true,
+        }),
+      );
 
     // (300, 50): aligned on residue 0 (A 1), residue 3 (B 1) scored; lit in the sequence too (the marks' hover).
     pointer('pointermove', 300, 50);
@@ -381,7 +390,16 @@ describe('the PAE card', () => {
     const unmount = ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
     const plot = host.querySelector<HTMLElement>('[role="img"]')!;
     const pointer = (type: string, x: number, y: number) =>
-      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
+      // The main button held but on the release (a drag ends on a move without it, as a lost release).
+      plot.dispatchEvent(
+        new MouseEvent(type, {
+          clientX: x,
+          clientY: y,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          bubbles: true,
+        }),
+      );
     const frame = () => new Promise((r) => requestAnimationFrame(r));
     const hair = () => plot.querySelectorAll('line[stroke="rgba(255, 255, 255, 0.7)"][visibility="visible"]').length;
 

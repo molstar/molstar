@@ -9,7 +9,6 @@
  */
 
 import { Icon, Select, TextInput, For, Show, type ObservableState, observableState } from '@molstar/prism-ui';
-import { combineLatest, map } from 'rxjs';
 import { type AIProvider, type AISettingsModel, checkLimits, type KeyScope } from '../model.js';
 import { classes } from './_generated/ai-setup.module.css.js';
 
@@ -45,7 +44,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
   );
   return (
     <section class={classes.setup} aria-label="AI assistant">
-      <Show when={anyKey.pipe(map((k) => !k))}>
+      <Show when={derive(anyKey, (k) => !k)}>
         {() => (
           <div class={classes.intro}>
             <p class={classes.lead}>Add a model key to ask AI assistant</p>
@@ -116,19 +115,19 @@ function ProviderRow(props: {
     <div class={classes.provider}>
       <div class={classes.providerHead}>
         <span class={classes.providerName}>{props.provider.label}</span>
-        <span class={classes.providerState} data-has={live.pipe(map((p) => (p.key ? '' : undefined)))}>
-          {live.pipe(
-            map((p) => (!p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope])),
+        <span class={classes.providerState} data-has={derive(live, (p) => (p.key ? '' : undefined))}>
+          {derive(live, (p) =>
+            !p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope],
           )}
         </span>
-        <Show when={live.pipe(map((p) => p.key?.from !== 'server'))}>
+        <Show when={derive(live, (p) => p.key?.from !== 'server')}>
           {() => (
             <button type="button" class={classes.link} onClick={toggle}>
-              {combineLatest([live, editing]).pipe(map(([p, e]) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key')))}
+              {derive([live, editing], (p, e) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key'))}
             </button>
           )}
         </Show>
-        <Show when={live.pipe(map((p) => p.key?.from === 'here'))}>
+        <Show when={derive(live, (p) => p.key?.from === 'here')}>
           {() => (
             <button type="button" class={classes.link} onClick={() => settings.removeKey(props.provider.id)}>
               Remove

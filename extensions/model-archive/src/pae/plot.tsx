@@ -8,11 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, onCleanup, Show } from '@molstar/prism-ui';
+import { Button, onCleanup, type ReadonlyState, Show } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { bind } from '@molstar/prism-ui/dom/scope';
+import { drag, on } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map, type Observable } from 'rxjs';
 import {
   type PaeMatrix,
   PaeColorStyles,
@@ -63,7 +63,7 @@ export interface PaePlotProps {
   /** A box dragged over the plot; undefined: cleared. */
   onBox?(box: PaeBox | undefined): void;
   /** The marks' colors (the viewer's tones). */
-  colors?: Observable<PaeMarkColors>;
+  colors?: ReadonlyState<PaeMarkColors>;
 }
 
 const Quiet = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-xs)';
@@ -285,7 +285,9 @@ export function PaePlot(props: PaePlotProps) {
     readonly edges?: Edges;
     moved: boolean;
   };
-  let drag: Drag | undefined;
+  let pressed: Drag | undefined;
+  // Gone: a drag ended by the scope's end asks for no frame.
+  let disposed = false;
   const cellAt = (x: number, y: number) => {
     const r = plot.getBoundingClientRect();
     return r.width > 0 ? paeCellAt(m, (x - r.left) / r.width, (y - r.top) / r.height) : undefined;
@@ -345,8 +347,8 @@ export function PaePlot(props: PaePlotProps) {
   };
   const update = () => {
     frame = 0;
-    if (drag) {
-      const b = dragged(drag, clampCell(px, py));
+    if (pressed) {
+      const b = dragged(pressed, clampCell(px, py));
       drawBox(b);
       placeClose(b);
       drawHair(undefined);
@@ -364,49 +366,54 @@ export function PaePlot(props: PaePlotProps) {
     hover(at);
   };
   const schedule = () => {
-    if (!frame) frame = requestFrameCallback(update);
+    if (!frame && !disposed) frame = requestFrameCallback(update);
   };
-  plot.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    const at = cellAt(e.clientX, e.clientY);
-    if (!at) return;
-    plot.setPointerCapture?.(e.pointerId);
-    const hit = onBox(e.clientX, e.clientY);
-    const kind = hit?.edges ? 'resize' : hit?.inside ? 'move' : 'new';
-    drag = { kind, ...at, x: e.clientX, y: e.clientY, from: shown.value, edges: hit?.edges, moved: false };
+  // The box's drag (new, move, resize by its edges; `drag`: attached once, every way it can end ends it). A release
+  // without a move picks the cell; a cancel puts the box back as it was.
+  drag<Drag>(plot, {
+    start: (e) => {
+      if (e.button !== 0) return undefined;
+      const at = cellAt(e.clientX, e.clientY);
+      if (!at) return undefined;
+      const hit = onBox(e.clientX, e.clientY);
+      const kind = hit?.edges ? 'resize' : hit?.inside ? 'move' : 'new';
+      pressed = { kind, ...at, x: e.clientX, y: e.clientY, from: shown.value, edges: hit?.edges, moved: false };
+      return pressed;
+    },
+    move: (e, d) => {
+      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
+      if (d.moved) schedule();
+    },
+    end: (d, how, e) => {
+      pressed = undefined;
+      if (how === 'cancel' || !e) {
+        drawBox(shown.value);
+        placeClose(shown.value);
+        schedule();
+        return;
+      }
+      if (!d.moved) {
+        props.onPick?.(d.i, d.j);
+        return;
+      }
+      const b = dragged(d, clampCell(e.clientX, e.clientY));
+      shown.set(b);
+      drawBox(b);
+      placeClose(b);
+      props.onBox?.(b);
+      schedule();
+    },
   });
-  plot.addEventListener('pointermove', (e) => {
+  // The hover (the drag's moves are its own, above).
+  on<PointerEvent>(plot, 'pointermove', (e) => {
     px = e.clientX;
     py = e.clientY;
     inside = true;
-    if (drag && !drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) drag.moved = true;
-    if (drag && !drag.moved) return;
-    schedule();
+    if (!pressed) schedule();
   });
-  plot.addEventListener('pointerleave', () => {
+  on(plot, 'pointerleave', () => {
     inside = false;
-    if (!drag) schedule();
-  });
-  plot.addEventListener('pointerup', (e) => {
-    const d = drag;
-    drag = undefined;
-    if (!d) return;
-    if (!d.moved) {
-      props.onPick?.(d.i, d.j);
-      return;
-    }
-    const b = dragged(d, clampCell(e.clientX, e.clientY));
-    shown.set(b);
-    drawBox(b);
-    placeClose(b);
-    props.onBox?.(b);
-    schedule();
-  });
-  plot.addEventListener('pointercancel', () => {
-    drag = undefined;
-    drawBox(shown.value);
-    placeClose(shown.value);
-    schedule();
+    if (!pressed) schedule();
   });
   const clear = () => {
     shown.set(undefined);
@@ -415,6 +422,7 @@ export function PaePlot(props: PaePlotProps) {
     props.onBox?.(undefined);
   };
   onCleanup(() => {
+    disposed = true;
     if (frame) cancelFrameCallback(frame);
     if (hoverTimer !== undefined) clearTimeout(hoverTimer);
     // Leaving: what the plot lit goes with it.
@@ -603,15 +611,14 @@ export function PaePlot(props: PaePlotProps) {
 }
 
 /** The box's ranges, each with its color's swatch, and its mean error; ✕ clears it (and its marks). */
-function BoxSummary(props: { matrix: PaeMatrix; box: PaeBox; colors: Observable<PaeMarkColors>; onClear(): void }) {
+function BoxSummary(props: { matrix: PaeMatrix; box: PaeBox; colors: ReadonlyState<PaeMarkColors>; onClear(): void }) {
   const { matrix: m, box: b } = props;
   const mean = paeBoxMean(m, b.i0, b.i1, b.j0, b.j1);
   const swatch = (tone: keyof PaeMarkColors) =>
-    props.colors.pipe(
-      map(
-        (c) =>
-          `display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: ${hex(c[tone])}`,
-      ),
+    derive(
+      props.colors,
+      (c) =>
+        `display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: ${hex(c[tone])}`,
     );
   return (
     <div

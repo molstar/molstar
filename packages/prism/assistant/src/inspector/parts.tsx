@@ -11,7 +11,8 @@
 import type { BudgetView, TokensView } from '@molstar/ai/trace';
 import { credits, formatUsage, k } from '@molstar/ai/trace';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
-import { type Child, type MaybeReactive, onCleanup, Show } from '@molstar/prism-ui';
+import { on } from '@molstar/prism-ui/dom/scoped';
+import { type Child, type MaybeReactive, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { classes } from './_generated/parts.module.css.js';
 
@@ -175,8 +176,7 @@ export function listKeys(root: () => Element | undefined, move: (delta: number) 
     e.preventDefault();
     move(delta);
   };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  on(document, 'keydown', onKey);
 }
 
 /**

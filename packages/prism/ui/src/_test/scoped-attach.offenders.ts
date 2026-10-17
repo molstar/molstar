@@ -11,9 +11,7 @@
  * (2026-10-17; scoped-attach.test.ts): an entry only shrinks, and leaves at 0.
  */
 export const RawAttach: Record<string, number> = {
-  'extensions/model-archive/src/pae/plot.tsx': 6,
-  'packages/prism/assistant/src/inspector/parts.tsx': 1,
-  'packages/prism/assistant/src/views/agent-turn.tsx': 1,
+  'extensions/model-archive/src/pae/plot.tsx': 1,
   'packages/prism/ui/src/components/color/color-picker.tsx': 3,
   'packages/prism/ui/src/components/context-menu/context-menu.tsx': 4,
   'packages/prism/ui/src/components/icon/wordmark.tsx': 1,
