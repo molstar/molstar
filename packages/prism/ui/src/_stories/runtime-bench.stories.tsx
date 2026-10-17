@@ -9,7 +9,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { For, timeSlicing } from '../dom/control-flow.js';
 import { render } from '../dom/render.js';
 import { flush, watch } from '../dom/scope.js';
@@ -24,6 +24,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ParamsForm } from '../components/params/params-form.js';
 import { ParamsFormModel } from '../forms/params-form.js';
 
+import { derive } from '../reactive/state.js';
 const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
 
@@ -333,7 +334,7 @@ export const Runtime: StoryObj = {
             disabled={running.asReadonly}
             onClick={run}
           >
-            {running.asReadonly.pipe(map((r) => (r ? 'Running…' : 'Run')))}
+            {derive(running.asReadonly, (r) => (r ? 'Running…' : 'Run'))}
           </button>
           <table style="border-collapse: collapse;">
             <For each={results.asReadonly}>

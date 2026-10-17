@@ -9,12 +9,12 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
 import { For, Show } from '../dom/control-flow.js';
 import { onCleanup } from '../dom/scope.js';
 import { observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
 
+import { derive } from '../reactive/state.js';
 const meta: Meta = { title: 'Internals/Runtime' };
 export default meta;
 
@@ -33,11 +33,11 @@ export const Bindings: StoryObj = {
             Name <input value={name} onInput={(e) => name.set(e.currentTarget.value)} />
           </label>
           <p>
-            Hello, <b>{name}</b>! Clicked {count} {count.asReadonly.pipe(map((c) => (c === 1 ? 'time' : 'times')))}.
+            Hello, <b>{name}</b>! Clicked {count} {derive(count.asReadonly, (c) => (c === 1 ? 'time' : 'times'))}.
           </p>
           <div style="display: flex; gap: var(--msp-space-3)">
             <button onClick={() => count.set(count.value + 1)}>Increment</button>
-            <button onClick={() => count.set(0)} disabled={count.asReadonly.pipe(map((c) => c === 0))}>
+            <button onClick={() => count.set(0)} disabled={derive(count.asReadonly, (c) => c === 0)}>
               Reset
             </button>
           </div>
@@ -80,7 +80,7 @@ export const KeyedList: StoryObj = {
               }}
             </For>
           </ol>
-          <pre style="margin: 0; color: #666">{log.asReadonly.pipe(map((l) => l.join('\n')))}</pre>
+          <pre style="margin: 0; color: #666">{derive(log.asReadonly, (l) => l.join('\n'))}</pre>
         </div>
       );
     }),
@@ -94,7 +94,7 @@ export const Conditional: StoryObj = {
       return (
         <div style={box}>
           <button onClick={() => open.set(!open.value)}>
-            {open.asReadonly.pipe(map((o) => (o ? 'Hide details' : 'Show details')))}
+            {derive(open.asReadonly, (o) => (o ? 'Hide details' : 'Show details'))}
           </button>
           <Show when={open} fallback={() => <i>Details are hidden.</i>}>
             {() => <p>Details: rendered in their own scope.</p>}

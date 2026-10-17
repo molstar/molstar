@@ -20,6 +20,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { classes } from './_generated/settings-tab.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * The Settings tab: a search over every setting, then the groups by intent (essentials first), each a form that folds
  * open, then `more`. While searching, only matching rows show and their groups open; a group with no match hides.
@@ -32,9 +33,9 @@ export function SettingsTab(props: {
   const { model } = props;
   const query = observableState('');
   const q = query.asReadonly;
-  const none = q.pipe(
-    map((text) => text.trim().length > 0 && !model.groups.some((g) => paramsMatch(g.form.params, text))),
-    distinctUntilChanged(),
+  const none = derive(
+    q,
+    (text) => text.trim().length > 0 && !model.groups.some((g) => paramsMatch(g.form.params, text)),
   );
   return (
     <div class={classes.tab}>
@@ -65,18 +66,12 @@ export function SettingsTab(props: {
 function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open: boolean }) {
   const { group, query } = props;
   const own = observableState(props.open);
-  const searching = query.pipe(
-    map((t) => t.trim().length > 0),
-    distinctUntilChanged(),
-  );
+  const searching = derive(query, (t) => t.trim().length > 0);
   const open = combineLatest([own.asReadonly, searching]).pipe(
     map(([o, s]) => o || s),
     distinctUntilChanged(),
   );
-  const hidden = query.pipe(
-    map((t) => !paramsMatch(group.form.params, t)),
-    distinctUntilChanged(),
-  );
+  const hidden = derive(query, (t) => !paramsMatch(group.form.params, t));
   return (
     <section class={classes.group} hidden={hidden} aria-label={group.title}>
       <div class={classes.header}>

@@ -9,13 +9,13 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
 import { story } from '../../../testing/story-root.js';
 import { For } from '../../../dom/control-flow.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { Icon } from '../../icon/icon.js';
 import { dragToReorder } from '../drag-to-reorder.js';
 
+import { derive } from '../../../reactive/state.js';
 const meta: Meta = { title: 'Components/Drag to reorder' };
 export default meta;
 
@@ -66,7 +66,7 @@ export const Rows: StoryObj = {
               )}
             </For>
           </div>
-          <span style={readout}>order: {rows.asReadonly.pipe(map((r) => r.join(', ')))}</span>
+          <span style={readout}>order: {derive(rows.asReadonly, (r) => r.join(', '))}</span>
         </div>
       );
     }),

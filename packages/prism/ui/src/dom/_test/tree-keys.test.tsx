@@ -9,7 +9,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type FlatNode,
@@ -22,6 +21,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import { render } from '../render.js';
 import { TreeNavigation } from '../tree-keys.js';
 
+import { derive } from '../../reactive/state.js';
 // The tree's keyboard (accessibility.md) over a virtualized tree: the arrows, Home and End move across rows that are
 // not in the DOM (scrolled into view, then focused), Right and Left open, close, enter and leave, Enter does what a
 // click does; focus roves, and the tree keeps it when its row scrolls away.
@@ -99,7 +99,7 @@ function mount(selected?: string) {
             role="treeitem"
             id={r.node.id}
             aria-level={r.depth + 1}
-            aria-expanded={r.node.children ? collapsed.asReadonly.pipe(map((c) => !c.has(r.node.id))) : undefined}
+            aria-expanded={r.node.children ? derive(collapsed.asReadonly, (c) => !c.has(r.node.id)) : undefined}
             tabIndex={-1}
             ref={nav.row(r.node.id)}
           >

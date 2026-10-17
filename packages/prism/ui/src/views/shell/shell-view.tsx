@@ -36,6 +36,7 @@ import type { SplashKind } from './prism-splash.js';
 import { FileDropOverlay } from './file-drop.js';
 import { PageHost } from './page-host.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * The rail's width, and the one margin of the canvas frame (px, `--msp-canvas-edge`): every floating thing keeps it
  * from the canvas edges, the docked rail, the open panel, and the sequence card.
@@ -102,25 +103,16 @@ export interface ShellViewProps {
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
-  const compact = shell.mode.pipe(
-    map((m) => m === 'compact'),
-    distinctUntilChanged(),
-  );
+  const compact = derive(shell.mode, (m) => m === 'compact');
   const top = shell.dock('top');
   // Expanded (`view.expand`): the canvas fills the viewer; the rail, the docks and the band are left out (not rendered),
   // and the insets they take go to the frame's margin.
   const expanded = shell.expanded;
-  const shown = expanded.pipe(map((e) => !e));
+  const shown = derive(expanded, (e) => !e);
   // The right dock floats over the canvas unless it is docked, or the shell is compact (then it is a bottom sheet).
-  const floating = combineLatest([right.state, shell.mode]).pipe(
-    map(([s, mode]) => s.floating && mode !== 'compact'),
-    distinctUntilChanged(),
-  );
+  const floating = derive([right.state, shell.mode], (s, mode) => s.floating && mode !== 'compact');
   // The top dock (the sequence band) floats in the compact layout too: a band of the canvas, not a panel above it.
-  const floatingTop = top.state.pipe(
-    map((s) => s.floating),
-    distinctUntilChanged(),
-  );
+  const floatingTop = derive(top.state, (s) => s.floating);
   // A top tab with no frame is a band of the canvas area (the sequence), over the canvas' top: the canvas' own color
   // behind its lines, fading out below them (BandFadePx); the canvas' chrome goes below the lines.
   // What floats at the top (the sequence card, or the text of a band) takes this much: the snapshots and the canvas stack
@@ -187,7 +179,7 @@ export function ShellView(props: ShellViewProps) {
     map(([active, f, e]) => (f && active && !e ? 'open' : undefined)),
     distinctUntilChanged(),
   );
-  const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
+  const rightPanelWidth = derive(right.state, (s) => `${s.size}px`);
   // The canvas: quiet (transparent, its axes and all) from the start and while the empty canvas's mark and splash are
   // up, coming in gradually over its own color when something is in it (shell.module.css `.canvas[data-quiet]`); a
   // load the mark never showed for finds it shown. Keys scoped to the canvas work while the focus is in it
@@ -199,7 +191,7 @@ export function ShellView(props: ShellViewProps) {
   ) as HTMLElement;
   const canvasShown = (shown: boolean) => canvasBox.toggleAttribute('data-quiet', !shown);
   const root = (
-    <div class={classes.shell} data-mode={shell.mode} data-expanded={expanded.pipe(map((e) => (e ? '' : undefined)))}>
+    <div class={classes.shell} data-mode={shell.mode} data-expanded={derive(expanded, (e) => (e ? '' : undefined))}>
       <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => !f && !e))}>
         {() => <DockView shell={shell} dock={top} />}
       </Show>
@@ -229,17 +221,17 @@ export function ShellView(props: ShellViewProps) {
           // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
           '--msp-canvas-pinned': pinnedWidth.pipe(map((px) => `${px}px`)),
           // The canvas's own color under it: a canvas fading in (`reveal`) shows the structure coming, not the shell.
-          background: props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
+          background: props.ink ? derive(props.ink, (i) => i.color) : undefined,
         }}
       >
         {canvasBox}
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}
-          data-msp-theme={props.ink ? props.ink.pipe(map((i) => i.theme)) : 'light'}
+          data-msp-theme={props.ink ? derive(props.ink, (i) => i.theme) : 'light'}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
-            '--msp-color-bg': props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
+            '--msp-color-bg': props.ink ? derive(props.ink, (i) => i.color) : undefined,
           }}
         >
           <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => f && !e))}>
@@ -283,7 +275,7 @@ export function ShellView(props: ShellViewProps) {
           class={classes.layer}
           data-right-panel={rightPanelOpen}
           data-pinned={pinned.pipe(map((p) => (p ? '' : undefined)))}
-          data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
+          data-overlay={derive(shell.overlay, (o) => (o ? 'open' : undefined))}
         >
           <OverlayHost shell={shell} />
           {/* Over the canvas, beside the rail and the open panel (they stay, and the page makes room for them). */}

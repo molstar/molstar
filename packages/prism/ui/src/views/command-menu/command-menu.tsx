@@ -29,6 +29,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { classes } from './_generated/command-menu.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 export interface CommandMenuProps {
   manager: CommandManager<any>;
   /** Closes the command menu (Esc on an empty list, a click outside, a command that ran). */
@@ -385,13 +386,11 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     return true;
   };
 
-  const placeholder = combineLatest([text.asReadonly, group.asReadonly]).pipe(
-    map(([t, g]) => {
-      const prefix = prefixOf(t);
-      if (prefix) return prefix.placeholder ?? prefix.title;
-      return g === undefined ? 'Search commands, or type ? for help' : `Search in ${manager.groupPath(g).pop()?.title}`;
-    }),
-  );
+  const placeholder = derive([text.asReadonly, group.asReadonly], (t, g) => {
+    const prefix = prefixOf(t);
+    if (prefix) return prefix.placeholder ?? prefix.title;
+    return g === undefined ? 'Search commands, or type ? for help' : `Search in ${manager.groupPath(g).pop()?.title}`;
+  });
   const input = (
     <input
       class={classes.input}
@@ -444,7 +443,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     <>
       <div class={classes.head}>
         <Icon name="search" size={15} class={classes.headIcon} />
-        <For each={group.asReadonly.pipe(map((g) => manager.groupPath(g)))}>
+        <For each={derive(group.asReadonly, (g) => manager.groupPath(g))}>
           {(g) => (
             <button type="button" class={classes.crumb} onClick={() => enter(g.id)}>
               {g.title}
@@ -524,7 +523,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
       {props.assistant ? (
         <AskBar
           ready={props.assistant.ready()}
-          text={text.asReadonly.pipe(map((t) => (prefixOf(t) ? '' : t.trim())))}
+          text={derive(text.asReadonly, (t) => (prefixOf(t) ? '' : t.trim()))}
           unmatched={unmatched}
           onAsk={() => {
             // Not set up: the setup, whatever is typed. Set up: the words, or the input to type them in.
@@ -587,10 +586,7 @@ function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Ob
 function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup }) {
   const { manager, group } = props;
   const shared = group.shared!;
-  const value = manager.shared.pipe(
-    map(() => manager.sharedValue(group.id)),
-    distinctUntilChanged(),
-  );
+  const value = derive(manager.shared, () => manager.sharedValue(group.id));
   return (
     <div class={classes.shared} role="group" aria-label={`${group.title}: ${shared.title}`}>
       <span class={classes.sharedTitle}>{shared.title}</span>
@@ -836,10 +832,7 @@ function FormMode(props: {
   const { manager, invocation } = props;
   const state = invocation.state;
   const command = invocation.command;
-  const field = state.pipe(
-    map((s) => s.fields.find((f) => f.id === s.field)),
-    distinctUntilChanged(),
-  );
+  const field = derive(state, (s) => s.fields.find((f) => f.id === s.field));
   const listId = uniqueId('msp-command-options');
   const optionId = (i: number) => `${listId}-${i}`;
   const input = (
@@ -847,17 +840,16 @@ function FormMode(props: {
       class={classes.input}
       type="text"
       role="combobox"
-      aria-expanded={state.pipe(map((s) => s.completions.length > 0))}
+      aria-expanded={derive(state, (s) => s.completions.length > 0)}
       aria-controls={listId}
       aria-autocomplete="list"
-      aria-activedescendant={state.pipe(
-        map((s) => (s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined)),
-        distinctUntilChanged(),
+      aria-activedescendant={derive(state, (s) =>
+        s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
       )}
       aria-label={field.pipe(map((f) => f?.label ?? command.title))}
       placeholder={field.pipe(map((f) => (f ? f.label : 'Enter to run')))}
       spellcheck={false}
-      value={state.pipe(map((s) => s.text))}
+      value={derive(state, (s) => s.text)}
       onInput={(e) => invocation.type(e.currentTarget.value)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && e.altKey && command.view) {
@@ -915,7 +907,7 @@ function FormMode(props: {
         {input}
       </div>
       <div class={classes.sentence} aria-label="Arguments">
-        <For each={state.pipe(map((s) => s.fields))} key={(f) => f.id}>
+        <For each={derive(state, (s) => s.fields)} key={(f) => f.id}>
           {(f) => (
             <FieldToken
               field={f}
@@ -935,11 +927,11 @@ function FormMode(props: {
           </button>
         ) : null}
         <button type="button" class={classes.run} onClick={() => void invocation.enter()}>
-          {state.pipe(map((s) => s.action))}
+          {derive(state, (s) => s.action)}
           <kbd>↵</kbd>
         </button>
       </div>
-      <Show when={state.pipe(map((s) => s.error))}>
+      <Show when={derive(state, (s) => s.error)}>
         {(err) => (
           <p class={classes.error} role="alert">
             {err.message}
@@ -954,13 +946,13 @@ function FormMode(props: {
         role="listbox"
         aria-label="Options"
       >
-        <For each={state.pipe(map((s) => s.completions))}>
+        <For each={derive(state, (s) => s.completions)}>
           {(c, i) => (
             <div
-              id={i.pipe(map(optionId))}
+              id={derive(i, optionId)}
               class={classes.row}
               role="option"
-              aria-selected={combineLatest([state, i]).pipe(map(([s, j]) => s.pick === j))}
+              aria-selected={derive([state, i], (s, j) => s.pick === j)}
               onClick={() => invocation.accept(i.value)}
               onPointerMove={() => invocation.point(i.value)}
             >
@@ -971,11 +963,12 @@ function FormMode(props: {
           )}
         </For>
       </ScrollArea>
-      <Show when={state.pipe(map((s) => s.formOnly.length > 0))}>
+      <Show when={derive(state, (s) => s.formOnly.length > 0)}>
         {() => (
           <p class={classes.more}>
-            {state.pipe(
-              map((s) => `+ ${s.formOnly.length} more option${s.formOnly.length > 1 ? 's' : ''} at their defaults`),
+            {derive(
+              state,
+              (s) => `+ ${s.formOnly.length} more option${s.formOnly.length > 1 ? 's' : ''} at their defaults`,
             )}
           </p>
         )}

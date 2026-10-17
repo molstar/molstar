@@ -26,6 +26,7 @@ import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
+import { derive } from '../../reactive/state.js';
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
 export function DockView(props: {
   shell: ShellModel;
@@ -34,15 +35,15 @@ export function DockView(props: {
 }) {
   const { shell, dock } = props;
   const horizontal = dock.id === 'top' || dock.id === 'bottom';
-  const hasTabs = dock.tabs.pipe(map((tabs) => tabs.length > 0));
-  const compact = shell.mode.pipe(map((m) => m === 'compact' && dock.id === 'right'));
+  const hasTabs = derive(dock.tabs, (tabs) => tabs.length > 0);
+  const compact = derive(shell.mode, (m) => m === 'compact' && dock.id === 'right');
   // Compact: only the tabs that ask for the bar (the rest are under More); elsewhere all of them.
   const compactTabs = combineLatest([dock.tabs, compact]).pipe(
     map(([tabs, c]) => (c && tabs.some((t) => t.compactBar) ? tabs.filter((t) => t.compactBar) : tabs)),
   );
   // A top or bottom dock with one tab needs no strip: its content collapses itself, and a slim bar expands it.
   const showStrip = horizontal
-    ? combineLatest([dock.tabs, dock.active]).pipe(map(([tabs, active]) => tabs.length > 1 && !!active))
+    ? derive([dock.tabs, dock.active], (tabs, active) => tabs.length > 1 && !!active)
     : of(true);
   const panelId = uniqueId('msp-panel');
   let pinned: HTMLElement | undefined;
@@ -52,7 +53,7 @@ export function DockView(props: {
         <div
           class={`${classes.dock} ${classes[dock.id]}`}
           classList={{ [classes.compact]: compact }}
-          style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
+          style={{ '--msp-dock-size': derive(dock.state, (s) => `${s.size}px`) }}
           ref={(el) => {
             pinned = el;
           }}
@@ -106,7 +107,7 @@ export function FloatingDock(props: {
   railFoot?: (rail: RailLayout) => Child;
 }) {
   const { shell, dock } = props;
-  const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
+  const size = { '--msp-dock-size': derive(dock.state, (s) => `${s.size}px`) };
   // What does not fit the rail's height, even at its smallest size, is under More (rail.ts).
   const rail = new RailLayout(shell, dock);
   // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the command menu).
@@ -123,7 +124,7 @@ export function FloatingDock(props: {
     return (
       <div
         class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
-        classList={{ [classes.band]: dock.active.pipe(map((tab) => tab?.frame === 'none')) }}
+        classList={{ [classes.band]: derive(dock.active, (tab) => tab?.frame === 'none') }}
         style={size}
       >
         <Show when={dock.active} reveal="fade">
@@ -228,7 +229,7 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
               data-tip-side="left"
               aria-label="More"
               aria-haspopup="menu"
-              aria-expanded={menu.asReadonly.pipe(map((m) => !!m))}
+              aria-expanded={derive(menu.asReadonly, (m) => !!m)}
               onClick={(e) => rail.toggleMenu(e.currentTarget)}
               onKeyDown={(e) => {
                 // ↑ or ↓ opens it too (the menu button pattern); it opens at its first item.
@@ -381,7 +382,7 @@ function openTabMenu(shell: ShellModel, tab: ShellTab, button: HTMLElement, at?:
 function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; panel: string }) {
   const { shell, dock, tab } = props;
   // An overlay card in the right panel's place replaces it: no tab there shows selected, and a click brings the tab back.
-  const covered = dock.id === 'right' ? shell.overlay.pipe(map((o) => !!o)) : of(false);
+  const covered = dock.id === 'right' ? derive(shell.overlay, (o) => !!o) : of(false);
   const selected = combineLatest([dock.state, covered]).pipe(
     map(([s, c]) => !c && !s.collapsed && s.active === tab.id),
     distinctUntilChanged(),
@@ -421,10 +422,7 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   const { shell } = props;
   const dock = shell.dock(props.dock);
   // Embedded, nothing is pinned (shell.md §3): no pin to offer.
-  const pinnable = shell.mode.pipe(
-    map((m) => m !== 'embedded'),
-    distinctUntilChanged(),
-  );
+  const pinnable = derive(shell.mode, (m) => m !== 'embedded');
   return (
     <Show when={pinnable}>
       {() => (
@@ -434,10 +432,7 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
           class={classes.pin}
           icon={<Icon name="pin" />}
           title="Pin beside the canvas"
-          pressed={dock.state.pipe(
-            map((s) => s.pinned),
-            distinctUntilChanged(),
-          )}
+          pressed={derive(dock.state, (s) => s.pinned)}
           onClick={() => shell.setPinned(props.dock, !dock.state.value.pinned)}
         />
       )}
@@ -461,7 +456,7 @@ function DockContent(props: {
   coveredBy?: ReadonlyState<unknown>;
 }) {
   const { shell, dock, tab } = props;
-  const shown = props.coveredBy ? props.coveredBy.pipe(map((o) => !o)) : true;
+  const shown = props.coveredBy ? derive(props.coveredBy, (o) => !o) : true;
   let section: HTMLElement | undefined;
   // Whether the focus is in it. A focus lost with its nodes (a view's, removed before this content's cleanup) or with
   // its closing (made inert) still counts; one moved out, to another element or to the page (a click on the canvas),
@@ -521,9 +516,10 @@ function DockContent(props: {
       <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
         {/* Shown at a section: the content again, with that section as its focus. */}
         <Show
-          when={shell.tabFocus.pipe(
-            map((f) => ({ section: f?.tab === tab.id ? f.section : undefined })),
-            distinctUntilChanged((a, b) => a.section === b.section && !b.section),
+          when={derive(
+            shell.tabFocus,
+            (f) => ({ section: f?.tab === tab.id ? f.section : undefined }),
+            (a, b) => a.section === b.section && !b.section,
           )}
         >
           {(f) => (
@@ -558,7 +554,7 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       // From the keyboard too (WAI-ARIA's window splitter): ← and → resize by 16 px (64 with Shift).
       tabIndex={0}
       aria-label="Panel width"
-      aria-valuenow={dock.state.pipe(map((s) => Math.round(s.size)))}
+      aria-valuenow={derive(dock.state, (s) => Math.round(s.size))}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
         e.preventDefault();

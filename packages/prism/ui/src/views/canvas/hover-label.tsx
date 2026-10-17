@@ -8,12 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { For } from '../../dom/control-flow.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { HoverLabelModel } from '../../model/playback.js';
 import { classes } from './_generated/hover-label.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 const Offset = 14;
 
 /**
@@ -36,7 +36,7 @@ export function HoverLabel(props: {
     <div class={classes.label} hidden={true} role="tooltip">
       <For each={props.model.lines}>
         {(line, index) => (
-          <span class={index.pipe(map((i) => (i === 0 ? classes.primary : classes.secondary)))}>{line}</span>
+          <span class={derive(index, (i) => (i === 0 ? classes.primary : classes.secondary))}>{line}</span>
         )}
       </For>
     </div>

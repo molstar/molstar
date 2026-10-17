@@ -17,6 +17,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import { Icon } from '../icon/icon.js';
 import { Button, type ButtonProps } from './button.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * A button that runs a command by id (commands.md §7): its icon, its title and key in the tooltip, greyed with the
  * reason while the command cannot run (`when`), and gone while no such command is registered (an override removed it).
@@ -36,10 +37,7 @@ export function CommandButton(
   },
 ) {
   const { manager } = props;
-  const command = manager.commands.pipe(
-    map((all) => all.find((c) => c.id === props.command)),
-    distinctUntilChanged(),
-  );
+  const command = derive(manager.commands, (all) => all.find((c) => c.id === props.command));
   return (
     <Show when={command}>
       {(c: CommandDefinition<any>) => {

@@ -21,6 +21,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/help-panel.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 /** A mouse or touch binding, as the Help card lists it: what it does, and the input (keys and a gesture). */
 export interface InputBinding {
   action: string;
@@ -122,7 +123,7 @@ export function HelpPanel(props: {
                 manager={manager}
                 command={c}
                 editing={editing.asReadonly}
-                recording={recording.asReadonly.pipe(map((r) => r === c.id))}
+                recording={derive(recording.asReadonly, (r) => r === c.id)}
                 onRecord={() => recording.set(c.id)}
                 onRecorded={(chord) => (chord ? record(c, chord) : recording.set(undefined))}
                 onChanged={(text) => said.set(text)}
@@ -130,7 +131,7 @@ export function HelpPanel(props: {
             )}
           </For>
         </dl>
-        <Show when={editing.asReadonly.pipe(map((e) => (e ? true : undefined)))}>
+        <Show when={derive(editing.asReadonly, (e) => (e ? true : undefined))}>
           {() => (
             <div class={classes.editBar}>
               <Select

@@ -18,6 +18,7 @@ import { Icon } from '../icon/icon.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 /** An option: its value, its label, and the group it is listed under (Mol*'s option categories), if any. */
 export type SelectOption = readonly [value: string, label: string, group?: string];
 
@@ -175,7 +176,7 @@ export function OptionList(props: {
           <Icon name="chevron-right" size={13} class={classes.groupChevron} />
           <span>{name}</span>
         </button>
-        <div class={classes.groupBody} hidden={open.asReadonly.pipe(map((o) => !o))}>
+        <div class={classes.groupBody} hidden={derive(open.asReadonly, (o) => !o)}>
           {options.map(option)}
         </div>
       </div>

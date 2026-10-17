@@ -34,6 +34,7 @@ import { PinButton } from './dock-view.js';
 import { sectionsOf } from './rail.js';
 import { ViewHost } from './view-host.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
  * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the command menu above it, `rest`
@@ -116,7 +117,7 @@ export function CanvasToolbar(props: {
 
 /** Whether a button shows pressed: its overlay is open, or its own state says so. */
 function toolPressed(shell: ShellModel, item: CanvasToolbarItem): Observable<boolean> {
-  const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
+  const overlayOpen = item.overlay ? derive(shell.overlay, (o) => o?.overlay.id === item.overlay) : of(false);
   return combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
     map(([a, b]) => a || b),
     distinctUntilChanged(),
@@ -369,17 +370,20 @@ export function CanvasStack(props: {
   let folded: HTMLElement | undefined;
   const popup: StackPopup = { rows: collapsedRows(shell, props.leadMenu, () => folded ?? stack!) };
   const collapsed = shell.toolbarCollapsed;
-  const bar = activity(collapsed.pipe(map((c) => !c)), () => (
-    <div class={classes.bar}>
-      <div class={classes.frame}>
-        <ScrollArea axis="x" contentClass={classes.stackTools}>
-          {props.lead}
-          <CanvasToolbar shell={shell} part="canvas" menus={menus} />
-        </ScrollArea>
+  const bar = activity(
+    derive(collapsed, (c) => !c),
+    () => (
+      <div class={classes.bar}>
+        <div class={classes.frame}>
+          <ScrollArea axis="x" contentClass={classes.stackTools}>
+            {props.lead}
+            <CanvasToolbar shell={shell} part="canvas" menus={menus} />
+          </ScrollArea>
+        </div>
+        {props.aside}
       </div>
-      {props.aside}
-    </div>
-  )) as HTMLElement;
+    ),
+  ) as HTMLElement;
   const hasTools = popup.rows.pipe(
     map((rows) => rows.length > 0),
     distinctUntilChanged(),
@@ -421,10 +425,7 @@ export function CanvasStack(props: {
 /** The collapsed toolbar's button: opens the menu of the tools as a tool with a menu does (hover, a click, ↓ or ↑). */
 function CollapsedButton(props: { menus: ToolMenus; popup: StackPopup; ref(el: HTMLElement): void }) {
   const { menus, popup } = props;
-  const expanded = menus.open.asReadonly.pipe(
-    map((o) => o?.item === CollapsedItem),
-    distinctUntilChanged(),
-  );
+  const expanded = derive(menus.open.asReadonly, (o) => o?.item === CollapsedItem);
   return (
     <button
       type="button"
@@ -661,9 +662,9 @@ export function RailMenu(props: { shell: ShellModel }) {
   const open = observableState(false);
   const right = shell.dock('right');
   // In the bar: the command menu (the rail's leading items), then More with the tabs not in the bar and the actions.
-  const lead = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && !i.group)));
-  const actions = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && i.group)));
-  const tabs = right.tabs.pipe(map((all) => (all.some((t) => t.compactBar) ? all.filter((t) => !t.compactBar) : [])));
+  const lead = derive(shell.toolbar, (all) => all.filter((i) => i.place !== 'canvas' && !i.group));
+  const actions = derive(shell.toolbar, (all) => all.filter((i) => i.place !== 'canvas' && i.group));
+  const tabs = derive(right.tabs, (all) => (all.some((t) => t.compactBar) ? all.filter((t) => !t.compactBar) : []));
   let list: HTMLElement | undefined;
   const run = (item: CanvasToolbarItem, anchor: Element) => {
     open.set(false);
@@ -784,14 +785,15 @@ export function RailMenu(props: { shell: ShellModel }) {
  * running, its progress, and Cancel.
  */
 export function BusyOverlay(props: { status: NotificationsManager }) {
-  const task = props.status.tasks.pipe(
-    map((tasks) => tasks.find((t) => t.overlay)),
-    distinctUntilChanged((a, b) => a?.id === b?.id),
+  const task = derive(
+    props.status.tasks,
+    (tasks) => tasks.find((t) => t.overlay),
+    (a, b) => a?.id === b?.id,
   );
   return (
     <Show when={task}>
       {(first) => {
-        const live = props.status.tasks.pipe(map((tasks) => tasks.find((t) => t.id === first.id) ?? first));
+        const live = derive(props.status.tasks, (tasks) => tasks.find((t) => t.id === first.id) ?? first);
         const percent = live.pipe(map((t) => (t.progress === undefined ? undefined : Math.round(t.progress * 100))));
         return (
           <div class={classes.busy} role="alertdialog" aria-modal="true" aria-label={first.label}>
@@ -835,10 +837,7 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
  */
 export function OverlayHost(props: { shell: ShellModel }) {
   const { shell } = props;
-  const isOpen = shell.overlay.pipe(
-    map((o) => !!o),
-    distinctUntilChanged(),
-  );
+  const isOpen = derive(shell.overlay, (o) => !!o);
   return <Show when={isOpen}>{() => <OverlayCard shell={shell} />}</Show>;
 }
 
@@ -852,10 +851,7 @@ function OverlayCard(props: { shell: ShellModel }) {
   let anchor = current().anchor as HTMLElement | undefined;
   const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');
-  const pinnedState = shell.dock('right').state.pipe(
-    map((s) => s.pinned),
-    distinctUntilChanged(),
-  );
+  const pinnedState = derive(shell.dock('right').state, (s) => s.pinned);
   let frame = 0;
   const card = (
     <section
@@ -869,7 +865,7 @@ function OverlayCard(props: { shell: ShellModel }) {
     >
       <header class={classes.cardHeader}>
         <h2 class={classes.cardTitle} id={titleId}>
-          {shell.overlay.pipe(map((o) => o?.overlay.title ?? ''))}
+          {derive(shell.overlay, (o) => o?.overlay.title ?? '')}
         </h2>
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
@@ -986,7 +982,7 @@ export function StatusLine(props: { status: NotificationsManager; onOpenLog?: ()
           )
         }
       </Show>
-      <For each={status.tasks.pipe(map((tasks) => tasks.filter((t) => !t.overlay)))}>
+      <For each={derive(status.tasks, (tasks) => tasks.filter((t) => !t.overlay))}>
         {(task) => <TaskPill task={task} />}
       </For>
       {props.after}
@@ -1145,11 +1141,11 @@ function TaskPill(props: { task: StatusTask }) {
  */
 export function RailToggle(props: { shell: ShellModel }) {
   const { shell } = props;
-  const icon = shell.dock('right').tabs.pipe(
-    map((tabs) => tabs.find((t) => t.place === 'head')?.icon ?? ('prism' as const)),
-    distinctUntilChanged(),
+  const icon = derive(
+    shell.dock('right').tabs,
+    (tabs) => tabs.find((t) => t.place === 'head')?.icon ?? ('prism' as const),
   );
-  const title = shell.railOpen.pipe(map((open) => (open ? 'Hide the panel rail' : 'Show the panel rail')));
+  const title = derive(shell.railOpen, (open) => (open ? 'Hide the panel rail' : 'Show the panel rail'));
   return (
     <div class={`${classes.stack} ${classes.railToggle}`}>
       <div class={classes.frame}>

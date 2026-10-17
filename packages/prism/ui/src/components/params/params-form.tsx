@@ -36,6 +36,7 @@ import type { FieldBinding } from './field-binding.js';
 import { helpOf, withHelp } from './help.js';
 import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
+import { derive } from '../../reactive/state.js';
 /** A field's value as a control sees it: a stream, the current value, and how to change it. */
 export type { FieldBinding };
 
@@ -383,7 +384,7 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
     map((v: Asset.File | Asset.File[] | null) => (v ? (Array.isArray(v) ? v : [v]) : []).map((f) => f.name)),
   );
   return (
-    <div class={classes.file} data-dragging={dragging.asReadonly.pipe(map((d) => (d ? '' : undefined)))}>
+    <div class={classes.file} data-dragging={derive(dragging.asReadonly, (d) => (d ? '' : undefined))}>
       <button
         type="button"
         class={classes.filePick}
@@ -1130,7 +1131,7 @@ function ObjectListItem(props: {
   const { param, binding, index } = props;
   const open = observableState(false);
   return (
-    <div class={classes.item} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+    <div class={classes.item} data-open={derive(open.asReadonly, (o) => (o ? '' : undefined))}>
       {/* A click anywhere on the row opens or closes the item's params (the sliders say so; remove does not). */}
       <div class={classes.itemRow} onClick={() => open.set(!open.value)}>
         <span class={classes.itemLabel}>

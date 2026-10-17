@@ -32,6 +32,7 @@ import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
 import { mockSettings } from './settings.js';
 
+import { derive } from '../reactive/state.js';
 // The mock frame (prism-ui's own stories): the shell and its view, the status column, the theme, fullscreen, the
 // command menu, Log, Settings and Help, around a mode that fills the canvas (`mockBlankMode`: an empty one). The viewer's
 // and the assistant's stories run the real viewer instead (`@molstar/prism-viewer/testing/real-viewer`).
@@ -182,12 +183,10 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
       priority: 100,
       icon: 'sun',
       title: 'Theme',
-      face: theme.theme.pipe(
-        map((t) => {
-          const current = UIThemes.find((u) => u.id === t)!;
-          return { icon: current.icon, title: `Theme: ${current.title}` };
-        }),
-      ),
+      face: derive(theme.theme, (t) => {
+        const current = UIThemes.find((u) => u.id === t)!;
+        return { icon: current.icon, title: `Theme: ${current.title}` };
+      }),
       run: () => theme.next(),
     },
     {

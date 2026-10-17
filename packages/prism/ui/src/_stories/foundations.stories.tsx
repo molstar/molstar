@@ -9,7 +9,6 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
 import { Button } from '../components/button/button.js';
 import { Icon } from '../components/icon/icon.js';
 import { Select } from '../components/select/select.js';
@@ -17,6 +16,7 @@ import { Show } from '../dom/control-flow.js';
 import { observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
 
+import { derive } from '../reactive/state.js';
 const meta: Meta = { title: 'Overview/Foundations' };
 export default meta;
 
@@ -302,7 +302,7 @@ function FoldRow(props: { label: string; children: readonly string[] }) {
           style={{
             display: 'inline-flex',
             transition: 'transform var(--msp-motion-fast) var(--msp-ease)',
-            transform: open.asReadonly.pipe(map((o) => (o ? 'rotate(90deg)' : 'none'))),
+            transform: derive(open.asReadonly, (o) => (o ? 'rotate(90deg)' : 'none')),
           }}
         >
           <Icon name="chevron-right" size={14} />
@@ -377,10 +377,10 @@ export const Motion: StoryObj = {
             gap: 'var(--msp-space-4)',
             padding: 'var(--msp-space-5)',
             maxWidth: '960px',
-            '--msp-motion-fast': slow.asReadonly.pipe(map((s) => (s ? '500ms' : ''))),
-            '--msp-motion-base': slow.asReadonly.pipe(map((s) => (s ? '900ms' : ''))),
-            '--msp-motion-fade': slow.asReadonly.pipe(map((s) => (s ? '1800ms' : ''))),
-            '--msp-motion-reveal': slow.asReadonly.pipe(map((s) => (s ? '4500ms' : ''))),
+            '--msp-motion-fast': derive(slow.asReadonly, (s) => (s ? '500ms' : '')),
+            '--msp-motion-base': derive(slow.asReadonly, (s) => (s ? '900ms' : '')),
+            '--msp-motion-fade': derive(slow.asReadonly, (s) => (s ? '1800ms' : '')),
+            '--msp-motion-reveal': derive(slow.asReadonly, (s) => (s ? '4500ms' : '')),
           }}
         >
           <section style="display: grid; gap: var(--msp-space-3);">
@@ -413,7 +413,7 @@ export const Motion: StoryObj = {
               <h3 style={heading}>Panel (the right dock, cards)</h3>
               <p style={note}>Slides in from the side and back; a tab switch inside does not move.</p>
               <Button size="sm" onClick={() => panel.set(!panel.value)}>
-                {panel.asReadonly.pipe(map((p) => (p ? 'Close' : 'Open')))}
+                {derive(panel.asReadonly, (p) => (p ? 'Close' : 'Open'))}
               </Button>
               <div style="min-height: 120px;">
                 <Show when={panel.asReadonly} reveal="side">
@@ -450,7 +450,7 @@ export const Motion: StoryObj = {
               <h3 style={heading}>Fade (a band on the canvas)</h3>
               <p style={note}>Only its opacity moves: drawn on a canvas, it keeps its size (fade).</p>
               <Button size="sm" onClick={() => band.set(!band.value)}>
-                {band.asReadonly.pipe(map((b) => (b ? 'Hide the band' : 'Show the band')))}
+                {derive(band.asReadonly, (b) => (b ? 'Hide the band' : 'Show the band'))}
               </Button>
               <div style="height: 48px;">
                 <Show when={band.asReadonly} reveal="fade">
@@ -491,7 +491,7 @@ export const Motion: StoryObj = {
               <h3 style={heading}>Reveal (the canvas)</h3>
               <p style={note}>Quiet under the empty mark; what loads comes in over the canvas's own color.</p>
               <Button size="sm" onClick={() => quiet.set(!quiet.value)}>
-                {quiet.asReadonly.pipe(map((q) => (q ? 'Load' : 'Clear')))}
+                {derive(quiet.asReadonly, (q) => (q ? 'Load' : 'Clear'))}
               </Button>
               <div style="height: 90px; border-radius: var(--msp-radius-md); background: var(--msp-color-bg); overflow: hidden;">
                 <div
@@ -500,7 +500,7 @@ export const Motion: StoryObj = {
                     display: 'grid',
                     placeItems: 'center',
                     transition: 'opacity var(--msp-motion-reveal) var(--msp-ease)',
-                    opacity: quiet.asReadonly.pipe(map((q) => (q ? '0' : '1'))),
+                    opacity: derive(quiet.asReadonly, (q) => (q ? '0' : '1')),
                   }}
                 >
                   <Icon name="cartoon" />
