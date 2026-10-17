@@ -19,10 +19,14 @@ import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { bind, onCleanup } from '../../dom/scope.js';
+import { toNode } from '../../dom/render.js';
+import { bind, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
+import { setAttr, setText as writeText } from '../../dom/writes.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
+import type { Listenable } from '../../reactive/listen.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { classes } from './_generated/command-menu.module.css.js';
 
 export interface CommandMenuProps {
@@ -312,7 +316,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     const at = current.findIndex((r) => r.kind !== 'caption' && r.index === h);
     if (at >= 0) grow(at + 1);
   });
-  // A move of the highlight notifies the two rows it concerns, not every row.
+  // A move of the highlight tells the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
   // The highlighted command is previewed and counted (commands.md §5): that row only; none once the menu closes.
   bind(
@@ -491,33 +495,24 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
                 </div>
               );
             const i = row.index;
-            const id = optionId(i);
-            const selected = highlighted.is(i);
-            const hover = () => highlight.set(i);
-            if (row.kind === 'group')
-              return (
-                <GroupRow
-                  id={id}
-                  manager={manager}
-                  group={row.group}
-                  selected={selected}
-                  onPick={() => pick(row)}
-                  onHover={hover}
-                />
-              );
-            if (row.kind === 'item')
-              return <ItemRow id={id} item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
+            const option = {
+              id: optionId(i),
+              index: i,
+              highlight: highlight.asReadonly,
+              selected: highlighted.key(i),
+              onPick: () => pick(row),
+              onHover: () => highlight.set(i),
+            };
+            if (row.kind === 'group') return <GroupRow {...option} manager={manager} group={row.group} />;
+            if (row.kind === 'item') return <ItemRow {...option} item={row.item} />;
             return (
               <CommandRow
-                id={id}
+                {...option}
                 manager={manager}
                 row={row}
                 path={relativePath(manager, row.match.command.group, group.value)}
                 inGroup={group.value !== undefined}
                 query={text.asReadonly}
-                selected={selected}
-                onPick={() => pick(row)}
-                onHover={hover}
               />
             );
           }}
@@ -671,21 +666,34 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
   };
 }
 
-function GroupRow(props: {
+/**
+ * An option's highlight as its render writes it (rendering.md §2): `aria-selected`, and brought into view when it
+ * becomes the highlighted one (after the flush's writes, a microtask later). Returns the next `was`.
+ */
+function writeSelected(el: HTMLElement, selected: boolean, was: boolean): boolean {
+  setAttr(el, 'aria-selected', String(selected));
+  if (selected && !was) queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' }));
+  return selected;
+}
+
+/** What every option row is given: its id and index, the list's highlight, what it does. */
+interface OptionProps {
   id: string;
-  manager: CommandManager<any>;
-  group: CommandGroup;
-  selected: Observable<boolean>;
+  index: number;
+  highlight: ReadonlyState<number>;
+  /** Tells the row when it becomes or stops being the highlighted one (a move renders two rows, not all). */
+  selected: Listenable;
   onPick(): void;
   onHover(): void;
-}) {
+}
+
+function GroupRow(props: OptionProps & { manager: CommandManager<any>; group: CommandGroup }) {
   const path = props.manager.groupPath(props.group.parent).map((g) => g.title);
   const el = (
     <div
       id={props.id}
       class={classes.row}
       role="option"
-      aria-selected={props.selected}
       onClick={() => props.onPick()}
       onPointerMove={() => props.onHover()}
     >
@@ -697,24 +705,20 @@ function GroupRow(props: {
       <Icon name="chevron-right" size={14} class={classes.rowChevron} />
     </div>
   ) as HTMLElement;
-  bind(props.selected, (s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  let was = false;
+  watch([props.selected], () => {
+    was = writeSelected(el, props.highlight.value === props.index, was);
+  });
   return el;
 }
 
-function ItemRow(props: {
-  id: string;
-  item: CommandMenuItem;
-  selected: Observable<boolean>;
-  onPick(): void;
-  onHover(): void;
-}) {
+function ItemRow(props: OptionProps & { item: CommandMenuItem }) {
   const { item } = props;
   const el = (
     <div
       id={props.id}
       class={classes.row}
       role="option"
-      aria-selected={props.selected}
       onClick={() => props.onPick()}
       onPointerMove={() => props.onHover()}
     >
@@ -723,56 +727,74 @@ function ItemRow(props: {
       <span class={classes.rowMeta}>{item.detail}</span>
     </div>
   ) as HTMLElement;
-  bind(props.selected, (s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  let was = false;
+  watch([props.selected], () => {
+    was = writeSelected(el, props.highlight.value === props.index, was);
+  });
   return el;
 }
 
-function CommandRow(props: {
-  id: string;
-  manager: CommandManager<any>;
-  row: Extract<Row, { kind: 'match' }>;
-  /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
-  path: readonly string[];
-  /** Browsing a group: its captions say the categories, so a row without a deeper path shows nothing more. */
-  inGroup?: boolean;
-  query: import('rxjs').Observable<string>;
-  selected: import('rxjs').Observable<boolean>;
-  onPick(): void;
-  onHover(): void;
-}) {
+/**
+ * A command's row: its DOM made once, one `watch` render for what changes while it shows: the highlight, the query's
+ * marks in its title, and (highlighted) how much it would do in place of its path.
+ */
+function CommandRow(
+  props: OptionProps & {
+    manager: CommandManager<any>;
+    row: Extract<Row, { kind: 'match' }>;
+    /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
+    path: readonly string[];
+    /** Browsing a group: its captions say the categories, so a row without a deeper path shows nothing more. */
+    inGroup?: boolean;
+    query: ReadonlyState<string>;
+  },
+) {
+  const { manager, query } = props;
   const { match, tail } = props.row;
   const c = match.command;
   const title = match.preset ? `${c.title.replace(/…$/, '')} ${match.preset.title}` : c.title;
-  const chord = props.manager.shortcut(c);
+  const chord = manager.shortcut(c);
   const meta = match.blocked ?? (props.path.length ? props.path.join(' › ') : props.inGroup ? '' : c.category);
-  // Highlighted, how much it would do (`count`, commands.md §5) in place of its path or category.
-  const count = c.count
-    ? props.manager.browsing.pipe(
-        map((b) => (b?.id === c.id && !match.preset ? b.count : undefined)),
-        distinctUntilChanged(),
-      )
-    : undefined;
+  const titleText = document.createElement('span');
+  const metaText = document.createTextNode(meta);
   const el = (
     <div
       id={props.id}
       class={classes.row}
       role="option"
-      aria-selected={props.selected}
       aria-disabled={match.blocked ? 'true' : undefined}
       onClick={() => props.onPick()}
       onPointerMove={() => props.onHover()}
     >
       <span class={classes.rowIcon}>{c.icon ? <Icon name={c.icon} size={15} /> : null}</span>
       <span class={classes.rowTitle}>
-        {props.query.pipe(map((q) => highlight(title, tail ? '' : q)))}
+        {titleText}
         {tail ? <span class={classes.tail}>{tail}</span> : null}
       </span>
-      <span class={classes.rowMeta}>{count ? count.pipe(map((n) => n ?? meta)) : meta}</span>
+      <span class={classes.rowMeta}>{metaText}</span>
       {chord ? <kbd class={classes.keys}>{formatChord(chord)}</kbd> : null}
     </div>
   ) as HTMLElement;
-  bind(props.selected, (s) => {
-    if (s) queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' }));
+  let was = false;
+  let marked: string | undefined;
+  const sources: WatchSource[] = [props.selected];
+  if (!tail) sources.push(query);
+  // Highlighted, how much it would do (`count`, commands.md §5) in place of its path or category.
+  if (c.count && !match.preset) sources.push(manager.browsing);
+  watch(sources, () => {
+    was = writeSelected(el, props.highlight.value === props.index, was);
+    const q = tail ? '' : query.value;
+    if (q !== marked) {
+      marked = q;
+      // The marks are a few text nodes and `mark`s, no bindings: written whole (no marks: the text alone).
+      const marks = highlight(title, q);
+      if (typeof marks === 'string') titleText.textContent = marks;
+      else titleText.replaceChildren(toNode(marks));
+    }
+    if (c.count && !match.preset) {
+      const b = manager.browsing.value;
+      writeText(metaText, (b?.id === c.id ? b.count : undefined) ?? meta);
+    }
   });
   return el;
 }

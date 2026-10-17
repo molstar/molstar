@@ -17,6 +17,9 @@ import { setClass, setText } from '../dom/writes.js';
 import { keyedSelector } from '../reactive/keyed-selector.js';
 import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
+import { CommandManager } from '../commands/manager.js';
+import type { CommandDefinition } from '../commands/types.js';
+import { CommandMenu } from '../views/command-menu/command-menu.js';
 
 const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
@@ -347,4 +350,91 @@ export const Runtime: StoryObj = {
         </div>
       );
     }),
+};
+
+// --- The command menu's rows ---------------------------------------------------------------------
+
+/**
+ * Probes for a driver (`window.__mspMenu`; Playwright adds garbage collection and the heap): the command menu with
+ * `n` commands in 20 categories, mounted outside Storybook's root (its highlight addon re-scans styles on every change
+ * there). `open` times the first render; `grow` scrolls it to the end, rendering every row; `type` times keystrokes
+ * (each a new list of rows); `moves` times the highlight moving down.
+ */
+let menu: { host: HTMLElement; dispose(): void } | undefined;
+(window as any).__mspMenu = {
+  open(n = 1000) {
+    menu?.dispose();
+    const manager = new CommandManager<object>({
+      context: observableState<object>({}).asReadonly,
+      formats: { get: () => undefined },
+    });
+    const commands: CommandDefinition<object>[] = [];
+    for (let i = 0; i < n; i++)
+      commands.push({
+        id: `cmd.${i}`,
+        title: `${pick(adjectives)} ${pick(colours)} ${pick(nouns)} ${i}`,
+        category: `Category ${i % 20}`,
+        icon: 'cartoon',
+        run: () => ({ message: '' }),
+      });
+    manager.register(commands);
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 480px; height: 600px; contain: strict;';
+    document.body.append(host);
+    const t0 = performance.now();
+    const dispose = render(() => <CommandMenu manager={manager} onClose={() => {}} />, host);
+    flush();
+    const ms = performance.now() - t0;
+    menu = {
+      host,
+      dispose: () => {
+        dispose();
+        host.remove();
+      },
+    };
+    return { ms: +ms.toFixed(2), rows: host.querySelectorAll('[role=option]').length };
+  },
+  /** Scrolls the list to its end until every row is rendered. */
+  async grow() {
+    const vp = menu!.host.querySelector<HTMLElement>('[role=listbox]')!.closest('[data-axis]')!
+      .firstElementChild as HTMLElement;
+    for (let k = 0; k < 400; k++) {
+      const before = menu!.host.querySelectorAll('[role=option]').length;
+      vp.scrollTop = vp.scrollHeight;
+      vp.dispatchEvent(new Event('scroll'));
+      flush();
+      await frame();
+      if (menu!.host.querySelectorAll('[role=option]').length === before) break;
+    }
+    return menu!.host.querySelectorAll('[role=option]').length;
+  },
+  type(text: string) {
+    const input = menu!.host.querySelector('input')!;
+    const times: number[] = [];
+    for (let i = 1; i <= text.length; i++) {
+      const t0 = performance.now();
+      input.value = text.slice(0, i);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      flush();
+      times.push(performance.now() - t0);
+    }
+    return {
+      msPerKey: +(times.reduce((a, b) => a + b, 0) / times.length).toFixed(2),
+      rows: menu!.host.querySelectorAll('[role=option]').length,
+    };
+  },
+  moves(k = 50) {
+    const input = menu!.host.querySelector('input')!;
+    const t0 = performance.now();
+    for (let i = 0; i < k; i++) {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      flush();
+    }
+    return { msPerMove: +((performance.now() - t0) / k).toFixed(3) };
+  },
+  close() {
+    menu?.dispose();
+    menu = undefined;
+  },
 };

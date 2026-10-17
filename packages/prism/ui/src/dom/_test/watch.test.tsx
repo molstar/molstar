@@ -11,6 +11,7 @@
 
 import { BehaviorSubject, Observable } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { mapState } from '../../reactive/map-state.js';
 import { batch, observableState } from '../../reactive/observable-state.js';
 import { render } from '../render.js';
@@ -260,6 +261,22 @@ describe('watch', () => {
     expect(text.data).toBe('1');
     dispose();
     container.remove();
+  });
+
+  it("a keyed selector's key tells only the rows a change concerns", () => {
+    const current = observableState(0);
+    const selector = keyedSelector(current.asReadonly);
+    const renders = [0, 0, 0];
+    const root = new Scope();
+    for (let i = 0; i < 3; i++) runInScope(root, () => watch([selector.key(i)], () => renders[i]++));
+    expect(renders).toEqual([1, 1, 1]);
+    current.set(2);
+    flush();
+    expect(renders).toEqual([2, 1, 2]);
+    root.dispose();
+    current.set(1);
+    flush();
+    expect(renders).toEqual([2, 1, 2]);
   });
 
   it('throws outside a scope', () => {

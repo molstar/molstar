@@ -7,7 +7,7 @@
  */
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
-import { listen } from '../reactive/listen.js';
+import { type Listenable, listen } from '../reactive/listen.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
@@ -106,14 +106,14 @@ export function flush(): void {
  * after a change; stopped (its scope paused), it holds no listener.
  */
 class Watcher extends Live {
-  readonly #sources: readonly (Observable<unknown> | ReadonlyState<unknown>)[];
+  readonly #sources: readonly (Observable<unknown> | ReadonlyState<unknown> | Listenable)[];
   readonly #render: () => void;
   #stops: (() => void)[] | undefined;
   #live = false;
   #dead = false;
   constructor(
     readonly depth: number,
-    sources: readonly (Observable<unknown> | ReadonlyState<unknown>)[],
+    sources: readonly (Observable<unknown> | ReadonlyState<unknown> | Listenable)[],
     render: () => void,
   ) {
     super();
@@ -289,9 +289,11 @@ export class Scope {
 
   /** `watch` in this scope. */
   watch(sources: readonly WatchSource[], render: () => void): void {
-    const streams: (Observable<unknown> | ReadonlyState<unknown>)[] = [];
+    const streams: (Observable<unknown> | ReadonlyState<unknown> | Listenable)[] = [];
     for (const s of sources) {
-      const stream = toStream(s);
+      const stream =
+        toStream(s as MaybeReactive<unknown>) ??
+        (typeof (s as Listenable).listen === 'function' ? (s as Listenable) : undefined);
       if (stream) streams.push(stream);
     }
     const watcher = new Watcher(this.depth, streams, render);
@@ -439,8 +441,11 @@ export function bind<T>(source: MaybeReactive<T>, fn: (value: T) => void): void 
   requireScope().bind(stream, fn);
 }
 
-/** What a `watch` follows: a state (its `listen`), a writable state, or any stream (subscribed). */
-export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Observable<unknown>;
+/**
+ * What a `watch` follows: a state (its `listen`), a writable state, anything else with `listen` (a keyed selector's
+ * key), or any stream (subscribed).
+ */
+export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Observable<unknown> | Listenable;
 
 /**
  * A view as a function of its state (rendering.md §2): `render` reads the current values (`state.value`) and writes
