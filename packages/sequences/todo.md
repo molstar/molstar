@@ -325,6 +325,13 @@ Known, measured, unowned: whoever next touches the code takes one, and its commi
     context makes the manager always and ~30 viewer modules read it. Not worth the refactor for Prism's band (David
     decided its default is everything but streaming, 2026-10-16: it keeps the default until a trim pays).
 
+- **A frame layer's titles read every item's hull per line** (`renderers/frame.ts`, `draw`; found 2026-10-17): the outer
+  loop calls `runHull` on each item of the layer for every line drawn, O(items) a line, so a wrapped view of many lines
+  and thousands of titled frames reads lines × items hulls a frame. The search for the next title stops at the line's
+  end (2026-10-17); the outer loop could start at the line's first item, a binary search over the items' starts on a
+  forward block, once a cyclic block's origin (its shown order wraps) is handled. _Trigger:_ a document with thousands
+  of frames in the text, or the figure's quick case above its baseline.
+
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates
   meanwhile, the wrapped lanes' draw 130 bytes a frame for its first 14,000 frames, a hover 9 to 26 bytes a move for

@@ -97,10 +97,17 @@ function draw(v: DrawView, f: FrameFeatures, p: Params) {
     const hi = hiOf(v, b);
     if (hull[0] < lo || hull[0] >= hi) continue;
     const x = v.xd(b, hull[0]) + Math.round(2 * dpr);
-    // Up to the next title on this block, else the line's end (the view's right edge).
+    // Up to the next title on this block, else the line's end (the view's right edge). The items are sorted by start
+    // (prepare.ts): on a forward block their shown starts ascend, so past the line none later is in it; a reversed
+    // block's shown start is its item's stop side, in no order.
     let end = rightOf(v, b, hi);
+    const forward = v.dir[b] > 0;
     for (let j = k + 1; j < f.count && f.block[j] === b; j++) {
-      if (f.label[j] === null || f.start[j] < f.start[k] || !hullOf(v, f, j) || hull[0] >= hi) continue;
+      if (f.label[j] === null || !hullOf(v, f, j)) continue;
+      if (hull[0] >= hi) {
+        if (forward) break;
+        continue;
+      }
       if (hull[0] > lo) {
         end = Math.min(end, v.xd(b, hull[0]) - Math.round(4 * dpr));
         break;
