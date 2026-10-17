@@ -9,6 +9,7 @@
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
+import { followCanvasPresence, unfollowCanvasPresence } from './canvas-presence.js';
 
 // The canvas in a page's viewer. Resizes (README decision 28): the plugin waits out a 50 ms debounce and a 100 ms
 // throttle, and sizing the canvas element clears it, so the frame after is blank until the next draw. Here the host's
@@ -24,11 +25,13 @@ export async function mountCanvas(plugin: PluginContext, host: HTMLElement): Pro
   if (ok) {
     smoothResizes(plugin);
     longPress(plugin);
+    followCanvasPresence(plugin);
   }
   return ok;
 }
 
 export function unmountCanvas(plugin: PluginContext): void {
+  unfollowCanvasPresence(plugin);
   observers.get(plugin)?.disconnect();
   observers.delete(plugin);
   presses.get(plugin)?.();

@@ -505,3 +505,12 @@ the [API change ledger](breaking-v6-changes.md).
   own lead buttons (the viewer's Interact, Select and picking level).
 - prism-ui: the canvas toolbar's menus and submenus are as tall as the room between the canvas's top and their button and
   scroll inside it, instead of running off the top of a short viewer.
+
+## Prism: a viewer's canvas works only in view
+
+- A viewer's 3D canvas stops its animation loop while it is out of view (scrolled away, in a hidden tab, in a collapsed
+  panel) and starts again, drawing once, when it comes back.
+- Many viewers on one page share the browser's WebGL contexts: 12 are kept live, viewers out of view release theirs
+  past that (the longest unseen first), and a viewer scrolled back into view gets its context back, so the page never
+  passes the browser's limit (Chrome 16) and no viewer in view stays black. The story Viewer › Several viewers › Fifty
+  viewers shows it.
