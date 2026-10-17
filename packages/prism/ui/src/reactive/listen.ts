@@ -11,7 +11,7 @@ import type { ReadonlyState } from './readonly-state.js';
 
 /** Anything that tells of its changes with a plain callback (a state; a keyed selector's key). */
 export interface Listenable {
-  listen(fn: () => void): () => void;
+  listen(fn: (value?: any) => void): () => void;
 }
 
 /**

@@ -12,9 +12,9 @@ import type { Observable } from 'rxjs';
 export type ReadonlyState<T> = Observable<T> & {
   readonly value: T;
   /**
-   * Calls `fn` after the state may have changed (no value: read `value`), until the returned function is called. A
-   * plain callback, not an rxjs subscription: what `watch` listens with (rendering.md §2). States made by
-   * `observableState` and `mapState` have it; `listen` (reactive/listen.ts) takes any stream.
+   * Calls `fn` with each new value until the returned function is called: a plain callback, not an rxjs subscription
+   * (rendering.md §2.2). States (`observableState`, `State`) and derived values (`derive`, `mapState`) have it;
+   * `listen` (reactive/listen.ts) takes any stream.
    */
-  readonly listen?: (fn: () => void) => () => void;
+  readonly listen?: (fn: (value: T) => void) => () => void;
 };

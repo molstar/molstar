@@ -1,0 +1,403 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { Observable, type Subscriber } from 'rxjs';
+import type { ReadonlyState } from './readonly-state.js';
+
+// The reactive base (rendering.md §2.2, view-models.md §3): a state is its latest value plus a plain array of
+// listeners. Nothing on its path is rxjs: `listen` is a callback, `derive` follows other states by `listen`. rxjs is the
+// boundary: a state is also an `Observable` (`asObservable`, made by subscribing: one listener per subscriber), and
+// `toState` turns a stream at a model's edge into a state, once.
+
+/** A listener: told each value set, in order (one set inside a delivery is told after it). */
+export type Listener<T> = (value: T) => void;
+
+/**
+ * The listeners of a state or a derived value: a plain array, removals leave a hole (cleared when the next delivery
+ * ends), so a listener removed or added while others are told is safe.
+ */
+abstract class Listened<T> extends Observable<T> {
+  #listeners: (Listener<T> | undefined)[] | undefined;
+  #holes = 0;
+  #telling = 0;
+
+  abstract get value(): T;
+
+  get asObservable(): Observable<T> {
+    return this;
+  }
+
+  /** Whether anything listens (a derived value follows its sources only then). */
+  protected get listened(): boolean {
+    return !!this.#listeners && this.#listeners.length > this.#holes;
+  }
+
+  /** Calls `fn` with each new value until the returned function is called. */
+  listen(fn: Listener<T>): () => void {
+    const first = !this.listened;
+    (this.#listeners ??= []).push(fn);
+    if (first) this.onFirst();
+    let on = true;
+    return () => {
+      if (!on) return;
+      on = false;
+      const list = this.#listeners!;
+      const i = list.lastIndexOf(fn);
+      if (i < 0) return;
+      if (this.#telling > 0) {
+        list[i] = undefined;
+        this.#holes++;
+      } else list.splice(i, 1);
+      if (!this.listened) this.onLast();
+    };
+  }
+
+  /** Before the first listener (a derived value starts following its sources). */
+  protected onFirst(): void {}
+  /** After the last listener went. */
+  protected onLast(): void {}
+
+  protected tell(value: T): void {
+    const list = this.#listeners;
+    if (!list || list.length === 0) return;
+    this.#telling++;
+    try {
+      // Those added meanwhile are told the next value, not this one.
+      for (let i = 0, n = list.length; i < n; i++) {
+        const fn = list[i];
+        if (!fn) continue;
+        try {
+          fn(value);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } finally {
+      if (--this.#telling === 0 && this.#holes > 0) {
+        this.#listeners = list.filter((f) => f !== undefined);
+        this.#holes = 0;
+      }
+    }
+  }
+
+  /** The rxjs boundary: a subscriber gets the current value, then each new one (one listener per subscriber). */
+  protected _subscribe(subscriber: Subscriber<T>) {
+    subscriber.next(this.value);
+    return this.listen((v) => subscriber.next(v));
+  }
+}
+
+// --- Batching ------------------------------------------------------------------------------------
+
+let batchDepth = 0;
+/** States set in the running batch, each with its delivery (in the order first set). */
+const batched = new Map<object, () => void>();
+
+/**
+ * Runs `fn` with state changes held: each state set inside is told once, with its final value, when the outermost
+ * batch ends (in the order first set); one set back to where it started tells nothing. Reads inside see the new
+ * values. Synchronous: nothing is deferred past `fn`. For code that sets several states (or one several times) for one
+ * change, so what follows them sees it once.
+ */
+export function batch<T>(fn: () => T): T {
+  batchDepth++;
+  try {
+    return fn();
+  } finally {
+    if (--batchDepth === 0) {
+      // A delivery may set states (and batch) again: drain until nothing is held.
+      while (batched.size > 0) {
+        const deliveries = [...batched.values()];
+        batched.clear();
+        for (const deliver of deliveries) deliver();
+      }
+    }
+  }
+}
+
+// --- State ---------------------------------------------------------------------------------------
+
+/**
+ * A writable state. `set` compares with the latest value (`compare`), and a set while the state's listeners are told
+ * is queued and told after, so every listener gets the values in the order they were set and ends on the latest; in a
+ * `batch`, it is held and told once when the batch ends.
+ */
+export class State<T> extends Listened<T> implements ReadonlyState<T> {
+  #value: T;
+  readonly #compare: (a: T, b: T) => boolean;
+  #queued: T[] | undefined;
+  #delivering = false;
+  #held: { value: T } | undefined;
+
+  constructor(initial: T, compare: (a: T, b: T) => boolean = Object.is) {
+    super();
+    this.#value = initial;
+    this.#compare = compare;
+  }
+
+  get value(): T {
+    return this.#held ? this.#held.value : this.#value;
+  }
+
+  #view: ReadonlyState<T> | undefined;
+
+  /** The state as its readers see it (made on first use): its value, `listen`, a stream; no `set`. */
+  get asReadonly(): ReadonlyState<T> {
+    return (this.#view ??= new View(this));
+  }
+
+  #latest(): T {
+    if (this.#held) return this.#held.value;
+    const q = this.#queued;
+    return q && q.length > 0 ? q[q.length - 1] : this.#value;
+  }
+
+  readonly #deliverHeld = () => {
+    const h = this.#held;
+    this.#held = undefined;
+    if (h) this.set(h.value);
+  };
+
+  set(value: T): void {
+    if (batchDepth > 0) {
+      if (this.#held) this.#held.value = value;
+      else if (!this.#compare(this.#latest(), value)) {
+        this.#held = { value };
+        batched.set(this, this.#deliverHeld);
+      }
+      return;
+    }
+    if (this.#compare(this.#latest(), value)) return;
+    if (this.#delivering) {
+      (this.#queued ??= []).push(value);
+      return;
+    }
+    this.#delivering = true;
+    try {
+      this.#value = value;
+      this.tell(value);
+      const q = this.#queued;
+      while (q && q.length > 0) {
+        const next = q.shift() as T;
+        this.#value = next;
+        this.tell(next);
+      }
+    } finally {
+      this.#delivering = false;
+      if (this.#queued) this.#queued.length = 0;
+    }
+  }
+}
+
+/** A record's state: `update` sets the fields given, when any differs. */
+export class RecordState<T extends Record<string, unknown>> extends State<T> {
+  update(partial: Partial<T>): void {
+    const current = this.value as Record<string, unknown>;
+    for (const key of Object.keys(partial)) {
+      if (!Object.is(current[key], (partial as Record<string, unknown>)[key])) {
+        this.set({ ...current, ...partial } as T);
+        return;
+      }
+    }
+  }
+}
+
+/** A state's readonly view: everything but `set`, delegated (it holds nothing of its own). */
+class View<T> extends Observable<T> implements ReadonlyState<T> {
+  readonly #state: State<T>;
+  constructor(state: State<T>) {
+    super();
+    this.#state = state;
+  }
+  get value(): T {
+    return this.#state.value;
+  }
+  get asObservable(): Observable<T> {
+    return this;
+  }
+  listen(fn: Listener<T>): () => void {
+    return this.#state.listen(fn);
+  }
+  protected _subscribe(subscriber: Subscriber<T>) {
+    subscriber.next(this.#state.value);
+    return this.#state.listen((v) => subscriber.next(v));
+  }
+}
+
+// --- derive --------------------------------------------------------------------------------------
+
+type Values<S extends readonly ReadonlyState<unknown>[]> = {
+  [K in keyof S]: S[K] extends ReadonlyState<infer V> ? V : never;
+};
+
+/**
+ * A value derived from states: lazy and hot. While nothing listens, `value` computes it from the sources' current
+ * values and nothing is held; while something listens, it follows its sources (`listen`), keeps the value, and tells
+ * its listeners only when it differs (`same`, `Object.is` by default). One derived value is shared by everything that
+ * uses it. `derive(a, f)` replaces `a.pipe(map(f), distinctUntilChanged())`; `derive([a, b], f)` replaces
+ * `combineLatest([a, b]).pipe(map(f))`.
+ */
+export function derive<S, T>(
+  source: ReadonlyState<S>,
+  fn: (value: S) => T,
+  same?: (a: T, b: T) => boolean,
+): ReadonlyState<T>;
+export function derive<const S extends readonly ReadonlyState<unknown>[], T>(
+  sources: S,
+  fn: (...values: Values<S>) => T,
+  same?: (a: T, b: T) => boolean,
+): ReadonlyState<T>;
+export function derive(
+  sources: ReadonlyState<unknown> | readonly ReadonlyState<unknown>[],
+  fn: (...values: any[]) => unknown,
+  same: (a: unknown, b: unknown) => boolean = Object.is,
+): ReadonlyState<unknown> {
+  return Array.isArray(sources)
+    ? new Derived(sources as readonly ReadonlyState<unknown>[], fn, same)
+    : new Derived1(sources as ReadonlyState<unknown>, fn, same);
+}
+
+/** What `derive` follows its sources with: their `listen`, or (a stream without one) a subscription. */
+function follow(source: ReadonlyState<unknown>, fn: () => void): () => void {
+  if (typeof source.listen === 'function') return source.listen(fn);
+  let subscribing = true;
+  const sub = source.subscribe(() => {
+    if (!subscribing) fn();
+  });
+  subscribing = false;
+  return () => sub.unsubscribe();
+}
+
+/** One source (the common case: no array, no spread). */
+class Derived1<S, T> extends Listened<T> implements ReadonlyState<T> {
+  #cached!: T;
+  /** The source's value the cache was computed from: a source whose value runs ahead of its telling is still read right. */
+  #from: S | undefined;
+  #stop: (() => void) | undefined;
+  constructor(
+    readonly source: ReadonlyState<S>,
+    readonly fn: (value: S) => T,
+    readonly same: (a: T, b: T) => boolean,
+  ) {
+    super();
+  }
+
+  get value(): T {
+    const v = this.source.value;
+    if (this.#stop && Object.is(v, this.#from)) return this.#cached;
+    return this.fn(v);
+  }
+
+  readonly #changed = () => {
+    const v = this.source.value;
+    const next = this.fn(v);
+    this.#from = v;
+    if (this.same(this.#cached, next)) return;
+    this.#cached = next;
+    this.tell(next);
+  };
+
+  protected override onFirst() {
+    const v = this.source.value;
+    this.#from = v;
+    this.#cached = this.fn(v);
+    this.#stop = follow(this.source, this.#changed);
+  }
+
+  protected override onLast() {
+    const stop = this.#stop;
+    this.#stop = undefined;
+    this.#from = undefined;
+    stop?.();
+  }
+}
+
+class Derived<T> extends Listened<T> implements ReadonlyState<T> {
+  #cached!: T;
+  #from: unknown[] = [];
+  #stops: (() => void)[] | undefined;
+  constructor(
+    readonly sources: readonly ReadonlyState<unknown>[],
+    readonly fn: (...values: unknown[]) => T,
+    readonly same: (a: T, b: T) => boolean,
+  ) {
+    super();
+  }
+
+  #compute(): T {
+    const s = this.sources;
+    switch (s.length) {
+      case 1:
+        return this.fn(s[0].value);
+      case 2:
+        return this.fn(s[0].value, s[1].value);
+      case 3:
+        return this.fn(s[0].value, s[1].value, s[2].value);
+      default:
+        return this.fn(...s.map((x) => x.value));
+    }
+  }
+
+  #current(): boolean {
+    const s = this.sources;
+    for (let i = 0; i < s.length; i++) if (!Object.is(s[i].value, this.#from[i])) return false;
+    return true;
+  }
+
+  #remember() {
+    const s = this.sources;
+    for (let i = 0; i < s.length; i++) this.#from[i] = s[i].value;
+  }
+
+  get value(): T {
+    return this.#stops && this.#current() ? this.#cached : this.#compute();
+  }
+
+  readonly #changed = () => {
+    this.#remember();
+    const next = this.#compute();
+    if (this.same(this.#cached, next)) return;
+    this.#cached = next;
+    this.tell(next);
+  };
+
+  protected override onFirst() {
+    this.#remember();
+    this.#cached = this.#compute();
+    this.#stops = this.sources.map((s) => follow(s, this.#changed));
+  }
+
+  protected override onLast() {
+    const stops = this.#stops;
+    this.#stops = undefined;
+    if (stops) for (const stop of stops) stop();
+  }
+}
+
+// --- toState -------------------------------------------------------------------------------------
+
+/** A state fed by a stream, with what stops it. */
+export type FedState<T> = ReadonlyState<T> & { dispose(): void };
+
+/**
+ * The boundary from rxjs: a state that holds `initial`, then each value `source` emits (one subscription, made now, at
+ * a model's or a source's edge: Mol*'s events, a `switchMap` over models). Views get the state, never the stream.
+ * `dispose` ends the subscription.
+ */
+export function toState<T>(source: Observable<T>, initial: T, compare?: (a: T, b: T) => boolean): FedState<T> {
+  const state = new State(initial, compare);
+  const sub = source.subscribe((v) => state.set(v));
+  return Object.assign(state as ReadonlyState<T>, { dispose: () => sub.unsubscribe() });
+}
+
+/** Whether a value is a state (or derived): something with a current `value` and `listen`. */
+export function isState(
+  value: unknown,
+): value is ReadonlyState<unknown> & { listen: (fn: Listener<unknown>) => () => void } {
+  return value instanceof Listened;
+}

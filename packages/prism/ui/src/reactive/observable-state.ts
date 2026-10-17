@@ -6,15 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BehaviorSubject } from 'rxjs';
-
-import { isPlainRecord, sameShallow } from './same-shallow.js';
 import type { ReadonlyState } from './readonly-state.js';
+import { isPlainRecord, sameShallow } from './same-shallow.js';
+import { RecordState, State } from './state.js';
+
+export { batch } from './state.js';
 
 export type ObservableStateOptions<T> = {
   readonly compare?: (left: T, right: T) => boolean;
 };
 
+/** A writable state (`State`, reactive/state.ts): its value, its readers' view, `set`. */
 export type ObservableState<T> = {
   readonly value: T;
   readonly asReadonly: ReadonlyState<T>;
@@ -25,122 +27,18 @@ export type ObservableRecordState<T extends Record<string, unknown>> = Observabl
   update(partial: Partial<T>): void;
 };
 
-function hasPartialChange<T extends Record<string, unknown>>(current: T, partial: Partial<T>): boolean {
-  for (const key of Object.keys(partial) as (keyof T)[]) {
-    if (!Object.is(current[key], partial[key])) return true;
-  }
-  return false;
-}
-
-// --- Batching ------------------------------------------------------------------------------------
-
-let batchDepth = 0;
-/** States set in the running batch, each with its delivery (in the order first set). */
-const batched = new Map<object, () => void>();
-
 /**
- * Runs `fn` with state changes held: each state set inside emits once, with its final value, when the outermost batch
- * ends (in the order first set); one set back to where it started emits nothing. Reads inside see the new values.
- * Synchronous: nothing is deferred past `fn`. For code that sets several states (or one several times) for one change,
- * so views render it once.
+ * A writable state (rendering.md §2.2): the latest value plus its listeners, no rxjs on its path. `compare` decides
+ * what is no change (shallow by default). A record's state has `update`.
  */
-export function batch<T>(fn: () => T): T {
-  batchDepth++;
-  try {
-    return fn();
-  } finally {
-    if (--batchDepth === 0) {
-      // A delivery may set states (and batch) again: drain until nothing is held.
-      while (batched.size > 0) {
-        const deliveries = [...batched.values()];
-        batched.clear();
-        for (const deliver of deliveries) deliver();
-      }
-    }
-  }
-}
-
 export function observableState<T extends Record<string, unknown>>(
   initial: T,
   options?: ObservableStateOptions<T>,
 ): ObservableRecordState<T>;
 export function observableState<T>(initial: T, options?: ObservableStateOptions<T>): ObservableState<T>;
 export function observableState<T>(initial: T, options?: ObservableStateOptions<T>): ObservableState<T> {
-  const subject = new BehaviorSubject(initial);
-  const asReadonly = subject.asObservable() as ReadonlyState<T>;
-  // Listeners (`listen`): plain callbacks, told after each change (no value, no rxjs Subscriber), for `watch`.
-  let listeners: Set<() => void> | undefined;
-  const listen = (fn: () => void) => {
-    // A wrapper per call: the same function listening twice is told twice and stops once per call.
-    const entry = () => fn();
-    (listeners ??= new Set()).add(entry);
-    return () => {
-      listeners?.delete(entry);
-    };
-  };
-  const notify = () => {
-    if (!listeners || listeners.size === 0) return;
-    for (const fn of listeners) {
-      try {
-        fn();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-  Object.defineProperty(asReadonly, 'value', { get: () => state.value });
-  Object.defineProperty(asReadonly, 'listen', { value: listen });
   const compare = options?.compare ?? sameShallow;
-  // A set during a delivery (from a subscriber) is queued and delivered after
-  // it, so every subscriber gets the values in the order they were set and ends on the latest; a
-  // set compares with the latest value, queued or delivered.
-  const queued: T[] = [];
-  let delivering = false;
-  // Held by a batch: the value set last, delivered when the batch ends.
-  let held: { value: T } | undefined;
-  const latest = () => (held ? held.value : queued.length > 0 ? (queued[queued.length - 1] as T) : subject.getValue());
-  const deliverHeld = () => {
-    const h = held;
-    held = undefined;
-    if (h) state.set(h.value);
-  };
-  const state: ObservableState<T> = {
-    get value() {
-      return held ? held.value : subject.getValue();
-    },
-    asReadonly,
-    set(value) {
-      if (batchDepth > 0) {
-        if (held) held.value = value;
-        else if (!compare(latest(), value)) {
-          held = { value };
-          batched.set(state, deliverHeld);
-        }
-        return;
-      }
-      if (compare(latest(), value)) return;
-      if (delivering) {
-        queued.push(value);
-        return;
-      }
-      delivering = true;
-      try {
-        subject.next(value);
-        while (queued.length > 0) subject.next(queued.shift() as T);
-      } finally {
-        delivering = false;
-        queued.length = 0;
-      }
-      // After the subscribers, and outside the delivery: a listener that sets the state sets it anew.
-      notify();
-    },
-  };
-  if (!isPlainRecord(initial)) return state;
-  return Object.assign(state, {
-    update(partial: Partial<T>) {
-      const current = latest();
-      if (!isPlainRecord(current) || !hasPartialChange(current, partial as Partial<Record<string, unknown>>)) return;
-      state.set({ ...current, ...partial } as T);
-    },
-  });
+  return isPlainRecord(initial)
+    ? (new RecordState(initial as Record<string, unknown>, compare as never) as unknown as ObservableState<T>)
+    : new State(initial, compare);
 }

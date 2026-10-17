@@ -19,12 +19,13 @@ abstract class Live implements Unsubscribable {
 }
 
 /**
- * A binding's subscription that can be stopped and started again with its scope's activity (`Scope.setActive`): stopped
- * it holds no subscription (nothing runs for it), started it subscribes `fn` itself, so an update costs what it always
- * did.
+ * A binding that can be stopped and started again with its scope's activity (`Scope.setActive`): stopped it holds
+ * nothing (nothing runs for it), started it writes the current value and follows the changes. A state (or a derived
+ * value) is followed by its `listen`, a plain callback; any other stream (the exception: rendering.md §2.3) by an rxjs
+ * subscription, which replays its current value.
  */
 class Binding<T> extends Live {
-  #sub: Subscription | undefined;
+  #stop: (() => void) | Subscription | undefined;
   #live = false;
   #dead = false;
   constructor(
@@ -37,17 +38,25 @@ class Binding<T> extends Live {
   start() {
     if (this.#live || this.#dead) return;
     this.#live = true;
+    const source = this.stream as Observable<T> & Partial<ReadonlyState<T>>;
+    if (typeof source.listen === 'function') {
+      // `fn` may stop the binding meanwhile.
+      this.fn(source.value as T);
+      if (this.#live) this.#stop = source.listen(this.fn);
+      return;
+    }
     // The stream replays its current value on subscribe (a state does), and `fn` may stop the binding meanwhile.
     const sub = this.stream.subscribe(this.fn);
-    if (this.#live) this.#sub = sub;
+    if (this.#live) this.#stop = sub;
     else sub.unsubscribe();
   }
 
   stop() {
     this.#live = false;
-    const sub = this.#sub;
-    this.#sub = undefined;
-    sub?.unsubscribe();
+    const stop = this.#stop;
+    this.#stop = undefined;
+    if (typeof stop === 'function') stop();
+    else stop?.unsubscribe();
   }
 
   unsubscribe() {
