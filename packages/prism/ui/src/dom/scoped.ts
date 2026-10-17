@@ -115,6 +115,55 @@ export function timeout(fn: () => void, ms: number): () => void {
   return cancel;
 }
 
+/** A restartable timer of the scope (`restartable`). */
+export interface Restartable {
+  /** Runs the function after `ms`, replacing a wait in progress. */
+  start(ms: number): void;
+  cancel(): void;
+}
+
+/**
+ * A timer that can be started again, for a callback made in an effect (where `timeout` has no scope to bind to once the
+ * call is made later, and would be one per start): one wait at a time, held while the scope is paused (it runs, in full,
+ * after the scope resumes) and dropped when it ends. Hidden UI writes nothing.
+ */
+export function restartable(fn: () => void): Restartable {
+  const scope = requireScope('restartable');
+  let id: ReturnType<typeof setTimeout> | undefined;
+  let ms = 0;
+  let waiting = false;
+  const arm = () => {
+    clearTimeout(id);
+    id = setTimeout(() => {
+      id = undefined;
+      waiting = false;
+      fn();
+    }, ms);
+  };
+  const cancel = () => {
+    clearTimeout(id);
+    id = undefined;
+    waiting = false;
+  };
+  scope.onActive((active) => {
+    if (active) {
+      if (waiting) arm();
+    } else {
+      clearTimeout(id);
+      id = undefined;
+    }
+  });
+  scope.onCleanup(cancel);
+  return {
+    start(wait) {
+      ms = wait;
+      waiting = true;
+      if (scope.active) arm();
+    },
+    cancel,
+  };
+}
+
 /**
  * A queue of work by key (reactive/work-queue.ts) owned by the current scope: paused with it (hidden UI computes
  * nothing; what waited runs on resume), dropped when it ends.

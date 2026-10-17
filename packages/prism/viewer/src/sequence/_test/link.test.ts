@@ -62,8 +62,11 @@ describe('linking the sequence to a 3D view', () => {
     expect(loci).not.toBeNull();
     seq.selection.set(loci, 'pointer');
     expect(fake.calls.slice(0, 2)).toEqual(['select(loci)', 'focus']);
+    fake.calls.length = 0;
     stop();
     expect(fake.hover.size + fake.select.size).toBe(0);
+    // What the sequence lit in 3D goes with the link (and the host's hover state with it).
+    expect(fake.calls).toEqual(['highlight(null)']);
     h.viewers.dispose();
   });
 

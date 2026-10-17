@@ -12,7 +12,7 @@ import { cbs, crambin, headlessViewer, until } from '../../_test/harness.js';
 import { memoryStore } from '../../persist/stores.js';
 import type { PrismViewer } from '../../viewer.js';
 import { type LociPreview, lociPreviewSink } from '../../sources/select-queries.js';
-import { countLine } from '../select.js';
+import { countLine, watchSelectCommands } from '../select.js';
 
 // The Select group (commands.md §5): generated selection-query commands with the group's shared mode, previews and
 // counts for the highlighted row; and the keymap's layers in the viewer (commands.md §6, viewer-spec.md §2.5).
@@ -97,6 +97,33 @@ describe('the Select group', () => {
     expect(only).toHaveBeenCalledTimes(1);
     sink.clear();
     expect(clear).toHaveBeenCalled();
+  });
+
+  it('resolves a row again once the structures’ data changed, though the summary did not', async () => {
+    const resolve = vi.fn(async () => ({ ok: true, parts: [] }));
+    const defs = new Map<string, any>();
+    let data: object[] = [{}];
+    const entry = { id: 'select.chain.A', title: 'Chain A', group: 'g', icon: 'x', expression: {} };
+    const drop = watchSelectCommands({
+      queries: { list: () => ({ groups: [], entries: [entry] }), ensure: async () => {} } as any,
+      api: { describe: () => ({}) } as any,
+      targets: { resolve } as any,
+      structures: { subscribe: (f: () => void) => (f(), { unsubscribe() {} }) } as any,
+      data: () => data,
+      register: (list) => {
+        for (const d of list) defs.set(d.id, d);
+        return () => {};
+      },
+      registerGroups: () => () => {},
+    });
+    const count = () => defs.get('select.chain.A').count({}, {}, new AbortController().signal);
+    await count();
+    await count();
+    expect(resolve).toHaveBeenCalledTimes(1);
+    data = [{}];
+    await count();
+    expect(resolve).toHaveBeenCalledTimes(2);
+    drop();
   });
 
   it('says counts in a few words', () => {

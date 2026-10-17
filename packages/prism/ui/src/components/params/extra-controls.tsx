@@ -125,11 +125,15 @@ export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; labe
           data-tip={axis}
           value={derive(binding.value, (v: number[]) => trim(v?.[i]))}
           onChange={(e) => {
-            const n = Number(e.currentTarget.value);
-            if (!Number.isFinite(n)) return;
+            const input = e.currentTarget;
+            const n = Number(input.value);
             const v = [...(binding.get() ?? [0, 0, 0])];
-            v[i] = n;
-            binding.set(v);
+            if (Number.isFinite(n)) {
+              v[i] = n;
+              binding.set(v);
+            }
+            // The field says the value in its form, though it formats to the text that was shown ("1.50" → "1.5").
+            input.value = trim(v[i]);
           }}
         />
       ))}
@@ -167,11 +171,14 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
                 aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
                 value={derive(binding.value, (m: ArrayLike<number>) => trim(m?.[index]))}
                 onChange={(e) => {
-                  const n = Number(e.currentTarget.value);
-                  if (!Number.isFinite(n)) return;
+                  const input = e.currentTarget;
+                  const n = Number(input.value);
                   const m = Array.from(binding.get() as ArrayLike<number>);
-                  m[index] = n;
-                  binding.set(m);
+                  if (Number.isFinite(n)) {
+                    m[index] = n;
+                    binding.set(m);
+                  }
+                  input.value = trim(m[index]);
                 }}
               />
             );

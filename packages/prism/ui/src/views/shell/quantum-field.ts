@@ -618,6 +618,7 @@ export class QuantumField {
     const u = (x - this.#wordX) / this.#wordScale;
     const v = (y - this.#wordY) / this.#wordScale;
     if (!glass.hits(u, v)) return false;
+    this.#ambient.input();
     glass.shatter(u, v);
     this.#kickAt(x, y, this.#options.kick * 1.6, 90);
     this.#potential = true;
@@ -685,7 +686,7 @@ export class QuantumField {
     this.#frame = 0;
     if (!this.#running || !this.#visible) return;
     // At rest, a step every few frames (the frame asked for each frame, the work only when due).
-    if (!this.#ambient.due()) {
+    if (!this.#ambient.due(!!this.#glass && !this.#glass.whole)) {
       this.#frame = requestFrameCallback(this.#tick);
       return;
     }

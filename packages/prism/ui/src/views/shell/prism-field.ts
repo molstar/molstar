@@ -422,6 +422,7 @@ export class PrismField {
     const v = (y - this.#wordY) / this.#wordScale;
     // Whole, or already in pieces (shattered further from where they are).
     if (!glass.hits(u, v)) return false;
+    this.#ambient.input();
     glass.shatter(u, v);
     const r2 = ShockRadius * ShockRadius;
     for (let i = 0; i < this.#alive; i++) {
@@ -520,7 +521,7 @@ export class PrismField {
     this.#frame = 0;
     if (!this.#running || !this.#visible) return;
     // At rest, a step every few frames (the frame asked for each frame, the work only when due).
-    if (!this.#ambient.due()) {
+    if (!this.#ambient.due(!!this.#glass && !this.#glass.whole)) {
       this.#frame = requestFrameCallback(this.#tick);
       return;
     }

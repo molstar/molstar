@@ -14,7 +14,8 @@ import { Markdown } from '../../components/markdown/markdown.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
-import { effect, onCleanup } from '../../dom/scope.js';
+import { effect } from '../../dom/scope.js';
+import { restartable } from '../../dom/scoped.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
@@ -225,15 +226,15 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
   // The title and the description change together (another snapshot): taken once both have (the task after), so a
   // heading is never compared with the other snapshot's title.
   const description = observableState<string | undefined>(undefined);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let taken: string | undefined;
+  const timer = restartable(() => description.set(taken));
   effect(
     derive([model.description, model.title], (d, t) => (d ? withoutTitle(d, t ?? '') : d)),
     (d) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => description.set(d), 0);
+      taken = d;
+      timer.start(0);
     },
   );
-  onCleanup(() => clearTimeout(timer));
   return (
     <div class={classes.snapshots}>
       <div class={classes.bar}>

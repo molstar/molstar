@@ -10,7 +10,8 @@
 
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { Show } from '../../dom/control-flow.js';
-import { bind, effect, type MaybeReactive, onCleanup } from '../../dom/scope.js';
+import { bind, effect, type MaybeReactive } from '../../dom/scope.js';
+import { restartable } from '../../dom/scoped.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/empty-canvas.module.css.js';
@@ -64,19 +65,16 @@ export function EmptyCanvas(props: {
     else if (p === 'out') props.onCanvasShown?.(true);
   };
   // One timer at a time (the next phase it waits for); a change of `empty` or `busy` replaces it.
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let pending: Phase = 'gone';
+  const timer = restartable(() => step(pending));
   const after = (ms: number, next: Phase) => {
-    timer = setTimeout(() => {
-      timer = undefined;
-      step(next);
-    }, ms);
+    pending = next;
+    timer.start(ms);
   };
-  onCleanup(() => clearTimeout(timer));
   let empty: boolean | undefined;
   let busy = false;
   const decide = () => {
-    clearTimeout(timer);
-    timer = undefined;
+    timer.cancel();
     if (empty === undefined) return;
     if (!empty) {
       step('out');

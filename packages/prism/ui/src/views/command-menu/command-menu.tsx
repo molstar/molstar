@@ -21,7 +21,7 @@ import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
 import { bind, effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
-import { on } from '../../dom/scoped.js';
+import { on, restartable } from '../../dom/scoped.js';
 import { setAttr, setText as writeText } from '../../dom/writes.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
@@ -350,7 +350,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   const shown = derive(
     [rows, limit.asReadonly],
     (r, l) => (r.length <= (l.of === r ? l.n : Screenful) ? r : r.slice(0, l.of === r ? l.n : Screenful)),
-    (a, b) => a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1],
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
   const rest = derive([rows, shown], (r, s) => (r.length - s.length) * RowPx);
   const grow = (n: number) => {
@@ -385,9 +385,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   // What a search found, said once the typing pauses (the list itself is not live): read 400 ms after the last change
   // of the rows (they change with the query).
   const found = observableState('');
-  let foundTimer: ReturnType<typeof setTimeout> | undefined;
   const say = () => {
-    foundTimer = undefined;
     const t = query.value;
     if (!t.trim()) return found.set('');
     let n = 0;
@@ -395,11 +393,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     if (n) return found.set(n === 1 ? '1 result' : `${n} results`);
     found.set(props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.');
   };
-  effect(rows, () => {
-    clearTimeout(foundTimer);
-    foundTimer = setTimeout(say, 400);
-  });
-  onCleanup(() => clearTimeout(foundTimer));
+  const foundTimer = restartable(say);
+  effect(rows, () => foundTimer.start(400));
 
   const setText = (t: string) => {
     text.set(t);

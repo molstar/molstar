@@ -223,7 +223,10 @@ export class SequenceApi extends ApiArea {
       if (track === undefined || track === '') {
         const hidden = viewer.tracks.value.filter((t) => t.hidden);
         if (!hidden.length) return ApiResult.already('No sequence track is hidden.');
-        for (const t of hidden) await viewer.setTrackHidden(t.ref, false);
+        await viewer.setTracksHidden(
+          hidden.map((t) => t.ref),
+          false,
+        );
         const n = hidden.length;
         return ApiResult.ok(`${n === 1 ? 'The hidden track is' : `The ${n} hidden tracks are`} shown.`, {
           sequence: true,

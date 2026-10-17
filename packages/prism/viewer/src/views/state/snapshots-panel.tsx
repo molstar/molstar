@@ -92,7 +92,7 @@ export function SnapshotsPanel(props: {
       </ScrollArea>
       <ScrollArea class={classes.inspector} contentClass={classes.inspectorContent} role="region" aria-label="Snapshot">
         <Show
-          when={derive(model.entries, (entries) => entries.find((e) => e.id === model.current.value))}
+          when={derive([model.entries, model.current], (entries, id) => entries.find((e) => e.id === id))}
           fallback={() => <p class={classes.inspectorEmpty}>Apply a snapshot to edit its name, key and description.</p>}
         >
           {(entry) => <SnapshotEditor model={model} entry={entry} />}

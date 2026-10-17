@@ -168,6 +168,30 @@ describe('the compact canvas toolbar', () => {
     t.dispose();
   });
 
+  it('drops the row of an item that left the toolbar, with what it listens to', async () => {
+    const t = setup();
+    const lit = new BehaviorSubject(false);
+    const drop = t.shell.registerToolbar([
+      {
+        id: 'gone',
+        place: 'canvas',
+        group: 'rendering',
+        icon: 'lightbulb',
+        title: 'Gone',
+        pressed: lit,
+        run: () => {},
+      },
+    ]);
+    await tick();
+    t.folded()!.click();
+    expect(t.rows()).toContain('Gone');
+    expect(lit.observed).toBe(true);
+    drop();
+    await tick();
+    expect(lit.observed).toBe(false);
+    t.dispose();
+  });
+
   it('is the full bar when expanded, with no chevron and no folded button', () => {
     const t = setup({ toolbar: 'expanded' });
     expect(t.shell.toolbarCollapsed.value).toBe(false);

@@ -16,6 +16,7 @@ import {
   type RecordIndex,
   type SessionRecord,
 } from '../journal/record.js';
+import { KeybindingsKey } from '../commands/keymap-store.js';
 import { isListedStore, type ListedStore } from '../persist/stores.js';
 import type { PrismViewerPersist } from '../spec.js';
 import { formatAge, type StorageEntry, type StorageSource } from './model.js';
@@ -129,6 +130,8 @@ export interface StoreSourceOptions {
   readonly labels?: Readonly<Record<string, string>>;
   /** Said of every entry. */
   readonly detail?: string;
+  /** Called after a key is removed (the holder of its in-memory copy lets it go). */
+  readonly onForget?: (key: string) => void;
 }
 
 /** The values a light store keeps (journal.md §6), each with its size; Forget removes it. */
@@ -149,6 +152,7 @@ export function storeSource(o: StoreSourceOptions): StorageSource {
     },
     async forget(key) {
       o.store.remove(key);
+      o.onForget?.(key);
     },
   };
 }
@@ -165,7 +169,12 @@ const PreferenceLabels: Readonly<Record<string, string>> = {
  * the spec gives stores that list what they keep (`webStore`, `memoryStore`). Each source with a `dispose` is disposed
  * by `dispose` here.
  */
-export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?: SessionRecord }): {
+export function viewerStorageSources(o: {
+  persist?: PrismViewerPersist;
+  record?: SessionRecord;
+  /** Forgetting the person's keys resets the keymap's in-memory layer (a key of the preferences). */
+  resetKeybindings?: () => void;
+}): {
   readonly sources: readonly StorageSource[];
   dispose(): void;
 } {
@@ -185,6 +194,9 @@ export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?:
         where: 'localStorage',
         store: preferences,
         labels: PreferenceLabels,
+        onForget: (key) => {
+          if (key === KeybindingsKey) o.resetKeybindings?.();
+        },
       }),
     );
   }

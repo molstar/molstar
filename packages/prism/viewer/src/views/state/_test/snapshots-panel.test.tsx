@@ -27,11 +27,12 @@ function mount() {
   const entries = observableState<readonly SnapshotEntry[]>(
     ['a', 'b', 'c'].map((id) => ({ id, name: `Snapshot ${id}` }) as SnapshotEntry),
   );
+  const current = observableState<string | undefined>(undefined);
   const moves: [string, number][] = [];
   const moved: [string, number][] = [];
   const model = {
     entries: entries.asReadonly,
-    current: observableState<string | undefined>(undefined).asReadonly,
+    current: current.asReadonly,
     saveOptions: undefined,
     entryOptions: () => undefined,
     apply: () => {},
@@ -44,10 +45,27 @@ function mount() {
   const rows = () => [...container.querySelectorAll<HTMLElement>('[role="list"] [role="button"][aria-keyshortcuts]')];
   const key = (el: HTMLElement, k: string, altKey: boolean) =>
     el.dispatchEvent(new KeyboardEvent('keydown', { key: k, altKey, bubbles: true, cancelable: true }));
-  return { container, rows, key, moves, moved };
+  return { container, rows, key, moves, moved, current };
 }
 
 describe('the snapshots list', () => {
+  it('shows the current snapshot in the inspector, following the current one when entries do not change', async () => {
+    const t = mount();
+    const inspector = () => t.container.querySelector<HTMLElement>('[aria-label="Snapshot"]')!;
+    const name = () => inspector().querySelector<HTMLInputElement>('input')?.value;
+    expect(name()).toBeUndefined();
+    t.current.set('a');
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(name()).toBe('Snapshot a');
+    t.current.set('c');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(name()).toBe('Snapshot c');
+    t.current.set(undefined);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(name()).toBeUndefined();
+  });
+
   it('moves a row with Alt+Up and Alt+Down, and leaves the plain arrows alone', () => {
     const t = mount();
     expect(t.rows()).toHaveLength(3);

@@ -218,9 +218,10 @@ The code is the truth for how.
 - **Hiding and showing tracks** (`viewer.tracks`: the section's tracks, hidden ones included, each named by its document
   label, the viewer's own name, a behavior's offered `labels` or its title): `sequence.track.hide` and
   `sequence.track.show` (a track by ref or name; show with none: every hidden one), steps through the API as the person,
-  so Undo takes each back (§7); the commands `sequence.track.hide`, `.show` (a choice of the tracks) and `.show-all`.
-  The Sequence menu's **Visible tracks** is a submenu (prism-ui's `CanvasMenuItem.items`): a checkbox per track
-  (checked: shown), then Show all while one is hidden. `sequence.get` lists the tracks.
+  so Undo takes each back (§7; show with none is one edit, `setTracksHidden`); the commands `sequence.track.hide`,
+  `.show` (a choice of the tracks) and `.show-all`. The Sequence menu's **Visible tracks** is a submenu (prism-ui's
+  `CanvasMenuItem.items`): a checkbox per track (checked: shown), then Show all while one is hidden. `sequence.get`
+  lists the tracks.
 - **The hidden tracks' hint**: only while tracks are hidden, a faint "N hidden" at the foot of the track gutter (Tracks
   only); a click opens a menu at it: Show all tracks, then Show each hidden one (a context menu: the canvas stack's
   submenu belongs to its button). Nothing shows while every track does.
@@ -250,7 +251,8 @@ The code is the truth for how.
   `Legend` in an overlay card (`LegendCard`, `sequence.legend`). Seq\*'s own legend model stays inside its UIs.
 - **One hover label, Mol\*'s where it can be**: a sequence hover the link maps into the structure lights its residues in
   3D, and Mol\*'s label providers label that highlight, so the label is the same as hovering those atoms in 3D
-  (`pickHoverLabel`, `sources/hover-lines.ts`; `SequenceSource.hoverMapped` says the hover mapped). The band's own Seq\*
-  label (`seq.labels.current`, at most once a frame and only when its lines change) shows only for a hover that does not
-  map (a gap, an annotation track with no counterpart in the structure). The shell's `HoverLabel` listens on the
-  viewport (`data-msp-hover-source`), in the corner or at the cursor (`options.ui.hoverLabel`).
+  (`pickHoverLabel`, `sources/hover-lines.ts`; `SequenceSource.hoverMapped` says the hover mapped; dropping the link
+  clears the 3D highlight, and with it `hoverMapped`). The band's own Seq\* label (`seq.labels.current`, at most once a
+  frame and only when its lines change) shows only for a hover that does not map (a gap, an annotation track with no
+  counterpart in the structure). The shell's `HoverLabel` listens on the viewport (`data-msp-hover-source`), in the
+  corner or at the cursor (`options.ui.hoverLabel`).
