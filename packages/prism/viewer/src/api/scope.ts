@@ -75,6 +75,65 @@ export function pickNamed<T>(list: readonly T[], name: string | undefined, rule:
   return ApiResult.fail('not-found', `There is no ${rule.what} '${name}'.`, `${rule.listed ?? 'Loaded'}: ${all()}.`);
 }
 
+/**
+ * `pickNamed` for many names over one list: the list indexed once (its ids, then each tier of names), each name then
+ * found without a scan. The same answers as `pickNamed`, in the same order; for an operation that names k things one by
+ * one (k × the list by `pickNamed`; AGENTS.md, bulk operations).
+ */
+export function namedPicker<T>(list: readonly T[], rule: NameRule<T>): (name: string | undefined) => T | ApiFailure {
+  let byId: Map<string, T[]> | undefined;
+  let byName: Map<string, T[]>[] | undefined;
+  const add = (index: Map<string, T[]>, key: string, x: T) => {
+    const found = index.get(key);
+    if (!found) index.set(key, [x]);
+    // An item with the same id twice is one match (`includes` of its ids).
+    else if (found[found.length - 1] !== x) found.push(x);
+  };
+  const ids = () => {
+    if (byId) return byId;
+    byId = new Map();
+    for (const x of list) for (const id of rule.ids(x)) add(byId, id, x);
+    return byId;
+  };
+  const names = () => {
+    if (byName) return byName;
+    byName = [];
+    for (const x of list) {
+      const own = rule.names(x);
+      for (let i = 0; i < own.length; i++) {
+        byName[i] ??= new Map();
+        const n = own[i];
+        if (n !== undefined) add(byName[i], n.toLowerCase(), x);
+      }
+    }
+    return byName;
+  };
+  return (name) => {
+    if (!list.length || !name) return pickNamed(list, name, rule);
+    let found: readonly T[] = ids().get(name) ?? [];
+    if (!found.length) {
+      const lower = name.trim().toLowerCase();
+      for (const tier of names()) {
+        found = tier?.get(lower) ?? [];
+        if (found.length) break;
+      }
+    }
+    if (found.length === 1) return found[0];
+    if (found.length > 1) {
+      return ApiResult.fail(
+        'ambiguous',
+        `Which '${name}'? ${found.length} ${rule.what}s have that name.`,
+        `Give its state ref${rule.more ?? ''}: ${found.map(rule.describe).join(', ')}.`,
+      );
+    }
+    return ApiResult.fail(
+      'not-found',
+      `There is no ${rule.what} '${name}'.`,
+      `${rule.listed ?? 'Loaded'}: ${list.map(rule.describe).join(', ')}.`,
+    );
+  };
+}
+
 // --- structures -------------------------------------------------------------------------------------------------
 
 export function loadedStructures(ctx: Pick<ApiContext, 'plugin'>): readonly StructureRef[] {

@@ -72,28 +72,60 @@ export function hiddenContents(
   plugin: object,
   structureRef: string,
 ): { readonly entities: readonly string[]; readonly chains: readonly string[] } {
-  return states.get(plugin)?.value.hidden[structureRef] ?? { entities: [], chains: [] };
+  return states.get(plugin)?.value.hidden[structureRef] ?? NothingHidden;
+}
+
+/** What `hiddenContents` says when nothing is hidden: one value, so a reader can tell "as before" by identity. */
+const NothingHidden: { readonly entities: readonly string[]; readonly chains: readonly string[] } = Object.freeze({
+  entities: Object.freeze([]),
+  chains: Object.freeze([]),
+});
+
+/** A component left empty by hidden contents: its ref, the label it had, and its parent (where it stands). */
+export interface EmptiedComponent {
+  readonly ref: string;
+  readonly label: string;
+  readonly parent: string;
 }
 
 /**
- * A structure's components that hold nothing while its contents are hidden (their cells are empty, so the hierarchy
- * leaves them out): the scene keeps their rows. With each, the label it had.
+ * The components of each structure in `structures` that hold nothing while its contents are hidden (their cells are
+ * empty, so the hierarchy leaves them out): the scene keeps their rows. With each, the label it had. Read once for all
+ * the structures: the saved params walked once (per structure, a sync over S structures was S × the saved params;
+ * AGENTS.md, bulk operations). A component is under every structure among its ancestors, in the saved params' order.
  */
-export function emptiedComponents(
+export function emptiedComponentsOf(
   plugin: PluginContext,
-  structureRef: string,
-): readonly { readonly ref: string; readonly label: string; readonly parent: string }[] {
+  structures: ReadonlySet<string>,
+): ReadonlyMap<string, readonly EmptiedComponent[]> {
+  const out = new Map<string, EmptiedComponent[]>();
   const originals = states.get(plugin)?.value.originals;
-  if (!originals) return [];
+  if (!originals) return out;
   const data = plugin.state.data;
-  const out: { ref: string; label: string; parent: string }[] = [];
-  for (const [ref, own] of Object.entries(originals) as [string, ComponentParams][]) {
+  for (const ref in originals) {
+    const own = originals[ref] as ComponentParams;
     const cell = data.cells.get(ref);
-    if (!cell || cell.transform.transformer !== StructureComponent || !under(data.tree, ref, structureRef)) continue;
+    if (!cell || cell.transform.transformer !== StructureComponent) continue;
     const held = cell.obj?.data as { elementCount?: number } | undefined;
     if (held?.elementCount) continue;
-    const label = own.label || (cell.transform.params as { label?: string } | undefined)?.label || 'Component';
-    out.push({ ref, label, parent: cell.transform.parent });
+    let e: EmptiedComponent | undefined;
+    // Its ancestors (itself first, as `under` reads them).
+    let current: string | undefined = ref;
+    while (current) {
+      if (structures.has(current)) {
+        e ??= {
+          ref,
+          label: own.label || (cell.transform.params as { label?: string } | undefined)?.label || 'Component',
+          parent: cell.transform.parent,
+        };
+        let list = out.get(current);
+        if (!list) out.set(current, (list = []));
+        list.push(e);
+      }
+      const parent: string | undefined = data.tree.transforms.get(current)?.parent;
+      if (!parent || parent === current) break;
+      current = parent;
+    }
   }
   return out;
 }

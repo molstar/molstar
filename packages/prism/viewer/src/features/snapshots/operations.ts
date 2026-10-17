@@ -211,7 +211,10 @@ async function capture(ctx: ApiContext, options: Record<string, unknown>, showFo
 }
 
 /** The manager keeps `isPlaying` and its default delay in protected state (its own TODO: not editable). */
-function setManagerState(ctx: ApiContext, patch: { current?: undefined; nextSnapshotDelayInMs?: number }) {
+function setManagerState(
+  ctx: ApiContext,
+  patch: { current?: string; entries?: PluginStateSnapshotManager['state']['entries']; nextSnapshotDelayInMs?: number },
+) {
   (ctx.plugin.managers.snapshot as unknown as { updateState(s: object): boolean }).updateState(patch);
 }
 
@@ -418,16 +421,11 @@ export class SnapshotApi extends ApiArea {
         return ApiResult.already(`Snapshot ${labelOf(found.entry, found.index)} is already at ${position}.`);
       }
       const manager = ctx.plugin.managers.snapshot;
-      const was = manager.state.current;
-      // The manager swaps neighbors (and makes the moved one current).
-      const id = found.entry.snapshot.id;
-      for (let at = found.index; at !== to; at += at < to ? 1 : -1) manager.move(id, at < to ? 1 : -1);
-      // The current one is the one applied last: moving does not apply.
-      if (was) manager.setCurrent(was);
-      else {
-        setManagerState(ctx, { current: undefined });
-        manager.events.changed.next(void 0);
-      }
+      // In one step: the manager's `move` swaps neighbors (a search of the list and a change told, each), so a move
+      // across the list was its length × that. The current one stays (the one applied last: moving does not apply).
+      const entries = manager.state.entries.delete(found.index).insert(to, found.entry);
+      setManagerState(ctx, { current: manager.state.current, entries });
+      manager.events.changed.next(void 0);
       return ApiResult.ok(`Moved snapshot ${labelOf(found.entry, found.index)} to ${position}.`, {});
     },
   });
