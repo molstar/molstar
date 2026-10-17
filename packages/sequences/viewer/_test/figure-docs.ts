@@ -89,24 +89,25 @@ export function figureFromRows(rows: readonly AlnRow[], o: FigureOptions = {}): 
     ...(o.reference !== undefined ? { reference_row: o.reference } : {}),
   } as never);
   if (o.tree) (aln as unknown as { tree(p: unknown): void }).tree({ ref: 'globins_tree', value: o.tree });
-  const ann = (ref: string, value: unknown) =>
-    b.data.annotation({ ref, label: ref, geometry: 'ranges', value } as never);
+  // The label is what a hover names the set by ("Region C–E region"): a reader's word, not the ref.
+  const ann = (ref: string, label: string, value: unknown) =>
+    b.data.annotation({ ref, label, geometry: 'ranges', value } as never);
   const first = 27;
-  const top = ann('ss.top', {
+  const top = ann('ss.top', 'Secondary structure', {
     target: HBA_HELICES.map(() => 'globins/0'),
     start: HBA_HELICES.map((h) => h[0] - first),
     stop: HBA_HELICES.map((h) => h[1] - first + 1),
     category: HBA_HELICES.map(() => 'helix'),
     label: HBA_HELICES.map((_, k) => `α${k + 1}`),
   });
-  const bottom = ann('ss.bottom', {
+  const bottom = ann('ss.bottom', 'Secondary structure', {
     target: ['globins/3', 'globins/3', 'globins/3'],
     start: [18, 28, 44],
     stop: [24, 34, 64],
     category: ['strand', 'strand', 'helix'],
     label: ['β1', 'β2', 'α1'],
   });
-  const above = ann('figure.main.markers.above', [
+  const above = ann('figure.main.markers.above', 'Marker', [
     { target: 'globins/0', start: 32, stop: 33, id: 'm1', label: 'His59 (distal)', color: '#1f77b4', glyph: 'star' },
     {
       target: 'globins/0',
@@ -118,17 +119,18 @@ export function figureFromRows(rows: readonly AlnRow[], o: FigureOptions = {}): 
       glyph: 'triangle',
     },
   ]);
-  const below = ann('figure.main.markers.below', [
+  const below = ann('figure.main.markers.below', 'Marker', [
     { target: 'globins', start: 14, stop: 15, id: 'm3', label: 'Conserved', color: '#2ca02c', glyph: 'circle' },
     { target: 'globins', start: 75, stop: 76, id: 'm4', label: 'Conserved', color: '#2ca02c', glyph: 'circle' },
   ]);
   const boxes = ann(
     'figure.main.boxes',
+    'Box',
     o.boxes ?? [
       { target: 'globins/2', start: 10, stop: 18, id: 'b1', label: 'Motif', color: '#e3120b', line_style: 'box' },
     ],
   );
-  const frames = ann('figure.main.frames', o.frames ?? FIGURE_FRAMES);
+  const frames = ann('figure.main.frames', 'Region', o.frames ?? FIGURE_FRAMES);
   const view = b.view({ ref: 'figure', label: 'Figure', layout: 'text' });
   const sec = view.section({
     ref: 'figure.main',
