@@ -127,6 +127,14 @@ export class Canvas3dInteractionHelper {
     }
   }
 
+  /** Work the next tick does: a hover pick under way, a move or drag not handled yet (it is throttled to `maxFps`). */
+  get isPending() {
+    if (!this.inside) return false;
+    return (
+      this.pickData !== undefined || this.startX !== this.endX || this.startY !== this.endY || this.input.pointerLock
+    );
+  }
+
   tick(t: number) {
     if (!this.inside) return;
 

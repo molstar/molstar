@@ -181,7 +181,11 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   started it (the screenshot helper starts it after each image). A hold's wait is abortable (`signal`) and fails when
   the browser refuses the restore; a viewer disposed meanwhile lets it go and frees its slot.
   `options.ui.pauseOutOfView` (`auto`: on, except in an automated browser, `navigator.webdriver`, where a capture page
-  renders on purpose; `always`; `never`); Node headless has no canvas to follow.
+  renders on purpose; `always`; `never`); Node headless has no canvas to follow. In view and at rest the loop sleeps too
+  (`options.ui.pauseWhenIdle`, on: `PluginConfig.General.PauseLoopWhenIdle`): Canvas3D says when a tick had nothing to
+  do (`isIdle`) and when work comes (`wake`: input, a draw requested, a scene, camera or props change); 250 ms idle and
+  the loop asks for no frames until then. A host that moves the camera or the scene past Mol*'s API without
+  `requestDraw` turns it off.
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
   ([api.md](api.md) §1).
 - **31. Colorblind-safe and high-contrast palettes** for the UI and the data

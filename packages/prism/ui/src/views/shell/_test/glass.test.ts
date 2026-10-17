@@ -122,4 +122,23 @@ describe('the wordmark as glass', () => {
     run(glass, 0.4);
     expect(glass.assembled).toBeLessThan(0.8);
   });
+
+  it('is animating while it moves (pieces away, the lean settling), not when whole and held leaned', () => {
+    const glass = new Glass();
+    glass.scatter();
+    run(glass, 0.5);
+    expect(glass.animating).toBe(true);
+    run(glass, 4);
+    expect(glass.whole).toBe(true);
+    expect(glass.animating).toBe(false);
+    // The pointer on the word: the pieces lean (animating while they do), then hold still, leaned: not animating.
+    glass.setPointer(20, 10);
+    run(glass, 0.1);
+    expect(glass.animating).toBe(true);
+    run(glass, 6);
+    expect(glass.animating).toBe(false);
+    glass.shatter(20, 10);
+    run(glass, 0.1);
+    expect(glass.animating).toBe(true);
+  });
 });

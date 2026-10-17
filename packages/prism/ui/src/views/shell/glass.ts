@@ -108,6 +108,8 @@ export class Glass {
   #pv = 0;
   /** Whether any piece is away from home or leaning (otherwise the word is drawn whole, in one go). */
   #still = true;
+  /** The lean is still moving toward where the pointer holds it (a spring not yet settled). */
+  #settling = false;
   /** Told when the glass becomes whole or stops being whole (the star splits the light only while whole). */
   onWhole: (whole: boolean) => void = () => {};
   /** Told when it snaps back together after a break (the light pops). */
@@ -217,6 +219,15 @@ export class Glass {
   /** Whole and still: nothing to draw again until something happens (no frames while nothing moves). */
   get resting(): boolean {
     return this.#still;
+  }
+
+  /**
+   * Something is moving: pieces away from home (a shatter, a gathering) or the lean still settling toward where the
+   * pointer holds it. Not while whole and the pointer holds the pieces still, leaned (`resting` is stricter: unleaned):
+   * the splash rests then.
+   */
+  get animating(): boolean {
+    return this.#phase !== 'whole' || this.#settling;
   }
 
   get phase(): GlassPhase {
@@ -354,6 +365,7 @@ export class Glass {
   #lean(dt: number): void {
     const h = Math.min(dt, 1 / 30);
     let moving = false;
+    let settling = false;
     for (let i = 0; i < Shards; i++) {
       let tx = 0;
       let ty = 0;
@@ -372,6 +384,13 @@ export class Glass {
           tr = (dx >= 0 ? 1 : -1) * HoverTilt * f;
         }
       }
+      if (
+        Math.abs(tx - this.#hx[i]) + Math.abs(ty - this.#hy[i]) > 0.01 ||
+        Math.abs(tr - this.#hr[i]) > 0.001 ||
+        Math.abs(this.#hvx[i]) + Math.abs(this.#hvy[i]) > 0.02
+      ) {
+        settling = true;
+      }
       this.#hvx[i] += (Stiffness * (tx - this.#hx[i]) - Damping * this.#hvx[i]) * h;
       this.#hvy[i] += (Stiffness * (ty - this.#hy[i]) - Damping * this.#hvy[i]) * h;
       this.#hvr[i] += (Stiffness * (tr - this.#hr[i]) - Damping * this.#hvr[i]) * h;
@@ -387,6 +406,7 @@ export class Glass {
       }
     }
     this.#still = this.#phase === 'whole' && !moving;
+    this.#settling = settling;
   }
 
   /**

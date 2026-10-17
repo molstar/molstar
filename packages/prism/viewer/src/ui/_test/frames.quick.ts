@@ -231,36 +231,52 @@ describe('frames and microtasks', () => {
   });
 });
 
-// The empty canvas's splash (David, 2026-10-17: its frame rate lowered at rest): a field steps and draws about 20 to
-// 24 times a second at rest (frames skipped in the one frame tick, ambient-pace.ts), and at full rate while the pointer
-// moves over it. jsdom's frames come at 60 a second; its canvas draws nothing, the steps are counted.
+// The empty canvas's splash (David, 2026-10-17: it rests; ambient-pace.ts): a field runs at full rate while awake, then
+// fades out and asks for no frame at all (the glass word stays as drawn); input wakes it: it fades in, at full rate
+// again. The rest's timings are shortened here (`pace`: the real ones are 12 s of running and 1.5 s without input;
+// ambient-pace.test.ts holds them). jsdom's frames come at 60 a second; its canvas draws nothing, the steps are counted.
 describe('the splash fields at rest', () => {
+  const pace = { restAfterMs: 1000, activeMs: 300, fadeMs: 200 };
   for (const [name, make] of [
-    ['the light (prism-field)', (c: HTMLCanvasElement) => new PrismField(c)],
-    ['the wave (quantum-field)', (c: HTMLCanvasElement) => new QuantumField(c)],
+    ['the light (prism-field)', (c: HTMLCanvasElement) => new PrismField(c, {}, { pace })],
+    ['the wave (quantum-field)', (c: HTMLCanvasElement) => new QuantumField(c, {}, { pace })],
   ] as const) {
-    it(`${name}: about 20 steps a second at rest, full rate under the pointer`, async () => {
+    it(`${name}: no frame asked for at rest, full rate again under the pointer`, async () => {
       const canvas = document.createElement('canvas');
       document.body.append(canvas);
       const field = make(canvas);
       field.start();
-      // Past its start's full-rate window.
-      await wait(1700);
+      // Awake: it asks for frames and steps (the positive control: the guard below could read zero for a field that
+      // never ran).
       let from = field.steps;
-      await wait(1000);
-      const rest = field.steps - from;
+      const awake = await measure(() => wait(500));
+      expect(awake.raf, 'frames asked for while awake').toBeGreaterThan(20);
+      expect(field.steps - from, 'steps while awake').toBeGreaterThan(20);
+      // It fades out and sleeps.
+      for (let k = 0; k < 50 && !field.asleep; k++) await wait(100);
+      expect(field.asleep, 'asleep after the rest and the fade').toBe(true);
+      // At rest: no frame at all, no step.
+      from = field.steps;
+      const rest = await measure(() => wait(1000));
+      expect(rest.raf, `frames asked for at rest: ${JSON.stringify(rest.sites)}`).toBe(0);
+      expect(field.steps - from, 'steps at rest').toBe(0);
+      // The pointer wakes it: full rate.
       from = field.steps;
       const t0 = performance.now();
-      while (performance.now() - t0 < 1000) {
-        field.pointerMove(10 + ((performance.now() - t0) % 100), 10, performance.now());
-        await nextFrame();
-      }
-      const moving = field.steps - from;
+      const moving = await measure(async () => {
+        while (performance.now() - t0 < 1000) {
+          field.pointerMove(10 + ((performance.now() - t0) % 100), 10, performance.now());
+          await nextFrame();
+        }
+      });
+      const woken = field.steps - from;
+      expect(moving.raf, 'frames asked for under the pointer').toBeGreaterThan(30);
+      expect(woken, 'steps a second under the pointer').toBeGreaterThanOrEqual(45);
+      // And it rests again.
+      for (let k = 0; k < 50 && !field.asleep; k++) await wait(100);
+      expect(field.asleep, 'asleep again').toBe(true);
       field.dispose();
       canvas.remove();
-      expect(rest, 'steps a second at rest').toBeLessThanOrEqual(30);
-      expect(rest, 'steps a second at rest').toBeGreaterThanOrEqual(12);
-      expect(moving, 'steps a second under the pointer').toBeGreaterThanOrEqual(45);
-    }, 20_000);
+    }, 30_000);
   }
 });

@@ -235,6 +235,11 @@ export class HiZPass {
     if (isTimingMode) this.webgl.timer.markEnd('hi-Z');
   }
 
+  /** A readback under way: `tick` polls it. */
+  get isPending() {
+    return this.sync !== null;
+  }
+
   tick() {
     if (!this.supported || !this.props.enabled || this.sync === null) return;
 

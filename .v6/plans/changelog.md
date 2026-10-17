@@ -666,6 +666,13 @@ the [API change ledger](breaking-v6-changes.md).
 - Exports and snapshot thumbnails hold the canvas while they render (a released context comes back first; the loop is
   the export's). `options.ui.pauseOutOfView` (`auto`, `always`, `never`): `auto` pauses except in an automated browser
   (Playwright, Puppeteer, capture services), which renders on purpose.
+- At rest in view, the canvas asks for no frames either: `PluginConfig.General.PauseLoopWhenIdle` (off by default; on in
+  Prism, `options.ui.pauseWhenIdle`) stops the plugin's animation loop once Canvas3D has been idle for 250 ms
+  (`Canvas3D.isIdle`: nothing drawn, committed, in transition, animating or picking) and starts it on `Canvas3D.wake`
+  (input, a requested draw, a scene, camera or props change) or a state animation.
+- The empty canvas's splash rests too: 12 s after it starts, with no input for 1.5 s and the glass wordmark still, the
+  light's particles (or the wave) fade out and it asks for no frames, the wordmark staying drawn; a pointer move, a
+  press or a resize fades them back in.
 
 ## Prism: the hover label in the corner
 

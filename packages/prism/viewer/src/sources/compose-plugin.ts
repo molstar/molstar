@@ -118,6 +118,7 @@ export function optionsConfig(o: PrismViewerOptionValues): [PluginConfigItem, un
     [PluginConfig.State.DefaultServer, d.stateServer],
     [PluginConfig.State.CurrentServer, d.stateServer],
     [PluginConfig.Structure.SaccharideCompIdMapType, d.saccharideCompIdMapType],
+    [PluginConfig.General.PauseLoopWhenIdle, o.ui.pauseWhenIdle],
   ];
   if (r.transparency !== 'auto') items.push([PluginConfig.General.Transparency, r.transparency]);
   if (r.preferWebgl1 !== 'auto') items.push([PluginConfig.General.PreferWebGl1, r.preferWebgl1 === 'yes']);

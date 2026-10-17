@@ -42,8 +42,9 @@ it is done).
   a loop running while nothing changes (a loaded viewer at rest asks for no frame and queues no microtask), and frame
   work joins the page's one frame tick (`requestFrameCallback`, or `frame()` in a component), never its own
   `requestAnimationFrame`: one frame request a browser frame, whatever the input. Guarded by
-  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash is the exception: at rest it steps
-  about 20 times a second (full rate under the pointer), through the same tick.
+  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash obeys it too: with no input, no glass
+  animation and after its intro (12 s), its particles and waves fade out and it asks for no frame until the pointer
+  wakes it (`ambient-pace.ts`).
 - **Gestures attach once, and every end path releases** (David, 2026-10-17; [rendering.md §2.4](ui/_spec/rendering.md)):
   a drag, a slider, a splitter, a scrubber is `drag()` (`dom/scoped.ts`): its listeners attached once with the scope,
   the pointer captured, ended by a release, a cancel, the capture lost, a move with no button, the scope paused or

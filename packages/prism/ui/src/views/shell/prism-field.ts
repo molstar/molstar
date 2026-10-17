@@ -30,7 +30,7 @@ import { Fluid } from './fluid.js';
 import { Glass } from './glass.js';
 import { GlassFootprint } from './glass-footprint.js';
 import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
-import { AmbientPace } from './ambient-pace.js';
+import { AmbientPace, type AmbientPaceOptions } from './ambient-pace.js';
 
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
@@ -237,8 +237,8 @@ export class PrismField {
   #time = 0;
   #last = 0;
   #frame = 0;
-  /** Full rate after input, about 24 steps a second at rest (ambient-pace.ts). */
-  readonly #ambient = new AmbientPace();
+  /** Full rate while awake, faded out and no frames at rest (ambient-pace.ts). */
+  readonly #ambient: AmbientPace;
   #running = false;
   #visible = true;
   #colorsRead = Number.NEGATIVE_INFINITY;
@@ -278,12 +278,17 @@ export class PrismField {
   readonly #air: Fluid | undefined;
   readonly #eddy = new Float32Array(Eddies * 2);
 
-  constructor(canvas: HTMLCanvasElement, options: Partial<PrismFieldOptions> = {}, init: { still?: boolean } = {}) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    options: Partial<PrismFieldOptions> = {},
+    init: { still?: boolean; pace?: AmbientPaceOptions } = {},
+  ) {
     this.#canvas = canvas;
     this.#ctx = canvas.getContext('2d');
     this.#options = { ...PrismFieldDefaults, ...options };
     this.#random = generator(this.#options.seed);
     this.#still = !!init.still;
+    this.#ambient = new AmbientPace(init.pace);
     if (!this.#still) {
       this.#air = new Fluid();
       for (let i = 0; i < this.#eddy.length; i++) this.#eddy[i] = this.#random() * Math.PI * 2;
@@ -291,6 +296,8 @@ export class PrismField {
   }
 
   setOptions(options: Partial<PrismFieldOptions>): void {
+    // A change (a story's control) is seen: awake.
+    this.#awake();
     const seed = this.#options.seed;
     this.#options = { ...this.#options, ...options };
     if (this.#options.seed !== seed) {
@@ -323,8 +330,8 @@ export class PrismField {
 
   /** Reads the canvas's size (and the screen's pixel ratio) and the theme's colors. */
   resize(): void {
-    // A new size: full rate for a while (the field fills its new room smoothly).
-    this.#ambient.input();
+    // A new size: awake (the field fills its new room smoothly; a resized canvas is blank, the word redrawn).
+    this.#awake();
     const w = this.#canvas.clientWidth;
     const h = this.#canvas.clientHeight;
     const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
@@ -422,7 +429,7 @@ export class PrismField {
     const v = (y - this.#wordY) / this.#wordScale;
     // Whole, or already in pieces (shattered further from where they are).
     if (!glass.hits(u, v)) return false;
-    this.#ambient.input();
+    this.#awake();
     glass.shatter(u, v);
     const r2 = ShockRadius * ShockRadius;
     for (let i = 0; i < this.#alive; i++) {
@@ -451,7 +458,7 @@ export class PrismField {
   /** The pointer moved, at (x, y) in the canvas's CSS pixels; `now` in ms. */
   pointerMove(x: number, y: number, now: number): void {
     if (!this.#options.interactive || this.#still) return;
-    this.#ambient.input();
+    this.#awake();
     if (this.#pointer && this.#moved) {
       const dt = Math.max(0.008, (now - this.#moved) / 1000);
       // Smoothed: a stroke, not a jitter.
@@ -484,7 +491,7 @@ export class PrismField {
   /** Runs while visible; nothing is drawn or scheduled while stopped or hidden. */
   start(): void {
     this.#running = true;
-    // Its start at full rate (the word gathers, the light comes in), then at rest's pace.
+    // Its start at full rate (the word gathers, the light comes in), until it rests (ambient-pace.ts).
     this.#ambient.input();
     if (this.#still) this.#drawStill();
     else this.#schedule();
@@ -505,13 +512,24 @@ export class PrismField {
     this.stop();
   }
 
-  /** The pace's probe: its steps (the idle rate's guard). */
+  /** The pace's probe: its steps (the rest guard counts them). */
   get steps(): number {
     return this.#ambient.steps;
   }
 
+  /** Whether it has faded out and asks for no frame (a probe; input wakes it). */
+  get asleep(): boolean {
+    return this.#ambient.asleep;
+  }
+
+  /** Input (or a new size): awake, and the frames again if it was asleep. */
+  #awake(): void {
+    this.#ambient.input();
+    this.#schedule();
+  }
+
   #schedule(): void {
-    if (this.#still || !this.#running || !this.#visible || this.#frame) return;
+    if (this.#still || !this.#running || !this.#visible || this.#frame || this.#ambient.asleep) return;
     this.#last = 0;
     this.#ambient.reset();
     this.#frame = requestFrameCallback(this.#tick);
@@ -520,9 +538,11 @@ export class PrismField {
   readonly #tick = (now: number) => {
     this.#frame = 0;
     if (!this.#running || !this.#visible) return;
-    // At rest, a step every few frames (the frame asked for each frame, the work only when due).
-    if (!this.#ambient.due(!!this.#glass && !this.#glass.whole)) {
-      this.#frame = requestFrameCallback(this.#tick);
+    // At rest the particles fade out and the frames stop; the glass (shattering, gathering, settling) keeps it awake.
+    const level = this.#ambient.advance(!!this.#glass?.animating);
+    if (this.#ambient.asleep) {
+      // Faded out: the word alone, the last frame; nothing is asked for until input wakes it.
+      this.#draw(0);
       return;
     }
     this.#ambient.stepped();
@@ -539,7 +559,7 @@ export class PrismField {
       this.#pvy *= 0.85;
     }
     this.#step(dt);
-    this.#draw();
+    this.#draw(level);
     this.#frame = requestFrameCallback(this.#tick);
   };
 
@@ -549,7 +569,7 @@ export class PrismField {
     this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < StillSeconds; t += 1 / 30) this.#step(1 / 30);
-    this.#draw();
+    this.#draw(1);
   }
 
   /** A speck of the stream, at its start, toward the split's point. */
@@ -831,7 +851,8 @@ export class PrismField {
     return Math.max(0, Math.min(Levels - 1, Math.round((a / Math.max(o.alpha, 1e-6)) * (Levels - 1))));
   }
 
-  #draw(): void {
+  /** `level`: how much of the light shows (0..1; the word is always drawn whole). */
+  #draw(level: number): void {
     const ctx = this.#ctx;
     if (!ctx) return;
     const o = this.#options;
@@ -843,7 +864,7 @@ export class PrismField {
     // Bucket by color and level (counting sort), so each bucket is one path.
     const counts = this.#counts;
     counts.fill(0);
-    for (let i = 0; i < this.#alive; i++) {
+    for (let i = 0; level > 0 && i < this.#alive; i++) {
       const c = o.colors ? this.#color[i] : 0;
       const b = c * Levels + this.#level(i);
       this.#bucketOf[i] = b;
@@ -855,7 +876,7 @@ export class PrismField {
       sum += counts[b];
     }
     counts.fill(0);
-    for (let i = 0; i < this.#alive; i++) {
+    for (let i = 0; level > 0 && i < this.#alive; i++) {
       const b = this.#bucketOf[i];
       this.#bucket[this.#starts[b] + counts[b]++] = i;
     }
@@ -868,7 +889,7 @@ export class PrismField {
         const b = c * Levels + l;
         const n = counts[b];
         if (!n) continue;
-        ctx.globalAlpha = (o.alpha * l) / (Levels - 1);
+        ctx.globalAlpha = (o.alpha * l * level) / (Levels - 1);
         ctx.beginPath();
         const s = this.#starts[b];
         for (let k = 0; k < n; k++) {

@@ -198,8 +198,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   sweep in the viewer asked for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame
   lane's), now 1 (the in-app browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded
   viewer at rest asks for none and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop
-  left running, a frame per event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or
-  not (TODO).
+  left running, a frame per event). Mol*'s own canvas loop is not Prism's, but at rest it asks for none either: the
+  viewer turns on `PluginConfig.General.PauseLoopWhenIdle` (`options.ui.pauseWhenIdle`), so the loop sleeps once
+  Canvas3D has been idle for 250 ms and wakes on its `wake` (viewer README decision 29).
 - **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
   (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
   decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after

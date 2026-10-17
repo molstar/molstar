@@ -33,7 +33,9 @@ function prefersReducedMotion(): boolean {
  * (`glass.ts`): it assembles from pieces as the splash starts, its pieces lean under the pointer, and a press on it
  * shatters it for a moment; the page's wordmark only places it. It answers the pointer over `pointer` (the
  * viewport: the canvas keeps its clicks and drags, the splash only listens), mouse, pen and touch alike. It runs while it
- * is on the screen, the page is visible and its view active; under reduced motion it is one still frame.
+ * is on the screen, the page is visible and its view active; at rest (no input a while, the glass still, after its
+ * intro) the light fades out and it asks for no frame, the word staying drawn, until the pointer or a resize wakes it
+ * (`ambient-pace.ts`); under reduced motion it is one still frame.
  */
 export function PrismSplash(props: {
   /** The light (default) or the light as a wave; `options` are that field's. */

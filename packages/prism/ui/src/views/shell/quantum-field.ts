@@ -27,7 +27,7 @@ import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { Glass } from './glass.js';
 import { GlassFootprint } from './glass-footprint.js';
 import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
-import { AmbientPace } from './ambient-pace.js';
+import { AmbientPace, type AmbientPaceOptions } from './ambient-pace.js';
 
 export interface QuantumFieldOptions {
   /** Wave packets that come in per second. */
@@ -477,8 +477,8 @@ export class QuantumField {
   #time = 0;
   #last = 0;
   #frame = 0;
-  /** Full rate after input, about 24 steps a second at rest (ambient-pace.ts). */
-  readonly #ambient = new AmbientPace();
+  /** Full rate while awake, faded out and no frames at rest (ambient-pace.ts). */
+  readonly #ambient: AmbientPace;
   #running = false;
   #visible = true;
   #colorsRead = Number.NEGATIVE_INFINITY;
@@ -499,12 +499,17 @@ export class QuantumField {
   #wasPull = 0;
   #bursts = 0;
 
-  constructor(canvas: HTMLCanvasElement, options: Partial<QuantumFieldOptions> = {}, init: { still?: boolean } = {}) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    options: Partial<QuantumFieldOptions> = {},
+    init: { still?: boolean; pace?: AmbientPaceOptions } = {},
+  ) {
     this.#canvas = canvas;
     this.#ctx = canvas.getContext('2d');
     this.#options = { ...QuantumFieldDefaults, ...options };
     this.#random = generator(this.#options.seed);
     this.#still = !!init.still;
+    this.#ambient = new AmbientPace(init.pace);
     if (typeof document !== 'undefined' && this.#ctx) {
       const picture = document.createElement('canvas');
       picture.width = N;
@@ -519,6 +524,8 @@ export class QuantumField {
   }
 
   setOptions(options: Partial<QuantumFieldOptions>): void {
+    // A change (a story's control) is seen: awake.
+    this.#awake();
     const seed = this.#options.seed;
     this.#options = { ...this.#options, ...options };
     if (this.#options.seed !== seed) {
@@ -548,8 +555,8 @@ export class QuantumField {
   }
 
   resize(): void {
-    // A new size: full rate for a while (the field fills its new room smoothly).
-    this.#ambient.input();
+    // A new size: awake (the field fills its new room smoothly; a resized canvas is blank, the word redrawn).
+    this.#awake();
     const w = this.#canvas.clientWidth;
     const h = this.#canvas.clientHeight;
     const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
@@ -618,7 +625,7 @@ export class QuantumField {
     const u = (x - this.#wordX) / this.#wordScale;
     const v = (y - this.#wordY) / this.#wordScale;
     if (!glass.hits(u, v)) return false;
-    this.#ambient.input();
+    this.#awake();
     glass.shatter(u, v);
     this.#kickAt(x, y, this.#options.kick * 1.6, 90);
     this.#potential = true;
@@ -627,7 +634,7 @@ export class QuantumField {
 
   pointerMove(x: number, y: number, _now: number): void {
     if (!this.#options.interactive || this.#still) return;
-    this.#ambient.input();
+    this.#awake();
     this.#px = x;
     this.#py = y;
     this.#pointer = true;
@@ -649,7 +656,7 @@ export class QuantumField {
 
   start(): void {
     this.#running = true;
-    // Its start at full rate (the word gathers, the light comes in), then at rest's pace.
+    // Its start at full rate (the word gathers, the wave comes in), until it rests (ambient-pace.ts).
     this.#ambient.input();
     if (this.#still) this.#drawStill();
     else this.#schedule();
@@ -670,13 +677,24 @@ export class QuantumField {
     this.stop();
   }
 
-  /** The pace's probe: its steps (the idle rate's guard). */
+  /** The pace's probe: its steps (the rest guard counts them). */
   get steps(): number {
     return this.#ambient.steps;
   }
 
+  /** Whether it has faded out and asks for no frame (a probe; input wakes it). */
+  get asleep(): boolean {
+    return this.#ambient.asleep;
+  }
+
+  /** Input (or a new size): awake, and the frames again if it was asleep. */
+  #awake(): void {
+    this.#ambient.input();
+    this.#schedule();
+  }
+
   #schedule(): void {
-    if (this.#still || !this.#running || !this.#visible || this.#frame) return;
+    if (this.#still || !this.#running || !this.#visible || this.#frame || this.#ambient.asleep) return;
     this.#last = 0;
     this.#ambient.reset();
     this.#frame = requestFrameCallback(this.#tick);
@@ -685,9 +703,12 @@ export class QuantumField {
   readonly #tick = (now: number) => {
     this.#frame = 0;
     if (!this.#running || !this.#visible) return;
-    // At rest, a step every few frames (the frame asked for each frame, the work only when due).
-    if (!this.#ambient.due(!!this.#glass && !this.#glass.whole)) {
-      this.#frame = requestFrameCallback(this.#tick);
+    // At rest the wave and the specks fade out and the frames stop; the glass (shattering, gathering, settling) keeps it
+    // awake. The dt below is clamped, so the wave resumes where it was rather than catching up.
+    const level = this.#ambient.advance(!!this.#glass?.animating);
+    if (this.#ambient.asleep) {
+      // Faded out: the word alone, the last frame; nothing is asked for until input wakes it.
+      this.#draw(0);
       return;
     }
     this.#ambient.stepped();
@@ -699,7 +720,7 @@ export class QuantumField {
     }
     this.#frameDt = dt;
     this.#step(dt);
-    this.#draw();
+    this.#draw(level);
     this.#frame = requestFrameCallback(this.#tick);
   };
 
@@ -717,7 +738,7 @@ export class QuantumField {
     this.#time = 0;
     this.#random = generator(this.#options.seed);
     for (let t = 0; t < 6; t += 1 / 20) this.#step(1 / 20);
-    this.#draw();
+    this.#draw(1);
   }
 
   /** Time units a second: a packet of the mean wavenumber goes `speed` px a second (its group velocity is k). */
@@ -1288,7 +1309,8 @@ export class QuantumField {
     this.#pictureCtx.putImageData(image, 0, 0);
   }
 
-  #draw(): void {
+  /** `level`: how much of the wave and the specks shows (0..1; the word is always drawn whole). */
+  #draw(level: number): void {
     const ctx = this.#ctx;
     if (!ctx) return;
     const o = this.#options;
@@ -1297,13 +1319,15 @@ export class QuantumField {
     ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    if (o.glow > 0 && this.#picture) {
+    if (level > 0 && o.glow > 0 && this.#picture) {
       this.#paint();
       ctx.imageSmoothingEnabled = true;
+      ctx.globalAlpha = level;
       // On a dark canvas the wave is light added to it (a veil of grey would sink into the black).
       if (this.#dark) ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(this.#picture, this.#gx, this.#gy, N * Cell, N * Cell);
       ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
     }
 
     // The specks, bucketed by color and alpha level (counting sort): one path each.
@@ -1311,16 +1335,16 @@ export class QuantumField {
     counts.fill(0);
     // Halving every `decay` seconds.
     const fade = -Math.LN2 / Math.max(0.1, o.decay);
-    for (let i = 0; i < this.#alive; i++) {
+    for (let i = 0; level > 0 && i < this.#alive; i++) {
       const age = this.#age[i];
       // In over its birth, then halving every `decay` seconds (not the wave under it: it is a particle now).
       const x = this.#x[i];
       const y = this.#y[i];
       const clear = 1 - Math.min(1, this.#at(this.#cover, x, y) * CoverHide);
       const a = Math.min(1, age / Birth) * Math.exp(age * fade) * this.#at(edgeShow, x, y) * clear;
-      const level = Math.max(0, Math.min(Levels - 1, Math.round(a * (Levels - 1))));
+      const lv = Math.max(0, Math.min(Levels - 1, Math.round(a * (Levels - 1))));
       const c = o.colors ? this.#color[i] : 0;
-      const b = c * Levels + level;
+      const b = c * Levels + lv;
       this.#bucketOf[i] = b;
       counts[b]++;
     }
@@ -1330,7 +1354,7 @@ export class QuantumField {
       sum += counts[b];
     }
     counts.fill(0);
-    for (let i = 0; i < this.#alive; i++) {
+    for (let i = 0; level > 0 && i < this.#alive; i++) {
       const b = this.#bucketOf[i];
       this.#bucket[this.#starts[b] + counts[b]++] = i;
     }
@@ -1341,7 +1365,7 @@ export class QuantumField {
         const b = c * Levels + l;
         const n = counts[b];
         if (!n) continue;
-        ctx.globalAlpha = ((c === 0 ? 0.5 : 1) * o.alpha * l) / (Levels - 1);
+        ctx.globalAlpha = ((c === 0 ? 0.5 : 1) * o.alpha * l * level) / (Levels - 1);
         ctx.beginPath();
         const s = this.#starts[b];
         for (let k = 0; k < n; k++) {
