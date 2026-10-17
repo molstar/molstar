@@ -10,6 +10,7 @@
  */
 
 import { render } from '@molstar/prism-ui/dom/render';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StateTreeModel, StateTreeNode } from '../../../model/state-tree.js';
@@ -145,6 +146,20 @@ describe('the state tree, virtualized', () => {
     t.roots.set([next, ...rest]);
     expect(t.item('s0m0c0')!.textContent).toContain('Renamed');
     expect(t.item('s0m0c1')).toBe(before);
+    t.dispose();
+  });
+
+  it('keeps the rows of cells opened again when the tree is flattened afresh', () => {
+    const t = mount();
+    t.tree.focus();
+    // s0 closed and opened (its rows made by the incremental pass), then the same cells emitted again (the full pass).
+    t.key('ArrowLeft');
+    t.key('ArrowRight');
+    const made = t.item('s0m0')!;
+    expect(made).toBeDefined();
+    t.roots.set([...t.roots.value]);
+    flush();
+    expect(t.item('s0m0')).toBe(made);
     t.dispose();
   });
 });

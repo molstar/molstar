@@ -109,7 +109,7 @@ const cycles: Record<string, Cycle> = {
     box.remove();
   },
   'a keyed list with rows': mountCycle(() => (
-    <VirtualList items={items.asReadonly} key={(r) => r.id} rowHeight={26}>
+    <VirtualList items={items.asReadonly} itemKey={(r) => r.id} rowHeight={26}>
       {(r) => <div>{r.label}</div>}
     </VirtualList>
   )),

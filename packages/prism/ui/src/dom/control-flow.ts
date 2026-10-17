@@ -344,12 +344,15 @@ interface ForEntry<T> {
  */
 export function For<T>(props: {
   each: MaybeReactive<readonly T[]>;
+  /** Not received through JSX (the runtime keeps `key` for itself): use `by`. */
   key?: (item: T) => unknown;
+  /** An item's key (what `key` means; the JSX runtime keeps `key` for itself, so a component never gets it). */
+  by?: (item: T) => unknown;
   fallback?: () => Child;
   children: (item: T, index: ReadonlyState<number>) => Child;
 }): Node {
   const owner = requireScope('For');
-  const keyOf = props.key ?? ((item: T) => item);
+  const keyOf = props.by ?? props.key ?? ((item: T) => item);
   const start = document.createComment('for');
   const end = document.createComment('/for');
   const fragment = document.createDocumentFragment();

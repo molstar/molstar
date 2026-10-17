@@ -88,6 +88,14 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   allocation and GC. Other lists keep keyed rows (`VirtualList`). A slot shows every part a row may have (shown or
   hidden per item), follows its item's keys (`watch(...).retarget`), and on re-point closes its menu and moves its hover
   and keyboard registration.
+- **Row identity and the picked row** (a keyed row of a `RecycledList` is disposed when it leaves the window, and made
+  again when it comes back): every write of a tree's rows goes through the keeper (`keepRows`), the incremental passes
+  too (`reflowNodes`, the state tree's `applyToggles`), so an equal row is the same object across any flattening and the
+  list never remakes it (an open ⋯ menu, an extension's inspector stays). What is picked follows the model, not the
+  row's DOM: an extension row's `gone` is told when its key leaves the rows (the tree's `watchGone`), never because it
+  scrolled out. A search while the scene changes searches again (once a burst), so its hits are not those of the typing.
+- **A list's row key is `itemKey`**, not `key` (the JSX runtime keeps `key` for itself, so a component never gets it);
+  `For` takes `by` for the same reason. Its row height is measured from the rows made, not planned (`For` time-slices).
 - **An opened node comes in** (`reveal`, David, 2026-10-17): a change of a virtual list's rows that only inserts one run
   (`insertedRun`: a node opened, its children loaded) animates; any other change and every scroll are instant. Keyed
   rows grow in (`data-reveal`, the row height not measured meanwhile); recycled rows fade in at their place while the

@@ -394,7 +394,7 @@ async function virtualTree(host: HTMLElement, out: Result[]) {
   };
   const dispose = render(
     () => (
-      <VirtualList items={rows.asReadonly} key={(r) => r.node.ref} rowHeight={26} role="tree" aria-label="Tree">
+      <VirtualList items={rows.asReadonly} itemKey={(r) => r.node.ref} rowHeight={26} role="tree" aria-label="Tree">
         {(r) => <Row ref={r.node.ref} depth={r.depth} />}
       </VirtualList>
     ),

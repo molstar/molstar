@@ -19,6 +19,7 @@ import {
   type VirtualSlot,
 } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import type { SceneRowHost } from './scene-row.js';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { bind, effect, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
@@ -136,6 +137,38 @@ export function SceneTree(props: {
   const states = keyedState<string, RowState>(samePlace);
   const picked = keyedSelector(scene.picked);
   const keep = keepRows<Row>((r) => r.key, sameRow);
+  // Extension rows picked in the inspector follow the model, not their DOM (view-models.md §3): a keyed row scrolled out
+  // of the window is disposed, but is still a row; it is gone when its key leaves the rows.
+  const departures = new Map<string, Set<() => void>>();
+  const watchGone = (key: string, fn: () => void) => {
+    let set = departures.get(key);
+    if (!set) departures.set(key, (set = new Set()));
+    set.add(fn);
+    return () => {
+      set.delete(fn);
+      if (set.size === 0 && departures.get(key) === set) departures.delete(key);
+    };
+  };
+  // Every write of the rows goes through the keeper (`keep`), whether all of them were flattened or only some: a row
+  // made again as an equal object would be disposed and made anew by the list (`RecycledList.layout`), and with it an
+  // extension's open inspector, a menu.
+  const setRows = (next: readonly Row[]) => {
+    const kept = keep(next);
+    rows.set(kept);
+    if (departures.size === 0) return;
+    const keys = new Set<string>();
+    for (const r of kept) keys.add(r.key);
+    for (const [key, fns] of [...departures]) {
+      if (keys.has(key)) continue;
+      departures.delete(key);
+      for (const fn of [...fns]) fn();
+    }
+  };
+  onCleanup(() => {
+    const all = [...departures.values()];
+    departures.clear();
+    for (const fns of all) for (const fn of fns) fn();
+  });
   // Long lists shown whole (Show all), until closed; the nodes open at the last flattening (a node opening loads).
   const showAll = new Set<SceneNode>();
   const wasOpen = new Set<SceneNode>();
@@ -225,7 +258,7 @@ export function SceneTree(props: {
     }
     batch(() => {
       states.replace(f.st);
-      rows.set(keep(f.out));
+      setRows(f.out);
     });
   };
 
@@ -254,21 +287,13 @@ export function SceneTree(props: {
       for (let j = at; j < i; j++) next.push(before[j]);
       const row = before[i];
       const place = states.get(row.key) ?? { posinset: 1, setsize: 1 };
-      const from = next.length;
       const f: Flat = { out: next, st, open: new Set() };
       emit(s, f, row, place.posinset, place.setsize);
       const was: SceneNode[] = [];
-      const old = new Map<string, Row>();
       for (let j = i; j < end; j++) {
         const r = before[j];
         if (r.kind === 'node' && wasOpen.has(r.node)) was.push(r.node);
         gone.add(r.key);
-        old.set(r.key, r);
-      }
-      // A row the same as the span's before is that object again (its view kept), as `keep` does for all rows.
-      for (let j = from; j < next.length; j++) {
-        const o = old.get(next[j].key);
-        if (o && sameRow(o, next[j])) next[j] = o;
       }
       opened(was, f.open);
       at = end;
@@ -277,7 +302,8 @@ export function SceneTree(props: {
     batch(() => {
       for (const key of gone) if (!st.has(key)) states.delete(key);
       for (const [key, place] of st) states.set(key, place);
-      rows.set(next);
+      // A row the same as before is that object again (its view kept), as for a full flattening.
+      setRows(next);
     });
   };
 
@@ -287,9 +313,19 @@ export function SceneTree(props: {
   // opens) flattens again in the same flush.
   const work = workQueue({ lane: 'task' });
   let full = true;
+  // A change of the scene while searching: the hits are searched again, once, with the flattening (not those of the
+  // search as it was typed).
+  let rehit = false;
   let changed = new Set<string>();
   const reflowNow = () => {
     if (!current) return;
+    if (rehit) {
+      rehit = false;
+      if (current.text) {
+        current = searchNow();
+        noteEmpty(current);
+      }
+    }
     const ids = changed;
     changed = new Set();
     // Searching, the hits decide what shows under a changed node: all of it again.
@@ -302,11 +338,16 @@ export function SceneTree(props: {
     full = true;
     work.want('flatten', reflowNow);
   };
+  // A node's children changed (a fixture without the scene's change stream): while searching, they may match.
+  const reflowChildren = () => {
+    rehit = true;
+    reflow();
+  };
   const followNode = (node: SceneNode) => {
     if (watched.has(node)) return;
     // Kept in `watched`: stopped when the node leaves the shown rows, and all of them when the tree is hidden.
     const offExpanded = listen(node.isExpanded, reflow);
-    const offChildren = listen(node.children, reflow);
+    const offChildren = listen(node.children, reflowChildren);
     watched.set(node, () => {
       offExpanded();
       offChildren();
@@ -317,10 +358,7 @@ export function SceneTree(props: {
   // first flattening now, with the mount (the rows are there when it returns, as a binding's first write is); the
   // changes after, once a burst.
   let mounted = false;
-  const research = () => {
-    const s = searchNow();
-    if (current && s.text === current.text && s.roots === current.roots && s.sections === current.sections) return;
-    current = s;
+  const noteEmpty = (s: Search) =>
     emptyNote.set(
       s.roots.length === 0
         ? 'Nothing loaded yet.'
@@ -328,6 +366,12 @@ export function SceneTree(props: {
           ? 'Nothing matches.'
           : undefined,
     );
+  const research = () => {
+    const s = searchNow();
+    if (current && s.text === current.text && s.roots === current.roots && s.sections === current.sections) return;
+    current = s;
+    rehit = false;
+    noteEmpty(s);
     if (mounted) reflow();
     else {
       mounted = true;
@@ -347,6 +391,10 @@ export function SceneTree(props: {
       // Resumed after more than one change: what changed meanwhile is not known by node, so all of it.
       if (c.version !== version + 1) full = true;
       version = c.version;
+      if (current?.text) {
+        rehit = true;
+        full = true;
+      }
       for (const id of c.nodes) changed.add(id);
       work.want('flatten', reflowNow);
     });
@@ -410,6 +458,7 @@ export function SceneTree(props: {
             depth={row.depth}
             states={states}
             register={nav.row(row.key)}
+            watchGone={watchGone}
           />
         );
     }
@@ -439,7 +488,7 @@ export function SceneTree(props: {
       ) : (
         <VirtualList
           items={rows.asReadonly}
-          key={(r) => r.key}
+          itemKey={(r) => r.key}
           rowHeight={26}
           class={classes.tree}
           edge
@@ -990,6 +1039,8 @@ function ExtensionRow(props: {
   depth: number;
   states: RowStates;
   register: (el: HTMLElement) => void;
+  /** Tells when the row's key leaves the tree's rows (not when it only scrolls out of the window). */
+  watchGone: (key: string, fn: () => void) => () => void;
 }) {
   const host = (
     <div data-scene-row={props.section.id} style={{ display: 'contents', '--msp-tree-depth': props.depth }} />
@@ -1001,16 +1052,30 @@ function ExtensionRow(props: {
   );
   onCleanup(dispose);
   const item = () => host.querySelector<HTMLElement>('[role="treeitem"]');
-  // Nothing opens under it here: not expandable.
-  item()?.removeAttribute('aria-expanded');
-  item()?.setAttribute('aria-level', String(props.depth + 1));
   const key = `${props.node.id}::row:${props.section.id}`;
+  (host as SceneRowHost).sceneRowGone = (fn) => props.watchGone(key, fn);
+  // Told by the row when its item appears (`SceneRow`), if the view renders it after the mount.
+  (host as SceneRowHost).sceneRowSettle = () => settle();
+  // Nothing opens under it here: not expandable. Written when its item appears (a view may render it later: a lazy
+  // placeholder replaced once loaded: `SceneRow` tells), and at the mount.
+  const level = String(props.depth + 1);
+  let styled: HTMLElement | null = null;
+  const settle = () => {
+    const el = item();
+    if (!el || el === styled) return;
+    styled = el;
+    el.removeAttribute('aria-expanded');
+    el.setAttribute('aria-level', level);
+    const s = place.value;
+    if (s) writePlace(el, s);
+  };
   const place = props.states.key(key);
   watch([place], () => {
     const el = item();
     const s = place.value;
     if (el && s) writePlace(el, s);
   });
+  settle();
   props.register(host);
   return host;
 }
