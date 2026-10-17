@@ -10,7 +10,15 @@
 // prism-ui's hot paths keep nothing a step (`test:heap`): growth over n and 4n steps is flat, the control caught.
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking, retainedScaling } from '../../_test/perf.js';
+import {
+  controlCaught,
+  describeScaling,
+  heapScaling,
+  isFlat,
+  isRetainedFlat,
+  leaking,
+  retainedScaling,
+} from '../../_test/perf.js';
 import { commandMenuTyping, forUnchanged } from './hot-cases.js';
 
 const gc = (globalThis as { gc?: () => void }).gc!;
@@ -33,7 +41,7 @@ describe('hot path heap guards', () => {
     const { step } = commandMenuTyping();
     settle(step, 1_000);
     const r = retainedScaling(200, step);
-    expect(isFlat(r), describeScaling(r, 200)).toBe(true);
+    expect(isRetainedFlat(r, 200), describeScaling(r, 200)).toBe(true);
   });
 
   it('a keystroke that keeps what it made is caught (positive control)', () => {
@@ -45,7 +53,7 @@ describe('hot path heap guards', () => {
       step(i);
       kept.push(new Uint8Array(64 << 10));
     };
-    expect(isFlat(retainedScaling(200, keeping))).toBe(false);
+    expect(isRetainedFlat(retainedScaling(200, keeping), 200)).toBe(false);
   });
 
   it('the same step allocating an object each is caught (positive control)', () => {

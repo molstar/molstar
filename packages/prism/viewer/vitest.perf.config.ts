@@ -6,12 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// `test:perf`, the quick allocation tier of the Mol* adapter's hot paths (src/sequence/molstar/_test/*.quick.ts, against
-// its `_test/perf-baseline.json`): Seq*'s tier (`perfTests`, packages/sequences/vitest.shared.ts and its AGENTS.md,
-// Tests), rooted at the adapter's folder. Opt in, never in CI.
+// `test:perf`, the quick allocation tier of the viewer's hot paths (`*.quick.ts` under any `_test/` of src/, against
+// `src/_test/perf-baseline.json`): Seq*'s tier (`perfTests`, packages/sequences/vitest.shared.ts and its AGENTS.md,
+// Tests), rooted at src/. Opt in, never in CI.
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { perfTests } from '../../sequences/vitest.shared.js';
 
-const root = join(import.meta.dirname, 'src/sequence/molstar');
-export default defineConfig({ ...perfTests(root), root });
+const root = join(import.meta.dirname, 'src');
+const base = perfTests(root);
+export default defineConfig({ ...base, root, test: { ...base.test, include: ['**/_test/**/*.quick.ts'] } });

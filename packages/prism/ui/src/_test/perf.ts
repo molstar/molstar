@@ -45,3 +45,12 @@ export function retainedScaling(n: number, step: (i: number) => void): { short: 
   const long = h2 - h1;
   return { short, long, scaled: long - short };
 }
+
+/**
+ * Whether `retainedScaling` over `n` steps kept nothing a step: neither run past 1 MB, and the longer (3n steps more)
+ * kept at most 64 KB plus 8 bytes a step more than the shorter. A reading after a full collection still moves with
+ * compiled code and inline caches (about 16 bytes a step on the scene tree's pick in jsdom, where a heap snapshot's diff
+ * found no object kept, 2026-10-17); a step that keeps 32 bytes or more is caught.
+ */
+export const isRetainedFlat = (r: { short: number; long: number; scaled: number }, n: number): boolean =>
+  r.short < 1 << 20 && r.long < 1 << 22 && r.scaled < (64 << 10) + 8 * 3 * n;
