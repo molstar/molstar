@@ -172,6 +172,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
           edge
           role="tree"
           aria-label="State tree"
+          reveal
           contentRef={nav.tree}
           ref={(l) => {
             list = l;

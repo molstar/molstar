@@ -88,6 +88,11 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   allocation and GC. Other lists keep keyed rows (`VirtualList`). A slot shows every part a row may have (shown or
   hidden per item), follows its item's keys (`watch(...).retarget`), and on re-point closes its menu and moves its hover
   and keyboard registration.
+- **An opened node comes in** (`reveal`, David, 2026-10-17): a change of a virtual list's rows that only inserts one run
+  (`insertedRun`: a node opened, its children loaded) animates; any other change and every scroll are instant. Keyed
+  rows grow in (`data-reveal`, the row height not measured meanwhile); recycled rows fade in at their place while the
+  rows below glide down over them (`.glide`, `.enter`), the classes off after `--msp-motion-base`, or at once on a
+  scroll (a slot re-pointed mid-glide would slide across the list).
 - **A virtual list scrolls without work or blanks**: the browser scrolls before the scroll event reaches the list, so
   what it uncovers must already be there. The window stays while what shows (and a few rows) is in it, so most scroll
   events make nothing; past that it moves ahead of the scroll by a screenful; a jump (a scrollbar drag, a far wheel

@@ -48,3 +48,15 @@
   contain: layout style;
   background-color: var(--msp-surface, var(--msp-color-panel));
 }
+
+/* A reveal (`reveal`: a run of rows inserted, a node opened): the rows below glide to their new place over the rows
+   coming in, which fade in where they belong, so the opened run is uncovered as a tree's grew before (reset.css'
+   `msp-reveal`). Only for that change: a scroll is never animated. */
+.glide {
+  z-index: 1;
+  transition: transform var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.enter {
+  animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
+}

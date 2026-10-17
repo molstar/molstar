@@ -12,6 +12,8 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'content': 'msp-virtual-list-content',
+  'enter': 'msp-virtual-list-enter',
+  'glide': 'msp-virtual-list-glide',
   'list': 'msp-virtual-list-list',
   'row': 'msp-virtual-list-row',
   'window': 'msp-virtual-list-window',
@@ -48,6 +50,15 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
   background-color: var(--msp-surface, var(--msp-color-panel));
   position: absolute;
   inset: 0 0 auto;
+}
+
+.msp-virtual-list-glide {
+  z-index: 1;
+  transition: transform var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.msp-virtual-list-enter {
+  animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
 }
 }
 `);

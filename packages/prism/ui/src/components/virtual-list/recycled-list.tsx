@@ -27,7 +27,7 @@ import { derive } from '../../reactive/state.js';
 import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
-import { NativeMs, rowsAhead } from './window.js';
+import { insertedRun, NativeMs, RevealMs, rowsAhead } from './window.js';
 import type { VirtualListHandle } from './virtual-list.js';
 
 /**
@@ -104,6 +104,12 @@ export function RecycledList<T>(props: {
   /** The element that holds the rows (the one with `role`): a tree binds its keyboard there (`TreeNavigation`). */
   contentRef?: (el: HTMLElement) => void;
   ref?: (list: VirtualListHandle) => void;
+  /**
+   * Rows inserted in one run (a tree's node opened, its children loaded) come in as a tree's did before it was
+   * virtualized: they fade in where they belong while the rows below glide down over them. Any other change, and a
+   * scroll, is instant.
+   */
+  reveal?: boolean;
 }) {
   const owner = requireScope('RecycledList');
   const overscan = props.overscan ?? 8;
@@ -182,6 +188,7 @@ export function RecycledList<T>(props: {
     if (first !== wf || last !== wl) win.set({ first, last });
   };
   const scrolled = () => {
+    endReveal();
     place(false);
     if (resting !== undefined) clearTimeout(resting);
     resting = setTimeout(() => {
@@ -190,8 +197,21 @@ export function RecycledList<T>(props: {
       settleOrder();
     }, RestMs);
   };
+  // The rows of a reveal (`reveal`): those gliding to their new place and those coming in, their classes taken off when
+  // it ends (its time, or a scroll: a slot re-pointed while gliding would slide across the list).
+  const revealed: HTMLElement[] = [];
+  let revealEnd: ReturnType<typeof setTimeout> | undefined;
+  function endReveal() {
+    if (revealEnd === undefined) return;
+    clearTimeout(revealEnd);
+    revealEnd = undefined;
+    for (const el of revealed) el.classList.remove(classes.glide, classes.enter);
+    revealed.length = 0;
+  }
+  let animating = false;
   onCleanup(() => {
     if (resting !== undefined) clearTimeout(resting);
+    endReveal();
   });
   bind(
     derive([props.items, height.asReadonly, rowHeight.asReadonly], (list, h, rh) => ({ list, h, rh })),
@@ -252,6 +272,11 @@ export function RecycledList<T>(props: {
   const position = (entry: Entry<T>, index: number, rh: number) => {
     const y = index * rh;
     if (entry.y === y) return;
+    if (animating) {
+      // Placed before (glides from there) or new to the window (comes in where it belongs).
+      entry.el.classList.add(Number.isNaN(entry.y) ? classes.enter : classes.glide);
+      revealed.push(entry.el);
+    }
     entry.y = y;
     entry.el.style.transform = `translateY(${y}px)`;
   };
@@ -343,6 +368,8 @@ export function RecycledList<T>(props: {
   };
   // The window as last laid out (a continuation lays out the latest).
   let range = { first: 0, last: 0, rh: props.rowHeight };
+  /** The rows last laid out (what a change of them is compared with, for a reveal). */
+  let laid: readonly T[] = [];
   const ranges = derive(
     [props.items, win.asReadonly, rowHeight.asReadonly],
     (list, w, rh) => ({ list, first: Math.min(w.first, list.length), last: Math.min(w.last, list.length), rh }),
@@ -424,9 +451,17 @@ export function RecycledList<T>(props: {
         content = el;
         props.contentRef?.(el);
         bind(ranges, (r) => {
+          const run = props.reveal && r.list !== laid ? insertedRun(laid, r.list, props.itemKey) : undefined;
+          laid = r.list;
           items = r.list;
           range = r;
+          if (run) {
+            endReveal();
+            animating = true;
+            revealEnd = setTimeout(endReveal, RevealMs);
+          }
           layout(r.first, r.last, r.rh);
+          animating = false;
         });
       }}
       style={{

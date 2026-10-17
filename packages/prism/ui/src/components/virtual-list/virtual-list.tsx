@@ -17,7 +17,7 @@ import { derive } from '../../reactive/state.js';
 import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
-import { NativeMs, rowsAhead } from './window.js';
+import { insertedRun, NativeMs, RevealMs, rowsAhead } from './window.js';
 
 /** What a `VirtualList` lets its owner do (its `ref`). */
 export interface VirtualListHandle {
@@ -51,6 +51,11 @@ export function VirtualList<T>(props: {
   /** The element that holds the rows (the one with `role`): a tree binds its keyboard there (`TreeNavigation`). */
   contentRef?: (el: HTMLElement) => void;
   ref?: (list: VirtualListHandle) => void;
+  /**
+   * Rows inserted in one run (a tree's node opened, its children loaded) grow in (reset.css' `data-reveal`), the rows
+   * below gliding down, as a tree's did before it was virtualized. Any other change, and a scroll, is instant.
+   */
+  reveal?: boolean;
 }) {
   const overscan = props.overscan ?? 8;
   // The scroll position in the frame lane (rendering.md §2.3): scroll events can come several a frame; the window
@@ -129,6 +134,7 @@ export function VirtualList<T>(props: {
     if (first !== wf || last !== wl) win.set({ first, last });
   };
   const scrolled = () => {
+    endReveal();
     place(false);
     if (resting !== undefined) clearTimeout(resting);
     resting = setTimeout(() => {
@@ -136,8 +142,35 @@ export function VirtualList<T>(props: {
       place(true);
     }, RestMs);
   };
+  // A reveal (`reveal`): the keys of the run inserted, whose rows grow in as they are made; the rows' height is not
+  // measured meanwhile (a growing row is not a row's height). It ends after its time, or at a scroll.
+  const entering = new Set<unknown>();
+  const grown: Element[] = [];
+  let revealEnd: ReturnType<typeof setTimeout> | undefined;
+  function endReveal() {
+    if (revealEnd === undefined) return;
+    clearTimeout(revealEnd);
+    revealEnd = undefined;
+    entering.clear();
+    for (const el of grown) el.removeAttribute('data-reveal');
+    grown.length = 0;
+  }
+  // Compared where the rows are cut (`range`, read before the rows are made), with the rows last cut. A row's key as
+  // `For` keys it: `key` when the component gets it (the JSX runtime keeps a `key` attribute for itself), else the item.
+  const keyOf = (item: T): unknown => (typeof props.key === 'function' ? props.key(item) : item);
+  let laid: readonly T[] = [];
+  const noteRun = (list: readonly T[]) => {
+    if (!props.reveal || list === laid) return;
+    const run = insertedRun(laid, list, keyOf);
+    laid = list;
+    if (!run) return;
+    endReveal();
+    for (let i = run.at; i < run.at + run.count; i++) entering.add(keyOf(list[i]));
+    revealEnd = setTimeout(endReveal, RevealMs);
+  };
   onCleanup(() => {
     if (resting !== undefined) clearTimeout(resting);
+    endReveal();
   });
   bind(
     derive([props.items, height.asReadonly, rowHeight.asReadonly], (list, h, rh) => ({ list, h, rh })),
@@ -149,7 +182,10 @@ export function VirtualList<T>(props: {
   bind(top, scrolled);
   const range = derive(
     [props.items, win.asReadonly, rowHeight.asReadonly],
-    (list, w, rh) => ({ items: list, first: Math.min(w.first, list.length), last: Math.min(w.last, list.length), rh }),
+    (list, w, rh) => {
+      noteRun(list);
+      return { items: list, first: Math.min(w.first, list.length), last: Math.min(w.last, list.length), rh };
+    },
     (a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh,
   );
   // How many rows the window holds now (the measure's divisor).
@@ -209,14 +245,21 @@ export function VirtualList<T>(props: {
           // The rows' height: the window's over its rows, from the observer's entry (after layout, nothing read).
           observeResize(el, (entries) => {
             const h = entries[entries.length - 1].contentRect.height;
-            if (count <= 0 || h <= 0) return;
+            if (count <= 0 || h <= 0 || revealEnd !== undefined) return;
             const rh = h / count;
             if (Math.abs(rh - rowHeight.value) > 0.5) rowHeight.set(rh);
           });
         }}
       >
         <For each={shown} key={props.key}>
-          {(item) => props.children(item)}
+          {(item) => {
+            const row = props.children(item);
+            if (entering.size && row instanceof Element && entering.has(keyOf(item))) {
+              row.setAttribute('data-reveal', '');
+              grown.push(row);
+            }
+            return row;
+          }}
         </For>
       </div>
     </ScrollArea>

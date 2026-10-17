@@ -584,6 +584,8 @@ the [API change ledger](breaking-v6-changes.md).
   `flattenTree` gives each node its place among its siblings; `keepRows` keeps a flattened list's unchanged rows;
   `TreeNavigation` (`dom/tree-keys`) is the tree keyboard over a flattened, virtualized tree (it replaces `treeKeys` and
   `treeFocus`).
+- Opening a node in the scene or state tree animates again, as before the trees were virtualized: `VirtualList` and
+  `RecycledList` take `reveal`, which animates a change that only inserts one run of rows (a scroll never animates).
 
 ## Prism: several viewers on a page, and a camera to follow
 

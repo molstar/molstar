@@ -430,6 +430,7 @@ export function SceneTree(props: {
           ref={(l) => {
             list = l;
           }}
+          reveal
           slot={() => nodeSlot({ scene, nav, states, picked })}
           recycle={(row) => row.kind === 'node'}
         >
@@ -448,6 +449,7 @@ export function SceneTree(props: {
           ref={(l) => {
             list = l;
           }}
+          reveal
         >
           {(row) =>
             row.kind === 'node' ? (

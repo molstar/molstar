@@ -89,8 +89,9 @@ Every padding, margin and gap is a step of the scale or a rule named after it:
 - **Cut-off text fades out, no ellipsis**: `msp-fade-overflow` (`reset.css`, CSS only, on the element's inline scroll
   timeline); `data-tip-overflow` shows the full text in the tooltip only while cut off.
 - **Motion**: state changes take `--msp-motion-fast`; opening content grows and fades in `--msp-motion-base` (`Show`'s
-  `reveal`, `dom/motion.ts`). Nothing animates on first render, on a tab switch, for list rows, or under reduced motion
-  (the reset finishes every animation at once).
+  `reveal`, `dom/motion.ts`); a virtual tree's opened node too (its run of rows comes in, view-models.md §3: the user
+  expects it to open as a tree did before it was virtualized). Nothing animates on first render, on a tab switch, for a
+  list's other changes or its scrolling, or under reduced motion (the reset finishes every animation at once).
 - **Every scrolling area is a `ScrollArea`** (`components/scroll-area`): overlay scrollbars, fading edges where there is
   more to scroll (`msp-fade-scroll-*`).
 - **Shared controls**: `Select` opens inline (or floats with `over`); `ParamsForm` renders `PD.Params` as they are
