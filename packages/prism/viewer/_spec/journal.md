@@ -21,12 +21,18 @@ the truth for how.
   listed; touched on keep, at most once a minute while appended to, at a turn's end, on dispose.
 - **The index stays small by folding** (`createRecordIndex`, `IndexFoldAt` = 64): past that many entries, and past twice
   its records, the thread is rewritten as one entry per kept record (newest title and time, the time first listed); the
-  superseded touches and the forgotten records' tombstones go. Done in the background after a touch or a list, queued
-  with them in this page (nothing is read or appended mid-rewrite); another page writing the same rows is not fenced
-  (its lost touch is the next one's to write; a thread folded away under it is made again). **Folding never drops a
-  record**: a kept record idle for 90 days stays listed, marked in Home, and only the person forgets it (§7); the number
-  of records is bounded by `keptRecordsMax` where the person keeps them, so the index is that many entries plus at most
-  the fold bound.
+  superseded touches and the forgotten records' tombstones go. Done in the background after a touch or a list. **Folding
+  never drops a record**: a kept record idle for 90 days stays listed, marked in Home, and only the person forgets it
+  (§7); the number of records is bounded by `keptRecordsMax` where the person keeps them, so the index is that many
+  entries plus at most the fold bound.
+- **Fenced per database, not per index** (`fenced`): one viewer makes several indexes on one database (History's Keep,
+  Home's list, the Storage view) and unkeyed viewers share one (§6), so every list, touch, forget and fold on it goes
+  one at a time: a Web Lock per database across tabs (`navigator.locks`), else a chain per database in this page
+  (another page without Web Locks is not fenced: its lost touch is the next one's to write; a thread folded away under
+  it is made again); the host's `persist.rows` by their object. Nothing is read or appended mid-rewrite. **A fold
+  survives a closed page**: it writes the folded index to a copy sealed by its last entry before it rewrites the thread,
+  and the next use finishes it (a sealed copy is written again; an unsealed one is let go, the thread untouched). The
+  record lets go of its kept rows only after its index's fold is done.
 
 ## 2. Entries
 

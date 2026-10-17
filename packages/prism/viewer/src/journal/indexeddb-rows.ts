@@ -61,11 +61,13 @@ function open(name: string): Promise<IDBDatabase> {
  */
 export function createIndexedDbRows<T extends string = string>(
   name: string,
-): RowStore<T> & { clear(): Promise<void>; close(): void } {
+): RowStore<T> & { readonly database: string; clear(): Promise<void>; close(): void } {
   const db = open(name);
   const channel = typeof BroadcastChannel === 'undefined' ? undefined : new BroadcastChannel(`threads:${name}`);
   const changed = (scope: string) => channel?.postMessage({ scope });
   return {
+    /** Its name: what the kept records' index is fenced by, across instances and tabs (journal.md §1). */
+    database: name,
     async load(scope) {
       const tx = (await db).transaction(STORES, 'readonly');
       const [generation, records] = await Promise.all([
