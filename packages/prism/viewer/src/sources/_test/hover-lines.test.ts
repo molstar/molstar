@@ -18,6 +18,13 @@ it('Mol* loci labels become plain lines', () => {
   expect(hoverLines(['Sulfate ion <small>|| × 2</small>', { react: true }, ''])).toEqual(['Sulfate ion × 2']);
 });
 
+it('decodes only the known entities, never what an object inherits', () => {
+  expect(hoverLines(['&constructor; &toString; &lt;b&gt;'])).toEqual(['&constructor; &toString; <b>']);
+  expect(hoverRich(['<b>&constructor;</b> &valueOf;'])).toEqual([
+    { role: 'title', runs: [{ text: '&constructor;', bold: true }, { text: ' &valueOf;' }] },
+  ]);
+});
+
 describe('hoverRich', () => {
   it("keeps Mol*'s emphasis as runs, the first line a title", () => {
     expect(hoverRich(['Cytochrome P450 3A4</br><b>A</b> | <i>ALA</i> 12 &amp; more'])).toEqual([
