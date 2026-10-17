@@ -21,7 +21,7 @@ abstract class Live implements Unsubscribable {
 /**
  * A binding that can be stopped and started again with its scope's activity (`Scope.setActive`): stopped it holds
  * nothing (nothing runs for it), started it writes the current value and follows the changes. A state (or a derived
- * value) is followed by its `listen`, a plain callback; any other stream (the exception: rendering.md §2.3) by an rxjs
+ * value) is followed by its `listen`, a plain callback; any other stream (the exception: rendering.md §2.2) by an rxjs
  * subscription, which replays its current value.
  */
 class Binding<T> extends Live {
@@ -67,7 +67,7 @@ class Binding<T> extends Live {
 
 // --- watch ---------------------------------------------------------------------------------------
 
-/** The watches marked by a change since the last flush (rendering.md §2.2): rendered together, in a microtask. */
+/** The watches marked by a change since the last flush (rendering.md §2.3): rendered together, in a microtask. */
 let dirty = new Set<Watcher>();
 let scheduled = false;
 let flushing = false;

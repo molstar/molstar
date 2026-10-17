@@ -126,11 +126,13 @@ the [API change ledger](breaking-v6-changes.md).
   success and warning darker, blue's accent, danger and info lighter); field and pressed edges in the high-contrast
   theme and under `prefers-contrast: more`; selections and foci by target, and the assistant's finished reply, said
   in the one live region; the sequence's keyboard cursor said and ringed; compact panel targets at 44px
-- Prism UI runtime: components render as a function of state: `watch(sources, render)` writes what changed, once per
-  task (one microtask scheduler, parents first; `flush()` renders now), states have a plain `listen()`,
-  `dom/writes.ts` writes only what differs, `keyedSelector(...).key(k)` is a keyed source; the scene and state trees'
-  rows, the command menu's rows and the params form's controls use it (a scene-tree row 16 → 4 KB), and a virtual
-  list no longer lays out its new rows inside the scroll event
+- Prism UI runtime: a plain-JS reactive base, rxjs only at its boundary: a state is its latest value plus listeners
+  (`observableState`, `State`), `derive` is a lazy shared derived value, `toState` turns a stream into a state at a
+  model's edge; components render as a function of state: `watch(sources, render)` writes what changed, once per task
+  (one microtask scheduler, parents first; `flush()` renders now), `dom/writes.ts` writes only what differs,
+  `keyedSelector(...).key(k)` is a keyed source; the trees' rows, the command menu's rows and the params form's
+  controls use it (a scene-tree row 16 → 3.4 KB), views no longer pipe states (308 sites became `derive`), a guard
+  test keeps new rxjs out of views, and a virtual list no longer lays out its new rows inside the scroll event
 - The Prism viewer's Storage view (Settings): what it keeps in the browser and where (kept records with size and age,
   preferences, the light restore, the assistant's keys by provider and scope), each with Forget, and Forget everything
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),

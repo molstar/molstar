@@ -37,13 +37,20 @@ app's sources and models follow (the viewer's are in its `sources/` and `model/`
 
 Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyState`s; models and views read only them.
 
+- **States at the boundary** ([rendering.md](rendering.md) §2.2): a state is its latest value plus listeners, no rxjs on
+  its path. rxjs becomes a state once per value, where the engine's events come in (`toState(stream, initial)`, or an
+  `observableState` the source sets), never per view binding. Only what consumes Mol\*'s and the plugin's events
+  (`plugin.events`, cell updates, the viewer's `sources/`) keeps rxjs inside; models and sources expose states, and what
+  they derive is `derive` (lazy and hot: it follows its sources only while something listens). Views receive states and
+  derived values, and do no rxjs (rendering.md §2.6).
+
 - **Records per node**: a tree's source hands out one record per node, keyed by id (the state ref), that changes on its
   own, not a tree rebuilt per change: a row follows its record by id, and `For` renders an entry again only when its
-  record is replaced ([rendering.md](rendering.md) §2.4). A rebuilt tree costs a subtree per change.
+  record is replaced ([rendering.md](rendering.md) §2.5). A rebuilt tree costs a subtree per change.
 - **Identity by id**: a rebuild that recreates the engine's objects keeps the same record for the same id; its fields
   emit only when what they show changed.
 - **One change, one emission**: code that sets several states for one change wraps it in `batch`, so each emits once
-  with its final value (views render once per task anyway: `watch`, [rendering.md](rendering.md) §2.2); long lists mark
+  with its final value (views render once per task anyway: `watch`, [rendering.md](rendering.md) §2.3); long lists mark
   the current item with `keyedSelector` (a row watches `key(its key)`), so a pick renders the two rows concerned.
 - **After the transaction**: sources update when the engine's transaction ends, not on intermediate trees.
 - **Long lists stay cheap**: a list that can grow past a screenful of rows is virtualized (`components/virtual-list`):
@@ -52,7 +59,7 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   (Show all, Loading…) are rows of their own. A tree is its shown nodes flattened (`flattenTree`, or the view's own walk
   when rows open by their own states), kept by key (`keepRows`: a row the same node at the same depth keeps its DOM);
   places (`aria-posinset`, `aria-setsize`) and open states come apart from the rows, so a sibling added remakes none of
-  them. **A row is one `watch`** ([rendering.md](rendering.md) §2.2): its DOM made once, its render reading its node's
+  them. **A row is one `watch`** ([rendering.md](rendering.md) §2.3): its DOM made once, its render reading its node's
   states and the tree's (the picked node, the map of places and open states: `states.value.get(key)`), so a row holds
   one listener per source, not a chain per attribute (the scene tree's row: 16.1 → 4.0 KB). Its keyboard works on the
   flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`; it flushes before it reads a row). The viewer's
