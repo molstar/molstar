@@ -108,8 +108,12 @@ section); an entry leaves when it is done (its spec section says so then). The s
   ([commands.md §5](ui/_spec/commands.md)); trees marked as a key scope (`data-msp-scope="tree"`) and commands using
   scopes (§6); more menus and buttons by command id: the scene tree's row menus, the selection bar, `CommandButton` in
   views (§7).
-- No lint rule against `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views
+- No lint rule against `.value` inside JSX ([rendering.md §2.5](ui/_spec/rendering.md)); no `usePrism()` for React views
   (§5).
+- Views still bound property by property ([rendering.md §2](ui/_spec/rendering.md), `watch`): the params form's rows
+  (`hidden` by `hideIf` and the search, a choice's and a group's headers, `SelectRow`'s label), the command menu's form
+  mode, the assistant's views, the shell. A scene-tree row's layout (~0.1 ms a row at the frame) is now its largest
+  cost: its CSS wants a look.
 - A visual check of the virtualized scene and state trees (light, dark, compact) in Storybook; no scene-tree case in the
   performance story.
 - The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.

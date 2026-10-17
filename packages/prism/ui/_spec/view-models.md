@@ -39,27 +39,32 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
 
 - **Records per node**: a tree's source hands out one record per node, keyed by id (the state ref), that changes on its
   own, not a tree rebuilt per change: a row follows its record by id, and `For` renders an entry again only when its
-  record is replaced ([rendering.md](rendering.md) §2.3). A rebuilt tree costs a subtree per change.
+  record is replaced ([rendering.md](rendering.md) §2.4). A rebuilt tree costs a subtree per change.
 - **Identity by id**: a rebuild that recreates the engine's objects keeps the same record for the same id; its fields
   emit only when what they show changed.
 - **One change, one emission**: code that sets several states for one change wraps it in `batch`, so each emits once
-  with its final value; lists mark the current item with `keyedSelector`, so a pick notifies the two rows concerned.
+  with its final value (views render once per task anyway: `watch`, [rendering.md](rendering.md) §2.2); long lists mark
+  the current item with `keyedSelector` (a row watches `key(its key)`), so a pick renders the two rows concerned.
 - **After the transaction**: sources update when the engine's transaction ends, not on intermediate trees.
 - **Long lists stay cheap**: a list that can grow past a screenful of rows is virtualized (`components/virtual-list`):
   only the window is in the DOM. Rows are of one height, measured (compact mode's taller rows need nothing); what would
   make one taller goes elsewhere (a menu to a popover, a row's controls to the inspector), and a tree's extra lines
   (Show all, Loading…) are rows of their own. A tree is its shown nodes flattened (`flattenTree`, or the view's own walk
   when rows open by their own states), kept by key (`keepRows`: a row the same node at the same depth keeps its DOM);
-  places (`aria-posinset`, `aria-setsize`) and open states come apart from the rows, so a sibling added renders none of
-  them again. Its keyboard works on the flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`). The viewer's
+  places (`aria-posinset`, `aria-setsize`) and open states come apart from the rows, so a sibling added remakes none of
+  them. **A row is one `watch`** ([rendering.md](rendering.md) §2.2): its DOM made once, its render reading its node's
+  states and the tree's (the picked node, the map of places and open states: `states.value.get(key)`), so a row holds
+  one listener per source, not a chain per attribute (the scene tree's row: 16.1 → 4.0 KB). Its keyboard works on the
+  flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`; it flushes before it reads a row). The viewer's
   scene and state trees are built so.
 - **A virtual list scrolls without work or blanks**: the browser scrolls before the scroll event reaches the list, so
   what it uncovers must already be there. The window stays while what shows (and a few rows) is in it, so most scroll
   events make nothing; past that it moves ahead of the scroll by a screenful; a jump (a scrollbar drag, a far wheel
   step) makes about a screenful and the window grows a screenful each way once the scrolling rests (making rows is what
-  costs: a drag makes a window a frame). A row tells whether it has a menu without building it (`hasMenu`). Its area
-  does not fade at its edges (`ScrollArea` `fade={false}`): the fade is a mask a scroll-driven animation repaints every
-  frame.
+  costs: a drag makes a window a frame). Its scroll handler reads the scroll and the viewport's height before it sets
+  anything (setting them makes rows; a read after would lay the new rows out in the event: 1.7 of a jump's 4.4 ms). A
+  row tells whether it has a menu without building it (`hasMenu`). Its area does not fade at its edges (`ScrollArea`
+  `fade={false}`): the fade is a mask a scroll-driven animation repaints every frame.
 
 ### 4.3 Lifetimes
 

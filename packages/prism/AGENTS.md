@@ -9,8 +9,9 @@ it is done).
   viewer on Prism), `stories` (the stories app's start; no modes: separate apps), `assistant` (the AI assistant's UI).
   They are opt-in: an app gets one only by depending on it, and `ui` never imports them
   (`ui/src/_test/opt-in-boundary.test.ts`).
-- Not React: views are `.tsx` on the runtime in `ui/src/dom` (`Show`, `For`, `observableState`); state lives in models,
-  views bind to their observables.
+- Not React: views are `.tsx` on the runtime in `ui/src/dom`; state lives in models. A component builds its DOM once and
+  renders as a function of state: one `watch(sources, render)` writes what changed, batched in a microtask
+  ([rendering.md §1–2](ui/_spec/rendering.md)); structure goes in regions (`Show`, `For`).
 - Styling: CSS modules compiled to `_generated/` by `styles`; every color and spacing from `--msp-*` tokens (the scale
   is `--msp-space-1..6`; `styles:check` rejects other values). The look is flat and quiet: few borders and shadows, the
   accent only for actions and the picked item, text that does not fit fades rather than ends in an ellipsis. Check light
