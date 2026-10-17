@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { bind, ParamsForm } from '@molstar/prism-ui';
 import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
@@ -19,6 +19,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/measurements-add.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** How many of the latest selections a measurement can use. */
 const MaxPoints = 4;
 
@@ -29,11 +30,8 @@ const MaxPoints = 4;
  */
 export function MeasurementsAdd(props: { model: MeasurementsModel }) {
   const { model } = props;
-  const used = model.points.pipe(map((p) => p.slice(0, MaxPoints)));
-  const older = model.points.pipe(
-    map((p) => Math.max(0, p.length - MaxPoints)),
-    distinctUntilChanged(),
-  );
+  const used = derive(model.points, (p) => p.slice(0, MaxPoints));
+  const older = derive(model.points, (p) => Math.max(0, p.length - MaxPoints));
   const options = observableState(false);
   let list: HTMLElement | undefined;
   return (
@@ -69,7 +67,7 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
         ))}
       </div>
       {/* The measurements made: adjust them here too (the same as their rows in the Structure tab). */}
-      <Show when={model.added.pipe(map((a) => a.length > 0))}>
+      <Show when={derive(model.added, (a) => a.length > 0)}>
         {() => (
           <>
             <p class={classes.caption}>Added</p>
@@ -117,7 +115,7 @@ function PointRow(props: {
     >
       {/* The position; on hover, the handle that drags the point (the arrows stay for the keyboard). */}
       <span class={classes.slot}>
-        <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+        <span class={classes.index}>{derive(props.index, (i) => `${i + 1}`)}</span>
         <span class={classes.grip} aria-hidden="true" data-tip="Drag to reorder" onPointerDown={props.onGrab}>
           <Icon name="grip-vertical" size={13} />
         </span>
@@ -168,10 +166,7 @@ function PointRow(props: {
 /** A measurement: its icon and name, and how many points it takes; enabled once there are enough. */
 function KindRow(props: { model: MeasurementsModel; kind: MeasurementKind }) {
   const { model, kind } = props;
-  const ready = model.points.pipe(
-    map((p) => (kind.points === 0 ? p.length > 0 : p.length >= kind.points)),
-    distinctUntilChanged(),
-  );
+  const ready = derive(model.points, (p) => (kind.points === 0 ? p.length > 0 : p.length >= kind.points));
   const hint =
     kind.points === 0
       ? ready.pipe(map((r) => (r ? 'of the selection' : 'needs a selection')))
@@ -193,14 +188,14 @@ function AddedRow(props: { model: MeasurementsModel; node: SceneNode }) {
   const style = model.styleOf(node);
   return (
     <div class={classes.addedItem}>
-      <div class={classes.addedRow} data-hidden={node.isHidden.pipe(map((h) => (h ? '' : undefined)))}>
+      <div class={classes.addedRow} data-hidden={derive(node.isHidden, (h) => (h ? '' : undefined))}>
         <span class={classes.pointLabel}>{node.label}</span>
         <span class={classes.addedValue}>{node.description}</span>
         <span class={classes.pointActions}>
           <button
             type="button"
             class={classes.addedAction}
-            title={node.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+            title={derive(node.isHidden, (h) => (h ? 'Show' : 'Hide'))}
             onClick={() => node.toggleVisibility()}
           >
             <Show when={node.isHidden} fallback={() => <Icon name="eye" size={14} />}>

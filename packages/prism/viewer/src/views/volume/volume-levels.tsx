@@ -22,6 +22,7 @@ import type {
 import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/volume-levels.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // A map's levels (model/volume-levels.ts; v5's density controls, improved): the map's values as a histogram with a
 // marker per level, dragged (or stepped with the arrow keys) to set the iso value, the part of the map the surface
 // encloses tinted in its color; under it a row per level: its color (a click opens the picker and the opacity), its
@@ -79,9 +80,10 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
       filter((l): l is VolumeLevel => !!l),
       distinctUntilChanged(),
     );
-  const ids = model.levels.pipe(
-    map((ls) => ls.map((l) => l.id)),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  const ids = derive(
+    model.levels,
+    (ls) => ls.map((l) => l.id),
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
 
   // Dragging on the plot: the marker under the pointer, else the nearest, follows it; once a frame.
@@ -172,7 +174,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
               type="button"
               role="radio"
               class={classes.unit}
-              aria-checked={model.unit.pipe(map((x) => x === u))}
+              aria-checked={derive(model.unit, (x) => x === u)}
               title={u === 'sigma' ? 'σ above the mean' : 'Map units'}
               onClick={() => model.setUnit(u)}
             >
@@ -189,7 +191,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
         onPointerCancel={end}
       >
         <svg class={classes.bars} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-          <path d={model.histogram.pipe(map(histogramPath))} />
+          <path d={derive(model.histogram, histogramPath)} />
         </svg>
         <span class={classes.mean} style={{ transform: `translateX(${at(stats.mean) * 100}%)` }} aria-hidden="true" />
         <For each={ids} key={(id) => id}>
@@ -233,8 +235,8 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
         </For>
       </div>
       <div class={classes.axis} aria-hidden="true">
-        <span>{model.unit.pipe(map((u) => formatIn(u, stats.min, stats)))}</span>
-        <span>{model.unit.pipe(map((u) => formatIn(u, stats.max, stats)))}</span>
+        <span>{derive(model.unit, (u) => formatIn(u, stats.min, stats))}</span>
+        <span>{derive(model.unit, (u) => formatIn(u, stats.max, stats))}</span>
       </div>
       <For each={ids} key={(id) => id}>
         {(id) => <LevelRow model={model} id={id} level={levelOf(id)} />}
@@ -289,7 +291,7 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
             if (e.key === 'Enter') e.currentTarget.blur();
           }}
         />
-        <span class={classes.suffix}>{model.unit.pipe(map((u) => (u === 'sigma' ? 'σ' : '')))}</span>
+        <span class={classes.suffix}>{derive(model.unit, (u) => (u === 'sigma' ? 'σ' : ''))}</span>
       </div>
       <Show when={open} reveal>
         {() => (

@@ -15,6 +15,7 @@ import type { QuickChoice, RepresentationQuickModel } from '../../model/represen
 import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/representation-quick.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // A structure representation's quick settings (model/representation-quick.ts), above its whole form. Each setting is a
 // row: its name and the current value, then the choices drawn as what they are: the types as their icons in one segmented
 // strip, the color themes as tiles painted with their colors on this structure (one color: its own swatch). One color
@@ -38,7 +39,7 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
                 type="button"
                 role="radio"
                 class={classes.segment}
-                aria-checked={model.type.pipe(map((t) => t === c.id))}
+                aria-checked={derive(model.type, (t) => t === c.id)}
                 aria-label={c.label}
                 data-tip={c.label}
                 onClick={() => {
@@ -68,10 +69,10 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
                 style={{
                   background:
                     c.id === 'uniform'
-                      ? model.color.pipe(map((v) => (v === undefined ? '' : `#${v.toString(16).padStart(6, '0')}`)))
+                      ? derive(model.color, (v) => (v === undefined ? '' : `#${v.toString(16).padStart(6, '0')}`))
                       : (c.swatch ?? ''),
                 }}
-                aria-checked={model.theme.pipe(map((t) => t === c.id))}
+                aria-checked={derive(model.theme, (t) => t === c.id)}
                 aria-label={c.label}
                 data-tip={c.label}
                 onClick={() => {
@@ -84,7 +85,7 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
             )}
           </For>
         </div>
-        <Show when={model.theme.pipe(map((t) => t === 'uniform'))} reveal>
+        <Show when={derive(model.theme, (t) => t === 'uniform')} reveal>
           {() => (
             <QuickColorRow
               label="Color"
@@ -100,28 +101,28 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
       </div>
       {/* The sliders together, closer than the settings above (they read as one group). */}
       <div class={classes.ranges}>
-        <Show when={model.opacity.pipe(map((o) => o !== undefined))}>
+        <Show when={derive(model.opacity, (o) => o !== undefined)}>
           {() => (
             <QuickRange
               label="Opacity"
               min={0}
               max={1}
               step={0.01}
-              value={model.opacity.pipe(map((o) => o ?? 1))}
+              value={derive(model.opacity, (o) => o ?? 1)}
               format={(v) => `${Math.round(v * 100)}%`}
               onInput={(v) => model.change({ opacity: v })}
               onCommit={() => model.settle()}
             />
           )}
         </Show>
-        <Show when={model.size.pipe(map((s) => s !== undefined))}>
+        <Show when={derive(model.size, (s) => s !== undefined)}>
           {() => (
             <QuickRange
               label="Size"
               min={0.25}
               max={3}
               step={0.05}
-              value={model.size.pipe(map((s) => s ?? 1))}
+              value={derive(model.size, (s) => s ?? 1)}
               format={(v) => `${v.toFixed(2)}×`}
               onInput={(v) => model.change({ size: v })}
               onCommit={() => model.settle()}

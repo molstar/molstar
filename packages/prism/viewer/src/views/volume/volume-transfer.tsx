@@ -27,6 +27,7 @@ import {
 import { classes } from './_generated/volume-transfer.module.css.js';
 import { formatIn, histogramPath } from './volume-levels.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // A direct volume's transfer function (model/volume-transfer.ts): on one axis, the map's values as a histogram, the
 // opacity as a curve through its points (a log scale: opacities per step are small) with the area under it in the
 // colors the renderer paints there, and under it the color strip with the theme's stops. Points: drag, click to add,
@@ -90,7 +91,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   // Computed once per change of the colors for the many bindings below (the gradient's stops, the strip, the classes).
   const samples = model.colors.pipe(map(samplesOf), shareReplay({ bufferSize: 1, refCount: true }));
   const points = model.points;
-  const stops = model.colors.pipe(map((c) => (c.kind === 'value' ? c.stops : [])));
+  const stops = derive(model.colors, (c) => (c.kind === 'value' ? c.stops : []));
   const indices = (o: Observable<readonly unknown[]>) =>
     o.pipe(
       map((l) => l.length),
@@ -107,17 +108,13 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       map((s) => s[i]),
       filter((s): s is TransferStop => !!s),
     );
-  const curve = points.pipe(
-    map((p) =>
-      p.length ? p.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(4)} ${(1 - yOf(q.alpha)).toFixed(4)}`).join('') : '',
-    ),
+  const curve = derive(points, (p) =>
+    p.length ? p.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(4)} ${(1 - yOf(q.alpha)).toFixed(4)}`).join('') : '',
   );
-  const area = points.pipe(
-    map((p) =>
-      p.length
-        ? `M${p[0].x.toFixed(4)} 1${p.map((q) => `L${q.x.toFixed(4)} ${(1 - yOf(q.alpha)).toFixed(4)}`).join('')}L${p[p.length - 1].x.toFixed(4)} 1Z`
-        : '',
-    ),
+  const area = derive(points, (p) =>
+    p.length
+      ? `M${p[0].x.toFixed(4)} 1${p.map((q) => `L${q.x.toFixed(4)} ${(1 - yOf(q.alpha)).toFixed(4)}`).join('')}L${p[p.length - 1].x.toFixed(4)} 1Z`
+      : '',
   );
 
   // ---- Points: dragged on the plot, once a frame ----
@@ -335,13 +332,13 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   const strip = samples.pipe(
     map((s) => (s ? `linear-gradient(90deg, ${s.map(([x, c]) => `${c} ${(x * 100).toFixed(2)}%`).join(', ')})` : '')),
   );
-  const pickedPoint = combineLatest([picked.asReadonly, points]).pipe(
-    map(([p, list]) => (p?.kind === 'point' ? list[p.index] : undefined)),
+  const pickedPoint = derive([picked.asReadonly, points], (p, list) =>
+    p?.kind === 'point' ? list[p.index] : undefined,
   );
   const pickedStop = combineLatest([picked.asReadonly, stops]).pipe(
     map(([p, list]) => (p?.kind === 'stop' ? list[p.index] : undefined)),
   );
-  const hasPeaks = points.pipe(map((p) => transferPeaks(p).length > 0));
+  const hasPeaks = derive(points, (p) => transferPeaks(p).length > 0);
   /** A picked stop's (or the one) color; its picker opens from the chevron. */
   const colorOpen = observableState(false);
   const pickedColor = combineLatest([pickedStop, model.colors]).pipe(
@@ -376,7 +373,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
                 type="button"
                 role="radio"
                 class={classes.unit}
-                aria-checked={model.unit.pipe(map((x) => x === u))}
+                aria-checked={derive(model.unit, (x) => x === u)}
                 title={u === 'sigma' ? 'σ above the mean' : 'Map units'}
                 onClick={() => model.setUnit(u)}
               >
@@ -390,12 +387,10 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       <PresetsList
         open={presetsOpen}
         presets={() => model.presets().map((p) => [p.points, p.label] as [readonly TransferPoint[], string])}
-        current={points.pipe(
-          map((p) => {
-            const i = model.presets().findIndex((q) => samePoints(q.points, p));
-            return i < 0 ? undefined : i;
-          }),
-        )}
+        current={derive(points, (p) => {
+          const i = model.presets().findIndex((q) => samePoints(q.points, p));
+          return i < 0 ? undefined : i;
+        })}
         // The color stops move onto the new curve's peaks with their colors (one step).
         onPick={(p) => model.applyPreset(p)}
       />
@@ -427,7 +422,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
               ))}
             </linearGradient>
           </defs>
-          <path class={classes.bars} d={model.histogram.pipe(map(histogramPath))} />
+          <path class={classes.bars} d={derive(model.histogram, histogramPath)} />
           <path
             class={classes.area}
             classList={{ [classes.uncolored]: samples.pipe(map((s) => !s)) }}
@@ -446,7 +441,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
               >
                 <span
                   class={classes.point}
-                  classList={{ [classes.on]: picked.asReadonly.pipe(map((p) => p?.kind === 'point' && p.index === i)) }}
+                  classList={{ [classes.on]: derive(picked.asReadonly, (p) => p?.kind === 'point' && p.index === i) }}
                   data-point={String(i)}
                   role="slider"
                   tabIndex={0}
@@ -465,14 +460,12 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
         class={classes.strip}
         classList={{ [classes.themed]: samples.pipe(map((s) => !s)) }}
         style={{ background: strip }}
-        title={model.colors.pipe(
-          map((c) =>
-            c.kind === 'value'
-              ? 'Click to add a color · drag one · double-click to remove'
-              : c.kind === 'uniform'
-                ? 'One color: click to change it'
-                : `Colored by ${c.label}`,
-          ),
+        title={derive(model.colors, (c) =>
+          c.kind === 'value'
+            ? 'Click to add a color · drag one · double-click to remove'
+            : c.kind === 'uniform'
+              ? 'One color: click to change it'
+              : `Colored by ${c.label}`,
         )}
         onPointerDown={onStripDown}
         onPointerMove={onMove}
@@ -486,7 +479,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
               <span class={classes.stopTrack} style={{ transform: stop.pipe(map((s) => `translateX(${s.x * 100}%)`)) }}>
                 <span
                   class={classes.stop}
-                  classList={{ [classes.on]: picked.asReadonly.pipe(map((p) => p?.kind === 'stop' && p.index === i)) }}
+                  classList={{ [classes.on]: derive(picked.asReadonly, (p) => p?.kind === 'stop' && p.index === i) }}
                   style={{ '--msp-stop': stop.pipe(map((s) => colorToHex(s.color))) }}
                   data-stop={String(i)}
                   role="button"
@@ -503,12 +496,12 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
         </For>
       </div>
       <div class={classes.axis} aria-hidden="true">
-        <span>{model.unit.pipe(map((u) => valueText(0, u)))}</span>
-        <span>{model.unit.pipe(map((u) => valueText(1, u)))}</span>
+        <span>{derive(model.unit, (u) => valueText(0, u))}</span>
+        <span>{derive(model.unit, (u) => valueText(1, u))}</span>
       </div>
       {/* What is picked, in one quiet row: a point's value and opacity; a stop's (or the one) color, whose picker opens
           from the chevron only, as a form's color does. */}
-      <Show when={picked.asReadonly.pipe(map((p) => p?.kind))}>
+      <Show when={derive(picked.asReadonly, (p) => p?.kind)}>
         {(kind) => (
           <div class={classes.picked}>
             {kind === 'point' ? (
@@ -557,8 +550,9 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
         )}
       </Show>
       <Show
-        when={combineLatest([picked.asReadonly, colorOpen.asReadonly]).pipe(
-          map(([p, o]) => o && (p?.kind === 'stop' || p?.kind === 'uniform')),
+        when={derive(
+          [picked.asReadonly, colorOpen.asReadonly],
+          (p, o) => o && (p?.kind === 'stop' || p?.kind === 'uniform'),
         )}
         reveal
       >

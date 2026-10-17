@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { flattenTree, keepRows, MenuPopover, VirtualList, type VirtualListHandle } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
@@ -25,6 +24,7 @@ import { classes as tree } from '../structure/_generated/scene-tree.module.css.j
 import { classes as tab } from '../structure/_generated/structure-tab.module.css.js';
 import { classes } from './_generated/state-tree-tab.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** A shown cell: the node, its depth (`aria-level` − 1). Where it is among its siblings is in `Places`. */
 interface CellRow {
   readonly node: StateTreeNode;
@@ -54,10 +54,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     focus.set(block);
     model.select(ref);
   };
-  const shown = combineLatest([model.selected, focus.asReadonly]).pipe(
-    map(([ref, f]) => (ref ? `${f}\n${ref}` : undefined)),
-    distinctUntilChanged(),
-  );
+  const shown = derive([model.selected, focus.asReadonly], (ref, f) => (ref ? `${f}\n${ref}` : undefined));
   // The shown cells as rows: a cell that is the same object at the same depth is the same row (its place is apart, so
   // a sibling added does not render its siblings again).
   const keep = keepRows<CellRow>(
@@ -66,13 +63,11 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   );
   const rows = observableState<readonly CellRow[]>([]);
   const places = observableState<Places>(new Map());
-  const flat = combineLatest([model.roots, collapsed.asReadonly]).pipe(
-    map(([roots, c]) =>
-      flattenTree(
-        roots,
-        (n) => n.children,
-        (n) => !c.has(n.ref),
-      ),
+  const flat = derive([model.roots, collapsed.asReadonly], (roots, c) =>
+    flattenTree(
+      roots,
+      (n) => n.children,
+      (n) => !c.has(n.ref),
     ),
   );
   let list: VirtualListHandle | undefined;
@@ -100,12 +95,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   return (
     <div class={tab.tab}>
       <div class={tab.tree}>
-        <Show
-          when={rows.asReadonly.pipe(
-            map((r) => r.length === 0),
-            distinctUntilChanged(),
-          )}
-        >
+        <Show when={derive(rows.asReadonly, (r) => r.length === 0)}>
           {() => <p class={tree.empty}>Nothing in the state yet.</p>}
         </Show>
         <VirtualList

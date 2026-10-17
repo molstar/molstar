@@ -10,10 +10,11 @@
 
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import { Icon, type IconName, ScrollArea, For, Show, onCleanup, StatusPill } from '@molstar/prism-ui';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../model.js';
 import { classes } from './_generated/agent-turn.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const StatusIcons: Record<RunStatus, IconName> = {
   running: 'loader-circle',
   waiting: 'hourglass',
@@ -157,11 +158,7 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
   };
   document.addEventListener('keydown', onKey, true);
   onCleanup(() => document.removeEventListener('keydown', onKey, true));
-  const which = (view: 'card' | 'line') =>
-    combineLatest([agent.turn, agent.view]).pipe(
-      map(([t, v]) => (v === view ? t?.id : undefined)),
-      distinctUntilChanged(),
-    );
+  const which = (view: 'card' | 'line') => derive([agent.turn, agent.view], (t, v) => (v === view ? t?.id : undefined));
   return (
     <>
       {anchor}

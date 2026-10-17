@@ -16,6 +16,7 @@ import type { SuperpositionModel } from '../../model/superposition.js';
 import { Superposed } from '../selection/superposed.js';
 import { classes } from './_generated/superpose.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * Superposing structures (the Selection tab's Superpose section, after Mol*'s): the method and its options, what it
  * would superpose (one selection per structure, a click focuses one; or what to select), Superpose, and the
@@ -35,7 +36,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
               title={entry.problem ? `${entry.label}: ${entry.problem}` : 'Focus'}
               onClick={() => model.focus(entry.id)}
             >
-              <span class={classes.index}>{index.pipe(map((i) => `${i + 1}`))}</span>
+              <span class={classes.index}>{derive(index, (i) => `${i + 1}`)}</span>
               <span class={classes.label}>{entry.label}</span>
               {entry.problem ? <span class={classes.problem}>{entry.problem}</span> : null}
               {!entry.problem && index.value === 0 ? <span class={classes.role}>reference</span> : null}
@@ -46,7 +47,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
       <ActionFooter
         icon="superpose"
         label="Superpose"
-        disabled={model.ready.pipe(map((r) => !r))}
+        disabled={derive(model.ready, (r) => !r)}
         info={model.blocked?.pipe(map((b) => b ?? ''))}
         onReset={() => model.form.reset()}
         onApply={() => model.superpose()}

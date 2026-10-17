@@ -20,7 +20,6 @@ import {
   Show,
   ViewHost,
 } from '@molstar/prism-ui';
-import { distinctUntilChanged, map } from 'rxjs';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { fovNormalizedCameraPosition } from '@molstar/core/util/camera';
 import type { CameraValue } from '../../api/camera.js';
@@ -29,6 +28,7 @@ import { ImageExport } from '../../views/export/image-export.js';
 import { downloadBlob } from '../../ui/download.js';
 import { createImageExportModel, frameValues } from './model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Image section of the Export card (parity.md §4's export row): the existing view over a model built on
 // `export.preview`, `export.image` and `export.image-copy`; the model is made when the section is shown and released
 // with it. It previews only while the section is active (folded: no subscription, no render).
@@ -111,10 +111,7 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Image',
         // With an animation to export (an extension's `export.picture`), the switch offers both: so does the header.
         heading: (shell) =>
-          shell.sections('export.picture').pipe(
-            map((list) => (list.length ? 'Image & animation' : 'Image')),
-            distinctUntilChanged(),
-          ),
+          derive(shell.sections('export.picture'), (list) => (list.length ? 'Image & animation' : 'Image')),
         icon: 'camera',
         order: 0,
         keywords: ['screenshot', 'png', 'picture', 'copy', 'animation', 'video', 'movie'],
@@ -137,15 +134,10 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
           return (
             <ImageExport
               model={model}
-              kinds={pictures.pipe(map((list) => list.map((p) => ({ id: p.id, title: p.title, icon: p.icon }))))}
+              kinds={derive(pictures, (list) => list.map((p) => ({ id: p.id, title: p.title, icon: p.icon })))}
               // Followed: a lazy extension's placeholder is replaced by its view once it loads (same id).
               kind={(id) => (
-                <Show
-                  when={pictures.pipe(
-                    map((list) => list.find((x) => x.id === id)),
-                    distinctUntilChanged(),
-                  )}
-                >
+                <Show when={derive(pictures, (list) => list.find((x) => x.id === id))}>
                   {(p) => <ViewHost renderer={p.render} ctx={{ shell: view.shell, subject: frame }} />}
                 </Show>
               )}

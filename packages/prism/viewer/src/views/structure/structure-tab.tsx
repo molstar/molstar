@@ -30,6 +30,7 @@ import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 export interface StructureTabProps {
   shell: ShellModel;
   scene: SceneModel;
@@ -116,7 +117,7 @@ export function StructureTab(props: StructureTabProps) {
             class={classes.optionsButton}
             icon={<Icon name="settings" />}
             title="Component options"
-            pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
+            pressed={derive(open.asReadonly, (o) => o === 'options')}
             onClick={() => toggle('options')}
           />
         ) : null}
@@ -327,7 +328,7 @@ function Inspector(props: {
           <span class={classes.inspectorTitle}>{node.label}</span>
         )}
         {/* The kind, unless the label already says it (Measurements). */}
-        <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
+        <Show when={derive(node.label, (l) => l.toLowerCase() !== node.kind.replace('-', ' '))}>
           {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
         </Show>
         <VisibilityToggle
@@ -380,7 +381,7 @@ function Inspector(props: {
         ) : !props.inspection.facts?.length ? (
           <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
             {() => (
-              <Show when={node.isHidden.pipe(map((h) => !h))}>
+              <Show when={derive(node.isHidden, (h) => !h)}>
                 {() => <p class={classes.nothing}>Nothing to set here.</p>}
               </Show>
             )}
@@ -393,7 +394,7 @@ function Inspector(props: {
 
 /** A component's representations in its inspector: icon, name, what it is colored by, its eye; a click opens it. */
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
-  const reprs = props.node.children.pipe(map((c) => c.filter((n) => n.kind === 'representation')));
+  const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
   return (
     <Show when={reprs.pipe(map((r) => r.length > 0))}>
       {() => (
@@ -420,8 +421,8 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
                 <button
                   type="button"
                   class={classes.childEye}
-                  aria-label={n.isHidden.pipe(map((h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`)))}
-                  data-tip={n.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+                  aria-label={derive(n.isHidden, (h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`))}
+                  data-tip={derive(n.isHidden, (h) => (h ? 'Show' : 'Hide'))}
                   onClick={() => n.toggleVisibility()}
                 >
                   <Show when={n.isHidden} fallback={() => <Icon name="eye" size={14} />}>
@@ -439,5 +440,5 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
 
 /** Whether any contributed section shows for a node (`inspector:<kind>` sections with their `when`). */
 function sectionsFor(shell: ShellModel, slot: string, subject: unknown) {
-  return shell.sections(slot).pipe(map((all) => all.some((s) => !s.when || s.when({ shell, subject }))));
+  return derive(shell.sections(slot), (all) => all.some((s) => !s.when || s.when({ shell, subject })));
 }

@@ -21,7 +21,7 @@ import {
 } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../../api/area.js';
 import type { SelectionSummaryModel } from '../../model/selection.js';
@@ -30,6 +30,7 @@ import { SelectionSummary } from '../../views/selection/selection-summary.js';
 import { StyleLayers } from '../../views/selection/style-layers.js';
 import { createStyleLayersModel } from '../../ui/style-layers.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Selection tab (the `selection-panel` feature, viewer-spec.md §3.1): what is selected, and the home of the
 // `selection` slot's sections (what to do with the selection: style it, make a component of it; Measure and Superpose
 // come with their features).
@@ -63,7 +64,7 @@ export function selectionSections(
   showComponent?: (ref: string) => void,
 ): ShellSection[] {
   // Nothing to act on without a selection: the buttons say so.
-  const none = selection.pipe(map((s) => !s));
+  const none = derive(selection, (s) => !s);
   return [
     {
       id: 'selection-style',

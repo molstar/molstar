@@ -14,6 +14,7 @@ import type { AgentModel, AgentTurn, CommandRun, HistoryItem } from '../model.js
 import { isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.js';
 import { classes } from './_generated/history-tab.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
 
 function ago(time: Date) {
@@ -32,9 +33,10 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
   const { agent } = props;
   const view = observableState<'commands' | 'messages'>('commands');
   // By id, newest first: an item's record is replaced as its turn runs, and an item made anew would lose its fold.
-  const ids = agent.history.pipe(
-    map((h) => h.map(keyOf).reverse()),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  const ids = derive(
+    agent.history,
+    (h) => h.map(keyOf).reverse(),
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
   const live = (id: string) =>
     agent.history.pipe(
@@ -50,17 +52,14 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
             type="button"
             role="tab"
             class={classes.switchButton}
-            aria-selected={view.asReadonly.pipe(map((x) => x === v))}
+            aria-selected={derive(view.asReadonly, (x) => x === v)}
             onClick={() => view.set(v)}
           >
             {v === 'commands' ? 'Commands' : 'Messages'}
           </button>
         ))}
       </div>
-      <Show
-        when={view.asReadonly.pipe(map((v) => v === 'commands'))}
-        fallback={() => <LogView status={props.status} />}
-      >
+      <Show when={derive(view.asReadonly, (v) => v === 'commands')} fallback={() => <LogView status={props.status} />}>
         {() => (
           <ScrollArea
             class={classes.list}

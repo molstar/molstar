@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ScrollArea } from '@molstar/prism-ui';
@@ -18,6 +18,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/sequence-strip.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * One of the sequence view's choices (Mol*'s sequence controls): the structure, the mode (Chain, Polymers,
  * Everything), the entity and the chain (in Chain mode), the instance (an assembly's operators, when there are several).
@@ -139,12 +140,11 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
   const open = observableState(false);
   // Fixed to the window under the button: the strip's card clips what overflows it.
   const at = observableState({ top: 0, left: 0 });
-  const text = selector.value.pipe(
-    map((v) => selector.display?.(v) ?? selector.options.find((o) => o[0] === v)?.[1] ?? v),
+  const text = derive(
+    selector.value,
+    (v) => selector.display?.(v) ?? selector.options.find((o) => o[0] === v)?.[1] ?? v,
   );
-  const tip = selector.value.pipe(
-    map((v) => `${selector.title}: ${selector.options.find((o) => o[0] === v)?.[1] ?? v}`),
-  );
+  const tip = derive(selector.value, (v) => `${selector.title}: ${selector.options.find((o) => o[0] === v)?.[1] ?? v}`);
   return (
     <span class={classes.choice}>
       <button
@@ -169,8 +169,8 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
           <div
             class={classes.popover}
             style={{
-              top: at.asReadonly.pipe(map((p) => `${p.top}px`)),
-              left: at.asReadonly.pipe(map((p) => `${p.left}px`)),
+              top: derive(at.asReadonly, (p) => `${p.top}px`),
+              left: derive(at.asReadonly, (p) => `${p.left}px`),
             }}
           >
             <OptionList

@@ -25,6 +25,7 @@ import {
 } from './data.js';
 import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The PAE plot (parity.md §6; AlphaFold DB's, in Prism's look): the heat map, scored residue across and aligned residue
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
@@ -488,8 +489,8 @@ export function PaePlot(props: PaePlotProps) {
   /** A grid item shown with the strips only. */
   const withStrip = (child: unknown) => (
     <div
-      style={showPlddt.asReadonly.pipe(
-        map((on) => (on ? 'display: block; position: relative; min-width: 0; min-height: 0' : 'display: none')),
+      style={derive(showPlddt.asReadonly, (on) =>
+        on ? 'display: block; position: relative; min-width: 0; min-height: 0' : 'display: none',
       )}
     >
       {child as never}
@@ -497,8 +498,9 @@ export function PaePlot(props: PaePlotProps) {
   );
   const plddtLegend = (
     <div
-      style={showPlddt.asReadonly.pipe(
-        map((on) => `display: ${on ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px 10px; ${Quiet}`),
+      style={derive(
+        showPlddt.asReadonly,
+        (on) => `display: ${on ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px 10px; ${Quiet}`,
       )}
       aria-label="pLDDT bands"
     >
@@ -552,12 +554,10 @@ export function PaePlot(props: PaePlotProps) {
   return (
     <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
       <div
-        style={showPlddt.asReadonly.pipe(
-          map((on) => {
-            const strip = on && plddt ? '6px ' : '';
-            return `display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}${strip}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}${strip}auto auto; column-gap: 2px; row-gap: 2px`;
-          }),
-        )}
+        style={derive(showPlddt.asReadonly, (on) => {
+          const strip = on && plddt ? '6px ' : '';
+          return `display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}${strip}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}${strip}auto auto; column-gap: 2px; row-gap: 2px`;
+        })}
       >
         {complex ? (
           <>
@@ -590,7 +590,7 @@ export function PaePlot(props: PaePlotProps) {
       </div>
       {/* What the pointer is on: one line, always there (a box's summary goes at the end, so nothing above moves). */}
       <p style={`margin: 0; min-height: 1.5em; ${Quiet}`} aria-live="polite">
-        {hoverText.asReadonly.pipe(map((t) => t ?? idle))}
+        {derive(hoverText.asReadonly, (t) => t ?? idle)}
       </p>
       {scale}
       {/* The box's two ranges in their colors and its mean error, last. */}

@@ -28,6 +28,7 @@ import { classes } from './_generated/trace.module.css.js';
 import type { DetailTabs, InspectorModel, TraceRow } from './model.js';
 import { DetailHead, Facts, firstLine, Json, listKeys, Meter, parts, reveal, TextTabs, Usage } from './parts.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** The height the sticky turn header takes over the rows (px): a revealed row goes below it. */
 const HeadHeight = 40;
 
@@ -158,7 +159,7 @@ function Overview(props: { model: InspectorModel }) {
 
 function Column(props: { model: InspectorModel; turn: TurnView; index: number }) {
   const { model, turn } = props;
-  const grow = (f: (scale: 'steps' | 'time') => number) => model.scale.pipe(map(f));
+  const grow = (f: (scale: 'steps' | 'time') => number) => derive(model.scale, f);
   const request = `req:${turn.id}`;
   return (
     <div
@@ -436,10 +437,7 @@ function DetailTabsOf<K extends keyof DetailTabs>(props: {
   children: (tab: DetailTabs[K]) => Child;
 }) {
   const { model, kind } = props;
-  const tab = model.tabs.pipe(
-    map((t) => t[kind]),
-    distinctUntilChanged(),
-  );
+  const tab = derive(model.tabs, (t) => t[kind]);
   return (
     <>
       <TextTabs label="Detail" tabs={props.tabs} value={tab} onChange={(t) => model.setTab(kind, t)} />

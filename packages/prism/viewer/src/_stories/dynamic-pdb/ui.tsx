@@ -17,6 +17,7 @@ import { classes } from './_generated/dynamic-pdb.module.css.js';
 import { type DpdbEntry, type DpdbMutation, dpdbPage, MetricScales, mutationTarget } from './data.js';
 import { type DpdbLoaded, type DpdbLoadedModel, DpdbCard, type DynamicPdbApi } from './extension.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Dynamic PDB card (as the PAE card, model-archive's `pae/ui.tsx`): the entry (its title, method, crystal, the
 // construct and its mutations) and its models, each with its refinement metrics on bars (lower is better) and its eye;
 // opened from the toolbar while an entry is loaded, or by `dynamic-pdb.show`. In the Structure panel, a row under each
@@ -126,12 +127,12 @@ function ModelBlock(props: { ctx: ViewerUIContext; area: DynamicPdbApi; m: DpdbL
 function TracksView(props: { ctx: ViewerUIContext; area: DynamicPdbApi }) {
   const { ctx, area } = props;
   return (
-    <Show when={area.tracks.pipe(map((t) => (t.length ? t : undefined)))}>
+    <Show when={derive(area.tracks, (t) => (t.length ? t : undefined))}>
       {(tracks) => (
         <section style="display: grid; gap: var(--msp-space-1)">
           <span style="font-weight: 600; font-size: var(--msp-font-size-sm)">Sequence tracks</span>
           {tracks.map((t) => {
-            const shown = distinct(area.hiddenTracks.pipe(map((h) => !h.has(t.id))));
+            const shown = distinct(derive(area.hiddenTracks, (h) => !h.has(t.id)));
             return (
               <div style="display: flex; align-items: center; gap: var(--msp-space-2); min-width: 0">
                 <span style={`width: 10px; height: 3px; border-radius: 2px; flex: none; background: ${t.color}`} />
@@ -213,7 +214,7 @@ function EntryView(props: { ctx: ViewerUIContext; area: DynamicPdbApi }) {
 
 /** The models' titles by state ref, for the rows. */
 const titleOf = (area: DynamicPdbApi, ref: string) =>
-  area.loaded.pipe(map((l) => l?.models.find((m) => m.ref === ref)?.model.title));
+  derive(area.loaded, (l) => l?.models.find((m) => m.ref === ref)?.model.title);
 
 export function dynamicPdbUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api['dynamic-pdb'];
@@ -253,7 +254,7 @@ export function dynamicPdbUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Dynamic PDB',
         group: 'scene',
         overlay: DpdbCard,
-        visible: distinct(area.loaded.pipe(map((l) => !!l))),
+        visible: distinct(derive(area.loaded, (l) => !!l)),
       },
     ],
   };

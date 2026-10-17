@@ -12,11 +12,11 @@ import { Button, onActive, onCleanup } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map } from 'rxjs';
 import type { KeptRecord } from '../../journal/record.js';
 import type { KeptRecordsHomeModel } from '../../model/home.js';
 import { classes } from './_generated/kept-records.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // Home's kept records (journal.md §3, "After a reload"): the records kept in earlier sessions, newest first, each its
 // title and when it was written; a click opens it in History, read-only, beside whatever is loaded; Forget asks once on
 // its row. Listed only while Home shows; with none, nothing.
@@ -48,14 +48,14 @@ export function KeptRecordsList(props: { model: KeptRecordsHomeModel }) {
   // The row asking "Forget?" (one at a time).
   const asking = observableState<string | undefined>(undefined);
   return (
-    <Show when={model.list.pipe(map((l) => l.length > 0))}>
+    <Show when={derive(model.list, (l) => l.length > 0)}>
       {() => (
         <section class={classes.group} aria-label="Kept records">
           <h3 class={classes.caption}>Kept records</h3>
           <div class={classes.listContent} role="list">
             <For each={model.list} key={(r) => r.id}>
               {(r) => {
-                const isAsking = asking.asReadonly.pipe(map((id) => id === r.id));
+                const isAsking = derive(asking.asReadonly, (id) => id === r.id);
                 return (
                   <div class={classes.record} role="listitem">
                     <button

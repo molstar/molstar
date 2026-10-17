@@ -38,6 +38,7 @@ import { recordSpan } from '../views/home/kept-records.js';
 import type { PrismViewer } from '../viewer.js';
 import { classes } from './_generated/history.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The History tab (api.md §11, journal.md §3): the session's record, newest first. A person's run is a row (who made
 // it, what it did, when), an agent's turn a group (its prompt, its reply, its runs under it), an undone step is struck,
 // a session event a small separator. Undo takes back the latest step, "Undo turn" the agent's latest turn. The model
@@ -135,10 +136,7 @@ export function historyTab(
     order: 2.55,
     place: 'foot',
     render: domView<ShellViewContext>(({ ctx }) => {
-      const compact = ctx.shell.mode.pipe(
-        map((m) => m === 'compact'),
-        distinctUntilChanged(),
-      );
+      const compact = derive(ctx.shell.mode, (m) => m === 'compact');
       // Split, both halves are always in view (the log at `log` too).
       const half = (title: string, body: () => Child) => (
         <section class={classes.half} aria-label={title}>
@@ -174,7 +172,7 @@ export function historyTab(
                 active={shown.asReadonly}
                 onPick={(id) => shown.set(id as 'steps' | 'log')}
               />
-              <Show when={shown.asReadonly.pipe(map((v) => v === 'log'))} fallback={steps}>
+              <Show when={derive(shown.asReadonly, (v) => v === 'log')} fallback={steps}>
                 {log}
               </Show>
             </div>
@@ -202,11 +200,11 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
 
   // Undo says what it undoes, or why it cannot.
   // Undo says what it undoes (in its tooltip: the button is a word), or why it cannot.
-  const undoLabel = history.steps.pipe(map((steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo')));
+  const undoLabel = derive(history.steps, (steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo'));
   const title = combineLatest([history.undoBlocked, undoLabel]).pipe(map(([reason, label]) => reason ?? label));
-  const redoLabel = history.redoable.pipe(map((r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo')));
-  const count = history.steps.pipe(
-    map((steps) => (steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '')),
+  const redoLabel = derive(history.redoable, (r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo'));
+  const count = derive(history.steps, (steps) =>
+    steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '',
   );
   // "Undo turn" is for the agent's latest turn: the newest step that is its.
   // Shared: computed once per change, not once per turn row that reads it.
@@ -227,7 +225,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
           variant="ghost"
           icon={<Icon name="undo-2" />}
           title={title}
-          disabled={history.canUndo.pipe(map((can) => !can))}
+          disabled={derive(history.canUndo, (can) => !can)}
           onClick={() => void api.history.undo().then(say)}
         >
           Undo
@@ -238,7 +236,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
           icon={<Icon name="redo-2" />}
           title={redoLabel}
           aria-label="Redo"
-          disabled={history.redoable.pipe(map((r) => r.length === 0))}
+          disabled={derive(history.redoable, (r) => r.length === 0)}
           onClick={() => void api.history.redo().then(say)}
         />
         <span class={classes.count}>{count}</span>
@@ -512,7 +510,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
       <button
         type="button"
         class={classes.turnHead}
-        aria-expanded={expanded.asReadonly.pipe(map(String))}
+        aria-expanded={derive(expanded.asReadonly, String)}
         onClick={toggle}
       >
         <Icon name="bot" size={14} class={classes.origin} label="The assistant" />

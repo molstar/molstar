@@ -16,6 +16,7 @@ import { classes } from './_generated/limits.module.css.js';
 import { findLimit, type InspectorModel } from './model.js';
 import { Meter, parts } from './parts.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const show = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 const sameKeys = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -36,10 +37,7 @@ export function parseLimit(text: string): number | undefined {
 export function LimitsView(props: { model: InspectorModel }) {
   const { model } = props;
   // Groups and rows followed by id: a change rewrites the records, and a field made anew would lose its focus.
-  const groupIds = model.limits.pipe(
-    map((l) => l.groups.map((g) => g.id)),
-    distinctUntilChanged(sameKeys),
-  );
+  const groupIds = derive(model.limits, (l) => l.groups.map((g) => g.id), sameKeys);
   const group = (id: string) =>
     model.limits.pipe(
       map((l) => l.groups.find((g) => g.id === id)),

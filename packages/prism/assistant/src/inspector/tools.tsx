@@ -11,12 +11,13 @@
 import type { ToolGroupView, ToolView } from '@molstar/ai/trace';
 import { k } from '@molstar/ai/trace';
 import { For, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
-import { distinctUntilChanged, map, skip, take } from 'rxjs';
+import { skip, take } from 'rxjs';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { classes } from './_generated/tools.module.css.js';
 import type { InspectorModel, ToolsRow } from './model.js';
 import { DetailHead, Facts, firstSentence, Json, listKeys, parts, reveal, TextTabs } from './parts.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const HeadHeight = 40;
 
 /**
@@ -200,10 +201,7 @@ function GroupDetail(props: { model: InspectorModel; group: ToolGroupView }) {
 function ToolDetail(props: { model: InspectorModel; group: ToolGroupView; tool: ToolView }) {
   const { model, group, tool } = props;
   const fields = fieldsOf(tool.input);
-  const tab = model.tabs.pipe(
-    map((t) => t.definition),
-    distinctUntilChanged(),
-  );
+  const tab = derive(model.tabs, (t) => t.definition);
   const unavailable = tool.unavailable ?? group.unavailable;
   return (
     <>

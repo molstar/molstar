@@ -40,7 +40,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { combineLatest, debounceTime, distinctUntilChanged, map, of, shareReplay, skip, switchMap, timer } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map, type Observable, of, shareReplay, skip, switchMap, timer } from 'rxjs';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard } from './export-card.js';
@@ -56,6 +56,7 @@ import { frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The viewer on a page (viewer-spec.md §6): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
 // 29); styles are adopted into its shadow root (library.md §3).
@@ -249,7 +250,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       );
     }
 
-    const hasData = sources.empty.pipe(map((e) => !e));
+    const hasData = derive(sources.empty, (e) => !e);
     // The canvas stack's own: its buttons stay while it fades out as the canvas empties (`CanvasStackFadeMs`).
     const stackData = hasData.pipe(
       switchMap((data) => (data ? of(true) : timer(CanvasStackFadeMs).pipe(map(() => false)))),
@@ -308,7 +309,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The mode choices as rows of the collapsed toolbar's menu (ui shell.md §2); the same buttons as `ModeSwitch`.
     const modeRows = modeMenuRows(modeProps);
     // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
-    const shown = (id: string, data = hasData) =>
+    const shown = (id: string, data: Observable<boolean> = hasData) =>
       combineLatest([data, managers.viewState.layout]).pipe(
         map(([data, layout]) => data && layout.buttons[id] !== false),
         distinctUntilChanged(),
@@ -322,19 +323,17 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             priority: 100,
             icon: 'sun',
             title: 'Theme',
-            face: theme.theme.pipe(
-              map((t) => {
-                const current = UIThemes.find((u) => u.id === t)!;
-                return { icon: current.icon, title: `Theme: ${current.title}` };
-              }),
-            ),
+            face: derive(theme.theme, (t) => {
+              const current = UIThemes.find((u) => u.id === t)!;
+              return { icon: current.icon, title: `Theme: ${current.title}` };
+            }),
             // A choice of the themes beside the rail (five is too many to cycle through); under More, a click cycles.
             menu: UIThemes.map((t) => ({
               id: t.id,
               label: t.title,
               icon: t.icon,
               choice: true,
-              pressed: theme.theme.pipe(map((x) => x === t.id)),
+              pressed: derive(theme.theme, (x) => x === t.id),
               run: () => theme.set(t.id),
             })),
             run: () => theme.next(),
@@ -382,7 +381,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             visible: stackData,
             icon: fullscreen.mode === 'fullscreen' ? 'fullscreen' : 'maximize-2',
             title: fullscreen.mode === 'fullscreen' ? 'Fullscreen' : 'Expand',
-            pressed: combineLatest([managers.navigation.expanded, fullscreen.active]).pipe(map(([e, f]) => e || f)),
+            pressed: derive([managers.navigation.expanded, fullscreen.active], (e, f) => e || f),
             run: () =>
               void (fullscreen.mode === 'fullscreen'
                 ? person.view.fullscreen({ on: !managers.navigation.fullscreen.value })
@@ -418,10 +417,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             ),
             icon: 'lightbulb',
             title: 'Illumination',
-            pressed: sources.canvas.pipe(
-              map((c) => !!c?.illumination),
-              distinctUntilChanged(),
-            ),
+            pressed: derive(sources.canvas, (c) => !!c?.illumination),
             // The lighting's illumination switch, set to the other of what it is (api.md §1).
             run: () =>
               void person.canvas.lighting({
@@ -443,10 +439,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             ),
             icon: 'glasses',
             title: 'XR',
-            pressed: xr.state.pipe(
-              map((x) => x.presenting),
-              distinctUntilChanged(),
-            ),
+            pressed: derive(xr.state, (x) => x.presenting),
             run: () => {
               if (!xr.state.value.supported) {
                 managers.notifications.post(

@@ -12,10 +12,11 @@ import { ScrollArea } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
-import { distinctUntilChanged, map } from 'rxjs';
+import { map } from 'rxjs';
 import type { SuperposedEntry } from '../../model/superposition.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * The superpositions made (under the Superpose section's footer, as the Measure section's Added list): a row each, the
  * moved structure and how it was superposed, ✕ puts it back where it was loaded; Clear all with more than one.
@@ -25,10 +26,7 @@ export function Superposed(props: {
   remove(id: string): void;
   clear?(): void;
 }) {
-  const count = props.made.pipe(
-    map((l) => l.length),
-    distinctUntilChanged(),
-  );
+  const count = derive(props.made, (l) => l.length);
   return (
     <Show when={count.pipe(map((n) => n > 0))}>
       {() => (

@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
+import { combineLatest, map, type Observable, of } from 'rxjs';
 import { ActionFooter, Choices, onCleanup } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
@@ -17,6 +17,7 @@ import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { CropBox, ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** Besides an image, what else renders the view (an animation): a choice of the switch, and its controls. */
 export interface PictureKind {
   readonly id: string;
@@ -38,10 +39,7 @@ export function ImageExport(props: {
   const { model } = props;
   // Whether the preview matches the settings (the first one after opening may not yet).
   const settled = model.settled ?? of(true);
-  const mode = model.form.values.pipe(
-    map((v) => (v.mode as string | undefined) || 'image'),
-    distinctUntilChanged(),
-  );
+  const mode = derive(model.form.values, (v) => (v.mode as string | undefined) || 'image');
   const kinds = props.kinds ?? of([]);
   return (
     <div class={classes.export}>
@@ -61,8 +59,8 @@ export function ImageExport(props: {
         <div
           class={classes.preview}
           style={{
-            'aspect-ratio': model.aspect.pipe(map((a) => `${a}`)),
-            background: model.preview.pipe(map((p) => p ?? 'var(--msp-color-control)')),
+            'aspect-ratio': derive(model.aspect, (a) => `${a}`),
+            background: derive(model.preview, (p) => p ?? 'var(--msp-color-control)'),
           }}
         >
           <Crop model={model} settled={settled} />
@@ -170,12 +168,12 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
       // Until the preview matches the settings, an automatic crop is not drawn (a stale preview would show the wrong
       // one); a crop the person set is theirs and stays.
       hidden={combineLatest([props.settled, model.autoCrop.asReadonly]).pipe(map(([s, a]) => a && !s))}
-      data-auto={model.autoCrop.asReadonly.pipe(map((a) => (a ? '' : undefined)))}
+      data-auto={derive(model.autoCrop.asReadonly, (a) => (a ? '' : undefined))}
       style={{
-        left: model.crop.pipe(map((c) => pct(c.x))),
-        top: model.crop.pipe(map((c) => pct(c.y))),
-        width: model.crop.pipe(map((c) => pct(c.width))),
-        height: model.crop.pipe(map((c) => pct(c.height))),
+        left: derive(model.crop, (c) => pct(c.x)),
+        top: derive(model.crop, (c) => pct(c.y)),
+        width: derive(model.crop, (c) => pct(c.width)),
+        height: derive(model.crop, (c) => pct(c.height)),
       }}
       onPointerDown={(e: PointerEvent) => {
         if (e.button !== 0 || drag) return;

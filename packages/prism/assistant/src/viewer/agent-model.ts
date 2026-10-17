@@ -11,10 +11,11 @@ import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import { createHistoryModel, type HistoryRow, type HistoryRunRow } from '@molstar/prism-viewer/journal/history-model';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, HistoryItem, RunStatus, TurnStatus } from '../model.js';
 import type { ViewerAISettings } from './settings-model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The assistant's model over the viewer's agent (agent.md §1): the latest turn from the session's hooks (its
 // text, its calls, waiting for the person), asking with the model chosen in the setup, approvals answered as the turn
 // asks them, Undo turn through the viewer's history (the person's API), and the history as the viewer's History reads
@@ -204,7 +205,7 @@ export function createViewerAgentModel(
       return;
     }
     if (watchers++ === 0) records.setActive(true);
-    const sub = records.rows.pipe(map(itemsOf)).subscribe(subscriber);
+    const sub = derive(records.rows, itemsOf).subscribe(subscriber);
     return () => {
       sub.unsubscribe();
       if (--watchers === 0) records.setActive(false);

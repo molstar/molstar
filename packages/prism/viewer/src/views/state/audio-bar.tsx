@@ -11,16 +11,17 @@
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
-import { combineLatest, map } from 'rxjs';
+import { map } from 'rxjs';
 import { type AudioModel, formatTime } from '../../features/snapshots/audio.js';
 import { classes } from './_generated/audio-bar.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // A story's audio in the playback card (in place of the browser's own player): play or pause, how far it is as a line
 // to click or drag along, the time, stop, and close (the player goes until a command makes another).
 
 export function AudioBar(props: { model: AudioModel }) {
   const { model } = props;
-  const fraction = combineLatest([model.time, model.duration]).pipe(map(([t, d]) => (d > 0 ? Math.min(1, t / d) : 0)));
+  const fraction = derive([model.time, model.duration], (t, d) => (d > 0 ? Math.min(1, t / d) : 0));
   // Seeking: a press on the line, then a drag along it (the pointer captured); the drag seeks once a frame, not for each
   // move (each seek is the media element's, and a request for streamed audio), and where it was let go.
   let rect: DOMRect | undefined;
@@ -44,26 +45,24 @@ export function AudioBar(props: { model: AudioModel }) {
       <button
         type="button"
         class={classes.play}
-        title={model.playing.pipe(map((p) => (p ? 'Pause' : 'Play')))}
-        aria-label={model.playing.pipe(map((p) => (p ? 'Pause audio' : 'Play audio')))}
+        title={derive(model.playing, (p) => (p ? 'Pause' : 'Play'))}
+        aria-label={derive(model.playing, (p) => (p ? 'Pause audio' : 'Play audio'))}
         onClick={() => model.toggle()}
       >
         <Show when={model.playing} fallback={() => <Icon name="play" size={13} />}>
           {() => <Icon name="pause" size={13} />}
         </Show>
       </button>
-      <span class={classes.time}>{model.time.pipe(map(formatTime))}</span>
+      <span class={classes.time}>{derive(model.time, formatTime)}</span>
       <div
         class={classes.track}
         role="slider"
         tabIndex={0}
         aria-label="Position"
         aria-valuemin="0"
-        aria-valuemax={model.duration.pipe(map((d) => String(Math.round(d))))}
-        aria-valuenow={model.time.pipe(map((t) => String(Math.round(t))))}
-        aria-valuetext={combineLatest([model.time, model.duration]).pipe(
-          map(([t, d]) => `${formatTime(t)} of ${formatTime(d)}`),
-        )}
+        aria-valuemax={derive(model.duration, (d) => String(Math.round(d)))}
+        aria-valuenow={derive(model.time, (t) => String(Math.round(t)))}
+        aria-valuetext={derive([model.time, model.duration], (t, d) => `${formatTime(t)} of ${formatTime(d)}`)}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           const el = e.currentTarget as HTMLElement;
@@ -102,7 +101,7 @@ export function AudioBar(props: { model: AudioModel }) {
           <span class={classes.knob} />
         </span>
       </div>
-      <span class={classes.time}>{model.duration.pipe(map((d) => (d > 0 ? formatTime(d) : '–:––')))}</span>
+      <span class={classes.time}>{derive(model.duration, (d) => (d > 0 ? formatTime(d) : '–:––'))}</span>
       <button type="button" class={classes.action} title="Stop" aria-label="Stop audio" onClick={() => model.stop()}>
         <Icon name="square" size={11} />
       </button>

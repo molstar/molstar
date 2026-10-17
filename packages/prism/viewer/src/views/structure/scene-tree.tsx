@@ -40,6 +40,7 @@ import { classes } from './_generated/scene-tree.module.css.js';
 export { SceneRowSlot } from './scene-row-slot.js';
 import { SceneRowSlot } from './scene-row-slot.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * One line of the tree, flattened (viewer-spec.md §3, the scene tree): a node; Show all, for the rest of a long list;
  * Loading…, while a lazy node computes its rows; an extension's row under a node. All are rows of one height.
@@ -268,12 +269,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
   onCleanup(() => cancelAnimationFrame(frame));
   return (
     <>
-      <Show
-        when={scene.roots.pipe(
-          map((r) => r.length === 0),
-          distinctUntilChanged(),
-        )}
-      >
+      <Show when={derive(scene.roots, (r) => r.length === 0)}>
         {() => <p class={classes.empty}>Nothing loaded yet.</p>}
       </Show>
       <Show

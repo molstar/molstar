@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map, of } from 'rxjs';
+import { map, of } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { CanvasMenuItem } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
@@ -17,6 +17,7 @@ import { deepActiveElement, focusFirstItem, menuKeys } from '@molstar/prism-ui/d
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/mode-switch.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** The picking level's menu (one per shadow root or page: the viewer's shell is in one): Select controls it. */
 const LevelMenuId = 'msp-pick-level';
 
@@ -51,15 +52,12 @@ export interface ModeSwitchProps {
  * it shows beside Select while the pointer is on Select or on it.
  */
 export function ModeSwitch(props: ModeSwitchProps) {
-  const selecting = props.mode.pipe(
-    map((m) => m === 'select'),
-    distinctUntilChanged(),
-  );
+  const selecting = derive(props.mode, (m) => m === 'select');
   // The picking level as a badge on Select: what a click picks, at a glance.
   const levels = props.granularities;
   const current =
     levels && props.granularity
-      ? props.granularity.pipe(map((g) => levels.find((l) => l.value === g) ?? levels[0]))
+      ? derive(props.granularity, (g) => levels.find((l) => l.value === g) ?? levels[0])
       : undefined;
   return (
     <div class={classes.switch} role="group" aria-label="Canvas mode" data-canvas-mode={props.mode}>
@@ -108,10 +106,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
  * as a choice, and the levels as a submenu (picking one turns select mode on, as in `PickLevel`).
  */
 export function modeMenuRows(props: ModeSwitchProps): readonly CanvasMenuItem[] {
-  const selecting = props.mode.pipe(
-    map((m) => m === 'select'),
-    distinctUntilChanged(),
-  );
+  const selecting = derive(props.mode, (m) => m === 'select');
   const rows: CanvasMenuItem[] = [
     {
       id: 'mode-interact',
@@ -147,7 +142,7 @@ export function modeMenuRows(props: ModeSwitchProps): readonly CanvasMenuItem[] 
             icon: l.icon,
             group: l.group ?? '',
             choice: true,
-            pressed: granularity.pipe(map((g) => g === l.value)),
+            pressed: derive(granularity, (g) => g === l.value),
             run: () => {
               setGranularity(l.value);
               props.setMode('select');
@@ -219,7 +214,7 @@ export function PickLevel(props: ModeSwitchProps) {
               type="button"
               role="menuitemradio"
               class={classes.levelRow}
-              aria-checked={granularity.pipe(map((g) => g === l.value))}
+              aria-checked={derive(granularity, (g) => g === l.value)}
               onClick={(e) => {
                 const menu = e.currentTarget.closest<HTMLElement>(`#${LevelMenuId}`);
                 const inside = !!menu && menu.contains(deepActiveElement() ?? null);

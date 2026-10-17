@@ -9,13 +9,13 @@
  */
 
 import { Button, domView, Icon, ParamsForm } from '@molstar/prism-ui';
-import { map } from 'rxjs';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { SaveParams, type SessionKind } from './operations.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The "Session & state" section of the Export card, v5's State panel: State (.molj) and Session (.molx) save through
 // `session.save` and the page's download, Open reads one (`session.open`); the file's name and the Save options (what of
 // the scene goes into the file) folded under them.
@@ -58,7 +58,7 @@ export function exportSessionUI(ctx: ViewerUIContext): ViewerExtensionUI {
               }}
             />
           ) as HTMLInputElement;
-          const saving = busy.asReadonly.pipe(map((b) => b !== undefined));
+          const saving = derive(busy.asReadonly, (b) => b !== undefined);
           return (
             <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
               <div style="display: flex; flex-wrap: wrap; gap: var(--msp-space-2)">

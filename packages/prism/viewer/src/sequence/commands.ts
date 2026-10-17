@@ -14,6 +14,7 @@ import type { SequenceTrack, SequenceViewer } from './model.js';
 import { LetterSchemes } from './palette.js';
 import type { TracksRail } from './presets.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The sequence's commands (sequence.md §8): the one way to change what the sequence shows. The canvas stack's
 // Sequence menu runs them, so does the command menu; `view.sequence` (show or hide) is the shell's own.
 
@@ -201,7 +202,7 @@ export function sequenceMenu(
     run: () => open(run),
     ...extra,
   });
-  const shown = shell.dock('top').active.pipe(map((t) => !!t));
+  const shown = derive(shell.dock('top').active, (t) => !!t);
   const showing = (style: 'compact' | 'tracks') =>
     combineLatest([shown, viewer.style]).pipe(map(([on, s]) => on && s === style));
   return [
@@ -227,7 +228,7 @@ export function sequenceMenu(
       item(schemeId(name), schemeLabel(name), schemeId(name), {
         choice: true,
         group: 'colors',
-        pressed: viewer.theme.pipe(map((t) => t.letters === name)),
+        pressed: derive(viewer.theme, (t) => t.letters === name),
       }),
     ),
     item('legend', 'Legend…', 'sequence.legend', { icon: 'palette', group: 'colors' }),
@@ -238,7 +239,7 @@ export function sequenceMenu(
       icon: 'layers',
       group: 'tracks',
       run: () => {},
-      items: viewer.tracks.pipe(map((tracks) => trackRows(viewer, tracks, api))),
+      items: derive(viewer.tracks, (tracks) => trackRows(viewer, tracks, api)),
     },
   ];
 }

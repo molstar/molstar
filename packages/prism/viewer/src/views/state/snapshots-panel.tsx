@@ -22,6 +22,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/snapshots-panel.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * Save state: the Structure tab's shape for snapshots. A header: Add, and what a new snapshot includes behind the
  * sliders (saving and opening a file is Export › Session & state's, and Home's Open); the snapshots as rows (a click
@@ -37,10 +38,7 @@ export function SnapshotsPanel(props: {
   const current = model.current.pipe(distinctUntilChanged());
   let list: HTMLElement | undefined;
   // A list needs items: with none, it is the plain text saying so (accessibility.md).
-  const some = model.entries.pipe(
-    map((entries) => entries.length > 0),
-    distinctUntilChanged(),
-  );
+  const some = derive(model.entries, (entries) => entries.length > 0);
   const drag = (id: string) => (e: PointerEvent) => dragToReorder(e, list, id, (index) => model.moveTo(id, index));
   return (
     <div class={classes.panel}>
@@ -105,10 +103,7 @@ export function SnapshotsPanel(props: {
       </ScrollArea>
       <ScrollArea class={classes.inspector} contentClass={classes.inspectorContent} role="region" aria-label="Snapshot">
         <Show
-          when={model.entries.pipe(
-            map((entries) => entries.find((e) => e.id === model.current.value)),
-            distinctUntilChanged(),
-          )}
+          when={derive(model.entries, (entries) => entries.find((e) => e.id === model.current.value))}
           fallback={() => <p class={classes.inspectorEmpty}>Apply a snapshot to edit its name, key and description.</p>}
         >
           {(entry) => <SnapshotEditor model={model} entry={entry} />}
@@ -167,7 +162,7 @@ function SnapshotRow(props: {
       >
         {/* The position; on hover, the handle that drags the row (by hand; Alt+Up and Down on the row move it by key). */}
         <span class={classes.slot}>
-          <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+          <span class={classes.index}>{derive(props.index, (i) => `${i + 1}`)}</span>
           <span
             class={classes.grip}
             aria-hidden="true"

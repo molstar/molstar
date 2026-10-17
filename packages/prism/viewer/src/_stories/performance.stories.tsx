@@ -21,6 +21,7 @@ import { SceneTree } from '../views/structure/scene-tree.js';
 import { makeScene } from './performance-fixtures.js';
 import { story } from '@molstar/prism-ui/testing/index';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const meta: Meta = { title: 'Internals/Performance/Trees' };
 export default meta;
 
@@ -382,24 +383,11 @@ async function virtualTree(host: HTMLElement, out: Result[]) {
     return (
       <div
         role="treeitem"
-        aria-selected={selected.asReadonly.pipe(
-          map((s) => s === props.ref),
-          distinctUntilChanged(),
-        )}
+        aria-selected={derive(selected.asReadonly, (s) => s === props.ref)}
         style={`display: flex; gap: var(--msp-space-3); height: 26px; align-items: center; padding-left: ${props.depth * 14 + 4}px`}
       >
-        <span>
-          {record.pipe(
-            map((n) => n.label),
-            distinctUntilChanged(),
-          )}
-        </span>
-        <span style="color: var(--msp-color-text-subtle)">
-          {record.pipe(
-            map((n) => n.description ?? ''),
-            distinctUntilChanged(),
-          )}
-        </span>
+        <span>{derive(record, (n) => n.label)}</span>
+        <span style="color: var(--msp-color-text-subtle)">{derive(record, (n) => n.description ?? '')}</span>
       </div>
     );
   };
@@ -483,7 +471,7 @@ function benchmark(cases: (host: HTMLElement, out: Result[]) => Promise<void>) {
           disabled={running.asReadonly}
           onClick={run}
         >
-          {running.asReadonly.pipe(map((r) => (r ? 'Running…' : 'Run')))}
+          {derive(running.asReadonly, (r) => (r ? 'Running…' : 'Run'))}
         </button>
         <table style="border-collapse: collapse;">
           <For each={results.asReadonly}>

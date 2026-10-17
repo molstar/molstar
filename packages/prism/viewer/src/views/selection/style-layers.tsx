@@ -12,10 +12,11 @@ import { ParamsForm, ScrollArea } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { distinctUntilChanged, map } from 'rxjs';
+import { map } from 'rxjs';
 import type { StyleLayerItem, StyleLayersModel } from '../../model/style-layers.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * The style layers applied (under the Selection tab's style form; Mol*'s overpaint, transparency, emissive, material and
  * clipping layers, which v5 only lets go of in the state tree): a row each (the swatch or the kind, the atoms, the
@@ -23,10 +24,7 @@ import { classes } from './_generated/selection-lists.module.css.js';
  */
 export function StyleLayers(props: { model: StyleLayersModel }) {
   const { model } = props;
-  const count = model.items.pipe(
-    map((l) => l.length),
-    distinctUntilChanged(),
-  );
+  const count = derive(model.items, (l) => l.length);
   return (
     <Show when={count.pipe(map((n) => n > 0))}>
       {() => (
@@ -57,20 +55,14 @@ function LayerRow(props: { item: StyleLayerItem }) {
   const editable = item.editable;
   return (
     <div class={classes.item}>
-      <div class={classes.row} title={view.pipe(map((v) => v.detail))}>
+      <div class={classes.row} title={derive(view, (v) => v.detail)}>
         <span class={classes.lead}>
-          <Show
-            when={view.pipe(
-              map((v) => v.swatch),
-              distinctUntilChanged(),
-            )}
-            fallback={() => <Icon name={view.value.icon} size={13} />}
-          >
+          <Show when={derive(view, (v) => v.swatch)} fallback={() => <Icon name={view.value.icon} size={13} />}>
             {(swatch) => <span class={classes.swatch} style={`background: ${swatch}`} />}
           </Show>
         </span>
-        <span class={classes.label}>{view.pipe(map((v) => v.where))}</span>
-        <span class={classes.value}>{view.pipe(map((v) => v.value))}</span>
+        <span class={classes.label}>{derive(view, (v) => v.where)}</span>
+        <span class={classes.value}>{derive(view, (v) => v.value)}</span>
         <span class={classes.actions}>
           {editable ? (
             <button

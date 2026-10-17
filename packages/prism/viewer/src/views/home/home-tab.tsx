@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { formatChord } from '@molstar/prism-ui/commands/keys';
 import { ActionFooter } from '@molstar/prism-ui';
 import { Button } from '@molstar/prism-ui';
@@ -23,6 +22,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
 import { KeptRecordsList } from './kept-records.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 export interface HomeTabProps {
   home: HomeModel;
   /** More sections after the actions (the `home.import` slot). */
@@ -46,11 +46,11 @@ export function HomeTab(props: HomeTabProps) {
         {home.annotationOffer ? <AnnotationOfferLine model={home.annotationOffer} /> : null}
         <section class={classes.group} aria-label="Actions">
           {/* The first action (Download Structure, open), then Open Files, then the rest (folded). */}
-          <For each={home.actions.pipe(map((a) => a.slice(0, 1)))} key={(a) => a.id}>
+          <For each={derive(home.actions, (a) => a.slice(0, 1))} key={(a) => a.id}>
             {(action) => <ActionBlock action={action} open />}
           </For>
           <OpenFiles home={home} />
-          <For each={home.actions.pipe(map((a) => a.slice(1)))} key={(a) => a.id}>
+          <For each={derive(home.actions, (a) => a.slice(1))} key={(a) => a.id}>
             {(action) => <ActionBlock action={action} open={false} />}
           </For>
           {/* Extensions' loaders (Zenodo): among the actions, folded, as one of them. */}
@@ -94,7 +94,7 @@ function OpenFiles(props: { home: HomeModel }) {
   // Only drags that carry files (the page's drop overlay, when it is on, takes them before this area does).
   const carriesFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
   return (
-    <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+    <div class={classes.action} data-open={derive(open.asReadonly, (o) => (o ? '' : undefined))}>
       <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
         <span class={classes.actionTitle}>Open Files</span>
         <span class={classes.actionDescription}>Structures, maps, trajectories and sessions from your computer</span>
@@ -106,7 +106,7 @@ function OpenFiles(props: { home: HomeModel }) {
             <button
               type="button"
               class={classes.drop}
-              data-over={over.asReadonly.pipe(map((o) => (o ? '' : undefined)))}
+              data-over={derive(over.asReadonly, (o) => (o ? '' : undefined))}
               title={home.formats.length ? `Reads ${home.formats.join(', ')}` : undefined}
               onClick={() => input.click()}
               onDragEnter={(e) => {
@@ -143,7 +143,7 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
   const { action } = props;
   const open = observableState(props.open);
   return (
-    <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+    <div class={classes.action} data-open={derive(open.asReadonly, (o) => (o ? '' : undefined))}>
       <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
         <span class={classes.actionTitle}>{action.title}</span>
         <span class={classes.actionDescription}>{action.description}</span>
@@ -175,7 +175,7 @@ function Session(props: { session: SessionModel }) {
   const { session } = props;
   const confirming = observableState(false);
   return (
-    <Show when={session.isEmpty.pipe(map((e) => !e))}>
+    <Show when={derive(session.isEmpty, (e) => !e)}>
       {() => (
         <section class={classes.group} aria-label="Current session">
           <div class={classes.captionRow}>
@@ -269,7 +269,7 @@ export function RemoteStatesList(props: { model: RemoteStatesModel; caption?: bo
           <h3 class={classes.caption}>Remote states</h3>
         ) : (
           <span class={classes.serverHost} data-tip-overflow="">
-            {model.serverUrl.pipe(map(hostOf))}
+            {derive(model.serverUrl, hostOf)}
           </span>
         )}
         <span class={classes.captionActions}>
