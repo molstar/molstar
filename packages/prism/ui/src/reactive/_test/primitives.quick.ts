@@ -14,13 +14,23 @@ import {
   bindWrite,
   deriveRecompute,
   deriveSkip,
+  frameOffers,
   keyedSelectorMove,
   keyedStateSet,
   stateSet,
   watchRender,
 } from './primitives-cases.js';
 
-const cases = { stateSet, deriveRecompute, deriveSkip, bindWrite, watchRender, keyedSelectorMove, keyedStateSet };
+const cases = {
+  stateSet,
+  deriveRecompute,
+  deriveSkip,
+  bindWrite,
+  watchRender,
+  keyedSelectorMove,
+  keyedStateSet,
+  frameOffers,
+};
 
 for (const [name, make] of Object.entries(cases)) {
   it(name, ({ task }) => {

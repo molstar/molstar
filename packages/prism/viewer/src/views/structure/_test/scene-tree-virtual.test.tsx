@@ -11,7 +11,7 @@
 
 import { domView } from '@molstar/prism-ui/dom/view';
 import { render } from '@molstar/prism-ui/dom/render';
-import { flush } from '@molstar/prism-ui/dom/scope';
+import { flush, flushFrame } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -92,6 +92,8 @@ function mount(withShell = false) {
     // As the browser does: the viewport scrolls, then its scroll event.
     list!.scrollTop = index * 26;
     list!.dispatchEvent(new Event('scroll'));
+    // The scroll position is input, published in the frame (rendering.md §2.3).
+    flushFrame();
   };
   return {
     structure,

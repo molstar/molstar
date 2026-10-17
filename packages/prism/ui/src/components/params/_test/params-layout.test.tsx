@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { flushFrame } from '../../../reactive/frame-state.js';
 import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { render } from '../../../dom/render.js';
@@ -112,6 +113,8 @@ describe('ParamsForm layout (v5 ParameterControls)', () => {
     const range = container.querySelector('input[type=range]') as HTMLInputElement;
     range.value = '0.5';
     range.dispatchEvent(new Event('input', { bubbles: true }));
+    // A drag's value is set in the frame (the frame lane, rendering.md §2.3).
+    flushFrame();
     await flush();
     expect((form.values.value as any).type).toEqual({
       name: 'cartoon',

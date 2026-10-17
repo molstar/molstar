@@ -16,7 +16,7 @@ import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { activity, For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { deepActiveElement, focusFirstItem, menuKeys, rememberFocus, rovingTabs, uniqueId } from '../../dom/focus.js';
-import { onCleanup } from '../../dom/scope.js';
+import { effect, frameState, onCleanup } from '../../dom/scope.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
@@ -556,7 +556,12 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
   let startX = 0;
   let startSize = 0;
   let dragging = false;
-  const onMove = (e: PointerEvent) => shell.setSize(dock.id, startSize + sign * (e.clientX - startX));
+  // A drag's size in the frame lane (rendering.md §2.3): pointer events come several a frame, the layout once.
+  const dragged = frameState(-1);
+  effect(dragged, (size) => {
+    if (size >= 0) shell.setSize(dock.id, size);
+  });
+  const onMove = (e: PointerEvent) => dragged.offer(startSize + sign * (e.clientX - startX));
   return (
     <div
       class={classes.splitter}

@@ -13,7 +13,7 @@
 // time, a jump far away. jsdom has no layout: the viewport's scroll position is a plain property here.
 
 import { render } from '@molstar/prism-ui/dom/render';
-import { flush } from '@molstar/prism-ui/dom/scope';
+import { flush, flushFrame } from '@molstar/prism-ui/dom/scope';
 import { makeScene } from '../../../_stories/performance-fixtures.js';
 import { SceneTree } from '../scene-tree.js';
 
@@ -35,6 +35,7 @@ function mountTree() {
   const scrollTo = (y: number) => {
     viewport.scrollTop = y;
     viewport.dispatchEvent(new Event('scroll'));
+    flushFrame();
     flush();
   };
   return { fx, box, scrollTo, rows: () => box.querySelectorAll('[role=treeitem]').length };

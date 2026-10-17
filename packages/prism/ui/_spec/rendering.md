@@ -165,6 +165,21 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   renders two rows, not all), or, as the exception, a stream (subscribed; what it emits while subscribing is not a
   change).
 - **Errors**: a render that throws is logged; the others in the flush render and the watch goes on.
+- **Two lanes.** The microtask lane is for logic and model state: what a task changes renders once, at its end. The
+  frame lane is for input: a trackpad sends wheel and pointer events at 120 Hz or more, several a frame, so input-fed
+  state is batched at its source. A **frame state** (`frameState(initial)` in a component, `FrameState` in a source,
+  `reactive/frame-state.ts`) keeps only the latest `offer` (no listener told, nothing allocated); the first offer in a
+  frame asks for one `requestAnimationFrame`, shared by every frame state, which publishes each once, then runs the
+  microtask lane, then the frame lane: the watches with a frame state among their sources (a watch of a frame state and
+  a model state renders once in the frame, after both). Paused or disposed watches are skipped in both lanes; a
+  component's frame state drops its pending offer with its scope. `flush()` runs the microtask lane only (it runs at
+  every delegated event, and would publish per event); `flushFrame()` runs the frame's tick now (tests, and
+  `scrollToIndex`, whose row the keyboard focuses next). Ten offers in a frame cost one publish and one render, and no
+  allocation (`primitives.quick.ts`).
+- **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
+  (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
+  decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after
+  layout. Prism's views handle no wheel events of their own (the browser scrolls).
 
 ### 2.4 Ownership
 

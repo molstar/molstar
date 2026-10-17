@@ -11,7 +11,16 @@
 import { nextSlice, sliceHasRoom } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { insert } from '../../dom/render.js';
-import { bind, flush, onCleanup, requireScope, runInScope, type Scope } from '../../dom/scope.js';
+import {
+  bind,
+  flush,
+  flushFrame,
+  frameState,
+  onCleanup,
+  requireScope,
+  runInScope,
+  type Scope,
+} from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
@@ -93,7 +102,9 @@ export function RecycledList<T>(props: {
 }) {
   const owner = requireScope('RecycledList');
   const overscan = props.overscan ?? 8;
-  const top = observableState(0);
+  // The scroll position in the frame lane (rendering.md §2.3): scroll events can come several a frame; the window
+  // moves once a frame, in the frame's tick (before its paint).
+  const top = frameState(0);
   const height = observableState(0);
   const rowHeight = observableState(props.rowHeight);
   let viewport: HTMLElement | undefined;
@@ -102,7 +113,7 @@ export function RecycledList<T>(props: {
     // Both read before either is set: setting `top` lays out rows, and a read after would lay them out in the event.
     const t = viewport.scrollTop;
     const h = viewport.clientHeight;
-    top.set(t);
+    top.offer(t);
     if (h !== height.value) height.set(h);
   };
   // Before the first measure (no height yet), a screenful.
@@ -172,7 +183,7 @@ export function RecycledList<T>(props: {
       place(true);
     },
   );
-  bind(top.asReadonly, scrolled);
+  bind(top, scrolled);
 
   // --- The rows ---
   let content: HTMLElement | undefined;
@@ -339,9 +350,10 @@ export function RecycledList<T>(props: {
       if (t !== top.value) {
         if (viewport) viewport.scrollTop = t;
         // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
-        top.set(t);
+        top.offer(t);
       }
-      // And rendered (`watch`es render in a microtask).
+      // And rendered: the frame's tick now (the window), then the `watch`es.
+      flushFrame();
       flush();
     },
   });

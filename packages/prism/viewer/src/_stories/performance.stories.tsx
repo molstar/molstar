@@ -12,7 +12,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '@molstar/prism-ui/dom/control-flow';
 import { render } from '@molstar/prism-ui/dom/render';
-import { flush } from '@molstar/prism-ui/dom/scope';
+import { flush, flushFrame } from '@molstar/prism-ui/dom/scope';
 import { ReactiveCounts } from '@molstar/prism-ui/reactive/state';
 import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
@@ -712,6 +712,7 @@ async function jumps(kind: TreeKind, count = 40) {
     const t0 = performance.now();
     vp.scrollTop = y;
     vp.dispatchEvent(new Event('scroll'));
+    flushFrame();
     flush();
     const t1 = performance.now();
     // A row's place: the window's layout (the host is contained, its own size needs none).
@@ -758,6 +759,7 @@ async function steps(kind: TreeKind, count = 300, by = 26) {
     const t0 = performance.now();
     vp.scrollTop += by;
     vp.dispatchEvent(new Event('scroll'));
+    flushFrame();
     flush();
     void (vp.querySelector('[role=treeitem]') as HTMLElement | null)?.offsetTop;
     times.push(performance.now() - t0);

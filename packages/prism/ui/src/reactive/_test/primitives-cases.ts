@@ -11,7 +11,8 @@
 // target is no allocation a step: what a binding or a render writes goes to a plain object here, so what is read is the
 // runtime's own.
 
-import { createRoot, flush, watch, bind } from '../../dom/scope.js';
+import { bind, createRoot, flush, frameState, watch } from '../../dom/scope.js';
+import { flushFrame } from '../frame-state.js';
 import { keyedSelector } from '../keyed-selector.js';
 import { keyedState } from '../keyed-state.js';
 import { derive, State } from '../state.js';
@@ -85,4 +86,25 @@ export function keyedStateSet(): Case {
   let told = 0;
   for (let k = 0; k < 1000; k++) ks.key(k).listen(() => (told = (told + 1) & 0xffff));
   return { step: (i) => ks.set(i % 1000, i), sink: () => told };
+}
+
+/** Ten offers to a frame state in a frame, and its tick: one publish, one render. */
+export function frameOffers(): Case {
+  const target = { v: 0, renders: 0 };
+  let offer!: (v: number) => void;
+  createRoot(() => {
+    const pointer = frameState(0);
+    offer = (v) => pointer.offer(v);
+    watch([pointer], () => {
+      target.v = pointer.value & 0xffff;
+      target.renders = (target.renders + 1) & 0xffff;
+    });
+  });
+  return {
+    step: (i) => {
+      for (let k = 0; k < 10; k++) offer(i * 10 + k);
+      flushFrame();
+    },
+    sink: () => target.renders,
+  };
 }

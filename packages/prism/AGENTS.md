@@ -20,6 +20,9 @@ it is done).
   determines its output: one key of a shared value through `keyedSelector` or `keyedState`, one field through `derive`;
   a side effect that writes no DOM is an `effect()`. A change that writes nothing is waste, and is budgeted
   (`viewer/src/ui/_test/waste.test.tsx`, `waste-budget.json`).
+- **Input in the frame lane** (David, 2026-10-17; [rendering.md §2.3](ui/_spec/rendering.md)): input-fed state (a scroll
+  position, the hover label, a drag) is a `frameState`: `offer` at every event, published once a frame; a watch
+  following one renders in the frame. Batch at the source, never per listener.
 - **Perf conformance from day one**, as in Seq\* (David, 2026-10-17): base primitives and hot paths carry quick
   allocation guards (`test:perf`: bytes a step against `perf-baseline.json`, each with a positive control) and heap
   guards (`test:heap`). Opt in, by hand at checkpoints, not in CI. A new primitive or hot view lands with its guard.

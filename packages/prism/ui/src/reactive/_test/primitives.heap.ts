@@ -16,6 +16,7 @@ import {
   bindWrite,
   deriveRecompute,
   deriveSkip,
+  frameOffers,
   keyedSelectorMove,
   keyedStateSet,
   stateSet,
@@ -42,7 +43,16 @@ function settle(step: (i: number) => void) {
 
 /** Steps before measuring, so each runs optimized: under V8's defaults a step can sit 15,000 to 60,000 steps in its middle tier, allocating (packages/sequences/AGENTS.md). */
 const Warm = 100_000;
-const cases = { stateSet, deriveRecompute, deriveSkip, bindWrite, watchRender, keyedSelectorMove, keyedStateSet };
+const cases = {
+  stateSet,
+  deriveRecompute,
+  deriveSkip,
+  bindWrite,
+  watchRender,
+  keyedSelectorMove,
+  keyedStateSet,
+  frameOffers,
+};
 
 describe('primitives heap guards', () => {
   for (const [name, make] of Object.entries(cases)) {

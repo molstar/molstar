@@ -7,6 +7,7 @@
  */
 
 import { StructureElement } from '@molstar/model/model/structure';
+import { flushFrame } from '@molstar/prism-ui/reactive/frame-state';
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer } from '../../_test/harness.js';
 
@@ -20,10 +21,26 @@ describe('the hover lines', () => {
     for (const target of ['A:10', 'A:20', 'ligand']) {
       const r = await v.api.highlight.set({ target });
       expect(r.ok, target).toBe(true);
+      // A frame between them: the lines are input, published once a frame (rendering.md §2.3).
+      flushFrame();
     }
     sub.unsubscribe();
     const shown = seen.filter((l) => l.length > 0);
     expect(new Set(shown).size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('ten highlights in a frame are one change of the lines (the frame lane)', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const told: string[] = [];
+    const stop = v.sources.pointer.hoverLines.listen!((l) => told.push(l.join(' / ')));
+    for (let i = 0; i < 10; i++) {
+      const r = await v.api.highlight.set({ target: i % 2 ? 'A:10' : 'A:20' });
+      expect(r.ok).toBe(true);
+    }
+    expect(told).toHaveLength(0);
+    flushFrame();
+    expect(told).toHaveLength(1);
+    stop();
   });
 
   it('hover events come once per element under the same keys', async () => {

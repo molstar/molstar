@@ -1,9 +1,10 @@
 {
   "hot: For, the same rows anew": 0,
-  "hot: typing in the command menu": 1246442.7,
+  "hot: typing in the command menu": 1246442.5,
   "primitives: bindWrite": 0,
   "primitives: deriveRecompute": 0,
   "primitives: deriveSkip": 0,
+  "primitives: frameOffers": 0,
   "primitives: keyedSelectorMove": 0,
   "primitives: keyedStateSet": 0,
   "primitives: stateSet": 0,

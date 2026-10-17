@@ -14,7 +14,9 @@ import { distinctUntilChanged, map, type Observable, share } from 'rxjs';
 import { summarize } from '../targets/index.js';
 import { hoverLines } from './hover-lines.js';
 import { structureNames } from './naming.js';
-import { fromChanged, type SourceScope } from './state.js';
+import { FrameState } from '@molstar/prism-ui/reactive/frame-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
+import type { SourceScope } from './state.js';
 
 // What is under the pointer (api.md §8: v5's `structureInteractivity`; README decision 22): the hover label's lines,
 // and the hover and click events embedding hosts read, each with the target in the address language (targets.md §1).
@@ -44,14 +46,15 @@ export interface PointerSources {
 }
 
 export function createPointerSources(scope: SourceScope, plugin: PluginContext): PointerSources {
-  // The lines are derived on every emission and compared themselves: Mol*'s label manager reuses one `labels` array
-  // (`LociLabelManager.getLabels`), so the event's value looks unchanged to a shallow compare.
-  const lines = fromChanged(
-    scope,
-    () => hoverLines(plugin.behaviors.labels.highlight.value.labels),
-    plugin.behaviors.labels.highlight,
-    sameLines,
-  );
+  // Input-fed, in the frame lane (rendering.md §2.3): Mol* emits a label at every pick while the pointer moves,
+  // several a frame on a trackpad; a frame state takes them and the lines are read once a frame, when shown. They are
+  // read from the label manager, not the event: it reuses one `labels` array (`LociLabelManager.getLabels`), so the
+  // event's value looks unchanged to a compare.
+  const hovered = new FrameState(0, () => false);
+  let n = 0;
+  scope.add(plugin.behaviors.labels.highlight.subscribe(() => hovered.offer((n = (n + 1) & 0xffff))));
+  scope.add(() => hovered.dispose());
+  const lines = derive(hovered, () => hoverLines(plugin.behaviors.labels.highlight.value.labels), sameLines);
   const toEvent = (e: {
     current: { loci: unknown };
     button: number;

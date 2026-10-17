@@ -15,7 +15,7 @@ import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'r
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { uniqueId } from '../../dom/focus.js';
-import { onCleanup, watch } from '../../dom/scope.js';
+import { effect, frameState, onCleanup, watch } from '../../dom/scope.js';
 import { setAttr, setStyle, setText } from '../../dom/writes.js';
 import { type ParamSection, ParamsFormModel, paramSections } from '../../forms/params-form.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
@@ -539,6 +539,12 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
   }
   const min = param.min;
   const max = param.max;
+  // A drag in the frame lane (rendering.md §2.3): input events come several a frame, the field is set once a frame (it
+  // may update a structure's representation).
+  const dragged = frameState(Number.NaN, (a, b) => Object.is(a, b));
+  effect(dragged, (v) => {
+    if (!Number.isNaN(v)) binding.set(v);
+  });
   let range!: HTMLInputElement;
   let number!: HTMLInputElement;
   const el = (
@@ -551,7 +557,7 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
         max={String(max)}
         step={String(param.step ?? (max - min) / 100)}
         ref={(e: HTMLInputElement) => (range = e)}
-        onInput={(e) => binding.set(Number(e.currentTarget.value))}
+        onInput={(e) => dragged.offer(Number(e.currentTarget.value))}
       />
       <input
         class={classes.number}

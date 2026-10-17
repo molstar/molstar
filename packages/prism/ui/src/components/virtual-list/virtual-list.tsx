@@ -11,7 +11,7 @@
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { bind, flush, onCleanup } from '../../dom/scope.js';
+import { bind, flush, flushFrame, frameState, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
@@ -50,7 +50,9 @@ export function VirtualList<T>(props: {
   ref?: (list: VirtualListHandle) => void;
 }) {
   const overscan = props.overscan ?? 8;
-  const top = observableState(0);
+  // The scroll position in the frame lane (rendering.md §2.3): scroll events can come several a frame; the window
+  // moves once a frame, in the frame's tick (before its paint).
+  const top = frameState(0);
   const height = observableState(0);
   const rowHeight = observableState(props.rowHeight);
   let viewport: HTMLElement | undefined;
@@ -60,7 +62,7 @@ export function VirtualList<T>(props: {
     // scroll event (measured: 1.7 of a jump's 4.4 ms), rather than once at the frame.
     const t = viewport.scrollTop;
     const h = viewport.clientHeight;
-    top.set(t);
+    top.offer(t);
     if (h !== height.value) height.set(h);
   };
   // Before the first measure (no height yet), a screenful.
@@ -127,7 +129,7 @@ export function VirtualList<T>(props: {
     items = next;
     place(true);
   });
-  bind(top.asReadonly, scrolled);
+  bind(top, scrolled);
   const range = combineLatest([props.items, win.asReadonly, rowHeight.asReadonly]).pipe(
     map(([list, w, rh]) => ({
       items: list,
@@ -156,9 +158,10 @@ export function VirtualList<T>(props: {
       if (t !== top.value) {
         if (viewport) viewport.scrollTop = t;
         // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
-        top.set(t);
+        top.offer(t);
       }
-      // And rendered (`watch`es render in a microtask).
+      // And rendered: the frame's tick now (the window), then the `watch`es.
+      flushFrame();
       flush();
     },
   });

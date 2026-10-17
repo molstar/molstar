@@ -8,6 +8,7 @@
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
 import { type Listenable, listen } from '../reactive/listen.js';
+import { FrameLane, FrameState, flushFrame, requestFrame } from '../reactive/frame-state.js';
 import { ReactiveCounts, ReactiveProbe } from '../reactive/state.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -102,6 +103,52 @@ export const RuntimeProbe: {
 let dirty: (Watcher | undefined)[] = [];
 let dirtyCount = 0;
 let running: (Watcher | undefined)[] = [];
+// The frame lane's (rendering.md §2.3): the watches with a frame state among their sources, rendered in the frame's
+// tick after the frame states publish and the microtask lane settles.
+let frameDirty: (Watcher | undefined)[] = [];
+let frameDirtyCount = 0;
+let frameRunning: (Watcher | undefined)[] = [];
+let frameRendering = false;
+
+/** The frame's tick, after the frame states published: the microtask lane, then the frame lane, once each. */
+FrameLane.after = () => {
+  flush();
+  if (frameRendering) return;
+  frameRendering = true;
+  try {
+    // What the frame lane's renders mark in the frame lane waits for the next frame.
+    const list = frameDirty;
+    const n = frameDirtyCount;
+    frameDirty = frameRunning;
+    frameDirtyCount = 0;
+    frameRunning = list;
+    renderMarked(list, n);
+  } finally {
+    frameRendering = false;
+  }
+  flush();
+};
+
+/** Renders `n` marked watches, parents first, skipping those stopped since (an insertion sort in place). */
+function renderMarked(list: (Watcher | undefined)[], n: number): void {
+  for (let i = 1; i < n; i++) {
+    const w = list[i]!;
+    let j = i - 1;
+    while (j >= 0 && list[j]!.depth > w.depth) {
+      list[j + 1] = list[j];
+      j--;
+    }
+    list[j + 1] = w;
+  }
+  for (let i = 0; i < n; i++) {
+    const w = list[i]!;
+    list[i] = undefined;
+    // Stopped since it was marked (paused, disposed): its entry is stale.
+    if (!w.queued) continue;
+    w.queued = false;
+    w.run();
+  }
+}
 let scheduled = false;
 let flushing = false;
 /** Flushes in a row before a watch that keeps marking itself (a render that sets what it watches) is dropped. */
@@ -110,6 +157,12 @@ const MaxPasses = 100;
 function schedule(w: Watcher) {
   if (w.queued) return;
   w.queued = true;
+  // A watch following a frame state renders in the frame lane: once in the frame, after the frame states publish.
+  if (w.frame) {
+    frameDirty[frameDirtyCount++] = w;
+    requestFrame();
+    return;
+  }
   dirty[dirtyCount++] = w;
   if (scheduled) return;
   scheduled = true;
@@ -147,24 +200,8 @@ export function flush(): void {
         }
         break;
       }
-      // Marking order; parents first (depth), siblings in the order they changed (an insertion sort: stable, in place).
-      for (let i = 1; i < n; i++) {
-        const w = list[i]!;
-        let j = i - 1;
-        while (j >= 0 && list[j]!.depth > w.depth) {
-          list[j + 1] = list[j];
-          j--;
-        }
-        list[j + 1] = w;
-      }
-      for (let i = 0; i < n; i++) {
-        const w = list[i]!;
-        list[i] = undefined;
-        // Stopped since it was marked (paused, disposed): its entry is stale.
-        if (!w.queued) continue;
-        w.queued = false;
-        w.run();
-      }
+      // Parents first (depth), siblings in the order they changed.
+      renderMarked(list, n);
     }
   } finally {
     flushing = false;
@@ -189,12 +226,15 @@ class Watcher extends Live implements WatchHandle {
     super();
     this.#sources = sources;
     this.#render = render;
+    this.frame = inFrameLane(sources);
   }
 
   /** The probe's: the states that marked it since it last rendered (`RuntimeProbe.run`). */
   because: Set<object | undefined> | undefined;
-  /** Marked, waiting in the flush's array. */
+  /** Marked, waiting in a lane's array. */
   queued = false;
+  /** In the frame lane: a frame state is among its sources. */
+  frame = false;
 
   readonly #mark = () => {
     if (!this.#live) return;
@@ -208,6 +248,7 @@ class Watcher extends Live implements WatchHandle {
     const live = this.#live;
     this.stop();
     this.#sources = normalize(sources);
+    this.frame = inFrameLane(this.#sources);
     if (live) this.start();
   }
 
@@ -594,6 +635,24 @@ export interface WatchHandle {
   /** Follows `sources` instead, and renders (now while its scope is active; else on resume). */
   retarget(sources: readonly WatchSource[]): void;
 }
+
+/** Whether any source is a frame state (the frame lane). */
+function inFrameLane(sources: readonly unknown[]): boolean {
+  for (let i = 0; i < sources.length; i++) if ((sources[i] as { frameLane?: boolean }).frameLane === true) return true;
+  return false;
+}
+
+/**
+ * A frame state (`FrameState`, rendering.md §2.3) for input in a component: `offer` the latest value at every event;
+ * it publishes once a frame, and its pending offer goes with the current scope.
+ */
+export function frameState<T>(initial: T, compare?: (a: T, b: T) => boolean): FrameState<T> {
+  const s = new FrameState(initial, compare);
+  getScope()?.onCleanup(() => s.dispose());
+  return s;
+}
+
+export { flushFrame };
 
 /** A watch's sources as it listens to them: states and streams (a writable state's readonly view), `listen`ables. */
 function normalize(sources: readonly WatchSource[]): (Observable<unknown> | ReadonlyState<unknown> | Listenable)[] {
