@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { afdbEntryOf, paeValuesFromAfdb, resolveAfdbPaeUrl } from '../pae/afdb.js';
 import { ModelArchiveExtension } from '../prism-viewer.js';
@@ -35,6 +36,18 @@ describe('AlphaFold DB entry detection', () => {
     });
     expect(afdbEntryOf(['1CBS', 'model.cif', undefined, ''])).toBeUndefined();
   });
+
+  it('recognises an isoform entry, with its suffix in the accession', () => {
+    expect(afdbEntryOf(['AF-P04637-2-F1'])).toEqual({ id: 'AF-P04637-2-F1', accession: 'P04637-2', fragment: 1 });
+    expect(afdbEntryOf(['https://alphafold.ebi.ac.uk/files/af-q9y6k9-12-f3-model_v4.cif'])).toEqual({
+      id: 'AF-Q9Y6K9-12-F3',
+      accession: 'Q9Y6K9-12',
+      fragment: 3,
+      version: 4,
+    });
+    // The fragment is not taken for an isoform.
+    expect(afdbEntryOf(['AF-P04637-F2'])).toEqual({ id: 'AF-P04637-F2', accession: 'P04637', fragment: 2 });
+  });
 });
 
 const response = (ok: boolean, body: unknown = null, status = ok ? 200 : 404) =>
@@ -50,7 +63,7 @@ describe('resolving the PAE address', () => {
           ])
         : response(false),
     );
-    expect(await resolveAfdbPaeUrl(Entry, fetcher)).toBe(Json);
+    expect(await resolveAfdbPaeUrl(Entry, fetcher)).toEqual({ url: Json });
   });
 
   it('never follows an address outside AlphaFold DB; falls back to the conventional file, probed', async () => {
@@ -58,7 +71,33 @@ describe('resolving the PAE address', () => {
       if (url === Api) return response(true, [{ entryId: Entry.id, paeDocUrl: 'https://evil.example/pae.json' }]);
       return init?.method === 'HEAD' && url === Json ? response(true) : response(false);
     });
-    expect(await resolveAfdbPaeUrl(Entry, fetcher)).toBe(Json);
+    expect(await resolveAfdbPaeUrl(Entry, fetcher)).toEqual({ url: Json });
+  });
+
+  const V4 = Json.replace('_v6', '_v4');
+  const apiLatest = (url: string, init?: { method?: string }) =>
+    url === Api
+      ? response(true, [{ entryId: Entry.id, paeDocUrl: Json, latestVersion: 6 }])
+      : init?.method === 'HEAD' && (url === V4 || url === Json)
+        ? response(true)
+        : response(false);
+
+  it("prefers the PAE of the model file's own version over the API's latest", async () => {
+    const fetcher = vi.fn(apiLatest);
+    expect(await resolveAfdbPaeUrl({ ...Entry, version: 4 }, fetcher)).toEqual({ url: V4 });
+    // The model is the latest: the API's address as it is.
+    expect(await resolveAfdbPaeUrl({ ...Entry, version: 6 }, fetcher)).toEqual({ url: Json });
+  });
+
+  it("falls back to the latest, and says so, when the model's own version has no file", async () => {
+    const fetcher = vi.fn(async (url: string, init?: { method?: string }) =>
+      url === V4 ? response(false) : apiLatest(url, init),
+    );
+    const r = await resolveAfdbPaeUrl({ ...Entry, version: 4 }, fetcher);
+    expect(r.url).toBe(Json);
+    expect(r.note).toMatch(/version 4.*version 6/);
+    // Without a version in the model file there is nothing to contradict.
+    expect(await resolveAfdbPaeUrl(Entry, fetcher)).toEqual({ url: Json });
   });
 
   it('says so when the entry has none, or the service cannot be reached', async () => {
@@ -130,7 +169,7 @@ const residuesOf = (v: PrismViewer) =>
   v.plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data.model.atomicHierarchy.residues._rowCount;
 
 /** A stub of the two requests, the API and the JSON: a PAE of `n` residues whose cell (i, j) is `(7i + j) % 30`. */
-function stubAfdb(n: number, status = 200) {
+function stubAfdb(n: number, status = 200, gate?: Promise<void>, gateApi = false) {
   const rows = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (7 * i + j) % 30));
   const seen: string[] = [];
   vi.stubGlobal(
@@ -139,17 +178,43 @@ function stubAfdb(n: number, status = 200) {
       const url = String(input);
       seen.push(`${init?.method ?? 'GET'} ${url}`);
       if (url === Api) {
+        if (gateApi) await gate;
         return new Response(JSON.stringify([{ entryId: Entry.id, paeDocUrl: Json }]), { status: 200 });
       }
-      if (url === Json)
+      if (url === Json) {
+        if (!gateApi) await gate;
         return new Response(status === 200 ? JSON.stringify([{ predicted_aligned_error: rows }]) : 'not found', {
           status,
         });
+      }
       return new Response('', { status: 404 });
     }),
   );
   return { rows, seen };
 }
+
+/** The model cell the structure is made from (its nearest Model ancestor). */
+const modelRefOf = (v: PrismViewer) => {
+  const state = v.plugin.state.data;
+  let cell = state.cells.get(structureRef(v));
+  while (cell && !PluginStateObject.Molecule.Model.is(cell.obj)) cell = state.cells.get(cell.transform.parent);
+  return cell!.transform.ref;
+};
+const paeCells = (v: PrismViewer) =>
+  [...v.plugin.state.data.cells.values()].filter((c) => c.transform.tags?.includes('model-archive.afdb-pae'));
+/** Deletes the loaded entry (the file the structure came from, with everything under it). */
+const removeEntry = (v: PrismViewer) => {
+  const state = v.plugin.state.data;
+  const root = [...state.cells.values()].find(
+    (c) => c.transform.parent === state.tree.root.ref && c.transform.ref !== state.tree.root.ref,
+  )!;
+  return v.plugin.runTask(state.updateTree(state.build().delete(root.transform.ref)));
+};
+const gated = () => {
+  let open!: () => void;
+  const gate = new Promise<void>((r) => (open = r));
+  return { gate, open };
+};
 
 describe('fetching the PAE of an AlphaFold DB model', () => {
   it('attaches it as state cells; the area reads it as the embedded PAE is read, and undo removes it', async () => {
@@ -233,5 +298,89 @@ describe('fetching the PAE of an AlphaFold DB model', () => {
     const r = await v.api['model-archive']!.fetchPae({});
     expect(!r.ok && r.code).toBe('blocked');
     expect(fetchStub).not.toHaveBeenCalled();
+  });
+
+  it('keeps the PAE under the model, so it goes with the structure, and a session restores it', async () => {
+    const v = await viewer();
+    const area = v.api['model-archive']!;
+    stubAfdb(residuesOf(v));
+    const before = v.plugin.state.data.cells.size;
+    expect((await area.fetchPae({})).ok).toBe(true);
+    const cells = paeCells(v);
+    expect(cells).toHaveLength(1);
+    expect(v.plugin.state.data.cells.size).toBe(before + 1);
+    expect(cells[0].transform.parent).toBe(modelRefOf(v));
+    expect(cells[0].transform.tags).toContain(`model-archive.afdb-pae:${modelRefOf(v)}`);
+
+    // A saved session keeps the cell (its address is the parameter) under the model, and the area reads it back.
+    const saved = JSON.parse(JSON.stringify(v.plugin.state.data.getSnapshot())) as {
+      tree: { transforms: { transformer: string; parent: string; params: { url: string }; ref: string }[] };
+    };
+    const entry = saved.tree.transforms.find((t) => t.transformer === 'ms-plugin.model-archive-fetch-pae-json');
+    expect(entry).toMatchObject({ parent: modelRefOf(v), params: { url: Json } });
+    expect(saved.tree.transforms.some((t) => t.transformer === 'ms-plugin.download')).toBe(false);
+
+    // Deleting the entry takes the PAE with it.
+    await removeEntry(v);
+    expect(paeCells(v)).toHaveLength(0);
+    expect(v.plugin.state.data.cells.size).toBeLessThan(before);
+  });
+
+  it('shares a fetch in flight: two asks add the cells once', async () => {
+    const v = await viewer();
+    const area = v.api['model-archive']!;
+    const { gate, open } = gated();
+    const { seen } = stubAfdb(residuesOf(v), 200, gate);
+    const a = area.fetchPae({});
+    const b = area.fetchPae({});
+    await until(() => seen.includes(`GET ${Api}`));
+    open();
+    const [ra, rb] = await Promise.all([a, b]);
+    expect(ra.ok && rb.ok).toBe(true);
+    expect(paeCells(v)).toHaveLength(1);
+    expect(seen.filter((x) => x === `GET ${Json}`)).toHaveLength(1);
+  });
+
+  it('adds nothing when the structure is removed while the PAE is on its way', async () => {
+    const v = await viewer();
+    const area = v.api['model-archive']!;
+    const { gate, open } = gated();
+    const { seen } = stubAfdb(residuesOf(v), 200, gate, true);
+    const running = area.fetchPae({});
+    await until(() => seen.includes(`GET ${Api}`));
+    await removeEntry(v);
+    open();
+    const r = await running;
+    expect(!r.ok && r.code).toBe('not-found');
+    expect(paeCells(v)).toHaveLength(0);
+    expect(seen).not.toContain(`GET ${Json}`);
+  });
+
+  it('stops when asked: the run is aborted and nothing stays in the tree', async () => {
+    const v = await viewer();
+    const area = v.api['model-archive']!;
+    const cells = v.plugin.state.data.cells.size;
+    const { gate, open } = gated();
+    const { seen } = stubAfdb(residuesOf(v), 200, gate);
+    const abort = new AbortController();
+    const running = area.fetchPae({}, { signal: abort.signal });
+    await until(() => seen.includes(`GET ${Json}`));
+    abort.abort();
+    open();
+    const r = await running;
+    expect(!r.ok && r.code).toBe('aborted');
+    expect(v.plugin.state.data.cells.size).toBe(cells);
+    expect(area.hasPae(structureRef(v))).toBe(false);
+  });
+
+  it('lets go of the state subscription and the stream when the area is disposed', async () => {
+    const v = await viewer();
+    const area = v.api['model-archive']!;
+    const done = vi.fn();
+    area.changes.subscribe({ complete: done });
+    const before = v.plugin.state.data.events.changed.observers.length;
+    area.dispose!();
+    expect(done).toHaveBeenCalled();
+    expect(v.plugin.state.data.events.changed.observers.length).toBe(before - 1);
   });
 });
