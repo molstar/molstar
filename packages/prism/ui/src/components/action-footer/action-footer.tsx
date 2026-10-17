@@ -9,7 +9,8 @@
  */
 
 import { Show } from '../../dom/control-flow.js';
-import { effect, type MaybeReactive } from '../../dom/scope.js';
+import { effect, type MaybeReactive, requireScope, runInScope } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive, isState } from '../../reactive/state.js';
@@ -42,8 +43,27 @@ export interface ActionFooterProps {
 export function ActionFooter(props: ActionFooterProps) {
   const busy = held(props.busy);
   const disabled = derive([busy, held(props.disabled)], (b, d) => b || d);
+  const scope = requireScope('ActionFooter');
+  // Enter in a field of the block above it applies, as in Mol* v5's actions (a PDB id typed, Enter: it loads).
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+    const field = e.target as HTMLElement;
+    if (!submitsOnEnter(field) || disabled.value) return;
+    e.preventDefault();
+    // The field's value first (forms commit text and numbers on `change`, which a browser may send after the key).
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    queueMicrotask(() => {
+      if (!disabled.value) props.onApply();
+    });
+  };
+  const listen = (footer: HTMLElement) =>
+    // The block is its parent, there once the footer is placed in it.
+    queueMicrotask(() => {
+      const block = footer.parentElement;
+      if (block && !scope.disposed) runInScope(scope, () => on(block, 'keydown', onKey));
+    });
   return (
-    <div class={classes.footer}>
+    <div class={classes.footer} ref={(el: HTMLElement) => listen(el)}>
       {props.onReset ? (
         <button
           type="button"
@@ -69,6 +89,13 @@ export function ActionFooter(props: ActionFooterProps) {
       </button>
     </div>
   );
+}
+
+/** A one-line field whose Enter applies: text, number and the like; not a text area, a list box, a check or a slider. */
+function submitsOnEnter(el: HTMLElement): boolean {
+  if (!(el instanceof HTMLInputElement)) return false;
+  if (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-expanded') === 'true') return false;
+  return ['text', 'number', 'search', 'url', 'email', 'tel', ''].includes(el.type);
 }
 
 /** A flag as a state: a state as it is; a stream (or a plain value) held in one, with the current scope. */

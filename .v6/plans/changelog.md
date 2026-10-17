@@ -748,3 +748,5 @@ the [API change ledger](breaking-v6-changes.md).
   per pass). Play is of that structure, one at a time (`trajectory.play` takes `structure`). The canvas' trajectory bar is a
   compact chip while frames play and that structure's row is on screen, else the full bar (paused or not, so the controls are always at hand). The structure inspector's Model field is gone. Mol*: the trajectory animations take
   `refs`, the frame cells to step (empty: all, as before).
+- Prism: Enter in a text or number field of an action (Home's Download Structure, the selection's and animation's
+  forms) applies it, as in Mol\* v5.

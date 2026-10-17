@@ -96,7 +96,9 @@ Every padding, margin and gap is a step of the scale or a rule named after it:
   more to scroll (`msp-fade-scroll-*`).
 - **Shared controls**: `Select` opens inline (or floats with `over`); `ParamsForm` renders `PD.Params` as they are
   (essentials, then Advanced; on/off params as a switch); one `ColorPicker`; one `ActionFooter` ends every block applied
-  by a button; `Choices` for a row of one-click actions.
+  by a button, and Enter in a one-line field of that block applies it (as Mol* v5's actions: the field commits first;
+  not in a text area, a list box, a check or a slider, nor while it cannot apply); `Choices` for a row of one-click
+  actions.
 - **Focus rings** are a 2px `--msp-color-focus-ring` outline; fields, rows and footer buttons draw theirs inside.
 - **The canvas follows the theme when it is plain**: each theme has `--msp-canvas-bg`; choosing a theme sets it as the
   3D canvas's background only while that background is a plain color (no image, gradient or skybox style), and at the
