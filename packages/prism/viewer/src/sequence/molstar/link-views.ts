@@ -38,12 +38,17 @@ export interface StructureView3D {
 /** Runs in a link's chain systems as `Coordinates` by key, what the viewer's channels take. Edge rate. */
 export function coordinatesOf(link: StructureLink, runs: Extents): Coordinates {
   const systems: string[] = [];
+  // Each system's index by key (an `indexOf` a run was runs × systems).
+  const index = new Map<string, number>();
   const out: number[] = [];
   for (let i = 0; i < runs.count; i++) {
     const m = link.memberOf(runs, i);
     if (!m) continue;
-    let k = systems.indexOf(m.key);
-    if (k < 0) k = systems.push(m.key) - 1;
+    let k = index.get(m.key);
+    if (k === undefined) {
+      k = systems.push(m.key) - 1;
+      index.set(m.key, k);
+    }
     out.push(k, runs.start[i], runs.stop[i]);
   }
   return { systems, runs: Int32Array.from(out) };

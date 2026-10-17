@@ -95,6 +95,25 @@ function nameOf(c: ChainInstance, template: string, model: number | null, compId
 }
 
 /** Auth labels per entity position: atom_site's for observed residues, else `pdbx_poly_seq_scheme`'s `pdb_seq_num`. */
+
+type SchemeCategory = NonNullable<CifFrame['categories'][string]>;
+const schemeIndex = new WeakMap<SchemeCategory, Map<string, number[]>>();
+/** `pdbx_poly_seq_scheme`'s rows by asym id, made once per category. */
+function schemeRows(scheme: SchemeCategory): Map<string, number[]> {
+  let byAsym = schemeIndex.get(scheme);
+  if (byAsym) return byAsym;
+  byAsym = new Map();
+  const asym = scheme.getField('asym_id');
+  for (let i = 0; asym && i < scheme.rowCount; i++) {
+    const id = asym.str(i);
+    const list = byAsym.get(id);
+    if (list) list.push(i);
+    else byAsym.set(id, [i]);
+  }
+  schemeIndex.set(scheme, byAsym);
+  return byAsym;
+}
+
 /** Insertion codes that are not letters, read as none: the first (chain, number, code) and how many. */
 interface OddCodes {
   first: string | null;
@@ -121,11 +140,13 @@ function authLabels(
   };
   const scheme = frame?.categories.pdbx_poly_seq_scheme;
   if (scheme) {
-    const [asym, seq, num, ins] = ['asym_id', 'seq_id', 'pdb_seq_num', 'pdb_ins_code'].map((f) => scheme.getField(f));
-    for (let i = 0; asym && seq && num && i < scheme.rowCount; i++) {
-      if (asym.str(i) !== c.labelAsymId || num.valueKind(i) !== 0) continue;
-      const k = seq.int(i) - first;
-      if (k >= 0 && k < length) out[k] = label(num.str(i), ins?.valueKind(i) === 0 ? ins.str(i) : '', k);
+    const [seq, num, ins] = ['seq_id', 'pdb_seq_num', 'pdb_ins_code'].map((f) => scheme.getField(f));
+    // This chain's rows only (by asym id, grouped once a frame): a scan of the whole scheme a chain was C × R.
+    const rows = seq && num ? schemeRows(scheme).get(c.labelAsymId) : undefined;
+    for (const i of rows ?? []) {
+      if (num!.valueKind(i) !== 0) continue;
+      const k = seq!.int(i) - first;
+      if (k >= 0 && k < length) out[k] = label(num!.str(i), ins?.valueKind(i) === 0 ? ins.str(i) : '', k);
     }
   }
   const res = c.unit.model.atomicHierarchy.residues;

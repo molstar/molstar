@@ -104,11 +104,18 @@ export class StructureLink {
     const seqUnits = complexUnits(set, complex);
     const target = { kind: 0, id: 0, row: -1 };
     const chains: LinkedChain[] = [];
+    // The units by `label_asym_id@instance_id` and by the first of each `label_asym_id` (a `find` a chain was C × U).
+    const unitByInstance = new Map<string, (typeof seqUnits)[number]>();
+    const unitByAsym = new Map<string, (typeof seqUnits)[number]>();
+    for (const s of seqUnits) {
+      const key = `${s.mvs.label_asym_id}@${s.mvs.instance_id}`;
+      if (!unitByInstance.has(key)) unitByInstance.set(key, s);
+      if (s.mvs.label_asym_id !== undefined && !unitByAsym.has(s.mvs.label_asym_id))
+        unitByAsym.set(s.mvs.label_asym_id, s);
+    }
     index.chains.forEach((c, k) => {
       if (c.kind === 'water') return;
-      const u =
-        seqUnits.find((s) => s.mvs.label_asym_id === c.labelAsymId && s.mvs.instance_id === c.instanceId) ??
-        seqUnits.find((s) => s.mvs.label_asym_id === c.labelAsymId);
+      const u = unitByInstance.get(`${c.labelAsymId}@${c.instanceId}`) ?? unitByAsym.get(c.labelAsymId);
       const unit =
         u && set.byName(u.ref, target) && target.kind === KeyKind.unit ? { kind: UNIT, id: target.id, row: -1 } : null;
       const key = `${this.key}/${c.labelAsymId}@${c.instanceId}`;

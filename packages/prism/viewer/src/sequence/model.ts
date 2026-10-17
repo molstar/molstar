@@ -469,9 +469,15 @@ class Viewer implements SequenceViewer {
     const o = this.overrideState.value;
     const host = this.deps.structure.value;
     if (!o || !host || host.ref !== o.structure) return false;
-    const n = findNode(o.document.root, ref);
-    return !!n && n.kind === 'track' && hiddenIn(n);
+    // The override's hidden tracks, by ref, once an override (a tree walk a track was tracks × nodes).
+    if (this.hiddenOf?.document !== o.document) {
+      const refs = new Set<string>();
+      for (const t of tracksUnder(o.document.root)) if (t.ref && hiddenIn(t)) refs.add(t.ref);
+      this.hiddenOf = { document: o.document, refs };
+    }
+    return this.hiddenOf.refs.has(ref);
   }
+  private hiddenOf: { document: unknown; refs: ReadonlySet<string> } | undefined;
 
   /** The edits written into a document's tracks (a fresh copy the model owns: written in place). */
   private applyEdits(root: DocNode): void {
@@ -497,6 +503,8 @@ class Viewer implements SequenceViewer {
   private async syncEdits(): Promise<void> {
     const base = this.seq.document.base.value;
     if (!base || !this.shownState.value || this.disposed) return;
+    // The override's hidden tracks read afresh for this sync (once, not once a track).
+    this.hiddenOf = undefined;
     const ops: Op[] = [];
     for (const t of tracksUnder(base.root)) {
       if (!t.ref) continue;

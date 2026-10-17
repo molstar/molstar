@@ -191,6 +191,7 @@
     "typecheck:storybook": "tsc -p tsconfig.storybook.json",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:scaling": "vitest run --config vitest.scaling.config.ts",
     "styles": "node ../ui/scripts/css.mjs --root . --prefix viewer",
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix viewer --check"
   },

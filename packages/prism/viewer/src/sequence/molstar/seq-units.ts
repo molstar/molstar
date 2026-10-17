@@ -47,12 +47,24 @@ export function complexUnits(set: SeqSet, complex: string): { ref: string; mvs: 
 
 /** The chain instance a unit's `mvs` fields name: label_asym_id and instance, else the first with its label_asym_id. */
 export function chainFor(structure: Structure, mvs: MvsFields): ChainInstance | null {
-  const chains = chainsOf(structure).chains;
-  return (
-    chains.find((c) => c.labelAsymId === mvs.label_asym_id && c.instanceId === mvs.instance_id) ??
-    chains.find((c) => c.labelAsymId === mvs.label_asym_id) ??
-    null
-  );
+  const { byInstance, byAsym } = chainLookup(structure);
+  return byInstance.get(`${mvs.label_asym_id}@${mvs.instance_id}`) ?? byAsym.get(mvs.label_asym_id ?? '') ?? null;
+}
+
+/** The chain instances by `label_asym_id@instance_id` and by the first of each `label_asym_id`, once per index. */
+const lookups = new WeakMap<object, { byInstance: Map<string, ChainInstance>; byAsym: Map<string, ChainInstance> }>();
+function chainLookup(structure: Structure) {
+  const index = chainsOf(structure);
+  let l = lookups.get(index);
+  if (l) return l;
+  l = { byInstance: new Map(), byAsym: new Map() };
+  for (const c of index.chains) {
+    const key = `${c.labelAsymId}@${c.instanceId}`;
+    if (!l.byInstance.has(key)) l.byInstance.set(key, c);
+    if (!l.byAsym.has(c.labelAsymId)) l.byAsym.set(c.labelAsymId, c);
+  }
+  lookups.set(index, l);
+  return l;
 }
 
 /** A unit's own map onto its molecule: the same indices, over its range. */

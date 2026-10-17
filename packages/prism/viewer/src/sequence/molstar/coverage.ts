@@ -184,15 +184,22 @@ export const SiftsCoverageProvider: ProviderEntry = {
  * positions in the target's `uniprot:<acc>` numbering, `beg` and `end` inclusive.
  */
 export function coverageDepth(rows: ReturnType<typeof coverageRows>) {
-  const at = new Map<number, string[]>();
+  // The structures over each position, a set each (a list's `includes` per position was rows × length × structures).
+  const sets = new Map<number, Set<string>>();
   const refs = new Map<string, StructureRef>();
   for (let k = 0; k < rows.beg.length; k++) {
     refs.set(rows.entry[k], { ...rows.structure[k], chains: undefined });
     for (let p = rows.beg[k]; p <= rows.end[k]; p++) {
-      const names = at.get(p) ?? [];
-      if (!names.includes(rows.entry[k])) names.push(rows.entry[k]);
-      at.set(p, names);
+      let names = sets.get(p);
+      if (!names) sets.set(p, (names = new Set()));
+      names.add(rows.entry[k]);
     }
+  }
+  // Sorted once a position, with its signature (compared between neighbours, not sorted and joined again per compare).
+  const at = new Map<number, { names: string[]; key: string }>();
+  for (const [p, set] of sets) {
+    const names = [...set].sort();
+    at.set(p, { names, key: names.join('\u0000') });
   }
   const out = {
     beg: [] as number[],
@@ -206,14 +213,9 @@ export function coverageDepth(rows: ReturnType<typeof coverageRows>) {
     `covered by ${n.length} structure${n.length === 1 ? '' : 's'}: ${n.join(', ')}`;
   const positions = [...at.keys()].sort((x, y) => x - y);
   for (let k = 0; k < positions.length; ) {
-    const names = (at.get(positions[k]) ?? []).slice().sort();
+    const { names, key } = at.get(positions[k])!;
     let j = k + 1;
-    while (
-      j < positions.length &&
-      positions[j] === positions[j - 1] + 1 &&
-      (at.get(positions[j]) ?? []).slice().sort().join() === names.join()
-    )
-      j++;
+    while (j < positions.length && positions[j] === positions[j - 1] + 1 && at.get(positions[j])!.key === key) j++;
     out.beg.push(positions[k]);
     out.end.push(positions[j - 1]);
     out.value.push(names.length);

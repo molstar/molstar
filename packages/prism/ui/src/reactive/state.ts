@@ -47,8 +47,18 @@ export type Listener<T> = (value: T) => void;
  * The listeners of a state or a derived value: a plain array, removals leave a hole (cleared when the next delivery
  * ends), so a listener removed or added while others are told is safe.
  */
+/** A listener's place in a list (`Listened`): emptied when it goes. */
+interface Slot<T> {
+  fn: Listener<T> | undefined;
+}
+
 export abstract class Listened<T> extends Observable<T> {
-  #listeners: (Listener<T> | undefined)[] | undefined;
+  /**
+   * Each listener in a slot of its own: removed, its slot is emptied (no search of the list: a list of rows torn down
+   * together removed each by a scan, N rows × L listeners), and the emptied slots are dropped once they are half the
+   * list (and none is being told), so a removal costs O(1) amortized.
+   */
+  #listeners: Slot<T>[] | undefined;
   #holes = 0;
   #telling = 0;
 
@@ -66,23 +76,34 @@ export abstract class Listened<T> extends Observable<T> {
   /** Calls `fn` with each new value until the returned function is called. */
   listen(fn: Listener<T>): () => void {
     const first = !this.listened;
-    (this.#listeners ??= []).push(fn);
+    const slot: Slot<T> = { fn };
+    (this.#listeners ??= []).push(slot);
     if (first) this.onFirst();
-    let on = true;
     const token = ReactiveProbe.on ? ReactiveProbe.listened?.(this) : undefined;
     return () => {
-      if (!on) return;
-      on = false;
+      if (!slot.fn) return;
+      slot.fn = undefined;
       if (token !== undefined) ReactiveProbe.unlistened?.(token);
-      const list = this.#listeners!;
-      const i = list.lastIndexOf(fn);
-      if (i < 0) return;
-      if (this.#telling > 0) {
-        list[i] = undefined;
-        this.#holes++;
-      } else list.splice(i, 1);
+      this.#holes++;
+      if (this.#telling === 0) this.#compact();
       if (!this.listened) this.onLast();
     };
+  }
+
+  /** Drops the emptied slots once they are half the list (all of them when none is left). */
+  #compact() {
+    const list = this.#listeners;
+    if (!list || this.#holes === 0) return;
+    if (this.#holes === list.length) {
+      list.length = 0;
+      this.#holes = 0;
+      return;
+    }
+    if (this.#holes * 2 < list.length) return;
+    let k = 0;
+    for (let i = 0; i < list.length; i++) if (list[i].fn) list[k++] = list[i];
+    list.length = k;
+    this.#holes = 0;
   }
 
   /** Before the first listener (a derived value starts following its sources). */
@@ -92,7 +113,7 @@ export abstract class Listened<T> extends Observable<T> {
 
   protected tell(value: T): void {
     const list = this.#listeners;
-    if (!list || list.length === 0) return;
+    if (!list || list.length === this.#holes) return;
     // The probe: the outermost state told is what the rest follows from.
     if (ReactiveProbe.on && ReactiveProbe.source === undefined) {
       ReactiveProbe.source = this;
@@ -108,12 +129,12 @@ export abstract class Listened<T> extends Observable<T> {
     this.#tellAll(list, value);
   }
 
-  #tellAll(list: (Listener<T> | undefined)[], value: T): void {
+  #tellAll(list: Slot<T>[], value: T): void {
     this.#telling++;
     try {
       // Those added meanwhile are told the next value, not this one.
       for (let i = 0, n = list.length; i < n; i++) {
-        const fn = list[i];
+        const fn = list[i].fn;
         if (!fn) continue;
         try {
           ReactiveCounts.listener++;
@@ -123,10 +144,7 @@ export abstract class Listened<T> extends Observable<T> {
         }
       }
     } finally {
-      if (--this.#telling === 0 && this.#holes > 0) {
-        this.#listeners = list.filter((f) => f !== undefined);
-        this.#holes = 0;
-      }
+      if (--this.#telling === 0) this.#compact();
     }
   }
 

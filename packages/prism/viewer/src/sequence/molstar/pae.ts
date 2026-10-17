@@ -143,7 +143,9 @@ export const PaeProvider: ProviderEntry = {
     }
     const cols = { target: [] as string[], start: [] as number[], stop: [] as number[], value: [] as Float32Array[] };
     const b = { b_target: [] as string[], b_start: [] as number[], b_stop: [] as number[] };
-    const offset = length.map((_, k) => length.slice(0, k).reduce((a, x) => a + x, 0));
+    // Each unit's first token: a running sum.
+    const offset: number[] = [];
+    for (let k = 0, sum = 0; k < length.length; sum += length[k], k++) offset.push(sum);
     for (let p = 0; p < units.length; p++)
       for (let q = 0; q < units.length; q++) {
         // Scored residue i of unit p's row holds its errors aligned on unit q's residues: one run of the matrix's row.

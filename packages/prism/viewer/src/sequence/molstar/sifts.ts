@@ -58,6 +58,22 @@ export function siftsSegments(frame: CifFrame | null): SiftsSegment[] {
   return out;
 }
 
+/** The frame's SIFTS segments by entity, read once a frame (read again per entity, it was entities × segments). */
+const byEntity = new WeakMap<CifFrame, Map<string, SiftsSegment[]>>();
+function segmentsByEntity(frame: CifFrame | null): Map<string, SiftsSegment[]> {
+  if (!frame) return new Map();
+  let m = byEntity.get(frame);
+  if (m) return m;
+  m = new Map();
+  for (const r of siftsSegments(frame)) {
+    const list = m.get(r.entityId);
+    if (list) list.push(r);
+    else m.set(r.entityId, [r]);
+  }
+  byEntity.set(frame, m);
+  return m;
+}
+
 /**
  * An entity's `uniprot:<acc>` numberings (`[index_start, label_start, length]` segments; index 0 is label_seq_id
  * `first`), from its first instance's rows: the best mapping's accessions, or every accession (`all`: isoforms too).
@@ -68,7 +84,7 @@ export function siftsNumberings(
   first: number,
   all: boolean,
 ): { numberings: NumberingInput[]; accessions: string[] } {
-  const rows = siftsSegments(frame).filter((r) => r.entityId === entityId && (all || r.best));
+  const rows = (segmentsByEntity(frame).get(entityId) ?? []).filter((r) => all || r.best);
   const asym = rows[0]?.asymId;
   const byAcc = new Map<string, [number, number, number][]>();
   for (const r of rows) {

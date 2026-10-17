@@ -188,7 +188,9 @@ export class CommandManager<Ctx> {
     for (const d of defs) this.#owners.set(d, owner);
     this.#commands.set([...this.#commands.asReadonly.value, ...defs]);
     return () => {
-      const mine = (c: CommandDefinition<Ctx>) => defs.includes(c) && this.#owners.get(c) === owner;
+      // A set, not `defs.includes` per command (a registration of D taken away from C commands was C × D).
+      const these = new Set<CommandDefinition<Ctx>>(defs);
+      const mine = (c: CommandDefinition<Ctx>) => these.has(c) && this.#owners.get(c) === owner;
       const run = this.#run;
       if (run && mine(run.command)) {
         run.cancel();
@@ -200,7 +202,7 @@ export class CommandManager<Ctx> {
         this.#active.set(undefined);
       }
       for (const d of defs) if (this.#owners.get(d) === owner) this.#owners.delete(d);
-      this.#commands.set(this.#commands.asReadonly.value.filter((c) => !defs.includes(c)));
+      this.#commands.set(this.#commands.asReadonly.value.filter((c) => !these.has(c)));
     };
   }
 
@@ -220,19 +222,36 @@ export class CommandManager<Ctx> {
       taken.add(g.id);
     }
     this.#groups.set([...this.#groups.asReadonly.value, ...groups]);
-    return () => this.#groups.set(this.#groups.asReadonly.value.filter((g) => !groups.includes(g)));
+    return () => {
+      const these = new Set(groups);
+      this.#groups.set(this.#groups.asReadonly.value.filter((g) => !these.has(g)));
+    };
   }
 
   /** A group's path from the top level to it (itself last); empty for none or an unknown id. */
   groupPath(id: string | undefined): CommandGroup[] {
-    const all = this.#groups.asReadonly.value;
+    const byId = this.#groupsById();
     const path: CommandGroup[] = [];
-    let g = id === undefined ? undefined : all.find((x) => x.id === id);
-    while (g && !path.includes(g)) {
-      path.unshift(g);
-      g = g.parent === undefined ? undefined : all.find((x) => x.id === g!.parent);
+    const seen = new Set<CommandGroup>();
+    let g = id === undefined ? undefined : byId.get(id);
+    while (g && !seen.has(g)) {
+      seen.add(g);
+      path.push(g);
+      g = g.parent === undefined ? undefined : byId.get(g.parent);
     }
-    return path;
+    return path.reverse();
+  }
+
+  /** The groups by id, made once per list of groups (a `find` a level, per command, was commands × groups). */
+  #groupIndex: { of: readonly CommandGroup[]; byId: Map<string, CommandGroup> } | undefined;
+  #groupsById(): Map<string, CommandGroup> {
+    const all = this.#groups.asReadonly.value;
+    if (this.#groupIndex?.of !== all) {
+      const byId = new Map<string, CommandGroup>();
+      for (const g of all) if (!byId.has(g.id)) byId.set(g.id, g);
+      this.#groupIndex = { of: all, byId };
+    }
+    return this.#groupIndex.byId;
   }
 
   /** What a group holds (or the top level, for none): its subgroups and its commands, in order. */
@@ -254,8 +273,16 @@ export class CommandManager<Ctx> {
   }
 
   get(id: string): CommandDefinition<Ctx> | undefined {
-    return this.#commands.asReadonly.value.find((c) => c.id === id);
+    const all = this.#commands.asReadonly.value;
+    if (this.#commandIndex?.of !== all) {
+      const byId = new Map<string, CommandDefinition<Ctx>>();
+      for (const c of all) if (!byId.has(c.id)) byId.set(c.id, c);
+      this.#commandIndex = { of: all, byId };
+    }
+    return this.#commandIndex.byId.get(id);
   }
+  /** The commands by id, made once per list of commands. */
+  #commandIndex: { of: readonly CommandDefinition<Ctx>[]; byId: Map<string, CommandDefinition<Ctx>> } | undefined;
 
   /** Why the command cannot run now (its `when`, or the error it threw), if it cannot. */
   blocked(command: CommandDefinition<Ctx>): string | undefined {

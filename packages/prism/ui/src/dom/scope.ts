@@ -141,17 +141,43 @@ FrameLane.after = () => {
   flush();
 };
 
-/** Renders `n` marked watches, parents first, skipping those stopped since (an insertion sort in place). */
-function renderMarked(list: (Watcher | undefined)[], n: number): void {
-  for (let i = 1; i < n; i++) {
-    const w = list[i]!;
-    let j = i - 1;
-    while (j >= 0 && list[j]!.depth > w.depth) {
-      list[j + 1] = list[j];
-      j--;
-    }
-    list[j + 1] = w;
+/** A counting sort's buffers (reused, grown as needed): the counts by depth, the sorted watches. */
+let depthCounts = new Int32Array(64);
+const sortedScratch: (Watcher | undefined)[] = [];
+
+/**
+ * Puts `n` marked watches in depth order, parents first, siblings in the order they were marked: nothing when they are
+ * already (the common case), else a stable counting sort by depth, O(n + depths) (an insertion sort was O(n²) when one
+ * change marked rows' watches and their regions' at alternating depths).
+ */
+function sortByDepth(list: (Watcher | undefined)[], n: number): void {
+  let sorted = true;
+  let max = 0;
+  for (let i = 0; i < n; i++) {
+    const d = list[i]!.depth;
+    if (d > max) max = d;
+    if (i > 0 && d < list[i - 1]!.depth) sorted = false;
   }
+  if (sorted) return;
+  if (depthCounts.length <= max + 1) depthCounts = new Int32Array(2 * (max + 1));
+  const counts = depthCounts;
+  counts.fill(0, 0, max + 2);
+  for (let i = 0; i < n; i++) counts[list[i]!.depth + 1]++;
+  for (let d = 1; d <= max + 1; d++) counts[d] += counts[d - 1];
+  const out = sortedScratch;
+  for (let i = 0; i < n; i++) {
+    const w = list[i]!;
+    out[counts[w.depth]++] = w;
+  }
+  for (let i = 0; i < n; i++) {
+    list[i] = out[i];
+    out[i] = undefined;
+  }
+}
+
+/** Renders `n` marked watches, parents first, skipping those stopped since. */
+function renderMarked(list: (Watcher | undefined)[], n: number): void {
+  sortByDepth(list, n);
   for (let i = 0; i < n; i++) {
     const w = list[i]!;
     list[i] = undefined;

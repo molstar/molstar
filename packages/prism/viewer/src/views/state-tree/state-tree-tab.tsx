@@ -13,6 +13,7 @@ import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { bind, watch } from '@molstar/prism-ui/dom/scope';
+import { workQueue } from '@molstar/prism-ui/dom/scoped';
 import { setAttr, setClass } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import { ScrollArea } from '@molstar/prism-ui';
@@ -90,33 +91,58 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     scrollTo: (i) => list?.scrollToIndex(i),
     selected: () => model.selected.value,
   });
-  // A cell opened or closed: its rows below put in place of the old (view-models.md §3, incremental), the rest kept;
-  // a toggle costs its subtree and a copy of the rows, not a walk of the whole tree.
-  const toggle = (ref: string) => {
+  // Cells opened or closed: each one's rows below put in place of the old (view-models.md §3, incremental), the rest
+  // kept. Toggles in one task are one pass (a task's queue, rendering.md §2.7): a thousand cells closed at once copy the
+  // rows once, not once a cell.
+  const toggled = new Set<string>();
+  const work = workQueue({ lane: 'task' });
+  const applyToggles = () => {
     const before = rows.value;
-    const i = before.findIndex((r) => r.node.ref === ref);
+    const next: (CellRow & { readonly posinset: number; readonly setsize: number })[] = [];
+    const gone: string[] = [];
+    const made: (CellRow & { readonly posinset: number; readonly setsize: number })[] = [];
+    let at = 0;
+    for (let i = 0; i < before.length; i++) {
+      const row = before[i];
+      if (!toggled.has(row.node.ref)) continue;
+      let end = i + 1;
+      while (end < before.length && before[end].depth > row.depth) end++;
+      for (let j = at; j <= i; j++) next.push(before[j] as (typeof next)[number]);
+      for (let j = i + 1; j < end; j++) gone.push(before[j].node.ref);
+      const kids = row.node.children;
+      if (kids?.length && !collapsed.has(row.node.ref))
+        for (const r of flattenTree(
+          kids,
+          (n) => n.children,
+          (n) => !collapsed.has(n.ref),
+        )) {
+          const shifted = { ...r, depth: r.depth + row.depth + 1 };
+          next.push(shifted);
+          made.push(shifted);
+        }
+      at = end;
+      i = end - 1;
+    }
+    for (let j = at; j < before.length; j++) next.push(before[j] as (typeof next)[number]);
+    const refs = [...toggled];
+    toggled.clear();
+    batch(() => {
+      for (const ref of gone) places.delete(ref);
+      for (const ref of refs) {
+        const was = places.get(ref);
+        if (was) places.set(ref, { ...was, expanded: !collapsed.has(ref) });
+      }
+      for (const r of made) places.set(r.node.ref, placeOf(r));
+      rows.set(next);
+    });
+  };
+  const toggle = (ref: string) => {
     if (collapsed.has(ref)) collapsed.delete(ref);
     else collapsed.add(ref);
-    if (i < 0) return;
-    const row = before[i];
-    let end = i + 1;
-    while (end < before.length && before[end].depth > row.depth) end++;
-    const kids = row.node.children;
-    const below =
-      kids?.length && !collapsed.has(ref)
-        ? flattenTree(
-            kids,
-            (n) => n.children,
-            (n) => !collapsed.has(n.ref),
-          ).map((r) => ({ ...r, depth: r.depth + row.depth + 1 }))
-        : [];
-    batch(() => {
-      for (let j = i + 1; j < end; j++) places.delete(before[j].node.ref);
-      const was = places.get(ref);
-      if (was) places.set(ref, { ...was, expanded: !collapsed.has(ref) });
-      for (const r of below) places.set(r.node.ref, placeOf(r));
-      rows.set([...before.slice(0, i + 1), ...below, ...before.slice(end)]);
-    });
+    // Toggled twice in a task: as it was.
+    if (toggled.has(ref)) toggled.delete(ref);
+    else toggled.add(ref);
+    work.want('toggle', applyToggles);
   };
   // The cells changed (the source's flush, coalesced): every row, the rows the same kept.
   bind(model.roots, (roots) => {
