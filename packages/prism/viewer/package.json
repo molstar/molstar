@@ -104,6 +104,11 @@
       "types": "./lib/sources/watched.d.ts",
       "import": "./lib/sources/watched.js"
     },
+    "./sources/canvas-presence": {
+      "molstar-src": "./src/sources/canvas-presence.ts",
+      "types": "./lib/sources/canvas-presence.d.ts",
+      "import": "./lib/sources/canvas-presence.js"
+    },
     "./sequence/index": {
       "molstar-src": "./src/sequence/index.ts",
       "types": "./lib/sequence/index.d.ts",

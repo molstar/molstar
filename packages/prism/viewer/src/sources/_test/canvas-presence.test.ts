@@ -11,7 +11,13 @@
 import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
-import { CanvasContexts, followCanvasPresence, unfollowCanvasPresence } from '../canvas-presence.js';
+import {
+  CanvasContexts,
+  followCanvasPresence,
+  holdCanvas,
+  pausesOutOfView,
+  unfollowCanvasPresence,
+} from '../canvas-presence.js';
 
 // The canvas' presence (canvas-presence.ts) with fake plugins: a fake WebGL context whose loss and restore fire their
 // events a task later (as browsers do), an IntersectionObserver driven by hand.
@@ -179,5 +185,45 @@ describe('canvas presence', () => {
     const s = CanvasContexts.stats();
     expect(s.live).toBe(CanvasContexts.max);
     expect(s.dark).toBe(1);
+  });
+
+  it('leaves a held canvas alone: no release, no loop changes, and restores it first if it was released', async () => {
+    const a = make(true);
+    const b = make(true);
+    const c = make(true);
+    const d = make(false);
+    await tick();
+    await tick();
+    expect(d.isLost()).toBe(true);
+    // An export of d (scrolled away): it gets its context back before the work starts.
+    const release = await holdCanvas(d.plugin);
+    expect(d.isLost()).toBe(false);
+    const stopsBefore = d.loop.stops;
+    const startsBefore = d.loop.starts;
+    // While held, scrolling the others in and out neither releases d nor touches its loop.
+    a.show(false);
+    b.show(false);
+    c.show(false);
+    for (let i = 0; i < 4; i++) await tick();
+    expect(d.isLost()).toBe(false);
+    expect(d.loop.stops).toBe(stopsBefore);
+    expect(d.loop.starts).toBe(startsBefore);
+    release();
+    for (let i = 0; i < 3; i++) await tick();
+    // Released and out of view: its loop stops again.
+    expect(d.loop.isAnimating).toBe(false);
+  });
+
+  it('pauses out of view unless automated or told otherwise', () => {
+    expect(pausesOutOfView('always')).toBe(true);
+    expect(pausesOutOfView('never')).toBe(false);
+    const nav = globalThis.navigator as { webdriver?: boolean };
+    const was = Object.getOwnPropertyDescriptor(nav, 'webdriver');
+    Object.defineProperty(nav, 'webdriver', { value: true, configurable: true });
+    expect(pausesOutOfView('auto')).toBe(false);
+    Object.defineProperty(nav, 'webdriver', { value: false, configurable: true });
+    expect(pausesOutOfView('auto')).toBe(true);
+    if (was) Object.defineProperty(nav, 'webdriver', was);
+    else delete (nav as { webdriver?: boolean }).webdriver;
   });
 });

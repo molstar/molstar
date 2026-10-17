@@ -36,6 +36,10 @@ interface Presence {
   restoring: boolean;
   /** The browser has told it the context is lost (`webglcontextlost`): a restore before that is refused. */
   lostSeen: boolean;
+  /** Held by work that renders on purpose (an export, a thumbnail): its loop and context are left alone. */
+  holds: number;
+  /** Waiting for its context to come back (`holdCanvas`). */
+  waiters: (() => void)[];
   observer: IntersectionObserver | undefined;
   subscriptions: Subscription[];
 }
@@ -89,17 +93,17 @@ function schedule(): void {
 function reconcile(): void {
   scheduled = false;
   for (const p of viewers) {
-    if (p.visible || inXr(p)) continue;
+    if (p.visible || p.holds || inXr(p)) continue;
     const loop = p.plugin.animationLoop;
     if (loop.isAnimating) loop.stop({ noDraw: true });
   }
   const wanted = [...viewers].filter(
-    (p) => p.visible && isLost(p) && p.released && p.lostSeen && !p.restoring && p.lose,
+    (p) => (p.visible || p.holds > 0) && isLost(p) && p.released && p.lostSeen && !p.restoring && p.lose,
   );
   let live = 0;
   for (const p of viewers) if (isLive(p)) live++;
   const candidates = [...viewers]
-    .filter((p) => !p.visible && !p.restoring && !isLost(p) && p.lose && !inXr(p))
+    .filter((p) => !p.visible && !p.holds && !p.restoring && !isLost(p) && p.lose && !inXr(p))
     .sort((a, b) => a.seen - b.seen);
   for (const p of candidates) {
     if (live + wanted.length <= CanvasContexts.budget) break;
@@ -108,7 +112,8 @@ function reconcile(): void {
     live--;
   }
   for (const p of wanted) {
-    if (live >= CanvasContexts.max) break;
+    // A held canvas gets its context whatever the count: the work holding it needs it now.
+    if (live >= CanvasContexts.max && !p.holds) continue;
     p.released = false;
     p.restoring = true;
     live++;
@@ -122,7 +127,7 @@ function reconcile(): void {
     }
   }
   for (const p of viewers) {
-    if (!p.visible || isLost(p)) continue;
+    if (!p.visible || p.holds || isLost(p)) continue;
     const loop = p.plugin.animationLoop;
     if (!loop.isAnimating) {
       loop.start();
@@ -145,6 +150,41 @@ function inViewNow(root: HTMLElement): boolean {
   );
 }
 
+/**
+ * Work that renders on purpose (an image or video export, a snapshot's thumbnail, a screenshot) holds the canvas: its
+ * loop and context are left alone until the returned release, and a released context is restored first (this resolves
+ * once it is live). A canvas not followed (headless, or pausing off) resolves at once.
+ */
+export async function holdCanvas(plugin: PluginContext): Promise<() => void> {
+  const p = byPlugin.get(plugin);
+  if (!p) return () => {};
+  p.holds++;
+  let done = false;
+  const release = () => {
+    if (done) return;
+    done = true;
+    p.holds--;
+    schedule();
+  };
+  if (isLost(p) && p.released) {
+    const live = new Promise<void>((resolve) => p.waiters.push(resolve));
+    schedule();
+    await live;
+  }
+  return release;
+}
+
+/**
+ * Whether a page pauses canvases out of view (`options.ui.pauseOutOfView`): `auto` does, except in an automated browser
+ * (`navigator.webdriver`: Playwright, Puppeteer, a capture service), where a page is rendered on purpose whatever is in
+ * view; `always` and `never` force it.
+ */
+export function pausesOutOfView(mode: 'auto' | 'always' | 'never'): boolean {
+  if (mode === 'never') return false;
+  if (mode === 'always') return true;
+  return !(typeof navigator !== 'undefined' && navigator.webdriver);
+}
+
 /** Starts following the canvas: pauses it out of view and puts its context in the page's budget. */
 export function followCanvasPresence(plugin: PluginContext): void {
   const root = plugin.layout.root;
@@ -161,6 +201,8 @@ export function followCanvasPresence(plugin: PluginContext): void {
     released: false,
     restoring: false,
     lostSeen: false,
+    holds: 0,
+    waiters: [],
     observer: undefined,
     subscriptions: [],
   };
@@ -179,6 +221,7 @@ export function followCanvasPresence(plugin: PluginContext): void {
     webgl.contextRestored.subscribe(() => {
       p.restoring = false;
       p.lostSeen = false;
+      for (const w of p.waiters.splice(0)) w();
       plugin.canvas3d?.requestDraw();
       schedule();
     }),

@@ -14,6 +14,7 @@ import type { PluginStateAnimation } from '@molstar/plugin/state/animation/model
 import type { ViewportScreenshotHelper } from '@molstar/plugin/util/viewport-screenshot';
 import { type ApiAreaContext, ApiArea, type ApiContext, ApiResult } from '@molstar/prism-viewer/api/area';
 import { OptionalParam } from '@molstar/prism-viewer/api/params';
+import { holdCanvas } from '@molstar/prism-viewer/sources/canvas-presence';
 import { checkValues, messageOf } from '@molstar/prism-viewer/api/run';
 import { operationCommand } from '@molstar/prism-viewer/commands/operations';
 import type { ViewerExtension } from '@molstar/prism-viewer/spec';
@@ -259,6 +260,9 @@ export class VideoApi extends ApiArea {
     if (!plugin.canvas3d || !helper) return noCanvas();
     if (ctx.signal.aborted) return ApiResult.fail('aborted', 'Stopped before it started.', 'Nothing was rendered.');
 
+    // Rendered on purpose: the canvas is held for the whole export (its context restored if it was released; its loop
+    // left to the encoder, not paused or started by the canvas' presence: Prism's README decision 29).
+    const unhold = await holdCanvas(plugin);
     const restore = configure(helper, v);
     let aborted = false;
     const stop = () => {
@@ -328,6 +332,7 @@ export class VideoApi extends ApiArea {
       ctx.signal.removeEventListener('abort', stop);
       this.#cancel = undefined;
       restore();
+      unhold();
     }
   }
 }

@@ -13,6 +13,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { ExampleFiles } from '../../testing/real-viewer.js';
 import { syncCameras } from '../../sources/camera.js';
 import type { PrismViewer } from '../../viewer.js';
+import type { PrismViewerSpec } from '../../spec.js';
 import { ViewerGrid, type ViewerCell } from './grid.js';
 import { CanvasContexts } from '../../sources/canvas-presence.js';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
@@ -162,6 +163,14 @@ export const Fifty: StoryObj = {
       const timer = setInterval(update, 500);
       onCleanup(() => clearInterval(timer));
       update();
-      return <ViewerGrid minWidth={260} cells={cells} header={readout} />;
+      // `always`: also in an automated browser (where `auto` leaves canvases running), so a test sees what a person does.
+      return (
+        <ViewerGrid
+          minWidth={260}
+          cells={cells}
+          header={readout}
+          options={{ ui: { pauseOutOfView: 'always' } } as PrismViewerSpec['options']}
+        />
+      );
     }),
 };

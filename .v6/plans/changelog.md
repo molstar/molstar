@@ -514,3 +514,6 @@ the [API change ledger](breaking-v6-changes.md).
   past that (the longest unseen first), and a viewer scrolled back into view gets its context back, so the page never
   passes the browser's limit (Chrome 16) and no viewer in view stays black. The story Viewer › Several viewers › Fifty
   viewers shows it.
+- Exports and snapshot thumbnails hold the canvas while they render (a released context comes back first; the loop is
+  the export's). `options.ui.pauseOutOfView` (`auto`, `always`, `never`): `auto` pauses except in an automated browser
+  (Playwright, Puppeteer, capture services), which renders on purpose.
