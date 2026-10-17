@@ -28,7 +28,7 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
     color-mix(in srgb, var(--msp-color-text) 7%, transparent) 38%,
     color-mix(in srgb, var(--msp-color-text) 7%, transparent) 62%,
     transparent 62%);
-  background-size: 40% var(--msp-virtual-row, 26px);
+  background-size: calc(100% - 2 * var(--msp-space-6)) var(--msp-virtual-row, 26px);
   background-repeat: repeat-y;
   background-position: var(--msp-space-6) 0;
   width: 100%;
