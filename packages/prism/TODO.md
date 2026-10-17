@@ -117,6 +117,13 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Missing: the agent and the assistant
 
+- **Tool and skill definitions need a redesign** (David, 2026-10-17; do separately). A skill's `guidance` restates its
+  tools' ids and descriptions (`extensions/kinemage/src/prism-viewer.ts`: `KinemageSkill` names `get_kinemage`,
+  `show_kinemage_part`… in prose and again in `tools`), so the model reads them twice. `OperationToolSpec`
+  (`viewer/src/agent/skills.ts`) is a second vocabulary beside the operation's own definition: a model-facing id, a
+  description that repeats the operation's title, `fields`, `fixed` and `formats` per tool. Wanted: tools derived from
+  operations (their title, params and descriptions; one name), a skill whose guidance says only what the tools cannot
+  (when and why, how they combine), and every extension's skills moved over ([agent.md §2–3](viewer/_spec/agent.md)).
 - Skills: SeqQL selections and the sequence skill, `viewer-code` (TypeScript against the API, api.md §7), opening panels
   as tools ([agent.md §3](viewer/_spec/agent.md)).
 - `ask` parking the turn with the question in the turn card; today it ends the turn
