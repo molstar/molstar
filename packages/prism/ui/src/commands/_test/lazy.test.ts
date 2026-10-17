@@ -42,10 +42,40 @@ describe('lazy commands', () => {
     expect(make).toHaveBeenCalledTimes(2);
   });
 
-  it('keys do not make them', () => {
+  it('an unbound key makes nothing; a key a layer binds makes them first, and runs its command', () => {
     const { manager, make } = setup();
     manager.handleKey({ key: 'x' });
     expect(make).not.toHaveBeenCalled();
+    manager.keymap.setApp({ a: { key: 'j' } });
+    expect(manager.handleKey({ key: 'j' })).toBe(true);
+    expect(make).toHaveBeenCalledTimes(1);
+  });
+
+  it('a get of another registered command makes nothing; of an unknown or a lazy id, it does', () => {
+    const { manager, make, lazy } = setup();
+    const drop = manager.register([cmd('other')]);
+    expect(manager.get('other')?.id).toBe('other');
+    expect(make).not.toHaveBeenCalled();
+    manager.get('a');
+    expect(make).toHaveBeenCalledTimes(1);
+    lazy.stale();
+    manager.get('other');
+    expect(make).toHaveBeenCalledTimes(1);
+    manager.get('a');
+    expect(make).toHaveBeenCalledTimes(2);
+    drop();
+  });
+
+  it('a make that throws is logged, not thrown to the read', () => {
+    const manager = new CommandManager<object>({ context: observableState({}).asReadonly, formats });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const drop = manager.register([cmd('a')]);
+    // Its id is taken: register throws inside the make.
+    manager.registerLazy({ make: () => ({ commands: [cmd('a')], groups: [] }) });
+    expect(() => manager.query('')).not.toThrow();
+    expect(error).toHaveBeenCalledTimes(1);
+    error.mockRestore();
+    drop();
   });
 
   it('while wanted, are made at once and in a microtask after each change, not by reads', async () => {

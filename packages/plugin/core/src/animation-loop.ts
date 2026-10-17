@@ -76,10 +76,15 @@ export class PluginAnimationLoop {
     this.lastTickT = t;
     this.properTimeT += Math.min(dt, MaxProperFrameDelta);
     this.currentFrame = undefined;
+    // A frame that runs is awake, whoever asked for it.
+    this.sleeping = false;
     this.tick(this.properTimeT, { xrFrame });
     if (!this._isAnimating) return;
     if (this.idleFor(t) >= IdleGraceMs) {
       this.sleeping = true;
+      // Canvas3D keeps the last frame callback and asks for it again on `resume()` (`start`, an XR session change):
+      // cleared, so a sleeping loop is not run twice a frame by that and a `wake` together.
+      this.plugin.canvas3d?.cancelAnimationFrame(0);
       return;
     }
     this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);

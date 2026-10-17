@@ -54,4 +54,18 @@ describe('the Select group, made when wanted', () => {
       await v.dispose();
     }
   });
+
+  it('a key bound to a structure query command runs it after a load, the menu never opened', async () => {
+    const v = await headlessViewer();
+    try {
+      const commands = v.managers.commands;
+      commands.keymap.setApp({ 'select.chain.A': { key: 'j' } });
+      expectOk(await v.api.load.files({ files: [cbs()] }));
+      lists.n = 0;
+      expect(commands.handleKey({ key: 'j' })).toBe(true);
+      expect(lists.n).toBe(1);
+    } finally {
+      await v.dispose();
+    }
+  });
 });

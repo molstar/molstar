@@ -97,8 +97,9 @@ export interface KeyEventLike {
 
 /**
  * Commands made when they are wanted, not at every change of what they are made from (commands.md §4; AGENTS.md, work
- * is wanted): the Select group's per-structure commands. `make` runs on the first read after `stale()` (`get`, `query`,
- * `children`, `groupPath`), or at once while the menu is open (`want`).
+ * is wanted): the Select group's per-structure commands. `make` runs on the first read after `stale()` (`query`,
+ * `children`, `groupPath`, a `get` of an id it may hold, a key the app or the person bound), or at once while the menu is
+ * open (`want`). A make that throws is logged, not thrown to the read.
  */
 export interface LazyCommands<Ctx> {
   /** The commands and groups now; `undefined` keeps what was made last (nothing they list changed). */
@@ -115,6 +116,8 @@ export interface LazyRegistration {
 interface Lazy<Ctx> {
   readonly source: LazyCommands<Ctx>;
   stale: boolean;
+  /** The ids it made last: a `get` of one of them makes it again when stale. */
+  ids: ReadonlySet<string>;
   drop?: () => void;
   dropGroups?: () => void;
 }
@@ -235,11 +238,12 @@ export class CommandManager<Ctx> {
   }
 
   /**
-   * Adds commands made when wanted (`LazyCommands`): stale from the start, made by the first read that needs them. Keys
-   * are not a read (`handleKey` runs at every keystroke): a lazy command is reached by the menu, `get` or `open`.
+   * Adds commands made when wanted (`LazyCommands`): stale from the start, made by the first read that needs them: the
+   * menu, `query`, `children`, `groupPath`, a `get` of an id they may hold, a key a layer binds (`handleKey` otherwise
+   * makes nothing: it runs at every keystroke).
    */
   registerLazy(source: LazyCommands<Ctx>): LazyRegistration {
-    const lazy: Lazy<Ctx> = { source, stale: true };
+    const lazy: Lazy<Ctx> = { source, stale: true, ids: new Set() };
     this.#lazy.add(lazy);
     if (this.#wanted) this.#makeSoon();
     return {
@@ -289,12 +293,21 @@ export class CommandManager<Ctx> {
       for (const lazy of this.#lazy) {
         if (!lazy.stale) continue;
         lazy.stale = false;
-        const made = lazy.source.make();
-        if (!made) continue;
-        lazy.drop?.();
-        lazy.dropGroups?.();
-        lazy.dropGroups = this.registerGroups(made.groups);
-        lazy.drop = this.register(made.commands);
+        // A make that throws (or an id already taken) is said here, not to the read that asked: the lists stay as they
+        // are, and the next change tries again.
+        try {
+          const made = lazy.source.make();
+          if (!made) continue;
+          lazy.drop?.();
+          lazy.dropGroups?.();
+          lazy.drop = lazy.dropGroups = undefined;
+          lazy.ids = new Set();
+          lazy.dropGroups = this.registerGroups(made.groups);
+          lazy.drop = this.register(made.commands);
+          lazy.ids = new Set(made.commands.map((c) => c.id));
+        } catch (e) {
+          console.error('Lazy commands could not be made:', e);
+        }
       }
     } finally {
       this.#making = false;
@@ -304,6 +317,33 @@ export class CommandManager<Ctx> {
   /** Before a read of the lists: while the menu holds them its microtask makes them, so a read inside its render does not. */
   #fresh(): void {
     if (!this.#wanted) this.#make();
+  }
+
+  /** Whether a stale lazy contribution may hold `id`: one it made, or an id not registered now. */
+  #mayMake(id: string): boolean {
+    if (this.#wanted || this.#making) return false;
+    let unknown: boolean | undefined;
+    for (const lazy of this.#lazy) {
+      if (!lazy.stale) continue;
+      if (lazy.ids.has(id)) return true;
+      unknown ??= !this.#byId().has(id);
+      if (unknown) return true;
+    }
+    return false;
+  }
+
+  /** Whether a key binding of the app's or the person's layer matches the event (a lazy command may be its target). */
+  #boundKey(e: KeyEventLike, mac: boolean): boolean {
+    let stale = false;
+    for (const lazy of this.#lazy) if (lazy.stale) stale = true;
+    if (!stale) return false;
+    const { app, user } = this.keymap.layers.value;
+    for (const layer of [user, app])
+      for (const id in layer) {
+        const chord = layer[id];
+        if (chord && chordMatches(chord, e, mac)) return true;
+      }
+    return false;
   }
 
   /** The command tree's groups, for browsing. */
@@ -375,14 +415,19 @@ export class CommandManager<Ctx> {
   }
 
   get(id: string): CommandDefinition<Ctx> | undefined {
-    this.#fresh();
+    // Made only when this id may be a stale lazy one (a `get` of another command does not make the Select group).
+    if (this.#mayMake(id)) this.#make();
+    return this.#byId().get(id);
+  }
+
+  #byId(): Map<string, CommandDefinition<Ctx>> {
     const all = this.#commands.asReadonly.value;
     if (this.#commandIndex?.of !== all) {
       const byId = new Map<string, CommandDefinition<Ctx>>();
       for (const c of all) if (!byId.has(c.id)) byId.set(c.id, c);
       this.#commandIndex = { of: all, byId };
     }
-    return this.#commandIndex.byId.get(id);
+    return this.#commandIndex.byId;
   }
   /** The commands by id, made once per list of commands. */
   #commandIndex: { of: readonly CommandDefinition<Ctx>[]; byId: Map<string, CommandDefinition<Ctx>> } | undefined;
@@ -684,6 +729,8 @@ export class CommandManager<Ctx> {
     // A control that steps with the arrows (a slider, a radio group, a tab strip) keeps the plain keys too.
     const owns = !typing && usesKeys(target);
     const scopes = scopesAround(path.length ? path : target);
+    // A key the spec or the person bound may name a lazy command (a Select command per structure): made first.
+    if (this.#boundKey(e, mac)) this.#fresh();
     // Nearer scopes first (0 = the innermost), global last; a scope that is not around the focus: not at all.
     const rank = (c: CommandDefinition<Ctx>) => {
       const s = scopeOf(c);

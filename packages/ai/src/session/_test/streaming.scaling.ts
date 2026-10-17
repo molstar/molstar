@@ -8,7 +8,12 @@
 
 import { expect, it } from 'vitest';
 import { fixture } from './helpers.js';
-import { checkLinear, quadraticControl, scaling } from './scaling.js';
+import {
+  checkLinear,
+  quadraticControl,
+  scaling,
+  scalingAsync,
+} from '../../../../sequences/core/_test/model/scaling.js';
 
 // An answer streamed (`test:scaling`, `_test/scaling.ts`): a turn whose one reply arrives in N deltas, the host's
 // `onText` hearing the whole text so far at each. The session must do O(delta) work for a delta (session.md §3): a
@@ -17,7 +22,7 @@ import { checkLinear, quadraticControl, scaling } from './scaling.js';
 const WORD = 'word '.repeat(20);
 
 it('an answer of N deltas streamed through a turn', async () => {
-  const s = await scaling(
+  const s = await scalingAsync(
     {
       setup: (n) => {
         const deltas = Array.from({ length: n }, () => WORD);
@@ -36,7 +41,7 @@ it('an answer of N deltas streamed through a turn', async () => {
       },
     },
     1000,
-    { reps: 3 },
+    { reps: 3, alloc: true },
   );
   checkLinear('session: an answer of N deltas', s);
 });

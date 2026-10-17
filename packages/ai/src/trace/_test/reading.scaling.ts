@@ -10,10 +10,15 @@ import { expect, it } from 'vitest';
 import type { CallRecord, HarnessEvent, HarnessReader } from '../../harness/index.js';
 import type { Json, Message } from '../../messages/index.js';
 import { assistant, declareTools, system, toolDefinition, user } from '../../testing/index.js';
-import { checkLinear, quadraticControl, scaling } from '../../session/_test/scaling.js';
+import {
+  checkLinear,
+  quadraticControl,
+  scaling,
+  scalingAsync,
+} from '../../../../sequences/core/_test/model/scaling.js';
 import { createTraceCache, readTrace } from '../index.js';
 
-// The Inspector's reads (`test:scaling`, `session/_test/scaling.ts`; trace.md, Incremental reads): one turn of N model
+// The Inspector's reads (`test:scaling`, `sequences/core/_test/model/scaling.ts`; trace.md, Incremental reads): one turn of N model
 // calls, each with a tool call, each seeing the conversation so far (a window that grows by two messages a call), read
 // again as the turn goes on. A read that maps every call's window again is calls × messages a read; one that keeps the
 // views of the calls it has read maps the new call's window only (one window: about the factor, 4×, not its square).
@@ -121,7 +126,7 @@ function syntheticReader() {
 const read = (reader: HarnessReader, cache = createTraceCache()) => readTrace(reader, { cache, window: 200_000 });
 
 it('a read after one more call of a turn of N calls', async () => {
-  const s = await scaling(
+  const s = await scalingAsync(
     {
       setup: async (n) => {
         const reader = syntheticReader();
@@ -138,13 +143,13 @@ it('a read after one more call of a turn of N calls', async () => {
       },
     },
     250,
-    { reps: 7 },
+    { reps: 7, alloc: true },
   );
   checkLinear('trace: a read after one more call of N', s);
 });
 
 it('a read when nothing happened, in a turn of N calls', async () => {
-  const s = await scaling(
+  const s = await scalingAsync(
     {
       setup: async (n) => {
         const reader = syntheticReader();
@@ -158,14 +163,14 @@ it('a read when nothing happened, in a turn of N calls', async () => {
       },
     },
     250,
-    { reps: 7 },
+    { reps: 7, alloc: true },
   );
   checkLinear('trace: 20 reads, nothing new, N calls', s);
 });
 
 it('a read from nothing of a turn of N calls is the windows read once each: caught as growing with the square', async () => {
   // The positive control: the same read as the first, with no cache kept (every window mapped again).
-  const s = await scaling(
+  const s = await scalingAsync(
     {
       setup: (n) => {
         const reader = syntheticReader();
@@ -177,7 +182,7 @@ it('a read from nothing of a turn of N calls is the windows read once each: caug
       },
     },
     100,
-    { reps: 3 },
+    { reps: 3, alloc: true },
   );
   checkLinear('trace: control, a read from nothing of N calls', s, false);
 });

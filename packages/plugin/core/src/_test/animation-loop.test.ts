@@ -23,15 +23,22 @@ function setup(pauseWhenIdle: boolean) {
     isIdle: false,
     wake: new Subject<void>(),
     webgl: { xr: { session: undefined } },
-    resume() {},
+    // As Canvas3D: the last callback asked for is kept, asked for again on `resume`, and cleared by a cancel.
+    last: undefined as FrameRequestCallback | undefined,
+    resume() {
+      if (canvas.last) frames.push(canvas.last);
+    },
     pause() {},
     resetTime() {},
     tick: vi.fn(),
     requestAnimationFrame(cb: FrameRequestCallback) {
+      canvas.last = cb;
       frames.push(cb);
       return frames.length;
     },
-    cancelAnimationFrame() {},
+    cancelAnimationFrame() {
+      canvas.last = undefined;
+    },
   };
   const isAnimating = new BehaviorSubject(false);
   const animation = { isAnimating: false, tick: async () => {} };
@@ -69,6 +76,22 @@ describe('PluginAnimationLoop, paused when idle', () => {
     canvas.isIdle = false;
     canvas.wake.next();
     expect(loop.isSleeping).toBe(false);
+    expect(frames.length).toBe(1);
+    step();
+    expect(frames.length).toBe(1);
+    loop.dispose();
+  });
+
+  it('a start after a sleep and a stop runs one frame chain, not two', () => {
+    const { loop, canvas, frames, step } = setup(true);
+    loop.start();
+    canvas.isIdle = true;
+    while (step());
+    expect(loop.isSleeping).toBe(true);
+    // Out of view, then in view again (canvas-presence): Canvas3D's resume must not ask for the old callback too.
+    loop.stop();
+    canvas.isIdle = false;
+    loop.start();
     expect(frames.length).toBe(1);
     step();
     expect(frames.length).toBe(1);
