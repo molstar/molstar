@@ -13,6 +13,7 @@ import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { bind, flush, flushFrame, frameState, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { derive } from '../../reactive/state.js';
 import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
@@ -185,7 +186,7 @@ export function VirtualList<T>(props: {
       style={{
         height: combineLatest([props.items, rowHeight.asReadonly]).pipe(map(([items, rh]) => `${items.length * rh}px`)),
         // The skeleton's row height (virtual-list.module.css): what the browser uncovers before the rows are made.
-        '--msp-virtual-row': rowHeight.asReadonly.pipe(map((rh) => `${rh}px`)),
+        '--msp-virtual-row': derive(rowHeight.asReadonly, (rh) => `${rh}px`),
       }}
     >
       <div
