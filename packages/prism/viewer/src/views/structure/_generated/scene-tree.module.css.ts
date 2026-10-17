@@ -18,6 +18,7 @@ export const classes = {
   'empty': 'msp-viewer-scene-tree-empty',
   'expander': 'msp-viewer-scene-tree-expander',
   'hidden': 'msp-viewer-scene-tree-hidden',
+  'inline': 'msp-viewer-scene-tree-inline',
   'inlineIcons': 'msp-viewer-scene-tree-inlineIcons',
   'inlineItem': 'msp-viewer-scene-tree-inlineItem',
   'item': 'msp-viewer-scene-tree-item',
@@ -33,6 +34,7 @@ export const classes = {
   'picked': 'msp-viewer-scene-tree-picked',
   'row': 'msp-viewer-scene-tree-row',
   'rowBody': 'msp-viewer-scene-tree-rowBody',
+  'short': 'msp-viewer-scene-tree-short',
   'subChevron': 'msp-viewer-scene-tree-subChevron',
   'subItems': 'msp-viewer-scene-tree-subItems',
   'subMenu': 'msp-viewer-scene-tree-subMenu',
@@ -317,6 +319,19 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
   display: grid;
+}
+
+.msp-viewer-scene-tree-description.msp-viewer-scene-tree-short {
+  flex: none;
+}
+
+.msp-viewer-scene-tree-inline {
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: var(--msp-space-2);
+  display: flex;
 }
 }
 `);

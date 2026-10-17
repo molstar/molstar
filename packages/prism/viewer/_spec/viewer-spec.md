@@ -137,7 +137,11 @@ beyond it (README decision 13).
   nothing leaves a gap); `when` says what the view would (assembly symmetry: only a PDB entry's assembly). A `when` that
   follows more than the node and its structure passes `whenChanged`, told when it may answer otherwise (a PAE fetched is
   a state cell, no change of the scene): the tree asks it again for the rows it shows. Streaming starts in the Auto view
-  (around the whole structure, the selection while there is one).
+  (around the whole structure, the selection while there is one). A structure with several frames says how many on its
+  row ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a row of its own first under it
+  (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked, the same at full width and how
+  it plays (mode, seconds per pass) in the inspector. Play is of that structure (`trajectory.play` with `structure`),
+  one at a time; the canvas shows a chip only while frames play.
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).

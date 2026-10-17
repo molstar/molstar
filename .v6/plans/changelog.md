@@ -742,3 +742,9 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: a predicted model opens colored by its pLDDT (or QMEAN) out of the box, as v5's viewer did: the
   model-archive extension makes its automatic preset, colored by the model's confidence where it has one, the default
   representation preset. Other structures open as before.
+- Prism: trajectories in the Structure panel. A structure with several models or frames says so on its row
+  ("10 models"; "frames" for a simulation's coordinates) and has a row of its own under it: the frame shown, a scrubber,
+  ‹ ›, play; picked, the inspector has the scrubber at full width and how it plays (loop, back and forth, once; seconds
+  per pass). Play is of that structure, one at a time (`trajectory.play` takes `structure`); the canvas' trajectory bar
+  shows only while frames play. The structure inspector's Model field is gone. Mol*: the trajectory animations take
+  `refs`, the frame cells to step (empty: all, as before).

@@ -42,6 +42,7 @@ import { classes } from './_generated/scene-tree.module.css.js';
  */
 export { SceneRowSlot } from './scene-row-slot.js';
 import { SceneRowSlot } from './scene-row-slot.js';
+import { TrajectoryRowSection } from './trajectory-row.js';
 
 /** No extensions' rows (no shell). */
 const NoSections: readonly ShellSection[] = [];
@@ -230,6 +231,11 @@ export function SceneTree(props: {
       depth: depth + 1,
     }));
     if (paged) next.push({ kind: 'more', key: `${node.id}::more`, node, depth: depth + 1, total: children.length });
+    // A structure's frames (several): their row first under it (trajectory-row.tsx), hosted as an extension's row.
+    if (shell && node.trajectory && !hits) {
+      const section = TrajectoryRowSection;
+      next.unshift({ kind: 'row', key: `${node.id}::row:${section.id}`, node, depth: depth + 1, section });
+    }
     // Until they arrive, a quiet loading row (not when only extensions' rows are there: nothing is loading).
     if (children.length === 0 && (node.lazy || extensions.length === 0))
       next.push({ kind: 'loading', key: `${node.id}::loading`, node, depth: depth + 1 });

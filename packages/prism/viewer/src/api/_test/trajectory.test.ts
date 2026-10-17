@@ -12,6 +12,7 @@ import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
 import { ensemble } from './trajectory-fixtures.js';
+import { isPlayingFrames, playingStructure } from '../../sources/trajectory.js';
 
 // `trajectory` (api.md §2) on a headless viewer, with a small NMR-like ensemble of three models.
 
@@ -145,6 +146,35 @@ describe('trajectory', () => {
       expect(v.managers.history.steps.value.length).toBe(steps);
       // The step before is still undoable: the animation was viewing.
       expect(v.managers.history.canUndo.value).toBe(true);
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it("plays one structure's frames when named, leaving another trajectory where it is", async () => {
+    const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await v.api.load.files({ files: [ensemble(), ensemble(4)] }));
+      const [a, b] = v.plugin.managers.structure.hierarchy.current.structures;
+      const index = (s: typeof a) =>
+        (v.plugin.state.data.cells.get(s.model!.cell.transform.ref)!.transform.params as { modelIndex: number })
+          .modelIndex;
+      const r = await v.api.trajectory.play({ structure: b.cell.transform.ref, mode: 'loop', seconds: 3 });
+      expectOk(r);
+      expect(JSON.stringify(r)).toMatch(/models/);
+      expect(isPlayingFrames(v.plugin, b.model!.cell.transform.ref)).toBe(true);
+      expect(isPlayingFrames(v.plugin, a.model!.cell.transform.ref)).toBe(false);
+      expect(playingStructure(v.plugin)).toBe(b.cell.transform.ref);
+      const animation = v.plugin.managers.animation;
+      await animation.tick(0, true);
+      await animation.tick(1500, true);
+      await until(() => index(b) !== 0);
+      expect(index(a)).toBe(0);
+      // Playing the other stops this one (one plays at a time).
+      expectOk(await v.api.trajectory.play({ structure: a.cell.transform.ref }));
+      expect(playingStructure(v.plugin)).toBe(a.cell.transform.ref);
+      expect(isPlayingFrames(v.plugin, b.model!.cell.transform.ref)).toBe(false);
+      expectOk(await v.api.trajectory.stop());
     } finally {
       await v.dispose();
     }

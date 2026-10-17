@@ -692,11 +692,19 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             </Show>
           }
           playback={
-            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's.
+            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's: only while
+            // frames play (the controls are the Structure panel's trajectory row; its pause is here too).
             <PlaybackDeck>
               <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
               {trajectory ? (
-                <Show when={shown('trajectory')}>{() => <TrajectoryRow model={trajectory.model} />}</Show>
+                <Show
+                  when={shown(
+                    'trajectory',
+                    combineLatest([hasData, trajectory.model.isPlaying]).pipe(map(([d, playing]) => d && playing)),
+                  )}
+                >
+                  {() => <TrajectoryRow model={trajectory.model} />}
+                </Show>
               ) : null}
             </PlaybackDeck>
           }

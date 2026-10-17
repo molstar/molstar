@@ -161,7 +161,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `superpose.tm-align` | Superpose by TM-align |  | language, targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |
-| `trajectory.play` | Play the frames | view; needs canvas | mode, seconds |
+| `trajectory.play` | Play the frames | view; needs canvas | structure, mode, seconds |
 | `trajectory.stop` | Stop playing the frames | view |  |
 | `view.close` | Close the open panel and card | view; agent-only |  |
 | `view.expand` | Expand the viewport | view | on |

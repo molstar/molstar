@@ -220,8 +220,10 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
   });
   afterAll(() => page.dispose());
 
-  it('the trajectory bar over the canvas', async () => {
-    expect(page.mounted.root.querySelector('[aria-label*=rajectory], [aria-label*=model]')).not.toBeNull();
+  it("the trajectory's row in the Structure panel (the canvas shows a chip only while it plays)", async () => {
+    page.mounted.shell.show('structure');
+    await wait(300);
+    expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
     await page.check();
   });
 

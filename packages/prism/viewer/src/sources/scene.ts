@@ -51,6 +51,7 @@ import type {
   SceneModel,
   SceneNode,
   SceneNodeKind,
+  SceneTrajectory,
 } from '../model/scene.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
@@ -71,6 +72,8 @@ import {
   volumeStats,
 } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, measurementLocis, readMeasurements } from './measurements.js';
+import { createTrajectorySource, type TrajectorySource } from './trajectory.js';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import { structureNames } from './naming.js';
 import { fromChanged, onceATask, type SourceScope } from './state.js';
 import type { Observable } from 'rxjs';
@@ -130,6 +133,8 @@ class Node implements SceneNode {
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
+  /** A structure's frames (several): `structureNode` sets it, and takes it away when it has one model again. */
+  trajectory?: SceneTrajectory;
   icon: IconName;
   #menu?: readonly SceneMenuItem[];
   /** Builds the menu when read, for one that follows the state (a representation's current type marked). */
@@ -256,6 +261,10 @@ export function createSceneSource(
   const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, onceATask(selection.events.changed));
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
+  // The frames of the structures that have several (made when the first such structure is shown; its states listen to
+  // the plugin only while a row or the inspector reads them).
+  let trajectorySource: TrajectorySource | undefined;
+  const trajectories = () => (trajectorySource ??= createTrajectorySource(plugin));
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
   // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
   // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
@@ -301,7 +310,18 @@ export function createSceneSource(
       nodes.set(ref, n);
     }
     const data = s.cell.obj?.data;
-    n.set(name, data ? describeStructure(data) : undefined, !!s.cell.state.isHidden);
+    // Several frames (an ensemble, a simulation): its row says how many, and a row under it shows and plays them.
+    const frames = s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
+    const unit =
+      s.model?.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models';
+    if (frames < 2) n.trajectory = undefined;
+    else if (!n.trajectory || n.trajectory.unit !== unit)
+      n.trajectory = sceneTrajectory(trajectories(), api, ref, unit);
+    n.set(
+      name,
+      data ? `${describeStructure(data)}${frames > 1 ? ` · ${frames.toLocaleString('en')} ${unit}` : ''}` : undefined,
+      !!s.cell.state.isHidden,
+    );
     // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off): built when
     // read (the row's ⋯ opened), from the structure as it is then. Built every sync, it was every operation's offer and
     // every preset's check, for every structure, at every change (structures × definitions a sync).
@@ -972,6 +992,66 @@ function Structure_toLoci(s: Structure): StructureElement.Loci {
   return StructureElement.Loci.all(s);
 }
 
+/** The transformer that adds coordinates (a simulation's frames) to a model: its frames are `frames`, not `models`. */
+const FromCoordinates = 'trajectory-from-model-and-coordinates';
+
+/**
+ * A structure's frames as its row and the inspector use them (model/scene.ts, `SceneTrajectory`): read from the shared
+ * trajectory source, acting through the API. A seek in flight takes only the latest index after it (a scrubber's drag).
+ */
+function sceneTrajectory(
+  source: TrajectorySource,
+  api: ViewerApi,
+  structure: string,
+  unit: SceneTrajectory['unit'],
+): SceneTrajectory {
+  const info = derive(source.frames, (list) => list.find((t) => t.ref === structure));
+  const count = derive(info, (i) => i?.count ?? 0);
+  const index = derive(info, (i) => i?.index ?? 0);
+  const playing = derive(source.playingRef, (r) => r === structure);
+  const mode = observableState<'loop' | 'palindrome' | 'once'>('loop');
+  const seconds = observableState(5);
+  let wanted: number | undefined;
+  let busy = false;
+  const flush = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      while (wanted !== undefined) {
+        const to = wanted;
+        wanted = undefined;
+        await api.run('trajectory.frame', { structure, index: to });
+      }
+    } finally {
+      busy = false;
+    }
+  };
+  return {
+    unit,
+    count,
+    index,
+    playing,
+    mode,
+    seconds,
+    seek(i) {
+      wanted = i;
+      void flush();
+    },
+    step(by) {
+      const c = count.value;
+      if (c < 2) return;
+      // From a step still in flight, not the frame shown: quick presses add up.
+      wanted = ((((wanted ?? index.value) + by) % c) + c) % c;
+      void flush();
+    },
+    togglePlay() {
+      void (playing.value
+        ? api.run('trajectory.stop')
+        : api.run('trajectory.play', { structure, mode: mode.value, seconds: seconds.value }));
+    },
+  };
+}
+
 function describeStructure(s: Structure): string {
   return `${s.elementCount.toLocaleString('en')} atoms`;
 }
@@ -1420,7 +1500,6 @@ function transformValues(m: Mat4, data: Structure): PD.Values<typeof TransformFo
 // `.symmetry`, above the Transform. A field with one choice is left out.
 
 interface SourceValues {
-  model: number;
   type: string;
   radius: number;
   cells: number;
@@ -1429,9 +1508,6 @@ interface SourceValues {
 type StructureType = { name: string; params?: { id?: string; radius?: number; ijkMax?: Vec3 } };
 
 const typeOf = (s: StructureRef) => (s.cell.transform.params as { type: StructureType } | undefined)?.type;
-const modelCount = (s: StructureRef) => s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
-const modelIndex = (s: StructureRef) =>
-  (s.model?.cell.transform.params as { modelIndex?: number } | undefined)?.modelIndex ?? 0;
 
 /** What the structure can be built as: the model, its assemblies, and for a crystal its mates or cells. */
 function structureTypes(s: StructureRef, data: Structure): [string, string][] {
@@ -1470,22 +1546,10 @@ function typeValue(s: StructureRef, data: Structure): string {
 }
 
 function sourceForm(s: StructureRef, data: Structure): PD.Params {
-  const count = modelCount(s);
   const types = structureTypes(s, data);
+  // The model shown is not here: a structure with several has a row of its own under it (its frames, a scrubber and
+  // play; views/structure/trajectory-row.tsx), its controls in the inspector when picked.
   return {
-    // A short trajectory as a list, a long one as a number.
-    model:
-      count <= 50
-        ? PD.Select<number>(
-            1,
-            Array.from({ length: count }, (_, i) => [i + 1, `${i + 1}`] as [number, string]),
-            { label: 'Model', description: `The model shown, of ${count}`, isHidden: count < 2 },
-          )
-        : PD.Numeric(
-            1,
-            { min: 1, max: count, step: 1 },
-            { label: 'Model', description: `The model shown, of ${count}` },
-          ),
     type: PD.Select<string>('model', types, {
       label: 'Type',
       description: 'What is built from the model: itself, an assembly, or its crystal symmetry',
@@ -1508,7 +1572,6 @@ function sourceForm(s: StructureRef, data: Structure): PD.Params {
 function structureValues(s: StructureRef, data: Structure): SourceValues & PD.Values<typeof TransformForm> {
   const t = typeOf(s);
   return {
-    model: modelIndex(s) + 1,
     type: typeValue(s, data),
     radius: t?.name === 'symmetry-mates' ? (t.params?.radius ?? 5) : 5,
     cells: t?.name === 'symmetry' && t.params?.ijkMax ? t.params.ijkMax[0] : 1,
@@ -1528,7 +1591,6 @@ function sourceChanges(
   const structure = s.cell.transform.ref;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const apply = async (v: SourceValues, name: string) => {
-    if (name === 'model') return api.run('trajectory.frame', { structure, index: v.model - 1 });
     if (v.type.startsWith('assembly:')) {
       return api.run('structure.assembly', { structure, id: v.type.slice('assembly:'.length) });
     }

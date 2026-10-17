@@ -319,3 +319,17 @@
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
 }
+
+/* A row's own controls (SceneRow `inline`: a trajectory's scrubber): after a short description, taking the rest. */
+.description.short {
+  flex: none;
+}
+
+.inline {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-inline-start: var(--msp-space-2);
+}

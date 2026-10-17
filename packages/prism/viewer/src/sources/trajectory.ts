@@ -30,7 +30,15 @@ export interface TrajectoryInfo {
   readonly count: number;
   /** The frame shown, from 0. */
   readonly index: number;
+  /**
+   * What its frames are called: `frames` for coordinates added to a model (a simulation's DCD, XTC, …), `models` for a
+   * file's own models (an NMR ensemble).
+   */
+  readonly unit: 'models' | 'frames';
 }
+
+/** The transformer that adds coordinates (a simulation's frames) to a model. */
+const FromCoordinates = 'trajectory-from-model-and-coordinates';
 
 /** The structures that have several frames, in the order of the scene. */
 export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
@@ -48,15 +56,25 @@ export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
       model: cell.transform.ref,
       count,
       index: (cell.transform.params as { modelIndex: number }).modelIndex,
+      unit: s.model.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models',
     });
   }
   return out;
 }
 
-/** The frames are being played. */
-export function isPlayingFrames(plugin: PluginContext): boolean {
+/** The frames are being played: any, or (`model`, a model cell's ref) that model's. */
+export function isPlayingFrames(plugin: PluginContext, model?: string): boolean {
   const animation = plugin.managers.animation;
-  return animation.isAnimating && animation.current?.anim.name === ModelIndexAnimation;
+  if (!animation.isAnimating || animation.current?.anim.name !== ModelIndexAnimation) return false;
+  if (model === undefined) return true;
+  const refs = (animation.current.paramValues as { refs?: readonly string[] }).refs;
+  return !refs?.length || refs.includes(model);
+}
+
+/** The structure whose frames play (the first, when every one plays), or none. */
+export function playingStructure(plugin: PluginContext): string | undefined {
+  if (!isPlayingFrames(plugin)) return undefined;
+  return trajectoryInfos(plugin).find((t) => isPlayingFrames(plugin, t.model))?.ref;
 }
 
 // Moving through frames is viewing, not editing (sequence.md §7.3): the operations that do it (`trajectory.frame`, the
@@ -81,7 +99,12 @@ export function isViewing(plugin: PluginContext): boolean {
 }
 
 const sameInfo = (a: TrajectoryInfo, b: TrajectoryInfo) =>
-  a.ref === b.ref && a.label === b.label && a.model === b.model && a.count === b.count && a.index === b.index;
+  a.ref === b.ref &&
+  a.label === b.label &&
+  a.model === b.model &&
+  a.count === b.count &&
+  a.index === b.index &&
+  a.unit === b.unit;
 
 export interface TrajectorySource {
   /** Every structure with several frames. */
@@ -90,6 +113,8 @@ export interface TrajectorySource {
   readonly shown: ReadonlyState<TrajectoryInfo | undefined>;
   /** The frames are playing. */
   readonly playing: ReadonlyState<boolean>;
+  /** The structure whose frames play (the canvas' chip follows it), or none. */
+  readonly playingRef: ReadonlyState<string | undefined>;
 }
 
 /**
@@ -121,5 +146,10 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
       coalesce: 'none',
     },
   );
-  return { frames, shown, playing };
+  const playingRef = watchedState(
+    () => playingStructure(plugin),
+    () => merge(plugin.managers.animation.events.updated, frames),
+    { coalesce: 'none' },
+  );
+  return { frames, shown, playing, playingRef };
 }

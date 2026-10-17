@@ -9,6 +9,7 @@
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { Observable } from 'rxjs';
+import type { ObservableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { RepresentationQuickModel } from './representation-quick.js';
 import type { SceneChanges } from './scene-changes.js';
@@ -82,6 +83,31 @@ export interface SceneNode {
    * asks this when it is made, and a virtualized tree makes rows as it scrolls). Absent: `menu` is read.
    */
   readonly hasMenu?: boolean;
+  /** A structure built from a trajectory with several frames: its frames, shown and played (a row of its own). */
+  readonly trajectory?: SceneTrajectory;
+}
+
+/**
+ * A structure's frames (an NMR ensemble's models, a simulation's frames) as the Structure panel shows them: a row of
+ * its own under the structure (the frame, a scrubber, ‹ ›, play) and its controls in the inspector. It acts through the
+ * API (`trajectory.frame`, `trajectory.play` of this structure, `trajectory.stop`).
+ */
+export interface SceneTrajectory {
+  /** What the frames are called: `models` (an ensemble) or `frames` (a simulation's coordinates). */
+  readonly unit: 'models' | 'frames';
+  readonly count: ReadonlyState<number>;
+  /** The frame shown, from 0. */
+  readonly index: ReadonlyState<number>;
+  /** This structure's frames are playing. */
+  readonly playing: ReadonlyState<boolean>;
+  /** How it plays (`trajectory.play`'s mode and seconds per pass), kept while the structure is. */
+  readonly mode: ObservableState<'loop' | 'palindrome' | 'once'>;
+  readonly seconds: ObservableState<number>;
+  /** Shows a frame (from 0): at most one in flight, the latest wins (a scrubber's drag). */
+  seek(index: number): void;
+  /** Moves by `by` frames, wrapping around. */
+  step(by: number): void;
+  togglePlay(): void;
 }
 
 export interface SceneMenuItem {

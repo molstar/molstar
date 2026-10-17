@@ -61,6 +61,11 @@ export interface SceneRowProps {
   /** The row's controls, under it while it is open (rendered on first open). */
   readonly body?: () => Child;
   /**
+   * A few controls on the row itself, after its description (a trajectory's scrubber): they act without picking the
+   * row, and stay out of the tree's keyboard (its arrows move between rows; the inspector has them all).
+   */
+  readonly inline?: () => Child;
+  /**
    * Opens what it stands for in a panel of its own (a card with room for a plot) instead of the inspector: the row's
    * click, with a panel glyph at its end.
    */
@@ -158,9 +163,20 @@ export function SceneRow(props: SceneRowProps) {
         <span class={classes.label} id={labelId} data-tip-part="">
           {props.label}
         </span>
-        <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
+        <span
+          class={classes.description}
+          classList={{ [classes.short]: !!props.inline }}
+          id={`${labelId}-d`}
+          data-tip-part=""
+        >
           {props.description ?? ''}
         </span>
+        {props.inline ? (
+          // Its clicks act, they do not pick the row.
+          <span class={classes.inline} onClick={(e) => e.stopPropagation()}>
+            {props.inline()}
+          </span>
+        ) : null}
         <span class={classes.actions}>
           {props.onToggle ? (
             <button

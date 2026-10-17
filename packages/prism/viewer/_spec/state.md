@@ -23,7 +23,7 @@ Numbered rows (code cites `§1, row 2`); files under `src/sources/` unless a pat
 | 12  | style layers (overpaint, transparency, emissive, clipping) | `style-layers.ts` → `representation.layers`                      |
 | 13  | `managers.snapshot`, `.markdownExtensions`                 | `features/snapshots/source.ts` → `SnapshotsModel`                |
 | 14  | remote states                                              | `features/remote-states/` → `RemoteStatesModel`                  |
-| 15  | trajectory frames                                          | `trajectory.ts` → `TrajectoryControlsModel`                      |
+| 15  | trajectory frames                                          | `trajectory.ts` → the scene's `SceneTrajectory`, the canvas chip |
 | 16  | `managers.animation`, procedural animation                 | `features/animation/source.ts` → `AnimationModel`                |
 | 17  | `canvas3d.props`                                           | `viewer-sources.ts`, `settings.ts` → Canvas card, Settings       |
 | 18  | `canvas3d.xr`                                              | `xr.ts` → toolbar XR item                                        |

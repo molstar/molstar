@@ -108,6 +108,7 @@ export class TrajectoryApi extends ApiArea {
     id: 'trajectory.play',
     title: 'Play the frames',
     params: {
+      structure: StructureParam('A structure by label or state ref; empty: every structure with frames'),
       mode: PD.Select<'loop' | 'palindrome' | 'once'>(
         'loop',
         PD.arrayToOptions(['loop', 'palindrome', 'once'] as const),
@@ -120,21 +121,34 @@ export class TrajectoryApi extends ApiArea {
       ),
     },
     when: hasFrames,
-    // The animation steps the model index of every trajectory in the scene, as the classic's: viewing, no step.
+    // The animation steps the model index of one structure's model (`structure`), or of every trajectory in the scene
+    // (empty, as the classic's): viewing, no step. One plays at a time: playing another stops the one before.
     history: false,
     // The plugin's animation loop runs on the canvas's frames.
     modules: ['canvas'],
-    async run({ mode, seconds }, ctx) {
-      if (!trajectoryInfos(ctx.plugin).length) return noFrames();
-      if (isPlayingFrames(ctx.plugin)) return ApiResult.already('The models are playing.');
+    async run({ structure, mode, seconds }, ctx) {
+      const all = trajectoryInfos(ctx.plugin);
+      if (!all.length) return noFrames();
+      let one: TrajectoryInfo | undefined;
+      if (structure) {
+        const found = oneStructure(ctx, structure);
+        if (isFailure(found)) return found;
+        one = all.find((t) => t.ref === found.cell.transform.ref);
+        if (!one) return ApiResult.fail('blocked', `${labelOf(ctx, found)} has one model, no frames to play.`);
+        if (isPlayingFrames(ctx.plugin, one.model)) return ApiResult.already(`${one.label}'s ${one.unit} are playing.`);
+      } else if (isPlayingFrames(ctx.plugin)) return ApiResult.already('The models are playing.');
       await ctx.plugin.managers.animation.play(AnimateModelIndex, {
         mode:
           mode === 'palindrome'
             ? { name: 'palindrome' as const, params: {} }
             : { name: mode, params: { direction: 'forward' as const } },
         duration: { name: 'fixed', params: { durationInS: seconds } },
+        refs: one ? [one.model] : [],
       });
-      return ApiResult.ok('Playing the models.', { view: true });
+      return ApiResult.ok(one ? `Playing ${one.label}'s ${one.unit}.` : 'Playing the models.', {
+        view: true,
+        ...(one ? { nodes: [one.ref] } : {}),
+      });
     },
   });
 
