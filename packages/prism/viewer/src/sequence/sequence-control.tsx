@@ -20,7 +20,7 @@ import {
 } from '@molstar/prism-ui';
 import type { HoverLabel } from '@molstar/seq-viewer';
 import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
-import { effect, frameState } from '@molstar/prism-ui/dom/scope';
+import { effect, frameState, onActive } from '@molstar/prism-ui/dom/scope';
 import { frame, on } from '@molstar/prism-ui/dom/scoped';
 import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
@@ -97,9 +97,18 @@ export function SequenceControl(props: SequenceControlProps) {
   let section: Surface | undefined;
   // Seq*'s canvas draws through OffscreenCanvas: where there is none (jsdom, Node) the band stays empty.
   const drawable = typeof OffscreenCanvas === 'function';
+  // Hidden UI draws nothing (styling.md §5): the surface pauses with the control's scope (no frames, its flags and the
+  // size kept; seqspec:viewer#the-render-backend) and draws once all that waited on resume. A surface mounted while
+  // hidden starts paused.
+  let active = true;
   const mounted = band.subscribe((ref) => {
     section?.dispose();
     section = drawable ? mountSection(seq, ref, surface) : undefined;
+    if (!active) section?.setActive(false);
+  });
+  onActive((a) => {
+    active = a;
+    section?.setActive(a);
   });
   onCleanup(() => {
     bandSub.unsubscribe();

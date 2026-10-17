@@ -310,6 +310,12 @@ platform-free: the same code exports from a page and renders figures in Node), a
   blank canvas, and follow the host's size and device pixel ratio. Each pass canvas carries `data-pass` (`main`,
   `overlay`, `nav`, `nav-overlay`, `vnav`, `vnav-overlay`), marks for a host's CSS: the vertical overview and scrollbar
   are the `vnav` ones.
+- **A surface pauses on its own** (`setActive(false)`, active by default): a host that hides one section's surface (a
+  folded panel, a tab not shown) without pausing the whole viewer. Paused, it asks for no frame: `invalidate` only ORs
+  its flags, a resize records the size, an animated overlay stops polling, and a frame already asked for is cancelled.
+  Resumed, one frame draws all that waited, sizing first. Its events still run (the viewport pans, the hover moves);
+  only drawing waits. Guards: `_test/canvas/active.test.ts` (no frame asked for while paused, one on resume, the size
+  given while paused) and the paused case of `surface.heap.ts`, each with a positive control.
 - **Per-position text** (a block's letters, another polymer's residues, three-letter codes, atom symbols) is set per
   row: one font size and one form for the whole row, from its cells' width and never larger than the row allows nor than
   the cap (the render prop `maxLetterPx`; by default the header labels' size, `labelFontPx`), so zoomed in past it the

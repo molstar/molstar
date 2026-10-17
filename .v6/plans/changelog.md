@@ -133,6 +133,9 @@ the [API change ledger](breaking-v6-changes.md).
   `keyedSelector(...).key(k)` is a keyed source; the trees' rows, the command menu's rows and the params form's
   controls use it (a scene-tree row 16 → 3.4 KB), views no longer pipe states (308 sites became `derive`), a guard
   test keeps new rxjs out of views, and a virtual list no longer lays out its new rows inside the scroll event
+- Seq\*: a section surface pauses on its own (`Surface.setActive`, active by default): paused, it asks for no frame
+  (pans, hovers and resizes only gather; a pending frame is cancelled), and one frame on resume draws all that waited.
+  The Prism viewer's sequence band pauses its surface with the band's scope while hidden
 - The Prism viewer's Storage view (Settings): what it keeps in the browser and where (kept records with size and age,
   preferences, the light restore, the assistant's keys by provider and scope), each with Forget, and Forget everything
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),
