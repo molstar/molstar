@@ -849,3 +849,10 @@
   margin: var(--msp-space-1) var(--msp-space-2);
   background: var(--msp-glass-edge);
 }
+
+/* The toolbar as a bar, or folded into its one button (`ui.layout.toolbar`): hooks for the two forms, no style of their
+   own. */
+.bar,
+.folded {
+  min-width: 0;
+}
