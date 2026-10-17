@@ -96,6 +96,31 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   anything (setting them makes rows; a read after would lay the new rows out in the event: 1.7 of a jump's 4.4 ms). A
   row tells whether it has a menu without building it (`hasMenu`). Its area does not fade at its edges (`ScrollArea`
   `fade={false}`): the fade is a mask a scroll-driven animation repaints every frame.
+- **Subscriptions scale with what is shown** (David, 2026-10-17): a view holds a constant and some listeners per row on
+  screen, never per item of the model. So:
+  - **A collection exposes one change stream and keyed lookups**: a view of the whole collection listens once. The
+    scene's structure is `SceneModel.changes` (`viewer/src/model/scene-changes.ts`): the nodes whose children or
+    expansion changed, by id, told once per Mol* transaction (the scene source's sync) or toggle, with a version; the
+    roots are their own state, set only when they differ. A node's fields stay its own states: a row follows its node's
+    (one row, its few listeners), so the fields need no keyed table of their own.
+  - **Derived views update incrementally**: the scene tree flattens again only each changed node's subtree, in place,
+    and keeps the rest (rows the same are the same objects); the state tree's toggle does the same. A full flattening is
+    for what changes everything (a search, the roots, the extensions' rows).
+  - **View state lives in the view**, by key: the state tree's collapsed cells are the view's set. The scene's expansion
+    stays on its nodes, as the model's: the inspector opens a node's path (`reveal`), and the tree learns of it through
+    the change stream.
+  - Measured (jsdom, the scene tree with 1,000 components open, 4,000 rows): live listeners 8,457 → 454 (2,457 at 250
+    components → the same 454); a mount 24–26 → 16 ms and 23.1 → 5.7 MB kept; a toggle's reflow 765 → 60 µs; expanding
+    all 1,000 at once 10.3 → 3.7 ms, closing them 7.6 → 2.5. A thumb's drag tells no node state anything (only the
+    list's own); the old listeners were idle during it, but held. The state tree held 269 to 271 listeners at 5,025 and
+    20,100 cells already; its toggle, 9.0 and 11.5 ms, is 8.4 and 8.5 now (the rest is the rows' rendering).
+  - **Guards**: `viewer/src/views/_test/subscriptions.test.tsx` (the trees' listeners the same for a model 4× larger,
+    within `subscription-budget.json`, shrink-only; no node state told during a drag; a view listening to every item
+    caught) and `viewer/src/ui/_test/subscriptions-session.test.tsx` (the real shell with 24 and 48 structures, each tab
+    shown: no view's listeners grow; a planted view listening to every structure caught). The inventory
+    (`waste-audit.ts`, `subscriptions()`: live listeners by the state and by the view that added them, through
+    `ReactiveProbe.listened`; `SUBS_REPORT=<file>` writes it) found the scene tree's flattening the one view that grew
+    with the model. It counts the reactive base's listeners, not rxjs subscriptions to Mol*'s own subjects.
 
 ### 4.3 Lifetimes
 

@@ -54,6 +54,11 @@ export interface ViewRow {
 export interface Audit {
   /** Starts counting (what happened before, mounting, is not counted). */
   start(): void;
+  /**
+   * The listeners live now (the subscription inventory, view-models.md §3), by the state listened to and where the
+   * listener was added (both where they were made), most first.
+   */
+  subscriptions(): { state: string; listener: string; count: number }[];
   /** Resolves once no state has been told for `ms` (at most `max` ms): what loading set late is not in the session. */
   quiet(ms: number, max: number): Promise<void>;
   stop(): void;
@@ -111,6 +116,23 @@ export function installAudit(): Audit & { observe(root: Node): void } {
     if (wasted) p.wasted++;
   };
   ReactiveProbe.on = true;
+  // Live listeners by `state <- listener` (the stack at `listen`: a watch's, a binding's or a derive's maker).
+  const live = new Map<string, number>();
+  ReactiveProbe.listened = (state) => {
+    // Put down to the view: the stack's first frame outside the runtime, or the binding or watch starting now (one
+    // resumed, or started by a stream's emission, has only the runtime's frames on its stack).
+    let listener = siteOf(new Error().stack);
+    if (listener === '(runtime)' && RuntimeProbe.starting) listener = siteOf(RuntimeProbe.starting);
+    const key = `${name(state)} <- ${listener}`;
+    live.set(key, (live.get(key) ?? 0) + 1);
+    return key;
+  };
+  ReactiveProbe.unlistened = (token) => {
+    const key = token as string;
+    const n = (live.get(key) ?? 1) - 1;
+    if (n > 0) live.set(key, n);
+    else live.delete(key);
+  };
   ReactiveProbe.created = (o) => made.set(o, siteOf(new Error().stack));
   ReactiveProbe.told = (state, calls) => {
     lastTold = performance.now();
@@ -146,6 +168,14 @@ export function installAudit(): Audit & { observe(root: Node): void } {
     observe(root) {
       observer.observe(root, { subtree: true, childList: true, attributes: true, characterData: true });
     },
+    subscriptions() {
+      return [...live]
+        .map(([key, count]) => {
+          const [state, listener] = key.split(' <- ');
+          return { state, listener, count };
+        })
+        .sort((a, b) => b.count - a.count);
+    },
     async quiet(ms, max) {
       const t0 = performance.now();
       while (performance.now() - lastTold < ms && performance.now() - t0 < max)
@@ -176,6 +206,7 @@ export function installAudit(): Audit & { observe(root: Node): void } {
       observer.disconnect();
       ReactiveProbe.on = false;
       ReactiveProbe.created = ReactiveProbe.derive = ReactiveProbe.told = undefined;
+      ReactiveProbe.listened = ReactiveProbe.unlistened = undefined;
       RuntimeProbe.run = undefined;
     },
   };

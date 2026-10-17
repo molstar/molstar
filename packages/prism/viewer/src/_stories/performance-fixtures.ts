@@ -8,15 +8,18 @@
 
 import { observableState, type ObservableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
+import { SceneChangeLog } from '../model/scene-changes.js';
 
 // Fixtures of the performance stories: a scene of one structure with many components, built from plain states (no
-// viewer), the shape the real scene tree reads.
+// viewer), the shape the real scene tree reads, its structure's changes told as the scene source tells them
+// (`SceneModel.changes`: a node opened or closed, by id).
 
 export interface SceneFixtureNode {
   readonly node: SceneNode;
   readonly label: ObservableState<string>;
   readonly expanded: ObservableState<boolean>;
   readonly hidden: ObservableState<boolean>;
+  readonly children: ObservableState<readonly SceneNode[]>;
   /** With `swatches` only. */
   readonly swatch?: ObservableState<number | undefined>;
 }
@@ -36,10 +39,17 @@ function node(
   children: SceneFixtureNode[] = [],
   expanded = false,
   withSwatch = false,
+  log?: SceneChangeLog,
 ) {
   const text = observableState(label);
   const swatch = withSwatch ? observableState<number | undefined>(0x2e86c1) : undefined;
   const isExpanded = observableState(expanded);
+  const kids = observableState<readonly SceneNode[]>(children.map((c) => c.node));
+  // Opened or closed (by the row, or a test setting it), its children changed: the scene's change stream says so.
+  if (log) {
+    isExpanded.listen(() => log.touch(id));
+    kids.listen(() => log.touch(id));
+  }
   const hidden = observableState(false);
   const n = {
     id,
@@ -51,14 +61,14 @@ function node(
     isHidden: hidden.asReadonly,
     ...(swatch ? { swatch: swatch.asReadonly } : {}),
     isExpanded: isExpanded.asReadonly,
-    children: observableState<readonly SceneNode[]>(children.map((c) => c.node)).asReadonly,
+    children: kids.asReadonly,
     toggleVisibility: () => hidden.set(!hidden.value),
     toggleExpanded: () => isExpanded.set(!isExpanded.value),
     highlight: () => {},
     focus: () => {},
     remove: () => {},
   } as unknown as SceneNode;
-  return { node: n, label: text, expanded: isExpanded, hidden, swatch } satisfies SceneFixtureNode;
+  return { node: n, label: text, expanded: isExpanded, hidden, children: kids, swatch } satisfies SceneFixtureNode;
 }
 
 /**
@@ -66,6 +76,7 @@ function node(
  * each component has a color swatch.
  */
 export function makeScene(components = 1000, representations = 3, swatches = false): SceneFixture {
+  const log = new SceneChangeLog();
   const comps = Array.from({ length: components }, (_, i) =>
     node(
       `c${i}`,
@@ -74,16 +85,18 @@ export function makeScene(components = 1000, representations = 3, swatches = fal
       Array.from({ length: representations }, (_, r) => node(`c${i}r${r}`, 'representation', `Representation ${r}`)),
       false,
       swatches,
+      log,
     ),
   );
   const entities = Array.from({ length: 12 }, (_, i) => node(`e${i}`, 'entity', `Entity ${i}`));
-  const contents = node('contents', 'contents', 'Contents', entities);
-  const structure = node('s', 'structure', '1ABC', [contents, ...comps], true);
+  const contents = node('contents', 'contents', 'Contents', entities, false, false, log);
+  const structure = node('s', 'structure', '1ABC', [contents, ...comps], true, false, log);
   const picked = observableState<SceneNode | undefined>(undefined);
   const scene = {
     roots: observableState([structure.node]).asReadonly,
     picked: picked.asReadonly,
     pick: (n: SceneNode | undefined) => picked.set(n),
+    changes: log.changes,
   } as unknown as SceneModel;
   return { scene, structure, components: comps, representations: components * representations };
 }

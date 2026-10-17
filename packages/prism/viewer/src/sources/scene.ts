@@ -52,6 +52,7 @@ import type {
   SceneNode,
   SceneNodeKind,
 } from '../model/scene.js';
+import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
 import { currentTransform } from '../api/structure.js';
@@ -109,7 +110,20 @@ const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   'particles-representation': 'particles.update',
 };
 
+/** The source's nodes by ref: a node put in is given the source's change log. */
+class NodeMap extends Map<string, Node> {
+  constructor(readonly log: SceneChangeLog) {
+    super();
+  }
+  override set(key: string, node: Node): this {
+    node.log = this.log;
+    return super.set(key, node);
+  }
+}
+
 class Node implements SceneNode {
+  /** Where its structural changes are told (the source's log; set when it is put in the source's nodes). */
+  log?: SceneChangeLog;
   readonly #label: ObservableState<string>;
   readonly #description = observableState<string | undefined>(undefined);
   readonly #hidden = observableState(false);
@@ -183,15 +197,25 @@ class Node implements SceneNode {
   }
 
   setChildren(children: readonly SceneNode[]): void {
+    // A sync makes the arrays again: the same nodes in order are no change (told to nothing, the tree not reflowed).
+    if (sameChildren(this.#children.value, children)) return;
     this.#children.set(children);
+    this.log?.touch(this.id);
   }
 
   toggleVisibility(): void {
     this.actions.visibility?.(!this.#hidden.value);
   }
   toggleExpanded(): void {
-    this.#expanded.set(!this.#expanded.value);
-    if (this.#expanded.value && this.lazy) this.load?.();
+    const log = this.log;
+    const run = () => {
+      this.#expanded.set(!this.#expanded.value);
+      log?.touch(this.id);
+      if (this.#expanded.value && this.lazy) this.load?.();
+    };
+    // Opened with its children loaded: one change.
+    if (log) log.batch(run);
+    else run();
   }
   highlight(on: boolean): void {
     this.actions.highlight?.(on);
@@ -222,7 +246,9 @@ export function createSceneSource(
   api: ViewerApi,
   openCommand?: OpenCommand,
 ): SceneSource {
-  const nodes = new Map<string, Node>();
+  // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
+  const log = new SceneChangeLog();
+  const nodes = new NodeMap(log);
   // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
   const selection = plugin.managers.structure.selection;
   const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, selection.events.changed);
@@ -449,7 +475,8 @@ export function createSceneSource(
       peeked = !!peek;
       if (!peek) node.lazy = false;
       const data = s.cell.obj?.data;
-      if (data) node.setChildren(entities(plugin, data, structureRef, nodes, api));
+      // Its entities and their chains: one change.
+      if (data) log.batch(() => node.setChildren(entities(plugin, data, structureRef, nodes, api)));
     };
     if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
@@ -794,7 +821,8 @@ export function createSceneSource(
       inspectionKeys.set(id, inspectionKey(plugin, n));
       if (picked.value === n) inspection.set(inspections.get(id));
     }
-    roots.set(top);
+    // The same roots (a sync makes the array again): no change, the tree not flattened again.
+    if (!sameChildren(roots.value, top)) roots.set(top);
   };
 
   const sync = () => {
@@ -802,7 +830,7 @@ export function createSceneSource(
     const ids = outer ?? new Set<string>();
     refreshing = ids;
     try {
-      syncRows();
+      log.batch(syncRows);
     } finally {
       if (!outer) {
         refreshing = undefined;
@@ -884,10 +912,14 @@ export function createSceneSource(
       };
       const found = path(roots.value);
       if (!found) return false;
-      for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+      // The path opened in one change.
+      log.batch(() => {
+        for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+      });
       picked.set(found[found.length - 1]);
       return true;
     },
+    changes: log.changes,
     inspection: inspection.asReadonly,
     inspect: inspectNode,
     sync,

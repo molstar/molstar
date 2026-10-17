@@ -19,6 +19,8 @@ let starting = false;
 
 /** What a scope stops and starts with its activity: a binding, a watch. */
 abstract class Live implements Unsubscribable {
+  /** Where it was made (a stack), set while a probe runs (`RuntimeProbe.run`). */
+  site?: string;
   abstract start(): void;
   abstract stop(): void;
   abstract unsubscribe(): void;
@@ -45,11 +47,14 @@ class Binding<T> extends Live {
     if (this.#live || this.#dead) return;
     this.#live = true;
     const was = starting;
+    const site = RuntimeProbe.starting;
     starting = true;
+    if (this.site) RuntimeProbe.starting = this.site;
     try {
       this.#start();
     } finally {
       starting = was;
+      RuntimeProbe.starting = site;
     }
   }
 
@@ -93,6 +98,11 @@ export const RuntimeProbe: {
    * can see whether it wrote to the DOM (the waste audit, view-models.md §3).
    */
   run?: (kind: 'write' | 'render', site: string, because: readonly (object | undefined)[], fn: () => void) => void;
+  /**
+   * Where the binding or watch starting now was made (a stack; set while a probe runs): what its listeners are put down
+   * to (the subscription inventory, view-models.md §3).
+   */
+  starting?: string;
 } = {};
 
 // --- watch ---------------------------------------------------------------------------------------
@@ -264,7 +274,13 @@ class Watcher extends Live implements WatchHandle {
     this.#live = true;
     const sources = this.#sources;
     const stops: (() => void)[] = new Array(sources.length);
-    for (let i = 0; i < sources.length; i++) stops[i] = listen(sources[i], this.#mark);
+    const site = RuntimeProbe.starting;
+    if (this.site) RuntimeProbe.starting = this.site;
+    try {
+      for (let i = 0; i < sources.length; i++) stops[i] = listen(sources[i], this.#mark);
+    } finally {
+      RuntimeProbe.starting = site;
+    }
     this.#stops = stops;
     this.run();
   }
@@ -431,6 +447,7 @@ export class Scope {
           }
         : write,
     );
+    if (run) binding.site = site;
     this.own(binding);
     if (this.#active) binding.start();
   }
@@ -459,7 +476,10 @@ export class Scope {
           }
         : draw,
     );
-    if (run) watcher.because = new Set();
+    if (run) {
+      watcher.because = new Set();
+      watcher.site = site;
+    }
     this.own(watcher);
     if (this.#active) watcher.start();
     return watcher;

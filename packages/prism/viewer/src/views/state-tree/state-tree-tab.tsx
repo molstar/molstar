@@ -57,8 +57,9 @@ const samePlace = (a: Place, b: Place) =>
  */
 export function StateTreeTab(props: { model: StateTreeModel }) {
   const { model } = props;
-  // Collapsed cells (all open at first: the tree is short for a typical session).
-  const collapsed = observableState<ReadonlySet<string>>(new Set());
+  // Collapsed cells (all open at first: the tree is short for a typical session): the view's own state, by ref
+  // (view-models.md §3), changed in place.
+  const collapsed = new Set<string>();
   // Which block of the inspector is open: the update (default) or an action.
   const focus = observableState<string>('update');
   const open = (ref: string, block: string) => {
@@ -76,13 +77,11 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   const places = keyedState<string, Place>(samePlace);
   // The selected cell, told to the two rows a selection concerns.
   const selected = keyedSelector(model.selected);
-  const flat = derive([model.roots, collapsed.asReadonly], (roots, c) =>
-    flattenTree(
-      roots,
-      (n) => n.children,
-      (n) => !c.has(n.ref),
-    ),
-  );
+  const placeOf = (r: CellRow & { readonly posinset: number; readonly setsize: number }): Place => ({
+    posinset: r.posinset,
+    setsize: r.setsize,
+    ...(r.node.children?.length ? { expanded: !collapsed.has(r.node.ref) } : {}),
+  });
   let list: VirtualListHandle | undefined;
   const nav = new TreeNavigation<CellRow>({
     rows: () => rows.value,
@@ -91,21 +90,43 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     scrollTo: (i) => list?.scrollToIndex(i),
     selected: () => model.selected.value,
   });
+  // A cell opened or closed: its rows below put in place of the old (view-models.md §3, incremental), the rest kept;
+  // a toggle costs its subtree and a copy of the rows, not a walk of the whole tree.
   const toggle = (ref: string) => {
-    const next = new Set(collapsed.value);
-    if (next.has(ref)) next.delete(ref);
-    else next.add(ref);
-    collapsed.set(next);
+    const before = rows.value;
+    const i = before.findIndex((r) => r.node.ref === ref);
+    if (collapsed.has(ref)) collapsed.delete(ref);
+    else collapsed.add(ref);
+    if (i < 0) return;
+    const row = before[i];
+    let end = i + 1;
+    while (end < before.length && before[end].depth > row.depth) end++;
+    const kids = row.node.children;
+    const below =
+      kids?.length && !collapsed.has(ref)
+        ? flattenTree(
+            kids,
+            (n) => n.children,
+            (n) => !collapsed.has(n.ref),
+          ).map((r) => ({ ...r, depth: r.depth + row.depth + 1 }))
+        : [];
+    batch(() => {
+      for (let j = i + 1; j < end; j++) places.delete(before[j].node.ref);
+      const was = places.get(ref);
+      if (was) places.set(ref, { ...was, expanded: !collapsed.has(ref) });
+      for (const r of below) places.set(r.node.ref, placeOf(r));
+      rows.set([...before.slice(0, i + 1), ...below, ...before.slice(end)]);
+    });
   };
-  bind(flat, (all) => {
+  // The cells changed (the source's flush, coalesced): every row, the rows the same kept.
+  bind(model.roots, (roots) => {
+    const all = flattenTree(
+      roots,
+      (n) => n.children,
+      (n) => !collapsed.has(n.ref),
+    );
     const p = new Map<string, Place>();
-    const c = collapsed.value;
-    for (const r of all)
-      p.set(r.node.ref, {
-        posinset: r.posinset,
-        setsize: r.setsize,
-        ...(r.node.children?.length ? { expanded: !c.has(r.node.ref) } : {}),
-      });
+    for (const r of all) p.set(r.node.ref, placeOf(r));
     batch(() => {
       places.replace(p);
       rows.set(keep(all));

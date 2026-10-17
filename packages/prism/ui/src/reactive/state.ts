@@ -32,6 +32,12 @@ export const ReactiveProbe: {
   derive?: (d: object, changed: boolean) => void;
   /** A change told (the outermost), with the listener calls it took, its own and what followed. */
   told?: (state: object, listenerCalls: number) => void;
+  /**
+   * A listener added to `state` (the subscription inventory: what listens to what, view-models.md §3); what it returns
+   * is given back to `unlistened` when that listener goes.
+   */
+  listened?: (state: object) => unknown;
+  unlistened?: (token: unknown) => void;
 } = { on: false, source: undefined };
 
 /** A listener: told each value set, in order (one set inside a delivery is told after it). */
@@ -63,9 +69,11 @@ export abstract class Listened<T> extends Observable<T> {
     (this.#listeners ??= []).push(fn);
     if (first) this.onFirst();
     let on = true;
+    const token = ReactiveProbe.on ? ReactiveProbe.listened?.(this) : undefined;
     return () => {
       if (!on) return;
       on = false;
+      if (token !== undefined) ReactiveProbe.unlistened?.(token);
       const list = this.#listeners!;
       const i = list.lastIndexOf(fn);
       if (i < 0) return;

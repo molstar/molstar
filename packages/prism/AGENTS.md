@@ -23,6 +23,10 @@ it is done).
 - **Input in the frame lane** (David, 2026-10-17; [rendering.md §2.3](ui/_spec/rendering.md)): input-fed state (a scroll
   position, the hover label, a drag) is a `frameState`: `offer` at every event, published once a frame; a watch
   following one renders in the frame. Batch at the source, never per listener.
+- **Subscriptions scale with what is shown** (David, 2026-10-17; [view-models.md §3](ui/_spec/view-models.md)): a
+  collection exposes one change stream and keyed lookups (the scene's `changes`); a view of it listens once and updates
+  only what changed; view state lives in the view, by key. Guarded per view (`subscriptions.test.tsx`, its budget
+  shrink-only) and app-wide (`subscriptions-session.test.tsx`).
 - **Work is wanted, not done per change** (David, 2026-10-17; [rendering.md §2.7](ui/_spec/rendering.md)): a
   recomputation many changes ask for (a tree's flattening) is a `workQueue` key, run once a burst in its lane; an answer
   that may come late (a search, a count, a fetch) goes through `latest`, so an old one never lands after a newer.

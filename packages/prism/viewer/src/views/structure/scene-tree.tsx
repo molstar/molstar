@@ -148,96 +148,170 @@ export function SceneTree(props: {
   const keep = keepRows<Row>((r) => r.key, sameRow);
   // Long lists shown whole (Show all), until closed; the nodes open at the last flattening (a node opening loads).
   const showAll = new Set<SceneNode>();
-  let wasOpen = new Set<SceneNode>();
-  // The shown nodes' `isExpanded` and `children`: a change flattens again.
+  const wasOpen = new Set<SceneNode>();
+  // A fixture without the scene's change stream (`SceneModel.changes`): the shown nodes' `isExpanded` and `children`
+  // followed one by one, as before it.
   const watched = new Map<SceneNode, Subscription>();
   let current: Search | undefined;
 
-  const flatten = (s: Search) => {
-    const out: Row[] = [];
-    const st = new Map<string, RowState>();
-    const open = new Set<SceneNode>();
-    const seen = new Set<SceneNode>();
+  /** What a flattening makes: rows, their places, the nodes it found open and the nodes it showed. */
+  interface Flat {
+    readonly out: Row[];
+    readonly st: Map<string, RowState>;
+    readonly open: Set<SceneNode>;
+  }
+  // Flattens `row` (at its place among its siblings) and what is open under it, into `f`.
+  const emit = (s: Search, f: Flat, row: Row, posinset: number, setsize: number) => {
+    f.out.push(row);
+    if (row.kind !== 'node') {
+      f.st.set(row.key, { posinset, setsize });
+      return;
+    }
     const { hits, text } = s;
+    const { node, depth } = row;
+    if (!scene.changes) followNode(node);
     // The extensions' rows for a node (searching: those whose title matches).
-    const extensionRows = (node: SceneNode) =>
-      shell
-        ? s.sections.filter(
-            (r) => (!r.when || r.when({ shell, subject: node })) && (!text || r.title.toLowerCase().includes(text)),
-          )
-        : [];
-    const level = (items: readonly Row[]) => {
-      for (let i = 0; i < items.length; i++) {
-        const row = items[i];
-        out.push(row);
-        if (row.kind !== 'node') {
-          st.set(row.key, { posinset: i + 1, setsize: items.length });
-          continue;
-        }
-        const { node, depth } = row;
-        seen.add(node);
-        followNode(node);
-        const extensions = extensionRows(node);
-        let children = node.children.value;
-        // A node with an extension's row can be opened before it has children.
-        const expandable = children.length + extensions.length > 0 || !!node.lazy;
-        // Searching, a row with matches under it is open; otherwise as the person left it.
-        const isOpen =
-          expandable &&
-          (node.isExpanded.value || (!!hits && (children.some((c) => hits.has(c)) || extensions.length > 0)));
-        st.set(row.key, { posinset: i + 1, setsize: items.length, expanded: expandable ? isOpen : undefined });
-        if (!isOpen) continue;
-        open.add(node);
-        if (!wasOpen.has(node)) {
-          // Children computed on first look (lazy nodes); open only for a search, a look (it stays lazy).
-          node.load?.(!node.isExpanded.value);
-          children = node.children.value;
-        }
-        const shown = hits ? children.filter((c) => hits.has(c)) : children;
-        // Many children: the first few, then Show all (until the row is closed: opened again, the few again).
-        const paged = !hits && Paged.has(node.kind) && !showAll.has(node) && children.length > PageSize + 1;
-        const next: Row[] = (paged ? shown.slice(0, PageSize) : shown).map((c) => ({
-          kind: 'node',
-          key: c.id,
-          node: c,
-          depth: depth + 1,
-        }));
-        if (paged) next.push({ kind: 'more', key: `${node.id}::more`, node, depth: depth + 1, total: children.length });
-        // Until they arrive, a quiet loading row (not when only extensions' rows are there: nothing is loading).
-        if (children.length === 0 && (node.lazy || extensions.length === 0))
-          next.push({ kind: 'loading', key: `${node.id}::loading`, node, depth: depth + 1 });
-        for (const section of extensions)
-          next.push({ kind: 'row', key: `${node.id}::row:${section.id}`, node, depth: depth + 1, section });
-        level(next);
+    const extensions = shell
+      ? s.sections.filter(
+          (r) => (!r.when || r.when({ shell, subject: node })) && (!text || r.title.toLowerCase().includes(text)),
+        )
+      : [];
+    let children = node.children.value;
+    // A node with an extension's row can be opened before it has children.
+    const expandable = children.length + extensions.length > 0 || !!node.lazy;
+    // Searching, a row with matches under it is open; otherwise as the person left it.
+    const isOpen =
+      expandable && (node.isExpanded.value || (!!hits && (children.some((c) => hits.has(c)) || extensions.length > 0)));
+    f.st.set(row.key, { posinset, setsize, expanded: expandable ? isOpen : undefined });
+    if (!isOpen) return;
+    f.open.add(node);
+    if (!wasOpen.has(node)) {
+      // Children computed on first look (lazy nodes); open only for a search, a look (it stays lazy).
+      node.load?.(!node.isExpanded.value);
+      children = node.children.value;
+    }
+    const shown = hits ? children.filter((c) => hits.has(c)) : children;
+    // Many children: the first few, then Show all (until the row is closed: opened again, the few again).
+    const paged = !hits && Paged.has(node.kind) && !showAll.has(node) && children.length > PageSize + 1;
+    const next: Row[] = (paged ? shown.slice(0, PageSize) : shown).map((c) => ({
+      kind: 'node',
+      key: c.id,
+      node: c,
+      depth: depth + 1,
+    }));
+    if (paged) next.push({ kind: 'more', key: `${node.id}::more`, node, depth: depth + 1, total: children.length });
+    // Until they arrive, a quiet loading row (not when only extensions' rows are there: nothing is loading).
+    if (children.length === 0 && (node.lazy || extensions.length === 0))
+      next.push({ kind: 'loading', key: `${node.id}::loading`, node, depth: depth + 1 });
+    for (const section of extensions)
+      next.push({ kind: 'row', key: `${node.id}::row:${section.id}`, node, depth: depth + 1, section });
+    for (let i = 0; i < next.length; i++) emit(s, f, next[i], i + 1, next.length);
+  };
+  /** The nodes found open now, where they were open before (`was`): Show all is forgotten for a closed one. */
+  const opened = (was: Iterable<SceneNode>, open: Set<SceneNode>) => {
+    for (const n of was) {
+      if (open.has(n)) continue;
+      showAll.delete(n);
+      wasOpen.delete(n);
+    }
+    for (const n of open) wasOpen.add(n);
+  };
+
+  // Every row (a search, the roots or the extensions' rows changed).
+  const flatten = (s: Search) => {
+    const f: Flat = { out: [], st: new Map(), open: new Set() };
+    const top = s.hits ? s.roots.filter((r) => s.hits!.has(r)) : s.roots;
+    for (let i = 0; i < top.length; i++)
+      emit(s, f, { kind: 'node', key: top[i].id, node: top[i], depth: 0 }, i + 1, top.length);
+    opened([...wasOpen], f.open);
+    if (!scene.changes) {
+      const seen = new Set<SceneNode>();
+      for (const r of f.out) if (r.kind === 'node') seen.add(r.node);
+      for (const [n, sub] of watched) {
+        if (seen.has(n)) continue;
+        sub.unsubscribe();
+        watched.delete(n);
       }
-    };
-    level(
-      (hits ? s.roots.filter((r) => hits.has(r)) : s.roots).map((n) => ({
-        kind: 'node',
-        key: n.id,
-        node: n,
-        depth: 0,
-      })),
-    );
-    for (const n of wasOpen) if (!open.has(n)) showAll.delete(n);
-    wasOpen = open;
-    for (const [n, sub] of watched) {
-      if (seen.has(n)) continue;
-      sub.unsubscribe();
-      watched.delete(n);
     }
     batch(() => {
-      states.replace(st);
-      rows.set(keep(out));
+      states.replace(f.st);
+      rows.set(keep(f.out));
     });
   };
+
+  // Only what changed (view-models.md §3, derived views update incrementally): each changed node's subtree flattened
+  // again and put in place of the old one, the rest of the rows kept as they are.
+  const reflowNodes = (s: Search, ids: ReadonlySet<string>) => {
+    const before = rows.value;
+    // The changed nodes' rows, in order, without those inside another's subtree (flattened with it).
+    const spans: [number, number][] = [];
+    for (let i = 0; i < before.length; i++) {
+      const r = before[i];
+      if (r.kind !== 'node' || !ids.has(r.node.id)) continue;
+      let end = i + 1;
+      while (end < before.length && before[end].depth > r.depth) end++;
+      spans.push([i, end]);
+      i = end - 1;
+    }
+    if (spans.length === 0) return;
+    // One pass: the rows between the spans as they are, each span flattened again (a burst of a thousand changes
+    // copies the rows once, not once a change).
+    const next: Row[] = [];
+    const st = new Map<string, RowState>();
+    const gone = new Set<string>();
+    let at = 0;
+    for (const [i, end] of spans) {
+      for (let j = at; j < i; j++) next.push(before[j]);
+      const row = before[i];
+      const place = states.get(row.key) ?? { posinset: 1, setsize: 1 };
+      const from = next.length;
+      const f: Flat = { out: next, st, open: new Set() };
+      emit(s, f, row, place.posinset, place.setsize);
+      const was: SceneNode[] = [];
+      const old = new Map<string, Row>();
+      for (let j = i; j < end; j++) {
+        const r = before[j];
+        if (r.kind === 'node' && wasOpen.has(r.node)) was.push(r.node);
+        gone.add(r.key);
+        old.set(r.key, r);
+      }
+      // A row the same as the span's before is that object again (its view kept), as `keep` does for all rows.
+      for (let j = from; j < next.length; j++) {
+        const o = old.get(next[j].key);
+        if (o && sameRow(o, next[j])) next[j] = o;
+      }
+      opened(was, f.open);
+      at = end;
+    }
+    for (let j = at; j < before.length; j++) next.push(before[j]);
+    batch(() => {
+      for (const key of gone) if (!st.has(key)) states.delete(key);
+      for (const [key, place] of st) states.set(key, place);
+      rows.set(next);
+    });
+  };
+
   // Flattened once for a burst of changes (rendering.md §2.7: a task's queue): expanding a thousand nodes at once, or a
   // load's nodes arriving, flattened every change, was quadratic (1,000 nodes: 400 ms; once: a few). Before the rows
   // render (the runtime's flush runs the queue first); a change while flattening (a lazy node's rows arriving as it
   // opens) flattens again in the same flush.
   const work = workQueue({ lane: 'task' });
-  const flattenCurrent = () => current && flatten(current);
-  const reflow = () => work.want('flatten', flattenCurrent);
+  let full = true;
+  let changed = new Set<string>();
+  const reflowNow = () => {
+    if (!current) return;
+    const ids = changed;
+    changed = new Set();
+    // Searching, the hits decide what shows under a changed node: all of it again.
+    if (full || current.hits) {
+      full = false;
+      flatten(current);
+    } else reflowNodes(current, ids);
+  };
+  const reflow = () => {
+    full = true;
+    work.want('flatten', reflowNow);
+  };
   const followNode = (node: SceneNode) => {
     if (watched.has(node)) return;
     // Kept in `watched`: unsubscribed when the node leaves the shown rows, and all of them when the tree is hidden.
@@ -252,11 +326,25 @@ export function SceneTree(props: {
     if (mounted) reflow();
     else {
       mounted = true;
+      full = false;
       flatten(s);
     }
   });
-  // Hidden, nothing followed (prism AGENTS.md): the search's binding pauses itself, the nodes' watches go; shown again,
-  // the search replays and the flattening watches them again.
+  // The scene's structure, one listener (`SceneModel.changes`): the changed nodes' subtrees flattened again.
+  if (scene.changes) {
+    let version = scene.changes.value.version;
+    bind(scene.changes, (c) => {
+      // Its current value (made, or resumed with nothing changed meanwhile): nothing to do.
+      if (c.version === version) return;
+      // Resumed after more than one change: what changed meanwhile is not known by node, so all of it.
+      if (c.version !== version + 1) full = true;
+      version = c.version;
+      for (const id of c.nodes) changed.add(id);
+      work.want('flatten', reflowNow);
+    });
+  }
+  // Hidden, nothing followed (prism AGENTS.md): the bindings pause themselves, the nodes' watches go; shown again, the
+  // search replays and the rows are flattened again.
   const unwatch = () => {
     for (const sub of watched.values()) sub.unsubscribe();
     watched.clear();
@@ -299,7 +387,8 @@ export function SceneTree(props: {
             nav={nav}
             onShowAll={() => {
               showAll.add(row.node);
-              reflow();
+              changed.add(row.node.id);
+              work.want('flatten', reflowNow);
             }}
           />
         );

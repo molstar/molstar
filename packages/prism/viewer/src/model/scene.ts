@@ -11,6 +11,7 @@ import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { Observable } from 'rxjs';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { RepresentationQuickModel } from './representation-quick.js';
+import type { SceneChanges } from './scene-changes.js';
 import type { VolumeLevelsModel } from './volume-levels.js';
 import type { VolumeTransferModel } from './volume-transfer.js';
 
@@ -156,6 +157,12 @@ export interface SceneModel {
   inspection?: ReadonlyState<SceneInspection | undefined>;
   /** Picks a node by id, its ancestors expanded so the tree shows where it is; false while it is not in the tree. */
   reveal?(id: string): boolean;
+  /**
+   * The scene's structure as one change stream (scene-changes.ts): the nodes whose children or expansion changed, once
+   * per Mol* transaction or toggle. A view of the whole tree listens to this, not to each node. Absent (a fixture): the
+   * tree follows each shown node's `children` and `isExpanded`.
+   */
+  changes?: ReadonlyState<SceneChanges>;
 }
 
 /** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */
