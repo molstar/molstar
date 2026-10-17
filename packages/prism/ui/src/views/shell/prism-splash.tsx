@@ -8,7 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bind, type MaybeReactive, onActive, onCleanup } from '../../dom/scope.js';
+import { bind, type MaybeReactive, onActive, onCleanup, requireScope, runInScope } from '../../dom/scope.js';
+import { observeIntersection, observeResize, on } from '../../dom/scoped.js';
 import { classes } from './_generated/prism-splash.module.css.js';
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { PrismField, type PrismFieldOptions } from './prism-field.js';
@@ -85,82 +86,68 @@ export function PrismSplash(props: {
     return (m.matches('[role=img]') ? m : m.querySelector('[role=img]')) as HTMLElement | undefined;
   };
 
+  // What it attaches is scoped (dom/scoped.ts): released with it, a listener detached while it is paused.
+  const scope = requireScope('PrismSplash');
   let started = false;
-  const sizes =
-    typeof ResizeObserver === 'function'
-      ? new ResizeObserver(() => {
-          place();
-          if (!started) {
-            started = true;
-            attachPointer();
-            field.start();
-          }
-        })
-      : undefined;
-  sizes?.observe(canvas);
+  observeResize(canvas, () => {
+    place();
+    if (!started) {
+      started = true;
+      // From the observer's callback, outside the scope: attached in it, once.
+      if (!scope.disposed) runInScope(scope, attachPointer);
+      field.start();
+    }
+  });
 
   // Shown, the page visible, the view active (a hidden shell part pauses its scope).
   let onScreen = true;
   let active = true;
   const update = () => field.setVisible(onScreen && active && document.visibilityState === 'visible');
-  const seen =
-    typeof IntersectionObserver === 'function'
-      ? new IntersectionObserver(([e]) => {
-          onScreen = e?.isIntersecting ?? true;
-          update();
-        })
-      : undefined;
-  seen?.observe(canvas);
-  document.addEventListener('visibilitychange', update);
-  addEventListener('scroll', locate, { capture: true, passive: true });
+  observeIntersection(canvas, ([e]) => {
+    onScreen = e?.isIntersecting ?? true;
+    update();
+  });
+  on(document, 'visibilitychange', update);
+  on(window, 'scroll', locate, { capture: true, passive: true });
   onActive((a) => {
     active = a;
     update();
   });
 
   // The pointer, listened to on the host passively: the canvas below keeps every event.
-  let detachPointer = () => {};
   function attachPointer() {
     const host = props.pointer?.();
     if (!host) return;
-    const move = (e: Event) => {
-      const p = e as PointerEvent;
-      field.pointerMove(p.clientX - left, p.clientY - top, p.timeStamp);
-    };
-    const down = (e: Event) => {
-      const p = e as PointerEvent;
-      const x = p.clientX - left;
-      const y = p.clientY - top;
-      // On the word: it shatters (the light with it); elsewhere, a burst of light.
-      if (!field.shatterAt(x, y)) field.pointerDown(x, y, p.timeStamp);
-    };
-    const leave = (e: Event) => {
-      // A touch lifts as it ends; a mouse only when it leaves.
-      if (e.type !== 'pointerup' || (e as PointerEvent).pointerType !== 'mouse') field.pointerLeave();
-    };
     const opts = { passive: true } as const;
-    host.addEventListener('pointermove', move, opts);
-    host.addEventListener('pointerdown', down, opts);
-    host.addEventListener('pointerleave', leave, opts);
-    host.addEventListener('pointerup', leave, opts);
-    host.addEventListener('pointercancel', leave, opts);
-    detachPointer = () => {
-      host.removeEventListener('pointermove', move);
-      host.removeEventListener('pointerdown', down);
-      host.removeEventListener('pointerleave', leave);
-      host.removeEventListener('pointerup', leave);
-      host.removeEventListener('pointercancel', leave);
+    on<PointerEvent>(
+      host,
+      'pointermove',
+      (p) => field.pointerMove(p.clientX - left, p.clientY - top, p.timeStamp),
+      opts,
+    );
+    on<PointerEvent>(
+      host,
+      'pointerdown',
+      (p) => {
+        const x = p.clientX - left;
+        const y = p.clientY - top;
+        // On the word: it shatters (the light with it); elsewhere, a burst of light.
+        if (!field.shatterAt(x, y)) field.pointerDown(x, y, p.timeStamp);
+      },
+      opts,
+    );
+    const leave = (e: PointerEvent) => {
+      // A touch lifts as it ends; a mouse only when it leaves.
+      if (e.type !== 'pointerup' || e.pointerType !== 'mouse') field.pointerLeave();
     };
+    on(host, 'pointerleave', leave, opts);
+    on(host, 'pointerup', leave, opts);
+    on(host, 'pointercancel', leave, opts);
   }
 
   onCleanup(() => {
     const word = wordOf();
     if (word) word.style.visibility = '';
-    sizes?.disconnect();
-    seen?.disconnect();
-    document.removeEventListener('visibilitychange', update);
-    removeEventListener('scroll', locate, { capture: true });
-    detachPointer();
     field.dispose();
   });
   return canvas;

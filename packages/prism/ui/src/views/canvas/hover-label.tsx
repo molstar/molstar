@@ -9,12 +9,13 @@
  */
 
 import { For } from '../../dom/control-flow.js';
-import { bind, onCleanup } from '../../dom/scope.js';
+import { bind, onCleanup, requireScope, runInScope } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import type { HoverLabelModel } from '../../model/playback.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/hover-label.module.css.js';
 
-import { derive } from '../../reactive/state.js';
-import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 const Offset = 14;
 
 /**
@@ -67,6 +68,8 @@ export function HoverLabel(props: {
     const top = py + Offset + h > area.clientHeight ? py - Offset - h : py + Offset;
     label.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, top)}px)`;
   };
+  // Asked for from the pointer's listeners and the lines' binding, outside the scope (where `frame()` cannot be): a
+  // frame callback by hand, in the page's one frame tick, cancelled with the scope.
   const schedule = () => {
     if (!frame) frame = requestFrameCallback(place);
   };
@@ -76,32 +79,29 @@ export function HoverLabel(props: {
     schedule();
   });
 
-  // The pointer is tracked on the canvas area (the element the label is positioned in).
+  // The pointer is tracked on the canvas area (the element the label is positioned in), found once it is in the page:
+  // its listeners attached then, once, in this scope (dom/scoped.ts: detached while it is paused).
+  const scope = requireScope('HoverLabel');
   queueMicrotask(() => {
+    if (scope.disposed) return;
     const area = props.area();
     if (!area) return;
     const over = props.over;
-    const onMove = (e: PointerEvent) => {
-      x = e.clientX;
-      y = e.clientY;
-      inside = !over || over(e.target as Element);
-      dragging = e.buttons !== 0;
-      schedule();
-    };
-    const onLeave = () => {
-      inside = false;
-      schedule();
-    };
-    area.addEventListener('pointermove', onMove);
-    area.addEventListener('pointerleave', onLeave);
-    onCleanupArea = () => {
-      area.removeEventListener('pointermove', onMove);
-      area.removeEventListener('pointerleave', onLeave);
-    };
+    runInScope(scope, () => {
+      on<PointerEvent>(area, 'pointermove', (e) => {
+        x = e.clientX;
+        y = e.clientY;
+        inside = !over || over(e.target as Element);
+        dragging = e.buttons !== 0;
+        schedule();
+      });
+      on(area, 'pointerleave', () => {
+        inside = false;
+        schedule();
+      });
+    });
   });
-  let onCleanupArea: () => void = () => {};
   onCleanup(() => {
-    onCleanupArea();
     if (frame) cancelFrameCallback(frame);
   });
   return label;

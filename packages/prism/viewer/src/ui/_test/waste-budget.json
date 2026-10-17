@@ -9,7 +9,7 @@
   },
   "prism/ui/shell/shell.ts": {
     "noDom": 0,
-    "sameDerives": 0
+    "sameDerives": 8
   },
   "prism/ui/shell/theme.ts": {
     "noDom": 0,

@@ -30,6 +30,9 @@ import { personSession } from './waste-session.js';
 // the rest from waking: budgeted apart). A source over its budget fails; `WASTE_UPDATE=1` writes today's numbers (after
 // an intended change; they should only go down). The sequence's structure is set when its chunk comes in, before the
 // session or in it: its shell derives that come out the same (7) are budgeted, so the run does not depend on when.
+// The shell's rail and dock gates (`derive`s that keep a panel from rendering when its part did not change: the head,
+// strip and foot, hidden, overflow) replaced rxjs `distinctUntilChanged`s the audit could not see: their same results
+// (8, `prism/ui/shell/shell.ts`) are budgeted as the gates they are.
 
 class NoResize {
   observe() {}

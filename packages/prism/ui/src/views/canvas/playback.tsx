@@ -8,21 +8,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { effect, onCleanup } from '../../dom/scope.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { classes } from './_generated/playback.module.css.js';
 
-import { derive } from '../../reactive/state.js';
-import { keyedSelector } from '../../reactive/keyed-selector.js';
 /** Up to this many snapshots, the position shows as dots; past it, as "n / N" opening a list of titles. */
 const MaxDots = 7;
 
@@ -222,6 +222,18 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
   const { model } = props;
   const listOpen = observableState(false);
   const many = derive(model.count, (c) => c > MaxDots);
+  // The title and the description change together (another snapshot): taken once both have (the task after), so a
+  // heading is never compared with the other snapshot's title.
+  const description = observableState<string | undefined>(undefined);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  effect(
+    derive([model.description, model.title], (d, t) => (d ? withoutTitle(d, t ?? '') : d)),
+    (d) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => description.set(d), 0);
+    },
+  );
+  onCleanup(() => clearTimeout(timer));
   return (
     <div class={classes.snapshots}>
       <div class={classes.bar}>
@@ -263,15 +275,7 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
         </Show>
       </div>
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
-      {/* The title and the description change together (another snapshot): taken once both have, so a heading is never
-          compared with the other snapshot's title. */}
-      <Show
-        when={combineLatest([model.description, model.title]).pipe(
-          debounceTime(0),
-          map(([d, t]) => (d ? withoutTitle(d, t ?? '') : d)),
-          distinctUntilChanged(),
-        )}
-      >
+      <Show when={description.asReadonly}>
         {(source) => (
           <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
             <Show

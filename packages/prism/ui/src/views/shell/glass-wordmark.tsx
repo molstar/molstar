@@ -10,9 +10,10 @@
 
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { onActive, onCleanup } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 import { classes } from './_generated/glass-wordmark.module.css.js';
 import { Glass } from './glass.js';
-import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 
 /** How far the pieces travel, as a factor of the empty canvas's: a heading has little room. */
 const Travel = 0.35;
@@ -117,23 +118,44 @@ export function GlassWordmark(props: {
     for (let i = 0; i < words.length; i++) ctx.stroke(words[i]);
   };
 
-  // Frames only while something moves.
+  // Frames only while something moves, in the page's one frame tick. Asked for from the pointer's listeners and from
+  // the frames themselves, outside the scope (where `frame()` cannot be): one callback by hand, cancelled when hidden
+  // and with the scope.
   let frame = 0;
   let last = 0;
   let active = true;
+  /** Shown again: sized and colored in the next frame (once it is in the page). */
+  let fresh = false;
+  const request = () => {
+    frame = requestFrameCallback(tick);
+  };
   const tick = (now: number) => {
     frame = 0;
-    if (!glass || !active) return;
+    if (!active) return;
+    if (fresh) {
+      fresh = false;
+      prepare();
+      // Each time it shows: it assembles, from the next frame.
+      if (glass && (props.assemble?.() ?? true)) {
+        glass.scatter(Quick);
+        request();
+        return;
+      }
+      draw();
+      if (glass && !glass.resting) request();
+      return;
+    }
+    if (!glass) return;
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
     last = now;
     glass.step(dt);
     draw();
-    if (!glass.resting) frame = requestFrameCallback(tick);
+    if (!glass.resting) request();
     else last = 0;
   };
   const wake = () => {
     if (!glass || !active || frame) return;
-    frame = requestFrameCallback(tick);
+    request();
   };
 
   // The pointer, in drawing units: the box is read when it comes in (not per move: no layout reads at pointer rate).
@@ -143,20 +165,20 @@ export function GlassWordmark(props: {
     return { u: (e.clientX - box.left) / scale - 1, v: (e.clientY - box.top) / scale - 1 };
   };
   if (glass) {
-    root.addEventListener('pointerenter', () => {
+    on(root, 'pointerenter', () => {
       box = root.getBoundingClientRect();
     });
-    root.addEventListener('pointermove', (e) => {
+    on<PointerEvent>(root, 'pointermove', (e) => {
       const p = at(e);
       glass.setPointer(p.u, p.v);
       wake();
     });
-    root.addEventListener('pointerleave', () => {
+    on(root, 'pointerleave', () => {
       glass.clearPointer();
       box = undefined;
       wake();
     });
-    root.addEventListener('pointerdown', (e) => {
+    on<PointerEvent>(root, 'pointerdown', (e) => {
       const p = at(e);
       // Whole or already in pieces: it shatters (further).
       glass.shatter(p.u, p.v);
@@ -173,15 +195,8 @@ export function GlassWordmark(props: {
       last = 0;
       return;
     }
-    // Sized and colored once it is in the page (on its first frame).
-    requestFrameCallback(() => {
-      if (!active) return;
-      prepare();
-      if (glass && (props.assemble?.() ?? true)) {
-        glass.scatter(Quick);
-        wake();
-      } else draw();
-    });
+    fresh = true;
+    if (!frame) request();
   });
   onCleanup(() => {
     active = false;

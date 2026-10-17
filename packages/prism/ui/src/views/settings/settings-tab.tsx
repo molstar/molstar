@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm, paramsMatch } from '../../components/params/params-form.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
@@ -18,9 +17,9 @@ import type { Child } from '../../dom/jsx-types.js';
 import type { SettingsGroup, SettingsModel } from '../../model/settings.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/settings-tab.module.css.js';
 
-import { derive } from '../../reactive/state.js';
 /**
  * The Settings tab: a search over every setting, then the groups by intent (essentials first), each a form that folds
  * open, then `more`. While searching, only matching rows show and their groups open; a group with no match hides.
@@ -67,10 +66,7 @@ function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open
   const { group, query } = props;
   const own = observableState(props.open);
   const searching = derive(query, (t) => t.trim().length > 0);
-  const open = combineLatest([own.asReadonly, searching]).pipe(
-    map(([o, s]) => o || s),
-    distinctUntilChanged(),
-  );
+  const open = derive([own.asReadonly, searching], (o, s) => o || s);
   const hidden = derive(query, (t) => !paramsMatch(group.form.params, t));
   return (
     <section class={classes.group} hidden={hidden} aria-label={group.title}>

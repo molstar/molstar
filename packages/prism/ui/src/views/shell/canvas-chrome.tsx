@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of, switchMap } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
@@ -24,28 +23,43 @@ import {
   trapTab,
   uniqueId,
 } from '../../dom/focus.js';
-import { bind, onCleanup } from '../../dom/scope.js';
+import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, toStream } from '../../dom/scope.js';
 import { frame, on } from '../../dom/scoped.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive, isState, toState } from '../../reactive/state.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { PinButton } from './dock-view.js';
-import { sectionsOf } from './rail.js';
+import { sectionsOf, shownItems } from './rail.js';
 import { ViewHost } from './view-host.js';
 
-import { derive } from '../../reactive/state.js';
 /**
  * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
  * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the command menu above it, `rest`
  * below), or the canvas stack's items (`canvas`).
  */
 
+/**
+ * A model's stream as a state, for `derive` (shell.ts types an item's `face`, `visible` and `pressed` as streams;
+ * most are states): a state as it is, a plain value as one, another stream through `toState` (the boundary,
+ * rendering.md §2.2), its subscription ended with the current scope.
+ */
+function stateOf<T>(source: MaybeReactive<T>, initial: T): ReadonlyState<T> {
+  const stream = toStream(source);
+  if (!stream) return observableState(source as T).asReadonly;
+  if (isState(stream)) return stream as ReadonlyState<T>;
+  const state = toState(stream, initial);
+  onCleanup(() => state.dispose());
+  return state;
+}
+
 /** A toolbar item's title as shown: its face's (it changes: the theme, the mode switch), or its own with its caption. */
 export function itemTitle(item: CanvasToolbarItem) {
   return item.face
-    ? item.face.pipe(map((f) => f.title))
+    ? derive(stateOf(item.face, { icon: item.icon, title: item.title }), (f) => f.title)
     : item.caption
       ? `${item.title} (${item.caption})`
       : item.title;
@@ -70,7 +84,7 @@ export function CanvasToolbar(props: {
   /** Where buttons with a menu open it (the canvas stack); without it, menus are not shown. */
   menus?: ToolMenus;
   /** The rail's left-out buttons (`RailLayout.hidden`): they are not shown, they are under More. */
-  hidden?: Observable<ReadonlySet<string>>;
+  hidden?: ReadonlyState<ReadonlySet<string>>;
   /** On the rail: a button with a menu opens it beside the rail on a click (the theme), as More does. */
   railMenu?: (item: CanvasToolbarItem, anchor: HTMLElement) => void;
 }) {
@@ -78,18 +92,16 @@ export function CanvasToolbar(props: {
   const part = props.part ?? 'all';
   const canvas = part === 'canvas';
   const items$ = props.hidden
-    ? combineLatest([shell.toolbar, props.hidden]).pipe(
-        map(([items, hidden]) => (hidden.size ? items.filter((i) => !hidden.has(`tool:${i.id}`)) : items)),
+    ? derive([shell.toolbar, props.hidden], (items, hidden) =>
+        hidden.size ? items.filter((i) => !hidden.has(`tool:${i.id}`)) : items,
       )
     : shell.toolbar;
-  const sections = items$.pipe(
-    map((items) => sectionsOf(items.filter((i) => (i.place === 'canvas') === canvas))),
-    map((all) =>
-      part === 'all' || canvas
-        ? all
-        : all.filter((s) => (part === 'lead' ? s.group === undefined : s.group !== undefined)),
-    ),
-  );
+  const sections = derive(items$, (items) => {
+    const all = sectionsOf(items.filter((i) => (i.place === 'canvas') === canvas));
+    return part === 'all' || canvas
+      ? all
+      : all.filter((s) => (part === 'lead' ? s.group === undefined : s.group !== undefined));
+  });
   return (
     <div class={classes.sections}>
       <For each={sections} key={(s) => s.group ?? ''}>
@@ -117,12 +129,10 @@ export function CanvasToolbar(props: {
 }
 
 /** Whether a button shows pressed: its overlay is open, or its own state says so. */
-function toolPressed(shell: ShellModel, item: CanvasToolbarItem): Observable<boolean> {
-  const overlayOpen = item.overlay ? derive(shell.overlay, (o) => o?.overlay.id === item.overlay) : of(false);
-  return combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
-    map(([a, b]) => a || b),
-    distinctUntilChanged(),
-  );
+function toolPressed(shell: ShellModel, item: CanvasToolbarItem): ReadonlyState<boolean> {
+  const own = stateOf(item.pressed ?? false, false);
+  const id = item.overlay;
+  return id ? derive([shell.overlay, own], (o, p) => o?.overlay.id === id || p) : own;
 }
 
 function ToolButton(props: {
@@ -135,24 +145,22 @@ function ToolButton(props: {
   const railMenu = !menus && item.menu?.length ? props.railMenu : undefined;
   // A button with a menu shows the menu on hover instead of a tooltip (both would open in the same spot).
   const withMenu = menus && item.menu?.length ? menus : undefined;
-  const pressed = toolPressed(shell, item);
+  const pressed = item.pressed || item.overlay ? toolPressed(shell, item) : undefined;
+  const title = itemTitle(item);
   // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a
   // button that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the
   // next button.
-  const expanded = withMenu?.open.asReadonly.pipe(
-    map((o) => o?.item === item),
-    distinctUntilChanged(),
-  );
+  const expanded = withMenu ? derive(withMenu.open.asReadonly, (o) => o?.item === item) : undefined;
   return (
     <button
       type="button"
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
-      data-tip={withMenu ? undefined : itemTitle(item)}
+      data-tip={withMenu ? undefined : title}
       data-tip-side={item.place === 'canvas' ? 'top' : 'left'}
-      aria-label={itemTitle(item)}
+      aria-label={title}
       // Only a button with a state is a toggle (a button that cycles, like the theme, names its state in its label).
-      aria-pressed={item.pressed || item.overlay ? pressed : undefined}
+      aria-pressed={pressed}
       aria-haspopup={withMenu || railMenu ? 'menu' : undefined}
       aria-expanded={expanded}
       data-overlay-trigger={item.overlay ? '' : undefined}
@@ -308,7 +316,7 @@ function toolRow(shell: ShellModel, item: CanvasToolbarItem, anchor: () => Eleme
           },
         ]
       : [];
-  return { ...row, run: () => {}, items: of([...own, ...menu]) };
+  return { ...row, run: () => {}, items: observableState<readonly CanvasMenuItem[]>([...own, ...menu]).asReadonly };
 }
 
 /**
@@ -317,27 +325,29 @@ function toolRow(shell: ShellModel, item: CanvasToolbarItem, anchor: () => Eleme
  */
 function collapsedRows(
   shell: ShellModel,
-  lead: Observable<readonly CanvasMenuItem[]> | undefined,
+  lead: MaybeReactive<readonly CanvasMenuItem[]> | undefined,
   anchor: () => Element,
-): Observable<readonly CanvasMenuItem[]> {
-  const tools = shell.toolbar.pipe(
-    map((items) => sectionsOf(items.filter((i) => i.place === 'canvas')).flatMap((s) => s.items)),
-    switchMap((items) =>
-      items.length
-        ? combineLatest(items.map((i) => i.visible ?? of(true))).pipe(map((v) => items.filter((_, k) => v[k])))
-        : of([] as readonly CanvasToolbarItem[]),
-    ),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
-    map((items) => items.map((i) => toolRow(shell, i, anchor))),
+): ReadonlyState<readonly CanvasMenuItem[]> {
+  // An item's row is made once, in the stack's scope (its pressed state follows the item while the stack lives).
+  const scope = requireScope('collapsedRows');
+  const rows = new Map<CanvasToolbarItem, CanvasMenuItem>();
+  const rowOf = (i: CanvasToolbarItem) => {
+    let row = rows.get(i);
+    if (!row) rows.set(i, (row = runInScope(scope, () => toolRow(shell, i, anchor))));
+    return row;
+  };
+  const tools = shownItems(
+    derive(shell.toolbar, (items) => sectionsOf(items.filter((i) => i.place === 'canvas')).flatMap((s) => s.items)),
   );
-  return combineLatest([lead ?? of([] as readonly CanvasMenuItem[]), tools]).pipe(
-    map(([l, t]) => [...l.map((r) => ({ ...r, group: r.group ?? 'lead' })), ...t]),
-  );
+  return derive([stateOf(lead ?? [], []), tools], (l, t) => [
+    ...l.map((r) => ({ ...r, group: r.group ?? 'lead' })),
+    ...t.map(rowOf),
+  ]);
 }
 
 /** What the collapsed toolbar's menu is made of (`ToolMenus.show`): its rows. */
 interface StackPopup {
-  readonly rows: Observable<readonly CanvasMenuItem[]>;
+  readonly rows: ReadonlyState<readonly CanvasMenuItem[]>;
 }
 
 /** The collapsed toolbar's one button, as a toolbar item (its menu is `StackPopup`'s). */
@@ -358,12 +368,12 @@ export function CanvasStack(props: {
   lead?: Child;
   aside?: Child;
   /** The rows of `lead` for the collapsed toolbar's menu (the mode choices); they follow what `lead` shows. */
-  leadMenu?: Observable<readonly CanvasMenuItem[]>;
+  leadMenu?: MaybeReactive<readonly CanvasMenuItem[]>;
   /**
    * The canvas is empty: the stack fades out (`CanvasStackFadeMs`; what is in it should stay that long), and in again
    * when it has something (canvas.module.css, `@starting-style`).
    */
-  quiet?: Observable<boolean>;
+  quiet?: MaybeReactive<boolean>;
 }) {
   const { shell } = props;
   const menus = new ToolMenus();
@@ -385,12 +395,14 @@ export function CanvasStack(props: {
       </div>
     ),
   ) as HTMLElement;
-  const hasTools = popup.rows.pipe(
-    map((rows) => rows.length > 0),
-    distinctUntilChanged(),
-  );
+  const hasTools = derive(popup.rows, (rows) => rows.length > 0);
   const root = (
-    <div class={classes.stack} data-quiet={props.quiet?.pipe(map((q) => (q ? '' : undefined)))}>
+    <div
+      class={classes.stack}
+      data-quiet={
+        props.quiet === undefined ? undefined : derive(stateOf(props.quiet, false), (q) => (q ? '' : undefined))
+      }
+    >
       {bar}
       <Show when={collapsed}>
         {() => (
@@ -743,7 +755,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                     </button>
                   )}
                 </For>
-                <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
+                <Show when={derive([tabs, actions], (t, a) => t.length > 0 && a.length > 0)}>
                   {() => <div class={classes.railMenuDivider} />}
                 </Show>
                 <For each={actions} key={(i) => i.id}>
@@ -753,7 +765,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                       role="menuitem"
                       class={classes.toolMenuRow}
                       // As on the rail: an item shown only while it applies (Play snapshots with two or more).
-                      hidden={item.visible ? item.visible.pipe(map((v) => !v)) : false}
+                      hidden={item.visible ? derive(stateOf(item.visible, true), (v) => !v) : false}
                       onClick={(e) => run(item, e.currentTarget)}
                     >
                       <ItemIcon item={item} size={16} class={classes.face} />
@@ -790,14 +802,14 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
     <Show when={task}>
       {(first) => {
         const live = derive(props.status.tasks, (tasks) => tasks.find((t) => t.id === first.id) ?? first);
-        const percent = live.pipe(map((t) => (t.progress === undefined ? undefined : Math.round(t.progress * 100))));
+        const percent = derive(live, (t) => (t.progress === undefined ? undefined : Math.round(t.progress * 100)));
         return (
           <div class={classes.busy} role="alertdialog" aria-modal="true" aria-label={first.label}>
             <div class={classes.busyCard}>
               <div class={classes.busyHead}>
                 <Icon name="loader-circle" size={18} class={classes.busySpin} />
-                <span class={classes.busyLabel}>{live.pipe(map((t) => t.label))}</span>
-                <span class={classes.busyPercent}>{percent.pipe(map((p) => (p === undefined ? '' : `${p}%`)))}</span>
+                <span class={classes.busyLabel}>{derive(live, (t) => t.label)}</span>
+                <span class={classes.busyPercent}>{derive(percent, (p) => (p === undefined ? '' : `${p}%`))}</span>
               </div>
               <div
                 class={classes.busyTrack}
@@ -808,8 +820,8 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
               >
                 <span
                   class={classes.busyBar}
-                  data-indeterminate={percent.pipe(map((p) => (p === undefined ? '' : undefined)))}
-                  style={{ scale: percent.pipe(map((p) => `${(p ?? 30) / 100} 1`)) }}
+                  data-indeterminate={derive(percent, (p) => (p === undefined ? '' : undefined))}
+                  style={{ scale: derive(percent, (p) => `${(p ?? 30) / 100} 1`) }}
                 />
               </div>
               {first.abort ? (
@@ -853,7 +865,7 @@ function OverlayCard(props: { shell: ShellModel }) {
     <section
       class={classes.card}
       role="dialog"
-      aria-modal={pinnedState.pipe(map((p) => !p))}
+      aria-modal={derive(pinnedState, (p) => !p)}
       aria-labelledby={titleId}
       onKeyDown={(e) => {
         if (!pinned()) trapTab(e, e.currentTarget);
@@ -997,7 +1009,7 @@ export function StatusPill(props: {
    * Dismissed on its own after this many ms (a finished turn), a ring around the ✕ showing the time left; the pointer
    * over the line or the focus in it holds the time. Undefined: it stays.
    */
-  autoDismiss?: Observable<number | undefined>;
+  autoDismiss?: MaybeReactive<number | undefined>;
 }) {
   // The time left, held while the pointer is over the line or the focus is in it.
   let timer: ReturnType<typeof setTimeout> | undefined;

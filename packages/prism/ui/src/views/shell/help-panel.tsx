@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, map, type Observable, shareReplay } from 'rxjs';
 import { chordFromEvent, chordKeys, formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager } from '../../commands/manager.js';
 import type { CommandDefinition, KeyChord } from '../../commands/types.js';
@@ -18,11 +17,12 @@ import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { Select } from '../../components/select/select.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { type KeyedValue, keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/help-panel.module.css.js';
 
-import { derive } from '../../reactive/state.js';
-import { keyedSelector } from '../../reactive/keyed-selector.js';
 /** A mouse or touch binding, as the Help card lists it: what it does, and the input (keys and a gesture). */
 export interface InputBinding {
   action: string;
@@ -70,11 +70,13 @@ export function HelpPanel(props: {
   /** What the last change did, said once (a polite live region). */
   const said = observableState('');
   // What is listed: commands with a key, those the person remapped or cleared (to reset them), the one being recorded.
-  const listed = combineLatest([manager.commands, keymap.layers, recording.asReadonly]).pipe(
-    map(([all, , rec]) => all.filter((c) => manager.shortcut(c) || keymap.isRemapped(c.id) || c.id === rec)),
-    shareReplay({ bufferSize: 1, refCount: true }),
+  const listed = derive([manager.commands, keymap.layers, recording.asReadonly], (all, _, rec) =>
+    all.filter((c) => manager.shortcut(c) || keymap.isRemapped(c.id) || c.id === rec),
   );
-  const conflicts = combineLatest([manager.commands, keymap.layers]).pipe(map(([all]) => keymap.conflicts(all)));
+  const conflicts = derive([manager.commands, keymap.layers], (all) => {
+    const c = keymap.conflicts(all);
+    return c.length ? c : undefined;
+  });
   const record = (c: CommandDefinition<any>, chord: KeyChord) => {
     keymap.remap(c.id, chord);
     recording.set(undefined);
@@ -86,7 +88,7 @@ export function HelpPanel(props: {
   return (
     <ScrollArea edge class={classes.help} contentClass={classes.content} aria-label="Help">
       {props.intro?.()}
-      <Show when={conflicts.pipe(map((c) => (c.length ? c : undefined)))}>
+      <Show when={conflicts}>
         {(list) => (
           <section class={classes.conflicts} aria-label="Shortcut conflicts">
             <Icon name="triangle-alert" size={14} />
@@ -171,8 +173,8 @@ export function HelpPanel(props: {
 function CommandKeys(props: {
   manager: CommandManager<any>;
   command: CommandDefinition<any>;
-  editing: Observable<boolean>;
-  recording: Observable<boolean>;
+  editing: ReadonlyState<boolean>;
+  recording: KeyedValue<boolean>;
   onRecord(): void;
   /** The keys pressed, or none when recording was cancelled. */
   onRecorded(chord: KeyChord | undefined): void;
@@ -180,19 +182,16 @@ function CommandKeys(props: {
 }) {
   const { manager, command: c } = props;
   const keymap = manager.keymap;
-  const state = keymap.layers.pipe(
-    map(() => ({ chord: manager.shortcut(c), remapped: keymap.isRemapped(c.id) })),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+  const state = derive(keymap.layers, () => ({ chord: manager.shortcut(c), remapped: keymap.isRemapped(c.id) }));
   const mac = isMac();
   return (
     <div class={classes.row}>
       <dt class={classes.action}>{c.title}</dt>
       <dd class={classes.input}>
         <Show
-          when={props.recording.pipe(map((r) => (r ? true : undefined)))}
+          when={derive(props.recording, (r) => (r ? true : undefined))}
           fallback={() => (
-            <Show when={state.pipe(map((s) => s.chord))} fallback={() => <span class={classes.or}>no key</span>}>
+            <Show when={derive(state, (s) => s.chord)} fallback={() => <span class={classes.or}>no key</span>}>
               {(chord) => <Keys input={chordKeys(chord, mac)} />}
             </Show>
           )}
@@ -219,13 +218,13 @@ function CommandKeys(props: {
             </span>
           )}
         </Show>
-        <Show when={props.editing.pipe(map((e) => (e ? true : undefined)))}>
+        <Show when={derive(props.editing, (e) => (e ? true : undefined))}>
           {() => (
             <span class={classes.edit}>
               <Button size="xs" variant="ghost" title={`Change the key of ${c.title}`} onClick={() => props.onRecord()}>
                 Change
               </Button>
-              <Show when={state.pipe(map((s) => (s.chord ? true : undefined)))}>
+              <Show when={derive(state, (s) => (s.chord ? true : undefined))}>
                 {() => (
                   <Button
                     size="xs"
@@ -240,7 +239,7 @@ function CommandKeys(props: {
                   </Button>
                 )}
               </Show>
-              <Show when={state.pipe(map((s) => (s.remapped ? true : undefined)))}>
+              <Show when={derive(state, (s) => (s.remapped ? true : undefined))}>
                 {() => (
                   <Button
                     size="xs"

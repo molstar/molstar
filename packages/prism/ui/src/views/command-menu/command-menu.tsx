@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, debounceTime, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
@@ -21,16 +20,17 @@ import { For, Show } from '../../dom/control-flow.js';
 import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
-import { bind, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
+import { bind, effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import { setAttr, setText as writeText } from '../../dom/writes.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import type { Listenable } from '../../reactive/listen.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/command-menu.module.css.js';
 
-import { derive } from '../../reactive/state.js';
 export interface CommandMenuProps {
   manager: CommandManager<any>;
   /** Closes the command menu (Esc on an empty list, a click outside, a command that ran). */
@@ -238,80 +238,91 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
 
   // Keyed by the group browsed too: a row shows its path below it (made with the row).
   const keepSame = keepRows<Row>((r) => `${group.value ?? ''}|${rowKey(r)}`, sameRow);
-  const rows = combineLatest([query, group.asReadonly, manager.commands, manager.groups]).pipe(
-    map(([t, g]) => {
-      const out: Row[] = [];
-      let n = 0;
-      const add = (row: Row) => {
-        if (row.kind !== 'caption') (row as Pickable).index = n++;
-        out.push(row);
-      };
-      const prefix = prefixOf(t);
-      if (prefix) {
-        for (const item of prefix.items(t.slice(prefix.char.length).trimStart())) add({ kind: 'item', item, index: 0 });
-        return out;
-      }
-      if (!t.trim()) {
-        // Browsing: a group's subgroups and commands; at the top, recent ones first, then the groups, then the
-        // ungrouped commands by category.
-        const { groups, commands } = manager.children(g);
-        if (g === undefined) {
-          const q = manager.query('');
-          if (q.recent.length) {
-            add({ kind: 'caption', label: 'Recent' });
-            for (const m of q.recent) add({ kind: 'match', match: m, index: 0 });
-          }
-          if (groups.length) add({ kind: 'caption', label: 'Browse' });
-        }
-        for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
-        if (g !== undefined) {
-          // Inside a group: its commands under their categories' captions when there is more than one.
-          const categories = new Set(commands.map((m) => m.command.category));
-          let last: string | undefined;
-          for (const m of commands) {
-            if (categories.size > 1 && m.command.category !== last) {
-              last = m.command.category;
-              add({ kind: 'caption', label: last });
-            }
-            add({ kind: 'match', match: m, index: 0 });
-          }
-          return out;
-        }
-        const recent = new Set(manager.query('').recent.map((m) => m.command));
-        const byCategory = new Map<string, CommandMatch<any>[]>();
-        for (const m of commands) {
-          if (recent.has(m.command)) continue;
-          const list = byCategory.get(m.command.category);
-          if (list) list.push(m);
-          else byCategory.set(m.command.category, [m]);
-        }
-        for (const [category, matches] of byCategory) {
-          add({ kind: 'caption', label: category });
-          for (const m of matches) add({ kind: 'match', match: m, index: 0 });
-        }
-        return out;
-      }
-      // Searching: everything at any depth (inside a group, its subtree), groups that match first.
-      const q = manager.query(t);
-      const within = (m: CommandMatch<any>) => g === undefined || manager.inGroup(m.command, g);
-      if (q.direct && within(q.direct)) add({ kind: 'match', match: q.direct, tail: q.direct.tail, index: 0 });
-      const groups = manager.groups.value.filter(
-        (gr) =>
-          (g === undefined || manager.groupPath(gr.id).some((x) => x.id === g)) &&
-          gr.id !== g &&
-          (fuzzyScore(gr.title, t) ?? -1) >= 0,
-      );
-      for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
-      for (const m of q.matches)
-        if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
+  // One computation for its listeners (the list, `unmatched`, `current`), not one each. A row the same as one before
+  // (the same command at the same place) keeps its object: the list keeps its node, and a keystroke renders only the
+  // marks in its title (the quick tier read 1.9 MB a keystroke before; hot.quick.ts). `keepSame` is stateful and a
+  // derived value computes again when read with nothing listening (a subscription reads, then listens): the rows are
+  // kept by what they were made from, so every reader gets the same array.
+  let made: { t: string; g: string | undefined; c: unknown; gs: unknown; rows: Row[] } | undefined;
+  const rows = derive([query, group.asReadonly, manager.commands, manager.groups], (t, g, c, gs) => {
+    if (made && made.t === t && made.g === g && made.c === c && made.gs === gs) return made.rows;
+    const r = keepSame(listRows(t, g));
+    if (made) {
+      made.t = t;
+      made.g = g;
+      made.c = c;
+      made.gs = gs;
+      made.rows = r;
+    } else made = { t, g, c, gs, rows: r };
+    return r;
+  });
+  function listRows(t: string, g: string | undefined): Row[] {
+    const out: Row[] = [];
+    let n = 0;
+    const add = (row: Row) => {
+      if (row.kind !== 'caption') (row as Pickable).index = n++;
+      out.push(row);
+    };
+    const prefix = prefixOf(t);
+    if (prefix) {
+      for (const item of prefix.items(t.slice(prefix.char.length).trimStart())) add({ kind: 'item', item, index: 0 });
       return out;
-    }),
-    // A row the same as one before (the same command at the same place) keeps its object: the list keeps its node, and
-    // a keystroke renders only the marks in its title (the quick tier read 1.9 MB a keystroke before; hot.quick.ts).
-    map(keepSame),
-    // One computation for its subscribers (the list, `unmatched`, `current`), not one each.
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+    }
+    if (!t.trim()) {
+      // Browsing: a group's subgroups and commands; at the top, recent ones first, then the groups, then the
+      // ungrouped commands by category.
+      const { groups, commands } = manager.children(g);
+      if (g === undefined) {
+        const q = manager.query('');
+        if (q.recent.length) {
+          add({ kind: 'caption', label: 'Recent' });
+          for (const m of q.recent) add({ kind: 'match', match: m, index: 0 });
+        }
+        if (groups.length) add({ kind: 'caption', label: 'Browse' });
+      }
+      for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
+      if (g !== undefined) {
+        // Inside a group: its commands under their categories' captions when there is more than one.
+        const categories = new Set(commands.map((m) => m.command.category));
+        let last: string | undefined;
+        for (const m of commands) {
+          if (categories.size > 1 && m.command.category !== last) {
+            last = m.command.category;
+            add({ kind: 'caption', label: last });
+          }
+          add({ kind: 'match', match: m, index: 0 });
+        }
+        return out;
+      }
+      const recent = new Set(manager.query('').recent.map((m) => m.command));
+      const byCategory = new Map<string, CommandMatch<any>[]>();
+      for (const m of commands) {
+        if (recent.has(m.command)) continue;
+        const list = byCategory.get(m.command.category);
+        if (list) list.push(m);
+        else byCategory.set(m.command.category, [m]);
+      }
+      for (const [category, matches] of byCategory) {
+        add({ kind: 'caption', label: category });
+        for (const m of matches) add({ kind: 'match', match: m, index: 0 });
+      }
+      return out;
+    }
+    // Searching: everything at any depth (inside a group, its subtree), groups that match first.
+    const q = manager.query(t);
+    const within = (m: CommandMatch<any>) => g === undefined || manager.inGroup(m.command, g);
+    if (q.direct && within(q.direct)) add({ kind: 'match', match: q.direct, tail: q.direct.tail, index: 0 });
+    const groups = manager.groups.value.filter(
+      (gr) =>
+        (g === undefined || manager.groupPath(gr.id).some((x) => x.id === g)) &&
+        gr.id !== g &&
+        (fuzzyScore(gr.title, t) ?? -1) >= 0,
+    );
+    for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
+    for (const m of q.matches)
+      if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
+    return out;
+  }
   let current: Row[] = [];
   const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
   // The assistant takes the typed words (⌘↵ anywhere; ↵ when no command matches).
@@ -326,10 +337,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     const keep = askItem(props, manager, text.value, props.onPropose).run();
     if (!keep && !manager.active.value) props.onClose();
   };
-  const unmatched = combineLatest([query, rows]).pipe(
-    map(([t, r]) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption')),
-    distinctUntilChanged(),
-  );
+  const unmatched = derive([query, rows], (t, r) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption'));
   bind(rows, (r) => {
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
@@ -339,14 +347,12 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its bind below runs before the
   // input's and the list's, so the list has grown to it by the time they read the highlight.
   const limit = observableState<{ of?: readonly Row[]; n: number }>({ n: Screenful });
-  const shown = combineLatest([rows, limit.asReadonly]).pipe(
-    map(([r, l]) => (r.length <= (l.of === r ? l.n : Screenful) ? r : r.slice(0, l.of === r ? l.n : Screenful))),
-    distinctUntilChanged((a, b) => a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1]),
+  const shown = derive(
+    [rows, limit.asReadonly],
+    (r, l) => (r.length <= (l.of === r ? l.n : Screenful) ? r : r.slice(0, l.of === r ? l.n : Screenful)),
+    (a, b) => a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1],
   );
-  const rest = combineLatest([rows, shown]).pipe(
-    map(([r, s]) => (r.length - s.length) * RowPx),
-    distinctUntilChanged(),
-  );
+  const rest = derive([rows, shown], (r, s) => (r.length - s.length) * RowPx);
   const grow = (n: number) => {
     const l = limit.value;
     const have = l.of === current ? l.n : Screenful;
@@ -359,42 +365,41 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   // A move of the highlight tells the two rows it concerns, not every row.
   const highlighted = keyedSelector(highlight.asReadonly);
   // The highlighted command is previewed and counted (commands.md §5): that row only; none once the menu closes.
-  bind(
-    combineLatest([highlight.asReadonly, rows]).pipe(
-      map(([h, r]) => {
-        const row = r.find((x) => x.kind === 'match' && x.index === h);
-        return row?.kind === 'match' && !row.match.preset && !row.tail && !row.match.blocked
-          ? row.match.command.id
-          : undefined;
-      }),
-      distinctUntilChanged(),
-    ),
+  effect(
+    derive([highlight.asReadonly, rows], (h, r) => {
+      const row = r.find((x) => x.kind === 'match' && x.index === h);
+      return row?.kind === 'match' && !row.match.preset && !row.tail && !row.match.blocked
+        ? row.match.command.id
+        : undefined;
+    }),
     (id) => manager.browse(id),
   );
   onCleanup(() => manager.browse(undefined));
   // The shared argument of the group being browsed (Select's mode), shown once under the input.
-  const shared = combineLatest([group.asReadonly, manager.groups]).pipe(
-    map(([g]) => {
-      const owner = [...manager.groupPath(g)].reverse().find((x) => x.shared);
-      return owner;
-    }),
-    distinctUntilChanged(),
+  const shared = derive([group.asReadonly, manager.groups], (g) =>
+    [...manager.groupPath(g)].reverse().find((x) => x.shared),
   );
-  const active = combineLatest([highlight.asReadonly, rows]).pipe(
-    map(([h, r]) => (r.some((x) => x.kind !== 'caption') ? optionId(h) : undefined)),
-    distinctUntilChanged(),
+  const active = derive([highlight.asReadonly, rows], (h, r) =>
+    r.some((x) => x.kind !== 'caption') ? optionId(h) : undefined,
   );
-  // What a search found, said once the typing pauses (the list itself is not live).
-  const found = combineLatest([query, rows]).pipe(
-    debounceTime(400),
-    map(([t, r]) => {
-      if (!t.trim()) return '';
-      const n = r.filter((x) => x.kind !== 'caption').length;
-      if (n) return n === 1 ? '1 result' : `${n} results`;
-      return props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.';
-    }),
-    distinctUntilChanged(),
-  );
+  // What a search found, said once the typing pauses (the list itself is not live): read 400 ms after the last change
+  // of the rows (they change with the query).
+  const found = observableState('');
+  let foundTimer: ReturnType<typeof setTimeout> | undefined;
+  const say = () => {
+    foundTimer = undefined;
+    const t = query.value;
+    if (!t.trim()) return found.set('');
+    let n = 0;
+    for (const x of rows.value) if (x.kind !== 'caption') n++;
+    if (n) return found.set(n === 1 ? '1 result' : `${n} results`);
+    found.set(props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.');
+  };
+  effect(rows, () => {
+    clearTimeout(foundTimer);
+    foundTimer = setTimeout(say, 400);
+  });
+  onCleanup(() => clearTimeout(foundTimer));
 
   const setText = (t: string) => {
     text.set(t);
@@ -506,7 +511,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         )}
       </Show>
       <span class={classes.srOnly} role="status" aria-live="polite">
-        {found}
+        {found.asReadonly}
       </span>
       <ScrollArea
         class={classes.list}
@@ -517,8 +522,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         viewportRef={(el) => {
           // Reads only (a scroll event, before anything is written): the rows down to two screens below the top.
           const more = () => grow(Math.ceil((el.scrollTop + 2 * el.clientHeight) / RowPx));
-          el.addEventListener('scroll', more, { passive: true });
-          onCleanup(() => el.removeEventListener('scroll', more));
+          on(el, 'scroll', more, { passive: true });
         }}
       >
         <For
@@ -560,8 +564,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
             );
           }}
         </For>
-        <Show when={rest.pipe(map((h) => h > 0))}>
-          {() => <div class={classes.rest} role="presentation" style={{ height: rest.pipe(map((h) => `${h}px`)) }} />}
+        <Show when={derive(rest, (h) => h > 0)}>
+          {() => <div class={classes.rest} role="presentation" style={{ height: derive(rest, (h) => `${h}px`) }} />}
         </Show>
       </ScrollArea>
       {props.assistant ? (
@@ -597,7 +601,12 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
  * The assistant, always at hand under the list (prism-assistant's _spec/README.md, "The Ask row"): it takes what is
  * typed (⌘↵, or ↵ when no command matches, which it then shows as the default); without a model it opens the setup.
  */
-function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Observable<boolean>; onAsk(): void }) {
+function AskBar(props: {
+  ready: boolean;
+  text: ReadonlyState<string>;
+  unmatched: ReadonlyState<boolean>;
+  onAsk(): void;
+}) {
   if (!props.ready)
     return (
       // Not set up: a quiet way to the setup, not an offer that competes with the commands.
@@ -610,15 +619,15 @@ function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Ob
     <button
       type="button"
       class={classes.ask}
-      data-default={props.unmatched.pipe(map((u) => (u ? '' : undefined)))}
+      data-default={derive(props.unmatched, (u) => (u ? '' : undefined))}
       onClick={() => props.onAsk()}
     >
       <Icon name="sparkles" size={15} class={classes.askIcon} />
       <span class={classes.askLabel}>Ask AI assistant</span>
       <span class={classes.askText}>
-        {props.text.pipe(map((t) => (t ? `“${t}”` : 'describe what you want, in your words')))}
+        {derive(props.text, (t) => (t ? `“${t}”` : 'describe what you want, in your words'))}
       </span>
-      <kbd class={classes.askKeys}>{props.unmatched.pipe(map((u) => (u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵')))}</kbd>
+      <kbd class={classes.askKeys}>{derive(props.unmatched, (u) => (u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵'))}</kbd>
     </button>
   );
 }
@@ -638,7 +647,7 @@ function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup
         <button
           type="button"
           class={classes.sharedOption}
-          aria-pressed={value.pipe(map((x) => (x === v ? 'true' : 'false')))}
+          aria-pressed={derive(value, (x) => (x === v ? 'true' : 'false'))}
           onClick={() => manager.setShared(group.id, v)}
         >
           {label}
@@ -870,7 +879,7 @@ function FormMode(props: {
   manager: CommandManager<any>;
   invocation: CommandInvocation<any>;
   /** Proposed by the assistant from these words. */
-  proposed?: Observable<string | undefined>;
+  proposed?: ReadonlyState<string | undefined>;
   onClose(): void;
   /** Opened for this command alone: leaving the form closes the menu. */
   direct?: boolean;
@@ -892,8 +901,8 @@ function FormMode(props: {
       aria-activedescendant={derive(state, (s) =>
         s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
       )}
-      aria-label={field.pipe(map((f) => f?.label ?? command.title))}
-      placeholder={field.pipe(map((f) => (f ? f.label : 'Enter to run')))}
+      aria-label={derive(field, (f) => f?.label ?? command.title)}
+      placeholder={derive(field, (f) => (f ? f.label : 'Enter to run'))}
       spellcheck={false}
       value={derive(state, (s) => s.text)}
       onInput={(e) => invocation.type(e.currentTarget.value)}
@@ -1033,31 +1042,25 @@ function FormMode(props: {
 }
 
 /** One argument in the sentence: its quiet before-word, then its value (or its name, until set). */
-function FieldToken(props: {
-  field: FormFieldView;
-  state: import('rxjs').Observable<InvocationState>;
-  onFocus(): void;
-}) {
+function FieldToken(props: { field: FormFieldView; state: ReadonlyState<InvocationState>; onFocus(): void }) {
   const { field } = props;
-  const value = props.state.pipe(
-    map((s) => {
-      const v = s.values[field.id];
-      if (v === undefined || v === '') return undefined;
-      return field.options?.find((o) => o.value === String(v))?.label ?? String(v);
-    }),
-  );
+  const value = derive(props.state, (s) => {
+    const v = s.values[field.id];
+    if (v === undefined || v === '') return undefined;
+    return field.options?.find((o) => o.value === String(v))?.label ?? String(v);
+  });
   return (
     <span class={classes.token}>
       {field.before ? <span class={classes.before}>{field.before}</span> : null}
       <button
         type="button"
         class={classes.value}
-        data-active={props.state.pipe(map((s) => (s.field === field.id ? '' : undefined)))}
-        data-missing={props.state.pipe(map((s) => (s.missing.includes(field.id) ? '' : undefined)))}
-        data-empty={value.pipe(map((v) => (v === undefined ? '' : undefined)))}
+        data-active={derive(props.state, (s) => (s.field === field.id ? '' : undefined))}
+        data-missing={derive(props.state, (s) => (s.missing.includes(field.id) ? '' : undefined))}
+        data-empty={derive(value, (v) => (v === undefined ? '' : undefined))}
         onClick={() => props.onFocus()}
       >
-        {value.pipe(map((v) => v ?? field.label))}
+        {derive(value, (v) => v ?? field.label)}
       </button>
     </span>
   );

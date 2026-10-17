@@ -8,24 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import {
-  combineLatest,
-  concat,
-  distinctUntilChanged,
-  map,
-  NEVER,
-  type Observable,
-  of,
-  scan,
-  shareReplay,
-  startWith,
-  switchMap,
-  tap,
-  timer,
-} from 'rxjs';
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { Show } from '../../dom/control-flow.js';
-import { bind } from '../../dom/scope.js';
+import { bind, effect, type MaybeReactive, onCleanup } from '../../dom/scope.js';
+import { observableState } from '../../reactive/observable-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/empty-canvas.module.css.js';
 import { type PrismFieldOptions, PrismSplash, type SplashKind } from './prism-splash.js';
 
@@ -49,7 +36,7 @@ type Phase = 'in' | 'out' | 'gone';
  * canvas.
  */
 export function EmptyCanvas(props: {
-  empty: Observable<boolean>;
+  empty: MaybeReactive<boolean>;
   /** The splash with the mark (on by default); its options, to tune it (the light's: they pick the light). */
   splash?: boolean | Partial<PrismFieldOptions>;
   /**
@@ -58,7 +45,7 @@ export function EmptyCanvas(props: {
    */
   field?: SplashKind | 'random';
   /** The viewer is working (a load, a task): the wait for the mark starts over while it is. */
-  busy?: Observable<boolean>;
+  busy?: MaybeReactive<boolean>;
   /**
    * Whether the canvas under it shows: false as the mark comes (the canvas had been empty and the viewer idle: it goes
    * quiet under the splash, its axes and all), true when something is in it (it comes in gradually). The host starts
@@ -66,26 +53,48 @@ export function EmptyCanvas(props: {
    */
   onCanvasShown?: (shown: boolean) => void;
 }) {
-  const phase = combineLatest([props.empty.pipe(distinctUntilChanged()), props.busy ?? of(false)]).pipe(
-    switchMap(
-      ([empty, busy]): Observable<Phase> =>
-        !empty
-          ? concat(of('out' as const), timer(FadeOut).pipe(map(() => 'gone' as const)))
-          : // Working: nothing changes (a shown mark stays; one not yet shown waits), and the wait starts over after.
-            busy
-            ? NEVER
-            : timer(Delay).pipe(map(() => 'in' as const)),
-    ),
-    startWith<Phase>('gone'),
-    // Fading out only what showed.
-    scan((prev: Phase, next: Phase): Phase => (next === 'out' && prev !== 'in' ? 'gone' : next)),
-    distinctUntilChanged(),
-    tap((p) => {
-      if (p === 'in') props.onCanvasShown?.(false);
-      else if (p === 'out') props.onCanvasShown?.(true);
-    }),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+  const phase = observableState<Phase>('gone');
+  // Fading out only what showed.
+  const step = (next: Phase) => {
+    const prev = phase.value;
+    const p = next === 'out' && prev !== 'in' ? 'gone' : next;
+    if (p === prev) return;
+    phase.set(p);
+    if (p === 'in') props.onCanvasShown?.(false);
+    else if (p === 'out') props.onCanvasShown?.(true);
+  };
+  // One timer at a time (the next phase it waits for); a change of `empty` or `busy` replaces it.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const after = (ms: number, next: Phase) => {
+    timer = setTimeout(() => {
+      timer = undefined;
+      step(next);
+    }, ms);
+  };
+  onCleanup(() => clearTimeout(timer));
+  let empty: boolean | undefined;
+  let busy = false;
+  const decide = () => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (empty === undefined) return;
+    if (!empty) {
+      step('out');
+      after(FadeOut, 'gone');
+    }
+    // Working: nothing changes (a shown mark stays; one not yet shown waits), and the wait starts over after.
+    else if (!busy) after(Delay, 'in');
+  };
+  effect(props.empty, (e) => {
+    if (e === empty) return;
+    empty = e;
+    decide();
+  });
+  if (props.busy !== undefined)
+    effect(props.busy, (b) => {
+      busy = b;
+      decide();
+    });
   // Something in the canvas: it shows (the first load of a page that starts with one, without the mark first).
   if (props.onCanvasShown) bind(props.empty, (empty) => !empty && props.onCanvasShown?.(true));
   const splash = props.splash ?? true;
@@ -96,14 +105,14 @@ export function EmptyCanvas(props: {
     return f === 'random' ? (Math.random() < QuantumShare ? 'quantum' : 'light') : f;
   };
   return (
-    <Show when={phase.pipe(map((p) => p !== 'gone'))}>
+    <Show when={derive(phase.asReadonly, (p) => p !== 'gone')}>
       {() => {
         // The word alone: with the splash, its star is the prism.
         const mark = (
           <MolstarWordmark scale={3} flash="reveal" live={!splash} prism={!splash} class={classes.mark} />
         ) as Element;
         return (
-          <div class={classes.empty} data-phase={phase}>
+          <div class={classes.empty} data-phase={phase.asReadonly}>
             {splash ? (
               <div class={classes.splash}>
                 <PrismSplash

@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { type ContextMenuItem, openContextMenu } from '../../components/context-menu/context-menu.js';
 import { Icon } from '../../components/icon/icon.js';
@@ -17,9 +16,12 @@ import { activity, For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { deepActiveElement, focusFirstItem, menuKeys, rememberFocus, rovingTabs, uniqueId } from '../../dom/focus.js';
 import { effect, frameState, onCleanup } from '../../dom/scope.js';
-import { on } from '../../dom/scoped.js';
+import { drag, on } from '../../dom/scoped.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { type KeyedSelector, keyedSelector } from '../../reactive/keyed-selector.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { sameShallow } from '../../reactive/same-shallow.js';
+import { derive } from '../../reactive/state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
@@ -27,8 +29,53 @@ import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
-import { derive } from '../../reactive/state.js';
-import { sameShallow } from '../../reactive/same-shallow.js';
+/** What the views of a dock read of its state: one derived value each, shared by them all. */
+export interface DockFacets {
+  /** Its size, px. */
+  readonly size: ReadonlyState<number>;
+  /** Its size as the `--msp-dock-size` value. */
+  readonly sizePx: ReadonlyState<string>;
+  readonly pinned: ReadonlyState<boolean>;
+  readonly floating: ReadonlyState<boolean>;
+  /**
+   * Which tab shows selected (the open one; none while an overlay card takes the right panel's place): a tab's button
+   * follows its own key (a switch tells the two tabs it concerns, not every tab).
+   */
+  readonly selected: KeyedSelector<string | undefined>;
+}
+
+const Facets = new WeakMap<DockModel, DockFacets>();
+
+/**
+ * The dock's facets (view-models.md §3, the narrowest source): a change of the dock's state (a drag's size, another tab)
+ * wakes each facet once, not once a view that reads it; made once a dock.
+ */
+export function dockFacets(shell: ShellModel, dock: DockModel): DockFacets {
+  let f = Facets.get(dock);
+  if (f) return f;
+  // One gate for what the layout reads (a switch of tabs changes the dock's state, not its layout).
+  const layout = derive(
+    dock.state,
+    (s) => s,
+    (a, b) => a.size === b.size && a.pinned === b.pinned && a.floating === b.floating,
+  );
+  const size = derive(layout, (s) => s.size);
+  // An overlay card in the right panel's place replaces it: no tab there shows selected, and a click brings the tab back.
+  const open =
+    dock.id === 'right'
+      ? derive([dock.state, shell.overlay], (s, o) => (o || s.collapsed ? undefined : s.active))
+      : derive(dock.state, (s) => (s.collapsed ? undefined : s.active));
+  f = {
+    size,
+    sizePx: derive(size, (px) => `${px}px`),
+    pinned: derive(layout, (s) => s.pinned),
+    floating: derive(layout, (s) => s.floating),
+    selected: keyedSelector(open),
+  };
+  Facets.set(dock, f);
+  return f;
+}
+
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
 export function DockView(props: {
   shell: ShellModel;
@@ -40,13 +87,11 @@ export function DockView(props: {
   const hasTabs = derive(dock.tabs, (tabs) => tabs.length > 0);
   const compact = derive(shell.mode, (m) => m === 'compact' && dock.id === 'right');
   // Compact: only the tabs that ask for the bar (the rest are under More); elsewhere all of them.
-  const compactTabs = combineLatest([dock.tabs, compact]).pipe(
-    map(([tabs, c]) => (c && tabs.some((t) => t.compactBar) ? tabs.filter((t) => t.compactBar) : tabs)),
+  const compactTabs = derive([dock.tabs, compact], (tabs, c) =>
+    c && tabs.some((t) => t.compactBar) ? tabs.filter((t) => t.compactBar) : tabs,
   );
   // A top or bottom dock with one tab needs no strip: its content collapses itself, and a slim bar expands it.
-  const showStrip = horizontal
-    ? derive([dock.tabs, dock.active], (tabs, active) => tabs.length > 1 && !!active)
-    : of(true);
+  const showStrip = horizontal ? derive([dock.tabs, dock.active], (tabs, active) => tabs.length > 1 && !!active) : true;
   const panelId = uniqueId('msp-panel');
   let pinned: HTMLElement | undefined;
   return (
@@ -55,7 +100,7 @@ export function DockView(props: {
         <div
           class={`${classes.dock} ${classes[dock.id]}`}
           classList={{ [classes.compact]: compact }}
-          style={{ '--msp-dock-size': derive(dock.state, (s) => `${s.size}px`) }}
+          style={{ '--msp-dock-size': dockFacets(shell, dock).sizePx }}
           ref={(el) => {
             pinned = el;
           }}
@@ -76,7 +121,7 @@ export function DockView(props: {
                 <div
                   role="tablist"
                   aria-label="Panels"
-                  aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
+                  aria-orientation={derive(compact, (c) => (c || horizontal ? 'horizontal' : 'vertical'))}
                   style="display: contents"
                   ref={(el) => onCleanup(rovingTabs(el))}
                 >
@@ -109,26 +154,21 @@ export function FloatingDock(props: {
   railFoot?: (rail: RailLayout) => Child;
 }) {
   const { shell, dock } = props;
-  const size = { '--msp-dock-size': derive(dock.state, (s) => `${s.size}px`) };
+  const size = { '--msp-dock-size': dockFacets(shell, dock).sizePx };
   // What does not fit the rail's height, even at its smallest size, is under More (rail.ts).
   const rail = new RailLayout(shell, dock);
   // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the command menu).
-  const shown = combineLatest([dock.tabs, rail.hidden]).pipe(
-    map(([tabs, hidden]) => (hidden.size ? tabs.filter((t) => !hidden.has(`tab:${t.id}`)) : tabs)),
+  const shown = derive([dock.tabs, rail.hidden], (tabs, hidden) =>
+    hidden.size ? tabs.filter((t) => !hidden.has(`tab:${t.id}`)) : tabs,
   );
   // The same tabs in a new array are no change (a layout change that moves no tab renders none of them again).
-  const head = shown.pipe(
-    map((tabs) => tabs.filter((t) => t.place === 'head')),
-    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
+  const head = derive(shown, (tabs): readonly ShellTab[] => tabs.filter((t) => t.place === 'head'), sameShallow);
+  const strip = derive(
+    shown,
+    (tabs): readonly ShellTab[] => tabs.filter((t) => !t.place || t.place === 'strip'),
+    sameShallow,
   );
-  const strip = shown.pipe(
-    map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')),
-    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
-  );
-  const foot = shown.pipe(
-    map((tabs) => tabs.filter((t) => t.place === 'foot')),
-    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
-  );
+  const foot = derive(shown, (tabs): readonly ShellTab[] => tabs.filter((t) => t.place === 'foot'), sameShallow);
   const panelId = uniqueId('msp-panel');
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
@@ -157,7 +197,7 @@ export function FloatingDock(props: {
         }}
       >
         {props.railLead}
-        <Show when={head.pipe(map((tabs) => tabs.length > 0))}>
+        <Show when={derive(head, (tabs) => tabs.length > 0)}>
           {() => (
             <div
               class={classes.strip}
@@ -170,7 +210,7 @@ export function FloatingDock(props: {
             </div>
           )}
         </Show>
-        <Show when={strip.pipe(map((tabs) => tabs.length > 0))}>
+        <Show when={derive(strip, (tabs) => tabs.length > 0)}>
           {() => (
             <div
               class={classes.strip}
@@ -186,7 +226,7 @@ export function FloatingDock(props: {
         {props.railItems?.(rail)}
         <RailMore shell={shell} dock={dock} rail={rail} root={() => root} />
         <div class={classes.railFoot}>
-          <Show when={foot.pipe(map((tabs) => tabs.length > 0))}>
+          <Show when={derive(foot, (tabs) => tabs.length > 0)}>
             {() => (
               <div
                 class={classes.strip}
@@ -228,7 +268,7 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
   const { rail } = props;
   const menu = rail.menu;
   return (
-    <Show when={rail.overflow.pipe(map((o) => o.length > 0))}>
+    <Show when={derive(rail.overflow, (o) => o.length > 0)}>
       {() => {
         // Gone (the rail grew): the menu is closed, it does not come back open.
         onCleanup(() => menu.set(undefined));
@@ -264,8 +304,8 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
   const { shell, dock, rail } = props;
   const menu = rail.menu;
   // Open only while there is something in it (More's: the rail grew, nothing is left out).
-  const open = combineLatest([menu.asReadonly, rail.overflow]).pipe(
-    map(([m, o]) => (m && (m.item ? m.item.menu?.length : o.length > 0) ? m : undefined)),
+  const open = derive([menu.asReadonly, rail.overflow], (m, o) =>
+    m && (m.item ? m.item.menu?.length : o.length > 0) ? m : undefined,
   );
   const run = (entry: RailEntry, anchor: Element) => {
     menu.set(undefined);
@@ -288,12 +328,8 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
     if (isInside(e, m.anchor) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
     menu.set(undefined);
   };
-  document.addEventListener('keydown', onKey);
-  document.addEventListener('pointerdown', onDown);
-  onCleanup(() => {
-    document.removeEventListener('keydown', onKey);
-    document.removeEventListener('pointerdown', onDown);
-  });
+  on(document, 'keydown', onKey);
+  on(document, 'pointerdown', onDown);
   return (
     <Show when={open}>
       {(m) => {
@@ -393,12 +429,7 @@ function openTabMenu(shell: ShellModel, tab: ShellTab, button: HTMLElement, at?:
 /** A panel's tab: one of a tab list (`rovingTabs`: one Tab stop, the arrows between tabs); it controls the dock's panel. */
 function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; panel: string }) {
   const { shell, dock, tab } = props;
-  // An overlay card in the right panel's place replaces it: no tab there shows selected, and a click brings the tab back.
-  const covered = dock.id === 'right' ? derive(shell.overlay, (o) => !!o) : of(false);
-  const selected = combineLatest([dock.state, covered]).pipe(
-    map(([s, c]) => !c && !s.collapsed && s.active === tab.id),
-    distinctUntilChanged(),
-  );
+  const selected = dockFacets(shell, dock).selected.key(tab.id);
   return (
     <button
       type="button"
@@ -444,7 +475,7 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
           class={classes.pin}
           icon={<Icon name="pin" />}
           title="Pin beside the canvas"
-          pressed={derive(dock.state, (s) => s.pinned)}
+          pressed={dockFacets(shell, dock).pinned}
           onClick={() => shell.setPinned(props.dock, !dock.state.value.pinned)}
         />
       )}
@@ -554,15 +585,12 @@ function DockContent(props: {
 function Splitter(props: { shell: ShellModel; dock: DockModel }) {
   const { shell, dock } = props;
   const sign = dock.id === 'left' ? 1 : -1;
-  let startX = 0;
-  let startSize = 0;
-  let dragging = false;
   // A drag's size in the frame lane (rendering.md §2.3): pointer events come several a frame, the layout once.
   const dragged = frameState(-1);
   effect(dragged, (size) => {
     if (size >= 0) shell.setSize(dock.id, size);
   });
-  const onMove = (e: PointerEvent) => dragged.offer(startSize + sign * (e.clientX - startX));
+  let press: { readonly active: boolean } | undefined;
   return (
     <div
       class={classes.splitter}
@@ -571,7 +599,7 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       // From the keyboard too (WAI-ARIA's window splitter): ← and → resize by 16 px (64 with Shift).
       tabIndex={0}
       aria-label="Panel width"
-      aria-valuenow={derive(dock.state, (s) => Math.round(s.size))}
+      aria-valuenow={derive(dockFacets(shell, dock).size, Math.round)}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
         e.preventDefault();
@@ -580,32 +608,24 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       }}
       onPointerEnter={(e) => e.currentTarget.setAttribute('data-active', '')}
       onPointerLeave={(e) => {
-        if (!dragging) e.currentTarget.removeAttribute('data-active');
-      }}
-      onPointerDown={(e) => {
-        const el = e.currentTarget;
-        startX = e.clientX;
-        startSize = dock.state.value.size;
-        dragging = true;
-        el.setPointerCapture(e.pointerId);
-        el.setAttribute('data-active', '');
+        if (!press?.active) e.currentTarget.removeAttribute('data-active');
       }}
       ref={(el: HTMLElement) => {
-        // The drag's listeners, attached once and scoped (dom/scoped.ts): they act while a drag is on.
-        const end = (u: PointerEvent) => {
-          if (!dragging) return;
-          dragging = false;
-          if (el.hasPointerCapture(u.pointerId)) el.releasePointerCapture(u.pointerId);
-          const r = el.getBoundingClientRect();
-          const over = u.clientX >= r.left && u.clientX <= r.right && u.clientY >= r.top && u.clientY <= r.bottom;
-          if (!over || u.type !== 'pointerup') el.removeAttribute('data-active');
-        };
-        on(el, 'pointermove', (m: PointerEvent) => {
-          if (dragging) onMove(m);
+        // The drag (dom/scoped.ts `drag`): its listeners attached once, every way it ends ends it.
+        press = drag(el, {
+          start: (e) => {
+            el.setAttribute('data-active', '');
+            return { x: e.clientX, size: dock.state.value.size };
+          },
+          move: (e, s) => dragged.offer(s.size + sign * (e.clientX - s.x)),
+          end: (_s, how, u) => {
+            if (how === 'up' && u) {
+              const r = el.getBoundingClientRect();
+              if (u.clientX >= r.left && u.clientX <= r.right && u.clientY >= r.top && u.clientY <= r.bottom) return;
+            }
+            el.removeAttribute('data-active');
+          },
         });
-        on(el, 'pointerup', end);
-        on(el, 'pointercancel', end);
-        on(el, 'lostpointercapture', end);
       }}
       onDblClick={() => shell.setSize(dock.id, dock.id === 'left' ? 300 : 340)}
     />
