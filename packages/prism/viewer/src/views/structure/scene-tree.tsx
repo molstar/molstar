@@ -30,7 +30,8 @@ import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
-import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { type KeyedSelector, keyedSelector } from '@molstar/prism-ui/reactive/keyed-selector';
+import { type KeyedState, keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 
 /**
@@ -120,7 +121,10 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
   );
 
   const rows = observableState<readonly Row[]>([]);
-  const states = observableState<ReadonlyMap<string, RowState>>(new Map());
+  // The rows' places and open states, by row key: a row listens to its own (view-models.md §3), so a reflow wakes only
+  // the rows whose place changed; and the picked node, told to the two rows a pick concerns.
+  const states = keyedState<string, RowState>(samePlace);
+  const picked = keyedSelector(scene.picked);
   const keep = keepRows<Row>((r) => r.key, sameRow);
   // Long lists shown whole (Show all), until closed; the nodes open at the last flattening (a node opening loads).
   const showAll = new Set<SceneNode>();
@@ -205,7 +209,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
       watched.delete(n);
     }
     batch(() => {
-      states.set(st);
+      states.replace(st);
       rows.set(keep(out));
     });
   };
@@ -296,12 +300,14 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
         {(row) => {
           switch (row.kind) {
             case 'node':
-              return <TreeItem scene={scene} node={row.node} depth={row.depth} states={states.asReadonly} nav={nav} />;
+              return (
+                <TreeItem scene={scene} node={row.node} depth={row.depth} states={states} picked={picked} nav={nav} />
+              );
             case 'more':
               return (
                 <MoreRow
                   row={row}
-                  states={states.asReadonly}
+                  states={states}
                   nav={nav}
                   onShowAll={() => {
                     showAll.add(row.node);
@@ -310,7 +316,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
                 />
               );
             case 'loading':
-              return <LoadingRow row={row} states={states.asReadonly} nav={nav} />;
+              return <LoadingRow row={row} states={states} nav={nav} />;
             case 'row':
               return (
                 <ExtensionRow
@@ -318,7 +324,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
                   shell={shell!}
                   node={row.node}
                   depth={row.depth}
-                  states={states.asReadonly}
+                  states={states}
                   register={nav.row(row.key)}
                 />
               );
@@ -363,8 +369,11 @@ function searchHits(
   return hits;
 }
 
-/** The rows' places and open states, by key: a row reads its own (`states.value.get(key)`) when it renders. */
-type RowStates = ReadonlyState<ReadonlyMap<string, RowState>>;
+/** The rows' places and open states, by key: a row follows its own (`states.key(key)`). */
+type RowStates = KeyedState<string, RowState>;
+
+const samePlace = (a: RowState, b: RowState) =>
+  a.posinset === b.posinset && a.setsize === b.setsize && a.expanded === b.expanded;
 
 /** A row's place among its siblings (and its open state, if it opens), written by its render. */
 function writePlace(el: Element, s: RowState | undefined) {
@@ -383,6 +392,7 @@ function TreeItem(props: {
   node: SceneNode;
   depth: number;
   states: RowStates;
+  picked: KeyedSelector<SceneNode | undefined>;
   nav: TreeNavigation<Row>;
 }) {
   const { scene, node, depth, states } = props;
@@ -491,7 +501,10 @@ function TreeItem(props: {
       </Show>
     </div>
   ) as HTMLElement;
-  const sources: WatchSource[] = [node.label, node.description, node.isHidden, scene.picked, states];
+  // Its own keys of the shared states: a pick tells two rows, a reflow the rows whose place changed.
+  const place = states.key(node.id);
+  const isPicked = props.picked.key(node);
+  const sources: WatchSource[] = [node.label, node.description, node.isHidden, isPicked, place];
   if (node.swatch) sources.push(node.swatch);
   if (menu) sources.push(menuOpen);
   // What the last render wrote, by source: a render that runs for one source's change compares the others' values here,
@@ -525,13 +538,13 @@ function TreeItem(props: {
         eyeShown = icon;
       }
     }
-    const picked = scene.picked.value === node;
+    const picked = isPicked.value;
     if (picked !== lastPicked) {
       lastPicked = picked;
       setAttr(el, 'aria-selected', picked ? 'true' : 'false');
       setClass(line, classes.picked, picked);
     }
-    const s = states.value.get(node.id);
+    const s = place.value;
     const was = lastPlace as RowState | undefined;
     if (
       lastPlace === NotYet ||
@@ -573,7 +586,8 @@ function LoadingRow(props: { row: Extract<Row, { kind: 'loading' }>; states: Row
       </div>
     </div>
   ) as HTMLElement;
-  watch([states], () => writePlace(el, states.value.get(row.key)));
+  const place = states.key(row.key);
+  watch([place], () => writePlace(el, place.value));
   return el;
 }
 
@@ -600,7 +614,8 @@ function MoreRow(props: {
       </button>
     </div>
   ) as HTMLElement;
-  watch([states], () => writePlace(el, states.value.get(row.key)));
+  const place = states.key(row.key);
+  watch([place], () => writePlace(el, place.value));
   return el;
 }
 
@@ -631,9 +646,10 @@ function ExtensionRow(props: {
   item()?.removeAttribute('aria-expanded');
   item()?.setAttribute('aria-level', String(props.depth + 1));
   const key = `${props.node.id}::row:${props.section.id}`;
-  watch([props.states], () => {
+  const place = props.states.key(key);
+  watch([place], () => {
     const el = item();
-    const s = props.states.value.get(key);
+    const s = place.value;
     if (el && s) writePlace(el, s);
   });
   props.register(host);

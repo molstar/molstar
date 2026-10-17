@@ -27,7 +27,7 @@ export type Listener<T> = (value: T) => void;
  * The listeners of a state or a derived value: a plain array, removals leave a hole (cleared when the next delivery
  * ends), so a listener removed or added while others are told is safe.
  */
-abstract class Listened<T> extends Observable<T> {
+export abstract class Listened<T> extends Observable<T> {
   #listeners: (Listener<T> | undefined)[] | undefined;
   #holes = 0;
   #telling = 0;

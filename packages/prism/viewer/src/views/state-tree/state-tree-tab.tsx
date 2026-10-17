@@ -18,7 +18,8 @@ import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import { ScrollArea } from '@molstar/prism-ui';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
 import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
-import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { type KeyedSelector, keyedSelector } from '@molstar/prism-ui/reactive/keyed-selector';
+import { type KeyedState, keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { ActionBlock } from '../home/home-tab.js';
 import { classes as tree } from '../structure/_generated/scene-tree.module.css.js';
 import { classes as tab } from '../structure/_generated/structure-tab.module.css.js';
@@ -31,8 +32,18 @@ interface CellRow {
   readonly depth: number;
 }
 
-/** Each shown cell's place among its siblings (`aria-posinset`, `aria-setsize`), by ref. */
-type Places = ReadonlyMap<string, { readonly posinset: number; readonly setsize: number }>;
+/** A shown cell's place among its siblings (`aria-posinset`, `aria-setsize`) and, if it opens, whether it is open. */
+interface Place {
+  readonly posinset: number;
+  readonly setsize: number;
+  readonly expanded?: boolean;
+}
+
+/** The shown cells' places by ref: a cell follows its own (view-models.md §3), so a reflow wakes only those that moved. */
+type Places = KeyedState<string, Place>;
+
+const samePlace = (a: Place, b: Place) =>
+  a.posinset === b.posinset && a.setsize === b.setsize && a.expanded === b.expanded;
 
 /**
  * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with the updates, the
@@ -62,7 +73,9 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     (a, b) => a.node === b.node && a.depth === b.depth,
   );
   const rows = observableState<readonly CellRow[]>([]);
-  const places = observableState<Places>(new Map());
+  const places = keyedState<string, Place>(samePlace);
+  // The selected cell, told to the two rows a selection concerns.
+  const selected = keyedSelector(model.selected);
   const flat = derive([model.roots, collapsed.asReadonly], (roots, c) =>
     flattenTree(
       roots,
@@ -85,10 +98,16 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
     collapsed.set(next);
   };
   bind(flat, (all) => {
-    const p = new Map<string, { posinset: number; setsize: number }>();
-    for (const r of all) p.set(r.node.ref, { posinset: r.posinset, setsize: r.setsize });
+    const p = new Map<string, Place>();
+    const c = collapsed.value;
+    for (const r of all)
+      p.set(r.node.ref, {
+        posinset: r.posinset,
+        setsize: r.setsize,
+        ...(r.node.children?.length ? { expanded: !c.has(r.node.ref) } : {}),
+      });
     batch(() => {
-      places.set(p);
+      places.replace(p);
       rows.set(keep(all));
     });
   });
@@ -112,15 +131,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
           }}
         >
           {(row) => (
-            <Cell
-              model={model}
-              row={row}
-              places={places.asReadonly}
-              collapsed={collapsed.asReadonly}
-              nav={nav}
-              toggle={toggle}
-              open={open}
-            />
+            <Cell model={model} row={row} places={places} selected={selected} nav={nav} toggle={toggle} open={open} />
           )}
         </VirtualList>
       </div>
@@ -148,13 +159,13 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
 function Cell(props: {
   model: StateTreeModel;
   row: CellRow;
-  places: ReadonlyState<Places>;
-  collapsed: ReadonlyState<ReadonlySet<string>>;
+  places: Places;
+  selected: KeyedSelector<string | undefined>;
   nav: TreeNavigation<CellRow>;
   toggle: (ref: string) => void;
   open: (ref: string, block: string) => void;
 }) {
-  const { model, row, collapsed, places } = props;
+  const { model, row } = props;
   const { node, depth } = row;
   const hasChildren = !!node.children?.length;
   const menuOpen = observableState(false);
@@ -252,13 +263,16 @@ function Cell(props: {
       </Show>
     </div>
   ) as HTMLElement;
-  watch([places, collapsed, model.selected, menuOpen], () => {
-    const p = places.value.get(node.ref);
+  // Its own keys of the tree's states: a selection tells two cells, a reflow the cells that moved.
+  const place = props.places.key(node.ref);
+  const isSelected = props.selected.key(node.ref);
+  watch([place, isSelected, menuOpen], () => {
+    const p = place.value;
     setAttr(el, 'aria-posinset', p?.posinset);
     setAttr(el, 'aria-setsize', p?.setsize);
     // A leaf has no `aria-expanded` (the pattern's end node).
-    if (hasChildren) setAttr(el, 'aria-expanded', String(!collapsed.value.has(node.ref)));
-    const selected = model.selected.value === node.ref;
+    if (hasChildren) setAttr(el, 'aria-expanded', String(p?.expanded ?? true));
+    const selected = isSelected.value;
     setAttr(el, 'aria-selected', String(selected));
     setClass(line, tree.picked, selected);
     const open = menuOpen.value;

@@ -17,6 +17,7 @@ import type { KeptRecordsHomeModel } from '../../model/home.js';
 import { classes } from './_generated/kept-records.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { keyedSelector } from '@molstar/prism-ui/reactive/keyed-selector';
 // Home's kept records (journal.md §3, "After a reload"): the records kept in earlier sessions, newest first, each its
 // title and when it was written; a click opens it in History, read-only, beside whatever is loaded; Forget asks once on
 // its row. Listed only while Home shows; with none, nothing.
@@ -47,6 +48,7 @@ export function KeptRecordsList(props: { model: KeptRecordsHomeModel }) {
   onCleanup(() => stop?.());
   // The row asking "Forget?" (one at a time).
   const asking = observableState<string | undefined>(undefined);
+  const askingKey = keyedSelector(asking.asReadonly);
   return (
     <Show when={derive(model.list, (l) => l.length > 0)}>
       {() => (
@@ -55,7 +57,7 @@ export function KeptRecordsList(props: { model: KeptRecordsHomeModel }) {
           <div class={classes.listContent} role="list">
             <For each={model.list} key={(r) => r.id}>
               {(r) => {
-                const isAsking = derive(asking.asReadonly, (id) => id === r.id);
+                const isAsking = askingKey.key(r.id);
                 return (
                   <div class={classes.record} role="listitem">
                     <button

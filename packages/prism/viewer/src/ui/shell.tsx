@@ -40,7 +40,18 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { combineLatest, debounceTime, distinctUntilChanged, map, type Observable, of, shareReplay, skip, switchMap, timer } from 'rxjs';
+import {
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  type Observable,
+  of,
+  shareReplay,
+  skip,
+  switchMap,
+  timer,
+} from 'rxjs';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard } from './export-card.js';

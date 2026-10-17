@@ -21,6 +21,7 @@ export { render } from './dom/render.js';
 export * from './reactive/combine-behaviors.js';
 export * from './reactive/disposable-group.js';
 export * from './reactive/keyed-selector.js';
+export * from './reactive/keyed-state.js';
 export * from './reactive/map-state.js';
 export * from './reactive/observable-state.js';
 export * from './reactive/readonly-state.js';

@@ -22,6 +22,7 @@ import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsM
 import { classes } from './_generated/playback.module.css.js';
 
 import { derive } from '../../reactive/state.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 /** Up to this many snapshots, the position shows as dots; past it, as "n / N" opening a list of titles. */
 const MaxDots = 7;
 
@@ -352,6 +353,7 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
     const q = f.trim().toLowerCase();
     return titles.map((title, index) => ({ title, index })).filter((r) => !q || r.title.toLowerCase().includes(q));
   });
+  const current = keyedSelector(model.index);
   return (
     <div class={classes.list}>
       <Show when={derive(model.count, (c) => c > 12)}>
@@ -367,13 +369,14 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
         )}
       </Show>
       <ScrollArea class={classes.listRows} contentClass={classes.listRowsContent} role="listbox" aria-label="Snapshots">
+        {/* The current one, told to the two rows it moves between (view-models.md §3). */}
         <For each={rows} key={(r) => r.index}>
           {(r) => (
             <button
               type="button"
               role="option"
               class={classes.listRow}
-              aria-selected={derive(model.index, (i) => i === r.index)}
+              aria-selected={current.key(r.index)}
               onClick={() => {
                 model.goTo(r.index);
                 props.onClose();

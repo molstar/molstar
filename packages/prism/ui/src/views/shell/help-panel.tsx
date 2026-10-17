@@ -22,6 +22,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/help-panel.module.css.js';
 
 import { derive } from '../../reactive/state.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 /** A mouse or touch binding, as the Help card lists it: what it does, and the input (keys and a gesture). */
 export interface InputBinding {
   action: string;
@@ -65,6 +66,7 @@ export function HelpPanel(props: {
   const editing = observableState(false);
   /** The command whose new key is being recorded. */
   const recording = observableState<string | undefined>(undefined);
+  const recordingKey = keyedSelector(recording.asReadonly);
   /** What the last change did, said once (a polite live region). */
   const said = observableState('');
   // What is listed: commands with a key, those the person remapped or cleared (to reset them), the one being recorded.
@@ -123,7 +125,7 @@ export function HelpPanel(props: {
                 manager={manager}
                 command={c}
                 editing={editing.asReadonly}
-                recording={derive(recording.asReadonly, (r) => r === c.id)}
+                recording={recordingKey.key(c.id)}
                 onRecord={() => recording.set(c.id)}
                 onRecorded={(chord) => (chord ? record(c, chord) : recording.set(undefined))}
                 onChanged={(text) => said.set(text)}

@@ -6,66 +6,119 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Observable, type Subscription } from 'rxjs';
-import type { Listenable } from './listen.js';
+import type { Observable, Subscription } from 'rxjs';
+import type { ReadonlyState } from './readonly-state.js';
+import { Listened } from './state.js';
+
+/** A keyed value: a state (`value`, `listen`, an Observable when subscribed) told only when its key's value changes. */
+export type KeyedValue<T> = ReadonlyState<T> & { listen(fn: (value: T) => void): () => void };
 
 /**
- * Whether a key is the current one (the selected row of thousands): `is(key)` emits true or false, and a change of the
- * current value notifies only the two keys it concerns, not every row (`source.pipe(map((s) => s === key))` per row
- * would run every row's map on each change). `key(key)` is the same for `watch` (rendering.md §2): a source that tells
- * that key's row when it becomes or stops being the current one (the row reads the current value itself), so a move
- * renders two rows, not all of them. One upstream subscription, while anything listens.
+ * Whether a key is the current one (the picked row of thousands; view-models.md §3: a row never listens to a whole
+ * shared value it cares about one key of). `key(k)` is a state of whether `k` is current, told only when `k` becomes
+ * or stops being it: a change of the current value tells the two keys it concerns, not every row. Follows its source
+ * by `listen` when it is a state (no rxjs on that path), else by one subscription; either only while a key is listened.
  */
-export function keyedSelector<K>(source: Observable<K>): {
-  is(key: K): Observable<boolean>;
-  key(key: K): Listenable;
-} {
-  const listeners = new Map<K, Set<() => void>>();
-  let current: K | undefined;
-  let has = false;
-  let upstream: Subscription | undefined;
-  let count = 0;
-  const notify = (key: K | undefined) => {
-    if (key === undefined && !has) return;
-    const set = listeners.get(key as K);
-    if (set) for (const fn of set) fn();
+export class KeyedSelector<K> {
+  readonly #source: Observable<K> | ReadonlyState<K>;
+  readonly #flags = new Map<K, Set<KeyFlag<K>>>();
+  #listened = 0;
+  #current: K | undefined;
+  #has = false;
+  #stop: (() => void) | Subscription | undefined;
+
+  constructor(source: Observable<K> | ReadonlyState<K>) {
+    this.#source = source;
+  }
+
+  /** Whether `k` is the current value now. */
+  isCurrent(k: K): boolean {
+    if (this.#has) return Object.is(this.#current, k);
+    const s = this.#source as Partial<ReadonlyState<K>>;
+    return 'value' in s ? Object.is(s.value, k) : false;
+  }
+
+  /** Whether `k` is current, as a state told only when that changes (for `watch`, `bind`, `derive`). */
+  key(k: K): KeyedValue<boolean> {
+    return new KeyFlag(this, k);
+  }
+
+  /** The same as a stream (it replays whether `k` is current). */
+  is(k: K): Observable<boolean> {
+    return this.key(k);
+  }
+
+  readonly #changed = (v: K) => {
+    if (this.#has && Object.is(v, this.#current)) return;
+    const previous = this.#current;
+    const had = this.#has;
+    this.#current = v;
+    this.#has = true;
+    if (had) this.#tell(previous as K);
+    this.#tell(v);
   };
-  const add = (key: K, fn: () => void) => {
-    let set = listeners.get(key);
-    if (!set) listeners.set(key, (set = new Set()));
-    set.add(fn);
-    if (count++ === 0) {
-      upstream = source.subscribe((v) => {
-        if (has && v === current) return;
-        const previous = current;
-        const hadPrevious = has;
-        current = v;
-        has = true;
-        if (hadPrevious) notify(previous);
-        notify(v);
-      });
-    }
-    return () => {
-      set!.delete(fn);
-      if (set!.size === 0) listeners.delete(key);
-      if (--count === 0) {
-        upstream?.unsubscribe();
-        upstream = undefined;
-        has = false;
-      }
-    };
-  };
-  return {
-    is(key) {
-      return new Observable<boolean>((subscriber) => {
-        // A wrapper per subscriber: a set keeps each once.
-        const stop = add(key, () => subscriber.next(has && current === key));
-        subscriber.next(has && current === key);
-        return stop;
-      });
-    },
-    key(key) {
-      return { listen: (fn) => add(key, () => fn()) };
-    },
-  };
+
+  #tell(k: K) {
+    const set = this.#flags.get(k);
+    if (set) for (const f of [...set]) f.changed();
+  }
+
+  /** @internal */
+  attach(flag: KeyFlag<K>) {
+    let set = this.#flags.get(flag.k);
+    if (!set) this.#flags.set(flag.k, (set = new Set()));
+    set.add(flag);
+    if (this.#listened++ > 0) return;
+    const s = this.#source as Partial<ReadonlyState<K>> & Observable<K>;
+    if (typeof s.listen === 'function' && 'value' in s) {
+      this.#current = s.value as K;
+      this.#has = true;
+      this.#stop = s.listen(this.#changed);
+    } else this.#stop = s.subscribe(this.#changed);
+  }
+
+  /** @internal */
+  detach(flag: KeyFlag<K>) {
+    const set = this.#flags.get(flag.k);
+    if (!set?.delete(flag)) return;
+    if (set.size === 0) this.#flags.delete(flag.k);
+    if (--this.#listened > 0) return;
+    const stop = this.#stop;
+    this.#stop = undefined;
+    this.#has = false;
+    this.#current = undefined;
+    if (typeof stop === 'function') stop();
+    else stop?.unsubscribe();
+  }
+}
+
+class KeyFlag<K> extends Listened<boolean> implements KeyedValue<boolean> {
+  #last = false;
+  constructor(
+    readonly selector: KeyedSelector<K>,
+    readonly k: K,
+  ) {
+    super();
+  }
+  get value(): boolean {
+    return this.selector.isCurrent(this.k);
+  }
+  changed() {
+    const v = this.value;
+    if (v === this.#last) return;
+    this.#last = v;
+    this.tell(v);
+  }
+  protected override onFirst() {
+    this.selector.attach(this);
+    this.#last = this.value;
+  }
+  protected override onLast() {
+    this.selector.detach(this);
+  }
+}
+
+/** A `KeyedSelector` over `source`. */
+export function keyedSelector<K>(source: Observable<K> | ReadonlyState<K>): KeyedSelector<K> {
+  return new KeyedSelector(source);
 }
