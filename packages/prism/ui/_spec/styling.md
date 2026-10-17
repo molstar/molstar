@@ -144,6 +144,9 @@ content loads.
     binding write and no `watch` render in a paused scope, against 156, 44 and 39 in what shows. A raw subscription
     planted in a hidden part is caught. Tabs that are not shown are not mounted at all; the hidden-but-mounted parts are
     the folded toolbar, folded sections and docks behind the compact rail.
+  - **New base primitives and hot views come with a guard** (packages/prism/AGENTS.md, Tests): a quick case (bytes a
+    step, its positive control) and a heap guard; the base primitives (a state set, derive, bind, a `watch` render and
+    flush, the keyed selector and store) read 0 bytes a step.
   - **A view subscribes to the narrowest source that determines its output** (view-models.md §3): hidden or shown, a
     change that writes nothing is budgeted waste (`waste.test.tsx`, `waste-budget.json`).
   - **Imperative views**: the sequence band's track gutter rebuilt its icons on every Seq\* layout version with raw

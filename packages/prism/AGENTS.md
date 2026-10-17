@@ -12,6 +12,17 @@ it is done).
 - Not React: views are `.tsx` on the runtime in `ui/src/dom`; state lives in models. A component builds its DOM once and
   renders as a function of state: one `watch(sources, render)` writes what changed, batched in a microtask
   ([rendering.md §1–2](ui/_spec/rendering.md)); structure goes in regions (`Show`, `For`).
+- **Reactive layering** (David, 2026-10-17; [rendering.md §2.2](ui/_spec/rendering.md)): models expose `State`s (the
+  latest value plus listeners); rxjs only at the boundary (`toState` at a model's edge, `asObservable` out). Views never
+  import rxjs or pipe a state (`ui/src/_test/views-without-rxjs.test.ts`): `derive` for computed values, `watch` for a
+  component's own properties, `For`/`Show` for structure.
+- **Narrowest source** (David, 2026-10-17; [view-models.md §3](ui/_spec/view-models.md)): a view listens only to what
+  determines its output: one key of a shared value through `keyedSelector` or `keyedState`, one field through `derive`;
+  a side effect that writes no DOM is an `effect()`. A change that writes nothing is waste, and is budgeted
+  (`viewer/src/ui/_test/waste.test.tsx`, `waste-budget.json`).
+- **Perf conformance from day one**, as in Seq\* (David, 2026-10-17): base primitives and hot paths carry quick
+  allocation guards (`test:perf`: bytes a step against `perf-baseline.json`, each with a positive control) and heap
+  guards (`test:heap`). Opt in, by hand at checkpoints, not in CI. A new primitive or hot view lands with its guard.
 - Styling: CSS modules compiled to `_generated/` by `styles`; every color and spacing from `--msp-*` tokens (the scale
   is `--msp-space-1..6`; `styles:check` rejects other values). The look is flat and quiet: few borders and shadows, the
   accent only for actions and the picked item, text that does not fit fades rather than ends in an ellipsis. Check light
@@ -32,3 +43,16 @@ it is done).
 packages registered in `storybook/packages.ts`, every Prism package among them; stories go in `_stories/` folders),
 `pnpm -C packages/prism/<pkg> styles` after editing a CSS module (`styles:check` verifies the generated files and the
 spacing scale), `typecheck:storybook` for stories and tests.
+
+### Tests
+
+| command                                         | what it catches                                                                                                                                                                                                                                                                            | when                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `pnpm test:unit packages/prism/<pkg>`           | the fast tier, jsdom, deterministic; with it the work-conformance checks: no rxjs in views (`views-without-rxjs.test.ts`), the waste budget (`waste.test.tsx`), hidden UI writes nothing (`hidden-quiet.test.tsx`), a pick renders the rows it moves between (`scene-tree-keyed.test.tsx`) | every edit loop; CI                                                        |
+| `pnpm -C packages/prism/<ui\|viewer> test:perf` | the quick allocation tier: bytes a step of each `*.quick.ts` case, read exactly (`v8.GCProfiler`), against `src/_test/perf-baseline.json` (`--update` for an intended move); the base primitives read 0                                                                                    | when you touch a primitive or a hot path, in the edit loop; at checkpoints |
+| `pnpm -C packages/prism/<ui\|viewer> test:heap` | the heap guards (`*.heap.ts`): growth over n and 4n steps (`heapScaling`; `retainedScaling` after collections for steps that allocate by design), each with a positive control                                                                                                             | at checkpoints and before a release                                        |
+
+The guards run on Seq\*'s harness (`packages/sequences/vitest.shared.ts`, `core/_test/model`; prism-ui's
+`src/_test/perf.ts`); a `*.heap.ts` has its quick twin `*.quick.ts`, the two sharing their cases (`*-cases.ts`). CI and
+`pnpm test` run the fast tier only; `test:perf` and `test:heap` are opt-in, never in CI (as in Seq\*,
+packages/sequences/AGENTS.md).
