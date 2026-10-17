@@ -66,6 +66,12 @@ class Binding<T> extends Live {
   }
 }
 
+/**
+ * For tests and benches (styling.md §5, hidden UI): set before rendering, it is told every binding write and `watch`
+ * render with its scope (so a test can count those in paused scopes). Unset, nothing is wrapped and nothing is told.
+ */
+export const RuntimeProbe: { on?: (kind: 'write' | 'render', scope: Scope) => void } = {};
+
 // --- watch ---------------------------------------------------------------------------------------
 
 /** The watches marked by a change since the last flush (rendering.md §2.3): rendered together, in a microtask. */
@@ -293,7 +299,16 @@ export class Scope {
    * is paused and comes back, with the stream's current value, when it resumes.
    */
   bind<T>(stream: Observable<T>, fn: (value: T) => void): void {
-    const binding = new Binding(stream, fn);
+    const probe = RuntimeProbe.on;
+    const binding = new Binding(
+      stream,
+      probe
+        ? (v: T) => {
+            probe('write', this);
+            fn(v);
+          }
+        : fn,
+    );
     this.own(binding);
     if (this.#active) binding.start();
   }
@@ -307,7 +322,17 @@ export class Scope {
         (typeof (s as Listenable).listen === 'function' ? (s as Listenable) : undefined);
       if (stream) streams.push(stream);
     }
-    const watcher = new Watcher(this.depth, streams, render);
+    const probe = RuntimeProbe.on;
+    const watcher = new Watcher(
+      this.depth,
+      streams,
+      probe
+        ? () => {
+            probe('render', this);
+            render();
+          }
+        : render,
+    );
     this.own(watcher);
     if (this.#active) watcher.start();
   }

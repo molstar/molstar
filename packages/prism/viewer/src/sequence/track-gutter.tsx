@@ -10,6 +10,7 @@
 
 import { Icon, openContextMenu, type ReadonlyState } from '@molstar/prism-ui';
 import { EntryKind, type SectionLayout } from '@molstar/seq-viewer';
+import { getScope } from '@molstar/prism-ui/dom/scope';
 import { switchMap } from 'rxjs';
 import { type SequenceApiRunner, setTrackHidden, showAllTracks } from './commands.js';
 import type { SequenceViewer, TrackColoring } from './model.js';
@@ -175,14 +176,30 @@ export function mountTrackGutter(
     refresh();
   };
 
+  // Hidden UI does no UI updates (styling.md §5): while the band's scope is paused (a hidden dock), a change marks the
+  // gutter stale and it is rebuilt once on resume, not on every layout version.
+  let active = true;
+  let stale = false;
+  const update = () => {
+    if (active) rebuild();
+    else stale = true;
+  };
+  getScope()?.onActive((a) => {
+    active = a;
+    if (a && stale) {
+      stale = false;
+      rebuild();
+    }
+  });
+
   let stop: (() => void) | undefined;
   const follow = () => {
     stop?.();
     stop = undefined;
     const live = seq.layout.get(section.value);
-    rebuild();
+    update();
     if (!live) return;
-    const sub = live.version.subscribe(rebuild);
+    const sub = live.version.subscribe(update);
     stop = () => sub.unsubscribe();
   };
   const sections = seq.viewports.sections.subscribe(follow);
@@ -190,7 +207,7 @@ export function mountTrackGutter(
   const structure = viewer.structure.subscribe(follow);
   const shown = section.subscribe(follow);
   // Hiding or showing a track changes the hint (the layout rebuilds too, but the list may come after it).
-  const tracks = viewer.tracks.subscribe(() => rebuild());
+  const tracks = viewer.tracks.subscribe(update);
 
   const hovers = section.pipe(switchMap((ref) => seq.interaction.on('hover', { section: ref })));
   const hovered = hovers.subscribe((e) =>
