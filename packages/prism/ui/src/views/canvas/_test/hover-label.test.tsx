@@ -45,6 +45,8 @@ describe('hover label placement', () => {
       area.dispatchEvent(new PointerEvent('pointermove', { clientX: 40, clientY: 30, bubbles: true }));
       await new Promise((r) => setTimeout(r, 40));
       expect(label.classList.contains(classes.corner)).toBe(placement === 'corner');
+      // Shown at once (no fade in).
+      expect(label.classList.contains(classes.out)).toBe(false);
       if (placement === 'corner') expect(label.style.transform).toBe('');
       document.body.innerHTML = '';
     }
@@ -78,6 +80,8 @@ describe('hover label content', () => {
     expect(label.textContent).toBe('GLY 13');
     lines.set([]);
     await new Promise((r) => setTimeout(r, 100));
-    expect(label.textContent).toBe('');
+    // Hidden (`out`: it fades), its last text kept for the fade.
+    expect(label.classList.contains(classes.out)).toBe(true);
+    expect(label.textContent).toBe('GLY 13');
   });
 });

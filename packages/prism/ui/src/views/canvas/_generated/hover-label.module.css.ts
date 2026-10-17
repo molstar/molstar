@@ -16,6 +16,7 @@ export const classes = {
   'item': 'msp-canvas-hover-label-item',
   'label': 'msp-canvas-hover-label-label',
   'link': 'msp-canvas-hover-label-link',
+  'out': 'msp-canvas-hover-label-out',
   'primary': 'msp-canvas-hover-label-primary',
   'secondary': 'msp-canvas-hover-label-secondary',
 } as const;
@@ -29,18 +30,25 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-sm);
   pointer-events: none;
   will-change: transform;
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
   gap: 1px;
+  transition: none;
   display: grid;
   position: absolute;
   top: 0;
   left: 0;
+}
 
-  &[hidden] {
-    display: none;
+.msp-canvas-hover-label-out {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--msp-motion-fast) ease-out,
+    visibility 0s var(--msp-motion-fast);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
-
-  background: var(--msp-glass-panel-bg);
-  box-shadow: var(--msp-glass-shadow);
 }
 
 .msp-canvas-hover-label-corner {

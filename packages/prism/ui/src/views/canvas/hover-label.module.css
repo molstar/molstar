@@ -20,9 +20,8 @@
   pointer-events: none;
   will-change: transform;
 
-  &[hidden] {
-    display: none;
-  }
+  /* Appears at once: the transition is the hiding's (`.out`). */
+  transition: none;
 
   /* An (almost) opaque panel surface with the hairline edge, and no backdrop filter: a blur under a label that follows
      the pointer would re-blur every frame over the canvas (styling.md §5), and over the structure the glass read as too
@@ -30,6 +29,20 @@
      it, as in the panels. */
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
+}
+
+/* Hidden: fades out over a short beat, so it does not vanish mid-glance, yet starts at once; visibility follows when the
+   fade ends (out of the accessibility tree and hit testing). */
+.out {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--msp-motion-fast) ease-out,
+    visibility 0s var(--msp-motion-fast);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* In the corner (`placement: 'corner'`): at the canvas' bottom right, clear of the rail and an open floating panel

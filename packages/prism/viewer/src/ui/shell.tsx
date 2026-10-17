@@ -264,19 +264,23 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The label is Mol*'s whenever there is one: a sequence hover the link maps into the structure lights it in 3D, and
     // Mol*'s label providers label that (sequence.md §10). Seq*'s own label is for what does not map (a gap, an
     // annotation track); while a mapped hover waits for Mol*'s label, nothing new is shown (the label holds a frame).
+    // Seq*'s lines come a frame after the mapped flag (sequence-control.tsx hands them on per frame): lines seen while
+    // mapped stay Mol*'s after the flag drops, so leaving a mapped residue never shows Seq*'s label of it.
+    let mappedSeq: readonly string[] | undefined;
     const mergeHover = () => {
       const mol = sources.pointer.hoverLabel.value;
       const seq = seqLines.value;
       const mapped = sequence?.source.hoverMapped.value ?? false;
-      hoverLines.set(pickHoverLabel(mol, seq, mapped));
+      if (mapped) mappedSeq = seq;
+      hoverLines.set(pickHoverLabel(mol, seq, mapped || seq === mappedSeq));
     };
     const seqHoverSub = seqLines.asReadonly.subscribe(mergeHover);
     const pointerHoverSub = sources.pointer.hoverLabel.subscribe(mergeHover);
-    const mappedSub = sequence?.source.hoverMapped.subscribe(mergeHover);
+    const mappedSub = sequence ? sequence.source.hoverMapped.subscribe(mergeHover) : undefined;
     unregister.push(() => {
       seqHoverSub.unsubscribe();
       pointerHoverSub.unsubscribe();
-      mappedSub?.unsubscribe();
+      if (mappedSub) mappedSub.unsubscribe();
     });
     // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays. Its views come with its
     // runtime (its own chunk), once the core has loaded it (a structure shown).

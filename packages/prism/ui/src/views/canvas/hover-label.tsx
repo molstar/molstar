@@ -74,7 +74,11 @@ export function HoverLabel(props: {
 }) {
   const corner = (props.placement ?? 'corner') === 'corner';
   const label = (
-    <div class={corner ? `${classes.label} ${classes.corner}` : classes.label} hidden={true} role="tooltip" />
+    <div
+      class={`${classes.label} ${classes.out}${corner ? ` ${classes.corner}` : ''}`}
+      role="tooltip"
+      aria-hidden="true"
+    />
   ) as HTMLElement;
 
   // What shows: a new label at once; an empty one only if it is still empty a frame later, so a pointer moving fast from
@@ -106,19 +110,29 @@ export function HoverLabel(props: {
   let frame = 0;
 
   // Hiding waits a frame as emptying does: a fast move crossing a small element over the canvas (or leaving it for a
-  // moment) keeps the label rather than blinking it; a drag (rotating) hides it at once.
+  // moment) keeps the label rather than blinking it; a drag (rotating) hides it at once. Hidden is the `out` class: it
+  // appears at once and fades out (CSS, `--msp-motion-fast`), holding its last text while it fades.
   let leaveFrame = 0;
+  let isShown = false;
+  const show = (on: boolean) => {
+    if (isShown === on) return;
+    isShown = on;
+    label.classList.toggle(classes.out, !on);
+    // Out of the accessibility tree while hidden, whatever the CSS (it may not be loaded, or still fading).
+    if (on) label.removeAttribute('aria-hidden');
+    else label.setAttribute('aria-hidden', 'true');
+  };
   const place = () => {
     frame = 0;
     const visible = inside && !dragging && hasContent;
     if (visible || dragging || !hasContent) {
       if (leaveFrame) cancelAnimationFrame(leaveFrame);
       leaveFrame = 0;
-      if (label.hidden === visible) label.hidden = !visible;
-    } else if (!label.hidden && !leaveFrame) {
+      show(visible);
+    } else if (isShown && !leaveFrame) {
       leaveFrame = requestAnimationFrame(() => {
         leaveFrame = 0;
-        if (!(inside && !dragging && hasContent)) label.hidden = true;
+        if (!(inside && !dragging && hasContent)) show(false);
       });
     }
     if (!visible || corner) return;
@@ -139,7 +153,8 @@ export function HoverLabel(props: {
   };
 
   bind(shown.asReadonly, (lines) => {
-    label.replaceChildren(...lines.map(lineElement));
+    // Emptied, the last text stays for the fade out.
+    if (lines.length) label.replaceChildren(...lines.map(lineElement));
     hasContent = lines.length > 0;
     schedule();
   });
