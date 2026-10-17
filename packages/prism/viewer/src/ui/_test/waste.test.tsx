@@ -28,7 +28,8 @@ import { personSession } from './waste-session.js';
 // that decides its output). `WASTE_REPORT=1` prints the table. The budget (waste-budget.json): per source file, the
 // writes and renders that changed no DOM, and the derived recomputes that came out the same (the cheap gates that keep
 // the rest from waking: budgeted apart). A source over its budget fails; `WASTE_UPDATE=1` writes today's numbers (after
-// an intended change; they should only go down).
+// an intended change; they should only go down). The sequence's structure is set when its chunk comes in, before the
+// session or in it: its shell derives that come out the same (7) are budgeted, so the run does not depend on when.
 
 class NoResize {
   observe() {}
@@ -57,7 +58,8 @@ beforeAll(async () => {
   audit.observe(document.body);
   expectOk(await core.api.load.files({ files: [cbs()] }));
   expectOk(await core.api.load.files({ files: [ensemble(5)] }));
-  await new Promise((r) => setTimeout(r, 400));
+  // Settled: the loads' late work (the sequence's structure, its document) done before the session, every run.
+  await audit.quiet(300, 5000);
 });
 
 afterAll(async () => {

@@ -14,6 +14,7 @@ import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import type { SceneNode } from '../../../model/scene.js';
 import { mockScene } from '../../../testing/scene.js';
 import { extensionUIPort } from '../../../ui/extensions.js';
@@ -59,6 +60,7 @@ describe('extension rows in the scene tree', () => {
         },
       ],
     });
+    flush();
     const structures = scene.roots.value.filter((n) => n.kind === 'structure');
     expect(structures.length).toBeGreaterThan(0);
     // Under each open structure; not under the other kinds.
@@ -73,6 +75,7 @@ describe('extension rows in the scene tree', () => {
     expect(host.querySelector('[role=treeitem]')).not.toBeNull();
 
     unregister();
+    flush();
     expect(container.querySelector('[data-scene-row]')).toBeNull();
   });
 
@@ -83,8 +86,10 @@ describe('extension rows in the scene tree', () => {
     port.register('x', {
       rows: [{ id: 'x.row.a', when: (n) => n === s, render: domView(() => <SceneRow label="A" />) }],
     });
+    flush();
     expect(container.querySelector(`[data-scene-row="x.row.a"]`)).toBeNull();
     s.toggleExpanded();
+    flush();
     expect(container.querySelectorAll('[data-scene-row="x.row.a"]').length).toBe(1);
   });
 });

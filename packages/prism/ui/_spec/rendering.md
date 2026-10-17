@@ -252,6 +252,33 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **Bursts render once by themselves** in a `watch` (a microtask's worth of sets is one render); `batch` makes a state
   tell its listeners once (bindings write at once), and a short debounce helps where a burst spans tasks.
 - **No component-local state that should survive a remount**: put it in a model.
+- **Work a change asks for is wanted, not done** (§2.7): a recomputation that many changes in a task ask for (a tree
+  flattened again) is a work queue's key; an answer that arrives late (a search, a count, a fetch) is `latest`.
+
+### 2.7 Work: `workQueue` and `latest`
+
+`reactive/work-queue.ts`; `dom/scoped.ts` ties each to the current scope.
+
+- **`workQueue({ lane, budgetMs })`**: `want(key, run, { priority, stillWanted })` asks for `run` in the lane's next
+  run, and a later want of the same key replaces it: the last write wins, so a burst of changes costs one run. Each run
+  asks `stillWanted` before running (false drops it), orders by `priority` (higher first; a function is asked again each
+  run), and with a `budgetMs` stops when the budget is spent, at least one done: the rest carries to the next run.
+  Paused with its scope (what waited runs on resume), dropped when it ends; `flush()` on the queue runs all of it now.
+  Nothing is allocated a want of a known key or a run (`primitives.quick.ts`, `primitives.heap.ts`: `workWant`,
+  `workFrameRun`, 0 B a step): each key keeps its entry, as a map's deletes and sets allocate when it rehashes.
+- **Lanes**: `task` runs in the runtime's microtask flush before the watches it feeds (`flush()` runs it: code that
+  reads the DOM after a change sees the work done); `frame` runs in the frame's tick, after the frame states publish and
+  before the renders; `idle` when the page is idle (`requestIdleCallback`, its deadline the budget).
+- **Which tool**: a value fed by input is a frame state (§2.3: the latest value, once a frame); work that changes ask
+  for is a queue's key; a question whose answer may come late is `latest`. The virtual lists need no budget (§1: a
+  jump's rows cost 1.7 to 2.4 ms in Chromium, a thumb drag 0.17 ms a frame).
+- **The scene tree flattens once a burst** (`task` lane): each shown node's `isExpanded` and `children` asked for a
+  flattening of every row, so expanding 1,000 components at once flattened 1,000 times (401 ms in jsdom; collapsing
+  them, 393 ms); wanted once a task, 19.5 and 24 ms. Its first flattening is at the mount (the rows are there when it
+  returns). Tests that change the scene and read the rows flush first, as for any watch.
+- **`latest(fn)`**: `fn(signal, ...args)`; each call aborts the one before it, and a call a newer one (or `abort()`)
+  superseded resolves to undefined, so an old answer never lands after a newer one. The scoped one aborts its call in
+  flight when its scope ends.
 
 ## 3. Custom elements
 

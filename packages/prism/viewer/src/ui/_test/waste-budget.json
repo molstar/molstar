@@ -19,6 +19,10 @@
     "noDom": 0,
     "sameDerives": 0
   },
+  "prism/viewer/sequence/model.ts": {
+    "noDom": 0,
+    "sameDerives": 7
+  },
   "prism/viewer/sources/scene.ts": {
     "noDom": 0,
     "sameDerives": 0

@@ -10,6 +10,7 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import { mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
@@ -57,6 +58,7 @@ describe('StructureTab', () => {
     expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
     const before = rows().length;
     scene.roots.value[0].toggleExpanded();
+    flush();
     expect(rows().length).toBeLessThan(before);
   });
 
@@ -137,6 +139,7 @@ describe('StructureTab', () => {
     expect(inspector().textContent).toContain('Fit…');
     // Its structure goes, and the row with it: its controls would act on nothing.
     scene.roots.value[0].remove();
+    flush();
     expect(rows().length).toBe(before - 1);
     expect(inspector().textContent).not.toContain('Fit…');
     expect(inspector().textContent).toContain('Select an item in the tree');

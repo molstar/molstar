@@ -16,6 +16,7 @@ import { flushFrame } from '../frame-state.js';
 import { keyedSelector } from '../keyed-selector.js';
 import { keyedState } from '../keyed-state.js';
 import { derive, State } from '../state.js';
+import { createWorkQueue } from '../work-queue.js';
 
 export interface Case {
   step: (i: number) => void;
@@ -106,5 +107,48 @@ export function frameOffers(): Case {
       flushFrame();
     },
     sink: () => target.renders,
+  };
+}
+
+/** Ten wants of one key in a frame (the last wins), and the frame's run: one run. The work is made once (a caller's). */
+export function workWant(): Case {
+  const q = createWorkQueue({ lane: 'frame' });
+  const target = { v: 0, runs: 0 };
+  let next = 0;
+  const run = () => {
+    target.v = next & 0xffff;
+    target.runs = (target.runs + 1) & 0xffff;
+  };
+  return {
+    step: (i) => {
+      for (let k = 0; k < 10; k++) {
+        next = i * 10 + k;
+        q.want('k', run);
+      }
+      flushFrame();
+    },
+    sink: () => target.runs,
+  };
+}
+
+/**
+ * A frame's run of 50 keys, each with a priority asked at the run and a `stillWanted` (one in ten no longer wanted):
+ * ordered, asked, run.
+ */
+export function workFrameRun(): Case {
+  const q = createWorkQueue({ lane: 'frame' });
+  const target = { v: 0 };
+  let at = 0;
+  const keys = Array.from({ length: 50 }, (_, k) => ({
+    run: () => (target.v = (target.v + k) & 0xffff),
+    options: { priority: () => 50 - Math.abs(k - at), stillWanted: () => k % 10 !== 0 },
+  }));
+  return {
+    step: (i) => {
+      at = i % 50;
+      for (let k = 0; k < 50; k++) q.want(k, keys[k].run, keys[k].options);
+      flushFrame();
+    },
+    sink: () => target.v,
   };
 }

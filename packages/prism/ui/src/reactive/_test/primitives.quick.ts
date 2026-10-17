@@ -19,6 +19,8 @@ import {
   keyedStateSet,
   stateSet,
   watchRender,
+  workFrameRun,
+  workWant,
 } from './primitives-cases.js';
 
 const cases = {
@@ -30,6 +32,8 @@ const cases = {
   keyedSelectorMove,
   keyedStateSet,
   frameOffers,
+  workWant,
+  workFrameRun,
 };
 
 for (const [name, make] of Object.entries(cases)) {

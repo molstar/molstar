@@ -12,9 +12,10 @@ import { Listened } from './state.js';
 // The frame lane (rendering.md §2.3): input comes faster than frames (a trackpad's wheel and pointer events at 120 Hz
 // or more, several a frame), so input-fed state is batched at its source. A frame state's `offer` only keeps the
 // latest value; the first offer in a frame asks for one animation frame, which publishes every offered frame state
-// once, then lets the runtime render what follows from them (`FrameLane.after`: the microtask lane's watches, then the
-// frame lane's, which are the watches with a frame state among their sources). One `requestAnimationFrame` a frame
-// for all of them; nothing is allocated an offer.
+// once, runs the frame lane's work queues (`FrameLane.work`, reactive/work-queue.ts), then lets the runtime render what
+// follows from them (`FrameLane.after`: the microtask lane's watches, then the frame lane's, which are the watches with
+// a frame state among their sources). One `requestAnimationFrame` a frame for all of them; nothing is allocated an
+// offer.
 
 const raf: (fn: () => void) => unknown =
   typeof requestAnimationFrame === 'function' ? (fn) => requestAnimationFrame(fn) : (fn) => setTimeout(fn, 16);
@@ -25,7 +26,10 @@ let offeredCount = 0;
 let requested = false;
 
 /** What the runtime runs in the frame, after the frame states publish (dom/scope.ts: both lanes' watches). */
-export const FrameLane: { after: (() => void) | undefined } = { after: undefined };
+export const FrameLane: { work: (() => void) | undefined; after: (() => void) | undefined } = {
+  work: undefined,
+  after: undefined,
+};
 
 /** Asks for the frame's tick (once a frame). */
 export function requestFrame(): void {
@@ -37,6 +41,7 @@ export function requestFrame(): void {
 function frameTick(): void {
   requested = false;
   publishOffered();
+  FrameLane.work?.();
   FrameLane.after?.();
 }
 
@@ -61,6 +66,7 @@ let spare: (FrameState<unknown> | undefined)[] = [];
  */
 export function flushFrame(): void {
   publishOffered();
+  FrameLane.work?.();
   FrameLane.after?.();
 }
 

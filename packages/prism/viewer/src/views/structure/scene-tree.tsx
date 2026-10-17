@@ -34,6 +34,7 @@ import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { bind, effect, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
+import { workQueue } from '@molstar/prism-ui/dom/scoped';
 import { setShown } from '@molstar/prism-ui/dom/writes';
 import { setAttr, setClass, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
@@ -151,8 +152,6 @@ export function SceneTree(props: {
   // The shown nodes' `isExpanded` and `children`: a change flattens again.
   const watched = new Map<SceneNode, Subscription>();
   let current: Search | undefined;
-  let building = false;
-  let again = false;
 
   const flatten = (s: Search) => {
     const out: Row[] = [];
@@ -232,32 +231,29 @@ export function SceneTree(props: {
       rows.set(keep(out));
     });
   };
-  // A change while flattening (a lazy node's rows arriving as it opens) flattens again after.
-  const reflow = () => {
-    if (!current) return;
-    if (building) {
-      again = true;
-      return;
-    }
-    building = true;
-    try {
-      do {
-        again = false;
-        flatten(current);
-      } while (again);
-    } finally {
-      building = false;
-    }
-  };
+  // Flattened once for a burst of changes (rendering.md §2.7: a task's queue): expanding a thousand nodes at once, or a
+  // load's nodes arriving, flattened every change, was quadratic (1,000 nodes: 400 ms; once: a few). Before the rows
+  // render (the runtime's flush runs the queue first); a change while flattening (a lazy node's rows arriving as it
+  // opens) flattens again in the same flush.
+  const work = workQueue({ lane: 'task' });
+  const flattenCurrent = () => current && flatten(current);
+  const reflow = () => work.want('flatten', flattenCurrent);
   const followNode = (node: SceneNode) => {
     if (watched.has(node)) return;
     // Kept in `watched`: unsubscribed when the node leaves the shown rows, and all of them when the tree is hidden.
     const sub = merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow);
     watched.set(node, sub);
   };
+  // The first flattening now, with the mount (the rows are there when it returns, as a binding's first write is); the
+  // changes after, once a burst.
+  let mounted = false;
   bind(search, (s) => {
     current = s;
-    reflow();
+    if (mounted) reflow();
+    else {
+      mounted = true;
+      flatten(s);
+    }
   });
   // Hidden, nothing followed (prism AGENTS.md): the search's binding pauses itself, the nodes' watches go; shown again,
   // the search replays and the flattening watches them again.

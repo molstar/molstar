@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { createLatest, createWorkQueue, type Latest, type WorkLane, type WorkQueue } from '../reactive/work-queue.js';
 import { requireScope } from './scope.js';
 
 // What a component attaches imperatively, released by construction (rendering.md §2.4): each helper ties what it
@@ -86,4 +87,23 @@ export function timeout(fn: () => void, ms: number): () => void {
   const cancel = () => clearTimeout(id);
   requireScope('timeout').onCleanup(cancel);
   return cancel;
+}
+
+/**
+ * A queue of work by key (reactive/work-queue.ts) owned by the current scope: paused with it (hidden UI computes
+ * nothing; what waited runs on resume), dropped when it ends.
+ */
+export function workQueue(options?: { lane?: WorkLane; budgetMs?: number }): WorkQueue {
+  const q = createWorkQueue(options);
+  const scope = requireScope('workQueue');
+  scope.onActive((a) => q.setActive(a));
+  scope.onCleanup(() => q.dispose());
+  return q;
+}
+
+/** The latest call only (reactive/work-queue.ts, `Latest`), its call in flight aborted when the current scope ends. */
+export function latest<A extends unknown[], R>(fn: (signal: AbortSignal, ...args: A) => R | Promise<R>): Latest<A, R> {
+  const l = createLatest(fn);
+  requireScope('latest').onCleanup(() => l.abort());
+  return l;
 }

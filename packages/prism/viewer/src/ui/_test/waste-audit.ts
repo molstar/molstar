@@ -54,6 +54,8 @@ export interface ViewRow {
 export interface Audit {
   /** Starts counting (what happened before, mounting, is not counted). */
   start(): void;
+  /** Resolves once no state has been told for `ms` (at most `max` ms): what loading set late is not in the session. */
+  quiet(ms: number, max: number): Promise<void>;
   stop(): void;
   sources(): SourceRow[];
   views(): ViewRow[];
@@ -73,6 +75,8 @@ export function installAudit(): Audit & { observe(root: Node): void } {
   const bySource = new Map<string, SourceRow>();
   const byView = new Map<string, ViewRow>();
   let counting = false;
+  /** When a state was last told (counting or not). */
+  let lastTold = performance.now();
   const observer = new MutationObserver(() => {});
   const name = (o: object | undefined) => (o ? (made.get(o) ?? '(unnamed)') : '(first write)');
   const row = (source: string) => {
@@ -109,6 +113,7 @@ export function installAudit(): Audit & { observe(root: Node): void } {
   ReactiveProbe.on = true;
   ReactiveProbe.created = (o) => made.set(o, siteOf(new Error().stack));
   ReactiveProbe.told = (state, calls) => {
+    lastTold = performance.now();
     if (!counting) return;
     const r = row(name(state));
     r.changes++;
@@ -140,6 +145,11 @@ export function installAudit(): Audit & { observe(root: Node): void } {
   return {
     observe(root) {
       observer.observe(root, { subtree: true, childList: true, attributes: true, characterData: true });
+    },
+    async quiet(ms, max) {
+      const t0 = performance.now();
+      while (performance.now() - lastTold < ms && performance.now() - t0 < max)
+        await new Promise((r) => setTimeout(r, 20));
     },
     start() {
       bySource.clear();

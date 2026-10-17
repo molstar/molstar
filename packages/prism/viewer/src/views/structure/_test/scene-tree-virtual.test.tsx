@@ -169,6 +169,7 @@ describe('the scene tree, virtualized', () => {
   it('shows a long list a few at first, Show all a row of its own that the keyboard reaches', async () => {
     const t = mount();
     t.contents.toggleExpanded();
+    flush();
     const rows = () => shownInOrder(t.tree, '[data-tree-key]').map((e) => e.dataset.treeKey);
     expect(rows().slice(0, 9)).toEqual(['s', 'contents', 'e0', 'e1', 'e2', 'e3', 'e4', 'contents::more', 'c0']);
     const more = t.treeitem('contents::more')!;

@@ -14,6 +14,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { domView } from '@molstar/prism-ui/dom/view';
 import { afterEach, describe, expect, it } from 'vitest';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import type { SceneModel, SceneNode, SceneNodeKind } from '../../../model/scene.js';
 import { extensionUIPort } from '../../../ui/extensions.js';
 import type { ViewerUIContext } from '../../../spec.js';
@@ -61,7 +62,11 @@ function mount() {
   const container = document.createElement('div');
   document.body.append(container);
   render(() => <SceneTree scene={scene} filter={filter.asReadonly} />, container);
-  const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+  const labels = () => {
+    // Read after what was set is rendered (the runtime's flush: the rows are flattened once a burst).
+    flush();
+    return shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+  };
   return { contents, filter, container, labels };
 }
 
@@ -73,7 +78,9 @@ describe('the scene tree with many rows', () => {
     expect(more.textContent).toContain('Show all 36');
     more.click();
     expect(t.labels().filter((l) => l?.startsWith('RIBOSOMAL'))).toHaveLength(36);
+    // Closed, then opened: two presses (each flushed, as an event's dispatch is).
     t.contents.toggleExpanded();
+    flush();
     t.contents.toggleExpanded();
     expect(t.labels().filter((l) => l?.startsWith('RIBOSOMAL'))).toHaveLength(5);
   });
@@ -102,7 +109,11 @@ describe('the scene tree with many rows', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <SceneTree scene={scene} filter={filter.asReadonly} />, container);
-    const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+    const labels = () => {
+      // Read after what was set is rendered (the runtime's flush: the rows are flattened once a burst).
+      flush();
+      return shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+    };
 
     filter.set('retinoic');
     expect(labels()).toEqual(['1CBS', 'Contents', 'RETINOIC ACID BINDING PROTEIN']);
@@ -121,6 +132,7 @@ describe('the scene tree with many rows', () => {
     t.filter.set('l33');
     expect(t.labels()).toEqual(['1JJ2', 'Contents', 'RIBOSOMAL PROTEIN L33']);
     t.filter.set('nothing like it');
+    flush();
     expect(t.container.textContent).toContain('Nothing matches.');
     t.filter.set('');
     expect(t.labels()).toEqual(['1JJ2', 'Contents', 'Polymer']);
@@ -150,12 +162,18 @@ describe('the scene tree search and extension rows', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <SceneTree scene={scene} shell={shell} filter={filter.asReadonly} />, container);
-    const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+    const labels = () => {
+      // Read after what was set is rendered (the runtime's flush: the rows are flattened once a burst).
+      flush();
+      return shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
+    };
 
     filter.set('membrane');
+    flush();
     expect(container.textContent).not.toContain('Nothing matches.');
     expect(labels()).toEqual(['1JJ2', 'Membrane']);
     filter.set('nothing like it');
+    flush();
     expect(container.textContent).toContain('Nothing matches.');
   });
 });

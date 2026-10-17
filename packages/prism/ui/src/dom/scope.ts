@@ -9,6 +9,7 @@
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
 import { type Listenable, listen } from '../reactive/listen.js';
 import { FrameLane, FrameState, flushFrame, requestFrame } from '../reactive/frame-state.js';
+import { hasWork, runWork, TaskLane } from '../reactive/work-queue.js';
 import { ReactiveCounts, ReactiveProbe } from '../reactive/state.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -111,6 +112,7 @@ let frameRunning: (Watcher | undefined)[] = [];
 let frameRendering = false;
 
 /** The frame's tick, after the frame states published: the microtask lane, then the frame lane, once each. */
+TaskLane.flush = () => flush();
 FrameLane.after = () => {
   flush();
   if (frameRendering) return;
@@ -185,21 +187,26 @@ export function flush(): void {
   if (flushing) return;
   flushing = true;
   try {
-    for (let pass = 0; dirtyCount > 0; pass++) {
+    for (let pass = 0; dirtyCount > 0 || hasWork('task'); pass++) {
+      if (pass === MaxPasses) {
+        console.error('watch: renders kept marking watches (a render sets what it watches?); dropped', dirtyCount);
+        for (let i = 0; i < dirtyCount; i++) {
+          dirty[i]!.queued = false;
+          dirty[i] = undefined;
+        }
+        dirtyCount = 0;
+        // Work that keeps wanting itself waits for the next flush.
+        break;
+      }
+      // The task lane's work first (reactive/work-queue.ts): what it computes is what the watches render.
+      runWork('task');
+      if (dirtyCount === 0) continue;
       // This pass's watches; what they mark goes to the other array, for the next pass.
       const list = dirty;
       const n = dirtyCount;
       dirty = running;
       dirtyCount = 0;
       running = list;
-      if (pass === MaxPasses) {
-        console.error('watch: renders kept marking watches (a render sets what it watches?); dropped', n);
-        for (let i = 0; i < n; i++) {
-          list[i]!.queued = false;
-          list[i] = undefined;
-        }
-        break;
-      }
       // Parents first (depth), siblings in the order they changed.
       renderMarked(list, n);
     }

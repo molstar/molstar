@@ -21,6 +21,8 @@ import {
   keyedStateSet,
   stateSet,
   watchRender,
+  workFrameRun,
+  workWant,
 } from './primitives-cases.js';
 
 // The collector on the main thread: a concurrent sweep finishing inside a measured run moved its reading by hundreds of
@@ -52,6 +54,8 @@ const cases = {
   keyedSelectorMove,
   keyedStateSet,
   frameOffers,
+  workWant,
+  workFrameRun,
 };
 
 describe('primitives heap guards', () => {
