@@ -148,8 +148,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   [data-pinned] > & {
     top: 0;
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
-    box-shadow: -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
     border-radius: 0;
     bottom: 0;
   }

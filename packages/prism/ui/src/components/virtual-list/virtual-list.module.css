@@ -60,3 +60,11 @@
 .enter {
   animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
 }
+
+/* In a scroll area at the panel's edge (ScrollArea `edge`): the content's end padding is the scrollbar's gutter, and the
+   rows stop before it, as far from the panel's edge as they start from its other side (they are placed absolutely, so
+   the padding alone does not keep them in). */
+.list[data-edge] .window,
+.list[data-edge] .row {
+  right: var(--msp-scroll-edge, var(--msp-space-2));
+}

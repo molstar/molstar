@@ -41,8 +41,10 @@ buttons) is the app's. The code is the truth for how.
 - **Pinned** (`setPinned`; the right dock's default, David 2026-10-17): the rail and the open panel move beside the
   canvas, which ends where they begin; Escape and clicks outside leave a pinned panel or card. Only on the desktop:
   compact (a bottom sheet) and embedded read the pin as off (`DockState`; the layout keeps it, no pin button). Pinned,
-  the panel is opaque (nothing under it), its rows the panel's color; the rail's hairline (inside its own left edge,
-  over nothing of the panel) is the line between them.
+  what stands in the panel's place (the panel, an overlay card) has one look, defined once (`--msp-pinned-*`, on
+  `[data-pinned]`): opaque (nothing under it), its rows the panel's color, one line on the canvas's side; the rail's
+  hairline (inside its own left edge, over nothing of the panel) is the line on the other. A virtual list at the panel's
+  edge keeps its rows out of the scrollbar's gutter, so content is inset the same on both sides.
 - **The panel's header is a rail button tall** (the rail's step, `--msp-rail-head`): the content starts where the rail's
   first button ends. A selected rail button is its background only (an outline drew 1px lines beside the panel's edges).
 - **The canvas never shrinks for the floating panel or the rail**: the app's camera framing keeps the scene in the

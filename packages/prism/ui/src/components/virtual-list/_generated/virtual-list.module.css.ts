@@ -60,5 +60,9 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
 .msp-virtual-list-enter {
   animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
 }
+
+.msp-virtual-list-list[data-edge] .msp-virtual-list-window, .msp-virtual-list-list[data-edge] .msp-virtual-list-row {
+  right: var(--msp-scroll-edge, var(--msp-space-2));
+}
 }
 `);

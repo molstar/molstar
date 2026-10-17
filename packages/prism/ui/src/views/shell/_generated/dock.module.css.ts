@@ -331,14 +331,19 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 }
 
+[data-pinned] {
+  --msp-pinned-bg: var(--msp-color-panel);
+  --msp-pinned-edge: -1px 0 0 var(--msp-glass-edge);
+}
+
 [data-pinned] > .msp-shell-dock-floatingRight {
   gap: 0;
 
   & .msp-shell-dock-content {
-    background: var(--msp-color-panel);
-    --msp-surface: var(--msp-color-panel);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
     -webkit-backdrop-filter: none;
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    box-shadow: var(--msp-pinned-edge);
     border-radius: 0;
     margin: 0;
   }

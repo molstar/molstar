@@ -330,20 +330,27 @@
   }
 }
 
-/* Pinned: the panel is a column beside the canvas like the rail, full height, flat, a hairline between them. */
+/* The pinned side's look, one definition for what stands in the panel's place (the panel, an overlay card:
+   canvas.module.css): a column beside the canvas, full height, flat. Nothing is under it (the canvas ends at it), so it is
+   opaque, without glass, and what paints a surface inside (a tree's rows) paints the same color. Its one line is on the
+   canvas's side; the rail draws the line on the other (inside its own edge). */
+[data-pinned] {
+  --msp-pinned-bg: var(--msp-color-panel);
+  --msp-pinned-edge: -1px 0 0 var(--msp-glass-edge);
+}
+
+/* Pinned: the panel is a column beside the canvas like the rail. */
 [data-pinned] > .floatingRight {
   gap: 0;
 
   & .content {
     margin: 0;
     border-radius: 0;
-    /* Nothing under it (the canvas ends at it): opaque, no glass, its rows the same color. The hairline on the left is
-       its own, the canvas's side; the one on the right is the rail's (inside the rail). */
-    background: var(--msp-color-panel);
-    --msp-surface: var(--msp-color-panel);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    box-shadow: var(--msp-pinned-edge);
   }
 }
 

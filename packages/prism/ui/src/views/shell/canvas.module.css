@@ -91,16 +91,18 @@
     animation: none;
   }
 
-  /* Pinned: in the pinned panel's place, its look too (full height, flat, beside the rail). */
+  /* Pinned: in the pinned panel's place, its look too (dock.module.css, `--msp-pinned-*`: one definition). */
   [data-pinned] > & {
     top: 0;
     /* Right against the rail (its inset less the margin). */
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
     bottom: 0;
     border-radius: 0;
-    box-shadow:
-      -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
   }
 }
 
