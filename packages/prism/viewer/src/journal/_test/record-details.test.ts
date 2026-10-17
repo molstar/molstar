@@ -69,7 +69,7 @@ describe('a run in the record: its targets and what it changed', () => {
   it('writes both into the run entry, and History shows them in a line', async () => {
     const { v, record } = await setup();
     expectOk(await v.api.as({ kind: 'person' }).select.set({ target: 'ligand' }));
-    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'spacefill' }));
     await record.flush();
     const runs = (await record.read(10)).items.map((i) => i.entry as RunEntry);
     const select = runs.find((r) => r.operation === 'select.set')!;
@@ -253,7 +253,7 @@ describe('a turn in the record: its model and its reply as it streams', () => {
 describe('Undo in the record: who, and one entry per Undo turn', () => {
   it('names who undid a step, and who redid it', async () => {
     const { v, record } = await setup();
-    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'spacefill' }));
     expectOk(await v.api.as({ kind: 'script' }).history.undo());
     expectOk(await v.api.as({ kind: 'person' }).history.redo());
     expectOk(await v.api.as({ kind: 'person' }).history.undo());
@@ -272,7 +272,7 @@ describe('Undo in the record: who, and one entry per Undo turn', () => {
   it('names the agent and its turn when it undid a turn', async () => {
     const { v, record } = await setup();
     const earlier = v.api.as({ kind: 'agent', turn: 't1' });
-    expectOk(await earlier.styles.apply({ style: 'surface' }));
+    expectOk(await earlier.styles.apply({ style: 'spacefill' }));
     expectOk(await v.api.as({ kind: 'agent', turn: 't2' }).history.undoTurn({ turn: 't1' }));
     await record.flush();
     const undo = (await record.read(20)).items.map((i) => i.entry).find((e) => e.kind === 'undo') as UndoEntry;
@@ -285,7 +285,7 @@ describe('Undo in the record: who, and one entry per Undo turn', () => {
     const { v, record } = await setup();
     const agent = v.api.as({ kind: 'agent', turn: 't1' });
     const end = v.managers.history.beginGroup('Assistant: styles', { kind: 'agent', turn: 't1' });
-    expectOk(await agent.styles.apply({ style: 'surface' }));
+    expectOk(await agent.styles.apply({ style: 'spacefill' }));
     // The person's step between two of the turn's: the group closes and opens again, so the turn has two steps.
     expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'cartoon' }));
     expectOk(await agent.styles.apply({ style: 'spacefill' }));
@@ -321,7 +321,7 @@ describe('Undo in the record: who, and one entry per Undo turn', () => {
     model.setActive(true);
     const turn = record.beginTurn('t1', 'make it a surface');
     const end = v.managers.history.beginGroup('Assistant', { kind: 'agent', turn: 't1' });
-    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'spacefill' }));
     end();
     await turn.settle({ reply: 'Done.', outcome: 'done' });
     expectOk(await v.api.as({ kind: 'agent', turn: 't2' }).history.undoTurn({ turn: 't1' }));

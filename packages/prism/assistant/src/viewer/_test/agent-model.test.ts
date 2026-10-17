@@ -46,7 +46,7 @@ async function headlessViewer(o: { files: File[] }): Promise<PrismViewer> {
   return v;
 }
 
-// A surface is computed in some turns: a second alone, a few under a full parallel run.
+// A turn applies a style (spacefill: cheap; a surface would take a second alone, a few under a full parallel run).
 async function until(check: () => boolean, ms = 10_000): Promise<void> {
   const t0 = Date.now();
   while (!check()) {
@@ -96,7 +96,7 @@ const turnsIn = (items: readonly HistoryItem[]) =>
 describe('the assistant over the viewer agent', () => {
   it('shows a turn as it runs, ends it done with its checkpoint, and lists it in the history', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
+    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'spacefill' })] }, { text: 'A surface.' }]);
     m.ask('show a surface');
     expect(m.view.value).toBe('card');
     await until(() => settled(m.turn.value));
@@ -263,7 +263,7 @@ describe('the assistant over the viewer agent', () => {
 
   it('refuses an ask while a turn runs', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
+    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'spacefill' })] }, { text: 'A surface.' }]);
     m.ask('show a surface');
     m.ask('and a cartoon');
     expect(said(v)[0]).toMatch(/A turn is running/);
@@ -307,7 +307,7 @@ describe('the assistant over the viewer agent', () => {
 
   it('holds the checkpoint only while the turn is the newest step, and says why Undo turn cannot run', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
+    const { m, agent } = modelOn(v, [{ calls: [call('apply_style', { style: 'spacefill' })] }, { text: 'A surface.' }]);
     m.ask('show a surface');
     await until(() => m.turn.value?.status === 'done');
     expect(m.turn.value?.checkpoint).toBe(true);

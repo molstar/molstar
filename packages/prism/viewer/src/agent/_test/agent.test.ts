@@ -38,7 +38,7 @@ describe('the viewer agent', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const before = representationTypes(v);
     const { agent, model } = agentOn(v, [
-      { calls: [call('apply_style', { style: 'surface' }), call('color', { target: 'ligand', color: 'red' })] },
+      { calls: [call('apply_style', { style: 'spacefill' }), call('color', { target: 'ligand', color: 'red' })] },
       { text: 'Done: a surface, the ligand red.' },
     ]);
     const r = await agent.turn('show it as a surface, the ligand red');
@@ -146,7 +146,7 @@ describe('the viewer agent while undo is off', () => {
     const v = await headlessViewer({ files: [cbs()] });
     v.managers.history.setCheckpointing(false);
     const { agent } = agentOn(v, [
-      { calls: [call('apply_style', { style: 'surface' })] },
+      { calls: [call('apply_style', { style: 'spacefill' })] },
       { calls: [call('color', { target: 'ligand', color: 'red' })] },
       { text: 'Done.' },
     ]);
@@ -185,7 +185,7 @@ describe('the viewer agent: turns, approvals, tools and skills', () => {
 
   it('leaves a running turn open when a resume or a dispose comes meanwhile (its calls stay in its group)', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const { agent } = agentOn(v, [{ calls: [call('apply_style', { style: 'surface' })] }, { text: 'A surface.' }]);
+    const { agent } = agentOn(v, [{ calls: [call('apply_style', { style: 'spacefill' })] }, { text: 'A surface.' }]);
     const running = agent.turn('surface');
     // Nothing is parked: the resume goes on with nothing, and does not settle the turn that runs.
     expect(await agent.resume({ decisions: { nope: 'allow' } })).toBeUndefined();
@@ -279,7 +279,7 @@ describe('the viewer agent: turns, approvals, tools and skills', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const before = representationTypes(v);
     const { agent } = agentOn(v, [
-      { calls: [call('apply_style', { style: 'surface' })] },
+      { calls: [call('apply_style', { style: 'spacefill' })] },
       { text: 'A surface.' },
       { calls: [call('undo_turn')] },
       { text: 'Undone.' },

@@ -94,7 +94,7 @@ describe('the History tab', () => {
     await until(() => host.textContent?.includes('ligand · selection') === true);
     const turn = v.record.beginTurn('t1', 'Make it a surface', undefined, 'anthropic:claude-sonnet');
     const end = v.managers.history.beginGroup('Assistant', { kind: 'agent', turn: 't1' });
-    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'spacefill' }));
     end();
     turn.reply('Working on it');
     await until(() => host.textContent?.includes('Under way') === true);

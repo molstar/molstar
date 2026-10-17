@@ -32,6 +32,32 @@ class NoResize {
 
 const wait = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Waits until the page's DOM (the document and the shells' shadow roots) has not changed for `gap` ms, at most `cap`:
+ * a view rendered, its late parts in (a lazy chunk, a source's debounce), without a fixed sleep per step.
+ */
+function quiet(gap = 80, cap = 1500): Promise<void> {
+  return new Promise((resolve) => {
+    const roots: Node[] = [document];
+    for (const el of document.querySelectorAll('*')) if (el.shadowRoot) roots.push(el.shadowRoot);
+    let timer: ReturnType<typeof setTimeout>;
+    const done = () => {
+      observer.disconnect();
+      clearTimeout(timer);
+      clearTimeout(limit);
+      resolve();
+    };
+    const observer = new MutationObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(done, gap);
+    });
+    for (const r of roots)
+      observer.observe(r, { subtree: true, childList: true, attributes: true, characterData: true });
+    timer = setTimeout(done, gap);
+    const limit = setTimeout(done, cap);
+  });
+}
+
 interface Page {
   core: ViewerCore;
   mounted: MountedShell;
@@ -55,7 +81,7 @@ async function openWith(spec: PrismViewerSpec, ...files: File[]): Promise<Page> 
   document.body.append(host);
   const mounted = await mountShell(core, host);
   for (const file of files) expectOk(await core.api.load.files({ files: [file] }));
-  await wait(400);
+  await quiet();
   return {
     core,
     mounted,
@@ -115,7 +141,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
   ]) {
     it(`the ${tab} tab`, async () => {
       mounted.shell.show(tab);
-      await wait(200);
+      await quiet();
       await check();
     });
   }
@@ -125,11 +151,11 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     expectOk(await person.snapshot!.add({}));
     expectOk(await person.snapshot!.add({}));
     mounted.shell.show('snapshots.tab.snapshots');
-    await wait(300);
+    await quiet();
     expect(mounted.root.querySelectorAll('[role=listitem]').length).toBe(2);
     await check();
     mounted.shell.openOverlay('snapshots.overlay.playback');
-    await wait(300);
+    await quiet();
     await check();
     mounted.shell.closeOverlay();
   });
@@ -140,7 +166,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     const first = scene.roots.value[0];
     expect(first).toBeDefined();
     scene.pick(first);
-    await wait(200);
+    await quiet();
     await check();
     const more = mounted.root.querySelector<HTMLElement>('[role=treeitem] button[title=More]');
     expect(more).not.toBeNull();
@@ -154,24 +180,24 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
   it('the selection tab with a selection', async () => {
     expectOk(await core.api.as({ kind: 'person' }).select.set({ target: 'ligand' }));
     mounted.shell.show('selection');
-    await wait(300);
+    await quiet();
     await check();
   });
 
   it('the state tree with a cell picked (its form and actions)', async () => {
     mounted.shell.show('state-tree.tab.tree');
-    await wait(300);
+    await quiet();
     const row = mounted.root.querySelector<HTMLElement>('[role=treeitem] > div:first-child');
     expect(row).not.toBeNull();
     row!.click();
-    await wait(200);
+    await quiet();
     await check();
   });
 
   it('the history tab with steps', async () => {
     expectOk(await core.api.as({ kind: 'person' }).settings.set({ group: 'viewer', values: { checkpointing: false } }));
     mounted.shell.show('history');
-    await wait(300);
+    await quiet();
     expect(mounted.root.querySelector('[data-origin]')).not.toBeNull();
     await check();
   });
@@ -179,7 +205,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
   for (const card of ['export', 'canvas-settings.overlay.canvas', 'animation.overlay.animation']) {
     it(`the ${card} card`, async () => {
       mounted.shell.openOverlay(card);
-      await wait(300);
+      await quiet();
       expect(mounted.root.querySelector('[role=dialog]')).not.toBeNull();
       await check();
       mounted.shell.closeOverlay();
@@ -188,7 +214,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
 
   it('the sequence band', async () => {
     mounted.shell.show('sequence');
-    await wait(500);
+    await quiet();
     expect(mounted.root.querySelector('[aria-label="What a click selects"]')).not.toBeNull();
     await check();
   });
@@ -198,7 +224,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     mounted.root
       .querySelector('[role=tab]')!
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, composed: true }));
-    await wait(200);
+    await quiet();
     expect(mounted.root.querySelector('[role=combobox]')).not.toBeNull();
     await check();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -207,7 +233,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
   it('a compact shell', async () => {
     mounted.shell.setMode('compact');
     mounted.shell.show('home');
-    await wait(200);
+    await quiet();
     await check();
     mounted.shell.setMode('desktop');
   });
@@ -226,27 +252,27 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
       return g ? (g.querySelector('input[type=range]') ? 'full' : 'compact') : 'none';
     };
     page.mounted.shell.show('structure');
-    await wait(300);
+    await quiet();
     expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
     // The row has the controls, paused: no bar on the canvas.
     expect(bar()).toBe('none');
     page.mounted.shell.show('selection');
-    await wait(300);
+    await quiet();
     expect(bar()).toBe('full');
     page.mounted.shell.show('structure');
-    await wait(300);
+    await quiet();
     expect(bar()).toBe('none');
     page.mounted.shell.setExpanded(true);
-    await wait(300);
+    await quiet();
     expect(bar()).toBe('full');
     page.mounted.shell.setExpanded(false);
-    await wait(300);
+    await quiet();
     expect(bar()).toBe('none');
   });
 
   it("the trajectory's row in the Structure panel (the canvas' bar steps back while it is on screen)", async () => {
     page.mounted.shell.show('structure');
-    await wait(300);
+    await quiet();
     expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
     await page.check();
   });
@@ -266,7 +292,7 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
       const node = find(scene.roots.value);
       expect(node).toBeDefined();
       scene.pick(node!);
-      await wait(300);
+      await quiet();
       await page.check();
     });
   }
@@ -282,7 +308,7 @@ describe('the empty viewer shell (axe)', () => {
   for (const tab of ['home', 'structure', 'help']) {
     it(`the ${tab} tab with nothing loaded`, async () => {
       page.mounted.shell.show(tab);
-      await wait(200);
+      await quiet();
       await page.check();
     });
   }
