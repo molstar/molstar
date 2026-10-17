@@ -137,6 +137,35 @@ content loads.
   subscription) pauses it with `onActive(active => …)`. Prefer removing content that is cheap to build (`Show`); keep it
   mounted and paused where state or cost matters. Tooltips never show for an inert element.
   `views/shell/_test/hidden.test.tsx`.
+  - **Checked on the real shell** (`viewer/src/ui/_test/hidden-quiet.test.tsx`, jsdom, 1CBS): with the Structure tab
+    shown and the toolbar folded, the Selection tab with its sections folded, and the compact rail closed over the
+    docks, a load, picks, a selection, hide and show, renames and trajectory frames write nothing inside `[inert]` but
+    the `inert` toggles (a MutationObserver on the shadow root), and the runtime's probe (`RuntimeProbe`) counts no
+    binding write and no `watch` render in a paused scope, against 156, 44 and 39 in what shows. A raw subscription
+    planted in a hidden part is caught. Tabs that are not shown are not mounted at all; the hidden-but-mounted parts are
+    the folded toolbar, folded sections and docks behind the compact rail.
+  - **Imperative views**: the sequence band's track gutter rebuilt its icons on every Seq\* layout version with raw
+    subscriptions; paused, it now marks itself stale and rebuilds once on resume. Left as they are: Seq\*'s section
+    surface keeps scheduling its frames while hidden (it skips drawing at no size; pausing it needs a Seq\* API); the
+    PAE plot (model-archive) follows its colors by a raw subscription while mounted (in a card, not checked hidden);
+    menus' and popovers' document listeners and observers live only while they are open; one-shot frames (a scroll into
+    view, a font read) do not repeat.
+  - **What the UI costs while a structure animates** (Internals › Performance › Animation, `watch-bench/anim.mjs`:
+    1GRM's 5 NMR models looping at 5 a second, 6 s a setup, Chromium on an M4 with its GPU, a CPU profile split by
+    source): every setup holds 60 fps (16.7 ms frames, p95 18.7 ms); the main thread works 0.37–0.53 ms a frame, the UI
+    (Prism, Seq\*) 0.008–0.024 ms of it:
+
+    | setup                 | busy ms/frame | UI ms/frame (share) | Mol\* ms/frame | writes | renders | DOM mutations/frame              |
+    | --------------------- | ------------- | ------------------- | -------------- | ------ | ------- | -------------------------------- |
+    | all panels closed     | 0.51          | 0.010 (2%)          | 0.37           | 0.3    | 0       | trajectory bar 0.2               |
+    | the Structure tab     | 0.45          | 0.010 (2–3%)        | 0.32           | 0.3    | 0       | trajectory bar 0.2               |
+    | the state tree        | 0.43          | 0.015–0.024 (4–6%)  | 0.28           | 1      | 0.8     | state tree 0.5, bar 0.2          |
+    | the sequence band     | 0.38–0.42     | 0.008 (2%)          | 0.28           | 0.2    | 0       | bar 0.2 (Seq\* draws its canvas) |
+    | the command menu open | 0.37–0.40     | 0.009–0.013 (2–3%)  | 0.27           | 0.3    | 0       | bar 0.2                          |
+
+    The rest of a frame's work is the engine's (deps, native, GC: 0.08–0.15 ms). The state tree is the one view that
+    works per model: a model's cell record is replaced, so its row is made anew (`For` by item). The scene tree and the
+    inspector write nothing while the models play. Long animation frames: at most one in 6 s per setup.
 - **Fonts and images** reserve their size; fonts have metric-compatible fallbacks.
 - **Check it**: record the interaction in the browser's performance panel (CPU throttled 4x): forced reflows, long style
   recalculations, long tasks. A story with a heavy view is the place to measure.

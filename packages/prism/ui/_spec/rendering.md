@@ -56,6 +56,8 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   one task is one render a row (7 µs against 25). A set alone in its task pays the microtask and the flush (19 µs
   against 14–16). The reflow's 80 µs is the tree's flattening, not its rows.
 
+- **While a structure animates, the UI is 2–6% of the main thread's work** (0.01–0.02 of 0.4–0.5 ms a frame; the table
+  and the hidden-UI checks are in [styling.md](styling.md) §5).
 - **Hand-rolled, not `@preact/signals-core`**: backing `State` and `derive` with signals measured the same time and more
   memory (the `watch` row 3.7 vs 3.4 KB, the `derive` row 9.5 vs 8.8 KB: an effect per listener), needed this batch's
   and queue's semantics given up, and its auto-tracking misses sources that are not signals.
