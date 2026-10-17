@@ -33,7 +33,7 @@ import {
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { bind, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
+import { bind, effect, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
 import { setShown } from '@molstar/prism-ui/dom/writes';
 import { setAttr, setClass, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
@@ -281,7 +281,7 @@ export function SceneTree(props: {
   // A row picked from elsewhere (the inspector's list, the canvas) is brought into view once its rows are open: the
   // frame after.
   let frame = 0;
-  bind(scene.picked.pipe(distinctUntilChanged()), (node) => {
+  effect(scene.picked, (node) => {
     if (!node) return;
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {

@@ -10,6 +10,7 @@
 
 import { Button, onCleanup, Show } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import { bind } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { map, type Observable } from 'rxjs';
 import {
@@ -143,14 +144,13 @@ export function PaePlot(props: PaePlotProps) {
   const alignedSeg = seg(Fallback.highlight, 6);
   const scoredSeg = seg(Fallback.accent, 2.5);
   const tones = observableState<PaeMarkColors>(Fallback);
-  if (props.colors) {
-    const sub = props.colors.subscribe((c) => {
+  // Bound, not subscribed: it pauses with the card's scope while hidden (styling.md §5) and goes with it.
+  if (props.colors)
+    bind(props.colors, (c) => {
       tones.set(c);
       scoredSeg.setAttribute('stroke', hex(c.accent));
       alignedSeg.setAttribute('stroke', hex(c.highlight));
     });
-    onCleanup(() => sub.unsubscribe());
-  }
 
   const plot = (
     <div

@@ -52,6 +52,17 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
 - **One change, one emission**: code that sets several states for one change wraps it in `batch`, so each emits once
   with its final value (views render once per task anyway: `watch`, [rendering.md](rendering.md) §2.3); long lists mark
   the current item with `keyedSelector` (a row watches `key(its key)`), so a pick renders the two rows concerned.
+- **A view follows the narrowest source that decides its output** (David, 2026-10-17): one key of a shared value
+  (`keyedSelector`, `keyedState`), one field of a record (`derive` the field, or split the state), never the whole for a
+  part. A change that ends in no DOM write is waste. The waste audit (`viewer/src/ui/_test/waste.test.tsx`, the real
+  shell in jsdom over a person's session: picks, hover, selections, a color, tabs, the command menu, the theme,
+  trajectory frames, notifications) counts, per state change, the listener calls, the derived recomputes that came out
+  the same and the writes and renders that changed no DOM, by source state and by view (where each was made;
+  `RuntimeProbe.run`, `ReactiveProbe`); `waste-budget.json` holds today's numbers per source file, and a source over its
+  budget fails. At the start the session made 16 writes and renders that changed nothing (7 the scene tree's
+  scroll-into-view, a side effect now in `effect()`; 2 the dock's tab lists, now deduplicated; 7 the trajectory
+  scrubber's `value`, a property the observer cannot see); 51 derived recomputes are the gates that keep the rest from
+  waking (a navigation or trajectory field derived from its record).
 - **A row never listens to a whole shared value it cares about one key of.** The current item of a list (the picked
   node, the selected cell, the highlighted option, the current model) is a `keyedSelector(state)`, made once per list; a
   row follows `key(its key)`, told only when it becomes or stops being current. Values per row (a tree's places and open

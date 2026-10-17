@@ -27,6 +27,7 @@ import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
 import { derive } from '../../reactive/state.js';
+import { sameShallow } from '../../reactive/same-shallow.js';
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
 export function DockView(props: {
   shell: ShellModel;
@@ -114,9 +115,19 @@ export function FloatingDock(props: {
   const shown = combineLatest([dock.tabs, rail.hidden]).pipe(
     map(([tabs, hidden]) => (hidden.size ? tabs.filter((t) => !hidden.has(`tab:${t.id}`)) : tabs)),
   );
-  const head = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
-  const strip = shown.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
-  const foot = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));
+  // The same tabs in a new array are no change (a layout change that moves no tab renders none of them again).
+  const head = shown.pipe(
+    map((tabs) => tabs.filter((t) => t.place === 'head')),
+    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
+  );
+  const strip = shown.pipe(
+    map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')),
+    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
+  );
+  const foot = shown.pipe(
+    map((tabs) => tabs.filter((t) => t.place === 'foot')),
+    distinctUntilChanged<readonly ShellTab[]>(sameShallow),
+  );
   const panelId = uniqueId('msp-panel');
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a

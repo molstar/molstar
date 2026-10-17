@@ -144,12 +144,14 @@ content loads.
     binding write and no `watch` render in a paused scope, against 156, 44 and 39 in what shows. A raw subscription
     planted in a hidden part is caught. Tabs that are not shown are not mounted at all; the hidden-but-mounted parts are
     the folded toolbar, folded sections and docks behind the compact rail.
+  - **A view subscribes to the narrowest source that determines its output** (view-models.md §3): hidden or shown, a
+    change that writes nothing is budgeted waste (`waste.test.tsx`, `waste-budget.json`).
   - **Imperative views**: the sequence band's track gutter rebuilt its icons on every Seq\* layout version with raw
     subscriptions; paused, it now marks itself stale and rebuilds once on resume. Left as they are: Seq\*'s section
     surface keeps scheduling its frames while hidden (it skips drawing at no size; pausing it needs a Seq\* API); the
-    PAE plot (model-archive) follows its colors by a raw subscription while mounted (in a card, not checked hidden);
-    menus' and popovers' document listeners and observers live only while they are open; one-shot frames (a scroll into
-    view, a font read) do not repeat.
+    PAE plot (model-archive) follows its colors by `bind` now (it pauses with its card); menus' and popovers' document
+    listeners and observers live only while they are open; one-shot frames (a scroll into view, a font read) do not
+    repeat.
   - **What the UI costs while a structure animates** (Internals › Performance › Animation, `watch-bench/anim.mjs`:
     1GRM's 5 NMR models looping at 5 a second, 6 s a setup, Chromium on an M4 with its GPU, a CPU profile split by
     source): every setup holds 60 fps (16.7 ms frames, p95 18.7 ms); the main thread works 0.37–0.53 ms a frame, the UI

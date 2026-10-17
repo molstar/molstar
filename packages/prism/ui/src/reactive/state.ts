@@ -20,6 +20,20 @@ import type { ReadonlyState } from './readonly-state.js';
  */
 export const ReactiveCounts = { listener: 0, derive: 0, render: 0 };
 
+/**
+ * For tests and benches (the waste audit, view-models.md §3): set `on`, and it is told of every state and derived value
+ * made (`created`), every derived recompute and whether it changed (`derive`); `source` is the state whose change is
+ * being told now (the outermost), for what follows from it to be put down to it. Unset, nothing is told.
+ */
+export const ReactiveProbe: {
+  on: boolean;
+  source: object | undefined;
+  created?: (made: object, kind: 'state' | 'derive') => void;
+  derive?: (d: object, changed: boolean) => void;
+  /** A change told (the outermost), with the listener calls it took, its own and what followed. */
+  told?: (state: object, listenerCalls: number) => void;
+} = { on: false, source: undefined };
+
 /** A listener: told each value set, in order (one set inside a delivery is told after it). */
 export type Listener<T> = (value: T) => void;
 
@@ -71,6 +85,22 @@ export abstract class Listened<T> extends Observable<T> {
   protected tell(value: T): void {
     const list = this.#listeners;
     if (!list || list.length === 0) return;
+    // The probe: the outermost state told is what the rest follows from.
+    if (ReactiveProbe.on && ReactiveProbe.source === undefined) {
+      ReactiveProbe.source = this;
+      const before = ReactiveCounts.listener;
+      try {
+        this.#tellAll(list, value);
+      } finally {
+        ReactiveProbe.source = undefined;
+        ReactiveProbe.told?.(this, ReactiveCounts.listener - before);
+      }
+      return;
+    }
+    this.#tellAll(list, value);
+  }
+
+  #tellAll(list: (Listener<T> | undefined)[], value: T): void {
     this.#telling++;
     try {
       // Those added meanwhile are told the next value, not this one.
@@ -145,6 +175,7 @@ export class State<T> extends Listened<T> implements ReadonlyState<T> {
     super();
     this.#value = initial;
     this.#compare = compare;
+    if (ReactiveProbe.on) ReactiveProbe.created?.(this, 'state');
   }
 
   get value(): T {
@@ -292,6 +323,7 @@ class Derived1<S, T> extends Listened<T> implements ReadonlyState<T> {
     readonly same: (a: T, b: T) => boolean,
   ) {
     super();
+    if (ReactiveProbe.on) ReactiveProbe.created?.(this, 'derive');
   }
 
   get value(): T {
@@ -305,7 +337,9 @@ class Derived1<S, T> extends Listened<T> implements ReadonlyState<T> {
     const v = this.source.value;
     const next = this.fn(v);
     this.#from = v;
-    if (this.same(this.#cached, next)) return;
+    const same = this.same(this.#cached, next);
+    if (ReactiveProbe.on) ReactiveProbe.derive?.(this, !same);
+    if (same) return;
     this.#cached = next;
     this.tell(next);
   };
@@ -335,6 +369,7 @@ class Derived<T> extends Listened<T> implements ReadonlyState<T> {
     readonly same: (a: T, b: T) => boolean,
   ) {
     super();
+    if (ReactiveProbe.on) ReactiveProbe.created?.(this, 'derive');
   }
 
   #compute(): T {
@@ -370,7 +405,9 @@ class Derived<T> extends Listened<T> implements ReadonlyState<T> {
     ReactiveCounts.derive++;
     this.#remember();
     const next = this.#compute();
-    if (this.same(this.#cached, next)) return;
+    const same = this.same(this.#cached, next);
+    if (ReactiveProbe.on) ReactiveProbe.derive?.(this, !same);
+    if (same) return;
     this.#cached = next;
     this.tell(next);
   };

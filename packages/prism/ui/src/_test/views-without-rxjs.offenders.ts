@@ -48,7 +48,7 @@ export const RxjsInViews: Record<string, number> = {
   'packages/prism/viewer/src/views/structure/measurements-add.tsx': 6,
   'packages/prism/viewer/src/views/structure/representation-quick.tsx': 2,
   'packages/prism/viewer/src/views/structure/scene-row.tsx': 3,
-  'packages/prism/viewer/src/views/structure/scene-tree.tsx': 7,
+  'packages/prism/viewer/src/views/structure/scene-tree.tsx': 6,
   'packages/prism/viewer/src/views/structure/structure-tab.tsx': 8,
   'packages/prism/viewer/src/views/structure/superpose.tsx': 2,
   'packages/prism/viewer/src/views/volume/volume-levels.tsx': 22,

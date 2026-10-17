@@ -8,9 +8,12 @@
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
 import { type Listenable, listen } from '../reactive/listen.js';
-import { ReactiveCounts } from '../reactive/state.js';
+import { ReactiveCounts, ReactiveProbe } from '../reactive/state.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
+
+/** Set while a binding starts (the probe tells its first write apart). */
+let starting = false;
 
 /** What a scope stops and starts with its activity: a binding, a watch. */
 abstract class Live implements Unsubscribable {
@@ -39,6 +42,16 @@ class Binding<T> extends Live {
   start() {
     if (this.#live || this.#dead) return;
     this.#live = true;
+    const was = starting;
+    starting = true;
+    try {
+      this.#start();
+    } finally {
+      starting = was;
+    }
+  }
+
+  #start() {
     const source = this.stream as Observable<T> & Partial<ReadonlyState<T>>;
     if (typeof source.listen === 'function') {
       // `fn` may stop the binding meanwhile.
@@ -70,7 +83,15 @@ class Binding<T> extends Live {
  * For tests and benches (styling.md §5, hidden UI): set before rendering, it is told every binding write and `watch`
  * render with its scope (so a test can count those in paused scopes). Unset, nothing is wrapped and nothing is told.
  */
-export const RuntimeProbe: { on?: (kind: 'write' | 'render', scope: Scope) => void } = {};
+export const RuntimeProbe: {
+  on?: (kind: 'write' | 'render', scope: Scope) => void;
+  /**
+   * Runs each binding write and `watch` render (`fn`) for the probe, with where it was made (`site`, a stack) and the
+   * states it follows from (`because`: `ReactiveProbe.source` when it was told; undefined for a first write), so a test
+   * can see whether it wrote to the DOM (the waste audit, view-models.md §3).
+   */
+  run?: (kind: 'write' | 'render', site: string, because: readonly (object | undefined)[], fn: () => void) => void;
+} = {};
 
 // --- watch ---------------------------------------------------------------------------------------
 
@@ -137,8 +158,13 @@ class Watcher extends Live implements WatchHandle {
     this.#render = render;
   }
 
+  /** The probe's: the states that marked it since it last rendered (`RuntimeProbe.run`). */
+  because: Set<object | undefined> | undefined;
+
   readonly #mark = () => {
-    if (this.#live) schedule(this);
+    if (!this.#live) return;
+    this.because?.add(ReactiveProbe.source);
+    schedule(this);
   };
 
   /** Follows other sources: the old listeners go, the new come, and it renders (now while live; else on resume). */
@@ -307,16 +333,20 @@ export class Scope {
    * Subscribes `fn` to `stream` for as long as the scope is active (`bind` does this): the subscription goes while it
    * is paused and comes back, with the stream's current value, when it resumes.
    */
-  bind<T>(stream: Observable<T>, fn: (value: T) => void): void {
+  bind<T>(stream: Observable<T>, fn: (value: T) => void, sideEffect = false): void {
     const probe = RuntimeProbe.on;
+    const run = sideEffect ? undefined : RuntimeProbe.run;
+    const site = run ? (new Error().stack ?? '') : '';
+    // A binding's first write (made, or resumed) is not one that follows a change.
+    const write = run ? (v: T) => run('write', site, [starting ? undefined : ReactiveProbe.source], () => fn(v)) : fn;
     const binding = new Binding(
       stream,
       probe
         ? (v: T) => {
             probe('write', this);
-            fn(v);
+            write(v);
           }
-        : fn,
+        : write,
     );
     this.own(binding);
     if (this.#active) binding.start();
@@ -326,16 +356,27 @@ export class Scope {
   watch(sources: readonly WatchSource[], render: () => void): WatchHandle {
     const streams = normalize(sources);
     const probe = RuntimeProbe.on;
-    const watcher = new Watcher(
+    const run = RuntimeProbe.run;
+    const site = run ? (new Error().stack ?? '') : '';
+    let watcher!: Watcher;
+    const draw = run
+      ? () => {
+          const because = watcher.because!.size ? [...watcher.because!] : [undefined];
+          watcher.because!.clear();
+          run('render', site, because, render);
+        }
+      : render;
+    watcher = new Watcher(
       this.depth,
       streams,
       probe
         ? () => {
             probe('render', this);
-            render();
+            draw();
           }
-        : render,
+        : draw,
     );
+    if (run) watcher.because = new Set();
     this.own(watcher);
     if (this.#active) watcher.start();
     return watcher;
@@ -497,6 +538,20 @@ export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Ob
  */
 export function watch(sources: readonly WatchSource[], render: () => void): WatchHandle {
   return requireScope('watch').watch(sources, render);
+}
+
+/**
+ * Calls `fn` with each value of `source` while the scope lives and is active, as `bind` does, for a side effect that
+ * writes no DOM (bringing a row into view, telling a model): the waste audit does not count it as a write
+ * (view-models.md §3).
+ */
+export function effect<T>(source: MaybeReactive<T>, fn: (value: T) => void): void {
+  const stream = toStream(source);
+  if (!stream) {
+    fn(source as T);
+    return;
+  }
+  requireScope('effect').bind(stream, fn, true);
 }
 
 /** A `watch` whose sources can change (a recycled row shown another item: `RecycledList`). */
