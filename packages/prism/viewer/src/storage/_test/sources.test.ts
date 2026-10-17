@@ -121,6 +121,20 @@ describe('kept records', () => {
     source.dispose();
   });
 
+  it("a viewer without a key lists its own records, never the app's", async () => {
+    const app = createIndexedDbRows<ThreadTable>('prism-viewer-records');
+    const record = await keptRecord(app, 'The app’s', Date.now());
+    await record.dispose();
+    app.close();
+
+    const unkeyed = viewerStorageSources({});
+    expect(await unkeyed.sources[0].list()).toEqual([]);
+    const keyed = viewerStorageSources({ persist: { key: 'prism-viewer' } });
+    expect((await keyed.sources[0].list()).map((e) => e.label)).toEqual(['The app’s']);
+    unkeyed.dispose();
+    keyed.dispose();
+  });
+
   it('lists nothing where there is no IndexedDB', async () => {
     vi.stubGlobal('indexedDB', undefined);
     expect(await keptRecordsSource().list()).toEqual([]);

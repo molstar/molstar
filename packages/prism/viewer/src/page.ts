@@ -20,7 +20,10 @@ export interface CreatePrismViewerOptions {
   readonly spec: PrismViewerSpec;
 }
 
-/** Live viewers by their persist key: two on a page with the same key are refused (README decision 29). */
+/**
+ * Live viewers by their persist key: two on a page with the same key are refused (README decision 29). Viewers without
+ * a key are not: they share the unkeyed kept records (`prism-default-records`, journal.md §6), fenced per database.
+ */
 const liveKeys = new Set<string>();
 
 export async function createPrismViewer(o: CreatePrismViewerOptions): Promise<PrismViewer> {

@@ -11,10 +11,10 @@ the truth for how.
   `highlight.*`, `view.*`, `export.preview`, nested runs.
 - **In memory by default.** A reload ends it and every checkpoint: a turn cannot be undone after a reload.
 - **Kept on purpose**: "Keep this session's record" (History, `record.keep`) copies it into the spec's `persist.rows`
-  ([viewer-spec.md](viewer-spec.md) §2.6), else IndexedDB `<persist.key>-records` (`prism-viewer-records` for the
-  default key `prism-viewer`, and when the spec has no key; `recordsDatabase`; loaded when asked), and appends there.
-  Viewers on a page with different keys keep and list their records apart (README decision 29). **Only the record**: no
-  state, files or checkpoints; state comes back only from a session file.
+  ([viewer-spec.md](viewer-spec.md) §2.6), else IndexedDB `<persist.key>-records` (`prism-viewer-records` for the app's
+  key `prism-viewer`; `prism-default-records` when the spec has no key, §6; `recordsDatabase`; loaded when asked), and
+  appends there. Viewers on a page with different keys keep and list their records apart (README decision 29). **Only
+  the record**: no state, files or checkpoints; state comes back only from a session file.
 - **Keep runs in the write chain**: one at a time, same entry ids and positions, appends wait for it; a failed copy is
   removed and the record stays in memory. `unkeep` copies back into memory and forgets the kept rows.
 - **Index of kept records** (threads have no listing by owner): an append-only thread in the same rows, folded when
@@ -91,10 +91,12 @@ the truth for how.
 ## 6. Light state in the browser's storage
 
 - **Names are per viewer** (README decision 29): the host builds each store with the viewer's `persist.key` as its
-  `prefix` (`webStore`; the app: `prism-viewer`), the records' IndexedDB is `<key>-records` (§1), and the assistant's
-  preferences (model, own endpoints, allowed domains) are `prism-assistant@<key>.*` (the default key: the original
-  `prism-assistant.*`). **The assistant's keys are the person's and are shared by every viewer in the browser**
-  (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`).
+  `prefix` (`webStore`; the app: `prism-viewer`), the records' IndexedDB is `<key>-records` (§1; a viewer with no key:
+  `prism-default-records`, never the app's `prism-viewer-records`, so an embedded viewer on the app's origin cannot
+  list, open or forget the app's kept records; **viewers with no key on one origin share one kept-records list**, safe
+  as the index is fenced per database, §1), and the assistant's preferences (model, own endpoints, allowed domains) are
+  `prism-assistant@<key>.*` (the default key: the original `prism-assistant.*`). **The assistant's keys are the person's
+  and are shared by every viewer in the browser** (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`).
 - **Two stores**, never for data (`persist/stores.ts`, `webStore('local' | 'session', { prefix, version, budget })`):
   `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme, the layout, the person's
   keys) and `persist.restore` (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over

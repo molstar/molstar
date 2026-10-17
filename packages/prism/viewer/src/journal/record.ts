@@ -36,16 +36,20 @@ import type { RunRecord } from '../api/run.js';
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.
 
 export const RecordCodec = 'prism-viewer.record.v1';
-/** The viewer's default persist key: what the records database is named after when the spec has none. */
-const DefaultPersistKey = 'prism-viewer';
-/** The IndexedDB database of a viewer without a `persist.key` (and of the app's, whose key is the default). */
-export const RecordsDatabase = `${DefaultPersistKey}-records`;
+/**
+ * The records' key of a viewer without a `persist.key` (journal.md §6, README decision 29): not the app's
+ * (`prism-viewer`), so an embedded viewer on the app's origin never lists, opens or forgets the app's kept records.
+ * Viewers without a key share it.
+ */
+const UnkeyedPersistKey = 'prism-default';
+/** The IndexedDB database of a viewer without a `persist.key`. */
+export const RecordsDatabase = `${UnkeyedPersistKey}-records`;
 /**
  * The IndexedDB database kept records go to when the spec gives no rows (journal.md §1, §6; History's Keep): named after
  * the viewer's `persist.key`, so viewers on a page keep their records apart (README decision 29). Viewers with no key
- * share the default one.
+ * share `prism-default-records`.
  */
-export const recordsDatabase = (persistKey?: string): string => `${persistKey || DefaultPersistKey}-records`;
+export const recordsDatabase = (persistKey?: string): string => `${persistKey || UnkeyedPersistKey}-records`;
 const Owner = threadOwnerId('prism-viewer');
 
 /** The thread's largest window (`maxWindowEntries`): longer reads go in pages of it. */
