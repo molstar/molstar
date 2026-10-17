@@ -10,8 +10,7 @@
 
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { onActive, onCleanup } from '../../dom/scope.js';
-import { on } from '../../dom/scoped.js';
-import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
+import { frames, on } from '../../dom/scoped.js';
 import { classes } from './_generated/glass-wordmark.module.css.js';
 import { Glass } from './glass.js';
 
@@ -118,19 +117,13 @@ export function GlassWordmark(props: {
     for (let i = 0; i < words.length; i++) ctx.stroke(words[i]);
   };
 
-  // Frames only while something moves, in the page's one frame tick. Asked for from the pointer's listeners and from
-  // the frames themselves, outside the scope (where `frame()` cannot be): one callback by hand, cancelled when hidden
-  // and with the scope.
-  let frame = 0;
+  // Frames only while something moves, in the page's one frame tick: asked for from the pointer's listeners and from
+  // the frames themselves (`frames`: put off while hidden, cancelled with the scope).
   let last = 0;
   let active = true;
   /** Shown again: sized and colored in the next frame (once it is in the page). */
   let fresh = false;
-  const request = () => {
-    frame = requestFrameCallback(tick);
-  };
   const tick = (now: number) => {
-    frame = 0;
     if (!active) return;
     if (fresh) {
       fresh = false;
@@ -153,8 +146,10 @@ export function GlassWordmark(props: {
     if (!glass.resting) request();
     else last = 0;
   };
+  const loop = frames(tick);
+  const request = () => loop.request();
   const wake = () => {
-    if (!glass || !active || frame) return;
+    if (!glass || !active) return;
     request();
   };
 
@@ -190,17 +185,15 @@ export function GlassWordmark(props: {
   onActive((a) => {
     active = a;
     if (!a) {
-      if (frame) cancelFrameCallback(frame);
-      frame = 0;
+      loop.cancel();
       last = 0;
       return;
     }
     fresh = true;
-    if (!frame) request();
+    request();
   });
   onCleanup(() => {
     active = false;
-    if (frame) cancelFrameCallback(frame);
   });
   return root;
 }

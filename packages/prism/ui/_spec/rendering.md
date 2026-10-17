@@ -221,10 +221,11 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   `observeResize(el, fn)` or `observeIntersection(el, fn)` (disconnected at the end), a frame with `frame(fn)` and a
   timer with `timeout(fn, ms)` (cancelled at the end); a component's `frameState` drops its pending offer with its
   scope, and the frame lane skips disposed and paused watches. Released by construction, not by memory: a raw
-  `addEventListener`, `new ResizeObserver`/`IntersectionObserver`, `setInterval` or `requestAnimationFrame` in a
-  component file is held to a shrinking list (`ui/src/_test/scoped-attach.test.ts`: 93 in 30 files before the helpers,
-  60 in 22 after the lists, the scroll area, the shell's views and the sequence band moved to them). A listener added in
-  an event handler (no scope there) is attached once instead, scoped, and acts while a drag is on.
+  `addEventListener`, `new ResizeObserver`/`IntersectionObserver`, `setInterval`, `requestAnimationFrame` or a frame
+  callback by hand in a component file fails (`ui/src/_test/scoped-attach.test.ts`, strict since every view moved to the
+  helpers: 93 in 30 files at the start). A listener added in an event handler (no scope there) is attached once instead,
+  scoped, and acts while a drag is on; a frame asked for from a handler or a binding is `frames(fn)`'s `request()` (made
+  with the scope: once a frame, put off while paused, cancelled at the end).
 - **Gestures** (`drag(target, { start, move, end })`, `dom/scoped.ts`): the press, the moves and every end are listeners
   attached once with the scope, acting while a drag is on; the pointer is captured at the press. A drag ends on
   `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
@@ -259,9 +260,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **Outside a watch, read states, not values**: `{model.label}` binds, `{model.label.value}` renders once.
 - **Derive in the model**, or with `derive` in the view; never a pipe on a state.
 - **No rxjs in views** (`ui/src/_test/views-without-rxjs.test.ts`): `views/` in ui, viewer and assistant, ui's
-  `components/` and the extensions' Prism UI import no `rxjs` and call no `.pipe(`. Phased in: the files that still do
-  are listed with their counts (`views-without-rxjs.offenders.ts`, 42 files at the start); a new one fails, a listed one
-  only shrinks. Models, sources and the boundary helpers (`toState`, `asObservable`) are outside it.
+  `components/` and the extensions' Prism UI import no `rxjs` and call no `.pipe(`; any does fails (strict since every
+  view moved: 357 uses in 42 files at the start). Models, sources and the boundary helpers (`toState`, `asObservable`)
+  are outside it.
+- **A derive computes when read unlistened**: with no listener it holds nothing, so each read computes again (and a
+  subscription reads, then listens: twice). A stateful function in one (`keepRows`) must be keyed by its inputs, or the
+  derive listened to before it is read.
 - **Keep identities stable where content should stay** (§2.5).
 - **Bursts render once by themselves** in a `watch` (a microtask's worth of sets is one render); `batch` makes a state
   tell its listeners once (bindings write at once), and a short debounce helps where a burst spans tasks.

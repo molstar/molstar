@@ -9,15 +9,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { RawAttach } from './scoped-attach.offenders.js';
 
 // What a component attaches imperatively is released by construction (rendering.md §2.4): the scoped helpers
-// (dom/scoped.ts: `on`, `observeResize`, `observeIntersection`, `frame`, `timeout`) are the way. A raw
+// (dom/scoped.ts: `on`, `observeResize`, `observeIntersection`, `frame`, `frames`, `timeout`, `drag`) are the way. A raw
 // `addEventListener`, `new ResizeObserver` or `IntersectionObserver`, `setInterval`, `requestAnimationFrame` or a frame
 // callback asked for by hand (`requestFrameCallback`: pooled, but not released with its scope) in a
-// component file (the `.tsx` of ui, viewer and assistant, and the extensions' Prism UI) counts; the files that still
-// have them are listed with their counts (scoped-attach.offenders.ts), a new one or more in a listed one fails, and a
-// listed one with fewer must lower its entry.
+// component file (the `.tsx` of ui, viewer and assistant, and the extensions' Prism UI) fails. Strict (2026-10-17: 93
+// in 30 files at the start, all moved to the helpers).
 
 const prism = path.resolve(import.meta.dirname, '../../..');
 const repo = path.resolve(prism, '../..');
@@ -56,21 +54,12 @@ describe('scoped attachments', () => {
     ).toBe(2);
   });
 
-  it('no new raw attachment in a component; the listed ones only shrink', () => {
-    const found: Record<string, number> = {};
+  it('no raw attachment in a component', () => {
+    const found: string[] = [];
     for (const f of componentFiles()) {
       const n = rawAttach(fs.readFileSync(f, 'utf8'));
-      if (n > 0) found[path.relative(repo, f).split(path.sep).join('/')] = n;
+      if (n > 0) found.push(`${path.relative(repo, f).split(path.sep).join('/')}: ${n}`);
     }
-    const grown: string[] = [];
-    const shrunk: string[] = [];
-    for (const [file, n] of Object.entries(found)) {
-      const allowed = RawAttach[file] ?? 0;
-      if (n > allowed) grown.push(`${file}: ${n} (allowed ${allowed})`);
-      else if (n < allowed) shrunk.push(`${file}: ${n} (listed ${allowed})`);
-    }
-    for (const [file, n] of Object.entries(RawAttach)) if (!(file in found)) shrunk.push(`${file}: 0 (listed ${n})`);
-    expect(grown, 'a raw attachment in a component: use dom/scoped.ts (rendering.md §2.4)').toEqual([]);
-    expect(shrunk, 'fewer than listed: lower or remove the entry in scoped-attach.offenders.ts').toEqual([]);
+    expect(found, 'a raw attachment in a component: use dom/scoped.ts (rendering.md §2.4)').toEqual([]);
   });
 });

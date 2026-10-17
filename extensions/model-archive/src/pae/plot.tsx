@@ -11,7 +11,7 @@
 import { Button, onCleanup, type ReadonlyState, Show } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { bind } from '@molstar/prism-ui/dom/scope';
-import { drag, on } from '@molstar/prism-ui/dom/scoped';
+import { drag, frames, on } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import {
   type PaeMatrix,
@@ -27,7 +27,6 @@ import {
 import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // The PAE plot (parity.md §6; AlphaFold DB's, in Prism's look): the heat map, scored residue across and aligned residue
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
@@ -247,7 +246,6 @@ export function PaePlot(props: PaePlotProps) {
 
   // Pointer-rate input, once per frame: a hover names and lights the cell; a drag draws a box, or on the box's edge or
   // corner resizes it, or inside it moves it; a press without a drag picks the cell. The box is set when the drag ends.
-  let frame = 0;
   let px = 0;
   let py = 0;
   let inside = false;
@@ -346,7 +344,6 @@ export function PaePlot(props: PaePlotProps) {
     return { i0: Math.min(d.i, at.i), i1: Math.max(d.i, at.i), j0: Math.min(d.j, at.j), j1: Math.max(d.j, at.j) };
   };
   const update = () => {
-    frame = 0;
     if (pressed) {
       const b = dragged(pressed, clampCell(px, py));
       drawBox(b);
@@ -365,8 +362,10 @@ export function PaePlot(props: PaePlotProps) {
     hoverText.set(at ? paeCellLabel(m, at.i, at.j) : undefined);
     hover(at);
   };
+  // Once a frame on the page's one tick, asked for from the pointer's listeners (`frames`: cancelled with the scope).
+  const updating = frames(update);
   const schedule = () => {
-    if (!frame && !disposed) frame = requestFrameCallback(update);
+    if (!disposed) updating.request();
   };
   // The box's drag (new, move, resize by its edges; `drag`: attached once, every way it can end ends it). A release
   // without a move picks the cell; a cancel puts the box back as it was.
@@ -423,7 +422,6 @@ export function PaePlot(props: PaePlotProps) {
   };
   onCleanup(() => {
     disposed = true;
-    if (frame) cancelFrameCallback(frame);
     if (hoverTimer !== undefined) clearTimeout(hoverTimer);
     // Leaving: what the plot lit goes with it.
     if (cellKey >= 0) props.onHover?.(undefined);

@@ -195,3 +195,56 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
     cancel: () => finish('cancel'),
   };
 }
+
+/**
+ * A frame callback the current scope owns, asked for from anywhere: an event handler, a binding, the frame itself, where
+ * `frame()` cannot be called (no scope there). `request()` asks for `fn` in the next frame on the page's one tick
+ * (once a frame, however often asked); paused, a request waits for the resume (one asked for when it paused is put off
+ * too); it is cancelled when the scope ends. A loop that runs while something moves requests again from `fn`.
+ */
+export function frames(fn: (time: number) => void): { request(): void; cancel(): void } {
+  const scope = requireScope('frames');
+  let id = 0;
+  let waiting = false;
+  let gone = false;
+  const run = (time: number) => {
+    id = 0;
+    if (gone) return;
+    if (!scope.active) {
+      waiting = true;
+      return;
+    }
+    fn(time);
+  };
+  const request = () => {
+    if (gone || id) return;
+    if (!scope.active) {
+      waiting = true;
+      return;
+    }
+    id = requestFrameCallback(run);
+  };
+  const cancel = () => {
+    waiting = false;
+    if (!id) return;
+    cancelFrameCallback(id);
+    id = 0;
+  };
+  scope.onActive((active) => {
+    if (!active) {
+      if (id) {
+        cancelFrameCallback(id);
+        id = 0;
+        waiting = true;
+      }
+    } else if (waiting) {
+      waiting = false;
+      request();
+    }
+  });
+  scope.onCleanup(() => {
+    cancel();
+    gone = true;
+  });
+  return { request, cancel };
+}

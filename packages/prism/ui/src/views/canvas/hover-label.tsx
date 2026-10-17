@@ -9,10 +9,9 @@
  */
 
 import { For } from '../../dom/control-flow.js';
-import { bind, onCleanup, requireScope, runInScope } from '../../dom/scope.js';
-import { on } from '../../dom/scoped.js';
+import { bind, requireScope, runInScope } from '../../dom/scope.js';
+import { frames, on } from '../../dom/scoped.js';
 import type { HoverLabelModel } from '../../model/playback.js';
-import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/hover-label.module.css.js';
 
@@ -49,10 +48,8 @@ export function HoverLabel(props: {
   let inside = false;
   let dragging = false;
   let hasContent = false;
-  let frame = 0;
 
   const place = () => {
-    frame = 0;
     const visible = inside && !dragging && hasContent;
     if (label.hidden === visible) label.hidden = !visible;
     if (!visible) return;
@@ -70,8 +67,10 @@ export function HoverLabel(props: {
   };
   // Asked for from the pointer's listeners and the lines' binding, outside the scope (where `frame()` cannot be): a
   // frame callback by hand, in the page's one frame tick, cancelled with the scope.
+  // Placed once a frame on the page's one tick, asked for from the listeners and the lines' binding (`frames`).
+  const placing = frames(place);
   const schedule = () => {
-    if (!frame) frame = requestFrameCallback(place);
+    placing.request();
   };
 
   bind(props.model.lines, (lines) => {
@@ -100,9 +99,6 @@ export function HoverLabel(props: {
         schedule();
       });
     });
-  });
-  onCleanup(() => {
-    if (frame) cancelFrameCallback(frame);
   });
   return label;
 }

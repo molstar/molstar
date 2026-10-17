@@ -32,8 +32,9 @@ it is done).
   that may come late (a search, a count, a fetch) goes through `latest`, so an old one never lands after a newer.
 - **Scoped attachments** (David, 2026-10-17; [rendering.md §2.4](ui/_spec/rendering.md)): a component attaches
   listeners, observers, frames and timers only through `dom/scoped.ts` (`on`, `observeResize`, `observeIntersection`,
-  `frame`, `timeout`): released with its scope, a listener detached while it is paused. Raw ones are held to a shrinking
-  list (`scoped-attach.test.ts`); the leak guard (`leaks.heap.tsx`) mounts and disposes views and counts what stays.
+  `frame`, `frames`, `timeout`, `drag`): released with its scope, a listener detached while it is paused. A raw one in a
+  component fails (`scoped-attach.test.ts`), as rxjs in a view does (`views-without-rxjs.test.ts`); the leak guard
+  (`leaks.heap.tsx`) mounts and disposes views and counts what stays.
 - **Perf conformance from day one**, as in Seq\* (David, 2026-10-17): base primitives and hot paths carry quick
   allocation guards (`test:perf`: bytes a step against `perf-baseline.json`, each with a positive control) and heap
   guards (`test:heap`). Opt in, by hand at checkpoints, not in CI. A new primitive or hot view lands with its guard.

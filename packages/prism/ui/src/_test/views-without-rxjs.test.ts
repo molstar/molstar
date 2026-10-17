@@ -9,12 +9,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { RxjsInViews } from './views-without-rxjs.offenders.js';
 
 // Views do no rxjs (rendering.md §2.6): they get states and derived values and render them (`watch`, `bind` by
-// `listen`); rxjs is the models' and sources' boundary (`toState`, `asObservable`). Phased in: the files that still
-// import rxjs or call `.pipe(` are listed with their counts (views-without-rxjs.offenders.ts); a new one, or more in a
-// listed one, fails; a listed one that has fewer must lower its entry (the list only shrinks).
+// `listen`); rxjs is the models' and sources' boundary (`toState`, `asObservable`). Strict (2026-10-17, the views all
+// migrated: 357 uses in 42 files at the start): an rxjs import (type-only too) or a `.pipe(` in a view fails.
 
 const prism = path.resolve(import.meta.dirname, '../../..');
 const repo = path.resolve(prism, '../..');
@@ -61,21 +59,12 @@ describe('views without rxjs', () => {
     expect(rxjsUse("import { derive } from '@molstar/prism-ui/reactive/state';\nderive(x, f);")).toBe(0);
   });
 
-  it('no new rxjs in views; the listed ones only shrink', () => {
-    const found: Record<string, number> = {};
+  it('no rxjs in a view', () => {
+    const found: string[] = [];
     for (const f of viewFiles()) {
       const n = rxjsUse(fs.readFileSync(f, 'utf8'));
-      if (n > 0) found[path.relative(repo, f).split(path.sep).join('/')] = n;
+      if (n > 0) found.push(`${path.relative(repo, f).split(path.sep).join('/')}: ${n}`);
     }
-    const grown: string[] = [];
-    const shrunk: string[] = [];
-    for (const [file, n] of Object.entries(found)) {
-      const allowed = RxjsInViews[file] ?? 0;
-      if (n > allowed) grown.push(`${file}: ${n} (allowed ${allowed})`);
-      else if (n < allowed) shrunk.push(`${file}: ${n} (listed ${allowed})`);
-    }
-    for (const [file, n] of Object.entries(RxjsInViews)) if (!(file in found)) shrunk.push(`${file}: 0 (listed ${n})`);
-    expect(grown, 'rxjs in a view: use states, derive and watch (rendering.md §2.6)').toEqual([]);
-    expect(shrunk, 'fewer than listed: lower or remove the entry in views-without-rxjs.offenders.ts').toEqual([]);
+    expect(found, 'rxjs in a view: use states, derive and watch (rendering.md §2.6)').toEqual([]);
   });
 });
