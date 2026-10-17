@@ -124,6 +124,31 @@ describe('the v1 schemes against their published definitions', () => {
     });
   });
 
+  it("legends: a theme scheme's dark variant never lists the light theme's colors", () => {
+    // ESPript's and percent identity's rules are labeled: their theme lists them, in the colors drawn on either skin.
+    for (const name of ['espript', 'percent_identity']) {
+      expect(schemeLegend(reg, { name }, false)).toEqual([]);
+      expect(schemeLegend(reg, { name }, true)).toEqual([]);
+    }
+    // Every theme scheme with a dark variant: its dark legend is `darkLegend`, never `legend`.
+    for (const e of KernelColorSchemes) {
+      const def = e.scheme;
+      if (def.kind !== 'theme' || !def.dark) continue;
+      expect(schemeLegend(reg, { name: e.name }, true)).toEqual([...(def.darkLegend ?? [])]);
+    }
+    const custom = {
+      kind: 'theme',
+      alphabets: ['protein'],
+      columns: true,
+      theme: { theme: 'espript' },
+      dark: { theme: 'espript', params: { identical: '#f0f0f0' } },
+      legend: [{ label: 'x', color: '#000000' }],
+      darkLegend: [{ label: 'x', color: '#f0f0f0' }],
+    } as const;
+    expect(schemeLegend(reg, { custom }, false)).toEqual([{ label: 'x', color: '#000000' }]);
+    expect(schemeLegend(reg, { custom }, true)).toEqual([{ label: 'x', color: '#f0f0f0' }]);
+  });
+
   it('legends: a letters scheme with no labeled groups lists its letters, those of one color together', () => {
     const taylor = schemeLegend(reg, { name: 'taylor' }, false);
     expect(taylor.length).toBeGreaterThanOrEqual(20);

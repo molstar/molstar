@@ -12,10 +12,18 @@
 // callback.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
-import { type CoordinateSystem, CoordinateSystemKind, Extents, KeyKind, type SeqSet } from '@molstar/seq-core/model';
+import {
+  type CoordinateSystem,
+  CoordinateSystemKind,
+  Extents,
+  KeyKind,
+  type SeqSet,
+  SeqSets,
+} from '@molstar/seq-core/model';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../../src/format/index.js';
 import { Coordinates, type SystemDescriptor, SystemRegistry, TranslateMaps } from '../../src/translate/index.js';
+import { itWithin } from '../model/timing.js';
 import { registries } from '../format/load-fixtures.js';
 
 const K = CoordinateSystemKind;
@@ -118,5 +126,41 @@ describe('SystemRegistry, headless', () => {
     expect(named(r.map(coords('3d/A', 1, 3), 'seqstar:nothing'))).toEqual([]);
     expect(named(r.map(coords('nothing', 1, 3), 'seqstar:u'))).toEqual([]);
     expect(named(new SystemRegistry().map(coords('3d/A', 1, 3), 'seqstar:u'))).toEqual([]);
+  });
+
+  it("a unit's descriptor follows its molecule's numberings, the units' table shared", () => {
+    const v1 = SeqSets.build({ molecules: [{ key: 'p', residues: 'MKVL' }], units: [{ key: 'u', molecule: 'p' }] }).set;
+    const r = new SystemRegistry();
+    r.update(v1);
+    expect(r.descriptor('seqstar:u')?.numberings).not.toContain('auth');
+    // A new numbering, the same length: the units' table is shared (no unit changed), the molecule is not.
+    const numberings = [{ name: 'auth', method: 'offset', first: 10, isDefault: true }] as never;
+    const v2 = SeqSets.withChanges(v1, { upsert: { molecules: [{ key: 'p', residues: 'MKVL', numberings }] } }).set;
+    expect(v2.units).toBe(v1.units);
+    r.update(v2);
+    expect(r.descriptor('seqstar:u')?.numberings).toContain('auth');
+  });
+
+  itWithin("loci of many runs: each row's runs gathered in place, not copied per run", (within) => {
+    const n = 20_000;
+    const gapped = ['A'.repeat(2 * n), 'A'.repeat(2 * n)];
+    const set = SeqSets.build({ alignments: [{ key: 'msa', gapped, flavor: 'aligned' }] } as never).set;
+    const ext = Extents.create(8);
+    for (let i = 0; i < n; i++) {
+      Extents.add(ext, { kind: K.columns, id: 0, row: -1 }, 2 * i, 2 * i + 1);
+      Extents.add(ext, { kind: K.row, id: 0, row: 1 }, 2 * i, 2 * i + 1);
+    }
+    const loci = within(200, () => Coordinates.toLoci(set, ext)) as {
+      kind: string;
+      columns?: Int32Array;
+      elements?: { row: number; indices: Int32Array }[];
+    }[];
+    expect(loci.map((l) => l.kind)).toEqual(['row-loci', 'column-loci']);
+    expect([loci[0].elements?.[0].row, loci[0].elements?.[0].indices.length, loci[1].columns?.length]).toEqual([
+      1,
+      n,
+      n,
+    ]);
+    expect(loci[1].columns?.[n - 1]).toBe(2 * n - 2);
   });
 });

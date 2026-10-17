@@ -124,8 +124,9 @@ function ofExtents(set: SeqSet, ext: Extents, keyOf?: (s: CoordinateSystem) => s
 
 /**
  * The unit and molecule entries of `ext` as one seq loci of `set`, a molecule entry in every alive unit of its
- * molecule (every copy); null: none. Edge rate: per unit its runs, never a Set of positions, so a chromosome-long run
- * converts in O(runs).
+ * molecule (every copy); null: none. Edge rate: per unit its runs, never a Set of positions; a unit whose runs merge
+ * into one is a range, so a chromosome-long run converts in O(runs). Disjoint runs are their positions (a loci's
+ * indices are a range or a sorted array), O(positions).
  */
 function toSeqLoci(set: SeqSet, ext: Extents): SeqLoci | null {
   const byUnit = new Map<number, number[]>();
@@ -153,9 +154,12 @@ function toLoci(set: SeqSet, ext: Extents): Loci[] {
   const runs = new Map<number, Map<number, number[]>>(); // alignment → row (-1: its columns) → runs
   for (let i = 0; i < ext.count; i++) {
     if (ext.kind[i] !== K.row && ext.kind[i] !== K.columns) continue;
-    const byRow = runs.get(ext.id[i]) ?? runs.set(ext.id[i], new Map()).get(ext.id[i]);
+    let byRow = runs.get(ext.id[i]);
+    if (!byRow) runs.set(ext.id[i], (byRow = new Map()));
     const row = ext.kind[i] === K.row ? ext.row[i] : -1;
-    byRow?.set(row, [...(byRow.get(row) ?? []), ext.start[i], ext.stop[i]]);
+    let list = byRow.get(row);
+    if (!list) byRow.set(row, (list = []));
+    list.push(ext.start[i], ext.stop[i]);
   }
   for (const [alignment, byRow] of runs) {
     const rows = [...byRow].filter(([r]) => r >= 0).sort((a, b) => a[0] - b[0]);

@@ -412,8 +412,8 @@ A **color scheme** is a named, curated way to color one kind of subject: residue
 (Viridis) or categories (Okabe–Ito). It is data, registered like any entry (`colorSchemes`), and becomes the `letter`,
 `field_palette` or `rules` theme it stands for. A layer names one with the `scheme` theme (`name` or an inline `custom`,
 with overrides). A scheme applies only to its subject and alphabets; one that does not fit is drawn as the layer's
-default and reported. A scheme has a dark variant, given or derived. Picking a scheme at runtime is the viewer's
-(`seqspec:interaction#color-schemes-at-runtime`).
+default and reported. A scheme has a dark variant, given or derived; its legend lists the variant's colors, never the
+other's. Picking a scheme at runtime is the viewer's (`seqspec:interaction#color-schemes-at-runtime`).
 
 ## Queries
 
