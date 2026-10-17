@@ -16,7 +16,7 @@ import { Listened } from './state.js';
  * whole new map and tells only the listened keys whose value changed: its cost is the keys listened to, not the map.
  */
 export class KeyedState<K, V> {
-  #values: ReadonlyMap<K, V> = new Map();
+  #values: Map<K, V> = new Map();
   readonly #keys = new Map<K, Set<KeyValueState<K, V>>>();
   readonly #same: (a: V, b: V) => boolean;
 
@@ -32,7 +32,7 @@ export class KeyedState<K, V> {
     return this.#values.has(k);
   }
 
-  /** All the values now (read-only: change them with `set`, `delete` or `replace`). */
+  /** All the values now (read-only, and live: change them with `set`, `delete` or `replace`). */
   get values(): ReadonlyMap<K, V> {
     return this.#values;
   }
@@ -41,24 +41,21 @@ export class KeyedState<K, V> {
   set(k: K, v: V): void {
     const had = this.#values.has(k);
     if (had && this.#same(this.#values.get(k) as V, v)) return;
-    const next = new Map(this.#values);
-    next.set(k, v);
-    this.#values = next;
+    // In place: a set is one key's, nothing copied.
+    this.#values.set(k, v);
     this.#tell(k);
   }
 
   delete(k: K): void {
-    if (!this.#values.has(k)) return;
-    const next = new Map(this.#values);
-    next.delete(k);
-    this.#values = next;
+    if (!this.#values.delete(k)) return;
     this.#tell(k);
   }
 
   /** Replaces every value at once; tells the listened keys whose value changed (or came, or went). */
   replace(values: ReadonlyMap<K, V>): void {
     const before = this.#values;
-    this.#values = values;
+    // Taken as it is (the caller's: not changed after).
+    this.#values = values as Map<K, V>;
     for (const k of this.#keys.keys()) {
       const had = before.has(k);
       const has = values.has(k);
@@ -72,8 +69,8 @@ export class KeyedState<K, V> {
   }
 
   #tell(k: K) {
-    const set = this.#keys.get(k);
-    if (set) for (const s of [...set]) s.changed();
+    // `forEach` with a module function: no iterator, in any tier (a `for…of` allocated one before optimization).
+    this.#keys.get(k)?.forEach(tellValue);
   }
 
   /** @internal */
@@ -111,6 +108,8 @@ class KeyValueState<K, V> extends Listened<V | undefined> implements KeyedValue<
     this.state.detach(this);
   }
 }
+
+const tellValue = (s: { changed(): void }) => s.changed();
 
 /** Values by key, each told apart (`KeyedState`). */
 export function keyedState<K, V>(same?: (a: V, b: V) => boolean): KeyedState<K, V> {

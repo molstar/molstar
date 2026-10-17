@@ -82,6 +82,7 @@
         "vitest.live.config.ts",
         "packages/sequences/**/vitest*.config.ts",
         "packages/prism/viewer/vitest*.config.ts",
+        "packages/prism/ui/vitest*.config.ts",
         "apps/docs/astro.config.ts",
         "examples/minimal-prism-viewer/vite.config.ts"
       ],

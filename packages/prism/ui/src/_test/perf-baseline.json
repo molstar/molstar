@@ -1,0 +1,9 @@
+{
+  "primitives: bindWrite": 0,
+  "primitives: deriveRecompute": 0,
+  "primitives: deriveSkip": 0,
+  "primitives: keyedSelectorMove": 0,
+  "primitives: keyedStateSet": 0,
+  "primitives: stateSet": 0,
+  "primitives: watchRender": 0
+}

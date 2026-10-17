@@ -5,7 +5,9 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": ".",
+    // The repository: the allocation and heap guards (src/**/_test/*.{quick,heap}.ts) run on Seq*'s harness
+    // (packages/sequences/core/_test/model).
+    "rootDir": "../../..",
     "types": ["node"],
     "jsxImportSource": "@molstar/prism-ui/dom"
   },

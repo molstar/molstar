@@ -96,20 +96,31 @@ export const RuntimeProbe: {
 // --- watch ---------------------------------------------------------------------------------------
 
 /** The watches marked by a change since the last flush (rendering.md §2.3): rendered together, in a microtask. */
-let dirty = new Set<Watcher>();
+// Two arrays swapped a pass, each with its count, and a flag on each watch (`queued`): a Set's `clear` reallocates its
+// table and an array's `length = 0` its store; arrays kept at their size and emptied by count allocate nothing (the
+// quick tier read 270, then 150 bytes a flush: primitives.quick.ts).
+let dirty: (Watcher | undefined)[] = [];
+let dirtyCount = 0;
+let running: (Watcher | undefined)[] = [];
 let scheduled = false;
 let flushing = false;
 /** Flushes in a row before a watch that keeps marking itself (a render that sets what it watches) is dropped. */
 const MaxPasses = 100;
 
 function schedule(w: Watcher) {
-  dirty.add(w);
+  if (w.queued) return;
+  w.queued = true;
+  dirty[dirtyCount++] = w;
   if (scheduled) return;
   scheduled = true;
-  queueMicrotask(flush);
+  queueMicrotask(flushQueued);
 }
 
-const byDepth = (a: Watcher, b: Watcher) => a.depth - b.depth;
+/** The microtask's flush: one queued a task at most, whether or not `flush()` ran meanwhile (nothing queued again). */
+function flushQueued() {
+  scheduled = false;
+  flush();
+}
 
 /**
  * Renders now what `watch`es are waiting for (they render in a microtask otherwise): for code that sets state and then
@@ -118,20 +129,42 @@ const byDepth = (a: Watcher, b: Watcher) => a.depth - b.depth;
  * flush (a render that calls it), it does nothing: the running flush goes on.
  */
 export function flush(): void {
-  scheduled = false;
   if (flushing) return;
   flushing = true;
   try {
-    for (let pass = 0; dirty.size > 0; pass++) {
-      const list = [...dirty];
-      dirty = new Set();
+    for (let pass = 0; dirtyCount > 0; pass++) {
+      // This pass's watches; what they mark goes to the other array, for the next pass.
+      const list = dirty;
+      const n = dirtyCount;
+      dirty = running;
+      dirtyCount = 0;
+      running = list;
       if (pass === MaxPasses) {
-        console.error('watch: renders kept marking watches (a render sets what it watches?); dropped', list.length);
+        console.error('watch: renders kept marking watches (a render sets what it watches?); dropped', n);
+        for (let i = 0; i < n; i++) {
+          list[i]!.queued = false;
+          list[i] = undefined;
+        }
         break;
       }
-      // A Set keeps the order of marking; the sort is stable, so siblings render in the order they changed.
-      if (list.length > 1) list.sort(byDepth);
-      for (let i = 0; i < list.length; i++) list[i].run();
+      // Marking order; parents first (depth), siblings in the order they changed (an insertion sort: stable, in place).
+      for (let i = 1; i < n; i++) {
+        const w = list[i]!;
+        let j = i - 1;
+        while (j >= 0 && list[j]!.depth > w.depth) {
+          list[j + 1] = list[j];
+          j--;
+        }
+        list[j + 1] = w;
+      }
+      for (let i = 0; i < n; i++) {
+        const w = list[i]!;
+        list[i] = undefined;
+        // Stopped since it was marked (paused, disposed): its entry is stale.
+        if (!w.queued) continue;
+        w.queued = false;
+        w.run();
+      }
     }
   } finally {
     flushing = false;
@@ -160,6 +193,8 @@ class Watcher extends Live implements WatchHandle {
 
   /** The probe's: the states that marked it since it last rendered (`RuntimeProbe.run`). */
   because: Set<object | undefined> | undefined;
+  /** Marked, waiting in the flush's array. */
+  queued = false;
 
   readonly #mark = () => {
     if (!this.#live) return;
@@ -204,7 +239,7 @@ class Watcher extends Live implements WatchHandle {
 
   stop() {
     this.#live = false;
-    dirty.delete(this);
+    this.queued = false;
     const stops = this.#stops;
     this.#stops = undefined;
     if (stops) for (let i = 0; i < stops.length; i++) stops[i]();

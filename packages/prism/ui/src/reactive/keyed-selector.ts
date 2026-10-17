@@ -59,8 +59,9 @@ export class KeyedSelector<K> {
   };
 
   #tell(k: K) {
-    const set = this.#flags.get(k);
-    if (set) for (const f of [...set]) f.changed();
+    // A Set iterates safely while one is removed (a flag that stops listening in its own call); no copy a change, and
+    // `forEach` with a module function: no iterator, in any tier.
+    this.#flags.get(k)?.forEach(tellFlag);
   }
 
   /** @internal */
@@ -91,6 +92,8 @@ export class KeyedSelector<K> {
     else stop?.unsubscribe();
   }
 }
+
+const tellFlag = (f: { changed(): void }) => f.changed();
 
 class KeyFlag<K> extends Listened<boolean> implements KeyedValue<boolean> {
   #last = false;
