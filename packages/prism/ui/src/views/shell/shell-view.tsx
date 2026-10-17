@@ -13,6 +13,7 @@ import { activity, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { eventTarget, isEditable, ownsKey } from '../../dom/events.js';
 import { bind, onCleanup } from '../../dom/scope.js';
+import { observeResize, on } from '../../dom/scoped.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { BandDissolvePx, BandFadePx, type CanvasMenuItem, type ShellModel } from '../../shell/shell.js';
@@ -366,13 +367,10 @@ export function ShellView(props: ShellViewProps) {
       e.preventDefault();
     }
   };
-  document.addEventListener('keydown', onKeyDown);
-  onCleanup(() => document.removeEventListener('keydown', onKeyDown));
+  on(document, 'keydown', onKeyDown);
   // Tooltips for the icon buttons of the rail and the canvas stack.
   onCleanup(installTooltips(root));
   // The shell decides compact or desktop by its own width, not the window's.
-  const observer = new ResizeObserver((entries) => shell.setWidth(entries[0].contentRect.width));
-  observer.observe(root);
-  onCleanup(() => observer.disconnect());
+  observeResize(root, (entries) => shell.setWidth(entries[0].contentRect.width));
   return root;
 }

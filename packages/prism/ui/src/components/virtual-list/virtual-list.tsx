@@ -13,6 +13,7 @@ import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { bind, flush, flushFrame, frameState, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
 
@@ -173,13 +174,9 @@ export function VirtualList<T>(props: {
       fade={false}
       viewportRef={(el) => {
         viewport = el;
-        el.addEventListener('scroll', measure, { passive: true });
-        const resize = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : undefined;
-        resize?.observe(el);
-        onCleanup(() => {
-          el.removeEventListener('scroll', measure);
-          resize?.disconnect();
-        });
+        // Scoped (dom/scoped.ts): detached while hidden, gone with the list.
+        on(el, 'scroll', measure, { passive: true });
+        observeResize(el, measure);
         queueMicrotask(measure);
       }}
       role={props.role}
@@ -194,15 +191,12 @@ export function VirtualList<T>(props: {
         style={{ transform: range.pipe(map((r) => `translateY(${r.first * r.rh}px)`)) }}
         ref={(el: HTMLElement) => {
           // The rows' height: the window's over its rows, from the observer's entry (after layout, nothing read).
-          if (typeof ResizeObserver === 'undefined') return;
-          const rows = new ResizeObserver((entries) => {
+          observeResize(el, (entries) => {
             const h = entries[entries.length - 1].contentRect.height;
             if (count <= 0 || h <= 0) return;
             const rh = h / count;
             if (Math.abs(rh - rowHeight.value) > 0.5) rowHeight.set(rh);
           });
-          rows.observe(el);
-          onCleanup(() => rows.disconnect());
         }}
       >
         <For each={shown} key={props.key}>

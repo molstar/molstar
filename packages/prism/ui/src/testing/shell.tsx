@@ -138,6 +138,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
   };
   // The plugin root goes fullscreen (in the stories, the story page).
   const fullscreen = new FullscreenModel(() => document.documentElement);
+  onCleanup(() => fullscreen.dispose());
   // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
   const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
   theme.applyTo(document.documentElement);

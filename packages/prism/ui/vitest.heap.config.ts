@@ -15,4 +15,4 @@ import { heapTests } from '../../sequences/vitest.shared.js';
 
 const root = join(import.meta.dirname, 'src');
 const base = heapTests();
-export default defineConfig({ ...base, root, test: { ...base.test, include: ['**/_test/**/*.heap.ts'] } });
+export default defineConfig({ ...base, root, test: { ...base.test, include: ['**/_test/**/*.heap.{ts,tsx}'] } });

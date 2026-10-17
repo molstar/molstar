@@ -24,6 +24,7 @@ import {
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
+import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
 import type { VirtualListHandle } from './virtual-list.js';
@@ -193,14 +194,10 @@ export function RecycledList<T>(props: {
   const recycles = (item: T) => !!props.slot && (!props.recycle || props.recycle(item));
   // The rows' height: one row's (the first made, while it lives), from the observer's entry (after layout, nothing read).
   let measured: HTMLElement | undefined;
-  const rows =
-    typeof ResizeObserver === 'undefined'
-      ? undefined
-      : new ResizeObserver((list) => {
-          const h = list[list.length - 1].contentRect.height;
-          if (h > 0 && Math.abs(h - rowHeight.value) > 0.5) rowHeight.set(h);
-        });
-  onCleanup(() => rows?.disconnect());
+  const rows = observeResize(undefined, (list) => {
+    const h = list[list.length - 1].contentRect.height;
+    if (h > 0 && Math.abs(h - rowHeight.value) > 0.5) rowHeight.set(h);
+  });
   const observe = (el: HTMLElement) => {
     if (measured || !rows) return;
     measured = el;
@@ -365,13 +362,9 @@ export function RecycledList<T>(props: {
       fade={false}
       viewportRef={(el) => {
         viewport = el;
-        el.addEventListener('scroll', measure, { passive: true });
-        const resize = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : undefined;
-        resize?.observe(el);
-        onCleanup(() => {
-          el.removeEventListener('scroll', measure);
-          resize?.disconnect();
-        });
+        // Scoped (dom/scoped.ts): detached while hidden, gone with the list.
+        on(el, 'scroll', measure, { passive: true });
+        observeResize(el, measure);
         queueMicrotask(measure);
       }}
       role={props.role}

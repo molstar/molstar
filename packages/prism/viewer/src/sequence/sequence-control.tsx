@@ -20,6 +20,8 @@ import {
 } from '@molstar/prism-ui';
 import type { HoverLabel } from '@molstar/seq-viewer';
 import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
+import { effect, frameState } from '@molstar/prism-ui/dom/scope';
+import { frame, on } from '@molstar/prism-ui/dom/scoped';
 import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
@@ -106,14 +108,13 @@ export function SequenceControl(props: SequenceControlProps) {
   });
 
   // The fonts: the host's tokens, read once at the start of a frame (the control is in the document by then).
-  const fontFrame = requestAnimationFrame(() => {
+  frame(() => {
     const css = getComputedStyle(surface);
     const mono = css.getPropertyValue('--msp-font-mono').trim();
     const ui = css.getPropertyValue('--msp-font-sans').trim();
     const size = Number.parseFloat(css.getPropertyValue('--msp-font-size-sm'));
     if (mono && ui) viewer.setFonts({ mono, ui, ...(size > 0 ? { size } : {}) });
   });
-  onCleanup(() => cancelAnimationFrame(fontFrame));
 
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
   if (props.view3d) onCleanup(linkSequence(viewer, props.view3d, props.marks ? { marks: props.marks } : undefined));
@@ -148,33 +149,23 @@ export function SequenceControl(props: SequenceControlProps) {
     });
   }
 
-  // The hover label: the latest label of a frame, handed on when its lines differ from the last handed on.
+  // The hover label: input, in the frame lane (rendering.md §2.3): Seq*'s label at every move, offered; handed on once
+  // a frame, when its lines differ from the last handed on.
   if (props.onHover) {
     const handOn = props.onHover;
-    let pending: HoverLabel | null = null;
     let last = NoLines;
-    let frame = 0;
-    const flush = () => {
-      frame = 0;
-      const lines = labelLines(pending);
+    const label = frameState<HoverLabel | null>(null, () => false);
+    effect(label, (l) => {
+      const lines = labelLines(l);
       if (sameLines(lines, last)) return;
       last = lines;
       handOn(lines);
-    };
-    const sub = seq.labels.current.subscribe((label) => {
-      pending = label;
-      if (!frame) frame = requestAnimationFrame(flush);
     });
-    // Leaving the surface ends the label at once (Seq* clears its hover on the same event).
-    const leave = () => {
-      pending = null;
-      if (!frame) frame = requestAnimationFrame(flush);
-    };
-    surface.addEventListener('pointerleave', leave);
+    const sub = seq.labels.current.subscribe((l) => label.offer(l));
+    // Leaving the surface ends the label (Seq* clears its hover on the same event).
+    on(surface, 'pointerleave', () => label.offer(null));
     onCleanup(() => {
       sub.unsubscribe();
-      surface.removeEventListener('pointerleave', leave);
-      if (frame) cancelAnimationFrame(frame);
       if (last.length > 0) handOn(NoLines);
     });
   }
@@ -243,8 +234,8 @@ export function SequenceControl(props: SequenceControlProps) {
     };
     const enter = () => ((hover = true), show());
     const leave = () => ((hover = false), show());
-    surface.addEventListener('pointerenter', enter);
-    surface.addEventListener('pointerleave', leave);
+    on(surface, 'pointerenter', enter);
+    on(surface, 'pointerleave', leave);
     const drag = seq.ui.drag.subscribe((d) => ((dragging = d !== null), show()));
     // The scroll: the viewport's `scrollY` moving (the section may be replaced, so it is followed by the sections).
     let lastY = 0;
@@ -270,8 +261,6 @@ export function SequenceControl(props: SequenceControlProps) {
     const sections = seq.viewports.sections.subscribe(follow);
     const shown = band.subscribe(follow);
     onCleanup(() => {
-      surface.removeEventListener('pointerenter', enter);
-      surface.removeEventListener('pointerleave', leave);
       drag.unsubscribe();
       sections.unsubscribe();
       shown.unsubscribe();

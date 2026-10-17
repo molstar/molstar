@@ -17,6 +17,7 @@ import { activity, For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { deepActiveElement, focusFirstItem, menuKeys, rememberFocus, rovingTabs, uniqueId } from '../../dom/focus.js';
 import { effect, frameState, onCleanup } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
@@ -588,22 +589,23 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
         dragging = true;
         el.setPointerCapture(e.pointerId);
         el.setAttribute('data-active', '');
-        el.addEventListener('pointermove', onMove);
+      }}
+      ref={(el: HTMLElement) => {
+        // The drag's listeners, attached once and scoped (dom/scoped.ts): they act while a drag is on.
         const end = (u: PointerEvent) => {
           if (!dragging) return;
           dragging = false;
-          el.removeEventListener('pointermove', onMove);
-          el.removeEventListener('pointerup', end);
-          el.removeEventListener('pointercancel', end);
-          el.removeEventListener('lostpointercapture', end);
           if (el.hasPointerCapture(u.pointerId)) el.releasePointerCapture(u.pointerId);
           const r = el.getBoundingClientRect();
           const over = u.clientX >= r.left && u.clientX <= r.right && u.clientY >= r.top && u.clientY <= r.bottom;
           if (!over || u.type !== 'pointerup') el.removeAttribute('data-active');
         };
-        el.addEventListener('pointerup', end);
-        el.addEventListener('pointercancel', end);
-        el.addEventListener('lostpointercapture', end);
+        on(el, 'pointermove', (m: PointerEvent) => {
+          if (dragging) onMove(m);
+        });
+        on(el, 'pointerup', end);
+        on(el, 'pointercancel', end);
+        on(el, 'lostpointercapture', end);
       }}
       onDblClick={() => shell.setSize(dock.id, dock.id === 'left' ? 300 : 340)}
     />

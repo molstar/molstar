@@ -205,6 +205,20 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
     elements while inactive. Bind what does the hiding outside it, or it pauses with it.
   - `onActive(fn)` is for what bindings cannot pause (observers, rAF loops, timers, store subscriptions).
   - `render(fn, container, parent?)` renders under `parent`, so a mounted view pauses with its host's scope.
+- **Imperative attachments are scoped** (David, 2026-10-17; `dom/scoped.ts`): a component attaches a listener with
+  `on(target, type, fn, options)` (detached while its scope is paused, removed when it ends), an observer with
+  `observeResize(el, fn)` or `observeIntersection(el, fn)` (disconnected at the end), a frame with `frame(fn)` and a
+  timer with `timeout(fn, ms)` (cancelled at the end); a component's `frameState` drops its pending offer with its
+  scope, and the frame lane skips disposed and paused watches. Released by construction, not by memory: a raw
+  `addEventListener`, `new ResizeObserver`/`IntersectionObserver`, `setInterval` or `requestAnimationFrame` in a
+  component file is held to a shrinking list (`ui/src/_test/scoped-attach.test.ts`: 93 in 30 files before the helpers,
+  60 in 22 after the lists, the scroll area, the shell's views and the sequence band moved to them). A listener added in
+  an event handler (no scope there) is attached once instead, scoped, and acts while a drag is on.
+- **Views leave nothing behind** (`ui/src/dom/_test/leaks.heap.tsx`, `test:heap`): a keyed list with rows, a recycled
+  list, the command menu, the mock shell with a tab shown and a context menu, mounted and disposed again and again, keep
+  no heap outside code (n and 4n cycles, a frame between them) and leave no listener on the window, the document or its
+  body (a patched `addEventListener` counts them); a view that leaves a document listener is caught. It found the mock
+  shell's `FullscreenModel` left undisposed (a `fullscreenchange` listener a mount).
 
 ### 2.5 Control flow
 

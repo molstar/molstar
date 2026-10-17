@@ -11,6 +11,7 @@
 import { Icon, openContextMenu, type ReadonlyState } from '@molstar/prism-ui';
 import { EntryKind, type SectionLayout } from '@molstar/seq-viewer';
 import { getScope } from '@molstar/prism-ui/dom/scope';
+import { on } from '@molstar/prism-ui/dom/scoped';
 import { switchMap } from 'rxjs';
 import { type SequenceApiRunner, setTrackHidden, showAllTracks } from './commands.js';
 import type { SequenceViewer, TrackColoring } from './model.js';
@@ -221,8 +222,8 @@ export function mountTrackGutter(
   const onGutterLeave = (e: PointerEvent) => {
     if (!surface.contains(e.relatedTarget as Node | null)) onLeave();
   };
-  surface.addEventListener('pointerleave', onSurfaceLeave);
-  gutter.addEventListener('pointerleave', onGutterLeave);
+  on(surface, 'pointerleave', onSurfaceLeave);
+  on(gutter, 'pointerleave', onGutterLeave);
 
   return () => {
     stop?.();
@@ -233,8 +234,6 @@ export function mountTrackGutter(
     tracks.unsubscribe();
     closeMenu?.();
     hovered.unsubscribe();
-    surface.removeEventListener('pointerleave', onSurfaceLeave);
-    gutter.removeEventListener('pointerleave', onGutterLeave);
     gutter.remove();
   };
 }

@@ -10,6 +10,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { SecondaryTrack } from '../document.js';
+import { createRoot } from '@molstar/prism-ui/dom/scope';
 import { mountTrackGutter } from '../track-gutter.js';
 import { observableState } from '@molstar/prism-ui';
 import { headlessViewers, hostStructure } from './fixtures.js';
@@ -39,7 +40,14 @@ describe('the hidden tracks hint', () => {
     const surface = document.createElement('div');
     root.append(surface);
     document.body.append(root);
-    const unmount = mountTrackGutter(h.viewer, surface, root, observableState('main').asReadonly);
+    // In a scope, as in the sequence control (its listeners are scoped: dom/scoped.ts).
+    const unmount = createRoot((dispose) => {
+      const off = mountTrackGutter(h.viewer, surface, root, observableState('main').asReadonly);
+      return () => {
+        off();
+        dispose();
+      };
+    });
     const hint = () => [...root.querySelectorAll('button')].find((b) => b.textContent?.endsWith('hidden'));
     expect(hint()).toBeUndefined();
 

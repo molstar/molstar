@@ -9,7 +9,7 @@
  */
 
 import { Icon } from '../../components/icon/icon.js';
-import { onCleanup } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/file-drop.module.css.js';
 
@@ -30,8 +30,7 @@ export function FileDropOverlay(props: {
   const onEnter = (e: DragEvent) => {
     if (hasFiles(e)) shown.set(true);
   };
-  props.target.addEventListener('dragenter', onEnter);
-  onCleanup(() => props.target.removeEventListener('dragenter', onEnter));
+  on(props.target, 'dragenter', onEnter);
   // Over the overlay: copy, not the browser opening the file; leaving it or dropping hides it.
   const over = (e: DragEvent) => {
     e.preventDefault();

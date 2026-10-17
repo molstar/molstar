@@ -13,6 +13,7 @@ import { Icon } from '../../components/icon/icon.js';
 import { Show } from '../../dom/control-flow.js';
 import { activeElement, ownsKey } from '../../dom/events.js';
 import { onCleanup } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import type { ShellModel, ShellPage } from '../../shell/shell.js';
 import { classes } from './_generated/page.module.css.js';
 import { ViewHost } from './view-host.js';
@@ -63,12 +64,11 @@ function Page(props: { shell: ShellModel; page: ShellPage }) {
     shell.closePage();
     e.preventDefault();
   };
-  document.addEventListener('keydown', onKey);
+  on(document, 'keydown', onKey);
   queueMicrotask(() => {
     if (!page.contains(activeElement(page))) page.focus({ preventScroll: true });
   });
   onCleanup(() => {
-    document.removeEventListener('keydown', onKey);
     if (before?.isConnected) before.focus({ preventScroll: true });
   });
   return page;

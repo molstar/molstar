@@ -25,6 +25,7 @@ import {
   uniqueId,
 } from '../../dom/focus.js';
 import { bind, onCleanup } from '../../dom/scope.js';
+import { frame, on } from '../../dom/scoped.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
 import type { Child } from '../../dom/jsx-types.js';
@@ -536,12 +537,8 @@ function ToolMenu(props: { menus: ToolMenus }) {
     if ((menus.menu && path.includes(menus.menu)) || path.includes(open.button)) return;
     menus.hide();
   };
-  document.addEventListener('keydown', onKey);
-  document.addEventListener('pointerdown', onDown, true);
-  onCleanup(() => {
-    document.removeEventListener('keydown', onKey);
-    document.removeEventListener('pointerdown', onDown, true);
-  });
+  on(document, 'keydown', onKey);
+  on(document, 'pointerdown', onDown, { capture: true });
   return (
     <Show when={menus.open}>
       {(open) => {
@@ -775,8 +772,7 @@ export function RailMenu(props: { shell: ShellModel }) {
   const onDown = (e: PointerEvent) => {
     if (open.value && !isInside(e, root)) open.set(false);
   };
-  document.addEventListener('pointerdown', onDown);
-  onCleanup(() => document.removeEventListener('pointerdown', onDown));
+  on(document, 'pointerdown', onDown);
   return root;
 }
 
@@ -852,7 +848,7 @@ function OverlayCard(props: { shell: ShellModel }) {
   const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');
   const pinnedState = derive(shell.dock('right').state, (s) => s.pinned);
-  let frame = 0;
+  let cancelFocus: (() => void) | undefined;
   const card = (
     <section
       class={classes.card}
@@ -875,9 +871,9 @@ function OverlayCard(props: { shell: ShellModel }) {
           anchor = open.anchor as HTMLElement | undefined;
           // Into the card: its body's first control once the view is there (a frame), else its Close.
           if (focusedByKeyboard(open.anchor)) {
-            if (frame) cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(() => {
-              frame = 0;
+            cancelFocus?.();
+            cancelFocus = frame(() => {
+              cancelFocus = undefined;
               const body = card.querySelector(`.${classes.cardBody}, .${classes.cardBodyFill}`);
               const all = focusables(card);
               (all.find((el) => body?.contains(el)) ?? all[all.length - 1])?.focus();
@@ -921,14 +917,9 @@ function OverlayCard(props: { shell: ShellModel }) {
     if (target.closest?.('[data-keeps-card], [data-msp-canvas]')) return;
     shell.closeOverlay();
   };
-  doc.addEventListener('keydown', onKey);
-  doc.addEventListener('pointerdown', onPointer, true);
-  onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
-    doc.removeEventListener('keydown', onKey);
-    doc.removeEventListener('pointerdown', onPointer, true);
-    restore(card);
-  });
+  on(doc, 'keydown', onKey);
+  on(doc, 'pointerdown', onPointer, { capture: true });
+  onCleanup(() => restore(card));
   return card;
 }
 

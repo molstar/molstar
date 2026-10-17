@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { getHeapSpaceStatistics } from 'node:v8';
+
 // Seq*'s guard harness for Prism's tiers (packages/prism/AGENTS.md, Tests): `quickCase` for the quick allocation tier
 // (bytes a step against `perf-baseline.json`, its positive control built in) and the heap guards' scaling (n and 4n
 // steps, `leaking` for the control). Test code only: the harness is Seq*'s `_test/model` (packages/sequences/AGENTS.md).
@@ -18,6 +20,16 @@ export {
   isFlat,
   leaking,
 } from '../../../../sequences/core/_test/model/heap.js';
+
+/**
+ * The heap in use outside code (V8's code and trusted spaces apart: jsdom's selector engine compiles a function and a
+ * regexp a query, 1 KB a cycle of code that is not the view's; Seq*'s quick tier counts code apart likewise).
+ */
+export function heapUsedOutsideCode(): number {
+  let used = 0;
+  for (const s of getHeapSpaceStatistics()) if (!/code|trusted/.test(s.space_name)) used += s.space_used_size;
+  return used;
+}
 
 const gcNow = () => {
   const gc = (globalThis as { gc?: () => void }).gc;
@@ -34,13 +46,13 @@ const gcNow = () => {
  */
 export function retainedScaling(n: number, step: (i: number) => void): { short: number; long: number; scaled: number } {
   gcNow();
-  const h0 = process.memoryUsage().heapUsed;
+  const h0 = heapUsedOutsideCode();
   for (let i = 0; i < n; i++) step(i);
   gcNow();
-  const h1 = process.memoryUsage().heapUsed;
+  const h1 = heapUsedOutsideCode();
   for (let i = 0; i < 4 * n; i++) step(i);
   gcNow();
-  const h2 = process.memoryUsage().heapUsed;
+  const h2 = heapUsedOutsideCode();
   const short = h1 - h0;
   const long = h2 - h1;
   return { short, long, scaled: long - short };
