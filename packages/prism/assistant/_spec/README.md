@@ -74,3 +74,12 @@ is the truth for how.
   ⌥T, tools, limits; registered once the assistant has loaded) open it at a focus. In the viewer its data is the
   session's (`agent.inspect`): the trace re-read as the harness changes, the tools as the toolkit changes, the limits
   read-only (the session has no setter).
+- **The Inspector reads and renders what changed** (David, 2026-10-17; `ai/_spec/trace.md`, Incremental reads;
+  `ui/_spec/rendering.md` §2): the trace is read with a `TraceCache`, so a running turn's re-read maps its new call and
+  keeps the views of the rest; the model's rows are kept per turn and per row while what a row shows is the same (a step
+  row by its step, a request row by its words, which is why a request row holds `{ id, prompt, focus }`, not the turn),
+  so the trace list, the Overview and the detail rebuild only the tail. The model exposes states (`rows`, `turns`,
+  `selected`, `row`: `derive` over a lazily connected, settled trace; a row's selected flag is a `keyedSelector` key),
+  never streams. The views are `view = f(state)`: the DOM made once, one `watch` per component writing what changed
+  (`dom/writes.ts`), `Show` and `For` for structure; a state given to a library component (`Select`, `TextInput`,
+  `StatusPill`) is that component's API. Guarded by `test:scaling` (`inspector/_test/rows.scaling.ts`, the run list's).

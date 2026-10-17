@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Message } from '../../messages/index.js';
 import type { HarnessReader } from '../../harness/index.js';
-import { declareTools, toolDefinition, user } from '../../testing/index.js';
+import { declareTools, settle, toolDefinition, user } from '../../testing/index.js';
 import {
   createTraceCache,
   defaultRequestOf,
@@ -576,6 +576,115 @@ describe('readTrace: the profile (the host’s part)', () => {
     expect(three.turns).toHaveLength(2);
     expect(counts.events - fetched.events).toBe(cache.log!.events.length - fetched.events);
     expect(three).toEqual(await readTrace(s.harness));
+  });
+});
+
+describe('readTrace: incremental reads (trace.md, Incremental reads)', () => {
+  it('reads the same trace as a fresh read at every step of a conversation, and keeps the views that did not change', async () => {
+    const s = await basic();
+    const cache = createTraceCache();
+    const one = await readTrace(s.harness, { cache });
+    expect(one).toEqual(await readTrace(s.harness));
+    const again = await readTrace(s.harness, { cache });
+    // Nothing happened: the same views.
+    expect(again.turns[0]).toBe(one.turns[0]);
+    expect(again.loaded).toBe(one.loaded);
+    expect(again.declared).toBe(one.declared);
+    await turn(s, 'Again');
+    const two = await readTrace(s.harness, { cache });
+    expect(two).toEqual(await readTrace(s.harness));
+    expect(two.turns).toHaveLength(2);
+    // The turn that ended is the view it was, with its steps.
+    expect(two.turns[0]).toBe(one.turns[0]);
+    await turn(s, 'And again');
+    const three = await readTrace(s.harness, { cache });
+    expect(three).toEqual(await readTrace(s.harness));
+    expect(three.turns[0]).toBe(one.turns[0]);
+    expect(three.turns[1]).toBe(two.turns[1]);
+    expect(three.turns[1]?.steps[0]).toBe(two.turns[1]?.steps[0]);
+  });
+
+  it('reads a running turn as it grows: its earlier calls keep their views, the read equals a fresh one', async () => {
+    // Each echo waits to be released, so the turn is read between its calls.
+    const release: (() => void)[] = [];
+    const s = createSession({
+      declare: [],
+      tools: {
+        echo: () =>
+          new Promise<{ text: string }>((resolve) => {
+            release.push(() => resolve({ text: 'echoed' }));
+          }),
+      },
+      model: [
+        { calls: [{ tool: 'echo', arguments: { n: 1 } }] },
+        { calls: [{ tool: 'echo', arguments: { n: 2 } }] },
+        { calls: [{ tool: 'echo', arguments: { n: 3 } }] },
+        { text: 'Done.' },
+      ],
+    });
+    const cache = createTraceCache();
+    const { handle } = await turn(s, first(s, request('Go')), { wait: false });
+    let before: TurnView | undefined;
+    const seen: number[] = [];
+    for (let call = 0; call < 3; call += 1) {
+      await until(() => release.length > 0);
+      const trace = await readTrace(s.harness, { cache });
+      expect(trace).toEqual(await readTrace(s.harness));
+      const t = trace.turns[0] as TurnView;
+      expect(t.status).not.toBe('done');
+      // The calls the last read had are the same views in this one.
+      if (before)
+        for (const [k, step] of before.steps.entries()) if (step.kind === 'model') expect(t.steps[k]).toBe(step);
+      before = t;
+      seen.push(t.steps.length);
+      (release.shift() as () => void)();
+    }
+    await s.run(handle);
+    const done = await readTrace(s.harness, { cache });
+    expect(done).toEqual(await readTrace(s.harness));
+    expect(done.turns[0]?.status).toBe('done');
+    expect(shape(done.turns[0] as TurnView)).toEqual(['model', 'echo', 'model', 'echo', 'model', 'echo', 'model']);
+    // Reading a turn that ended again changes nothing.
+    expect((await readTrace(s.harness, { cache })).turns[0]).toBe(done.turns[0]);
+    // The loop saw the turn grow, not only its start and end.
+    expect(seen).toEqual([...seen].sort((a, b) => a - b));
+    expect(new Set(seen).size).toBe(3);
+  });
+
+  it('maps a window once: a re-read of a long conversation touches no entry it has read', async () => {
+    const s = createSession({
+      declare: [],
+      tools: { echo: () => ({ text: 'echoed' }) },
+      model: [
+        ...Array.from({ length: 6 }, (_, n) => ({ calls: [{ tool: 'echo', arguments: { n } }] })),
+        { text: 'Done.' },
+      ],
+    });
+    await turn(s, first(s, request('Go')));
+    const counts = { entries: 0, heads: 0, blobs: 0 };
+    const reader: HarnessReader = {
+      ...s.harness,
+      entries: (ids) => (counts.entries++, s.harness.entries(ids)),
+      heads: (ids) => (counts.heads++, s.harness.heads(ids)),
+      blobs: (refs) => (counts.blobs++, s.harness.blobs(refs)),
+    };
+    const cache = createTraceCache();
+    await readTrace(reader, { cache });
+    const fetched = { ...counts };
+    // Hostile to a re-read that maps again: the entries of a window are looked up in the cache, never the reader.
+    const entries = cache.entries;
+    const reads: string[] = [];
+    const watched = new Proxy(entries, {
+      get(target, prop) {
+        if (prop === 'get') return (id: string) => (reads.push(id), target.get(id));
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    await readTrace(reader, { cache: { ...cache, entries: watched } });
+    expect(counts).toEqual(fetched);
+    // No window message was looked up again: the views of the calls are the ones kept.
+    expect(reads).toHaveLength(0);
   });
 });
 

@@ -60,6 +60,12 @@ Every plugin pattern becomes `ReadonlyState<T>` (synchronous `value`, emits only
 | 4   | cells mutated in place, coarse event  | per-node records, rebuilt per changed cell   |
 | 5   | events to accumulate (tasks, log)     | `scanList`                                   |
 
+- **Row 4 is incremental per changed part** (packages/prism/AGENTS.md, bulk operations): every Mol\* change rebuilds the
+  hierarchy, so a source that rebuilt everything at each would be N² over N loads. The scene's sync (`scene.ts`
+  `syncRows`) keeps a structure's rows while its signature is the same (its hierarchy refs' cells, transforms, objects
+  and hidden flags, its name, its hidden contents, its emptied components), and its clean-up looks only at the ids let
+  go and the new ones; a measurement is described once per cell object and transform (`measurements.ts`). Guarded in
+  `test:scaling` (`scene-sync.scaling.ts`, `measurements.scaling.ts`).
 - **Only `api/`, `sources/`, `sequence/`, `testing/` and a feature's `source.ts`/`operations.ts` import the plugin**
   (`src/_test/boundary.test.ts`). Feature view models read sources and act through the API.
 

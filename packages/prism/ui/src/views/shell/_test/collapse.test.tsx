@@ -12,6 +12,7 @@
 import { BehaviorSubject, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
+import { flush } from '../../../dom/scope.js';
 import { domView } from '../../../dom/view.js';
 import { NavigationManager } from '../../../managers/navigation.js';
 import { ViewStateManager } from '../../../managers/view-state.js';
@@ -378,9 +379,11 @@ describe('the toolbar option', () => {
     expect(t.folded()).toBeNull();
     expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).toBeNull();
     t.shell.setWidth(400);
+    flush();
     expect(t.folded()).not.toBeNull();
     expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).not.toBeNull();
     t.shell.setWidth(900);
+    flush();
     expect(t.folded()).toBeNull();
     expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).toBeNull();
     t.dispose();

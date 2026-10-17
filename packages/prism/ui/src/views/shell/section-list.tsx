@@ -11,6 +11,8 @@
 import { Icon } from '../../components/icon/icon.js';
 import { activity, For } from '../../dom/control-flow.js';
 import { playClose } from '../../dom/motion.js';
+import { watch } from '../../dom/scope.js';
+import { setAttr } from '../../dom/writes.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel, ShellSection, ShellViewContext } from '../../shell/shell.js';
 import { classes } from './_generated/section-list.module.css.js';
@@ -79,6 +81,7 @@ function SectionBlock(props: {
   // Opened by the user from here on: reveal it (as Show's `reveal`); the first render stays still.
   const toggled = observableState(false);
   let body: HTMLElement | undefined;
+  let header!: HTMLElement;
   let closing: Animation | undefined;
   const toggle = () => {
     toggled.set(true);
@@ -106,7 +109,7 @@ function SectionBlock(props: {
   };
   const block = (
     <section class={classes.section} data-section={section.id}>
-      <button type="button" class={classes.header} aria-expanded={expanded} onClick={toggle}>
+      <button type="button" class={classes.header} ref={(el) => (header = el)} onClick={toggle}>
         <span class={classes.title}>{section.heading ?? section.title}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
@@ -115,17 +118,21 @@ function SectionBlock(props: {
         ref={(el) => {
           body = el;
         }}
-        hidden={derive(open.asReadonly, (o) => !o)}
-        data-reveal={derive(toggled.asReadonly, (t) => (t ? '' : undefined))}
       >
         {/* A folded section stays mounted but quiet: its views follow no model until it opens (`activity`). The `hidden`
-            above is bound outside it, or it would pause with it. */}
+            is written by the section's watch, outside it, or it would pause with it. */}
         {activity(open.asReadonly, () => (
           <ViewHost renderer={section.render} ctx={ctx} />
         ))}
       </div>
     </section>
   ) as HTMLElement;
+  // The block as a function of its three states: the chevron's, the body's hidden and its reveal.
+  watch([expanded, open, toggled], () => {
+    setAttr(header, 'aria-expanded', String(expanded.value));
+    setAttr(body!, 'hidden', !open.value);
+    setAttr(body!, 'data-reveal', toggled.value);
+  });
   if (props.focused) {
     // Asked for (a command, the selection bar's Measure): as if the user opened it.
     ctx.shell.setSectionOpen(props.slot, section.id, true);

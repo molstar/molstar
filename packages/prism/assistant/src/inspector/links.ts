@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { InspectorFocus } from '../inspector-access.js';
 import type { InspectLink } from '../views/assistant-tab.js';
 import { type InspectorModel, toolCounts } from './model.js';
@@ -26,19 +26,15 @@ export function inspectLinks(model: InspectorModel, limits = 'turn budget, conte
     link(
       'trace',
       'Trace',
-      model.turns.pipe(
-        map((t) => (t.length ? plural(t.length, 'turn') : 'nothing yet')),
-        distinctUntilChanged(),
-      ),
+      derive(model.turns, (t) => (t.length ? plural(t.length, 'turn') : 'nothing yet')),
     ),
     link(
       'tools',
       'Tools',
-      model.tools.pipe(
-        map(toolCounts),
-        map((c) => `${plural(c.tools, 'tool')}, ${plural(c.skills, 'skill')}`),
-        distinctUntilChanged(),
-      ),
+      derive(model.tools, (t) => {
+        const c = toolCounts(t);
+        return `${plural(c.tools, 'tool')}, ${plural(c.skills, 'skill')}`;
+      }),
     ),
     link('limits', 'Limits', limits),
   ];

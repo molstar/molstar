@@ -92,4 +92,28 @@ describe('dragToReorder', () => {
     expect(moves).toEqual([]);
     expect((el.children[0] as HTMLElement).dataset.dragging).toBeUndefined();
   });
+
+  it('reads the rows once a drag, and again after a resize', () => {
+    const el = list(['a', 'b', 'c']);
+    let reads = 0;
+    for (const row of el.children) {
+      const rect = row.getBoundingClientRect.bind(row);
+      (row as HTMLElement).getBoundingClientRect = () => {
+        reads++;
+        return rect();
+      };
+    }
+    const handle = el.children[0].firstElementChild as HTMLElement;
+    const down = pointer('pointerdown', 5);
+    Object.defineProperty(down, 'currentTarget', { value: handle });
+    dragToReorder(down, el, 'a', () => {});
+    for (let y = 5; y < 60; y += 5) handle.dispatchEvent(pointer('pointermove', y));
+    expect(reads).toBe(3);
+    window.dispatchEvent(new Event('resize'));
+    handle.dispatchEvent(pointer('pointermove', 35));
+    expect(reads).toBe(6);
+    expect((el.children[2] as HTMLElement).dataset.drop).toBe('before');
+    handle.dispatchEvent(pointer('pointerup', 35));
+    expect([...el.children].some((c) => (c as HTMLElement).dataset.drop)).toBe(false);
+  });
 });

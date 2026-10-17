@@ -53,6 +53,12 @@ browsed, §5), `count?` (how much it would do, on its highlighted row, §5), `ch
   settles after it reports to no one. An id already registered (or repeated in `defs`) throws, naming it, and nothing is
   added: an override is made before registering (the viewer's `overrides`). `registerGroups` likewise; `groupPath`,
   `children`, `inGroup` serve browsing.
+- **`registerLazy({ make })`**: commands made when wanted, not at each change of what they come from (the Select group's
+  per-structure commands). `stale()` marks them; the next `query`, `children`, `groupPath`, a `get` of an id they may
+  hold (one they made, or one not registered) or a key the app's or the person's layer binds makes them, or a microtask
+  while the menu holds `want()` (its mount), so a render never registers. An unbound key makes nothing (`handleKey` runs
+  at every keystroke). `make` returning `undefined` keeps what was made (an open form of one survives); one that throws
+  is logged, and the next change tries again.
 - **`query(text)`**: `recent` (empty text), `matches` (fuzzy subsequence over title, then aliases a little lower; equal
   scores keep categories together), `direct` (an alias followed by more text: that command with the rest as its tail). A
   preset is listed only when the text says more than the command alone.

@@ -16,14 +16,19 @@ buttons) is the app's. The code is the truth for how.
   there are snapshots, the selection bar while something is selected). The empty canvas shows the wordmark after 700 ms
   empty and idle (any work restarts the wait; a load never flashes it), with a splash behind it (`PrismSplash`:
   `prism-field.ts`, light through the star; `quantum-field.ts`, the same as a wave, `field: 'quantum'`); the word is
-  glass (`glass.ts`, `GlassWordmark`) that assembles, leans under the pointer and shatters on a press (a press and the
-  shatter's or the reassembly's animation keep the splash at full rate, `ambient-pace.ts`); the light stays out of where
-  the glass covers it (`glass-footprint.ts`). Which splash: random each time it shows, the wave 2 in 3 (`EmptyCanvas`
-  `field`; the viewer's `ui.splash`: `random`, `quantum`, `light`, `off`). The wave: colored by wavenumber in the logo's
-  colors; enters as a broad front, already flowing at the start, as strong as the glass is assembled. The canvas starts
-  quiet (transparent, its axes too) and is quiet while the mark is up; whatever is in it brings it back gradually
-  (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s, over the canvas's own color; same guards as the mark). `ShellView`'s
-  `splash` turns it off.
+  glass (`glass.ts`, `GlassWordmark`) that assembles, leans under the pointer and shatters on a press (the splash runs
+  at full rate and rests, `ambient-pace.ts`, David 2026-10-17: with no pointer input for 1.5 s, no glass animation (a
+  shatter, a reassembly, a lean settling) and at least 12 s of running (the intro plays), the particles or the wave fade
+  out in 0.4 s by alpha in the field's own draw and it asks for no frame at all; the word stays as last drawn; a pointer
+  move or press on the viewport, a resize, a story's option wakes it: they fade in, the steps resume where they were (a
+  clamped `dt`, the rest time is not simulated). Hidden or off screen it stops as before and comes back as it was:
+  asleep stays asleep, awake gets its 1.5 s again. Reduced motion: one still frame. A theme change at rest shows at the
+  next wake); the light stays out of where the glass covers it (`glass-footprint.ts`). Which splash: random each time it
+  shows, the wave 2 in 3 (`EmptyCanvas` `field`; the viewer's `ui.splash`: `random`, `quantum`, `light`, `off`). The
+  wave: colored by wavenumber in the logo's colors; enters as a broad front, already flowing at the start, as strong as
+  the glass is assembled. The canvas starts quiet (transparent, its axes too) and is quiet while the mark is up;
+  whatever is in it brings it back gradually (`onCanvasShown`, `.canvas[data-quiet]`, 0.9 s, over the canvas's own
+  color; same guards as the mark). `ShellView`'s `splash` turns it off.
 - **Motion.** Open and close by `Show`'s `reveal`: grow (`data-reveal`) for lists and sections, `'side'` for panels,
   `'fade'` (opacity only) for what must not change size, like the sequence band drawn on a canvas, and the canvas
   toolbar (`CanvasStack` `quiet`; its buttons stay `CanvasStackFadeMs` as it fades out) (re-laid out every frame if it

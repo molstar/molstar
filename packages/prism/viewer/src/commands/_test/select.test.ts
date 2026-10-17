@@ -110,9 +110,9 @@ describe('the Select group', () => {
       targets: { resolve } as any,
       structures: { subscribe: (f: () => void) => (f(), { unsubscribe() {} }) } as any,
       data: () => data,
-      register: (list) => {
-        for (const d of list) defs.set(d.id, d);
-        return () => {};
+      registerLazy: (source) => {
+        for (const d of source.make()?.commands ?? []) defs.set(d.id, d);
+        return { stale() {}, dispose() {} };
       },
       registerGroups: () => () => {},
     });

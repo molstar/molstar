@@ -17,26 +17,31 @@ import type {
   TurnView,
 } from '@molstar/ai/trace';
 import { keyedSelector, observableState, type ReadonlyState } from '@molstar/prism-ui';
-import { combineLatest, debounceTime, distinctUntilChanged, map, merge, type Observable, skip, take } from 'rxjs';
-
+import type { KeyedValue } from '@molstar/prism-ui/reactive/keyed-selector';
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { debounceTime, merge, Observable, skip, take } from 'rxjs';
+
 /** The Inspector's three views (packages/ai/_spec/trace.md § The Inspector). */
 export type InspectorView = 'trace' | 'tools' | 'limits';
 
 /** The overview strip's scale: every step the same width, or widths that follow how long each took. */
 export type OverviewScale = 'steps' | 'time';
 
+/** What a request row shows of its turn: the person's words and focus, not the turn's progress. */
+export type TurnRequest = Pick<TurnView, 'id' | 'prompt' | 'focus'>;
+
 /**
  * A row of the trace: a turn's header, its request, or one of its steps (a model call, a tool call; a nested run's
- * steps under the call that ran them). Keys: `turn:<id>`, `req:<id>`, `step:<id>`.
+ * steps under the call that ran them). Keys: `turn:<id>`, `req:<id>`, `step:<id>`. A row holds what it shows and no
+ * more, so it stays the same object (and its view stays) while that is the same: a step row while its step is, a
+ * request row while the words are, however the turn around them grows.
  */
 export type TraceRow =
   | { readonly kind: 'turn'; readonly key: string; readonly turn: TurnView; readonly index: number }
-  | { readonly kind: 'request'; readonly key: string; readonly turn: TurnView; readonly index: number }
+  | { readonly kind: 'request'; readonly key: string; readonly turn: TurnRequest; readonly index: number }
   | {
       readonly kind: 'step';
       readonly key: string;
-      readonly turn: TurnView;
       readonly index: number;
       readonly step: StepView;
       /** It ran under another call (a tool's helper): indented under it. */
@@ -71,9 +76,34 @@ export interface InspectorSources {
 
 const NoRows: readonly never[] = [];
 
-/** The first value at once, then the latest once a burst has settled: re-read while a turn runs, not per token. */
-function settled<T>(source: Observable<T>, ms: number): Observable<T> {
-  return ms > 0 ? merge(source.pipe(take(1)), source.pipe(skip(1), debounceTime(ms))) : source;
+/** Whether two lists hold the same items in the same order. */
+function sameItems<T>(a: readonly T[], b: readonly T[]): boolean {
+  return a === b || (a.length === b.length && a.every((x, i) => x === b[i]));
+}
+
+/**
+ * `source` as it settles: the first value at once, then the latest once a burst of changes has settled (`ms`), followed
+ * only while something listens (a state, to `derive` from: the rows are re-read while a turn runs, not per token).
+ */
+function settledState<T>(source: ReadonlyState<T>, ms: number): ReadonlyState<T> {
+  if (ms <= 0) return source;
+  let connected = 0;
+  let latest: T;
+  const settled = new Observable<T>((subscriber) => {
+    connected += 1;
+    const sub = merge(source.pipe(take(1)), source.pipe(skip(1), debounceTime(ms))).subscribe((v) => {
+      latest = v;
+      subscriber.next(v);
+    });
+    return () => {
+      connected -= 1;
+      sub.unsubscribe();
+    };
+  });
+  // Unfollowed there is no burst to wait for: the source's own value.
+  return Object.defineProperty(settled, 'value', {
+    get: () => (connected > 0 ? latest : source.value),
+  }) as ReadonlyState<T>;
 }
 
 /**
@@ -96,19 +126,19 @@ export class InspectorModel {
   readonly #setLimit: InspectorSources['setLimit'];
 
   /** The trace's turns, re-read once a burst of changes settles (the overview strip). */
-  readonly turns: Observable<readonly TurnView[]>;
-  /** The trace's rows (re-read once a burst of changes settles): a row is kept while its turn and step are. */
-  readonly rows: Observable<readonly TraceRow[]>;
+  readonly turns: ReadonlyState<readonly TurnView[]>;
+  /** The trace's rows (re-read once a burst of changes settles): a row is kept while what it shows is the same. */
+  readonly rows: ReadonlyState<readonly TraceRow[]>;
   /** The selected row's key: the chosen one while it is there, else the latest row. */
-  readonly selected: Observable<string | undefined>;
-  readonly row: Observable<TraceRow | undefined>;
-  readonly toolRows: Observable<readonly ToolsRow[]>;
+  readonly selected: ReadonlyState<string | undefined>;
+  readonly row: ReadonlyState<TraceRow | undefined>;
+  readonly toolRows: ReadonlyState<readonly ToolsRow[]>;
   /** The selected group or tool's key: the chosen one while it is there, else the first group. */
-  readonly selectedTool: Observable<string | undefined>;
-  readonly toolRow: Observable<ToolsRow | undefined>;
-  /** Whether a row is the selected one (only the two rows a change concerns hear of it). */
-  readonly isSelected: (key: string) => Observable<boolean>;
-  readonly isSelectedTool: (key: string) => Observable<boolean>;
+  readonly selectedTool: ReadonlyState<string | undefined>;
+  readonly toolRow: ReadonlyState<ToolsRow | undefined>;
+  /** Whether a row is the selected one (told only to the two rows a change concerns). */
+  readonly isSelected: (key: string) => KeyedValue<boolean>;
+  readonly isSelectedTool: (key: string) => KeyedValue<boolean>;
 
   constructor(sources: InspectorSources) {
     this.trace = sources.trace;
@@ -117,34 +147,21 @@ export class InspectorModel {
     this.#setLimit = sources.setLimit;
     this.editable = !!sources.setLimit;
 
-    const trace = settled(sources.trace, sources.settle ?? 80);
-    this.turns = trace.pipe(map((t) => t?.turns ?? NoRows));
-    this.rows = trace.pipe(map((t) => this.#rowsOf(t)));
+    const trace = settledState(sources.trace, sources.settle ?? 80);
+    // The same turns and rows in a new array (a re-read that changed none of them) are not a change.
+    this.turns = derive(trace, (t) => t?.turns ?? NoRows, sameItems);
+    this.rows = derive(trace, (t) => this.#rowsOf(t));
     const pick = <R extends { key: string }>(rows: readonly R[], key: string | undefined, fallback: R | undefined) =>
       rows.find((r) => r.key === key) ?? fallback;
-    const rowState = combineLatest([this.rows, this.#selected.asReadonly]).pipe(
-      map(([rows, key]) => pick(rows, key, rows.at(-1))),
-      distinctUntilChanged(),
-    );
-    this.row = rowState;
-    this.selected = rowState.pipe(
-      map((r) => r?.key),
-      distinctUntilChanged(),
-    );
+    this.row = derive([this.rows, this.#selected.asReadonly], (rows, key) => pick(rows, key, rows.at(-1)));
+    this.selected = derive(this.row, (r) => r?.key);
     this.toolRows = derive(sources.tools, (t) => this.#toolRowsOf(t));
-    const toolState = combineLatest([this.toolRows, this.#tool.asReadonly]).pipe(
-      map(([rows, key]) => pick(rows, key, rows[0])),
-      distinctUntilChanged(),
-    );
-    this.toolRow = toolState;
-    this.selectedTool = toolState.pipe(
-      map((r) => r?.key),
-      distinctUntilChanged(),
-    );
+    this.toolRow = derive([this.toolRows, this.#tool.asReadonly], (rows, key) => pick(rows, key, rows[0]));
+    this.selectedTool = derive(this.toolRow, (r) => r?.key);
     const rowSelector = keyedSelector(this.selected);
     const toolSelector = keyedSelector(this.selectedTool);
-    this.isSelected = (key) => rowSelector.is(key);
-    this.isSelectedTool = (key) => toolSelector.is(key);
+    this.isSelected = (key) => rowSelector.key(key);
+    this.isSelectedTool = (key) => toolSelector.key(key);
   }
 
   get view(): ReadonlyState<InspectorView> {
@@ -256,37 +273,34 @@ export class InspectorModel {
     return false;
   }
 
-  // The rows of each trace read once; a row kept from the previous read while its turn and step are the same records
-  // (the trace cache of `@molstar/ai/trace` keeps them across re-reads), so the list renders again only what changed.
+  // The rows of each trace read once, and of each turn while the turn is the same record (the trace cache of
+  // `@molstar/ai/trace` keeps the views of what did not change): a re-read of a long conversation builds the rows of
+  // the turn that changed, and a row of it is kept while what it shows is.
   readonly #rowsRead = new WeakMap<TraceData, readonly TraceRow[]>();
-  #rowRecords = new Map<string, TraceRow>();
+  #turnRows = new Map<string, TurnRows>();
+  #parts: readonly (readonly TraceRow[])[] = [];
+  #rowsAll: readonly TraceRow[] = NoRows;
 
   #rowsOf(data: TraceData | undefined): readonly TraceRow[] {
     if (!data) return NoRows;
     const read = this.#rowsRead.get(data);
     if (read) return read;
-    const previous = this.#rowRecords;
-    const records = new Map<string, TraceRow>();
-    const keep = (row: TraceRow) => {
-      const old = previous.get(row.key);
-      const same =
-        old &&
-        old.kind === row.kind &&
-        old.turn === row.turn &&
-        old.index === row.index &&
-        (old.kind !== 'step' || (row.kind === 'step' && old.step === row.step));
-      const kept = same ? old : row;
-      records.set(row.key, kept);
-      return kept;
-    };
-    const rows = data.turns.flatMap((turn, index): TraceRow[] => [
-      keep({ kind: 'turn', key: `turn:${turn.id}`, turn, index }),
-      keep({ kind: 'request', key: `req:${turn.id}`, turn, index }),
-      ...turn.steps.map((step) =>
-        keep({ kind: 'step', key: `step:${step.id}`, turn, index, step, nested: step.under !== undefined }),
-      ),
-    ]);
-    this.#rowRecords = records;
+    const previous = this.#turnRows;
+    const turnRows = new Map<string, TurnRows>();
+    const parts: (readonly TraceRow[])[] = [];
+    for (const [index, turn] of data.turns.entries()) {
+      const old = previous.get(turn.id);
+      const made = old?.turn === turn && old.index === index ? old : turnRowsOf(turn, index, old);
+      turnRows.set(turn.id, made);
+      parts.push(made.rows);
+    }
+    // The same rows in the same turns: the list they were last in.
+    const before = this.#parts;
+    const same = parts.length === before.length && parts.every((p, i) => p === before[i]);
+    const rows = same ? this.#rowsAll : parts.flat();
+    this.#turnRows = turnRows;
+    this.#parts = parts;
+    this.#rowsAll = rows;
     this.#rowsRead.set(data, rows);
     return rows;
   }
@@ -304,6 +318,43 @@ export class InspectorModel {
     }
     return rows;
   }
+}
+
+/** The rows of one turn as last built, with the turn and its place they are of. */
+interface TurnRows {
+  readonly turn: TurnView;
+  readonly index: number;
+  readonly rows: readonly TraceRow[];
+  readonly byKey: ReadonlyMap<string, TraceRow>;
+}
+
+/** A turn's rows: its header, its request and its steps; a row of the same turn built before stays while it shows the same. */
+function turnRowsOf(turn: TurnView, index: number, old: TurnRows | undefined): TurnRows {
+  const byKey = new Map<string, TraceRow>();
+  const keep = (row: TraceRow): TraceRow => {
+    const was = old?.byKey.get(row.key);
+    const same =
+      was !== undefined &&
+      was.kind === row.kind &&
+      was.index === row.index &&
+      (row.kind === 'request'
+        ? was.kind === 'request' && was.turn.prompt === row.turn.prompt && was.turn.focus === row.turn.focus
+        : row.kind === 'step'
+          ? was.kind === 'step' && was.step === row.step && was.nested === row.nested
+          : was.kind === 'turn' && was.turn === row.turn);
+    const kept = same ? (was as TraceRow) : row;
+    byKey.set(row.key, kept);
+    return kept;
+  };
+  const request: TurnRequest = { id: turn.id, prompt: turn.prompt, ...(turn.focus ? { focus: turn.focus } : {}) };
+  const rows = [
+    keep({ kind: 'turn', key: `turn:${turn.id}`, turn, index }),
+    keep({ kind: 'request', key: `req:${turn.id}`, turn: request, index }),
+    ...turn.steps.map((step) =>
+      keep({ kind: 'step', key: `step:${step.id}`, index, step, nested: step.under !== undefined }),
+    ),
+  ];
+  return { turn, index, rows, byKey };
 }
 
 /** The key `delta` rows from `key` (or from the row shown selected while none is: the `from` end), stopping at the ends. */

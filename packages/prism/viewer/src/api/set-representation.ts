@@ -7,6 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { PluginCommands } from '@molstar/plugin/commands';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { mergeParams } from './params.js';
 import { checkValues } from './run.js';
@@ -88,15 +89,17 @@ export async function setRepresentation<D, R extends RepresentationLike>(ctx: Ap
       return !PD.areEqual(typeParams, mergeParams(old, patch), old);
     });
     if (!changing.length) return ApiResult.already(`${name} already shows ${provider.label} that way.`);
-    await ctx.plugin.dataTransaction(async () => {
-      for (const r of changing) {
-        const old = r.cell.transform.params as Values;
-        await ctx.plugin.state.updateTransform(ctx.plugin.state.data, r.cell.transform.ref, {
-          ...old,
-          type: { name: old.type.name, params: mergeParams(old.type.params, patch) },
-        });
-      }
-    });
+    // One state update for all of them (an update each was a commit each: representations × the tree).
+    const state = ctx.plugin.state.data;
+    const tree = state.build();
+    for (const r of changing) {
+      const old = r.cell.transform.params as Values;
+      tree.to(r.cell.transform.ref).update({
+        ...old,
+        type: { name: old.type.name, params: mergeParams(old.type.params, patch) },
+      });
+    }
+    await ctx.plugin.dataTransaction(() => PluginCommands.State.Update(ctx.plugin, { state, tree }));
     return ApiResult.ok(`Updated ${provider.label} on ${name}.`, { nodes: changing.map((r) => r.cell.transform.ref) });
   }
 

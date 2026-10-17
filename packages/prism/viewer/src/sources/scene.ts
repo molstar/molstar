@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { emptiedComponents, hiddenContents } from '../api/contents.js';
+import { type EmptiedComponent, emptiedComponentsOf, hiddenContents } from '../api/contents.js';
 import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
@@ -113,16 +113,96 @@ const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   'particles-representation': 'particles.update',
 };
 
-/** The source's nodes by ref: a node put in is given the source's change log. */
+/** What a node id is kept by: the part before its `#` (a structure's contents, entities and chains), else itself. */
+const ownerOf = (id: string): string => {
+  const i = id.indexOf('#');
+  return i < 0 ? id : id.slice(0, i);
+};
+
+/**
+ * The source's nodes by ref: a node put in is given the source's change log. It knows the ids put in since the last
+ * sync's clean-up (`fresh`) and the ids each owner keeps (`under`), so the clean-up looks only at what may have gone.
+ */
 class NodeMap extends Map<string, Node> {
+  /** Ids put in since `fresh` was last cleared. */
+  readonly fresh = new Set<string>();
+  readonly #byOwner = new Map<string, Set<string>>();
   constructor(readonly log: SceneChangeLog) {
     super();
   }
   override set(key: string, node: Node): this {
     node.log = this.log;
+    if (!super.has(key)) {
+      this.fresh.add(key);
+      const owner = ownerOf(key);
+      if (owner !== key) {
+        let ids = this.#byOwner.get(owner);
+        if (!ids) this.#byOwner.set(owner, (ids = new Set()));
+        ids.add(key);
+      }
+    }
     return super.set(key, node);
   }
+  override delete(key: string): boolean {
+    if (!super.delete(key)) return false;
+    this.fresh.delete(key);
+    const owner = ownerOf(key);
+    if (owner !== key) {
+      const ids = this.#byOwner.get(owner);
+      ids?.delete(key);
+      if (ids?.size === 0) this.#byOwner.delete(owner);
+    }
+    return true;
+  }
+  /** The ids kept by `owner` (`owner#…`). */
+  under(owner: string): ReadonlySet<string> | undefined {
+    return this.#byOwner.get(owner);
+  }
 }
+
+/**
+ * What a structure's rows were built from (its hierarchy refs' cells, transforms and objects, its name, its hidden
+ * contents), compared in place at each sync: the same values in the same order are "as before", and the rows are kept.
+ * No allocation while it is the same.
+ */
+class Signature {
+  readonly #values: unknown[] = [];
+  #at = 0;
+  #same = true;
+  begin(): void {
+    this.#at = 0;
+    this.#same = true;
+  }
+  add(value: unknown): void {
+    const at = this.#at++;
+    if (this.#same && at < this.#values.length && Object.is(this.#values[at], value)) return;
+    this.#same = false;
+    this.#values[at] = value;
+  }
+  /** Whether every value was as before, and as many. */
+  end(): boolean {
+    if (this.#at !== this.#values.length) {
+      this.#same = false;
+      this.#values.length = this.#at;
+    }
+    return this.#same;
+  }
+}
+
+/** A structure's rows as last built (`syncRows`): its node, the ids they hold, its focus parts. */
+interface StructureRows {
+  readonly signature: Signature;
+  node?: Node;
+  /** The ids of its rows (what the clean-up keeps). */
+  ids: readonly string[];
+  /** Its focus components' rows (under the focus row) and the focus parts with atoms. */
+  focused: readonly SceneNode[];
+  parts: readonly StructureComponentRef[];
+  /** Its volume streaming's root and behavior cells, while it streams. */
+  streaming?: { readonly root: string; readonly behavior: string };
+}
+
+const NoEmptied: readonly EmptiedComponent[] = [];
 
 class Node implements SceneNode {
   /** Where its structural changes are told (the source's log; set when it is put in the source's nodes). */
@@ -704,79 +784,226 @@ export function createSceneSource(
     return n;
   };
 
+  // The rows of each structure as last built, kept while what they were built from is the same (`Signature`): a sync
+  // builds only the structures that changed, so loading N structures one by one is N builds, not N² (state.md §4;
+  // AGENTS.md, bulk operations). The clean-up follows: how many rows hold each id, and only the ids that lost theirs
+  // (or are new) are looked at.
+  const structureRows = new Map<string, StructureRows>();
+  const seenCount = new Map<string, number>();
+  /** The ids held by the rows after the structures (the focus, volumes, particles, measurements) at the last sync. */
+  let restIds: readonly string[] = [];
+  /** Structures built anew at the next sync whatever their signature (a streaming cell came or went under one). */
+  const stale = new Set<string>();
+  const markStale = (ref: string | undefined) => {
+    const tree = plugin.state.data.tree;
+    for (let at = ref; at; ) {
+      if (structureRows.has(at)) {
+        stale.add(at);
+        return;
+      }
+      const parent: string | undefined = tree.transforms.get(at)?.parent;
+      if (!parent || parent === at) return;
+      at = parent;
+    }
+  };
+
+  /** Writes what a structure's rows are built from into its signature; whether it is as before. */
+  const signed = (
+    rows: StructureRows,
+    s: StructureRef,
+    name: string,
+    unitCell: ModelUnitcellRef | undefined,
+    emptied: readonly EmptiedComponent[],
+  ): boolean => {
+    const state = plugin.state.data;
+    const tree = state.tree;
+    const sig = rows.signature;
+    const ref = s.cell.transform.ref;
+    sig.begin();
+    sig.add(name);
+    sig.add(s.cell);
+    sig.add(s.cell.transform);
+    sig.add(s.cell.obj);
+    sig.add(!!s.cell.state.isHidden);
+    // Its children come and go (volume streaming's info, a component).
+    sig.add(tree.children.get(ref));
+    sig.add(s.transform?.cell.transform);
+    sig.add(s.model?.cell.obj);
+    sig.add(s.model?.trajectory?.cell.transform);
+    sig.add(s.model?.trajectory?.cell.obj);
+    sig.add(s.volumeStreaming?.cell.transform);
+    sig.add(s.volumeStreaming?.cell.obj);
+    if (rows.streaming) {
+      sig.add(tree.children.get(rows.streaming.root));
+      sig.add(state.cells.get(rows.streaming.root)?.obj);
+      sig.add(tree.transforms.get(rows.streaming.behavior));
+    }
+    sig.add(unitCell?.cell.transform);
+    sig.add(unitCell?.cell.obj);
+    sig.add(!!unitCell?.cell.state.isHidden);
+    sig.add(hiddenContents(plugin, ref));
+    sig.add(s.components.length);
+    for (const c of s.components) {
+      sig.add(c.cell);
+      sig.add(c.cell.transform);
+      sig.add(c.cell.obj);
+      sig.add(!!c.cell.state.isHidden);
+      sig.add(c.representations.length);
+      for (const r of c.representations) {
+        sig.add(r.cell);
+        sig.add(r.cell.transform);
+        sig.add(r.cell.obj);
+        sig.add(!!r.cell.state.isHidden);
+      }
+    }
+    sig.add(emptied.length);
+    for (const e of emptied) {
+      sig.add(e.ref);
+      sig.add(e.label);
+      sig.add(tree.children.get(e.parent));
+    }
+    return sig.end();
+  };
+
+  /** Builds a structure's rows (its node, its children); the ids they hold. */
+  const buildStructure = (
+    rows: StructureRows,
+    s: StructureRef,
+    name: string,
+    unitCell: ModelUnitcellRef | undefined,
+    emptied: readonly EmptiedComponent[],
+  ): string[] => {
+    const ref = s.cell.transform.ref;
+    const ids: string[] = [];
+    const sn = structureNode(s, name);
+    ids.push(ref);
+    const contents = contentsNode(s, ref);
+    ids.push(contents.id);
+    const kids: SceneNode[] = [contents];
+    const focused: SceneNode[] = [];
+    for (const c of s.components) {
+      const isFocus = isFocusPart(c);
+      // An emptied focus component (the focus cleared) has no row.
+      if (isFocus && !c.cell.obj?.data.elementCount) continue;
+      const cn = componentNode(c, ref);
+      if (isFocus) cn.removable = false;
+      ids.push(cn.id);
+      const reprs = c.representations.map((r) => {
+        const rn = reprNode(r);
+        ids.push(rn.id);
+        return rn;
+      });
+      cn.setChildren(reprs);
+      (isFocus ? focused : kids).push(cn);
+    }
+    // Components emptied by hidden contents, where they stand among the others (the state tree's order).
+    if (emptied.length) {
+      const order = new Map<string, number>();
+      let i = 0;
+      for (const child of plugin.state.data.tree.children.get(emptied[0].parent).values()) order.set(child, i++);
+      for (const e of emptied) {
+        const en = emptiedNode(e.ref, e.label);
+        ids.push(en.id);
+        kids.push(en);
+      }
+      // The contents row first; the components by their place in the tree (one not there first, as `indexOf`'s −1).
+      const [first, ...rest] = kids;
+      rest.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
+      kids.splice(0, kids.length, first, ...rest);
+    }
+    rows.parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
+    rows.focused = focused;
+    // The model's unit cell, under the first of its structures (another structure of the same model shares it).
+    if (unitCell) {
+      const un = unitCellNode(unitCell, ref);
+      ids.push(un.id);
+      kids.push(un);
+    }
+    const streaming = streamingOf(plugin, s);
+    rows.streaming = streaming ? { root: streaming.root, behavior: streaming.behavior } : undefined;
+    if (streaming) {
+      const vn = streamingNode(streaming, ref);
+      ids.push(vn.id);
+      kids.push(vn);
+    } else if (canStream(plugin, s)) {
+      const vn = streamingOffNode(ref);
+      ids.push(vn.id);
+      kids.push(vn);
+    }
+    sn.setChildren(kids);
+    rows.node = sn;
+    return ids;
+  };
+
   const syncRows = () => {
     const list = plugin.managers.structure.hierarchy.current.structures;
     const names = structureNames(list);
-    const seen = new Set<string>();
     const top: SceneNode[] = [];
     const allFocused: SceneNode[] = [];
     const allFocusParts: { component: StructureComponentRef; structure: string }[] = [];
     let focusedOn: string | undefined;
+    // The ids whose last holder let go during this sync: the clean-up's candidates.
+    const dropped: string[] = [];
+    const hold = (ids: readonly string[]) => {
+      for (const id of ids) seenCount.set(id, (seenCount.get(id) ?? 0) + 1);
+    };
+    const release = (ids: readonly string[]) => {
+      for (const id of ids) {
+        const count = (seenCount.get(id) ?? 0) - 1;
+        if (count > 0) seenCount.set(id, count);
+        else {
+          seenCount.delete(id);
+          dropped.push(id);
+        }
+      }
+    };
+    const present = new Set<string>();
+    for (const s of list) present.add(s.cell.transform.ref);
+    // Read once for every structure.
+    const emptiedBy = emptiedComponentsOf(plugin, present);
+    // The unit cells placed so far (each under the first structure of its model).
+    const placed = new Set<string>();
     for (const s of list) {
       const ref = s.cell.transform.ref;
-      const sn = structureNode(s, names.get(ref) ?? ref);
-      seen.add(ref);
-      const contents = contentsNode(s, ref);
-      seen.add(contents.id);
-      const kids: SceneNode[] = [contents];
-      const focused: SceneNode[] = [];
-      for (const c of s.components) {
-        const isFocus = isFocusPart(c);
-        // An emptied focus component (the focus cleared) has no row.
-        if (isFocus && !c.cell.obj?.data.elementCount) continue;
-        const cn = componentNode(c, ref);
-        if (isFocus) cn.removable = false;
-        seen.add(cn.id);
-        const reprs = c.representations.map((r) => {
-          const rn = reprNode(r);
-          seen.add(rn.id);
-          return rn;
-        });
-        cn.setChildren(reprs);
-        (isFocus ? focused : kids).push(cn);
+      const name = names.get(ref) ?? ref;
+      const emptied = emptiedBy.get(ref) ?? NoEmptied;
+      const u = s.model?.unitcell;
+      const unitCell = u?.cell.obj?.data?.repr && !placed.has(u.cell.transform.ref) ? u : undefined;
+      if (unitCell) placed.add(unitCell.cell.transform.ref);
+      let rows = structureRows.get(ref);
+      if (!rows) {
+        rows = { signature: new Signature(), ids: [], focused: [], parts: [] };
+        structureRows.set(ref, rows);
       }
-      // Components emptied by hidden contents, where they stand among the others (the state tree's order).
-      const emptied = emptiedComponents(plugin, ref);
-      if (emptied.length) {
-        const order = [...plugin.state.data.tree.children.get(emptied[0].parent).values()];
-        for (const e of emptied) {
-          const en = emptiedNode(e.ref, e.label);
-          seen.add(en.id);
-          kids.push(en);
-        }
-        // The contents row first; the components by their place in the tree.
-        const [first, ...rest] = kids;
-        rest.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-        kids.splice(0, kids.length, first, ...rest);
+      const same =
+        signed(rows, s, name, unitCell, emptied) && !stale.has(ref) && !!rows.node && nodes.get(ref) === rows.node;
+      if (same) {
+        // Its streaming's levels follow the density as it arrives.
+        if (rows.streaming) refreshLevels(rows.streaming.root);
+      } else {
+        const ids = buildStructure(rows, s, name, unitCell, emptied);
+        hold(ids);
+        release(rows.ids);
+        rows.ids = ids;
+        // What it was built from now (its streaming read anew).
+        signed(rows, s, name, unitCell, emptied);
       }
-      const parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
-      if (parts.length) focusedOn = names.get(ref) ?? ref;
-      for (const component of parts) allFocusParts.push({ component, structure: ref });
-      allFocused.push(...focused);
-      // The model's unit cell, under the first of its structures (another structure of the same model shares it).
-      const cell = s.model?.unitcell;
-      if (cell?.cell.obj?.data?.repr && !seen.has(cell.cell.transform.ref)) {
-        const un = unitCellNode(cell, ref);
-        seen.add(un.id);
-        kids.push(un);
-      }
-      const streaming = streamingOf(plugin, s);
-      if (streaming) {
-        const vn = streamingNode(streaming, ref);
-        seen.add(vn.id);
-        kids.push(vn);
-      } else if (canStream(plugin, s)) {
-        const vn = streamingOffNode(ref);
-        seen.add(vn.id);
-        kids.push(vn);
-      }
-      sn.setChildren(kids);
-      top.push(sn);
+      if (rows.parts.length) focusedOn = name;
+      for (const component of rows.parts) allFocusParts.push({ component, structure: ref });
+      for (const f of rows.focused) allFocused.push(f);
+      top.push(rows.node!);
     }
+    for (const [ref, rows] of structureRows) {
+      if (present.has(ref)) continue;
+      release(rows.ids);
+      structureRows.delete(ref);
+    }
+    stale.clear();
+    const rest: string[] = [];
     if (list.length) {
       // Named by its structure when there are several.
       const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
-      seen.add(fn.id);
+      rest.push(fn.id);
       fn.setChildren(allFocused);
       top.push(fn);
     }
@@ -785,11 +1012,11 @@ export function createSceneSource(
     for (const v of volumes) {
       const ref = v.cell.transform.ref;
       const vn = volumeNode(v, volumeLabels.get(ref) ?? ref);
-      seen.add(ref);
+      rest.push(ref);
       vn.setChildren(
         v.representations.map((r) => {
           const rn = volumeReprNode(r, ref);
-          seen.add(rn.id);
+          rest.push(rn.id);
           return rn;
         }),
       );
@@ -800,11 +1027,11 @@ export function createSceneSource(
     for (const l of lists) {
       const ref = l.cell.transform.ref;
       const ln = particlesNode(l, listLabels.get(ref) ?? ref);
-      seen.add(ref);
+      rest.push(ref);
       ln.setChildren(
         l.representations.map((r) => {
           const rn = particlesReprNode(r, ref);
-          seen.add(rn.id);
+          rest.push(rn.id);
           return rn;
         }),
       );
@@ -816,30 +1043,41 @@ export function createSceneSource(
     const measured = readMeasurements(plugin);
     if (measured.length || top.length) {
       const gn = measurementsNode();
-      seen.add(gn.id);
+      rest.push(gn.id);
       gn.set('Measurements', measurementCounts(measured), false);
       gn.setChildren(
         measured.map((m) => {
           const mn = measurementNode(m);
-          seen.add(mn.id);
+          rest.push(mn.id);
           return mn;
         }),
       );
       top.push(gn);
     }
-    // Lazy contents' entity and chain nodes stay with their structure.
-    for (const [id, n] of nodes) {
-      const owner = id.includes('#') ? id.slice(0, id.indexOf('#')) : id;
-      if (!seen.has(id) && !seen.has(owner)) {
-        nodes.delete(id);
-        inspections.delete(id);
-        inspectionKeys.delete(id);
-        unitCellOwners.delete(id);
-        streamingOwners.delete(id);
-        streamingShown.delete(id);
-        if (picked.value === n) picked.set(undefined);
-      }
+    hold(rest);
+    release(restIds);
+    restIds = rest;
+    // The clean-up: a node stays while a row holds its id or its owner's (lazy contents' entity and chain nodes stay
+    // with their structure). Only what may have lost that is looked at: the ids let go, the ids they own, new ones.
+    const gone = (id: string) => !seenCount.has(id) && !seenCount.has(ownerOf(id));
+    const drop = (id: string) => {
+      const n = nodes.get(id);
+      if (!n || !gone(id)) return;
+      nodes.delete(id);
+      inspections.delete(id);
+      inspectionKeys.delete(id);
+      unitCellOwners.delete(id);
+      streamingOwners.delete(id);
+      streamingShown.delete(id);
+      if (picked.value === n) picked.set(undefined);
+    };
+    for (const id of dropped) {
+      drop(id);
+      const owned = nodes.under(id);
+      if (owned) for (const o of [...owned]) drop(o);
     }
+    for (const id of [...nodes.fresh]) drop(id);
+    nodes.fresh.clear();
     // An inspection built from what has changed since (a structure's assembly or model, a volume's representations) is
     // built anew: its facts, contents, levels and transfer functions are fixed when built. Its form stays (it follows
     // the cell as it is, and the inspector keeps it, a gesture on it going on).
@@ -900,11 +1138,19 @@ export function createSceneSource(
   // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
   const isStreaming = (t: { transformer: unknown } | undefined) =>
     t?.transformer === CreateVolumeStreamingInfo || t?.transformer === CreateVolumeStreamingBehavior;
-  scope.add(plugin.state.data.events.cell.created.subscribe((e) => isStreaming(e.cell.transform) && sync()));
+  scope.add(
+    plugin.state.data.events.cell.created.subscribe((e) => {
+      if (!isStreaming(e.cell.transform)) return;
+      // Its structure's rows are built anew (the hierarchy may not have it yet).
+      markStale(e.ref);
+      sync();
+    }),
+  );
   scope.add(
     plugin.state.data.events.cell.removed.subscribe((e) => {
       if (!streamingOwners.has(e.ref) && !streamingBehaviors.has(e.ref)) return;
       streamingBehaviors.delete(e.ref);
+      markStale(e.parent);
       sync();
     }),
   );

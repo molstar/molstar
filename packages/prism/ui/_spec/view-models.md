@@ -153,7 +153,9 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
 - **Optimistic only when the future is known**: a change is projected at once when the request fully determines the
   target state and the source will report exactly that (a parameter edit): `createUiTransactionCoordinator` and
   `createOptimisticProjection` (`reactive/transaction.ts`); a contribution is absorbed when the source reports it and
-  rolled back when the run fails. Synchronous changes (a visibility flag) and unpredictable ones (adding, loading) are
-  not projected; the latter show progress.
+  rolled back when the run fails. A new contribution folds onto the projection as it stands (one apply); a new base or a
+  retirement refolds what is left, and a retirement of a transaction a projection holds nothing of costs nothing there.
+  Synchronous changes (a visibility flag) and unpredictable ones (adding, loading) are not projected; the latter show
+  progress.
 - **Writing transform params**: forms emit the complete new params, each value of its PD type, and skip the update when
   nothing changed (`PD.areEqual`); `load` takes the authoritative params back after an update made elsewhere.

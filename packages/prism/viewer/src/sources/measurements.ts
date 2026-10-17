@@ -123,9 +123,29 @@ export function measurementLocis(plugin: PluginContext, ref: string): StructureE
   return [];
 }
 
+/**
+ * A measurement as last described, by its cell: kept while the cell's object and transform are the same (its atoms are
+ * labelled once, not at every read: each operation and each scene sync reads every measurement, so M added one by one
+ * were M² labels; AGENTS.md, bulk operations). Only whether it is hidden is read anew.
+ */
+interface Described {
+  readonly obj: unknown;
+  readonly transform: unknown;
+  readonly kind: MeasureKind;
+  last: MeasuredCell;
+}
+const described = new WeakMap<StructureMeasurementCell, Described>();
+
 function describe(plugin: PluginContext, cell: StructureMeasurementCell, kind: MeasureKind): MeasuredCell | undefined {
   const data = cell.obj?.data.sourceData as MeasuredData | undefined;
   if (!data) return undefined;
+  const parent = plugin.state.data.cells.get(cell.transform.parent);
+  const hidden = !!parent?.state.isHidden || !!cell.state.isHidden;
+  const known = described.get(cell);
+  if (known && known.obj === cell.obj && known.transform === cell.transform && known.kind === kind) {
+    if (known.last.hidden !== hidden) known.last = { ...known.last, hidden };
+    return known.last;
+  }
   const params = (cell.transform.params ?? {}) as { customText?: string; unitLabel?: string };
   const text = (params.customText ?? '').trim();
   const loci = lociOfData(data);
@@ -138,19 +158,20 @@ function describe(plugin: PluginContext, cell: StructureMeasurementCell, kind: M
   const elements = loci.filter(StructureElement.Loci.is);
   const atoms =
     kind === 'orientation' || kind === 'plane' ? [summaryOf(elements)] : loci.map((l) => lociName(l) || 'Nothing');
-  const parent = plugin.state.data.cells.get(cell.transform.parent);
-  return {
+  const last: MeasuredCell = {
     ref: cell.transform.ref,
     kind,
     label: kind === 'orientation' || kind === 'plane' ? atoms[0] : atoms.join(Separator),
     value,
     atoms,
-    hidden: !!parent?.state.isHidden || !!cell.state.isHidden,
+    hidden,
     cell,
     selectionRef: cell.transform.parent,
     locis: elements,
     text,
   };
+  described.set(cell, { obj: cell.obj, transform: cell.transform, kind, last });
+  return last;
 }
 
 const summaryOf = (locis: StructureElement.Loci[]) =>
@@ -164,14 +185,27 @@ export function findMeasurement(
   text: string,
 ): MeasuredCell | undefined {
   const parentOf = (l: StructureElement.Loci) => plugin.helpers.substructureParent.get(l.structure)?.transform.ref;
-  const same = (a: StructureElement.Loci, b: StructureElement.Loci) =>
-    parentOf(a) === parentOf(b) &&
-    StructureElement.Bundle.areEqual(StructureElement.Bundle.fromLoci(a), StructureElement.Bundle.fromLoci(b));
+  // The points asked for, once; each measurement's, once (`bundleOf`): not per comparison.
+  const parents = locis.map(parentOf);
+  const bundles = locis.map(bundleOf);
+  const same = (a: StructureElement.Loci, i: number) =>
+    parentOf(a) === parents[i] && StructureElement.Bundle.areEqual(bundleOf(a), bundles[i]);
   return readMeasurements(plugin).find(
     (m) =>
       m.kind === kind &&
       m.text === text.trim() &&
       m.locis.length === locis.length &&
-      m.locis.every((l, i) => same(l, locis[i])),
+      m.locis.every((l, i) => same(l, i)),
   );
+}
+
+/** A loci's bundle, made once per loci (a measurement's loci are kept with its description). */
+const bundles = new WeakMap<StructureElement.Loci, StructureElement.Bundle>();
+function bundleOf(l: StructureElement.Loci): StructureElement.Bundle {
+  let b = bundles.get(l);
+  if (!b) {
+    b = StructureElement.Bundle.fromLoci(l);
+    bundles.set(l, b);
+  }
+  return b;
 }

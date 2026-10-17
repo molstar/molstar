@@ -12,6 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domView } from '../../../dom/view.js';
 import { render } from '../../../dom/render.js';
+import { flush } from '../../../dom/scope.js';
 import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
 import { NotificationsManager } from '../../../managers/notifications.js';
 import { ShellView } from '../shell-view.js';
@@ -158,14 +159,17 @@ describe('shell focus', () => {
     const t = mount();
     const region = t.container.querySelector('[role=status]')!;
     t.status.announce('Selected 1 residue.');
+    flush();
     expect(region.textContent).toBe('Selected 1 residue.');
     expect(t.status.current.value).toBeUndefined();
     expect(t.status.history.value).toEqual([]);
     // The same words again are said again (the region's text changes).
     t.status.announce('Selected 1 residue.');
+    flush();
     expect(region.textContent).not.toBe('Selected 1 residue.');
     expect(region.textContent?.trim()).toBe('Selected 1 residue.');
     t.status.post('Loaded 1CBS.');
+    flush();
     expect(region.textContent).toBe('Loaded 1CBS.');
     t.done();
   });

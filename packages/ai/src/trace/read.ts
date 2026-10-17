@@ -99,22 +99,6 @@ export interface TraceToolNotes {
   readonly changed?: readonly { readonly id: string; readonly label: string }[];
 }
 
-/**
- * What the trace caches between reads of one harness: heads, entries and blobs are immutable, and the event log is
- * append-only (seq order), so a re-read fetches only the events after the last one it has.
- */
-export interface TraceCache {
-  readonly entries: Map<string, Message>;
-  readonly heads: Map<string, readonly string[]>;
-  readonly blobs: Map<string, Json>;
-  /** The events read so far, and the harness they are of (another harness reads its log from the start). */
-  log?: { readonly harness: string; readonly events: HarnessEvent[] };
-}
-
-export function createTraceCache(): TraceCache {
-  return { entries: new Map(), heads: new Map(), blobs: new Map() };
-}
-
 export interface TraceProfile {
   /** A turn's request from the last user message of its begin step. Default: `defaultRequestOf`. */
   readonly requestOf?: (message: Message) => TraceRequest;
@@ -135,6 +119,125 @@ export interface TraceProfile {
   readonly window?: number;
   /** Kept across reads of one harness, so a re-read fetches only what is new. */
   readonly cache?: TraceCache;
+}
+
+/**
+ * What the trace caches between reads of one harness: heads, entries and blobs are immutable, and the event log is
+ * append-only (seq order), so a re-read fetches only the events after the last one it has. What it made of them is
+ * kept too (`memo`, trace.md, Incremental reads): a call whose records, and the calls it depends on, are the same
+ * records keeps its view, a finished turn keeps its own, so a re-read maps only the changed tail and the rows built
+ * on the views keep what did not change.
+ */
+export interface TraceCache {
+  readonly entries: Map<string, Message>;
+  readonly heads: Map<string, readonly string[]>;
+  readonly blobs: Map<string, Json>;
+  /**
+   * The events read so far, and the harness they are of (another harness reads its log from the start), with the
+   * events grouped by turn as far as `grouped` of them.
+   */
+  log?: TraceLog;
+  /** What was made of the records (views by call and by turn), of the harness `log` is of. */
+  memo: TraceMemo;
+}
+
+export interface TraceLog {
+  readonly harness: string;
+  readonly events: HarnessEvent[];
+  /** How many of `events` are in `byTurn`, `ended` and `origin`. */
+  grouped: number;
+  readonly byTurn: Map<string, HarnessEvent[]>;
+  /** The summaries the log itself holds (the event that ended a turn). */
+  readonly ended: Map<string, TurnSummary>;
+  /** The time of the first step event: times are from it. */
+  origin?: number;
+}
+
+/** What a read made of a model call, valid while the records it came from, and the calls it follows, are the same. */
+interface ModelRead {
+  readonly call: CallRecord;
+  readonly origin: number;
+  readonly limit: number | undefined;
+  /** The calls it followed: the run's previous call, the run's previous request, the latest request of any run. */
+  readonly after: FlowAt;
+  readonly view: ModelStepView;
+  /** The ids of the messages it saw. */
+  readonly ids: readonly string[];
+  readonly shape: RequestShape | undefined;
+  /** The tool names its window defines. */
+  readonly learned: readonly (readonly [string, string])[];
+  /** The tools its window loads in full (a call of the turn's own run only). */
+  readonly loads: readonly string[];
+  /** The preamble its window gives, made only for the call that is first. */
+  readonly preamble: PreambleView | undefined;
+}
+
+/** What a read of a tool call kept: the host's notes it was made with, to see them change. */
+interface ToolRead {
+  readonly call: CallRecord;
+  readonly origin: number;
+  readonly input: TraceToolCall;
+  readonly notes: TraceToolNotes | undefined;
+  readonly view: ToolStepView;
+}
+
+/** What a read of a turn kept, to see that nothing it is made of has changed. */
+interface TurnRead {
+  readonly view: TurnView;
+  readonly count: number;
+  readonly last: HarnessEvent | undefined;
+  readonly status: TurnStatus;
+  readonly summary: string;
+  readonly origin: number;
+  readonly begin: StepEvent | undefined;
+  readonly request: TraceRequest;
+  /** The calls it is made of, in order, as read. */
+  readonly steps: readonly StepView[];
+  /** The flow into it, and out of it. */
+  readonly enter: FlowAt & { readonly preamble: boolean; readonly index: number };
+  readonly exit: FlowAt;
+  /** What it adds to what the reads carry: tool names, the tools first loaded in it, the preamble it makes. */
+  readonly learned: ReadonlyMap<string, string>;
+  readonly loads: ReadonlySet<string>;
+  readonly firstLoads: readonly string[];
+  readonly preamble: PreambleView | undefined;
+  /** Every call in it was read in full (a missing blob is read again, not kept). */
+  readonly whole: boolean;
+}
+
+export interface TraceMemo {
+  readonly models: Map<string, ModelRead>;
+  readonly tools: Map<string, ToolRead>;
+  readonly turns: Map<string, TurnRead>;
+  /** A message's entry in a window: the same in every call that sees it. */
+  readonly windowEntries: Map<string, WindowEntryView>;
+  /** The tool definitions in `main`'s head, as far as the head was read. */
+  main?: { readonly ids: readonly string[]; readonly definitions: readonly DefinitionPart[] };
+  /** The limits the latest turn ran under, for as many events as it had. */
+  limits?: { readonly turnId: string; readonly count: number; readonly limits: Limits };
+  /** The tools loaded and declared, as the last read gave them (the same arrays while they are the same lists). */
+  loaded?: readonly LoadedToolView[];
+  declared?: readonly string[];
+}
+
+type DefinitionPart = Extract<Message['parts'][number], { kind: 'tool-definition' }>;
+
+/** What a call follows: the model calls whose windows and requests it is compared with. */
+interface FlowAt {
+  readonly window: ModelRead | undefined;
+  readonly request: ModelRead | undefined;
+  readonly latest: ModelRead | undefined;
+}
+
+const newMemo = (): TraceMemo => ({
+  models: new Map(),
+  tools: new Map(),
+  turns: new Map(),
+  windowEntries: new Map(),
+});
+
+export function createTraceCache(): TraceCache {
+  return { entries: new Map(), heads: new Map(), blobs: new Map(), memo: newMemo() };
 }
 
 const PAGE = 500;
@@ -240,12 +343,14 @@ function reasonText(reason: Json | undefined): string | undefined {
 /** The limits a turn ran under: as extended by its last budget decision, else as configured, else those it holds now. */
 function limitsOf(turnEvents: readonly HarnessEvent[], execution: Execution, turnId: string): Limits {
   if (execution.turn?.id === turnId) return execution.turn.budget.limits;
-  const steps = turnEvents.filter((e): e is StepEvent => e.kind === 'step');
-  return (
-    steps.findLast((e) => e.limits !== undefined)?.limits ??
-    steps.find((e) => e.begun)?.begun?.configuration.limits ??
-    {}
-  );
+  let begun: Limits | undefined;
+  for (let i = turnEvents.length - 1; i >= 0; i -= 1) {
+    const e = turnEvents[i] as HarnessEvent;
+    if (e.kind !== 'step') continue;
+    if (e.limits !== undefined) return e.limits;
+    if (e.begun) begun = e.begun.configuration.limits;
+  }
+  return begun ?? {};
 }
 
 /** The latest turn against its budget: the kind nearest its ceiling. */
@@ -406,10 +511,31 @@ function collapseTools(entries: readonly WindowEntryView[]): readonly WindowEntr
   return [...rest.slice(0, at), merged, ...rest.slice(at)];
 }
 
+/** The list read before while it is the same list, else the one read now. */
+function kept<T>(before: readonly T[] | undefined, now: readonly T[], same: (a: T, b: T) => boolean): readonly T[] {
+  return before && before.length === now.length && before.every((x, i) => same(x, now[i] as T)) ? before : now;
+}
+
+/** Whether two readings of the host's notes on a tool call are the same. */
+function sameNotes(a: TraceToolNotes | undefined, b: TraceToolNotes | undefined): boolean {
+  if (a === b) return true;
+  if (a?.title !== b?.title || a?.read !== b?.read) return false;
+  const x = a?.changed ?? [];
+  const y = b?.changed ?? [];
+  return x.length === y.length && x.every((c, i) => c.id === y[i]?.id && c.label === y[i]?.label);
+}
+
+const sameFlow = (a: FlowAt, b: FlowAt) => a.window === b.window && a.request === b.request && a.latest === b.latest;
+
 /**
  * Reads the trace of one harness: its turns with their model and tool calls (attempts, usage, what each model call
  * saw, where its prompt cache broke), the budget, the preamble and the tools loaded. Times are milliseconds from the
  * first step event.
+ *
+ * With a `cache` a read is incremental (trace.md, Incremental reads): the events are grouped as they come, a call
+ * whose records are the ones it was read from, and that follows the same calls, keeps its view, and a turn that ended
+ * and is unchanged keeps its own. Only the changed tail (the running turn's new calls) is mapped, so a read costs what
+ * changed, not calls × messages, and the views of what did not change are the same objects.
  */
 export async function readTrace(reader: HarnessReader, profile: TraceProfile = {}): Promise<TraceData> {
   const requestOf = profile.requestOf ?? defaultRequestOf;
@@ -417,26 +543,34 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
   const cache = profile.cache ?? createTraceCache();
 
   const execution = await reader.execution();
-  if (cache.log?.harness !== reader.id) cache.log = { harness: reader.id, events: [] };
-  const { events } = cache.log;
+  if (cache.log?.harness !== reader.id) {
+    cache.log = { harness: reader.id, events: [], grouped: 0, byTurn: new Map(), ended: new Map() };
+    cache.memo = newMemo();
+  }
+  const log = cache.log;
+  const memo = cache.memo;
+  const { events } = log;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const got = await reader.events({ after: events.at(-1)?.seq ?? 0, limit: PAGE });
     // Two reads at once over one cache: what the other appended meanwhile is not taken twice.
     for (const e of got) if (e.seq > (events.at(-1)?.seq ?? 0)) events.push(e);
     if (got.length < PAGE) break;
   }
-  // A turn's summary: from the log (the event that ended it), the active turn's from the reader.
-  const summaries = new Map<string, TurnSummary>();
-  for (const e of events) if (e.turnId !== undefined && e.summary !== undefined) summaries.set(e.turnId, e.summary);
-  for (const t of await reader.turns({ limit: SUMMARIES })) summaries.set(t.id, t);
-  const byTurn = new Map<string, HarnessEvent[]>();
-  for (const e of events) {
+  // The events by turn, and the summaries the log holds (the event that ended a turn): only the new ones are looked at.
+  for (; log.grouped < events.length; log.grouped += 1) {
+    const e = events[log.grouped] as HarnessEvent;
+    if (log.origin === undefined && e.kind === 'step') log.origin = e.at;
     if (e.turnId === undefined) continue;
-    const list = byTurn.get(e.turnId);
+    if (e.summary !== undefined) log.ended.set(e.turnId, e.summary);
+    const list = log.byTurn.get(e.turnId);
     if (list) list.push(e);
-    else byTurn.set(e.turnId, [e]);
+    else log.byTurn.set(e.turnId, [e]);
   }
-  const origin = events.find((e) => e.kind === 'step')?.at ?? 0;
+  // A turn's summary: from the log, the active turn's (and the latest ended ones') from the reader.
+  const fromReader = new Map<string, TurnSummary>();
+  for (const t of await reader.turns({ limit: SUMMARIES })) fromReader.set(t.id, t);
+  const summaryOf = (turnId: string) => fromReader.get(turnId) ?? log.ended.get(turnId);
+  const origin = log.origin ?? 0;
 
   const messagesOf = async (ids: readonly string[]) => {
     const missing = [...new Set(ids)].filter((id) => !cache.entries.has(id));
@@ -464,121 +598,103 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
 
   // Tool names, learned from the definitions in the heads read so far.
   const names = new Map<string, string>();
-  const learn = (messages: readonly Message[]) => {
-    for (const p of definitionsIn(messages)) names.set(p.definition.tool.id, p.definition.name);
-  };
   const nameOf = (id: string) => profile.toolNames?.get(id) ?? names.get(id) ?? id;
 
   // A message's window entry is the same in every call that sees it; only `fresh` differs.
-  const entryCache = new Map<string, WindowEntryView>();
   const windowEntry = (id: string, m: Message): WindowEntryView => {
-    const known = entryCache.get(id);
+    const known = memo.windowEntries.get(id);
     if (known) return known;
     const entry = describe(m, partOf(m), nameOf);
-    entryCache.set(id, entry);
+    memo.windowEntries.set(id, entry);
     return entry;
   };
 
   let preamble: PreambleView | undefined;
-  // What each run's previous model call saw (the turn's: ""; a nested run's: its call's id).
-  const previousWindow = new Map<string, Set<string>>();
-  // Each run's previous request, and the latest of any run: a nested run's first request follows its parent's latest.
-  const previousRequest = new Map<string, RequestShape>();
-  let latestRequest: RequestShape | undefined;
+  // What the runs have seen so far (the turn's run is ''; a nested run's is its call's id): each run's previous model
+  // call (its window, to mark what is fresh), each run's previous request and the latest of any run (where the
+  // provider's cache broke: a nested run's first request follows its parent's latest).
+  const flow = {
+    window: new Map<string, ModelRead>(),
+    request: new Map<string, ModelRead>(),
+    latest: undefined as ModelRead | undefined,
+  };
+  const flowAt = (key: string, under: string | undefined): FlowAt => ({
+    window: flow.window.get(key),
+    request: flow.request.get(key),
+    latest: under !== undefined ? flow.latest : undefined,
+  });
   // The turn (1-based) whose model call first saw each tool loaded; the first call's are "from the start".
   const loadedFirst = new Map<string, number | undefined>();
   const views: TurnView[] = [];
 
-  for (const [turnId, turnEvents] of byTurn) {
-    const stepEvents = turnEvents.filter((e): e is StepEvent => e.kind === 'step');
-    const begin = stepEvents.find((e) => e.stepKind === 'begin');
-    // A call is recorded once in the step that ran it; a parked step's later event may repeat it. The calls come in the
-    // order they began (a nested run's follow the call that ran them).
-    const found = new Map<string, { call: CallRecord; at: number; order: number }>();
-    for (const e of stepEvents)
-      for (const call of e.calls) {
-        const known = found.get(call.id);
-        found.set(call.id, { call, at: e.at, order: known?.order ?? found.size });
-      }
-    const calls = [...found.values()]
-      .sort(
-        (a, b) =>
-          (a.call.attempts[0]?.startedAt ?? a.at) - (b.call.attempts[0]?.startedAt ?? b.at) || a.order - b.order,
-      )
-      .map((c) => c.call);
-
-    const steps: StepView[] = [];
-    for (const call of calls) {
-      const attempts = call.attempts.map((a, i) => attemptView(a, i + 1, origin, call.attempts[i - 1]));
-      const under = call.parentCallId;
-      if (call.kind === 'model') {
-        const evidence = (await blob(call.request)) as Evidence | undefined;
-        const head = await headOf(evidence?.head ?? undefined);
-        learn(head.map((e) => e.message));
-        const before = previousWindow.get(under ?? '') ?? new Set<string>();
-        const entries = head.map((e) => {
-          const entry = windowEntry(e.id, e.message);
-          return before.has(e.id) ? entry : { ...entry, fresh: true };
-        });
-        previousWindow.set(under ?? '', new Set(head.map((e) => e.id)));
-        if (under === undefined) {
-          const first = preamble === undefined;
-          preamble ??= preambleOf(head.map((e) => e.message));
-          for (const p of definitionsIn(head.map((e) => e.message)))
-            if (!p.deferred && !loadedFirst.has(p.definition.tool.id))
-              loadedFirst.set(p.definition.tool.id, first ? undefined : views.length + 1);
-        }
-        const reply = (await blob(call.result)) as Message | undefined;
-        const usage = call.attempts.at(-1)?.usage;
-        const model = evidence?.configuration?.target?.model;
-        const credits = usage && model ? profile.credits?.(model, usage) : undefined;
-        const shape = requestShape(evidence);
-        const prefixBreak = shape
-          ? breakOf(previousRequest.get(under ?? '') ?? (under !== undefined ? latestRequest : undefined), shape)
-          : undefined;
-        if (shape) {
-          previousRequest.set(under ?? '', shape);
-          latestRequest = shape;
-        }
-        steps.push({
-          kind: 'model',
-          id: call.id,
-          callId: call.id,
-          attempts,
-          ...(model ? { model } : {}),
-          ...(usage ? { tokens: tokensOf(usage, credits) } : {}),
-          ...(under !== undefined ? { under } : {}),
-          ...(prefixBreak ? { prefixBreak } : {}),
-          ...modelOutput(reply, nameOf),
-          window: {
-            entries: collapseTools(entries),
-            ...(profile.window !== undefined ? { limit: profile.window } : {}),
-          },
-        } satisfies ModelStepView);
-      } else steps.push({ ...(await toolStep(call, attempts)), ...(under !== undefined ? { under } : {}) });
-    }
-
-    const summary = summaries.get(turnId);
-    const ended = turnEvents.findLast((e) => (e.kind === 'step' ? e.end !== undefined : e.summary !== undefined));
-    const status = turnStatusOf(summary?.status, execution, turnId);
-    const request = await requestFor(begin);
-    views.push({
-      id: turnId,
-      prompt: request.prompt,
-      ...(request.focus ? { focus: request.focus } : {}),
-      status,
-      start: (begin?.at ?? origin) - origin,
-      ...(summary?.endedAt !== undefined ? { end: summary.endedAt - origin } : {}),
-      tokens: summary ? tokensOf(summary.usage, sumCredits(steps)) : { input: 0, output: 0 },
-      steps,
-      milestones: turnEvents.map((e) => milestone(e, origin)),
-      ...(status === 'failed'
-        ? { failure: reasonText(ended?.kind === 'step' ? ended.end?.reason : undefined) ?? 'The turn failed.' }
-        : {}),
+  /** A model call read now (its window mapped): the one place a read costs the size of a window. */
+  const readModel = async (call: CallRecord, entering: FlowAt, under: string | undefined) => {
+    const attempts = call.attempts.map((a, i) => attemptView(a, i + 1, origin, call.attempts[i - 1]));
+    const evidence = (await blob(call.request)) as Evidence | undefined;
+    const ids = await headIds(evidence?.head ?? undefined);
+    const head = await messagesOf(ids);
+    const messages = head.map((e) => e.message);
+    const defined = definitionsIn(messages);
+    const learned = defined.map((p) => [p.definition.tool.id, p.definition.name] as const);
+    for (const [id, name] of learned) names.set(id, name);
+    const before = new Set(entering.window?.ids ?? []);
+    const entries = head.map((e) => {
+      const entry = windowEntry(e.id, e.message);
+      return before.has(e.id) ? entry : { ...entry, fresh: true };
     });
-  }
+    const reply = (await blob(call.result)) as Message | undefined;
+    const usage = call.attempts.at(-1)?.usage;
+    const model = evidence?.configuration?.target?.model;
+    const credits = usage && model ? profile.credits?.(model, usage) : undefined;
+    const shape = requestShape(evidence);
+    const prefixBreak = shape
+      ? breakOf(entering.request?.shape ?? (under !== undefined ? entering.latest?.shape : undefined), shape)
+      : undefined;
+    const view = {
+      kind: 'model',
+      id: call.id,
+      callId: call.id,
+      attempts,
+      ...(model ? { model } : {}),
+      ...(usage ? { tokens: tokensOf(usage, credits) } : {}),
+      ...(under !== undefined ? { under } : {}),
+      ...(prefixBreak ? { prefixBreak } : {}),
+      ...modelOutput(reply, nameOf),
+      window: {
+        entries: collapseTools(entries),
+        ...(profile.window !== undefined ? { limit: profile.window } : {}),
+      },
+    } satisfies ModelStepView;
+    const read: ModelRead = {
+      call,
+      origin,
+      limit: profile.window,
+      after: entering,
+      view,
+      ids,
+      shape,
+      learned,
+      loads:
+        under === undefined ? [...new Set(defined.filter((p) => !p.deferred).map((p) => p.definition.tool.id))] : [],
+      preamble: under === undefined && preamble === undefined ? preambleOf(messages) : undefined,
+    };
+    const whole =
+      evidence !== undefined &&
+      (evidence.head == null || ids.length > 0) &&
+      (call.result === undefined || reply !== undefined);
+    return { read, whole };
+  };
 
-  async function toolStep(call: CallRecord, attempts: AttemptView[]): Promise<ToolStepView> {
+  /** A tool call: the view kept while the call is the same record and the host's notes on it are the same. */
+  const readTool = async (call: CallRecord, under: string | undefined) => {
+    const known = memo.tools.get(call.id);
+    if (known?.call === call && known.origin === origin) {
+      const notes = profile.toolCall?.(known.input);
+      if (sameNotes(notes, known.notes)) return { read: known, whole: true };
+      const read: ToolRead = { ...known, notes, view: toolView(call, under, known.input, notes) };
+      memo.tools.set(call.id, read);
+      return { read, whole: true };
+    }
     const request = (await blob(call.request)) as { toolId?: string; arguments?: Json } | undefined;
     const result = (await blob(call.result)) as
       | { status: 'succeeded' | 'failed'; parts: readonly { kind: string; text?: string }[] }
@@ -588,79 +704,292 @@ export async function readTrace(reader: HarnessReader, profile: TraceProfile = {
     const toolId = request?.toolId ?? call.key;
     const status: ToolStepView['status'] =
       result?.status ?? (last === undefined ? 'running' : last.outcome === 'aborted' ? 'aborted' : 'failed');
-    const args = isObject(request?.arguments) ? request.arguments : {};
-    const name = nameOf(toolId);
-    const notes = profile.toolCall?.({
+    const input: TraceToolCall = {
       callId: call.id,
       key: call.key,
       toolId,
-      name,
-      arguments: args,
+      name: nameOf(toolId),
+      arguments: isObject(request?.arguments) ? request.arguments : {},
       status,
       ...(text ? { text } : {}),
-    });
-    return {
-      kind: 'tool',
-      id: call.id,
-      callId: call.id,
-      toolId,
-      name,
-      args,
-      status,
-      attempts,
-      ...(notes?.title ? { title: notes.title } : {}),
-      ...(notes?.read !== undefined ? { read: notes.read } : {}),
-      ...(text ? { result: text } : {}),
-      ...(notes?.changed?.length ? { changed: notes.changed } : {}),
     };
-  }
+    const notes = profile.toolCall?.(input);
+    const read: ToolRead = { call, origin, input, notes, view: toolView(call, under, input, notes) };
+    const whole = request !== undefined && (call.result === undefined || result !== undefined);
+    if (whole) memo.tools.set(call.id, read);
+    return { read, whole };
+  };
+
+  const toolView = (
+    call: CallRecord,
+    under: string | undefined,
+    input: TraceToolCall,
+    notes: TraceToolNotes | undefined,
+  ): ToolStepView => ({
+    kind: 'tool',
+    id: call.id,
+    callId: call.id,
+    toolId: input.toolId,
+    name: input.name,
+    args: input.arguments,
+    status: input.status,
+    attempts: call.attempts.map((a, i) => attemptView(a, i + 1, origin, call.attempts[i - 1])),
+    ...(notes?.title ? { title: notes.title } : {}),
+    ...(notes?.read !== undefined ? { read: notes.read } : {}),
+    ...(input.text ? { result: input.text } : {}),
+    ...(notes?.changed?.length ? { changed: notes.changed } : {}),
+    ...(under !== undefined ? { under } : {}),
+  });
 
   /** The turn's request: the begin step's last user message. */
-  async function requestFor(begin: StepEvent | undefined) {
+  const requestFor = async (begin: StepEvent | undefined): Promise<TraceRequest> => {
     const move = begin?.moves.find((m) => m.pointer === MAIN) ?? begin?.moves[0];
     const head = await headOf(move?.to);
     const user = head.findLast((e) => e.message.role === 'user');
     return user ? requestOf(user.message) : { prompt: '(no request recorded)' };
+  };
+
+  /** What a model call adds to what the reads carry (its tool names, the tools first loaded, the preamble). */
+  const carry = (read: ModelRead, key: string, under: string | undefined, effects?: Effects) => {
+    for (const [id, name] of read.learned) {
+      names.set(id, name);
+      effects?.learned.set(id, name);
+    }
+    if (under === undefined) {
+      const first = preamble === undefined;
+      if (first && read.preamble) {
+        preamble = read.preamble;
+        if (effects) {
+          effects.preamble = read.preamble;
+          effects.firstLoads = read.loads;
+        }
+      }
+      for (const id of read.loads) {
+        effects?.loads.add(id);
+        if (!loadedFirst.has(id)) loadedFirst.set(id, first ? undefined : views.length + 1);
+      }
+    }
+    flow.window.set(key, read);
+    if (read.shape) {
+      flow.request.set(key, read);
+      flow.latest = read;
+    }
+  };
+
+  for (const [turnId, turnEvents] of log.byTurn) {
+    const summary = summaryOf(turnId);
+    const status = turnStatusOf(summary?.status, execution, turnId);
+    const known = memo.turns.get(turnId);
+    const last = turnEvents.at(-1);
+    const summaryKey = () => (summary === undefined ? '' : JSON.stringify(summary));
+    const enter = {
+      ...flowAt('', undefined),
+      latest: flow.latest,
+      preamble: preamble !== undefined,
+      index: views.length,
+    };
+
+    // A turn whose records and summary are the ones it was read from (every turn but the running one, and it between
+    // two records): its view as it was, and what it carries on to the turns after it.
+    if (
+      known?.whole &&
+      known.status === status &&
+      known.count === turnEvents.length &&
+      known.last === last &&
+      known.origin === origin &&
+      known.enter.preamble === enter.preamble &&
+      known.enter.index === enter.index &&
+      sameFlow(known.enter, enter) &&
+      known.summary === summaryKey()
+    ) {
+      for (const [id, name] of known.learned) names.set(id, name);
+      if (!enter.preamble && known.preamble) {
+        preamble = known.preamble;
+        for (const id of known.firstLoads) if (!loadedFirst.has(id)) loadedFirst.set(id, undefined);
+      }
+      for (const id of known.loads) if (!loadedFirst.has(id)) loadedFirst.set(id, views.length + 1);
+      if (known.exit.window) flow.window.set('', known.exit.window);
+      if (known.exit.request) flow.request.set('', known.exit.request);
+      flow.latest = known.exit.latest;
+      views.push(known.view);
+      continue;
+    }
+
+    const stepEvents = turnEvents.filter((e): e is StepEvent => e.kind === 'step');
+    const begin = stepEvents.find((e) => e.stepKind === 'begin');
+    // A call is recorded once in the step that ran it; a parked step's later event may repeat it. The calls come in the
+    // order they began (a nested run's follow the call that ran them).
+    const found = new Map<string, { call: CallRecord; at: number; order: number }>();
+    for (const e of stepEvents)
+      for (const call of e.calls) {
+        const was = found.get(call.id);
+        found.set(call.id, { call, at: e.at, order: was?.order ?? found.size });
+      }
+    const calls = [...found.values()]
+      .sort(
+        (a, b) =>
+          (a.call.attempts[0]?.startedAt ?? a.at) - (b.call.attempts[0]?.startedAt ?? b.at) || a.order - b.order,
+      )
+      .map((c) => c.call);
+
+    const effects: Effects = { learned: new Map(), loads: new Set(), firstLoads: [], preamble: undefined };
+    const steps: StepView[] = [];
+    let whole = true;
+    for (const call of calls) {
+      const under = call.parentCallId;
+      const key = under ?? '';
+      if (call.kind === 'model') {
+        const entering = flowAt(key, under);
+        const kept = memo.models.get(call.id);
+        const top = under === undefined;
+        // The same record, following the same calls: its view as it was.
+        let read =
+          kept?.call === call &&
+          kept.origin === origin &&
+          kept.limit === profile.window &&
+          sameFlow(kept.after, entering) &&
+          (!top || preamble !== undefined || kept.preamble !== undefined)
+            ? kept
+            : undefined;
+        if (read === undefined) {
+          const made = await readModel(call, entering, under);
+          read = made.read;
+          if (made.whole) memo.models.set(call.id, read);
+          else whole = false;
+        }
+        carry(read, key, under, effects);
+        steps.push(read.view);
+      } else {
+        const made = await readTool(call, under);
+        if (!made.whole) whole = false;
+        steps.push(made.read.view);
+      }
+    }
+
+    const ended = turnEvents.findLast((e) => (e.kind === 'step' ? e.end !== undefined : e.summary !== undefined));
+    const request = known && begin !== undefined && known.begin === begin ? known.request : await requestFor(begin);
+    const key = summaryKey();
+    const exit: FlowAt = { window: flow.window.get(''), request: flow.request.get(''), latest: flow.latest };
+    // The same turn as the last read, call for call: that view again.
+    const same =
+      known !== undefined &&
+      known.status === status &&
+      known.count === turnEvents.length &&
+      known.last === last &&
+      known.origin === origin &&
+      known.summary === key &&
+      known.request === request &&
+      known.steps.length === steps.length &&
+      known.steps.every((s, i) => s === steps[i]);
+    const view: TurnView = same
+      ? known.view
+      : {
+          id: turnId,
+          prompt: request.prompt,
+          ...(request.focus ? { focus: request.focus } : {}),
+          status,
+          start: (begin?.at ?? origin) - origin,
+          ...(summary?.endedAt !== undefined ? { end: summary.endedAt - origin } : {}),
+          tokens: summary ? tokensOf(summary.usage, sumCredits(steps)) : { input: 0, output: 0 },
+          steps,
+          milestones: turnEvents.map((e) => milestone(e, origin)),
+          ...(status === 'failed'
+            ? { failure: reasonText(ended?.kind === 'step' ? ended.end?.reason : undefined) ?? 'The turn failed.' }
+            : {}),
+        };
+    if (whole)
+      memo.turns.set(turnId, {
+        view,
+        count: turnEvents.length,
+        last,
+        status,
+        summary: key,
+        origin,
+        begin,
+        request,
+        steps,
+        enter,
+        exit,
+        learned: effects.learned,
+        loads: effects.loads,
+        firstLoads: effects.firstLoads,
+        preamble: effects.preamble,
+        whole,
+      });
+    views.push(view);
   }
 
-  // The latest context: what it has loaded and declares.
-  const main = await headOf(execution.main);
-  learn(main.map((e) => e.message));
-  const mainDefinitions = definitionsIn(main.map((e) => e.message));
-  const loadedIds = [...new Set(mainDefinitions.filter((p) => !p.deferred).map((p) => p.definition.tool.id))];
-  const loaded: LoadedToolView[] = loadedIds.map((id) => {
-    const turn = loadedFirst.get(id);
-    return { id, name: nameOf(id), ...(turn !== undefined ? { turn } : {}) };
-  });
-  const declared = [
-    ...new Set(
-      mainDefinitions
-        .filter((p) => p.deferred && !loadedIds.includes(p.definition.tool.id))
-        .map((p) => p.definition.tool.id),
-    ),
-  ];
+  // The latest context: what it has loaded and declares. The definitions in `main`'s head are read once: a head that
+  // extends the one read before is read from where that ended.
+  const mainIds = await headIds(execution.main);
+  let definitions: readonly DefinitionPart[];
+  if (memo.main?.ids === mainIds) definitions = memo.main.definitions;
+  else {
+    const before = memo.main;
+    const extends_ =
+      before !== undefined && before.ids.length <= mainIds.length && before.ids.every((id, i) => id === mainIds[i]);
+    const tail = extends_ ? mainIds.slice(before.ids.length) : mainIds;
+    const found = definitionsIn((await messagesOf(tail)).map((e) => e.message));
+    definitions = extends_ ? [...before.definitions, ...found] : found;
+    memo.main = { ids: mainIds, definitions };
+  }
+  for (const p of definitions) names.set(p.definition.tool.id, p.definition.name);
+  const loadedIds = [...new Set(definitions.filter((p) => !p.deferred).map((p) => p.definition.tool.id))];
+  const loaded = kept(
+    memo.loaded,
+    loadedIds.map((id): LoadedToolView => {
+      const turn = loadedFirst.get(id);
+      return { id, name: nameOf(id), ...(turn !== undefined ? { turn } : {}) };
+    }),
+    (a, b) => a.id === b.id && a.name === b.name && a.turn === b.turn,
+  );
+  const declared = kept(
+    memo.declared,
+    [
+      ...new Set(
+        definitions
+          .filter((p) => p.deferred && !loadedIds.includes(p.definition.tool.id))
+          .map((p) => p.definition.tool.id),
+      ),
+    ],
+    (a, b) => a === b,
+  );
+  memo.loaded = loaded;
+  memo.declared = declared;
 
   const latest = views.at(-1);
-  const ceilings =
-    profile.ceilings ??
-    (latest !== undefined
-      ? (Object.fromEntries(
-          KINDS.flatMap((kind) => {
-            const limit = limitsOf(byTurn.get(latest.id) ?? [], execution, latest.id)[kind];
-            return limit === undefined ? [] : [[kind, limit]];
-          }),
-        ) as Partial<Record<BudgetKind, number>>)
-      : {});
+  let ceilings = profile.ceilings;
+  if (ceilings === undefined && latest !== undefined) {
+    // The limits of the latest turn, scanned once for as many events as it has.
+    const turnEvents = log.byTurn.get(latest.id) ?? [];
+    const kept = memo.limits;
+    const limits =
+      kept?.turnId === latest.id && kept.count === turnEvents.length && execution.turn?.id !== latest.id
+        ? kept.limits
+        : limitsOf(turnEvents, execution, latest.id);
+    memo.limits = { turnId: latest.id, count: turnEvents.length, limits };
+    ceilings = Object.fromEntries(
+      KINDS.flatMap((kind) => (limits[kind] === undefined ? [] : [[kind, limits[kind]]])),
+    ) as Partial<Record<BudgetKind, number>>;
+  }
 
   return {
     harnessId: reader.id,
     execution: executionView(execution),
-    budget: budgetView(summaries.get(latest?.id ?? '')?.usage, ceilings, latest?.tokens.credits),
+    budget: budgetView(summaryOf(latest?.id ?? '')?.usage, ceilings ?? {}, latest?.tokens.credits),
     preamble: preamble ?? { guidance: '', guidanceTokens: 0, tools: [], toolsTokens: 0 },
     loaded,
     declared,
     turns: views,
   };
+}
+
+/** What the model calls of a turn add to what the reads carry on to the turns after it. */
+interface Effects {
+  readonly learned: Map<string, string>;
+  readonly loads: Set<string>;
+  firstLoads: readonly string[];
+  preamble: PreambleView | undefined;
 }
 
 function executionView(execution: Execution): ExecutionView {

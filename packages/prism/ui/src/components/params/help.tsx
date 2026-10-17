@@ -11,6 +11,8 @@
 import type { Legend } from '@molstar/core/util/legend';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Show } from '../../dom/control-flow.js';
+import { watch } from '../../dom/scope.js';
+import { setAttr } from '../../dom/writes.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
@@ -67,6 +69,7 @@ export function withHelp(label: string, help: ReadonlyState<ParamHelp | undefine
     };
   const open = observableState(false);
   const has = derive(help, (h) => !!h);
+  let text!: HTMLElement;
   const head = (
     <>
       {/* With help, the text is underlined (dotted) and opens it too, as the ? does. */}
@@ -74,7 +77,7 @@ export function withHelp(label: string, help: ReadonlyState<ParamHelp | undefine
         class={classes.text}
         id={id}
         data-tip-overflow=""
-        data-help={derive(has, (h) => (h ? '' : undefined))}
+        ref={(el: HTMLElement) => (text = el)}
         onClick={(e) => {
           if (!e.currentTarget.hasAttribute('data-help')) return;
           e.stopPropagation();
@@ -84,24 +87,28 @@ export function withHelp(label: string, help: ReadonlyState<ParamHelp | undefine
         {label}
       </span>
       <Show when={has}>
-        {() => (
-          <button
-            type="button"
-            class={classes.toggle}
-            aria-label={`About ${label}`}
-            title={`About ${label}`}
-            aria-expanded={open}
-            onClick={(e) => {
-              e.stopPropagation();
-              open.set(!open.value);
-            }}
-          >
-            <Icon name="circle-help" size={12} />
-          </button>
-        )}
+        {() => {
+          const toggle = (
+            <button
+              type="button"
+              class={classes.toggle}
+              aria-label={`About ${label}`}
+              title={`About ${label}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                open.set(!open.value);
+              }}
+            >
+              <Icon name="circle-help" size={12} />
+            </button>
+          ) as HTMLElement;
+          watch([open], () => setAttr(toggle, 'aria-expanded', String(open.value)));
+          return toggle;
+        }}
       </Show>
     </>
   );
+  watch([has], () => setAttr(text, 'data-help', has.value));
   return { head, block: <HelpBlock help={help} open={open} /> };
 }
 

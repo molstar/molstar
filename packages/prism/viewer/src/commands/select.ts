@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CommandDefinition, CommandGroup } from '@molstar/prism-ui/core';
+import type { CommandDefinition, CommandGroup, LazyCommands, LazyRegistration } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
 import type { ApiFailure, ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
@@ -17,8 +17,9 @@ import { SelectCommandGroups } from './select-groups.js';
 // The `select` group (commands.md §5, api.md §9 generated commands): one command per selection query, each running
 // `select.set` with that query as its target and the group's shared mode. By query: the plugin's selection-query
 // registry by category (Type, Structure property, …; an extension's queries too); in the loaded structures: their
-// entities, chains, ligands and non-standard residues, and elements, made again when the structures change
-// (`sources/select-queries.ts`). A highlighted row lights its atoms in 3D (the viewer's preview sink,
+// entities, chains, ligands and non-standard residues, and elements (`sources/select-queries.ts`). Made when wanted:
+// a change of the structures only marks them stale, and the menu (or a `get`/`open` of one) makes them again
+// (commands.md §4, `registerLazy`), so loading N structures reads them once, not N times over all of them. A highlighted row lights its atoms in 3D (the viewer's preview sink,
 // `lociPreviewSink`) and says how much it would select.
 
 type Ctx = ViewerCommandContext;
@@ -45,20 +46,19 @@ export interface SelectCommandsOptions {
    * frame or a model swap makes new ones, with counts that may be the same).
    */
   readonly data?: () => readonly object[];
-  /** Registers commands (the viewer's `registerCommands`: overrides applied); returns the removal. */
-  readonly register: (defs: readonly CommandDefinition<Ctx>[]) => () => void;
+  /** Registers commands made when wanted (the manager's `registerLazy`, the viewer's overrides applied). */
+  readonly registerLazy: (source: LazyCommands<Ctx>) => LazyRegistration;
   readonly registerGroups: (groups: readonly CommandGroup[]) => () => void;
 }
 
 /**
- * The `select` group's commands, kept current: made again when the loaded structures change (the registry's are read
- * then too, so an extension's queries come in with the next change). Returns the removal of all of it.
+ * The `select` group's commands, kept current: made again, when next wanted, after the loaded structures change (the
+ * registry's are read then too, so an extension's queries come in with the next change). Returns the removal of all of
+ * it.
  */
 export function watchSelectCommands(o: SelectCommandsOptions): () => void {
   const { api, queries } = o;
   const dropGroups = o.registerGroups(SelectCommandGroups);
-  let drop: (() => void) | undefined;
-  let dropDynamicGroups: (() => void) | undefined;
   let made = '';
   /** Resolved targets of this structure set, by command id: the preview and the count resolve once. */
   let cache = new Map<string, Promise<ResolvedTarget | ApiFailure>>();
@@ -116,24 +116,24 @@ export function watchSelectCommands(o: SelectCommandsOptions): () => void {
     },
   });
 
-  const update = () => {
+  const lazy = o.registerLazy({
+    make() {
+      const registry = queries.list();
+      const entries = registry.entries;
+      // Made again only when what is listed changed (a structure's own change keeps the same rows, and an open form).
+      const key = `${registry.groups.map((g) => g.id).join()}|${entries.map((e) => `${e.id}:${e.title}`).join()}`;
+      if (key === made) return undefined;
+      made = key;
+      return { commands: entries.map(command), groups: registry.groups };
+    },
+  });
+  const sub = o.structures.subscribe(() => {
     cache = new Map();
-    const registry = queries.list();
-    const entries = registry.entries;
-    // Made again only when what is listed changed (a structure's own change keeps the same rows).
-    const key = `${registry.groups.map((g) => g.id).join()}|${entries.map((e) => `${e.id}:${e.title}`).join()}`;
-    if (key === made) return;
-    made = key;
-    drop?.();
-    dropDynamicGroups?.();
-    dropDynamicGroups = o.registerGroups(registry.groups);
-    drop = o.register(entries.map(command));
-  };
-  const sub = o.structures.subscribe(() => update());
+    lazy.stale();
+  });
   return () => {
     sub.unsubscribe();
-    drop?.();
-    dropDynamicGroups?.();
+    lazy.dispose();
     dropGroups();
     cache.clear();
   };

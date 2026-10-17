@@ -23,7 +23,8 @@ import { held, isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent
 import { classes } from './_generated/history-tab.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
-import { bind } from '@molstar/prism-ui/dom/scope';
+import { effect, watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setText } from '@molstar/prism-ui/dom/writes';
 import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
 
@@ -51,26 +52,27 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
   // The items by key, one map a change; an item is told only when its own record changes (a `find` an item, for each of
   // its fields, on every publish was items² a frame while a turn streams).
   const byKey = keyedState<string, HistoryItem>();
-  bind(agent.history, (h) => {
+  effect(agent.history, (h) => {
     const m = new Map<string, HistoryItem>();
     for (const x of h) m.set(keyOf(x), x);
     byKey.replace(m);
   });
   const live = (id: string) => held(byKey.key(id), (x): x is HistoryItem => !!x);
+  const tabs = (['commands', 'messages'] as const).map((v) => ({
+    v,
+    button: (
+      <button type="button" role="tab" class={classes.switchButton} onClick={() => view.set(v)}>
+        {v === 'commands' ? 'Commands' : 'Messages'}
+      </button>
+    ) as HTMLElement,
+  }));
+  watch([view], () => {
+    for (const t of tabs) setAttr(t.button, 'aria-selected', String(t.v === view.value));
+  });
   return (
     <div class={classes.tab}>
       <div class={classes.switch} role="tablist" aria-label="History">
-        {(['commands', 'messages'] as const).map((v) => (
-          <button
-            type="button"
-            role="tab"
-            class={classes.switchButton}
-            aria-selected={derive(view.asReadonly, (x) => x === v)}
-            onClick={() => view.set(v)}
-          >
-            {v === 'commands' ? 'Commands' : 'Messages'}
-          </button>
-        ))}
+        {tabs.map((t) => t.button)}
       </div>
       <Show when={derive(view.asReadonly, (v) => v === 'commands')} fallback={() => <LogView status={props.status} />}>
         {() => (
@@ -116,22 +118,33 @@ function TurnItem(props: { agent: AgentModel; turn: ReadonlyState<AgentTurn>; id
   const { agent, turn, id } = props;
   const open = observableState(false);
   const running = derive(turn, isRunning);
+  // What the item's header and fold say, each from the one field of the record it is made of.
   const undone = derive(turn, (t) => !!t.undone);
-  return (
-    <section class={classes.turn} data-undone={derive(undone, (u) => (u ? '' : undefined))} aria-label="Assistant turn">
+  const who = derive(turn, (t) => (t.source.kind === 'agent' ? t.source.name : 'Assistant'));
+  const prompt = derive(turn, (t) => t.prompt);
+  const summary = derive(turn, turnSummary);
+  const whoText = document.createTextNode('');
+  const promptText = document.createTextNode('');
+  const summaryText = document.createTextNode('');
+  let fold: HTMLElement | undefined;
+  const section = (
+    <section class={classes.turn} aria-label="Assistant turn">
       <div class={classes.turnHead}>
         <Icon name="sparkles" size={14} class={classes.spark} />
-        <span class={classes.who}>
-          {derive(turn, (t) => (t.source.kind === 'agent' ? t.source.name : 'Assistant'))}
-        </span>
+        <span class={classes.who}>{whoText}</span>
         <span class={classes.when}>{ago(props.time)}</span>
       </div>
-      <p class={classes.prompt}>“{derive(turn, (t) => t.prompt)}”</p>
+      <p class={classes.prompt}>“{promptText}”</p>
       <Show when={derive(turn, (t) => (isRunning(t) ? '' : t.text))}>
         {(text) => <p class={classes.answer}>{text}</p>}
       </Show>
-      <button type="button" class={classes.fold} aria-expanded={open.asReadonly} onClick={() => open.set(!open.value)}>
-        <span>{derive(turn, turnSummary)}</span>
+      <button
+        type="button"
+        class={classes.fold}
+        ref={(el: HTMLElement) => (fold = el)}
+        onClick={() => open.set(!open.value)}
+      >
+        <span>{summaryText}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
       {/* Its commands: shown while it runs, folded once it is done. */}
@@ -139,27 +152,38 @@ function TurnItem(props: { agent: AgentModel; turn: ReadonlyState<AgentTurn>; id
         {() => <RunList turn={turn} class={classes.runs} />}
       </Show>
       {/* Its checkpoint, held until the next action: Undo turn goes back to it; after that, it says why it cannot. */}
-      <Show when={derive(turn, (t) => !isRunning(t))}>
-        {() => (
-          <div class={classes.checkpoint}>
-            <Icon name="undo-2" size={12} class={classes.checkpointMark} />
-            <span class={classes.checkpointText}>
-              {derive(turn, (t) =>
-                t.undone
-                  ? 'Undone: back to how it was before'
-                  : t.checkpoint
-                    ? 'Checkpoint before it'
-                    : t.runs.some((r) => !r.read)
-                      ? 'No longer undoable: something came after it'
-                      : 'Nothing to undo',
-              )}
-            </span>
-            <Show when={derive(turn, (t) => t.checkpoint && !t.undone)}>
-              {() => <UndoTurn agent={agent} id={id} />}
-            </Show>
-          </div>
-        )}
-      </Show>
+      <Show when={derive(turn, (t) => !isRunning(t))}>{() => <Checkpoint agent={agent} turn={turn} id={id} />}</Show>
     </section>
+  ) as HTMLElement;
+  watch([undone, who, prompt, summary, open], () => {
+    setAttr(section, 'data-undone', undone.value);
+    setText(whoText, who.value);
+    setText(promptText, prompt.value);
+    setText(summaryText, summary.value);
+    if (fold) setAttr(fold, 'aria-expanded', String(open.value));
+  });
+  return section;
+}
+
+/** A finished turn's checkpoint: what can be done about it, and Undo turn while it can. */
+function Checkpoint(props: { agent: AgentModel; turn: ReadonlyState<AgentTurn>; id: string }) {
+  const { agent, turn, id } = props;
+  const note = derive(turn, (t) =>
+    t.undone
+      ? 'Undone: back to how it was before'
+      : t.checkpoint
+        ? 'Checkpoint before it'
+        : t.runs.some((r) => !r.read)
+          ? 'No longer undoable: something came after it'
+          : 'Nothing to undo',
+  );
+  const text = document.createTextNode('');
+  watch([note], () => setText(text, note.value));
+  return (
+    <div class={classes.checkpoint}>
+      <Icon name="undo-2" size={12} class={classes.checkpointMark} />
+      <span class={classes.checkpointText}>{text}</span>
+      <Show when={derive(turn, (t) => t.checkpoint && !t.undone)}>{() => <UndoTurn agent={agent} id={id} />}</Show>
+    </div>
   );
 }

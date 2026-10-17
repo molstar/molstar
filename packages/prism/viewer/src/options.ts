@@ -129,6 +129,12 @@ export const PrismViewerOptions = {
       ['never', 'Never'],
     ]),
     /**
+     * Whether the canvas' loop stops asking for frames while nothing changes in view (`PluginConfig.General.PauseLoopWhenIdle`;
+     * prism AGENTS.md, idle is idle): a host whose code moves the camera or the scene past Mol*'s API without
+     * `canvas3d.requestDraw()` turns it off.
+     */
+    pauseWhenIdle: PD.Boolean(true),
+    /**
      * Where the canvas' hover label shows (v5: the corner): `corner`, at the canvas' bottom right above the toolbar, still
      * and out of the way; `cursor`, beside the pointer.
      */

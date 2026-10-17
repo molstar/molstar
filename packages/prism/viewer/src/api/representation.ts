@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
+import { PluginCommands } from '@molstar/plugin/commands';
 import { isSurfaceRepresentationType } from '@molstar/plugin/state/helpers/structure-representation-params';
 import type {
   StructureComponentRef,
@@ -501,15 +502,17 @@ export class RepresentationApi extends ApiArea {
       );
       if (!supporting.length) return ApiResult.fail('blocked', 'None of these representations has a material.');
       if (!changing.length) return ApiResult.already(`Their material is already ${Material.toString(patch)}.`);
-      await ctx.plugin.dataTransaction(async () => {
-        for (const r of changing) {
-          const old = r.cell.transform.params as RepresentationParams;
-          await ctx.plugin.state.updateTransform(ctx.plugin.state.data, r.cell.transform.ref, {
-            ...old,
-            type: { name: old.type.name, params: { ...old.type.params, material: { ...patch } } },
-          });
-        }
-      });
+      // One state update for all of them (an update each was a commit each: representations × the tree).
+      const state = ctx.plugin.state.data;
+      const tree = state.build();
+      for (const r of changing) {
+        const old = r.cell.transform.params as RepresentationParams;
+        tree.to(r.cell.transform.ref).update({
+          ...old,
+          type: { name: old.type.name, params: { ...old.type.params, material: { ...patch } } },
+        });
+      }
+      await ctx.plugin.dataTransaction(() => PluginCommands.State.Update(ctx.plugin, { state, tree }));
       return ApiResult.ok(
         `Set the material of ${changing.length} representation${changing.length === 1 ? '' : 's'} (${Material.toString(patch)}).`,
         {

@@ -12,6 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domView } from '../../../dom/view.js';
 import { render } from '../../../dom/render.js';
+import { flush } from '../../../dom/scope.js';
 import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
 import { NotificationsManager } from '../../../managers/notifications.js';
 import { ShellView } from '../shell-view.js';
@@ -73,6 +74,7 @@ describe('the expanded shell', () => {
     expect(v.has('[aria-label="Expand"]')).toBe(true);
 
     v.shell.setExpanded(true);
+    flush();
     expect(v.root.hasAttribute('data-expanded')).toBe(true);
     expect(v.has('i')).toBe(false);
     expect(v.has('s')).toBe(false);
@@ -81,6 +83,7 @@ describe('the expanded shell', () => {
     expect(v.has('[aria-label="Expand"]')).toBe(true);
 
     v.shell.setExpanded(false);
+    flush();
     expect(v.root.hasAttribute('data-expanded')).toBe(false);
     expect(v.has('i')).toBe(true);
     expect(v.has('s')).toBe(true);

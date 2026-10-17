@@ -24,15 +24,19 @@ import {
   uniqueId,
 } from '../../dom/focus.js';
 import {
-  bind,
+  effect,
   type MaybeReactive,
   onCleanup,
   requireScope,
   runInScope,
   type Scope,
   toStream,
+  type WatchSource,
+  watch,
 } from '../../dom/scope.js';
 import { frame, on } from '../../dom/scoped.js';
+import { setAttr, setStyle, setText } from '../../dom/writes.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
 import type { Child } from '../../dom/jsx-types.js';
@@ -64,26 +68,44 @@ function stateOf<T>(source: MaybeReactive<T>, initial: T): ReadonlyState<T> {
   return state;
 }
 
-/** A toolbar item's title as shown: its face's (it changes: the theme, the mode switch), or its own with its caption. */
-export function itemTitle(item: CanvasToolbarItem) {
-  return item.face
-    ? derive(stateOf(item.face, { icon: item.icon, title: item.title }), (f) => f.title)
-    : item.caption
-      ? `${item.title} (${item.caption})`
-      : item.title;
+/** What a toolbar item looks like now: its icon and title. */
+export interface ItemFace {
+  icon: IconName;
+  title: string;
 }
 
-/** A toolbar item's icon as shown: its face's, following it, or its own. */
-export function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
+/**
+ * A toolbar item's face as a state, when it changes (the theme, the mode switch: `face`); undefined for an item that
+ * looks the same for good (`staticTitle`, its own icon). Made once a view: one subscription to a stream.
+ */
+export function faceOf(item: CanvasToolbarItem): ReadonlyState<ItemFace> | undefined {
+  return item.face ? stateOf(item.face, { icon: item.icon, title: item.title }) : undefined;
+}
+
+/** The title of an item whose face does not change: its own, with its caption. */
+export function staticTitle(item: CanvasToolbarItem): string {
+  return item.caption ? `${item.title} (${item.caption})` : item.title;
+}
+
+/** A toolbar item's icon as shown: its face's, following it (`face`: made by `faceOf`, else here), or its own. */
+export function ItemIcon(props: {
+  item: CanvasToolbarItem;
+  size: number;
+  class?: string;
+  face?: ReadonlyState<ItemFace>;
+}) {
   const { item } = props;
-  return item.face ? (
-    <span
-      class={props.class}
-      ref={(el) => bind(item.face!, (f) => el.replaceChildren(Icon({ name: f.icon, size: props.size })))}
-    />
-  ) : (
-    <Icon name={item.icon} size={props.size} />
-  );
+  const face = props.face ?? faceOf(item);
+  if (!face) return <Icon name={item.icon} size={props.size} />;
+  let name: IconName | undefined;
+  const holder = (<span class={props.class} />) as HTMLElement;
+  watch([face], () => {
+    const next = face.value.icon;
+    if (next === name) return;
+    name = next;
+    holder.replaceChildren(Icon({ name: next, size: props.size }) as Node);
+  });
+  return holder;
 }
 
 export function CanvasToolbar(props: {
@@ -154,12 +176,14 @@ function ToolButton(props: {
   // A button with a menu shows the menu on hover instead of a tooltip (both would open in the same spot).
   const withMenu = menus && item.menu?.length ? menus : undefined;
   const pressed = item.pressed || item.overlay ? toolPressed(shell, item) : undefined;
-  const title = itemTitle(item);
+  // Its title is its face's when that changes, else fixed.
+  const face = faceOf(item);
+  const title = face ? undefined : staticTitle(item);
   // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a
   // button that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the
-  // next button.
-  const expanded = withMenu ? derive(withMenu.open.asReadonly, (o) => o?.item === item) : undefined;
-  return (
+  // next button. Whether its menu is open: its own key of the open menu.
+  const expanded = withMenu?.shown.key(item);
+  const button = (
     <button
       type="button"
       class={classes.tool}
@@ -167,10 +191,7 @@ function ToolButton(props: {
       data-tip={withMenu ? undefined : title}
       data-tip-side={item.place === 'canvas' ? 'top' : 'left'}
       aria-label={title}
-      // Only a button with a state is a toggle (a button that cycles, like the theme, names its state in its label).
-      aria-pressed={pressed}
       aria-haspopup={withMenu || railMenu ? 'menu' : undefined}
-      aria-expanded={expanded}
       data-overlay-trigger={item.overlay ? '' : undefined}
       data-keeps-card={item.keepsCard ? '' : undefined}
       onClick={(e) => {
@@ -201,11 +222,27 @@ function ToolButton(props: {
       onPointerLeave={withMenu ? () => withMenu.hideSoon() : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
-      <ItemIcon item={item} size={item.caption ? 16 : 20} class={classes.face} />
+      <ItemIcon item={item} size={item.caption ? 16 : 20} class={classes.face} {...(face ? { face } : {})} />
       {item.caption ? <span class={classes.caption}>{item.caption}</span> : null}
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
-  );
+  ) as HTMLElement;
+  // What changes (a face's title, the pressed state, the open menu): one watch; a button with none has no watch. Only a
+  // button with a state is a toggle (a button that cycles, like the theme, names its state in its label).
+  const sources: WatchSource[] = [];
+  if (face) sources.push(face);
+  if (pressed) sources.push(pressed);
+  if (expanded) sources.push(expanded);
+  if (sources.length)
+    watch(sources, () => {
+      if (face) {
+        setAttr(button, 'aria-label', face.value.title);
+        if (!withMenu) setAttr(button, 'data-tip', face.value.title);
+      }
+      if (pressed) setAttr(button, 'aria-pressed', String(pressed.value));
+      if (expanded) setAttr(button, 'aria-expanded', String(expanded.value));
+    });
+  return button;
 }
 
 /** No hover (a touch screen): what a pointer over a button would show, a tap shows. */
@@ -416,13 +453,9 @@ export function CanvasStack(props: {
     ),
   ) as HTMLElement;
   const hasTools = derive(popup.rows, (rows) => rows.length > 0);
+  const quiet = props.quiet === undefined ? undefined : stateOf(props.quiet, false);
   const root = (
-    <div
-      class={classes.stack}
-      data-quiet={
-        props.quiet === undefined ? undefined : derive(stateOf(props.quiet, false), (q) => (q ? '' : undefined))
-      }
-    >
+    <div class={classes.stack}>
       {bar}
       <Show when={collapsed}>
         {() => (
@@ -446,10 +479,11 @@ export function CanvasStack(props: {
   ) as HTMLElement;
   stack = root;
   // Folded: the bar is hidden and inert (its buttons are neither seen, tabbed to nor read); a menu that went closes.
-  bind(collapsed, (c) => {
-    bar.toggleAttribute('hidden', c);
-    menus.hide();
+  watch(quiet ? [collapsed, quiet] : [collapsed], () => {
+    setAttr(bar, 'hidden', collapsed.value);
+    if (quiet) setAttr(root, 'data-quiet', quiet.value);
   });
+  effect(collapsed, () => menus.hide());
   menus.stack = root;
   onCleanup(() => menus.dispose());
   return root;
@@ -458,15 +492,14 @@ export function CanvasStack(props: {
 /** The collapsed toolbar's button: opens the menu of the tools as a tool with a menu does (hover, a click, ↓ or ↑). */
 function CollapsedButton(props: { menus: ToolMenus; popup: StackPopup; ref(el: HTMLElement): void }) {
   const { menus, popup } = props;
-  const expanded = derive(menus.open.asReadonly, (o) => o?.item === CollapsedItem);
-  return (
+  const expanded = menus.shown.key(CollapsedItem);
+  const button = (
     <button
       type="button"
       class={classes.tool}
       data-stack-collapsed=""
       aria-label="Toolbar"
       aria-haspopup="menu"
-      aria-expanded={expanded}
       ref={props.ref}
       onClick={(e) => {
         // A touch screen has no hover: a tap opens the menu, or closes it. From the keyboard it opens at its first row.
@@ -485,7 +518,9 @@ function CollapsedButton(props: { menus: ToolMenus; popup: StackPopup; ref(el: H
       <Icon name="wrench" size={18} />
       <span class={classes.menuMark} aria-hidden="true" />
     </button>
-  );
+  ) as HTMLElement;
+  watch([expanded], () => setAttr(button, 'aria-expanded', String(expanded.value)));
+  return button;
 }
 
 /**
@@ -500,6 +535,8 @@ export class ToolMenus {
   readonly open = observableState<
     { item: CanvasToolbarItem; right: number; room: number; button: Element; popup?: StackPopup } | undefined
   >(undefined);
+  /** Whose menu is open, by key: a button follows its own (a move of the menu wakes two buttons, not all). */
+  readonly shown = keyedSelector(derive(this.open.asReadonly, (o) => o?.item));
   stack: HTMLElement | undefined;
   /** The open menu's element (`ToolMenu` sets it). */
   menu: HTMLElement | undefined;
@@ -700,20 +737,31 @@ export function RailMenu(props: { shell: ShellModel }) {
     if (item.overlay) shell.toggleOverlay(item.overlay, anchor);
     else item.run?.(anchor);
   };
+  let more!: HTMLElement;
   const root = (
     <div class={classes.railMenu}>
       <For each={lead} key={(i) => i.id}>
-        {(item) => (
-          <button
-            type="button"
-            class={classes.railMenuButton}
-            aria-label={itemTitle(item)}
-            data-tip={itemTitle(item)}
-            onClick={(e) => run(item, e.currentTarget)}
-          >
-            <ItemIcon item={item} size={20} class={classes.face} />
-          </button>
-        )}
+        {(item) => {
+          const face = faceOf(item);
+          const title = face ? undefined : staticTitle(item);
+          const button = (
+            <button
+              type="button"
+              class={classes.railMenuButton}
+              aria-label={title}
+              data-tip={title}
+              onClick={(e) => run(item, e.currentTarget)}
+            >
+              <ItemIcon item={item} size={20} class={classes.face} {...(face ? { face } : {})} />
+            </button>
+          ) as HTMLElement;
+          if (face)
+            watch([face], () => {
+              setAttr(button, 'aria-label', face.value.title);
+              setAttr(button, 'data-tip', face.value.title);
+            });
+          return button;
+        }}
       </For>
       {/* More and its list: the list opens above the button (its anchor), inside the screen. */}
       <div class={classes.railMenuAnchor}>
@@ -722,8 +770,8 @@ export function RailMenu(props: { shell: ShellModel }) {
           class={classes.railMenuButton}
           aria-label="More"
           aria-haspopup="menu"
-          aria-expanded={open}
           data-tip="More"
+          ref={(el) => (more = el)}
           onClick={(e) => {
             open.set(!open.value);
             // From the keyboard, the menu opens at its first item.
@@ -779,20 +827,33 @@ export function RailMenu(props: { shell: ShellModel }) {
                   {() => <div class={classes.railMenuDivider} />}
                 </Show>
                 <For each={actions} key={(i) => i.id}>
-                  {(item) => (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      class={classes.toolMenuRow}
-                      // As on the rail: an item shown only while it applies (Play snapshots with two or more).
-                      hidden={item.visible ? derive(stateOf(item.visible, true), (v) => !v) : false}
-                      onClick={(e) => run(item, e.currentTarget)}
-                    >
-                      <ItemIcon item={item} size={16} class={classes.face} />
-                      <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
-                      <span />
-                    </button>
-                  )}
+                  {(item) => {
+                    const face = faceOf(item);
+                    const visible = item.visible ? stateOf(item.visible, true) : undefined;
+                    const label = document.createTextNode(face ? face.value.title : staticTitle(item));
+                    const row = (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        class={classes.toolMenuRow}
+                        onClick={(e) => run(item, e.currentTarget)}
+                      >
+                        <ItemIcon item={item} size={16} class={classes.face} {...(face ? { face } : {})} />
+                        <span class={classes.toolMenuLabel}>{label}</span>
+                        <span />
+                      </button>
+                    ) as HTMLElement;
+                    // As on the rail: an item shown only while it applies (Play snapshots with two or more).
+                    const sources: WatchSource[] = [];
+                    if (face) sources.push(face);
+                    if (visible) sources.push(visible);
+                    if (sources.length)
+                      watch(sources, () => {
+                        if (face) setText(label, face.value.title);
+                        if (visible) setAttr(row, 'hidden', !visible.value);
+                      });
+                    return row;
+                  }}
                 </For>
               </div>
             );
@@ -801,6 +862,7 @@ export function RailMenu(props: { shell: ShellModel }) {
       </div>
     </div>
   ) as HTMLElement;
+  watch([open.asReadonly], () => setAttr(more, 'aria-expanded', String(open.value)));
   const onDown = (e: PointerEvent) => {
     if (open.value && !isInside(e, root)) open.set(false);
   };
@@ -822,27 +884,28 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
     <Show when={task}>
       {(first) => {
         const live = derive(props.status.tasks, (tasks) => tasks.find((t) => t.id === first.id) ?? first);
+        // The task's label and progress, in whole percent: the overlay renders when one of them changes.
         const percent = derive(live, (t) => (t.progress === undefined ? undefined : Math.round(t.progress * 100)));
-        return (
+        const label = document.createTextNode('');
+        const percentText = document.createTextNode('');
+        let track!: HTMLElement;
+        let bar!: HTMLElement;
+        const card = (
           <div class={classes.busy} role="alertdialog" aria-modal="true" aria-label={first.label}>
             <div class={classes.busyCard}>
               <div class={classes.busyHead}>
                 <Icon name="loader-circle" size={18} class={classes.busySpin} />
-                <span class={classes.busyLabel}>{derive(live, (t) => t.label)}</span>
-                <span class={classes.busyPercent}>{derive(percent, (p) => (p === undefined ? '' : `${p}%`))}</span>
+                <span class={classes.busyLabel}>{label}</span>
+                <span class={classes.busyPercent}>{percentText}</span>
               </div>
               <div
                 class={classes.busyTrack}
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={percent}
+                ref={(el: HTMLElement) => (track = el)}
               >
-                <span
-                  class={classes.busyBar}
-                  data-indeterminate={derive(percent, (p) => (p === undefined ? '' : undefined))}
-                  style={{ scale: derive(percent, (p) => `${(p ?? 30) / 100} 1`) }}
-                />
+                <span class={classes.busyBar} ref={(el: HTMLElement) => (bar = el)} />
               </div>
               {first.abort ? (
                 <div class={classes.busyActions}>
@@ -853,7 +916,16 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
               ) : null}
             </div>
           </div>
-        );
+        ) as HTMLElement;
+        watch([live, percent], () => {
+          const p = percent.value;
+          setText(label, live.value.label);
+          setText(percentText, p === undefined ? '' : `${p}%`);
+          setAttr(track, 'aria-valuenow', p);
+          setAttr(bar, 'data-indeterminate', p === undefined);
+          setStyle(bar, 'scale', `${(p ?? 30) / 100} 1`);
+        });
+        return card;
       }}
     </Show>
   );
@@ -880,12 +952,12 @@ function OverlayCard(props: { shell: ShellModel }) {
   const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');
   const pinnedState = derive(shell.dock('right').state, (s) => s.pinned);
+  const title = document.createTextNode('');
   let cancelFocus: (() => void) | undefined;
   const card = (
     <section
       class={classes.card}
       role="dialog"
-      aria-modal={derive(pinnedState, (p) => !p)}
       aria-labelledby={titleId}
       onKeyDown={(e) => {
         if (!pinned()) trapTab(e, e.currentTarget);
@@ -893,7 +965,7 @@ function OverlayCard(props: { shell: ShellModel }) {
     >
       <header class={classes.cardHeader}>
         <h2 class={classes.cardTitle} id={titleId}>
-          {derive(shell.overlay, (o) => o?.overlay.title ?? '')}
+          {title}
         </h2>
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
@@ -925,6 +997,11 @@ function OverlayCard(props: { shell: ShellModel }) {
       </Show>
     </section>
   ) as HTMLElement;
+  // Modal while it floats; its title is the open overlay's (another one swaps it).
+  watch([pinnedState, shell.overlay], () => {
+    setAttr(card, 'aria-modal', String(!pinnedState.value));
+    setText(title, shell.overlay.value?.overlay.title ?? '');
+  });
   // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
   // zooms the view with the card open (setting up an export, trying a canvas setting). Pinned, the card is part of the
   // workspace like the pinned panel: only its ✕ (or another card or tab) closes it; a persistent card (the Story, read
@@ -965,12 +1042,14 @@ export const KindIcons: Record<MessageKind, IconName> = {
 /** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
 export function StatusLine(props: { status: NotificationsManager; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
+  const spokenText = document.createTextNode('');
+  watch([status.spoken], () => setText(spokenText, status.spoken.value));
   // One polite live region for results (accessibility.md): the latest message only, not the tasks' progress or the
   // assistant's streamed words (its card says when a turn is done).
   return (
     <div class={classes.status}>
       <div class={classes.announce} role="status" aria-live="polite">
-        {status.spoken}
+        {spokenText}
       </div>
       <Show when={status.current}>
         {(m) =>
@@ -1055,7 +1134,7 @@ export function StatusPill(props: {
     else run();
   };
   if (props.autoDismiss && props.onDismiss) {
-    bind(props.autoDismiss, (ms) => {
+    effect(props.autoDismiss, (ms) => {
       stop();
       left = ms ?? 0;
       ring.set(ms);
@@ -1168,22 +1247,34 @@ export function RailToggle(props: { shell: ShellModel }) {
     shell.dock('right').tabs,
     (tabs) => tabs.find((t) => t.place === 'head')?.icon ?? ('prism' as const),
   );
-  const title = derive(shell.railOpen, (open) => (open ? 'Hide the panel rail' : 'Show the panel rail'));
-  return (
+  let button!: HTMLElement;
+  let face!: HTMLElement;
+  const content = (
     <div class={`${classes.stack} ${classes.railToggle}`}>
       <div class={classes.frame}>
         <button
           type="button"
           class={classes.tool}
-          data-tip={title}
           data-tip-side="top"
-          aria-label={title}
-          aria-pressed={shell.railOpen}
+          ref={(el) => (button = el)}
           onClick={() => shell.toggleRail()}
         >
-          <span class={classes.face} ref={(el) => bind(icon, (name) => el.replaceChildren(Icon({ name, size: 18 })))} />
+          <span class={classes.face} ref={(el) => (face = el)} />
         </button>
       </div>
     </div>
   );
+  let shown: IconName | undefined;
+  watch([icon, shell.railOpen], () => {
+    const open = shell.railOpen.value;
+    const title = open ? 'Hide the panel rail' : 'Show the panel rail';
+    setAttr(button, 'data-tip', title);
+    setAttr(button, 'aria-label', title);
+    setAttr(button, 'aria-pressed', String(open));
+    if (icon.value !== shown) {
+      shown = icon.value;
+      face.replaceChildren(Icon({ name: shown, size: 18 }) as Node);
+    }
+  });
+  return content;
 }

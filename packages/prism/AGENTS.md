@@ -42,8 +42,9 @@ it is done).
   a loop running while nothing changes (a loaded viewer at rest asks for no frame and queues no microtask), and frame
   work joins the page's one frame tick (`requestFrameCallback`, or `frame()` in a component), never its own
   `requestAnimationFrame`: one frame request a browser frame, whatever the input. Guarded by
-  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash is the exception: at rest it steps
-  about 20 times a second (full rate under the pointer), through the same tick.
+  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash obeys it too: with no input, no glass
+  animation and after its intro (12 s), its particles and waves fade out and it asks for no frame until the pointer
+  wakes it (`ambient-pace.ts`).
 - **Gestures attach once, and every end path releases** (David, 2026-10-17; [rendering.md §2.4](ui/_spec/rendering.md)):
   a drag, a slider, a splitter, a scrubber is `drag()` (`dom/scoped.ts`): its listeners attached once with the scope,
   the pointer captured, ended by a release, a cancel, the capture lost, a move with no button, the scope paused or
@@ -83,7 +84,7 @@ spacing scale), `typecheck:storybook` for stories and tests.
 | `pnpm test:unit packages/prism/<pkg>`                         | the fast tier, jsdom, deterministic; with it the work-conformance checks: no rxjs in views (`views-without-rxjs.test.ts`), no raw attachments (`scoped-attach.test.ts`), the waste budget (`waste.test.tsx`), hidden UI writes nothing (`hidden-quiet.test.tsx`), a pick renders the rows it moves between (`scene-tree-keyed.test.tsx`) | every edit loop; CI                                                        |
 | `pnpm -C packages/prism/<ui\|viewer> test:perf`               | the quick allocation tier: bytes a step of each `*.quick.ts` case, read exactly (`v8.GCProfiler`), against `src/_test/perf-baseline.json` (`--update` for an intended move); the base primitives read 0                                                                                                                                  | when you touch a primitive or a hot path, in the edit loop; at checkpoints |
 | `pnpm -C packages/prism/<ui\|viewer> test:heap`               | the heap guards (`*.heap.ts`, `*.heap.tsx`): growth over n and 4n steps (`heapScaling`; `retainedScaling` after collections for steps that allocate by design), each with a positive control; the leak guard (views mounted and disposed: heap and listeners)                                                                            | at checkpoints and before a release                                        |
-| `pnpm -C packages/prism/<ui\|viewer\|assistant> test:scaling` | the bulk paths' scaling guards (`*.scaling.ts`, `*.scaling.tsx`; `ui/src/_test/scaling.ts`): each at n and 4n, the fastest time and the allocation (`GCProfiler`) under 8× (a quadratic reads about 16×); a deliberately quadratic control caught                                                                                        | when you touch a bulk path; at checkpoints                                 |
+| `pnpm -C packages/prism/<ui\|viewer\|assistant> test:scaling` | the bulk paths' scaling guards (`*.scaling.ts`, `*.scaling.tsx`; the harness `sequences/core/_test/model/scaling.ts`, shared with `packages/ai`): each at n and 4n, the fastest time and the allocation (`GCProfiler`) under 8× (a quadratic reads about 16×); a deliberately quadratic control caught                                   | when you touch a bulk path; at checkpoints                                 |
 
 The guards run on Seq\*'s harness (`packages/sequences/vitest.shared.ts`, `core/_test/model`; prism-ui's
 `src/_test/perf.ts`); a `*.heap.ts` has its quick twin `*.quick.ts`, the two sharing their cases (`*-cases.ts`). CI and

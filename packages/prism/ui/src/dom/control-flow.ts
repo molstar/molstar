@@ -333,8 +333,29 @@ interface ForEntry<T> {
   /** The entry's first and last node (the same node for a single element). */
   first: Node;
   last: Node;
-  /** Its place in the list as last rendered (-1: new), for the move diff. */
+  /** Its place in the list as last rendered (-1: new), for the move diff: its item's index, so increasing in order. */
   pos: number;
+  /** Its item's index in the list being placed (becomes `pos` once placed). */
+  at: number;
+}
+
+/**
+ * What a list's last reconcile left for the next slices (time slicing): the new entries it deferred, in order, each with
+ * the node it goes before (the next entry placed after it, or the end). A slice makes only these (`resume`), never a
+ * reconcile of the whole list again (that was the list's length a slice: a long list's first render quadratic;
+ * rendering.md §2.5).
+ */
+interface Deferred<T> {
+  readonly items: readonly T[];
+  /** The deferred items' indices, increasing, and their keys. */
+  readonly at: number[];
+  readonly keys: unknown[];
+  /** Where each goes: before this node. */
+  readonly before: Node[];
+  /** The entries by item index (placed or made since; holes for duplicates and the ones still deferred). */
+  readonly slots: (ForEntry<T> | undefined)[];
+  /** The next deferred one to make. */
+  next: number;
 }
 
 /**
@@ -379,7 +400,7 @@ export function For<T>(props: {
       content.insertBefore(first, content.firstChild);
       content.appendChild(last);
     }
-    return { key, item, scope, index, first, last, pos: -1 };
+    return { key, item, scope, index, first, last, pos: -1, at: i };
   };
 
   const nodesOf = (entry: ForEntry<T>): Node[] => {
@@ -396,6 +417,7 @@ export function For<T>(props: {
 
   // The latest list, and whether some of it waits for the next slice (a long list renders over several frames).
   let latest: readonly T[] = [];
+  let deferredOf: Deferred<T> | undefined;
   let continuing = false;
   let disposed = false;
   onCleanup(() => {
@@ -407,7 +429,10 @@ export function For<T>(props: {
     nextSlice(() => {
       continuing = false;
       // Paused meanwhile: the rest is rendered when the scope resumes (the list subscribes again, and reconciles).
-      if (!disposed && owner.active) reconcile(latest);
+      if (disposed || !owner.active) return;
+      // The same list: only its deferred entries are made; a list changed since was reconciled when it came.
+      if (deferredOf?.items === latest) resume(deferredOf);
+      else reconcile(latest);
     });
   };
 
@@ -423,6 +448,7 @@ export function For<T>(props: {
 
   const reconcile = (items: readonly T[]) => {
     latest = items;
+    deferredOf = undefined;
     if (unchanged(items)) return;
     const parent = end.parentNode!;
     // Emptied: every entry goes at once, and its nodes in one range.
@@ -437,7 +463,8 @@ export function For<T>(props: {
     }
     const next = new Map<unknown, ForEntry<T>>();
     const order: ForEntry<T>[] = [];
-    let deferred = false;
+    let deferred: number[] | undefined;
+    let deferredKeys: unknown[] | undefined;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const key = keyOf(item);
@@ -456,12 +483,14 @@ export function For<T>(props: {
       if (!entry) {
         // Many new entries: past the first ones, they wait once the slice is spent.
         if (!sliceRoom()) {
-          deferred = true;
+          (deferred ??= []).push(i);
+          (deferredKeys ??= []).push(key);
           continue;
         }
         entry = create(key, item, i);
       }
       entry.index?.set(i);
+      entry.at = i;
       next.set(key, entry);
       order.push(entry);
     }
@@ -479,7 +508,7 @@ export function For<T>(props: {
       }
       ref = entry.first;
     }
-    for (let i = 0; i < order.length; i++) order[i].pos = i;
+    for (let i = 0; i < order.length; i++) order[i].pos = order[i].at;
     placed = deferred ? [] : order;
 
     if (order.length === 0 && props.fallback && !fallback) {
@@ -493,7 +522,66 @@ export function For<T>(props: {
       // The fallback sits between the start anchor and the first entry.
       removeBetween(start, order[0].first);
     }
-    if (deferred) continueLater();
+    if (deferred) {
+      deferredOf = deferLater(items, order, deferred, deferredKeys!);
+      continueLater();
+    }
+  };
+
+  // Each deferred entry goes before the next entry placed after it (or the end): one walk of both lists, from the end.
+  const deferLater = (
+    items: readonly T[],
+    order: readonly ForEntry<T>[],
+    at: number[],
+    keys: unknown[],
+  ): Deferred<T> => {
+    const before = new Array<Node>(at.length);
+    for (let d = at.length - 1, k = order.length - 1, ref: Node = end; d >= 0; d--) {
+      while (k >= 0 && order[k].at > at[d]) ref = order[k--].first;
+      before[d] = ref;
+    }
+    const slots = new Array<ForEntry<T> | undefined>(items.length);
+    for (const entry of order) slots[entry.at] = entry;
+    return { items, at, keys, before, slots, next: 0 };
+  };
+
+  // The next slice of a list deferred: makes its entries in order, while the slice has room, each in its place.
+  const resume = (d: Deferred<T>) => {
+    const parent = end.parentNode!;
+    let firstMade: ForEntry<T> | undefined;
+    for (; d.next < d.at.length; d.next++) {
+      const i = d.at[d.next];
+      const key = d.keys[d.next];
+      if (entries.has(key)) {
+        if (!warned) {
+          warned = true;
+          console.warn('For: duplicate key; later items with the same key are not rendered.', key);
+        }
+        continue;
+      }
+      if (!sliceRoom()) break;
+      const entry = create(key, d.items[i], i);
+      entry.pos = i;
+      entries.set(key, entry);
+      d.slots[i] = entry;
+      const ref = d.before[d.next];
+      for (const node of nodesOf(entry)) parent.insertBefore(node, ref);
+      firstMade ??= entry;
+    }
+    if (firstMade && fallback) {
+      fallback.dispose();
+      fallback = undefined;
+      // Shown while nothing was placed: it sits between the start anchor and the first entry made.
+      removeBetween(start, firstMade.first);
+    }
+    if (d.next < d.at.length) {
+      continueLater();
+      return;
+    }
+    deferredOf = undefined;
+    const order: ForEntry<T>[] = [];
+    for (const entry of d.slots) if (entry) order.push(entry);
+    placed = order;
   };
   bind(props.each, reconcile);
   return fragment;

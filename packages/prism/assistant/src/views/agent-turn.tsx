@@ -10,13 +10,17 @@
 
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import { Icon, type IconName, ScrollArea, For, Show, StatusPill, type ReadonlyState } from '@molstar/prism-ui';
+import { held, present } from '../held.js';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../model.js';
 import { classes } from './_generated/agent-turn.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
-import { bind } from '@molstar/prism-ui/dom/scope';
+import { effect, watch } from '@molstar/prism-ui/dom/scope';
 import { on } from '@molstar/prism-ui/dom/scoped';
+import { setAttr, setShown, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
+
+export { held };
 
 const StatusIcons: Record<RunStatus, IconName> = {
   running: 'loader-circle',
@@ -59,46 +63,43 @@ export function isRunning(t: AgentTurn) {
 }
 
 /**
- * `source`'s value while `keep` holds for it, else the last one that did (what a `filter` did on a stream): a row's
- * record by key, gone only as the row goes; the card's turn while it is the latest. `source` holds a kept value when
- * this is made.
- */
-export function held<S, T extends S>(source: ReadonlyState<S>, keep: (v: S) => v is T): ReadonlyState<T> {
-  let last = source.value as T;
-  return derive(source, (v) => (keep(v) ? (last = v) : last));
-}
-
-const present = <T,>(x: T | undefined): x is T => x !== undefined;
-
-/**
  * One command run, following its record by id: its state (a spinner while running, waiting for approval, done,
  * failed, stopped), what it does in words, its outcome or error under it, and its progress while it reports one.
- * A read is quieter.
+ * A read is quieter. Made once; one render writes what its record says that the DOM does not.
  */
 export function RunRow(props: { run: ReadonlyState<CommandRun> }) {
   const run = props.run;
-  const field = <K extends keyof CommandRun>(k: K) => derive(run, (r) => r[k]);
-  const status = field('status');
-  return (
-    <div class={classes.run} data-status={status} data-read={derive(run, (r) => (r.read ? '' : undefined))}>
+  // The mark is a region (a different icon per state); the rest of the row is written by the render below.
+  const status = derive(run, (r) => r.status);
+  const title = document.createTextNode('');
+  const time = document.createTextNode('');
+  const detailText = document.createTextNode('');
+  const detail = (<span class={classes.runDetail}>{detailText}</span>) as HTMLElement;
+  const fill = (<span class={classes.barFill} />) as HTMLElement;
+  const bar = (<span class={classes.bar}>{fill}</span>) as HTMLElement;
+  const root = (
+    <div class={classes.run}>
       <Show when={status}>{(s) => <Icon name={StatusIcons[s]} size={14} class={classes.mark} />}</Show>
       <span class={classes.runTitle} data-tip-overflow="">
-        {field('title')}
+        {title}
       </span>
-      <span class={classes.runTime}>{derive(run, (r) => formatDuration(r.durationMs))}</span>
-      <Show when={field('detail')}>{(d) => <span class={classes.runDetail}>{d}</span>}</Show>
-      <Show when={derive(run, (r) => r.progress !== undefined)}>
-        {() => (
-          <span class={classes.bar}>
-            <span
-              class={classes.barFill}
-              style={{ width: derive(run, (r) => `${Math.round((r.progress ?? 0) * 100)}%`) }}
-            />
-          </span>
-        )}
-      </Show>
+      <span class={classes.runTime}>{time}</span>
+      {detail}
+      {bar}
     </div>
-  );
+  ) as HTMLElement;
+  watch([run], () => {
+    const r = run.value;
+    setAttr(root, 'data-status', r.status);
+    setAttr(root, 'data-read', !!r.read);
+    setText(title, r.title);
+    setText(time, formatDuration(r.durationMs));
+    setText(detailText, r.detail ?? '');
+    setShown(detail, !!r.detail);
+    setShown(bar, r.progress !== undefined);
+    setStyle(fill, 'width', `${Math.round((r.progress ?? 0) * 100)}%`);
+  });
+  return root;
 }
 
 /** A turn's runs, each row following its record. */
@@ -113,7 +114,7 @@ export function RunList(props: { turn: ReadonlyState<AgentTurn>; class?: string 
   // The runs by id, one map a change; a row is told only when its own run's record changes (a `find` a row, and a field,
   // on every streamed token was runs² a token).
   const byId = keyedState<string, CommandRun>();
-  bind(runs, (rs) => {
+  effect(runs, (rs) => {
     const m = new Map<string, CommandRun>();
     for (const r of rs) m.set(r.id, r);
     byId.replace(m);
@@ -187,12 +188,15 @@ const FinishedLineMs = 8000;
 function TurnLine(props: { agent: AgentModel }) {
   const turn = held(props.agent.turn, present);
   const status = derive(turn, (t) => t.status);
-  return (
-    <span class={classes.line} data-status={status}>
+  const prompt = derive(turn, (t) => t.prompt);
+  const promptText = document.createTextNode('');
+  const stateText = document.createTextNode('');
+  const root = (
+    <span class={classes.line}>
       <StatusPill
         icon={<Icon name="sparkles" size={14} class={classes.spark} />}
-        text={derive(turn, (t) => t.prompt)}
-        after={<span class={classes.state}>{derive(status, (s) => TurnLabels[s])}</span>}
+        text={promptText}
+        after={<span class={classes.state}>{stateText}</span>}
         label="Show the assistant’s turn"
         onClick={() => props.agent.reopen()}
         dismissLabel="Hide"
@@ -201,7 +205,33 @@ function TurnLine(props: { agent: AgentModel }) {
         autoDismiss={derive(status, (s) => (s === 'done' || s === 'stopped' ? FinishedLineMs : undefined))}
       />
     </span>
-  );
+  ) as HTMLElement;
+  watch([status, prompt], () => {
+    setAttr(root, 'data-status', status.value);
+    setText(promptText, prompt.value);
+    setText(stateText, TurnLabels[status.value]);
+  });
+  return root;
+}
+
+/** The answer so far: one paragraph, made once; a streamed token changes its text, not the paragraph. */
+function StreamedText(props: { text: ReadonlyState<string>; running: ReadonlyState<boolean> }) {
+  const { text, running } = props;
+  const node = document.createTextNode('');
+  const p = (<p class={classes.text}>{node}</p>) as HTMLElement;
+  watch([text, running], () => {
+    setText(node, text.value);
+    setAttr(p, 'data-streaming', running.value);
+  });
+  return p;
+}
+
+/** What a finished turn did, in one line. */
+function TurnSummaryText(props: { turn: ReadonlyState<AgentTurn> }) {
+  const summary = derive(props.turn, turnSummary);
+  const node = document.createTextNode('');
+  watch([summary], () => setText(node, summary.value));
+  return <span class={classes.summary}>{node}</span>;
 }
 
 /** The open card of a turn. */
@@ -217,16 +247,19 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
         const text = derive(agent.turn, (t) => (t?.id === id ? t.text : ''));
         const hasText = derive(text, (x) => !!x);
         const waiting = derive(turn, (t) => t.runs.find((r) => r.status === 'waiting'));
-        return (
-          // Not a live region: the text streams in; the finished reply is said once by the shell's region
-          // (accessibility.md; agent-model.ts announces it).
-          <section class={classes.card} data-status={status} aria-label="Assistant">
+        const prompt = derive(turn, (t) => t.prompt);
+        const promptText = document.createTextNode('');
+        const stateText = document.createTextNode('');
+        // Not a live region: the text streams in; the finished reply is said once by the shell's region
+        // (accessibility.md; agent-model.ts announces it).
+        const section = (
+          <section class={classes.card} aria-label="Assistant">
             <header class={classes.header}>
               <Icon name="sparkles" size={14} class={classes.spark} />
               <span class={classes.prompt} data-tip-overflow="">
-                {derive(turn, (t) => t.prompt)}
+                {promptText}
               </span>
-              <span class={classes.state}>{derive(status, (s) => TurnLabels[s])}</span>
+              <span class={classes.state}>{stateText}</span>
               <Show when={running}>
                 {() => (
                   <button type="button" class={classes.stop} onClick={() => agent.stop()}>
@@ -247,15 +280,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
               </button>
             </header>
             <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
-              <Show when={hasText}>
-                {() => (
-                  // Made once: a streamed token changes its text, not the paragraph (made anew with the whole text a
-                  // token, a long answer was its length² of work).
-                  <p class={classes.text} data-streaming={derive(running, (r) => (r ? '' : undefined))}>
-                    {text}
-                  </p>
-                )}
-              </Show>
+              {/* Made once: a streamed token changes its text, not the paragraph (made anew with the whole text a
+                  token, a long answer was its length² of work). */}
+              <Show when={hasText}>{() => <StreamedText text={text} running={running} />}</Show>
               <Show when={derive(turn, (t) => t.retries ?? 0)}>
                 {(n) => (
                   <p class={classes.note}>
@@ -308,7 +335,7 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
             <Show when={derive(running, (r) => !r)}>
               {() => (
                 <footer class={classes.footer}>
-                  <span class={classes.summary}>{derive(turn, turnSummary)}</span>
+                  <TurnSummaryText turn={turn} />
                   {props.onTrace ? (
                     <button
                       type="button"
@@ -333,7 +360,13 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
               )}
             </Show>
           </section>
-        );
+        ) as HTMLElement;
+        watch([status, prompt], () => {
+          setAttr(section, 'data-status', status.value);
+          setText(promptText, prompt.value);
+          setText(stateText, TurnLabels[status.value]);
+        });
+        return section;
       }}
     </Show>
   );

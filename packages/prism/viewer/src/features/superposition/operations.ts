@@ -28,7 +28,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResult } from '../../api/area.js';
 import { OptionalParam } from '../../api/params.js';
-import { isFailure, labelOf, loadedStructures, pickNamed } from '../../api/scope.js';
+import { isFailure, labelOf, loadedStructures, namedPicker, pickNamed } from '../../api/scope.js';
 import type { ResolvedPart } from '../../api/targets.js';
 import { LanguageParam, type TargetValue } from '../../api/target-param.js';
 import { structureNames } from '../../sources/naming.js';
@@ -522,8 +522,9 @@ export class SuperposeApi extends ApiArea {
       const identity = { transform: { name: 'matrix' as const, params: { data: Mat4.identity(), transpose: false } } };
       const state = ctx.plugin.state.data;
       const build = state.build();
+      const byRef = new Map(loadedStructures(ctx).map((x) => [x.cell.transform.ref, x]));
       for (const m of doomed) {
-        const cell = loadedStructures(ctx).find((x) => x.cell.transform.ref === m.structure.ref)?.transform?.cell;
+        const cell = byRef.get(m.structure.ref)?.transform?.cell;
         if (!cell) continue;
         build.to(cell).update(identity);
         build.currentTree.setTags(
@@ -768,19 +769,26 @@ export class SuperposeApi extends ApiArea {
       let picked: HierarchyStructure[] = [...all];
       // Every loaded one means every one the mapping can place: the others are left out, and said so.
       const skipped = structures.length ? [] : all.filter((s) => s.cell.obj && !hasMapping(s));
-      if (!structures.length) picked = all.filter((s) => !skipped.includes(s));
+      if (!structures.length) {
+        const left = new Set(skipped);
+        picked = all.filter((s) => !left.has(s));
+      }
       if (structures.length) {
         picked = [];
+        // The structures indexed once, each name then found without a scan (k names were k × the structures).
+        const pick = namedPicker(all, {
+          what: 'structure',
+          ids: (x) => [x.cell.transform.ref],
+          names: (x) => [labelOf(ctx, x), x.cell.obj?.label],
+          describe: (x) => `${labelOf(ctx, x)} (${x.cell.transform.ref})`,
+          none: { message: 'Nothing is loaded.', hint: 'Load structures first.' },
+        });
+        const named = new Set<HierarchyStructure>();
         for (const name of structures) {
-          const s = pickNamed(all, name, {
-            what: 'structure',
-            ids: (x) => [x.cell.transform.ref],
-            names: (x) => [labelOf(ctx, x), x.cell.obj?.label],
-            describe: (x) => `${labelOf(ctx, x)} (${x.cell.transform.ref})`,
-            none: { message: 'Nothing is loaded.', hint: 'Load structures first.' },
-          });
+          const s = pick(name);
           if (isFailure(s)) return s;
-          if (picked.includes(s)) return ApiResult.fail('invalid', `${labelOf(ctx, s)} is named twice.`);
+          if (named.has(s)) return ApiResult.fail('invalid', `${labelOf(ctx, s)} is named twice.`);
+          named.add(s);
           picked.push(s);
         }
       }

@@ -13,7 +13,9 @@ import { ColorLists, type ColorListName } from '@molstar/core/util/color/lists';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { frameState, watch } from '../../dom/scope.js';
 import { drag, on } from '../../dom/scoped.js';
+import { setAttr, setStyle, setText } from '../../dom/writes.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
@@ -47,18 +49,19 @@ function ExpandingRow(props: {
 
 /** A field like a dropdown's: its content, a chevron; toggles `open`. */
 function Field(props: { open: ObservableState<boolean>; label: string; children: Child }) {
-  return (
+  const el = (
     <button
       type="button"
       class={classes.field}
-      aria-expanded={props.open}
       aria-label={props.label}
       onClick={() => props.open.set(!props.open.value)}
     >
       <span class={classes.fieldContent}>{props.children}</span>
       <Icon name="chevron-down" size={14} class={classes.chevron} />
     </button>
-  );
+  ) as HTMLElement;
+  watch([props.open], () => setAttr(el, 'aria-expanded', String(props.open.value)));
+  return el;
 }
 
 /**
@@ -72,9 +75,11 @@ export function MultiSelectRow(props: {
   binding: FieldBinding;
 }) {
   const { param, binding } = props;
-  const names = derive(binding.value, (v: readonly unknown[]) => {
+  const names = document.createTextNode('');
+  watch([binding.value], () => {
+    const v = binding.get() as readonly unknown[] | undefined;
     const chosen = param.options.filter(([o]) => v?.includes(o)).map(([, l]) => l);
-    return chosen.length ? chosen.join(', ') : (param.emptyValue ?? 'None');
+    setText(names, chosen.length ? chosen.join(', ') : (param.emptyValue ?? 'None'));
   });
   return (
     <ExpandingRow
@@ -84,31 +89,41 @@ export function MultiSelectRow(props: {
           {names}
         </Field>
       )}
-      body={() => (
-        <ScrollArea
-          class={classes.options}
-          contentClass={classes.optionsContent}
-          role="listbox"
-          aria-multiselectable="true"
-          aria-label={props.label}
-        >
-          {param.options.map(([value, label]) => (
-            <button
-              type="button"
-              role="option"
-              class={classes.option}
-              aria-selected={derive(binding.value, (v: readonly unknown[]) => !!v?.includes(value))}
-              onClick={() => {
-                const v: unknown[] = binding.get() ?? [];
-                binding.set(v.includes(value) ? v.filter((x) => x !== value) : [...v, value]);
-              }}
-            >
-              <span>{label}</span>
-              <Icon name="check" size={14} class={classes.check} />
-            </button>
-          ))}
-        </ScrollArea>
-      )}
+      body={() => {
+        const buttons: HTMLElement[] = [];
+        const list = (
+          <ScrollArea
+            class={classes.options}
+            contentClass={classes.optionsContent}
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label={props.label}
+          >
+            {param.options.map(([value, label]) => (
+              <button
+                type="button"
+                role="option"
+                class={classes.option}
+                ref={(el: HTMLElement) => buttons.push(el)}
+                onClick={() => {
+                  const v: unknown[] = binding.get() ?? [];
+                  binding.set(v.includes(value) ? v.filter((x) => x !== value) : [...v, value]);
+                }}
+              >
+                <span>{label}</span>
+                <Icon name="check" size={14} class={classes.check} />
+              </button>
+            ))}
+          </ScrollArea>
+        );
+        // One watch for the options' marks.
+        watch([binding.value], () => {
+          const v = binding.get() as readonly unknown[] | undefined;
+          for (let i = 0; i < buttons.length; i++)
+            setAttr(buttons[i], 'aria-selected', String(!!v?.includes(param.options[i][0])));
+        });
+        return list;
+      }}
     />
   );
 }
@@ -116,14 +131,15 @@ export function MultiSelectRow(props: {
 /** Three numbers in a row (x, y, z), each its own small field. */
 export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; label?: string }) {
   const { binding } = props;
-  return (
+  const inputs: HTMLInputElement[] = [];
+  const content = (
     <div class={classes.vec}>
       {(['x', 'y', 'z'] as const).map((axis, i) => (
         <input
           class={form.number}
           aria-label={props.label ? `${props.label} ${axis}` : axis}
           data-tip={axis}
-          value={derive(binding.value, (v: number[]) => trim(v?.[i]))}
+          ref={(el: HTMLInputElement) => inputs.push(el)}
           onChange={(e) => {
             const input = e.currentTarget;
             const n = Number(input.value);
@@ -139,6 +155,16 @@ export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding; labe
       ))}
     </div>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as number[] | undefined;
+    for (let i = 0; i < inputs.length; i++) setValue(inputs[i], trim(v?.[i]));
+  });
+  return content;
+}
+
+/** An input's value, written only when it differs (a write moves the caret). */
+function setValue(el: HTMLInputElement, value: string) {
+  if (el.value !== value) el.value = value;
 }
 
 function trim(v: number | undefined) {
@@ -152,39 +178,53 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
     for (let i = 0; i < 16; i++) if (m[i] !== (i % 5 === 0 ? 1 : 0)) return false;
     return true;
   };
+  const summary = document.createTextNode('');
+  watch([binding.value], () => {
+    const m = binding.get() as ArrayLike<number> | undefined;
+    setText(summary, m && isIdentity(m) ? 'Identity' : '4 × 4 matrix');
+  });
   return (
     <ExpandingRow
       head={props.head}
       field={(open) => (
         <Field open={open} label={props.label}>
-          {derive(binding.value, (m: ArrayLike<number>) => (m && isIdentity(m) ? 'Identity' : '4 × 4 matrix'))}
+          {summary}
         </Field>
       )}
-      body={() => (
-        <div class={classes.matrix}>
-          {Array.from({ length: 16 }, (_, k) => {
-            // Shown by rows; stored by columns (Mol*'s Mat4).
-            const index = (k % 4) * 4 + Math.floor(k / 4);
-            return (
-              <input
-                class={form.number}
-                aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
-                value={derive(binding.value, (m: ArrayLike<number>) => trim(m?.[index]))}
-                onChange={(e) => {
-                  const input = e.currentTarget;
-                  const n = Number(input.value);
-                  const m = Array.from(binding.get() as ArrayLike<number>);
-                  if (Number.isFinite(n)) {
-                    m[index] = n;
-                    binding.set(m);
-                  }
-                  input.value = trim(m[index]);
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
+      body={() => {
+        const inputs: HTMLInputElement[] = [];
+        const grid = (
+          <div class={classes.matrix}>
+            {Array.from({ length: 16 }, (_, k) => {
+              // Shown by rows; stored by columns (Mol*'s Mat4).
+              const index = (k % 4) * 4 + Math.floor(k / 4);
+              return (
+                <input
+                  class={form.number}
+                  aria-label={`${props.label}, row ${Math.floor(k / 4) + 1}, column ${(k % 4) + 1}`}
+                  ref={(el: HTMLInputElement) => inputs.push(el)}
+                  onChange={(e) => {
+                    const input = e.currentTarget;
+                    const n = Number(input.value);
+                    const m = Array.from(binding.get() as ArrayLike<number>);
+                    if (Number.isFinite(n)) {
+                      m[index] = n;
+                      binding.set(m);
+                    }
+                    input.value = trim(m[index]);
+                  }}
+                />
+              );
+            })}
+          </div>
+        );
+        // One watch for the 16 numbers.
+        watch([binding.value], () => {
+          const m = binding.get() as ArrayLike<number> | undefined;
+          for (let k = 0; k < 16; k++) setValue(inputs[k], trim(m?.[(k % 4) * 4 + Math.floor(k / 4)]));
+        });
+        return grid;
+      }}
     />
   );
 }
@@ -197,6 +237,9 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
   const step = param.step ?? (max - min) / 100;
   const pct = (v: number) => `${(100 * (v - min)) / (max - min || 1)}%`;
   const digits = step < 1 ? Math.min(4, Math.ceil(-Math.log10(step))) : 0;
+  const ends: HTMLInputElement[] = [];
+  let track!: HTMLElement;
+  const range = document.createTextNode('');
   const end = (i: 0 | 1) => (
     <input
       class={classes.intervalRange}
@@ -205,7 +248,7 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
       max={String(max)}
       step={String(step)}
       aria-label={`${props.label ? `${props.label} ` : ''}${i === 0 ? 'from' : 'to'}`}
-      value={derive(binding.value, (v: [number, number]) => String(v?.[i] ?? (i ? max : min)))}
+      ref={(el: HTMLInputElement) => (ends[i] = el)}
       onInput={(e) => {
         const n = Number(e.currentTarget.value);
         const v: [number, number] = [...(binding.get() ?? [min, max])] as [number, number];
@@ -216,26 +259,26 @@ export function IntervalControl(props: { param: PD.Interval; binding: FieldBindi
       }}
     />
   );
-  return (
+  const content = (
     <div class={classes.interval}>
-      <div
-        class={classes.intervalTrack}
-        style={{
-          '--msp-from': derive(binding.value, (v: [number, number]) => pct(v?.[0] ?? min)),
-          '--msp-to': derive(binding.value, (v: [number, number]) => pct(v?.[1] ?? max)),
-        }}
-      >
+      <div class={classes.intervalTrack} ref={(el: HTMLElement) => (track = el)}>
         {end(0)}
         {end(1)}
       </div>
-      <span class={classes.intervalValue}>
-        {derive(
-          binding.value,
-          (v: [number, number]) => `${(v?.[0] ?? min).toFixed(digits)}–${(v?.[1] ?? max).toFixed(digits)}`,
-        )}
-      </span>
+      <span class={classes.intervalValue}>{range}</span>
     </div>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as [number, number] | undefined;
+    const from = v?.[0] ?? min;
+    const to = v?.[1] ?? max;
+    setValue(ends[0], String(v?.[0] ?? min));
+    setValue(ends[1], String(v?.[1] ?? max));
+    setStyle(track, '--msp-from', pct(from));
+    setStyle(track, '--msp-to', pct(to));
+    setText(range, `${from.toFixed(digits)}–${to.toFixed(digits)}`);
+  });
+  return content;
 }
 
 /** A color list as a CSS gradient: interpolated, or a set of hard bands. */
@@ -268,59 +311,80 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
   );
   const nameOf = (v: { colors: readonly unknown[] } | undefined) =>
     presets.find(([, l]) => JSON.stringify(l.list) === JSON.stringify(v?.colors))?.[1].label ?? 'Custom';
-  return (
+  let strip!: HTMLElement;
+  const name = document.createTextNode('');
+  // The current preset's name: a gate, so the options' marks are written only when the preset changes.
+  const current = derive(binding.value, nameOf);
+  const content = (
     <ExpandingRow
       head={props.head}
       field={(open) => (
         <Field open={open} label={props.label}>
-          <span class={classes.strip} style={{ background: derive(binding.value, colorListGradient) }} />
-          <span class={classes.stripName}>{derive(binding.value, nameOf)}</span>
+          <span class={classes.strip} ref={(el: HTMLElement) => (strip = el)} />
+          <span class={classes.stripName}>{name}</span>
         </Field>
       )}
-      body={(close) => (
-        <ScrollArea
-          class={classes.options}
-          contentClass={classes.optionsContent}
-          role="listbox"
-          aria-label={props.label}
-        >
-          {presets.map(([, preset]) => {
-            const value = { kind: preset.type === 'qualitative' ? 'set' : 'interpolate', colors: preset.list } as const;
-            return (
-              <button
-                type="button"
-                role="option"
-                class={classes.option}
-                aria-selected={derive(binding.value, (v) => nameOf(v) === preset.label)}
-                onClick={() => {
-                  binding.set({ kind: value.kind, colors: [...value.colors] });
-                  close();
-                }}
-              >
-                <span class={classes.strip} style={{ background: colorListGradient(value) }} />
-                <span class={classes.stripName}>{preset.label}</span>
-                <Icon name="check" size={14} class={classes.check} />
-              </button>
-            );
-          })}
-        </ScrollArea>
-      )}
+      body={(close) => {
+        const buttons: HTMLElement[] = [];
+        const list = (
+          <ScrollArea
+            class={classes.options}
+            contentClass={classes.optionsContent}
+            role="listbox"
+            aria-label={props.label}
+          >
+            {presets.map(([, preset]) => {
+              const value = {
+                kind: preset.type === 'qualitative' ? 'set' : 'interpolate',
+                colors: preset.list,
+              } as const;
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  class={classes.option}
+                  ref={(el: HTMLElement) => buttons.push(el)}
+                  onClick={() => {
+                    binding.set({ kind: value.kind, colors: [...value.colors] });
+                    close();
+                  }}
+                >
+                  <span class={classes.strip} style={{ background: colorListGradient(value) }} />
+                  <span class={classes.stripName}>{preset.label}</span>
+                  <Icon name="check" size={14} class={classes.check} />
+                </button>
+              );
+            })}
+          </ScrollArea>
+        );
+        watch([current], () => {
+          for (let i = 0; i < buttons.length; i++)
+            setAttr(buttons[i], 'aria-selected', String(current.value === presets[i][1].label));
+        });
+        return list;
+      }}
     />
   );
+  watch([binding.value], () => {
+    setStyle(strip, 'background', colorListGradient(binding.get()));
+    setText(name, nameOf(binding.get()));
+  });
+  return content;
 }
 
 /** A URL: its address as text. */
 export function UrlControl(props: { binding: FieldBinding; labelId?: string }) {
   const { binding } = props;
-  return (
+  const el = (
     <input
       class={form.input}
       aria-labelledby={props.labelId}
       placeholder="https://…"
-      value={derive(binding.value, (v: Asset.Url | undefined) => v?.url ?? '')}
       onChange={(e) => binding.set(Asset.Url(e.currentTarget.value))}
     />
-  );
+  ) as HTMLInputElement;
+  watch([binding.value], () => setValue(el, (binding.get() as Asset.Url | undefined)?.url ?? ''));
+  return el;
 }
 
 /**
@@ -332,20 +396,28 @@ export function LineGraphRow(props: { head: Child; label: string; param: PD.Line
   const { binding } = props;
   const pathOf = (pts: readonly (readonly [number, number])[] | undefined, w: number, h: number) =>
     (pts ?? []).map(([x, y], i) => `${i ? 'L' : 'M'}${(x * w).toFixed(1)} ${((1 - y) * h).toFixed(1)}`).join(' ');
-  return (
+  let spark!: SVGPathElement;
+  const count = document.createTextNode('');
+  const content = (
     <ExpandingRow
       head={props.head}
       field={(open) => (
         <Field open={open} label={props.label}>
           <svg class={classes.spark} viewBox="0 0 56 14" preserveAspectRatio="none" aria-hidden="true">
-            <path d={derive(binding.value, (p) => pathOf(p, 56, 14))} />
+            <path ref={(el: SVGElement) => (spark = el as SVGPathElement)} />
           </svg>
-          <span class={classes.stripName}>{derive(binding.value, (p: unknown[]) => `${p?.length ?? 0} points`)}</span>
+          <span class={classes.stripName}>{count}</span>
         </Field>
       )}
       body={() => <LineGraphEditor param={props.param} binding={binding} pathOf={pathOf} />}
     />
   );
+  watch([binding.value], () => {
+    const p = binding.get() as [number, number][] | undefined;
+    setAttr(spark, 'd', pathOf(p, 56, 14));
+    setText(count, `${p?.length ?? 0} points`);
+  });
+  return content;
 }
 
 function LineGraphEditor(props: {
@@ -356,11 +428,14 @@ function LineGraphEditor(props: {
   const { binding } = props;
   const W = 240;
   const H = 96;
-  const hover = observableState('');
+  // The pointer's position is input: a frame state, one write a frame (rendering.md §2.3).
+  const hover = frameState('');
+  const hoverText = document.createTextNode('');
   const points = binding.value as ReadonlyState<[number, number][]>;
   // Presets come from the data at hand (a volume's statistics): asked for when opened.
   const getPresets = props.param.getPresets;
   const presetsOpen = observableState(false);
+  let curve!: SVGPathElement;
   const svg = (
     <svg class={classes.graph} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       {[0.25, 0.5, 0.75].map((t) => (
@@ -369,20 +444,23 @@ function LineGraphEditor(props: {
       {[0.25, 0.5, 0.75].map((t) => (
         <line class={classes.grid} y1={String(t * H)} y2={String(t * H)} x1="0" x2={String(W)} />
       ))}
-      <path class={classes.curve} d={derive(binding.value, (p) => props.pathOf(p, W, H))} />
+      <path class={classes.curve} ref={(el: SVGElement) => (curve = el as SVGPathElement)} />
       <For each={derive(points, (p) => (p ?? []).map((_, i) => i))}>
-        {(i) => (
-          <circle
-            class={classes.point}
-            r="4"
-            cx={derive(points, (p) => String((p?.[i]?.[0] ?? 0) * W))}
-            cy={derive(points, (p) => String((1 - (p?.[i]?.[1] ?? 0)) * H))}
-            data-index={String(i)}
-          />
-        )}
+        {(i) => {
+          // The point's own position: the list's other points change nothing here (a drag moves one tuple).
+          const point = derive(points, (p) => p?.[i]);
+          const circle = (<circle class={classes.point} r="4" data-index={String(i)} />) as SVGElement;
+          watch([point], () => {
+            setAttr(circle, 'cx', String((point.value?.[0] ?? 0) * W));
+            setAttr(circle, 'cy', String((1 - (point.value?.[1] ?? 0)) * H));
+          });
+          return circle;
+        }}
       </For>
     </svg>
   ) as SVGSVGElement;
+  watch([binding.value], () => setAttr(curve, 'd', props.pathOf(binding.get(), W, H)));
+  watch([hover], () => setText(hoverText, hover.value));
   // Pointer: drag a point, click empty space to add, double-click a point to remove (not the ends). The drag is `drag`'s
   // (dom/scoped.ts: attached once, the pointer captured, every way it ends ends it); the hover's position is its own.
   const at = (e: PointerEvent | MouseEvent): [number, number] => {
@@ -416,7 +494,7 @@ function LineGraphEditor(props: {
   });
   on<PointerEvent>(svg, 'pointermove', (e) => {
     const p = at(e);
-    hover.set(`${p[0].toFixed(2)}, ${p[1].toFixed(2)}`);
+    hover.offer(`${p[0].toFixed(2)}, ${p[1].toFixed(2)}`);
   });
   const onDouble = (e: MouseEvent) => {
     const t = e.target as Element;
@@ -429,13 +507,13 @@ function LineGraphEditor(props: {
     binding.set(pts);
   };
   on<MouseEvent>(svg, 'dblclick', onDouble);
-  on(svg, 'pointerleave', () => hover.set(''));
+  on(svg, 'pointerleave', () => hover.offer(''));
   return (
     <div class={classes.graphEditor}>
       {/* The position under the pointer in the graph's corner: the hint below never changes the editor's height. */}
       <div class={classes.graphArea}>
         {svg}
-        <span class={classes.graphAt}>{hover.asReadonly}</span>
+        <span class={classes.graphAt}>{hoverText}</span>
       </div>
       <div class={classes.graphFoot}>
         <p class={classes.graphHint}>Drag a point · click to add · double-click to remove</p>

@@ -8,7 +8,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { BehaviorSubject, Subject, type Subscription, debounceTime, merge } from 'rxjs';
+import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
@@ -423,6 +423,15 @@ interface Canvas3D {
   syncVisibility(): void;
 
   requestDraw(): void;
+  /**
+   * Whether the last tick found nothing to do: nothing drawn or committed, and nothing under way that needs the next
+   * tick (a camera transition, the controls' animation or keys, an interaction, a hover pick, a hi-Z readback). A loop
+   * may stop asking for frames while it stays idle (`PluginAnimationLoop`, `PluginConfig.General.PauseLoopWhenIdle`)
+   * and ask again on `wake`. Code that changes the scene or the camera past this API must call `requestDraw`.
+   */
+  readonly isIdle: boolean;
+  /** Fires once after an idle tick when something gives the next tick work: a draw requested, input, a scene, camera or props change. */
+  readonly wake: Observable<void>;
 
   /** Reset the timers, used by "animate" */
   resetTime(t: number): void;
@@ -568,6 +577,17 @@ namespace Canvas3D {
 
     let forceNextRender = false;
     let currentTime = 0;
+
+    // The idle state (`isIdle`): set by a tick that found nothing to do, cleared, with one `wake`, by whatever gives the
+    // next tick work.
+    let idle = false;
+    let drewInTick = false;
+    const wake = new Subject<void>();
+    function busy() {
+      if (!idle) return;
+      idle = false;
+      wake.next();
+    }
     // bumped once per render() call; spans stereo eyes and multi-sample jitter
     // sub-renders of that call, so their cull results can be safely reused
     let frame: Frame = createFrame();
@@ -727,6 +747,7 @@ namespace Canvas3D {
           loadNonXRProps();
         }
         resume();
+        busy();
         xr.isPresenting.next(!!xrManager.session);
       }),
     ];
@@ -765,6 +786,7 @@ namespace Canvas3D {
       //       same loci. Tho this might end up being more expensive (and error prone)
       //       then just applying everything "naively".
       markBuffer.push([reprLoci, action]);
+      busy();
     }
 
     /** helpers are rendered into the scene color, so their marking can't be redrawn on its own */
@@ -955,13 +977,15 @@ namespace Canvas3D {
         forceNextRender = true;
         return;
       }
-      if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
-        didDraw.next((now() - startTime) as now.Timestamp);
+      if (render(!!options?.force, options?.xrFrame)) {
+        drewInTick = true;
+        if (notifyDidDraw) didDraw.next((now() - startTime) as now.Timestamp);
       }
     }
 
     function requestDraw() {
       forceNextRender = true;
+      busy();
     }
 
     let animationFrameHandle = 0;
@@ -973,6 +997,8 @@ namespace Canvas3D {
       if (isContextLost) return;
       if (webgl.xr.session && !options?.xrFrame) return;
 
+      drewInTick = false;
+      idle = false;
       currentTime = t;
       renderer.setTime((currentTime - startTime) / 1000);
       commit(options?.isSynchronous);
@@ -993,6 +1019,21 @@ namespace Canvas3D {
       if (!camera.transition.inTransition && !webgl.isContextLost) {
         interactionHelper.tick(currentTime);
       }
+      idle =
+        !drewInTick &&
+        !forceNextRender &&
+        !forceDrawAfterAllCommited &&
+        !cameraResetRequested &&
+        !resizeRequested &&
+        markBuffer.length === 0 &&
+        !scene.needsCommit &&
+        !camera.transition.inTransition &&
+        !controls.isAnimating &&
+        !controls.isMoving &&
+        !isActivelyInteracting &&
+        !hiZ.isPending &&
+        !interactionHelper.isPending &&
+        !webgl.xr.session;
     }
 
     let animationFrameCB: FrameRequestCallback | XRFrameRequestCallback | undefined = undefined;
@@ -1277,6 +1318,7 @@ namespace Canvas3D {
 
     function add(repr: Representation.Any) {
       registerAutoUpdate(repr);
+      busy();
 
       const oldRO = reprRenderObjects.get(repr);
       const newRO = new Set<GraphicsRenderObject>();
@@ -1303,6 +1345,7 @@ namespace Canvas3D {
 
     function remove(repr: Representation.Any) {
       unregisterAutoUpdate(repr);
+      busy();
 
       const renderObjects = reprRenderObjects.get(repr);
       if (renderObjects) {
@@ -1386,6 +1429,7 @@ namespace Canvas3D {
     });
 
     const contextRestoredSub = contextRestored.subscribe(() => {
+      busy();
       pickHelper.reset();
       rayHelper.reset();
       hiZ.reset();
@@ -1409,6 +1453,7 @@ namespace Canvas3D {
     const resized = new BehaviorSubject<any>(0);
 
     function handleResize(draw = true) {
+      busy();
       passes.updateSize();
       updateViewport();
       syncViewport();
@@ -1443,7 +1488,28 @@ namespace Canvas3D {
         // no requestDraw here: it would force a full illumination restart (flash) even
         // though the next animation frame already resumes accumulation on its own
         isActivelyInteracting = isDragging;
+        busy();
       }),
+      // any input may give the next tick work (controls, hover, picking): an idle loop asks for frames again
+      merge(
+        input.move,
+        input.drag,
+        input.interactionEnd,
+        input.wheel,
+        input.pinch,
+        input.gesture,
+        input.click,
+        input.leave,
+        input.enter,
+        input.resize,
+        input.modifiers,
+        input.key,
+        input.keyDown,
+        input.keyUp,
+        input.lock,
+        input.trackedPointers,
+      ).subscribe(busy),
+      camera.stateChanged.subscribe(busy),
     ];
 
     //
@@ -1494,6 +1560,7 @@ namespace Canvas3D {
           scene.update(void 0, !!keepSphere);
         }
         forceDrawAfterAllCommited = true;
+        busy();
       },
       clear: () => {
         reprUpdatedSubscriptions.forEach((v) => v.unsubscribe());
@@ -1534,10 +1601,12 @@ namespace Canvas3D {
       handleResize,
       requestResize: () => {
         resizeRequested = true;
+        busy();
       },
       requestCameraReset: (options) => {
         Object.assign(nextCameraResetOptions, options);
         cameraResetRequested = true;
+        busy();
       },
       camera,
       boundingSphere: scene.boundingSphere,
@@ -1548,6 +1617,10 @@ namespace Canvas3D {
       set notifyDidDraw(v: boolean) {
         notifyDidDraw = v;
       },
+      get isIdle() {
+        return idle;
+      },
+      wake,
       didDraw,
       commited,
       commitQueueSize,
@@ -1556,6 +1629,7 @@ namespace Canvas3D {
       setProps: (properties, doNotRequestDraw = false) => {
         const props: PartialCanvas3DProps =
           typeof properties === 'function' ? produce(getProps(), properties as any) : properties;
+        busy();
 
         if (props.sceneRadiusFactor !== undefined) {
           p.sceneRadiusFactor = props.sceneRadiusFactor;
@@ -1668,6 +1742,7 @@ namespace Canvas3D {
         }
       },
       setAttribs: (attribs: PartialCanvas3DAttribs) => {
+        busy();
         if (attribs.trackball) controls.setAttribs(attribs.trackball);
         if (attribs.xr) xrManager.setAttribs(attribs.xr);
       },
@@ -1729,6 +1804,7 @@ namespace Canvas3D {
         reprCount.complete();
         interactionEvent.complete();
         didDraw.complete();
+        wake.complete();
         resized.complete();
         commited.complete();
         commitQueueSize.complete();

@@ -20,9 +20,9 @@ import { For, Show } from '../../dom/control-flow.js';
 import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
-import { bind, effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
+import { effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
 import { on, restartable } from '../../dom/scoped.js';
-import { setAttr, setText as writeText } from '../../dom/writes.js';
+import { setAttr, setStyle, setText as writeText } from '../../dom/writes.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import type { Listenable } from '../../reactive/listen.js';
@@ -162,13 +162,16 @@ const RowPx = 28;
 
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
+  // Open, the menu wants every command: lazy ones (the Select group's per structure) are made now and follow changes
+  // while it is open (commands.md §4, `registerLazy`).
+  onCleanup(manager.want());
   // The words a sentence was proposed from by the assistant (shown over it), until it closes.
   const proposed = observableState<string | undefined>(undefined);
-  bind(manager.active, (a) => {
+  effect(manager.active, (a) => {
     if (!a) proposed.set(undefined);
   });
   // A command that ran (or failed past its form) closes the command menu; its outcome goes to the status line.
-  bind(manager.outcomes, (o) => {
+  effect(manager.outcomes, (o) => {
     if (o.kind === 'done') props.onClose();
   });
   onCleanup(() => manager.close());
@@ -338,14 +341,14 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     if (!keep && !manager.active.value) props.onClose();
   };
   const unmatched = derive([query, rows], (t, r) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption'));
-  bind(rows, (r) => {
+  effect(rows, (r) => {
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
   });
   // The rows rendered: a screenful first, more as the list scrolls or the highlight moves past them, so opening the menu
   // builds what shows rather than every command (styling.md §5). A spacer keeps the scroll height of the
-  // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its bind below runs before the
-  // input's and the list's, so the list has grown to it by the time they read the highlight.
+  // rest. The highlighted option is always rendered (`aria-activedescendant` names it): its effect below runs before the
+  // input's and the list's watches, so the list has grown to it by the time they read the highlight.
   const limit = observableState<{ of?: readonly Row[]; n: number }>({ n: Screenful });
   const shown = derive(
     [rows, limit.asReadonly],
@@ -358,7 +361,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     const have = l.of === current ? l.n : Screenful;
     if (n > have && have < current.length) limit.set({ of: current, n: Math.max(n, have + Screenful) });
   };
-  bind(highlight.asReadonly, (h) => {
+  effect(highlight.asReadonly, (h) => {
     const at = current.findIndex((r) => r.kind !== 'caption' && r.index === h);
     if (at >= 0) grow(at + 1);
   });
@@ -441,11 +444,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
       aria-expanded="true"
       aria-controls={listId}
       aria-autocomplete="list"
-      aria-activedescendant={active}
       aria-label="Command"
-      placeholder={placeholder}
       spellcheck={false}
-      value={text}
       onInput={(e) => {
         text.set(e.currentTarget.value);
         query.offer(e.currentTarget.value);
@@ -482,6 +482,14 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     />
   ) as HTMLInputElement;
   queueMicrotask(() => input.focus());
+  // The input as a function of the highlight, the group and the text: one watch.
+  watch([active, placeholder, text.asReadonly], () => {
+    setAttr(input, 'aria-activedescendant', active.value);
+    setAttr(input, 'placeholder', placeholder.value);
+    setValue(input, text.value);
+  });
+  const foundText = document.createTextNode('');
+  watch([found.asReadonly], () => writeText(foundText, found.value));
 
   return (
     <>
@@ -506,7 +514,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         )}
       </Show>
       <span class={classes.srOnly} role="status" aria-live="polite">
-        {found.asReadonly}
+        {foundText}
       </span>
       <ScrollArea
         class={classes.list}
@@ -560,7 +568,11 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           }}
         </For>
         <Show when={derive(rest, (h) => h > 0)}>
-          {() => <div class={classes.rest} role="presentation" style={{ height: derive(rest, (h) => `${h}px`) }} />}
+          {() => {
+            const spacer = (<div class={classes.rest} role="presentation" />) as HTMLElement;
+            watch([rest], () => setStyle(spacer, 'height', `${rest.value}px`));
+            return spacer;
+          }}
         </Show>
       </ScrollArea>
       {props.assistant ? (
@@ -610,21 +622,24 @@ function AskBar(props: {
         <span class={classes.askText}>Set up an AI assistant</span>
       </button>
     );
-  return (
-    <button
-      type="button"
-      class={classes.ask}
-      data-default={derive(props.unmatched, (u) => (u ? '' : undefined))}
-      onClick={() => props.onAsk()}
-    >
+  const text = document.createTextNode('');
+  const keys = document.createTextNode('');
+  const el = (
+    <button type="button" class={classes.ask} onClick={() => props.onAsk()}>
       <Icon name="sparkles" size={15} class={classes.askIcon} />
       <span class={classes.askLabel}>Ask AI assistant</span>
-      <span class={classes.askText}>
-        {derive(props.text, (t) => (t ? `“${t}”` : 'describe what you want, in your words'))}
-      </span>
-      <kbd class={classes.askKeys}>{derive(props.unmatched, (u) => (u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵'))}</kbd>
+      <span class={classes.askText}>{text}</span>
+      <kbd class={classes.askKeys}>{keys}</kbd>
     </button>
-  );
+  ) as HTMLElement;
+  watch([props.text, props.unmatched], () => {
+    const t = props.text.value;
+    const u = props.unmatched.value;
+    setAttr(el, 'data-default', u);
+    writeText(text, t ? `“${t}”` : 'describe what you want, in your words');
+    writeText(keys, u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵');
+  });
+  return el;
 }
 
 /**
@@ -635,14 +650,15 @@ function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup
   const { manager, group } = props;
   const shared = group.shared!;
   const value = derive(manager.shared, () => manager.sharedValue(group.id));
-  return (
+  const buttons: HTMLElement[] = [];
+  const el = (
     <div class={classes.shared} role="group" aria-label={`${group.title}: ${shared.title}`}>
       <span class={classes.sharedTitle}>{shared.title}</span>
       {shared.options.map(([v, label]) => (
         <button
           type="button"
           class={classes.sharedOption}
-          aria-pressed={derive(value, (x) => (x === v ? 'true' : 'false'))}
+          ref={(b: HTMLElement) => buttons.push(b)}
           onClick={() => manager.setShared(group.id, v)}
         >
           {label}
@@ -650,6 +666,11 @@ function SharedChoice(props: { manager: CommandManager<any>; group: CommandGroup
       ))}
     </div>
   );
+  watch([value], () => {
+    for (let i = 0; i < buttons.length; i++)
+      setAttr(buttons[i], 'aria-pressed', value.value === shared.options[i][0] ? 'true' : 'false');
+  });
+  return el;
 }
 
 /** A command's group path below the group being browsed (all of it at the top level). */
@@ -708,6 +729,11 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
       return [...card, ...prefixes, ...shortcuts].filter((i) => !q || i.label.toLowerCase().includes(q));
     },
   };
+}
+
+/** An input's value, written only when it differs (a write moves the caret). */
+function setValue(el: HTMLInputElement, value: string) {
+  if (el.value !== value) el.value = value;
 }
 
 /**
@@ -882,24 +908,18 @@ function FormMode(props: {
   const { manager, invocation } = props;
   const state = invocation.state;
   const command = invocation.command;
-  const field = derive(state, (s) => s.fields.find((f) => f.id === s.field));
   const listId = uniqueId('msp-command-options');
+  // The picked completion, a gate: the options listen to it, not to every change of the state.
+  const pick = derive(state, (s) => s.pick);
   const optionId = (i: number) => `${listId}-${i}`;
   const input = (
     <input
       class={classes.input}
       type="text"
       role="combobox"
-      aria-expanded={derive(state, (s) => s.completions.length > 0)}
       aria-controls={listId}
       aria-autocomplete="list"
-      aria-activedescendant={derive(state, (s) =>
-        s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
-      )}
-      aria-label={derive(field, (f) => f?.label ?? command.title)}
-      placeholder={derive(field, (f) => (f ? f.label : 'Enter to run'))}
       spellcheck={false}
-      value={derive(state, (s) => s.text)}
       onInput={(e) => invocation.type(e.currentTarget.value)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && e.altKey && command.view) {
@@ -926,6 +946,22 @@ function FormMode(props: {
     />
   ) as HTMLInputElement;
   queueMicrotask(() => input.focus());
+  // The input and the run button's action as a function of the invocation's state: one watch.
+  const action = document.createTextNode('');
+  watch([state], () => {
+    const s = state.value;
+    writeText(action, s.action);
+    const f = s.fields.find((x) => x.id === s.field);
+    setAttr(input, 'aria-expanded', String(s.completions.length > 0));
+    setAttr(
+      input,
+      'aria-activedescendant',
+      s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
+    );
+    setAttr(input, 'aria-label', f?.label ?? command.title);
+    setAttr(input, 'placeholder', f ? f.label : 'Enter to run');
+    setValue(input, s.text);
+  });
   // Leaving the form: back to the list, or, opened for this command alone, the menu closes.
   const leave = () => {
     manager.close();
@@ -977,7 +1013,7 @@ function FormMode(props: {
           </button>
         ) : null}
         <button type="button" class={classes.run} onClick={() => void invocation.enter()}>
-          {derive(state, (s) => s.action)}
+          {action}
           <kbd>↵</kbd>
         </button>
       </div>
@@ -997,31 +1033,38 @@ function FormMode(props: {
         aria-label="Options"
       >
         <For each={derive(state, (s) => s.completions)}>
-          {(c, i) => (
-            <div
-              id={derive(i, optionId)}
-              class={classes.row}
-              role="option"
-              aria-selected={derive([state, i], (s, j) => s.pick === j)}
-              onClick={() => invocation.accept(i.value)}
-              onPointerMove={() => invocation.point(i.value)}
-            >
-              <span class={classes.rowIcon} />
-              <span class={classes.rowTitle}>{c.label}</span>
-              <span class={classes.rowMeta}>{c.detail ?? (c.value !== c.label ? c.value : '')}</span>
-            </div>
-          )}
+          {(c, i) => {
+            const option = (
+              <div
+                class={classes.row}
+                role="option"
+                onClick={() => invocation.accept(i.value)}
+                onPointerMove={() => invocation.point(i.value)}
+              >
+                <span class={classes.rowIcon} />
+                <span class={classes.rowTitle}>{c.label}</span>
+                <span class={classes.rowMeta}>{c.detail ?? (c.value !== c.label ? c.value : '')}</span>
+              </div>
+            ) as HTMLElement;
+            // Its place in the list (the entry's index, a state) and whether it is the pick: only a move of the pick
+            // or of the row wakes it, not a keystroke.
+            watch([pick, i], () => {
+              setAttr(option, 'id', optionId(i.value));
+              setAttr(option, 'aria-selected', String(pick.value === i.value));
+            });
+            return option;
+          }}
         </For>
       </ScrollArea>
       <Show when={derive(state, (s) => s.formOnly.length > 0)}>
-        {() => (
-          <p class={classes.more}>
-            {derive(
-              state,
-              (s) => `+ ${s.formOnly.length} more option${s.formOnly.length > 1 ? 's' : ''} at their defaults`,
-            )}
-          </p>
-        )}
+        {() => {
+          const text = document.createTextNode('');
+          watch([state], () => {
+            const n = state.value.formOnly.length;
+            writeText(text, `+ ${n} more option${n > 1 ? 's' : ''} at their defaults`);
+          });
+          return <p class={classes.more}>{text}</p>;
+        }}
       </Show>
       <Footer
         hints={[
@@ -1039,24 +1082,31 @@ function FormMode(props: {
 /** One argument in the sentence: its quiet before-word, then its value (or its name, until set). */
 function FieldToken(props: { field: FormFieldView; state: ReadonlyState<InvocationState>; onFocus(): void }) {
   const { field } = props;
+  // What decides its look, each a gate over the invocation's state: the token renders when one of them changes.
   const value = derive(props.state, (s) => {
     const v = s.values[field.id];
     if (v === undefined || v === '') return undefined;
     return field.options?.find((o) => o.value === String(v))?.label ?? String(v);
   });
+  const active = derive(props.state, (s) => s.field === field.id);
+  const missing = derive(props.state, (s) => s.missing.includes(field.id));
+  const text = document.createTextNode('');
+  const button = (
+    <button type="button" class={classes.value} onClick={() => props.onFocus()}>
+      {text}
+    </button>
+  ) as HTMLElement;
+  watch([value, active, missing], () => {
+    const v = value.value;
+    setAttr(button, 'data-active', active.value);
+    setAttr(button, 'data-missing', missing.value);
+    setAttr(button, 'data-empty', v === undefined);
+    writeText(text, v ?? field.label);
+  });
   return (
     <span class={classes.token}>
       {field.before ? <span class={classes.before}>{field.before}</span> : null}
-      <button
-        type="button"
-        class={classes.value}
-        data-active={derive(props.state, (s) => (s.field === field.id ? '' : undefined))}
-        data-missing={derive(props.state, (s) => (s.missing.includes(field.id) ? '' : undefined))}
-        data-empty={derive(value, (v) => (v === undefined ? '' : undefined))}
-        onClick={() => props.onFocus()}
-      >
-        {derive(value, (v) => v ?? field.label)}
-      </button>
+      {button}
     </span>
   );
 }

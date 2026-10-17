@@ -484,7 +484,7 @@ export class PluginContext {
 
     this.layout.dispose();
     this.managers.markdownExtensions.audio.dispose();
-    this.animationLoop.stop();
+    this.animationLoop.dispose();
     this.commands.dispose();
     this.canvas3d?.dispose();
     if (!options?.doNotDisposeCanvas3DContext) {

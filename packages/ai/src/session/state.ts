@@ -28,6 +28,8 @@ export interface TurnState {
   retrying: Map<string, ToolEvent>;
   /** The streamed text per model attempt. */
   previews: Map<string, string>;
+  /** The attempts whose streamed text has something in it besides whitespace (so a delta is judged alone). */
+  said: Set<string>;
   lastText: string;
   /** The text of each top-level model call, by call id, in order: its latest attempt's. */
   replies: Map<string, string>;
@@ -52,6 +54,7 @@ export function newTurnState(hooks: TurnHooks): TurnState {
     starts: new Map(),
     retrying: new Map(),
     previews: new Map(),
+    said: new Set(),
     lastText: '',
     replies: new Map(),
     lastModelCall: undefined,

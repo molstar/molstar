@@ -11,6 +11,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '@molstar/prism-ui/dom/render';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import { mockInspector } from '../../testing/mock-inspector.js';
 import { findLimit, type InspectorModel } from '../model.js';
 import { InspectorBody, InspectorHeader } from '../page.js';
@@ -30,7 +31,11 @@ function mount(model: InspectorModel) {
     container,
   );
   const selected = () => container.querySelector<HTMLElement>('[role=listbox] [aria-selected=true]')?.dataset.row;
-  const key = (key: string) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  // A key moves the selection; the rows show it after the render the change queued (rendering.md §2.3).
+  const key = (key: string) => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    flush();
+  };
   return { container, dispose, selected, key };
 }
 
@@ -120,11 +125,17 @@ describe('Inspector views', () => {
     press('Enter');
     expect(input.value).toBe('40');
 
+    // The way back is there while the value differs from the default.
+    const shown = () =>
+      [...container.querySelectorAll('button')].some((b) => b.textContent === 'Reset' && b.style.display !== 'none');
+    flush();
+    expect(shown()).toBe(true);
     const reset = [...container.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Reset')!;
     reset.click();
     expect(findLimit(model.limits.value, 'modelCalls')?.value).toBe(24);
+    flush();
     expect(input.value).toBe('24');
-    expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Reset')).toBe(false);
+    expect(shown()).toBe(false);
   });
 
   it('says so before the agent has run', () => {

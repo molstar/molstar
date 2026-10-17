@@ -129,6 +129,9 @@ trigger. Initial → ceiling: tool calls 60 → `maxToolCalls` (200), uncached i
   `contextWindow()` is 200k until the first call has asked.
 - `onText` streams one model call at a time (it restarts with each top-level call); `TurnResult.text` is the last
   non-empty text, else the last assistant message; `turnText` is the whole turn's.
+- A streamed delta costs the delta: whether the text so far says anything is read from the deltas (`TurnState.said`),
+  never `trim()` of the text, which flattens its rope at every delta (an answer's length squared). Guarded by
+  `_test/streaming.scaling.ts` (`pnpm -C packages/ai test:scaling`).
 - Only "a turn is already running" throws from `turn()`; a missing provider, an unknown model or a parked turn not yet
   resumed is `status: 'failed'`. `resume()` returns `undefined` when busy or with nothing to resume; `forget()` throws
   while a turn runs.

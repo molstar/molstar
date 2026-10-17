@@ -78,7 +78,11 @@ type CoordinatorState = {
 type TrackedContribution<T> = OptimisticContribution<T> & {
   readonly transactionId: UiTransactionId;
   release(absorbed: boolean): void;
+  /** Out of the projection (absorbed, dropped, cleared): reported no more. */
+  dropped: boolean;
 };
+
+type Failure<T> = { readonly contribution: TrackedContribution<T>; readonly cause: unknown };
 
 const transactionStates = new WeakMap<UiTransaction, TransactionState>();
 const coordinatorStates = new WeakMap<UiTransactionCoordinator, CoordinatorState>();
@@ -217,29 +221,31 @@ export function createOptimisticProjection<T>(
   }
 
   let authoritativeBase = initialBase;
-  let contributions: readonly TrackedContribution<T>[] = [];
+  // In order. An append pushes in place (O(1)); a removal makes a new array (`sweep`). It never escapes.
+  let contributions: TrackedContribution<T>[] = [];
+  /** Contributions held per transaction: a retirement of a transaction with none here is O(1). */
+  const held = new Map<UiTransactionId, number>();
+  /** The fold of `authoritativeBase` and every contribution, as last published: an append folds onto it. */
+  let folded = initialBase;
+  /** The contributions that could not apply in that fold, in order (a new array per change: reporting reads one). */
+  let failing: readonly Failure<T>[] = [];
   let disposed = false;
   const projected = observableState(initialBase);
   const divergences = new Subject<OptimisticProjectionDivergence<T>>();
 
-  // The base followed by every active contribution; one that cannot apply is
-  // skipped (and kept) instead of hiding the ones after it, and divergences go out after the value,
-  // so subscribers never see a partial fold. A handler may resolve one (reject): a contribution
-  // dropped meanwhile is not reported.
-  function emit(): void {
-    const base = authoritativeBase;
-    let value = base;
-    const failed: { contribution: TrackedContribution<T>; cause: unknown }[] = [];
-    for (const contribution of contributions) {
-      try {
-        value = contribution.apply(value);
-      } catch (cause) {
-        failed.push({ contribution, cause });
-      }
-    }
-    projected.set(value);
-    for (const { contribution, cause } of failed) {
-      if (!contributions.includes(contribution)) continue;
+  const hold = (id: UiTransactionId, by: number) => {
+    const count = (held.get(id) ?? 0) + by;
+    if (count > 0) held.set(id, count);
+    else held.delete(id);
+  };
+
+  // Publishes the fold, then reports each contribution that could not apply (still held: a handler may resolve one,
+  // reject, and a contribution dropped meanwhile is not reported), so subscribers never see a partial fold.
+  function publish(base: T): void {
+    const report = failing;
+    projected.set(folded);
+    for (const { contribution, cause } of report) {
+      if (contribution.dropped) continue;
       divergences.next({
         transactionId: contribution.transactionId,
         phase: 'application',
@@ -249,12 +255,58 @@ export function createOptimisticProjection<T>(
     }
   }
 
+  // The base followed by every active contribution; one that cannot apply is skipped (and kept) instead of hiding the
+  // ones after it.
+  function emit(): void {
+    const base = authoritativeBase;
+    let value = base;
+    const failed: Failure<T>[] = [];
+    // As the list stands now: one appended meanwhile (re-entrantly) folds itself.
+    const list = contributions;
+    for (let i = 0, n = list.length; i < n; i++) {
+      const contribution = list[i];
+      try {
+        value = contribution.apply(value);
+      } catch (cause) {
+        failed.push({ contribution, cause });
+      }
+    }
+    folded = value;
+    failing = failed;
+    publish(base);
+  }
+
+  // One more contribution, last in order: folded onto the fold as it stands (the same value a refold gives, the
+  // contributions before it unchanged), and the same reports (every contribution still failing, then this one). A
+  // refold per contribution was K² for K in flight (view-models.md §5).
+  function append(contribution: TrackedContribution<T>): void {
+    contributions.push(contribution);
+    hold(contribution.transactionId, 1);
+    try {
+      folded = contribution.apply(folded);
+    } catch (cause) {
+      failing = [...failing, { contribution, cause }];
+    }
+    publish(authoritativeBase);
+  }
+
+  /** Takes out the contributions marked `dropped`, in one pass. */
+  function sweep(): void {
+    contributions = contributions.filter((item) => !item.dropped);
+  }
+
   function drop(transactionId: UiTransactionId): void {
-    const removed = contributions.filter((item) => item.transactionId === transactionId);
-    if (removed.length === 0) {
+    if (!held.has(transactionId)) {
       return;
     }
-    contributions = contributions.filter((item) => item.transactionId !== transactionId);
+    held.delete(transactionId);
+    const removed: TrackedContribution<T>[] = [];
+    for (const item of contributions) {
+      if (item.transactionId !== transactionId) continue;
+      item.dropped = true;
+      removed.push(item);
+    }
+    sweep();
     for (const item of removed) {
       item.release(false);
     }
@@ -264,6 +316,10 @@ export function createOptimisticProjection<T>(
   function clear(): void {
     const removed = contributions;
     contributions = [];
+    held.clear();
+    for (const item of removed) {
+      item.dropped = true;
+    }
     for (const item of removed) {
       item.release(false);
     }
@@ -297,21 +353,27 @@ export function createOptimisticProjection<T>(
       // Decide first, then change the list as it stands, then report: a
       // divergence handler that rejects or contributes no longer has its change overwritten.
       const absorbed = new Set<TrackedContribution<T>>();
-      const failed: { contribution: TrackedContribution<T>; cause: unknown }[] = [];
-      for (const contribution of contributions) {
+      const failed: Failure<T>[] = [];
+      const list = contributions;
+      for (let i = 0, n = list.length; i < n; i++) {
+        const contribution = list[i];
         try {
           if (contribution.isAbsorbed?.(nextBase) === true) absorbed.add(contribution);
         } catch (cause) {
           failed.push({ contribution, cause });
         }
       }
-      contributions = contributions.filter((contribution) => !absorbed.has(contribution));
+      for (const contribution of absorbed) {
+        contribution.dropped = true;
+        hold(contribution.transactionId, -1);
+      }
+      if (absorbed.size > 0) sweep();
       emit();
       for (const contribution of absorbed) {
         contribution.release(true);
       }
       for (const { contribution, cause } of failed) {
-        if (!contributions.includes(contribution)) continue;
+        if (contribution.dropped) continue;
         divergences.next({
           transactionId: contribution.transactionId,
           phase: 'absorption',
@@ -325,16 +387,13 @@ export function createOptimisticProjection<T>(
         throw new Error('Optimistic projection is disposed');
       }
       const attachment = attachTransaction(coordinator, transaction);
-      contributions = [
-        ...contributions,
-        {
-          transactionId: attachment.id,
-          apply: contribution.apply,
-          isAbsorbed: contribution.isAbsorbed,
-          release: attachment.release,
-        },
-      ];
-      emit();
+      append({
+        transactionId: attachment.id,
+        apply: contribution.apply,
+        isAbsorbed: contribution.isAbsorbed,
+        release: attachment.release,
+        dropped: false,
+      });
     },
     reset() {
       if (disposed) {
