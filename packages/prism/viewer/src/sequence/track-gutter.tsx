@@ -16,6 +16,7 @@ import { switchMap } from 'rxjs';
 import { type SequenceApiRunner, setTrackHidden, showAllTracks } from './commands.js';
 import type { SequenceViewer, TrackColoring } from './model.js';
 import { classes } from './_generated/track-gutter.module.css.js';
+import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // The tracks' left gutter (sequence.md §8): a coloring icon per track row that has one (the action of the
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
@@ -165,7 +166,7 @@ export function mountTrackGutter(
             coloring.run();
             // The action is asynchronous (one Mol* state update): the marker follows when it has run.
             setTimeout(refresh, 0);
-            requestAnimationFrame(() => refresh());
+            requestFrameCallback(() => refresh());
           }}
         >
           <Icon name={icon} size={16} />

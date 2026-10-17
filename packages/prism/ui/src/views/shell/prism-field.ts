@@ -29,6 +29,7 @@ import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { Fluid } from './fluid.js';
 import { Glass } from './glass.js';
 import { GlassFootprint } from './glass-footprint.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
@@ -482,7 +483,7 @@ export class PrismField {
 
   stop(): void {
     this.#running = false;
-    if (this.#frame) cancelAnimationFrame(this.#frame);
+    if (this.#frame) cancelFrameCallback(this.#frame);
     this.#frame = 0;
   }
 
@@ -498,7 +499,7 @@ export class PrismField {
   #schedule(): void {
     if (this.#still || !this.#running || !this.#visible || this.#frame) return;
     this.#last = 0;
-    this.#frame = requestAnimationFrame(this.#tick);
+    this.#frame = requestFrameCallback(this.#tick);
   }
 
   readonly #tick = (now: number) => {
@@ -518,7 +519,7 @@ export class PrismField {
     }
     this.#step(dt);
     this.#draw();
-    this.#frame = requestAnimationFrame(this.#tick);
+    this.#frame = requestFrameCallback(this.#tick);
   };
 
   #drawStill(): void {

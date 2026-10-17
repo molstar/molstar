@@ -145,6 +145,15 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
 - Web and data tools for the agent in the viewer (search, fetch a page or a file; `viewer/src/agent/skills.ts`).
 
+## Frames
+
+- _*Mol*'s canvas loop runs while idle_*: one `requestAnimationFrame` a frame per viewer whatever happens (Several
+  viewers: 3 a frame at rest); its tick draws only when something changed. Pausing it out of view is on the parent
+  branch (`sources/canvas-presence.ts`); at rest in view, the decision is David's (the Canvas3D pause).
+- **The splash fields** run their simulation every frame while the empty canvas shows (Chromium, M4: the light field 0.5
+  ms a frame of script, the wave field 2.1): settle and stop after some seconds without input, or a lower rate, is
+  David's call.
+
 ## Quadratic paths still open (the 2026-10-17 scan)
 
 The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:

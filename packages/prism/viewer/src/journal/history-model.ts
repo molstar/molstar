@@ -9,6 +9,7 @@
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { RunOriginKind } from '../api/area.js';
 import type { RecordEntry, RecordItem, RecordReader, RunEntry, TurnEntry } from './record.js';
+import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // What History shows of the session's record (journal.md §3), DOM-free. The record is read in windows, newest first (the
 // newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). After a change it reads only
@@ -92,7 +93,7 @@ export interface HistoryModelOptions {
 }
 
 const nextFrame = (fn: () => void) => {
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fn());
+  if (typeof requestAnimationFrame === 'function') requestFrameCallback(() => fn());
   else queueMicrotask(fn);
 };
 

@@ -14,6 +14,7 @@ import type { HoverLabelModel } from '../../model/playback.js';
 import { classes } from './_generated/hover-label.module.css.js';
 
 import { derive } from '../../reactive/state.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 const Offset = 14;
 
 /**
@@ -67,7 +68,7 @@ export function HoverLabel(props: {
     label.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, top)}px)`;
   };
   const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(place);
+    if (!frame) frame = requestFrameCallback(place);
   };
 
   bind(props.model.lines, (lines) => {
@@ -101,7 +102,7 @@ export function HoverLabel(props: {
   let onCleanupArea: () => void = () => {};
   onCleanup(() => {
     onCleanupArea();
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
   });
   return label;
 }

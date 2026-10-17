@@ -53,6 +53,7 @@ export { SceneRowSlot } from './scene-row-slot.js';
 import { SceneRowSlot } from './scene-row-slot.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 /**
  * One line of the tree, flattened (viewer-spec.md §3, the scene tree): a node; Show all, for the rest of a long list;
  * Loading…, while a lazy node computes its rows; an extension's row under a node. All are rows of one height.
@@ -367,13 +368,13 @@ export function SceneTree(props: {
   let frame = 0;
   effect(scene.picked, (node) => {
     if (!node) return;
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => {
+    cancelFrameCallback(frame);
+    frame = requestFrameCallback(() => {
       const i = rows.value.findIndex((r) => r.kind === 'node' && r.node === node);
       if (i >= 0) list?.scrollToIndex(i);
     });
   });
-  onCleanup(() => cancelAnimationFrame(frame));
+  onCleanup(() => cancelFrameCallback(frame));
   // The rows that are not a node's: Show all, Loading…, an extension's row (keyed, never recycled).
   const otherRow = (row: Row) => {
     switch (row.kind) {

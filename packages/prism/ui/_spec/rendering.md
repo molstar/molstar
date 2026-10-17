@@ -186,6 +186,14 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   every delegated event, and would publish per event); `flushFrame()` runs the frame's tick now (tests, and
   `scrollToIndex`, whose row the keyboard focuses next). Ten offers in a frame cost one publish and one render, and no
   allocation (`primitives.quick.ts`).
+- **One frame request a page** (`reactive/frame-state.ts`): what a component would ask `requestAnimationFrame` for (a
+  label's placement, a canvas's draw, a drag's step, the splash's simulation, Seq*'s frames) is a frame callback
+  (`requestFrameCallback`, `cancelFrameCallback`; `frame(fn)` in a component, released with its scope, run after its
+  resume when it is paused), run in the frame's tick before the frame states publish. A hover sweep in the viewer asked
+  for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame lane's), now 1 (the in-app
+  browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded viewer at rest asks for none
+  and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop left running, a frame per
+  event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or not (TODO).
 - **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
   (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
   decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after

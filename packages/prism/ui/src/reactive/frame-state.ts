@@ -17,8 +17,13 @@ import { Listened } from './state.js';
 // a frame state among their sources). One `requestAnimationFrame` a frame for all of them; nothing is allocated an
 // offer.
 
-const raf: (fn: () => void) => unknown =
-  typeof requestAnimationFrame === 'function' ? (fn) => requestAnimationFrame(fn) : (fn) => setTimeout(fn, 16);
+const raf: (fn: (time: number) => void) => unknown =
+  typeof requestAnimationFrame === 'function'
+    ? (fn) => requestAnimationFrame(fn)
+    : (fn) => setTimeout(() => fn(performance.now()), 16);
+
+/** The page's frame requests and the callbacks run: counted for the idle and interaction budget. */
+export const FrameCounts = { requested: 0, callbacks: 0 };
 
 /** The frame states offered in this frame (reused, emptied by count). */
 let offered: (FrameState<unknown> | undefined)[] = [];
@@ -35,11 +40,74 @@ export const FrameLane: { work: (() => void) | undefined; after: (() => void) | 
 export function requestFrame(): void {
   if (requested) return;
   requested = true;
+  FrameCounts.requested++;
   raf(frameTick);
 }
 
-function frameTick(): void {
+// Frame callbacks (rendering.md §2.3, one frame tick): what a component would ask `requestAnimationFrame` for (a
+// placement, a canvas's draw, a simulation's step) joins the page's one frame request, run in the order asked, before
+// the frame states publish. One asked for while they run waits for the next frame. Reused arrays, emptied by count.
+let callbacks: (((time: number) => void) | undefined)[] = [];
+let callbackIds: number[] = [];
+let callbackCount = 0;
+let spareCallbacks: (((time: number) => void) | undefined)[] = [];
+let spareIds: number[] = [];
+let nextId = 1;
+
+/** Runs `fn` in the next frame (the page's one frame tick); returns an id for `cancelFrameCallback`. */
+export function requestFrameCallback(fn: (time: number) => void): number {
+  const id = nextId++;
+  callbacks[callbackCount] = fn;
+  callbackIds[callbackCount++] = id;
+  requestFrame();
+  return id;
+}
+
+/** Frame callbacks asked for and not yet run nor cancelled (tests: a view disposed asks for none). */
+export function pendingFrameCallbacks(): number {
+  let n = 0;
+  for (let i = 0; i < callbackCount; i++) if (callbacks[i]) n++;
+  return n;
+}
+
+/** Drops a frame callback not yet run. */
+export function cancelFrameCallback(id: number): void {
+  for (let i = 0; i < callbackCount; i++)
+    if (callbackIds[i] === id) {
+      callbacks[i] = undefined;
+      // Cancelled at the end (asked for again at the next event, the common case): dropped, so a run of events between
+      // two frames keeps one entry, not one an event.
+      while (callbackCount > 0 && callbacks[callbackCount - 1] === undefined) callbackCount--;
+      return;
+    }
+}
+
+function runCallbacks(time: number): void {
+  const list = callbacks;
+  const ids = callbackIds;
+  const n = callbackCount;
+  if (n === 0) return;
+  callbacks = spareCallbacks;
+  callbackIds = spareIds;
+  callbackCount = 0;
+  spareCallbacks = list;
+  spareIds = ids;
+  for (let i = 0; i < n; i++) {
+    const fn = list[i];
+    list[i] = undefined;
+    if (!fn) continue;
+    FrameCounts.callbacks++;
+    try {
+      fn(time);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
+
+function frameTick(time: number): void {
   requested = false;
+  runCallbacks(time);
   publishOffered();
   FrameLane.work?.();
   FrameLane.after?.();

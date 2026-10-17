@@ -27,6 +27,7 @@ import {
 import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // The PAE plot (parity.md §6; AlphaFold DB's, in Prism's look): the heat map, scored residue across and aligned residue
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
@@ -363,7 +364,7 @@ export function PaePlot(props: PaePlotProps) {
     hover(at);
   };
   const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(update);
+    if (!frame) frame = requestFrameCallback(update);
   };
   plot.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
@@ -414,7 +415,7 @@ export function PaePlot(props: PaePlotProps) {
     props.onBox?.(undefined);
   };
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     if (hoverTimer !== undefined) clearTimeout(hoverTimer);
     // Leaving: what the plot lit goes with it.
     if (cellKey >= 0) props.onHover?.(undefined);

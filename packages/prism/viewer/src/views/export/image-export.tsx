@@ -18,6 +18,7 @@ import type { CropBox, ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 /** Besides an image, what else renders the view (an animation): a choice of the switch, and its controls. */
 export interface PictureKind {
   readonly id: string;
@@ -148,7 +149,7 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
   };
   const end = (e: PointerEvent) => {
     if (!drag) return;
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     apply();
     drag = undefined;
     const el = e.currentTarget as HTMLElement;
@@ -156,7 +157,7 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
     if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
   };
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     drag = undefined;
   });
   return (
@@ -199,7 +200,7 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
         if (!drag) return;
         x = e.clientX;
         y = e.clientY;
-        if (!frame) frame = requestAnimationFrame(apply);
+        if (!frame) frame = requestFrameCallback(apply);
       }}
       onPointerUp={end}
       onPointerCancel={end}

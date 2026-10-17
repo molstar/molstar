@@ -10,6 +10,7 @@ import { rafScheduler, type Scheduler } from '@molstar/seq-viewer';
 import { DefaultSequenceTheme } from './document.js';
 import type { SequenceEdits, SequenceOverride, SequenceStyle, SequenceViewer } from './model.js';
 import { DefaultTracksRail, type TracksRail } from './presets.js';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // The sequence's runtime (sequence.md §2, viewer-spec.md §2.3): Seq* and everything over it, one chunk the spec loads
 // (`sequence.runtime`) when a structure is first shown, or an operation or a saved state needs it. The viewer's core
@@ -25,9 +26,9 @@ export { sequenceShellUI } from './shell-ui.js';
 export function sequenceFrames(page: boolean): Scheduler {
   return rafScheduler({
     requestAnimationFrame: page
-      ? (cb) => requestAnimationFrame(cb)
+      ? (cb) => requestFrameCallback(cb)
       : (cb) => setTimeout(() => cb(performance.now()), 16) as unknown as number,
-    cancelAnimationFrame: page ? (id) => cancelAnimationFrame(id) : (id) => clearTimeout(id),
+    cancelAnimationFrame: page ? (id) => cancelFrameCallback(id) : (id) => clearTimeout(id),
     setTimeout: (cb, ms) => setTimeout(cb, ms) as unknown as number,
     clearTimeout: (id) => clearTimeout(id),
     now: () => performance.now(),

@@ -12,6 +12,7 @@
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pendingFrameCallbacks } from '@molstar/prism-ui/reactive/frame-state';
 import type { VolumeLevelUnit } from '../../../model/volume-levels.js';
 import type {
   TransferChange,
@@ -114,22 +115,18 @@ describe('the transfer function view', () => {
   });
 
   it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
-    const frames: FrameRequestCallback[] = [];
-    const cancelled: number[] = [];
-    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
-    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
+    // Frames through the page's one frame tick (`requestFrameCallback`): pending ones counted.
+    const before = pendingFrameCallbacks();
     HTMLElement.prototype.setPointerCapture = () => undefined;
     const t = mount();
     const point = t.sliders()[1];
     point.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 5 }));
     point.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6, clientY: 6 }));
     expect(t.settled).toEqual([]);
-    expect(frames.length).toBeGreaterThan(0);
+    expect(pendingFrameCallbacks()).toBeGreaterThan(before);
 
     t.dispose();
     expect(t.settled).toEqual([1]);
-    expect(cancelled.length).toBeGreaterThan(0);
-    raf.mockRestore();
-    caf.mockRestore();
+    expect(pendingFrameCallbacks()).toBe(before);
   });
 });

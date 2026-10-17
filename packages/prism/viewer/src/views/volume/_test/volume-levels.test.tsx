@@ -12,6 +12,7 @@
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pendingFrameCallbacks } from '@molstar/prism-ui/reactive/frame-state';
 import type {
   VolumeLevel,
   VolumeLevelChange,
@@ -99,10 +100,8 @@ describe('the levels view', () => {
   });
 
   it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
-    const frames: FrameRequestCallback[] = [];
-    const cancelled: number[] = [];
-    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
-    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
+    // Frames through the page's one frame tick (`requestFrameCallback`): pending ones counted.
+    const before = pendingFrameCallbacks();
     (globalThis as { CSS?: unknown }).CSS ??= { escape: (s: string) => s };
     const t = mount();
     const marker = t.container.querySelector<HTMLElement>('[data-level]')!;
@@ -110,12 +109,10 @@ describe('the levels view', () => {
     marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5 }));
     marker.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6 }));
     expect(t.settled()).toBe(0);
-    expect(frames.length).toBeGreaterThan(0);
+    expect(pendingFrameCallbacks()).toBeGreaterThan(before);
 
     t.dispose();
     expect(t.settled()).toBe(1);
-    expect(cancelled.length).toBeGreaterThan(0);
-    raf.mockRestore();
-    caf.mockRestore();
+    expect(pendingFrameCallbacks()).toBe(before);
   });
 });

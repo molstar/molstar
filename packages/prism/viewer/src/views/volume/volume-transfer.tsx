@@ -28,6 +28,7 @@ import { classes } from './_generated/volume-transfer.module.css.js';
 import { formatIn, histogramPath } from './volume-levels.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // A direct volume's transfer function (model/volume-transfer.ts): on one axis, the map's values as a histogram, the
 // opacity as a curve through its points (a log scale: opacities per step are small) with the area under it in the
 // colors the renderer paints there, and under it the color strip with the theme's stops. Points: drag, click to add,
@@ -167,7 +168,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
     model.change({ stops: s });
   };
   const flush = () => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
     if (!dragging || !rect) return;
     const p = at(pointer.x, pointer.y);
@@ -183,7 +184,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   };
   // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
     if (dragging) {
       dragging = undefined;
@@ -194,7 +195,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   const onMove = (e: PointerEvent) => {
     if (!dragging) return;
     pointer = { x: e.clientX, y: e.clientY };
-    if (!frame) frame = requestAnimationFrame(flush);
+    if (!frame) frame = requestFrameCallback(flush);
   };
   const capture = (e: PointerEvent) => {
     e.preventDefault();

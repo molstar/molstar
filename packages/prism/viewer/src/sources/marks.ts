@@ -16,6 +16,7 @@ import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { themeForColor } from '@molstar/prism-ui/model/canvas-theme';
 import { merge } from 'rxjs';
 import { fromChanged, type SourceScope } from './state.js';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // Marks (marks.md): named residue ranges a view puts on the scene for a while, shown at once in the 3D view and in the
 // sequence, each in a tone: `highlight` (yellow) or `accent` (the UI's accent). The PAE plot's box marks its aligned
@@ -215,7 +216,7 @@ function paintMarks(
   };
   const schedule = () => {
     if (frame) return;
-    frame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(paint) : (queueMicrotask(paint), -1);
+    frame = typeof requestAnimationFrame === 'function' ? requestFrameCallback(paint) : (queueMicrotask(paint), -1);
   };
   const repaintAll = () => {
     if (!marks.value.length && !painted.size) return;
@@ -238,7 +239,7 @@ function paintMarks(
   ];
   return () => {
     for (const s of subs) s.unsubscribe();
-    if (frame > 0) cancelAnimationFrame(frame);
+    if (frame > 0) cancelFrameCallback(frame);
     for (const [repr, ref] of painted) {
       if (plugin.state.data.tree.transforms.has(ref)) repr.setState({ overpaint: ownOverpaint(plugin, ref) });
     }

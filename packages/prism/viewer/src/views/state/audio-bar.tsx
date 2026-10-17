@@ -16,6 +16,7 @@ import { type AudioModel, formatTime } from '../../features/snapshots/audio.js';
 import { classes } from './_generated/audio-bar.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // A story's audio in the playback card (in place of the browser's own player): play or pause, how far it is as a line
 // to click or drag along, the time, stop, and close (the player goes until a command makes another).
 
@@ -28,7 +29,7 @@ export function AudioBar(props: { model: AudioModel }) {
   let frame = 0;
   let clientX = 0;
   const seek = () => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
     if (rect) model.seek((clientX - rect.left) / (rect.width || 1));
   };
@@ -37,7 +38,7 @@ export function AudioBar(props: { model: AudioModel }) {
     rect = undefined;
   };
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
   });
   return (
@@ -74,14 +75,14 @@ export function AudioBar(props: { model: AudioModel }) {
         onPointerMove={(e) => {
           if (!rect) return;
           clientX = e.clientX;
-          if (!frame) frame = requestAnimationFrame(seek);
+          if (!frame) frame = requestFrameCallback(seek);
         }}
         onPointerUp={(e) => {
           clientX = e.clientX;
           release();
         }}
         onPointerCancel={() => {
-          if (frame) cancelAnimationFrame(frame);
+          if (frame) cancelFrameCallback(frame);
           frame = 0;
           rect = undefined;
         }}

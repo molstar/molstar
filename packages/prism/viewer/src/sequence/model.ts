@@ -42,6 +42,7 @@ import { legendOf, type SequenceLegend, withTracks } from './legend.js';
 import { PrismSequenceSpec } from './spec.js';
 import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
 import { type SequenceFonts, skinFor, plainCellHex } from './skin.js';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // The sequence model (sequence.md §1): owns the Seq* contexts, one per id ('default' only for now), and keeps
 // each in step with what the viewer follows: the canvas ink (its skin), the structure the 3D view shows (its
@@ -287,8 +288,8 @@ export interface SequenceViewersDeps {
 
 const windowFrames = (): Scheduler =>
   rafScheduler({
-    requestAnimationFrame: (cb) => requestAnimationFrame(cb),
-    cancelAnimationFrame: (id) => cancelAnimationFrame(id),
+    requestAnimationFrame: (cb) => requestFrameCallback(cb),
+    cancelAnimationFrame: (id) => cancelFrameCallback(id),
     setTimeout: (cb, ms) => setTimeout(cb, ms) as unknown as number,
     clearTimeout: (id) => clearTimeout(id),
     now: () => performance.now(),

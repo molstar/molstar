@@ -68,6 +68,7 @@ import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // The viewer on a page (viewer-spec.md §6): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
 // 29); styles are adopted into its shadow root (library.md §3).
@@ -722,7 +723,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
     // The next frame, or a moment later where there are no frames (a background tab): creation never waits on visibility.
     await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
+      requestFrameCallback(() => resolve());
       setTimeout(resolve, 50);
     });
     const mounted = await core.mountCanvas(canvasHost);

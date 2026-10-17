@@ -26,6 +26,7 @@
 import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { Glass } from './glass.js';
 import { GlassFootprint } from './glass-footprint.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 
 export interface QuantumFieldOptions {
   /** Wave packets that come in per second. */
@@ -647,7 +648,7 @@ export class QuantumField {
 
   stop(): void {
     this.#running = false;
-    if (this.#frame) cancelAnimationFrame(this.#frame);
+    if (this.#frame) cancelFrameCallback(this.#frame);
     this.#frame = 0;
   }
 
@@ -663,7 +664,7 @@ export class QuantumField {
   #schedule(): void {
     if (this.#still || !this.#running || !this.#visible || this.#frame) return;
     this.#last = 0;
-    this.#frame = requestAnimationFrame(this.#tick);
+    this.#frame = requestFrameCallback(this.#tick);
   }
 
   readonly #tick = (now: number) => {
@@ -678,7 +679,7 @@ export class QuantumField {
     this.#frameDt = dt;
     this.#step(dt);
     this.#draw();
-    this.#frame = requestAnimationFrame(this.#tick);
+    this.#frame = requestFrameCallback(this.#tick);
   };
 
   #drawStill(): void {

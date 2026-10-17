@@ -8,6 +8,7 @@
 
 import { type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { merge, Observable, type Subscription } from 'rxjs';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // A source that follows the plugin only while someone watches it (prism AGENTS.md: hidden UI holds no subscriptions;
 // the pattern of the state tree's `watched()`, once): the events are listened to from the first subscriber to the last,
@@ -31,8 +32,8 @@ type Frame = (cb: () => void) => () => void;
 /** The next animation frame where there is one (a page), else a timer of about one. */
 const nextFrame: Frame = (cb) => {
   if (typeof requestAnimationFrame === 'function') {
-    const id = requestAnimationFrame(cb);
-    return () => cancelAnimationFrame(id);
+    const id = requestFrameCallback(cb);
+    return () => cancelFrameCallback(id);
   }
   const id = setTimeout(cb, 16);
   return () => clearTimeout(id);

@@ -13,14 +13,16 @@ import { RawAttach } from './scoped-attach.offenders.js';
 
 // What a component attaches imperatively is released by construction (rendering.md §2.4): the scoped helpers
 // (dom/scoped.ts: `on`, `observeResize`, `observeIntersection`, `frame`, `timeout`) are the way. A raw
-// `addEventListener`, `new ResizeObserver` or `IntersectionObserver`, `setInterval` or `requestAnimationFrame` in a
+// `addEventListener`, `new ResizeObserver` or `IntersectionObserver`, `setInterval`, `requestAnimationFrame` or a frame
+// callback asked for by hand (`requestFrameCallback`: pooled, but not released with its scope) in a
 // component file (the `.tsx` of ui, viewer and assistant, and the extensions' Prism UI) counts; the files that still
 // have them are listed with their counts (scoped-attach.offenders.ts), a new one or more in a listed one fails, and a
 // listed one with fewer must lower its entry.
 
 const prism = path.resolve(import.meta.dirname, '../../..');
 const repo = path.resolve(prism, '../..');
-const Raw = /\.addEventListener\(|new (Resize|Intersection)Observer\(|\bsetInterval\(|\brequestAnimationFrame\(/g;
+const Raw =
+  /\.addEventListener\(|new (Resize|Intersection)Observer\(|\bsetInterval\(|\brequestAnimationFrame\(|\brequestFrameCallback\(/g;
 
 function* tsx(dir: string): Generator<string> {
   if (!fs.existsSync(dir)) return;

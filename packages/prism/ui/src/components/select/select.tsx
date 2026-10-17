@@ -19,6 +19,7 @@ import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
 import { derive } from '../../reactive/state.js';
+import { requestFrameCallback } from '../../reactive/frame-state.js';
 /** An option: its value, its label, and the group it is listed under (Mol*'s option categories), if any. */
 export type SelectOption = readonly [value: string, label: string, group?: string];
 
@@ -270,7 +271,7 @@ export function MenuPopover(props: {
         ref={(el: HTMLElement) => {
           menu = el;
           // Into it once it shows (the popover opens on the next microtask).
-          requestAnimationFrame(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
+          requestFrameCallback(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
         }}
       >
         {props.children}

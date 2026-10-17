@@ -23,6 +23,7 @@ import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/volume-levels.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // A map's levels (model/volume-levels.ts; v5's density controls, improved): the map's values as a histogram with a
 // marker per level, dragged (or stepped with the arrow keys) to set the iso value, the part of the map the surface
 // encloses tinted in its color; under it a row per level: its color (a click opens the picker and the opacity), its
@@ -94,7 +95,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
   const valueAt = (clientX: number) =>
     clamp(stats.min + span * Math.min(1, Math.max(0, (clientX - rect!.left) / (rect!.width || 1))));
   const flush = () => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
     if (dragging) model.change(dragging, { value: valueAt(pointerX) });
   };
@@ -107,7 +108,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
   };
   // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
     frame = 0;
     if (dragging) {
       dragging = undefined;
@@ -137,7 +138,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
   const onPointerMove = (e: PointerEvent) => {
     if (!dragging) return;
     pointerX = e.clientX;
-    if (!frame) frame = requestAnimationFrame(flush);
+    if (!frame) frame = requestFrameCallback(flush);
   };
   const onKey = (id: string) => (e: KeyboardEvent) => {
     const level = model.levels.value.find((l) => l.id === id);

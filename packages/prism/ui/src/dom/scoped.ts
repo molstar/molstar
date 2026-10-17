@@ -7,6 +7,7 @@
  */
 
 import { createLatest, createWorkQueue, type Latest, type WorkLane, type WorkQueue } from '../reactive/work-queue.js';
+import { cancelFrameCallback, requestFrameCallback } from '../reactive/frame-state.js';
 import { requireScope } from './scope.js';
 
 // What a component attaches imperatively, released by construction (rendering.md §2.4): each helper ties what it
@@ -68,16 +69,33 @@ export function observeIntersection(
   return observer;
 }
 
-/** Runs `fn` in the next animation frame, unless the current scope ends first. Returns its cancel. */
+/**
+ * Runs `fn` in the next frame (the page's one frame tick, `requestFrameCallback`), unless the current scope ends first;
+ * paused then, in the first frame after it resumes (hidden UI does nothing). Returns its cancel.
+ */
 export function frame(fn: (time: number) => void): () => void {
-  const id = requestAnimationFrame(fn);
+  const scope = requireScope('frame');
   let done = false;
+  let id = 0;
+  const run = (time: number) => {
+    if (done || scope.disposed) return;
+    if (!scope.active) {
+      // Paused: wait for the resume (the hook added only now, in this rare case).
+      scope.onActive((active) => {
+        if (active && !done) id = requestFrameCallback(run);
+      });
+      return;
+    }
+    done = true;
+    fn(time);
+  };
+  id = requestFrameCallback(run);
   const cancel = () => {
     if (done) return;
     done = true;
-    cancelAnimationFrame(id);
+    cancelFrameCallback(id);
   };
-  requireScope('frame').onCleanup(cancel);
+  scope.onCleanup(cancel);
   return cancel;
 }
 

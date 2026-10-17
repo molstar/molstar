@@ -12,6 +12,7 @@ import { WordmarkGeometry } from '../../components/icon/wordmark.js';
 import { onActive, onCleanup } from '../../dom/scope.js';
 import { classes } from './_generated/glass-wordmark.module.css.js';
 import { Glass } from './glass.js';
+import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
 
 /** How far the pieces travel, as a factor of the empty canvas's: a heading has little room. */
 const Travel = 0.35;
@@ -127,12 +128,12 @@ export function GlassWordmark(props: {
     last = now;
     glass.step(dt);
     draw();
-    if (!glass.resting) frame = requestAnimationFrame(tick);
+    if (!glass.resting) frame = requestFrameCallback(tick);
     else last = 0;
   };
   const wake = () => {
     if (!glass || !active || frame) return;
-    frame = requestAnimationFrame(tick);
+    frame = requestFrameCallback(tick);
   };
 
   // The pointer, in drawing units: the box is read when it comes in (not per move: no layout reads at pointer rate).
@@ -167,13 +168,13 @@ export function GlassWordmark(props: {
   onActive((a) => {
     active = a;
     if (!a) {
-      if (frame) cancelAnimationFrame(frame);
+      if (frame) cancelFrameCallback(frame);
       frame = 0;
       last = 0;
       return;
     }
     // Sized and colored once it is in the page (on its first frame).
-    requestAnimationFrame(() => {
+    requestFrameCallback(() => {
       if (!active) return;
       prepare();
       if (glass && (props.assemble?.() ?? true)) {
@@ -184,7 +185,7 @@ export function GlassWordmark(props: {
   });
   onCleanup(() => {
     active = false;
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFrameCallback(frame);
   });
   return root;
 }
