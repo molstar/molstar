@@ -144,12 +144,14 @@ export function ShellView(props: ShellViewProps) {
   const canvasEnd = derive([pinnedWidth, floating, railTake], (pinnedPx, f, rail) =>
     pinnedPx > 0 ? pinnedPx : f ? rail : 0,
   );
-  // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
+  // What floats on the right takes this much of the canvas: the bottom bar and the hover label keep clear of it.
   const rightInset = derive(
-    [rightDock.size, right.active, floating, pinned, railPx, expanded, compact],
-    // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
-    // margin. Pinned, both are outside the canvas: only the margin is left. Compact, the rail is the bottom bar.
-    (size, active, f, p, rail, e, c) => `${p || e ? Edge : (c ? 0 : rail) + Edge + (f && active ? size + Edge : 0)}px`,
+    [rightDock.size, right.active, shell.overlay, floating, pinned, railPx, expanded, compact],
+    // The docked rail is the canvas's right edge, and the open panel is too, or an overlay card open in its place: what
+    // sits beside either keeps the frame margin. Pinned, both are outside the canvas: only the margin is left. Compact,
+    // the rail is the bottom bar.
+    (size, active, overlay, f, p, rail, e, c) =>
+      `${p || e ? Edge : (c ? 0 : rail) + Edge + (f && (active || !!overlay) ? size + Edge : 0)}px`,
   );
   const cornerInset = derive(
     [pinned, compact, railTake, compactRail, expanded],

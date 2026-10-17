@@ -11,11 +11,10 @@
   top: 0;
   left: 0;
   z-index: var(--msp-z-tooltip);
-  display: grid;
-  gap: 1px;
   max-width: 280px;
   padding: var(--msp-space-2) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
+  /* The panels' and the toolbar's radius: it floats over the canvas as they do. */
+  border-radius: var(--msp-radius-lg);
   font-size: var(--msp-font-size-sm);
   pointer-events: none;
   will-change: transform;
@@ -29,6 +28,18 @@
      it, as in the panels. */
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
+}
+
+/* The lines, at most `--msp-hover-label-height` tall: past it the label is cut and fades out over its last lines (it
+   takes no pointer, so it cannot scroll). The fade is placed from the top, so a label shorter than the cap is never
+   faded, with no measuring. On the body, not the label: a mask on the label would clip its edge and shadow. */
+.body {
+  --cap: var(--msp-hover-label-height, 16rem);
+  display: grid;
+  gap: 1px;
+  max-height: var(--cap);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 calc(var(--cap) - 2.5em), transparent var(--cap));
 }
 
 /* Hidden: fades out over a short beat, so it does not vanish mid-glance, yet starts at once; visibility follows when the

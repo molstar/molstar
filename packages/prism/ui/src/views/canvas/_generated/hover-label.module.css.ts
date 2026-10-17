@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'body': 'msp-canvas-hover-label-body',
   'code': 'msp-canvas-hover-label-code',
   'corner': 'msp-canvas-hover-label-corner',
   'item': 'msp-canvas-hover-label-item',
@@ -26,18 +27,25 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
   z-index: var(--msp-z-tooltip);
   max-width: 280px;
   padding: var(--msp-space-2) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
+  border-radius: var(--msp-radius-lg);
   font-size: var(--msp-font-size-sm);
   pointer-events: none;
   will-change: transform;
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
-  gap: 1px;
   transition: none;
-  display: grid;
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.msp-canvas-hover-label-body {
+  --cap: var(--msp-hover-label-height, 16rem);
+  max-height: var(--cap);
+  mask-image: linear-gradient(to bottom, #000 calc(var(--cap) - 2.5em), transparent var(--cap));
+  gap: 1px;
+  display: grid;
+  overflow: hidden;
 }
 
 .msp-canvas-hover-label-out {

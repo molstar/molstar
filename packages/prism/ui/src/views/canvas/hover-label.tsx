@@ -74,12 +74,17 @@ export function HoverLabel(props: {
   placement?: 'corner' | 'cursor';
 }) {
   const corner = (props.placement ?? 'corner') === 'corner';
+  // The lines in a body of their own: a long label (Markdown, a long entity name) is cut at the body's height and fades
+  // out there, the label's edge and shadow untouched (hover-label.module.css, `.body`).
+  const body = (<div class={classes.body} />) as HTMLElement;
   const label = (
     <div
       class={`${classes.label} ${classes.out}${corner ? ` ${classes.corner}` : ''}`}
       role="tooltip"
       aria-hidden="true"
-    />
+    >
+      {body}
+    </div>
   ) as HTMLElement;
 
   // What shows: a new label at once; an empty one only if it is still empty a frame later, so a pointer moving fast from
@@ -150,7 +155,7 @@ export function HoverLabel(props: {
 
   bind(shown.asReadonly, (lines) => {
     // Emptied, the last text stays for the fade out.
-    if (lines.length) label.replaceChildren(...lines.map(lineElement));
+    if (lines.length) body.replaceChildren(...lines.map(lineElement));
     hasContent = lines.length > 0;
     update();
   });
