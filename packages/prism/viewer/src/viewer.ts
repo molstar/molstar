@@ -517,7 +517,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       checkSpecCommands,
       attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
-        const ok = await mountCanvas(plugin, el);
+        const ok = await mountCanvas(plugin, el, { pauseOutOfView: options.ui.pauseOutOfView });
         if (ok) disposers.push(() => unmountCanvas(plugin));
         else modules.delete('canvas');
         return ok;

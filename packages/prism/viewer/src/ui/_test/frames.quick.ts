@@ -61,7 +61,7 @@ globalThis.queueMicrotask = ((fn: VoidFunction) => {
   return nativeMicrotask(fn);
 }) as typeof queueMicrotask;
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const nextFrame = () => new Promise<number>((r) => nativeRaf(r));
 
 /** Counts over `run`: Prism's frame requests and microtasks, and the most frame requests between two browser frames. */

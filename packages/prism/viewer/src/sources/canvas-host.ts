@@ -9,6 +9,7 @@
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
+import { followCanvasPresence, pausesOutOfView, unfollowCanvasPresence } from './canvas-presence.js';
 
 // The canvas in a page's viewer. Resizes (README decision 28): the plugin waits out a 50 ms debounce and a 100 ms
 // throttle, and sizing the canvas element clears it, so the frame after is blank until the next draw. Here the host's
@@ -19,16 +20,22 @@ import type { PluginContext } from '@molstar/plugin/context';
 const observers = new WeakMap<PluginContext, ResizeObserver>();
 
 /** Mounts the plugin's canvas in `host` (a page's viewer); false when the canvas cannot start (no WebGL). */
-export async function mountCanvas(plugin: PluginContext, host: HTMLElement): Promise<boolean> {
+export async function mountCanvas(
+  plugin: PluginContext,
+  host: HTMLElement,
+  o: { pauseOutOfView?: 'auto' | 'always' | 'never' } = {},
+): Promise<boolean> {
   const ok = !!(await plugin.mountAsync(host));
   if (ok) {
     smoothResizes(plugin);
     longPress(plugin);
+    if (pausesOutOfView(o.pauseOutOfView ?? 'auto')) followCanvasPresence(plugin);
   }
   return ok;
 }
 
 export function unmountCanvas(plugin: PluginContext): void {
+  unfollowCanvasPresence(plugin);
   observers.get(plugin)?.disconnect();
   observers.delete(plugin);
   presses.get(plugin)?.();

@@ -6,7 +6,7 @@
     "declarationMap": false,
     "noEmit": true,
     "lib": ["ES2024", "DOM"],
-    "rootDir": ".",
+    "rootDir": "../../..",
     "types": ["node", "webxr"],
     "jsxImportSource": "@molstar/prism-ui/dom"
   },

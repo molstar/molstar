@@ -13,7 +13,10 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { ExampleFiles } from '../../testing/real-viewer.js';
 import { syncCameras } from '../../sources/camera.js';
 import type { PrismViewer } from '../../viewer.js';
+import type { PrismViewerSpec } from '../../spec.js';
 import { ViewerGrid, type ViewerCell } from './grid.js';
+import { CanvasContexts } from '../../sources/canvas-presence.js';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { fetchPoses, poseName, showPose } from './poses.js';
 
 // Several viewers on one page (README decision 29). Each viewer has its own shadow root, plugin, query languages, kept
@@ -134,3 +137,40 @@ function Poses() {
     />
   );
 }
+
+/**
+ * Fifty viewers on one page, more than the browser keeps WebGL contexts for (Chrome 16). Only the viewers in view run
+ * their canvas; past the page's budget, the contexts of viewers out of view are released, the longest unseen first, and
+ * a viewer scrolled back into view gets its context back (canvas-presence.ts). Scroll the grid: the viewers in view
+ * always draw, none stays black. The header counts the viewers, those in view and the live contexts.
+ */
+export const Fifty: StoryObj = {
+  name: 'Fifty viewers',
+  render: () =>
+    story(() => {
+      const files = [ExampleFiles.crambin, ExampleFiles.grm, ExampleFiles.cbs];
+      const names = ['Crambin', 'Gramicidin', '1CBS'];
+      const cells: ViewerCell[] = Array.from({ length: 50 }, (_, i) => ({
+        key: `fifty-${i}`,
+        title: `${i + 1}. ${names[i % 3]}`,
+        setup: (v) => load(v, files[i % 3]),
+      }));
+      const readout = document.createElement('code');
+      const update = () => {
+        const s = CanvasContexts.stats();
+        readout.textContent = `viewers ${s.viewers} · in view ${s.inView} · live WebGL contexts ${s.live} (budget ${CanvasContexts.budget}) · in view without one ${s.dark}`;
+      };
+      const timer = setInterval(update, 500);
+      onCleanup(() => clearInterval(timer));
+      update();
+      // `always`: also in an automated browser (where `auto` leaves canvases running), so a test sees what a person does.
+      return (
+        <ViewerGrid
+          minWidth={260}
+          cells={cells}
+          header={readout}
+          options={{ ui: { pauseOutOfView: 'always' } } as PrismViewerSpec['options']}
+        />
+      );
+    }),
+};

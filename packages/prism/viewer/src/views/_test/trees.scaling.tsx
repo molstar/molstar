@@ -44,7 +44,7 @@ function sceneTree(components: number, open: boolean): Mounted {
   flush();
   return { fx, box, dispose };
 }
-const unmount = (m: { box: HTMLElement; dispose: () => void }) => {
+const unmount = <M extends { box: HTMLElement; dispose: () => void }>(m: M) => {
   m.dispose();
   m.box.remove();
 };

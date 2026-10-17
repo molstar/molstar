@@ -11,7 +11,7 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { pendingFrameCallbacks } from '@molstar/prism-ui/reactive/frame-state';
 import type {
   VolumeLevel,

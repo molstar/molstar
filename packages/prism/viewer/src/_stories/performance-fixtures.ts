@@ -47,8 +47,8 @@ function node(
   const kids = observableState<readonly SceneNode[]>(children.map((c) => c.node));
   // Opened or closed (by the row, or a test setting it), its children changed: the scene's change stream says so.
   if (log) {
-    isExpanded.listen(() => log.touch(id));
-    kids.listen(() => log.touch(id));
+    isExpanded.asReadonly.listen?.(() => log.touch(id));
+    kids.asReadonly.listen?.(() => log.touch(id));
   }
   const hidden = observableState(false);
   const n = {

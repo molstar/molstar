@@ -49,7 +49,7 @@ async function session(structures: number) {
   for (let i = 0; i < structures; i++) expectOk(await core.api.load.files({ files: [cbs()] }));
   // The sequence band's chunk in (it comes with the first structure shown, at its own pace): both sessions measured
   // with it, then settled.
-  await core.api.sequence.runtime();
+  await core.api.sequence?.runtime();
   await audit.quiet(500, 10_000);
   const byFile = () => {
     const m = new Map<string, number>();

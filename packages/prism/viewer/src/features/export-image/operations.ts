@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { holdCanvas } from '../../sources/canvas-presence.js';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -328,6 +329,8 @@ export class ExportApi extends ApiArea {
         if (!helper) return noCanvas();
         const bad = check(v);
         if (bad) return ApiResult.fail('invalid', bad);
+        // Rendered on purpose: the canvas is held (its context restored if it was released, its loop left alone).
+        const unhold = await holdCanvas(ctx.plugin);
         const restore = configure(helper, v);
         try {
           await settleCrop(ctx, helper);
@@ -343,6 +346,7 @@ export class ExportApi extends ApiArea {
           return ApiResult.fail('failed', `Could not render the image: ${message(e)}`);
         } finally {
           restore();
+          unhold();
         }
       }),
   });

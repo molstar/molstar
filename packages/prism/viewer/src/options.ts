@@ -119,6 +119,15 @@ export const PrismViewerOptions = {
       ['always', 'Always'],
       ['never', 'Never'],
     ]),
+    /**
+     * Whether a viewer's canvas pauses out of view, and its WebGL context joins the page's budget (README decision 29):
+     * `auto` does, except in an automated browser (`navigator.webdriver`: a capture or test page renders on purpose).
+     */
+    pauseOutOfView: PD.Select<'auto' | 'always' | 'never'>('auto', [
+      ['auto', 'Unless automated'],
+      ['always', 'Always'],
+      ['never', 'Never'],
+    ]),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

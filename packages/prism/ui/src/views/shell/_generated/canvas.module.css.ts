@@ -12,6 +12,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'announce': 'msp-shell-canvas-announce',
+  'bar': 'msp-shell-canvas-bar',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -39,6 +40,7 @@ export const classes = {
   'corner': 'msp-shell-canvas-corner',
   'countdown': 'msp-shell-canvas-countdown',
   'face': 'msp-shell-canvas-face',
+  'folded': 'msp-shell-canvas-folded',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
   'menuMark': 'msp-shell-canvas-menuMark',
@@ -813,6 +815,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   height: 1px;
   margin: var(--msp-space-1) var(--msp-space-2);
   background: var(--msp-glass-edge);
+}
+
+.msp-shell-canvas-bar, .msp-shell-canvas-folded {
+  min-width: 0;
 }
 }
 `);

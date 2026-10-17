@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { holdCanvas } from '../../sources/canvas-presence.js';
 import { OptionalParam } from '../../api/params.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginState } from '@molstar/plugin/state';
@@ -193,9 +194,16 @@ async function capture(ctx: ApiContext, options: Record<string, unknown>, showFo
   }
   const snapshot = plugin.state.getSnapshot(params);
   const wantsImage = params.image ?? plugin.state.snapshotParams.value.image;
-  const image = wantsImage
-    ? await PluginStateSnapshotManager.getCanvasImageAsset(plugin, `${snapshot.id}-image.png`)
-    : undefined;
+  let image: Awaited<ReturnType<typeof PluginStateSnapshotManager.getCanvasImageAsset>> | undefined;
+  if (wantsImage) {
+    // The thumbnail is rendered on purpose: the canvas is held while it is (README decision 29).
+    const unhold = await holdCanvas(plugin);
+    try {
+      image = await PluginStateSnapshotManager.getCanvasImageAsset(plugin, `${snapshot.id}-image.png`);
+    } finally {
+      unhold();
+    }
+  }
   return { snapshot, image };
 }
 

@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { expect, it } from 'vitest';
+import { it } from 'vitest';
 import { CommandManager } from '../commands/manager.js';
 import type { CommandDefinition } from '../commands/types.js';
 import { flattenTree } from '../components/virtual-list/virtual-list.js';

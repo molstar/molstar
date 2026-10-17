@@ -163,7 +163,17 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   **Shared on purpose**: the person's assistant keys (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`: one key
   serves every viewer in the browser; Forget in one viewer is seen by another after a reload), and module-level
   definitions that hold no state (the canvas settings' param definitions, `sources/settings.ts`). A host that keeps
-  cameras together uses `viewer.camera` / `syncCameras` (api.md §12).
+  cameras together uses `viewer.camera` / `syncCameras` (api.md §12). **A canvas works only in view**
+  (`sources/canvas-presence.ts`, the story `Viewer/Several viewers › Fifty viewers`): an IntersectionObserver stops the
+  plugin's animation loop out of view and starts it in view. WebGL contexts are the page's: a budget (12) is kept live,
+  the viewers out of view release theirs past it (the longest unseen first), and a viewer coming into view gets its
+  context back (up to `max`, 15, when more show at once), so the page never reaches the browser's limit (Chrome 16),
+  past which a dropped context cannot come back. A frame's changes are reconciled together, releases before restores; a
+  restore waits for the browser's `webglcontextlost` and counts as live until `webglcontextrestored`. **Work that
+  renders on purpose holds the canvas** (`holdCanvas`: image and video export, snapshot thumbnails): its loop and
+  context are left alone while held, and a released context is restored before the work starts.
+  `options.ui.pauseOutOfView` (`auto`: on, except in an automated browser, `navigator.webdriver`, where a capture page
+  renders on purpose; `always`; `never`); Node headless has no canvas to follow.
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
   ([api.md](api.md) §1).
 - **31. Colorblind-safe and high-contrast palettes** for the UI and the data

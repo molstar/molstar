@@ -15,6 +15,7 @@ import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewer } from '../../page.js';
 import { memoryStore, webStore } from '../../persist/stores.js';
 import type { PrismViewer } from '../../viewer.js';
+import type { PrismViewerSpec } from '../../spec.js';
 
 // Several real viewers on one page (README decision 29): a grid of hosts, each its own `createPrismViewer` with a persist
 // key of its own. The stories' shared part.
@@ -34,6 +35,8 @@ export interface ViewerGridProps {
   readonly minWidth?: number;
   /** The preferences go to localStorage under each key (a viewer keeps its theme and layout); else they are not kept. */
   readonly keep?: boolean;
+  /** Options for every viewer (the spec's `options`). */
+  readonly options?: PrismViewerSpec['options'];
   /** Above the grid (a story's controls). */
   readonly header?: Child;
   /** Once every viewer is made and set up; what it returns runs when the story goes. */
@@ -101,6 +104,7 @@ export function ViewerGrid(props: ViewerGridProps) {
         spec: {
           ...base,
           ...(cell.theme ? { ui: { ...base.ui, theme: cell.theme } } : {}),
+          ...(props.options ? { options: { ...base.options, ...props.options } } : {}),
           persist: {
             key: cell.key,
             preferences: props.keep
