@@ -36,16 +36,20 @@ import type { RunRecord } from '../api/run.js';
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.
 
 export const RecordCodec = 'prism-viewer.record.v1';
-/** The viewer's default persist key: what the records database is named after when the spec has none. */
-const DefaultPersistKey = 'prism-viewer';
-/** The IndexedDB database of a viewer without a `persist.key` (and of the app's, whose key is the default). */
-export const RecordsDatabase = `${DefaultPersistKey}-records`;
+/**
+ * The records' key of a viewer without a `persist.key` (journal.md §6, README decision 29): not the app's
+ * (`prism-viewer`), so an embedded viewer on the app's origin never lists, opens or forgets the app's kept records.
+ * Viewers without a key share it.
+ */
+const UnkeyedPersistKey = 'prism-default';
+/** The IndexedDB database of a viewer without a `persist.key`. */
+export const RecordsDatabase = `${UnkeyedPersistKey}-records`;
 /**
  * The IndexedDB database kept records go to when the spec gives no rows (journal.md §1, §6; History's Keep): named after
  * the viewer's `persist.key`, so viewers on a page keep their records apart (README decision 29). Viewers with no key
- * share the default one.
+ * share `prism-default-records`.
  */
-export const recordsDatabase = (persistKey?: string): string => `${persistKey || DefaultPersistKey}-records`;
+export const recordsDatabase = (persistKey?: string): string => `${persistKey || UnkeyedPersistKey}-records`;
 const Owner = threadOwnerId('prism-viewer');
 
 /** The thread's largest window (`maxWindowEntries`): longer reads go in pages of it. */
@@ -347,12 +351,17 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
   let disposed = false;
   let seq = 0;
   let keptIndex: { index: RecordIndex; title: string } | undefined;
-  /** Lets go of the kept rows (closes their connection) once, when the kept copy is forgotten or the record ends. */
+  /**
+   * Lets go of the kept rows (closes their connection) once, when the kept copy is forgotten or the record ends: after a
+   * fold of its index under way (journal.md §1), which writes to the same rows.
+   */
   let keptRelease: (() => void) | undefined;
-  const letGo = () => {
+  const letGo = async (index: RecordIndex | undefined) => {
     const release = keptRelease;
     keptRelease = undefined;
-    release?.();
+    if (!release) return;
+    await index?.idle().catch(() => undefined);
+    release();
   };
   /** The index's last touch, and whether entries were appended since. */
   let touched = 0;
@@ -664,6 +673,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
               }),
               'settle a turn',
             );
+            forgetPreview(host, entryId);
             dirty = true;
             await touch(true);
           }),
@@ -737,7 +747,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         dirty = false;
         await from.forget(fid);
         await index.forget(id);
-        letGo();
+        await letGo(index);
       });
     },
     flush: () => chain,
@@ -755,7 +765,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         void quiet(write(() => touch(true), false));
       }
       await chain;
-      letGo();
+      await letGo(keptIndex?.index);
       listeners.clear();
     },
   };
@@ -907,6 +917,7 @@ export function recordFromLines(text: string): FileRecord | undefined {
 }
 
 async function itemOf(host: ThreadHost, fid: ThreadId, e: ThreadEntry): Promise<RecordItem | undefined> {
+  if (e.state.kind !== 'streaming') forgetPreview(host, e.entryId);
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;
     if (!begun || typeof begun !== 'object' || begun.kind !== 'turn') return undefined;
@@ -922,31 +933,47 @@ async function itemOf(host: ThreadHost, fid: ThreadId, e: ThreadEntry): Promise<
   return { id: e.entryId, position: e.position, entry: value, open: e.state.kind !== 'settled' };
 }
 
-/** The reply streamed so far per stream, read incrementally: a read of a turn under way costs what was added since. */
-const previews = new WeakMap<ThreadHost, Map<string, { offset: number; text: string }>>();
+/**
+ * The reply streamed so far per stream, read incrementally: a read of a turn under way costs what was added since.
+ * `tail` is the stream's reads in order (journal.md §2): two readers at once (History and the assistant, an export
+ * racing a refresh) would both fold the deltas after the same offset, and the reply would double.
+ */
+type Preview = { offset: number; text: string; tail: Promise<string> };
+const previews = new WeakMap<ThreadHost, Map<string, Preview>>();
+
+/** @internal For tests: how many streams' previews are held for a host. */
+export const previewsHeld = (host: ThreadHost): number => previews.get(host)?.size ?? 0;
+
+/** A stream's preview is let go once its turn is not under way (settled, aborted, or gone with the host). */
+const forgetPreview = (host: ThreadHost, entryId: string) => void previews.get(host)?.delete(entryId);
 
 /** A turn's streamed reply: the deltas folded (`{ text }` appends, `{ replace }` starts over). Empty when there is none. */
-async function previewOf(host: ThreadHost, fid: ThreadId, entryId: ThreadEntryId): Promise<string> {
+function previewOf(host: ThreadHost, fid: ThreadId, entryId: ThreadEntryId): Promise<string> {
   let cache = previews.get(host);
   if (!cache) previews.set(host, (cache = new Map()));
-  const seen = cache.get(entryId) ?? { offset: 0, text: '' };
-  cache.set(entryId, seen);
-  try {
-    for (;;) {
-      const page = await host.deltas({ threadId: fid, entryId, afterOffset: seen.offset, limit: 256 });
-      if ('status' in page) break;
-      for (const b of page.batches) {
-        const v = b.payload.value as { text?: unknown; replace?: unknown } | null;
-        if (typeof v?.replace === 'string') seen.text = v.replace;
-        else if (typeof v?.text === 'string') seen.text += v.text;
+  let seen = cache.get(entryId);
+  if (!seen) cache.set(entryId, (seen = { offset: 0, text: '', tail: Promise.resolve('') }));
+  const s = seen;
+  const fold = async () => {
+    try {
+      for (;;) {
+        const page = await host.deltas({ threadId: fid, entryId, afterOffset: s.offset, limit: 256 });
+        if ('status' in page) break;
+        for (const b of page.batches) {
+          const v = b.payload.value as { text?: unknown; replace?: unknown } | null;
+          if (typeof v?.replace === 'string') s.text = v.replace;
+          else if (typeof v?.text === 'string') s.text += v.text;
+        }
+        s.offset = page.nextOffset;
+        if (!page.hasMore || !page.batches.length) break;
       }
-      seen.offset = page.nextOffset;
-      if (!page.hasMore || !page.batches.length) break;
+    } catch {
+      // a stream that cannot be read shows nothing more
     }
-  } catch {
-    // a stream that cannot be read shows nothing
-  }
-  return seen.text;
+    return s.text;
+  };
+  s.tail = s.tail.then(fold, fold);
+  return s.tail;
 }
 
 /** Every entry of a thread into another, in order, at the same positions (keep, and unkeep back into memory). */
@@ -1006,7 +1033,7 @@ async function copyEntry(
 /** The browser's kept records' rows, only when the database exists (listing never makes an empty one). */
 export async function openRecordsRows(
   database: string = RecordsDatabase,
-): Promise<(ThreadRows & { close?(): void }) | undefined> {
+): Promise<(RecordRows & { close?(): void }) | undefined> {
   let idb: IDBFactory | undefined;
   try {
     idb = globalThis.indexedDB;
@@ -1058,100 +1085,170 @@ interface IndexValue {
   readonly forget?: true;
 }
 
+/** Rows kept records go to: IndexedDB rows name their database (`createIndexedDbRows`), what the index is fenced by. */
+export type RecordRows = ThreadRows & { readonly database?: string };
+
+// One fence per database (journal.md §1): a viewer makes several indexes on one database (History's Keep, Home's list,
+// the Storage view), and viewers without a key share one, so nothing of any of them is read or appended while a fold
+// rewrites the thread. Across tabs, the Web Locks API where the browser has it (a lock per database); else a chain per
+// database in this page; rows the host gave (no database) are fenced by their object.
+const databaseFences = new Map<string, Promise<unknown>>();
+const rowsFences = new WeakMap<object, Promise<unknown>>();
+
+type Locks = { request<T>(name: string, work: () => Promise<T>): Promise<T> };
+const webLocks = (): Locks | undefined => {
+  try {
+    const locks = (globalThis.navigator as { locks?: Locks } | undefined)?.locks;
+    return typeof locks?.request === 'function' ? locks : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/** Runs `work` alone among the index work on these rows: in this page, and with Web Locks across tabs. */
+function fenced<T>(rows: RecordRows, work: () => Promise<T>): Promise<T> {
+  const database = rows.database;
+  if (database !== undefined) {
+    const locks = webLocks();
+    if (locks) return locks.request(`prism-viewer-records-index:${database}`, work);
+  }
+  const tail = (database !== undefined ? databaseFences.get(database) : rowsFences.get(rows)) ?? Promise.resolve();
+  const run = tail.then(work, work);
+  const next = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  if (database === undefined) rowsFences.set(rows, next);
+  else {
+    databaseFences.set(database, next);
+    void next.then(() => {
+      if (databaseFences.get(database) === next) databaseFences.delete(database);
+    });
+  }
+  return run;
+}
+
 /**
  * The index as a thread of its own in the same rows: append-only changes, folded when listed. Past `IndexFoldAt` entries
  * it is rewritten as one entry per kept record (its newest title and time, and the time it was first listed), which
  * drops the superseded touches and the forgotten records' tombstones. A record is never dropped by folding (a kept record
- * idle for 90 days is only marked in Home's list, and the person forgets it, journal.md §7).
+ * idle for 90 days is only marked in Home's list, and the person forgets it, journal.md §7). Every read and write is
+ * fenced per database (`fenced`); a fold writes the folded index to a sealed copy before it rewrites the thread, so a
+ * page closed mid-fold leaves something the next use finishes (`recover`).
  */
-export async function createRecordIndex(rows: ThreadRows): Promise<RecordIndex> {
+export async function createRecordIndex(rows: RecordRows): Promise<RecordIndex> {
   const host = createThreadHost({ rows });
   const fid = threadId('prism-viewer-records');
-  const create = async () => {
+  /** A fold's copy of the folded index, sealed by its last entry (`{ sealed }`). */
+  const copy = threadId('prism-viewer-records.fold');
+  const create = async (thread: ThreadId) => {
     const created = await host.create({
-      commandId: threadCommandId('records:create'),
-      threadId: fid,
+      commandId: threadCommandId(thread === fid ? 'records:create' : 'records:fold:create'),
+      threadId: thread,
       ownerId: Owner,
       limits: limits(),
     });
     if (created.status !== 'accepted' && created.status !== 'conflict')
       throw new Error('The records index could not start.');
   };
-  await create();
   let n = 0;
   const unique = () => `${Date.now().toString(36)}-${++n}-${Math.random().toString(36).slice(2, 8)}`;
-  const append = async (value: Json) =>
+  const append = async (thread: ThreadId, value: Json) =>
     host.append({
       commandId: threadCommandId(`records:${unique()}`),
-      threadId: fid,
+      threadId: thread,
       entryId: threadEntryId(`r-${unique()}`),
       descriptor: envelope({ kind: 'index' }),
       payload: envelope(value),
     });
 
-  /** The entries folded: one per record, oldest listed first; and how many entries there were. */
-  const read = async () => {
-    const out = new Map<string, KeptRecord>();
-    let count = 0;
+  /** A thread's settled values, in order; undefined when there is no such thread. */
+  const valuesOf = async (thread: ThreadId): Promise<unknown[] | undefined> => {
+    const out: unknown[] = [];
     let start = 0;
     for (;;) {
-      const page = await host.window({ threadId: fid, start, limit: RecordWindowMax, direction: 'forward' });
-      if ('status' in page) break;
-      for (const e of page.entries) {
-        if (e.state.kind !== 'settled') continue;
-        count++;
-        const v = e.state.payload.value as IndexValue;
-        if (v.forget) out.delete(v.id);
-        else {
-          const had = out.get(v.id);
-          out.set(v.id, {
-            id: v.id,
-            title: v.title ?? had?.title ?? v.id,
-            first: had?.first ?? v.first ?? v.at ?? 0,
-            last: v.at ?? had?.last ?? 0,
-          });
-        }
-      }
-      if (!page.hasMore) break;
+      const page = await host.window({ threadId: thread, start, limit: RecordWindowMax, direction: 'forward' });
+      if ('status' in page) return start === 0 ? undefined : out;
+      for (const e of page.entries) if (e.state.kind === 'settled') out.push(e.state.payload.value);
+      if (!page.hasMore) return out;
       start = page.endExclusive;
+    }
+  };
+
+  /** Appends a change; on a thread folded away by another page (one without Web Locks), once more on the new one. */
+  const put = async (value: IndexValue): Promise<number> => {
+    let r = await append(fid, value as unknown as Json);
+    if (r.status === 'not-found') {
+      await create(fid);
+      r = await append(fid, value as unknown as Json);
+    }
+    if (r.status !== 'accepted') throw new Error(`The records index could not be written (${r.status}).`);
+    return r.value.thread.nextPosition;
+  };
+
+  /** The thread written again as these entries, then the fold's copy let go. */
+  const rewrite = async (values: readonly IndexValue[]) => {
+    await host.forget(fid);
+    await create(fid);
+    for (const v of values) await put(v);
+    await host.forget(copy);
+  };
+
+  /**
+   * A fold a closed page left: a sealed copy is the index as folded (the thread may be half written), written again; an
+   * unsealed one is let go (the thread was not touched yet).
+   */
+  const recover = async () => {
+    const values = await valuesOf(copy);
+    if (!values) return;
+    const last = values[values.length - 1] as { sealed?: number } | undefined;
+    if (typeof last?.sealed === 'number') await rewrite(values.slice(0, -1) as IndexValue[]);
+    else await host.forget(copy);
+  };
+
+  /** The entries folded: one per record, oldest listed first; and how many entries there were. */
+  const read = async () => {
+    await recover();
+    const out = new Map<string, KeptRecord>();
+    let count = 0;
+    for (const value of (await valuesOf(fid)) ?? []) {
+      count++;
+      const v = value as IndexValue;
+      if (v.forget) out.delete(v.id);
+      else {
+        const had = out.get(v.id);
+        out.set(v.id, {
+          id: v.id,
+          title: v.title ?? had?.title ?? v.id,
+          first: had?.first ?? v.first ?? v.at ?? 0,
+          last: v.at ?? had?.last ?? 0,
+        });
+      }
     }
     return { records: [...out.values()], count };
   };
 
-  // One thing at a time in this index (a fold rewrites the thread: nothing is appended or read meanwhile). Other pages
-  // writing to the same rows are not fenced; a touch they lose is the next one's to write.
-  let tail: Promise<unknown> = Promise.resolve();
-  const exclusive = <T>(work: () => Promise<T>): Promise<T> => {
-    const run = tail.then(work, work);
-    tail = run.catch(() => undefined);
-    return run;
-  };
+  await fenced(rows, () => create(fid));
 
   /** How many records the index held when last read: folding is for when the entries are far more than that. */
   let known = 0;
   const foldAt = () => Math.max(IndexFoldAt, 2 * known);
   let folding: Promise<void> | undefined;
 
-  /** Appends a change; on a thread folded away by another page, once more on the new one. */
-  const put = async (value: IndexValue): Promise<number> => {
-    let r = await append(value as unknown as Json);
-    if (r.status === 'not-found') {
-      await create();
-      r = await append(value as unknown as Json);
-    }
-    if (r.status !== 'accepted') throw new Error(`The records index could not be written (${r.status}).`);
-    return r.value.thread.nextPosition;
-  };
-
-  /** Rewrites the thread as one entry per record, queued behind what is under way; once at a time. */
+  /** Rewrites the thread as one entry per record: the sealed copy first, then the thread; once at a time. */
   const fold = () =>
-    (folding ??= exclusive(async () => {
+    (folding ??= fenced(rows, async () => {
       const { records, count } = await read();
       known = records.length;
       if (count <= foldAt()) return;
-      await host.forget(fid);
-      await create();
-      for (const r of records) await put({ id: r.id, title: r.title, at: r.last, first: r.first });
+      const values = records.map((r): IndexValue => ({ id: r.id, title: r.title, at: r.last, first: r.first }));
+      await host.forget(copy);
+      await create(copy);
+      for (const v of [...values, { sealed: values.length }]) {
+        const r = await append(copy, v as unknown as Json);
+        if (r.status !== 'accepted') throw new Error(`The records index could not be folded (${r.status}).`);
+      }
+      await rewrite(values);
     })
       .catch((e) => console.error('[prism-viewer] the records index could not be folded:', e))
       .finally(() => {
@@ -1159,14 +1256,15 @@ export async function createRecordIndex(rows: ThreadRows): Promise<RecordIndex> 
       }));
 
   const change = (value: IndexValue) =>
-    exclusive(async () => {
+    fenced(rows, async () => {
+      await recover();
       const size = await put(value);
       if (size > foldAt()) void fold();
     });
 
   return {
     list: () =>
-      exclusive(async () => {
+      fenced(rows, async () => {
         const { records, count } = await read();
         known = records.length;
         if (count > foldAt()) void fold();

@@ -198,6 +198,10 @@ const viewer = await createPrismViewer({
 Give each viewer its own `persist.key`, for example `persist: { key: 'left' }`. Keys go to the viewer that has focus,
 not to the window.
 
+A viewer without a `persist.key` keeps its records under the key `prism-default`, apart from the Prism Viewer app's
+(`prism-viewer`). Viewers without a key on the same origin share one list of kept records: give a viewer its own key to
+keep its records apart.
+
 ## The assistant
 
 The assistant is not part of any default spec. The app adds it with `assistant()`, which returns a lazy loader:

@@ -116,7 +116,9 @@ describe('several viewers on a page', () => {
 
   it('keep their records in databases of their own', async () => {
     expect(recordsDatabase('fa')).not.toBe(recordsDatabase('fb'));
-    expect(recordsDatabase()).toBe('prism-viewer-records');
+    // A viewer without a key never shares the app's ('prism-viewer'); unkeyed viewers share theirs.
+    expect(recordsDatabase()).toBe('prism-default-records');
+    expect(recordsDatabase('')).toBe('prism-default-records');
     expect(recordsDatabase('prism-viewer')).toBe('prism-viewer-records');
 
     const a = await make('ra');

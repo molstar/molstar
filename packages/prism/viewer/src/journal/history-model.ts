@@ -134,7 +134,9 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
     const out = next.map((row) => {
       const sig = signatureOf(row);
       sigs.set(row.key, sig);
-      const same = signatures.get(row.key) === sig ? previous.get(row.key) : undefined;
+      const had = signatures.get(row.key) === sig ? previous.get(row.key) : undefined;
+      // A turn's reply is compared by its text: a streamed `{ replace }` (a retried call) can keep its length.
+      const same = had && (row.kind !== 'turn' || (had as HistoryTurnRow).reply === row.reply) ? had : undefined;
       const use = same ?? row;
       prev.set(row.key, use);
       return use;
@@ -256,13 +258,14 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
 
 /**
  * What can change in a row once made: entries are append-only, so a run changes only by being undone, a turn by settling
- * (its reply, outcome) and by its runs; cheaper than comparing the rows' JSON, whole replies included, every frame.
+ * (its outcome), by its runs, and by its reply (compared beside this, by its text); cheaper than comparing the rows' JSON
+ * every frame.
  */
 function signatureOf(row: HistoryRow): string {
   if (row.kind === 'run') return row.undone ? `u${row.undoneBy ?? ''}` : '';
   if (row.kind === 'session') return '';
   const runs = row.runs.map((r) => `${r.key}${r.undone ? `u${r.undoneBy ?? ''}` : ''}`).join(',');
-  return `${row.open}|${row.outcome ?? ''}|${row.undone}${row.undoneBy ?? ''}|${row.reply?.length ?? -1}|${runs}`;
+  return `${row.open}|${row.outcome ?? ''}|${row.undone}${row.undoneBy ?? ''}|${runs}`;
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;

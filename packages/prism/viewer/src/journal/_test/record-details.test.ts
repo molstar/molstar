@@ -207,6 +207,27 @@ describe('a turn in the record: its model and its reply as it streams', () => {
     await record.dispose();
   });
 
+  it('shows a replaced reply of the same length (a retried call)', async () => {
+    const { api } = fakeApi();
+    const m = manual();
+    const record = await createSessionRecord({ api, after: m.after });
+    const model = createHistoryModel(record, { schedule: (fn) => queueMicrotask(fn) });
+    model.setActive(true);
+    const turn = record.beginTurn('t1', 'explain');
+    const shown = async (text: string) => {
+      turn.reply(text);
+      m.fire();
+      await record.flush();
+      await model.idle();
+      return model.rows.value.find((r): r is HistoryTurnRow => r.kind === 'turn')!.reply;
+    };
+    expect(await shown('First try.')).toBe('First try.');
+    expect(await shown('Other text')).toBe('Other text');
+    await turn.settle({ reply: 'Done.', outcome: 'done' });
+    model.dispose();
+    await record.dispose();
+  });
+
   it('keeps what had streamed when it settles with nothing to say, and writes nothing for a reply too long to preview', async () => {
     const { api } = fakeApi();
     const m = manual();
