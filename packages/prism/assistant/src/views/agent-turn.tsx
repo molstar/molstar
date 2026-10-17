@@ -15,6 +15,8 @@ import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '.
 import { classes } from './_generated/agent-turn.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 const StatusIcons: Record<RunStatus, IconName> = {
   running: 'loader-circle',
   waiting: 'hourglass',
@@ -98,19 +100,17 @@ export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) 
     map((rs) => rs.map((r) => r.id)),
     distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
   );
+  // The runs by id, one map a change; a row is told only when its own run's record changes (a `find` a row, and a field,
+  // on every streamed token was runs² a token).
+  const byId = keyedState<string, CommandRun>();
+  bind(runs, (rs) => {
+    const m = new Map<string, CommandRun>();
+    for (const r of rs) m.set(r.id, r);
+    byId.replace(m);
+  });
   return (
     <div class={props.class}>
-      <For each={ids}>
-        {(id) => (
-          <RunRow
-            run={runs.pipe(
-              map((rs) => rs.find((x) => x.id === id)),
-              filter((x): x is CommandRun => !!x),
-              distinctUntilChanged(),
-            )}
-          />
-        )}
-      </For>
+      <For each={ids}>{(id) => <RunRow run={byId.key(id).pipe(filter((x): x is CommandRun => !!x))} />}</For>
     </div>
   );
 }
@@ -213,6 +213,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
           distinctUntilChanged(),
         );
         const running = turn.pipe(map(isRunning), distinctUntilChanged());
+        // The answer so far, and whether there is one (states: the paragraph is made once, its text follows).
+        const text = derive(agent.turn, (t) => (t?.id === id ? t.text : ''));
+        const hasText = derive(text, (x) => !!x);
         const waiting = turn.pipe(
           map((t) => t.runs.find((r) => r.status === 'waiting')),
           distinctUntilChanged(),
@@ -247,8 +250,10 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
               </button>
             </header>
             <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
-              <Show when={turn.pipe(map((t) => t.text))}>
-                {(text) => (
+              <Show when={hasText}>
+                {() => (
+                  // Made once: a streamed token changes its text, not the paragraph (made anew with the whole text a
+                  // token, a long answer was its length² of work).
                   <p class={classes.text} data-streaming={running.pipe(map((r) => (r ? '' : undefined)))}>
                     {text}
                   </p>

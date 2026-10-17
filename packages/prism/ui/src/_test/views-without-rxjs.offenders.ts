@@ -13,7 +13,7 @@
 export const RxjsInViews: Record<string, number> = {
   'extensions/model-archive/src/pae/plot.tsx': 2,
   'extensions/model-archive/src/pae/ui.tsx': 9,
-  'packages/prism/assistant/src/views/agent-turn.tsx': 27,
+  'packages/prism/assistant/src/views/agent-turn.tsx': 26,
   'packages/prism/assistant/src/views/ai-setup.tsx': 7,
   'packages/prism/assistant/src/views/history-tab.tsx': 15,
   'packages/prism/ui/src/components/action-footer/action-footer.tsx': 2,

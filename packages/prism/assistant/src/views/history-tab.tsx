@@ -15,6 +15,8 @@ import { isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.
 import { classes } from './_generated/history-tab.module.css.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
 
 function ago(time: Date) {
@@ -38,12 +40,15 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
     (h) => h.map(keyOf).reverse(),
     (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
-  const live = (id: string) =>
-    agent.history.pipe(
-      map((h) => h.find((x) => keyOf(x) === id)),
-      filter((x): x is HistoryItem => !!x),
-      distinctUntilChanged(),
-    );
+  // The items by key, one map a change; an item is told only when its own record changes (a `find` an item, for each of
+  // its fields, on every publish was items² a frame while a turn streams).
+  const byKey = keyedState<string, HistoryItem>();
+  bind(agent.history, (h) => {
+    const m = new Map<string, HistoryItem>();
+    for (const x of h) m.set(keyOf(x), x);
+    byKey.replace(m);
+  });
+  const live = (id: string) => byKey.key(id).pipe(filter((x): x is HistoryItem => !!x));
   return (
     <div class={classes.tab}>
       <div class={classes.switch} role="tablist" aria-label="History">
@@ -75,7 +80,7 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
               )}
             >
               {(id) => {
-                const item = agent.history.value.find((x) => keyOf(x) === id)!;
+                const item = byKey.get(id) ?? agent.history.value.find((x) => keyOf(x) === id)!;
                 return item.kind === 'run' ? (
                   <div class={classes.item}>
                     <RunRow run={live(id).pipe(map((x) => (x as { kind: 'run'; run: CommandRun }).run))} />

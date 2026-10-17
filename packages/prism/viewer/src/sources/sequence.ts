@@ -18,7 +18,7 @@ import type { SequenceView3D } from '../sequence/link.js';
 import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
 import { createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
-import type { SourceScope } from './state.js';
+import { onceATask, type SourceScope } from './state.js';
 
 // The sequence's side of the viewer (sequence.md §2–§5): which structure it follows, the parse it shares
 // with the 3D view, and the link's 3D side. Reads come from the plugin here; every write (highlight, selection, focus,
@@ -146,7 +146,8 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   };
 
   scope.add(
-    plugin.managers.structure.selection.events.changed.subscribe(() => {
+    // Once a task: a select over many structures tells `changed` once a structure, and this reads every structure.
+    onceATask(plugin.managers.structure.selection.events.changed).subscribe(() => {
       // The structure whose selection grew in this change (an addition, not a clear); the last of them if several.
       const list = plugin.managers.structure.hierarchy.current.structures;
       const seen = new Set<string>();

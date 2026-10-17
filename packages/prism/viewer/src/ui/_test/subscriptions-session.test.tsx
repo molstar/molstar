@@ -62,7 +62,9 @@ async function session(structures: number) {
   const out = new Map<string, Map<string, number>>();
   for (const tab of Tabs) {
     mounted.shell.show(tab);
+    // Settled, whatever the machine's load (the state tree's source flushes 40 ms after its events).
     await wait(150);
+    await audit.quiet(300, 5000);
     out.set(tab, byFile());
   }
   // The control: a label per structure, each followed (not the narrowest source).

@@ -102,14 +102,18 @@ export class LoadApi extends ApiArea {
       if (data.length) {
         // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
         await ctx.extensions.ensureFor({ fileExtensions: data.map((f) => extensionOf(f.name)) });
-        for (const f of data) {
-          const outcome = await openFile(ctx, f, visuals);
-          if (outcome === 'opened') opened.push(f.name);
-          else if (outcome === 'partly') {
-            opened.push(f.name);
-            warnings.push(`Some of ${f.name} could not be opened.`);
-          } else warnings.push(`Could not open ${f.name}.`);
-        }
+        // One data transaction for all of them: the viewer's sources (the scene, the structures' lists, the commands)
+        // sync once at its end, not once a file over every structure loaded so far (files × structures).
+        await ctx.plugin.dataTransaction(async () => {
+          for (const f of data) {
+            const outcome = await openFile(ctx, f, visuals);
+            if (outcome === 'opened') opened.push(f.name);
+            else if (outcome === 'partly') {
+              opened.push(f.name);
+              warnings.push(`Some of ${f.name} could not be opened.`);
+            } else warnings.push(`Could not open ${f.name}.`);
+          }
+        });
         if (!opened.length) {
           return ApiResult.fail(
             'failed',

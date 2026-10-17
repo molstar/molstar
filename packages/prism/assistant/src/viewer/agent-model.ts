@@ -358,29 +358,46 @@ export function historyItemsOf(rows: readonly HistoryRow[]): HistoryItem[] {
   const out: HistoryItem[] = [];
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i];
-    if (row.kind === 'run') out.push({ kind: 'run', run: runItemOf(row) });
-    else if (row.kind === 'turn') {
-      out.push({
-        kind: 'turn',
-        turn: {
-          id: row.turn,
-          prompt: row.prompt,
-          source: { kind: 'assistant' },
-          status: row.open
-            ? 'working'
-            : row.outcome === 'done'
-              ? 'done'
-              : row.outcome === 'stopped'
-                ? 'stopped'
-                : 'failed',
-          text: row.reply ?? '',
-          runs: row.runs.map(runItemOf),
-          checkpoint: false,
-          ...(row.undone ? { undone: true } : {}),
-          time: new Date(row.at),
-        },
-      });
+    // History keeps a row that did not change the same object: its item stays the same object too, so what follows an
+    // item by key is told only of the items that changed (made anew each publish, every item was, every frame).
+    const kept = itemOfRow.get(row);
+    if (kept) {
+      out.push(kept);
+      continue;
     }
+    const item = itemOf(row);
+    if (!item) continue;
+    itemOfRow.set(row, item);
+    out.push(item);
   }
   return out;
+}
+
+const itemOfRow = new WeakMap<HistoryRow, HistoryItem>();
+
+function itemOf(row: HistoryRow): HistoryItem | undefined {
+  if (row.kind === 'run') return { kind: 'run', run: runItemOf(row) };
+  if (row.kind === 'turn') {
+    return {
+      kind: 'turn',
+      turn: {
+        id: row.turn,
+        prompt: row.prompt,
+        source: { kind: 'assistant' },
+        status: row.open
+          ? 'working'
+          : row.outcome === 'done'
+            ? 'done'
+            : row.outcome === 'stopped'
+              ? 'stopped'
+              : 'failed',
+        text: row.reply ?? '',
+        runs: row.runs.map(runItemOf),
+        checkpoint: false,
+        ...(row.undone ? { undone: true } : {}),
+        time: new Date(row.at),
+      },
+    };
+  }
+  return undefined;
 }

@@ -139,6 +139,12 @@ the [API change ledger](breaking-v6-changes.md).
   scene tree flattens once a burst (expanding 1,000 components at once: 401 → 19.5 ms in jsdom); the command menu
   filters once a frame, for the latest text; the virtual lists keep rows made ahead of a fast wheel or flick, by its
   speed (1,200 px wheel steps: 2 scrolls of 40 onto the skeleton, from 40 of 40)
+- Prism: bulk paths no longer quadratic (a scan of Prism for accidentally quadratic code): a component made in 48
+  structures 452 → 143 ms and every representation updated 452 → 29 ms (one commit for all), select all and clear
+  16.3 → 6.8 ms, 48 files in one load 1,244 → 1,026 ms (one data transaction); 8,000 rows sharing a state torn down
+  59.6 → 7.7 ms; one change marking 4,000 rows and their regions 25.6 → 13.6 ms; the assistant's run list with 800
+  runs while an answer streams 291 → 2.7 ms; the Seq\* adapter indexes its chains, units and SIFTS segments instead of
+  scanning them per chain. A scaling guard tier (`test:scaling`) holds every bulk path about linear
 - Prism viewer: the scene tree follows the scene's structure as one change stream (`SceneModel.changes`, once per Mol*
   transaction) and flattens again only what changed: with 1,000 components open, 454 live listeners instead of 8,457
   (the same for any number), a mount 16 ms instead of 25 and 5.7 MB kept instead of 23, a toggle 60 µs instead of

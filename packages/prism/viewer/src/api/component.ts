@@ -179,40 +179,45 @@ export class ComponentApi extends ApiArea {
       const stored = person || isLociTarget(target) ? undefined : fromMolqlJson(resolved.stored);
       const created: { ref: string; label: string; structure: StructureId; type: string; atoms: number }[] = [];
       const existing: string[] = [];
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        const s = loadedStructures(ctx).find((x) => x.cell.transform.ref === part.structure.ref);
-        if (!s) continue;
-        // What it holds is kept as the target's own MolQL, so the component follows a model change; the person's
-        // selection and focus, and loci, are only addresses: kept as the atoms they were.
-        const expression: Expression =
-          stored?.ok === true
-            ? stored.molql
-            : StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(part.loci));
-        if (!ctx.copy) {
-          const found = findExisting(ctx, s, JSON.stringify(expression));
-          if (found) {
-            existing.push(`${part.structure.label} already has '${componentName(found)}'`);
-            continue;
+      // The structures by ref (a `find` a part was parts × structures), and one data transaction for all the parts:
+      // the viewer syncs once at its end, not twice a structure over every structure.
+      const byRef = new Map(loadedStructures(ctx).map((x) => [x.cell.transform.ref, x]));
+      await ctx.plugin.dataTransaction(async () => {
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          const s = byRef.get(part.structure.ref);
+          if (!s) continue;
+          // What it holds is kept as the target's own MolQL, so the component follows a model change; the person's
+          // selection and focus, and loci, are only addresses: kept as the atoms they were.
+          const expression: Expression =
+            stored?.ok === true
+              ? stored.molql
+              : StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(part.loci));
+          if (!ctx.copy) {
+            const found = findExisting(ctx, s, JSON.stringify(expression));
+            if (found) {
+              existing.push(`${part.structure.label} already has '${componentName(found)}'`);
+              continue;
+            }
           }
+          const component = await ctx.plugin.builders.structure.tryCreateComponentFromExpression(
+            s.cell,
+            expression,
+            UUID.create22(),
+            { label: label || text },
+          );
+          if (!component) continue;
+          const type = types[i];
+          if (type !== 'none') await addRepresentation(ctx, component.ref, type);
+          created.push({
+            ref: component.ref,
+            label: label || text,
+            structure: part.structure,
+            type,
+            atoms: part.selected.atoms,
+          });
         }
-        const component = await ctx.plugin.builders.structure.tryCreateComponentFromExpression(
-          s.cell,
-          expression,
-          UUID.create22(),
-          { label: label || text },
-        );
-        if (!component) continue;
-        const type = types[i];
-        if (type !== 'none') await addRepresentation(ctx, component.ref, type);
-        created.push({
-          ref: component.ref,
-          label: label || text,
-          structure: part.structure,
-          type,
-          atoms: part.selected.atoms,
-        });
-      }
+      });
 
       if (!created.length) {
         return existing.length

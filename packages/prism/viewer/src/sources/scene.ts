@@ -72,7 +72,7 @@ import {
 } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, measurementLocis, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
-import { fromChanged, type SourceScope } from './state.js';
+import { fromChanged, onceATask, type SourceScope } from './state.js';
 import type { Observable } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
@@ -251,7 +251,9 @@ export function createSceneSource(
   const nodes = new NodeMap(log);
   // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
   const selection = plugin.managers.structure.selection;
-  const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, selection.events.changed);
+  // Read once a task (a select over many structures tells `changed` once a structure, and each read sums the whole
+  // selection).
+  const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, onceATask(selection.events.changed));
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
@@ -300,8 +302,15 @@ export function createSceneSource(
     }
     const data = s.cell.obj?.data;
     n.set(name, data ? describeStructure(data) : undefined, !!s.cell.state.isHidden);
-    // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off).
-    n.menu = structureMenu(plugin, api, s);
+    // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off): built when
+    // read (the row's ⋯ opened), from the structure as it is then. Built every sync, it was every operation's offer and
+    // every preset's check, for every structure, at every change (structures × definitions a sync).
+    if (!n.menuSource) {
+      n.menuSource = () => {
+        const now = plugin.managers.structure.hierarchy.current.refs.get(ref);
+        return now?.kind === 'structure' ? structureMenu(plugin, api, now) : undefined;
+      };
+    }
     // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
     if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
     return n;
@@ -1168,7 +1177,9 @@ function entities(
   nodes: Map<string, Node>,
   api: ViewerApi,
 ): SceneNode[] {
-  const hidden = hiddenContents(plugin, structureRef);
+  const shown = hiddenContents(plugin, structureRef);
+  // As sets (an `includes` a chain was chains × hidden, at every sync, in a structure of thousands of chains).
+  const hidden = { entities: new Set(shown.entities), chains: new Set(shown.chains) };
   const { entities } = s.model;
   const byEntity = new Map<string, Map<string, number>>();
   const loc = StructureElement.Location.create(s);
@@ -1201,7 +1212,7 @@ function entities(
       n.removable = false;
       nodes.set(key, n);
     }
-    const entityHidden = hidden.entities.includes(id);
+    const entityHidden = hidden.entities.has(id);
     n.set(label, `${entities.data.type.value(i)} · ${chains.size} chain${chains.size === 1 ? '' : 's'}`, entityHidden);
     n.menu = contentsMenu(api, () => contentsLoci(s, id), label);
     const chainNodes: SceneNode[] = [];
@@ -1227,7 +1238,7 @@ function entities(
       c.set(
         `Chain ${chain}`,
         `${atoms.toLocaleString('en')} atoms`,
-        entityHidden || hidden.chains.includes(`${id}:${chain}`) || hidden.chains.includes(chain),
+        entityHidden || hidden.chains.has(`${id}:${chain}`) || hidden.chains.has(chain),
       );
       c.menu = contentsMenu(api, () => contentsLoci(s, id, chain), `${label} · chain ${chain}`);
       chainNodes.push(c);

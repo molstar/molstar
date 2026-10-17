@@ -145,6 +145,29 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
 - Web and data tools for the agent in the viewer (search, fetch a page or a file; `viewer/src/agent/skills.ts`).
 
+## Quadratic paths still open (the 2026-10-17 scan)
+
+The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:
+
+- **The scene source syncs over every structure at every change** (`viewer/src/sources/scene.ts` `syncRows`): loading N
+  structures one by one is N syncs of O(N) (48 structures: 51 ms of syncs). Incremental per structure (by its cell's
+  version) would make it O(changed).
+- **The assistant's Inspector re-reads the whole trace per harness change** (`assistant/src/viewer/inspector-sources.ts`
+  with `packages/ai/src/trace/read.ts`): each model call maps its whole window, so a read is calls × messages; and its
+  rows are new objects each settle, so the trace list, the Overview and the detail are rebuilt each time
+  (`assistant/src/inspector/model.ts` `#rowsOf`, `trace.tsx`). Keep the views of unchanged calls across reads.
+- **`ai/src/session/session.ts`**: `trim()` on the growing streamed text per delta flattens the rope (an answer's
+  length²).
+- **Commits per item in a transaction**: `representation.material`, `representation.set` on many components (one
+  `updateTransform` each: items × the tree; one build would do). Measurements: each op re-reads and labels every
+  measurement (`features/measurements/operations.ts`), O(M²) for M added one by one.
+- **prism-ui**: `reactive/transaction.ts` re-folds every contribution per contribution (K² for K in flight);
+  `managers/history.ts` copies a step's runs per run (R² a long agent turn); `For` re-reconciles the whole list per time
+  slice (a non-virtualized 5,000-row list's first render); `drag-to-reorder` reads every item's rect per move.
+- **Smaller**: `api/scope.ts` callers that still name structures one by one through `pickNamed` (superpose's named
+  structures: k × S); `sources/scene.ts` `emptiedComponents` per structure (S × saved params) and its order sort by
+  `indexOf`; snapshots moved one step at a time (`features/snapshots/operations.ts`).
+
 ## Considered and deferred
 
 - `agent.skills` as a function of the defaults: `{ add, remove }` was chosen (data, composes by id, needs no import of
