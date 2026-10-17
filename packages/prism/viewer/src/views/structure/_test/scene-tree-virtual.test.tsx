@@ -11,6 +11,7 @@
 
 import { domView } from '@molstar/prism-ui/dom/view';
 import { render } from '@molstar/prism-ui/dom/render';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -19,6 +20,7 @@ import type { ViewerUIContext } from '../../../spec.js';
 import { extensionUIPort } from '../../../ui/extensions.js';
 import { SceneRow } from '../scene-row.js';
 import { SceneTree } from '../scene-tree.js';
+import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
 // The scene tree virtualized (view-models.md §3): a structure of 1,000 components, only the window in the DOM; ARIA's
 // level, place and open state per row (an extension's row too); the keyboard across rows that are not rendered; Show
@@ -26,7 +28,11 @@ import { SceneTree } from '../scene-tree.js';
 
 afterEach(() => {
   document.body.innerHTML = '';
+  highlighted.clear();
 });
+
+/** The nodes highlighted now (hover). */
+const highlighted = new Set<string>();
 
 function node(id: string, kind: SceneNodeKind, label: string, children: SceneNode[] = [], expanded = false) {
   const isExpanded = observableState(expanded);
@@ -43,7 +49,7 @@ function node(id: string, kind: SceneNodeKind, label: string, children: SceneNod
     setChildren: (c: SceneNode[]) => kids.set(c),
     toggleVisibility: () => {},
     toggleExpanded: () => isExpanded.set(!isExpanded.value),
-    highlight: () => {},
+    highlight: (on: boolean) => (on ? highlighted.add(id) : highlighted.delete(id)),
     focus: () => {},
     remove: () => {},
   } as unknown as SceneNode & { setChildren(c: SceneNode[]): void };
@@ -79,7 +85,29 @@ function mount(withShell = false) {
     (document.activeElement as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
   const focused = () =>
     (document.activeElement as HTMLElement).closest<HTMLElement>('[data-tree-key]')?.dataset.treeKey;
-  return { structure, contents, components, scene, picked, shell, tree, item, treeitem, key, focused, dispose };
+  let list: HTMLElement | undefined;
+  for (let e: HTMLElement | null = tree; e; e = e.parentElement)
+    if (e.scrollHeight >= 0 && e.getAttribute('class')?.includes('viewport')) list = e;
+  const scrollTo = (index: number) => {
+    // As the browser does: the viewport scrolls, then its scroll event.
+    list!.scrollTop = index * 26;
+    list!.dispatchEvent(new Event('scroll'));
+  };
+  return {
+    structure,
+    contents,
+    components,
+    scene,
+    picked,
+    shell,
+    tree,
+    item,
+    treeitem,
+    key,
+    focused,
+    scrollTo,
+    dispose,
+  };
 }
 
 describe('the scene tree, virtualized', () => {
@@ -139,7 +167,7 @@ describe('the scene tree, virtualized', () => {
   it('shows a long list a few at first, Show all a row of its own that the keyboard reaches', async () => {
     const t = mount();
     t.contents.toggleExpanded();
-    const rows = () => [...t.tree.querySelectorAll<HTMLElement>('[data-tree-key]')].map((e) => e.dataset.treeKey);
+    const rows = () => shownInOrder(t.tree, '[data-tree-key]').map((e) => e.dataset.treeKey);
     expect(rows().slice(0, 9)).toEqual(['s', 'contents', 'e0', 'e1', 'e2', 'e3', 'e4', 'contents::more', 'c0']);
     const more = t.treeitem('contents::more')!;
     expect([more.getAttribute('aria-posinset'), more.getAttribute('aria-setsize')]).toEqual(['6', '6']);
@@ -183,6 +211,36 @@ describe('the scene tree, virtualized', () => {
     expect(t.tree.querySelector('.controls')).toBeNull();
     t.key('ArrowLeft');
     expect(t.focused()).toBe('s');
+    t.dispose();
+  });
+
+  it('a row pointed at another node as the tree scrolls: the old highlight goes, its menu closes, the picked follows', () => {
+    const t = mount();
+    const row = t.treeitem('c3')!;
+    const line = row.querySelector<HTMLElement>('[data-tree-row]')!;
+    line.dispatchEvent(new PointerEvent('pointerenter'));
+    expect([...highlighted]).toEqual(['c3']);
+    row.querySelector<HTMLButtonElement>('button[title=More]')!.click();
+    expect(row.querySelector('button[title=More]')!.getAttribute('aria-expanded')).toBe('true');
+    t.picked.set(t.components[3]);
+    flush();
+    expect(row.getAttribute('aria-selected')).toBe('true');
+    // Far away: the slot shows another node under the resting pointer (highlighted then), or none (put away).
+    t.scrollTo(600);
+    const now = row.dataset.treeKey;
+    expect(now).not.toBe('c3');
+    expect(highlighted.has('c3')).toBe(false);
+    expect([...highlighted]).toEqual(now ? [now] : []);
+    expect(row.querySelector('button[title=More]')!.getAttribute('aria-expanded')).toBe('false');
+    expect(t.tree.querySelector('[role=menu]')).toBeNull();
+    if (now) {
+      expect(row.getAttribute('aria-selected')).toBe('false');
+      expect(row.textContent).toContain(`Component ${now.slice(1)}`);
+    } else expect(row.closest('[hidden]')).not.toBeNull();
+    // Back: the picked row is shown as picked again, by whichever slot shows it.
+    t.scrollTo(0);
+    flush();
+    expect(t.treeitem('c3')!.getAttribute('aria-selected')).toBe('true');
     t.dispose();
   });
 });

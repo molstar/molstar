@@ -19,6 +19,7 @@ import { extensionUIPort } from '../../../ui/extensions.js';
 import type { ViewerUIContext } from '../../../spec.js';
 import { SceneRow } from '../scene-row.js';
 import { SceneTree } from '../scene-tree.js';
+import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
 // A big structure in the tree: Contents shows its first entities and Show all for the rest (the few again once closed
 // and opened); a search shows the matching rows with the rows they are in, opened, whatever was shown before.
@@ -60,8 +61,7 @@ function mount() {
   const container = document.createElement('div');
   document.body.append(container);
   render(() => <SceneTree scene={scene} filter={filter.asReadonly} />, container);
-  const labels = () =>
-    [...container.querySelectorAll('[data-tree-row]')].map((r) => r.querySelector('[id]')!.textContent);
+  const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
   return { contents, filter, container, labels };
 }
 
@@ -102,8 +102,7 @@ describe('the scene tree with many rows', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <SceneTree scene={scene} filter={filter.asReadonly} />, container);
-    const labels = () =>
-      [...container.querySelectorAll('[data-tree-row]')].map((r) => r.querySelector('[id]')!.textContent);
+    const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
 
     filter.set('retinoic');
     expect(labels()).toEqual(['1CBS', 'Contents', 'RETINOIC ACID BINDING PROTEIN']);
@@ -151,8 +150,7 @@ describe('the scene tree search and extension rows', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <SceneTree scene={scene} shell={shell} filter={filter.asReadonly} />, container);
-    const labels = () =>
-      [...container.querySelectorAll('[data-tree-row]')].map((r) => r.querySelector('[id]')!.textContent);
+    const labels = () => shownInOrder(container, '[data-tree-row]').map((r) => r.querySelector('[id]')!.textContent);
 
     filter.set('membrane');
     expect(container.textContent).not.toContain('Nothing matches.');

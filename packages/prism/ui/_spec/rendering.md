@@ -59,6 +59,28 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 
 - **While a structure animates, the UI is 2–6% of the main thread's work** (0.01–0.02 of 0.4–0.5 ms a frame; the table
   and the hidden-UI checks are in [styling.md](styling.md) §5).
+- **Recycled rows for the scene tree** (`RecycledList`, the default there; `VirtualList` keeps keyed rows elsewhere): a
+  pool of slots, each with its DOM and scope for good, each placed by its own transform; a window that moves points
+  slots at the items that came in (`VirtualSlot.show`, a `watch` re-pointed by `retarget`) and makes, removes and
+  reorders no node. Measured against keyed rows, both `watch` rows (Rows made, 1,000 components open, Chromium on an M4,
+  two runs; `watch-bench/recycle.mjs`):
+
+  | scene tree                               | keyed rows (`VirtualList`)                                  | recycled slots (`RecycledList`) |
+  | ---------------------------------------- | ----------------------------------------------------------- | ------------------------------- |
+  | a thumb-drag jump, median / p90          | 4.7–4.9 / 5.0–5.4 ms                                        | 1.7–2.4 / 3.1–3.4 ms            |
+  | of it script / layout                    | 1.8–1.9 / 2.8–2.9 ms                                        | 0.6–0.9 / 1.2–1.7 ms            |
+  | a small step (a row), mean / p95         | 0.31–0.39 / 1.8–2.5 ms                                      | 0.12–0.15 / 0.7–0.8 ms          |
+  | 120 jumps: allocated / kept after GC     | 2.26 MB / 0.52 MB                                           | 1.10–1.17 MB / 0.43 MB          |
+  | 120 jumps: GC / native (DOM) / UI script | 22.8 / 69–70 / 63–67 ms                                     | 12.7–13.0 / 18–23 / 45–47 ms    |
+  | a 2 s wheel scroll: UI script + native   | 21–24 + 6–7 ms                                              | 18–20 + 1 ms                    |
+  | a real wheel (60 + 30 steps)             | no long animation frame; one 33 ms frame in one of two runs | the same                        |
+
+  The costs, and how they are met: the DOM order is not the screen order (a row's place is its `aria-posinset`,
+  `aria-setsize` and `aria-level`; the keyboard moves by the rows' model, `TreeNavigation`); a re-pointed slot closes
+  its menu, moves the hover highlight to the node it shows now and its keyboard registration (`TreeNavigation.slot`),
+  and a focus in it goes to the tree as when a row leaves the DOM; a put-away slot is hidden and follows nothing. Tests:
+  `components/virtual-list/_test/recycled-list.test.tsx`, the scene tree's.
+
 - **Hand-rolled, not `@preact/signals-core`**: backing `State` and `derive` with signals measured the same time and more
   memory (the `watch` row 3.7 vs 3.4 KB, the `derive` row 9.5 vs 8.8 KB: an effect per listener), needed this batch's
   and queue's semantics given up, and its auto-tracking misses sources that are not signals.

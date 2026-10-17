@@ -121,8 +121,8 @@ export function flush(): void {
  * What `watch` makes: one listener per source (`listen`, no operators), `render` once when it starts and once per flush
  * after a change; stopped (its scope paused), it holds no listener.
  */
-class Watcher extends Live {
-  readonly #sources: readonly (Observable<unknown> | ReadonlyState<unknown> | Listenable)[];
+class Watcher extends Live implements WatchHandle {
+  #sources: readonly (Observable<unknown> | ReadonlyState<unknown> | Listenable)[];
   readonly #render: () => void;
   #stops: (() => void)[] | undefined;
   #live = false;
@@ -140,6 +140,15 @@ class Watcher extends Live {
   readonly #mark = () => {
     if (this.#live) schedule(this);
   };
+
+  /** Follows other sources: the old listeners go, the new come, and it renders (now while live; else on resume). */
+  retarget(sources: readonly WatchSource[]) {
+    if (this.#dead) return;
+    const live = this.#live;
+    this.stop();
+    this.#sources = normalize(sources);
+    if (live) this.start();
+  }
 
   start() {
     if (this.#live || this.#dead) return;
@@ -314,14 +323,8 @@ export class Scope {
   }
 
   /** `watch` in this scope. */
-  watch(sources: readonly WatchSource[], render: () => void): void {
-    const streams: (Observable<unknown> | ReadonlyState<unknown> | Listenable)[] = [];
-    for (const s of sources) {
-      const stream =
-        toStream(s as MaybeReactive<unknown>) ??
-        (typeof (s as Listenable).listen === 'function' ? (s as Listenable) : undefined);
-      if (stream) streams.push(stream);
-    }
+  watch(sources: readonly WatchSource[], render: () => void): WatchHandle {
+    const streams = normalize(sources);
     const probe = RuntimeProbe.on;
     const watcher = new Watcher(
       this.depth,
@@ -335,6 +338,7 @@ export class Scope {
     );
     this.own(watcher);
     if (this.#active) watcher.start();
+    return watcher;
   }
 
   get disposed(): boolean {
@@ -491,6 +495,24 @@ export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Ob
  * A render owns nothing (it runs outside the scope: structure goes in regions, `Show`, `For`); one that throws is
  * logged and the watch goes on.
  */
-export function watch(sources: readonly WatchSource[], render: () => void): void {
-  requireScope('watch').watch(sources, render);
+export function watch(sources: readonly WatchSource[], render: () => void): WatchHandle {
+  return requireScope('watch').watch(sources, render);
+}
+
+/** A `watch` whose sources can change (a recycled row shown another item: `RecycledList`). */
+export interface WatchHandle {
+  /** Follows `sources` instead, and renders (now while its scope is active; else on resume). */
+  retarget(sources: readonly WatchSource[]): void;
+}
+
+/** A watch's sources as it listens to them: states and streams (a writable state's readonly view), `listen`ables. */
+function normalize(sources: readonly WatchSource[]): (Observable<unknown> | ReadonlyState<unknown> | Listenable)[] {
+  const out: (Observable<unknown> | ReadonlyState<unknown> | Listenable)[] = [];
+  for (const s of sources) {
+    const stream =
+      toStream(s as MaybeReactive<unknown>) ??
+      (typeof (s as Listenable).listen === 'function' ? (s as Listenable) : undefined);
+    if (stream) out.push(stream);
+  }
+  return out;
 }

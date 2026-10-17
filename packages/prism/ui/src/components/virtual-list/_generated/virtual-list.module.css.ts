@@ -13,6 +13,7 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'content': 'msp-virtual-list-content',
   'list': 'msp-virtual-list-list',
+  'row': 'msp-virtual-list-row',
   'window': 'msp-virtual-list-window',
 } as const;
 
@@ -29,6 +30,12 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
 
 .msp-virtual-list-window {
   will-change: transform;
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.msp-virtual-list-row {
+  contain: layout style;
   position: absolute;
   inset: 0 0 auto;
 }

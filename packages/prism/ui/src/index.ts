@@ -83,6 +83,7 @@ export {
   VirtualList,
   type VirtualListHandle,
 } from './components/virtual-list/virtual-list.js';
+export { RecycledList, type VirtualSlot } from './components/virtual-list/recycled-list.js';
 
 export { HoverLabel } from './views/canvas/hover-label.js';
 export {

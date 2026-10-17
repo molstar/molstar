@@ -19,13 +19,14 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { SceneRow } from '../scene-row.js';
 import { SceneRowSlot } from '../scene-tree.js';
 import type { SceneInspection } from '../../../model/scene.js';
+import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
 function mount() {
   const scene = mockScene();
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
-  const rows = () => [...container.querySelectorAll('[role=treeitem] > div:first-child')] as HTMLElement[];
+  const rows = () => shownInOrder(container, '[role=treeitem] > div:first-child');
   const row = (text: string) => rows().find((r) => r.querySelector('span')?.textContent === text)!;
   return { scene, container, dispose, rows, row };
 }
@@ -96,9 +97,7 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={shell} scene={scene} />, container);
-    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
-      r.textContent?.startsWith('Membrane'),
-    )!;
+    const row = shownInOrder(container, '[data-tree-row]').find((r) => r.textContent?.startsWith('Membrane'))!;
     row.click();
     const inspector = container.querySelector('[aria-label="Inspector"]')!;
     expect(inspector.textContent).toContain('Membrane');
@@ -131,10 +130,7 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={shell} scene={scene} />, container);
-    const rows = () =>
-      [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].filter((r) =>
-        r.textContent?.startsWith('Membrane'),
-      );
+    const rows = () => shownInOrder(container, '[data-tree-row]').filter((r) => r.textContent?.startsWith('Membrane'));
     const before = rows().length;
     rows()[0].click();
     const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
@@ -153,9 +149,7 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
-    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
-      r.textContent?.startsWith('Cartoon'),
-    )!;
+    const row = shownInOrder(container, '[data-tree-row]').find((r) => r.textContent?.startsWith('Cartoon'))!;
     row.click();
     const picked = scene.picked.value!;
     const inspector = () => container.querySelector('[aria-label="Inspector"]')!;

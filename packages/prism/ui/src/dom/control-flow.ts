@@ -314,6 +314,12 @@ function flushWaiting() {
   }
 }
 
+/**
+ * The slice, for a list that makes its entries itself (`RecycledList`'s rows): `sliceHasRoom()` counts one new entry
+ * with `For`'s and tells whether the slice has room for it; `nextSlice(fn)` runs `fn` in the next one.
+ */
+export { sliceRoom as sliceHasRoom, nextSlice };
+
 function sliceSpent(): boolean {
   return sliceEnd !== 0 && sliceMade > SliceFrom && performance.now() >= sliceEnd;
 }

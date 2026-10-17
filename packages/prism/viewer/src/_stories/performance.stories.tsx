@@ -647,6 +647,9 @@ export const Interactive: StoryObj = {
  */
 type TreeKind = 'scene' | 'state';
 
+/** The scene tree's node rows: recycled slots (`RecycledList`, the default), or keyed rows with `?recycle=0`. */
+const recycle = !(typeof location !== 'undefined' && /[?&]recycle=0/.test(location.search));
+
 function mountTree(kind: TreeKind, height = 600) {
   const host = document.createElement('div');
   host.className = 'msp-root';
@@ -659,7 +662,8 @@ function mountTree(kind: TreeKind, height = 600) {
   if (kind === 'scene') {
     const fixture = makeScene(1000, 3);
     for (const c of fixture.components) c.expanded.set(true);
-    dispose = render(() => <SceneTree scene={fixture.scene} />, box);
+    const fx = fixture;
+    dispose = render(() => <SceneTree scene={fx.scene} recycle={recycle} />, box);
   } else {
     const roots = observableState<readonly StateTreeNode[]>(makeTree());
     dispose = render(() => <StateTreeTab model={treeModel(roots)} />, box);
@@ -699,6 +703,7 @@ async function jumps(kind: TreeKind, count = 40) {
   const span = vp.scrollHeight - vp.clientHeight;
   const script: number[] = [];
   const layout: number[] = [];
+  const total: number[] = [];
   let made = 0;
   for (let k = 0; k < count; k++) {
     const before = new Set(t.rows());
@@ -719,6 +724,7 @@ async function jumps(kind: TreeKind, count = 40) {
     if (k > 1) {
       script.push(t1 - t0);
       layout.push(t2 - t1);
+      total.push(t2 - t0);
     }
     await frame();
   }
@@ -733,6 +739,8 @@ async function jumps(kind: TreeKind, count = 40) {
     layoutPerJump: round(sum(layout) / layout.length, 2),
     scriptPerRow: round(sum(script) / script.length / rowsPerJump),
     p95Script: round(pct(script, 0.95), 2),
+    medianJumpMs: round(pct(total, 0.5), 2),
+    p90JumpMs: round(pct(total, 0.9), 2),
   };
 }
 
@@ -965,7 +973,7 @@ let heapLabels: string[] = [];
     box.style.cssText = `height: ${height}px; width: 320px; display: flex; flex-direction: column;`;
     host.append(box);
     const fx = makeScene(1000, 3, true);
-    const dispose = render(() => <SceneTree scene={fx.scene} />, box);
+    const dispose = render(() => <SceneTree scene={fx.scene} recycle={recycle} />, box);
     upd = {
       fx,
       box,
@@ -1007,6 +1015,8 @@ let heapLabels: string[] = [];
   record() {
     const intervals: number[] = [];
     const loaf: number[] = [];
+    let uiScript = 0;
+    let otherScript = 0;
     let last = performance.now();
     let on = true;
     const tick = (now: number) => {
@@ -1017,7 +1027,14 @@ let heapLabels: string[] = [];
     requestAnimationFrame(tick);
     const observer = PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
       ? new PerformanceObserver((list) => {
-          for (const e of list.getEntries()) loaf.push(e.duration);
+          for (const e of list.getEntries() as any[]) {
+            loaf.push(e.duration);
+            for (const sc of e.scripts ?? []) {
+              const url = sc.sourceURL ?? '';
+              if (/\/packages\/(prism|sequences)\//.test(url) && !/_stories/.test(url)) uiScript += sc.duration;
+              else otherScript += sc.duration;
+            }
+          }
         })
       : undefined;
     observer?.observe({ type: 'long-animation-frame' });
@@ -1033,6 +1050,8 @@ let heapLabels: string[] = [];
           loaf.reduce((a, b) => a + b, 0),
           1,
         ),
+        longFramesUiScriptMs: round(uiScript, 1),
+        longFramesOtherScriptMs: round(otherScript, 1),
         rowsInDom: mounted?.rows().length,
       };
     };

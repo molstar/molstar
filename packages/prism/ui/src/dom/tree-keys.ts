@@ -77,6 +77,33 @@ export class TreeNavigation<R> {
     };
   }
 
+  /**
+   * For a recycled row (`RecycledList`'s `slot`): its element, which shows one row, then another. The setter moves it to
+   * the row `key` (undefined: it shows none); a focus inside it goes as it goes when a row leaves the DOM (to the tree).
+   */
+  slot(el: HTMLElement): (key: string | undefined) => void {
+    let shown: string | undefined;
+    onCleanup(() => {
+      if (shown !== undefined) this.#leave(shown, el);
+    });
+    return (key) => {
+      if (key === shown) return;
+      if (shown !== undefined) this.#leave(shown, el);
+      shown = key;
+      const item = target(el);
+      if (key === undefined) {
+        delete el.dataset.treeKey;
+        if (item) item.tabIndex = -1;
+        this.#sync();
+        return;
+      }
+      el.dataset.treeKey = key;
+      this.#elements.set(key, el);
+      if (item) item.tabIndex = key === this.#active ? 0 : -1;
+      this.#sync();
+    };
+  }
+
   /** Focuses the row at `index` (clamped), scrolling it into view. */
   focusIndex(index: number): void {
     const rows = this.#o.rows();

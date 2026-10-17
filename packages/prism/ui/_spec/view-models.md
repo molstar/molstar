@@ -72,6 +72,11 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
   one listener per source, not a chain per attribute (the scene tree's row: 16.1 → 4.0 KB). Its keyboard works on the
   flattened rows, not the DOM (`dom/tree-keys.ts`, `TreeNavigation`; it flushes before it reads a row). The viewer's
   scene and state trees are built so.
+- **The scene tree recycles its node rows** (`RecycledList`, rendering.md §1): a fixed pool of slots re-pointed as the
+  window moves, each placed by its own transform; a jump costs 1.7–2.4 ms against 4.7–4.9 with keyed rows, and half the
+  allocation and GC. Other lists keep keyed rows (`VirtualList`). A slot shows every part a row may have (shown or
+  hidden per item), follows its item's keys (`watch(...).retarget`), and on re-point closes its menu and moves its hover
+  and keyboard registration.
 - **A virtual list scrolls without work or blanks**: the browser scrolls before the scroll event reaches the list, so
   what it uncovers must already be there. The window stays while what shows (and a few rows) is in it, so most scroll
   events make nothing; past that it moves ahead of the scroll by a screenful; a jump (a scrollbar drag, a far wheel

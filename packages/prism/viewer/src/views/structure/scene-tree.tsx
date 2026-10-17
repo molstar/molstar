@@ -20,11 +20,21 @@ import {
   startWith,
   type Subscription,
 } from 'rxjs';
-import { Button, colorToHex, keepRows, MenuPopover, VirtualList, type VirtualListHandle } from '@molstar/prism-ui';
+import {
+  Button,
+  colorToHex,
+  keepRows,
+  MenuPopover,
+  RecycledList,
+  VirtualList,
+  type VirtualListHandle,
+  type VirtualSlot,
+} from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { bind, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
+import { setShown } from '@molstar/prism-ui/dom/writes';
 import { setAttr, setClass, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
@@ -97,7 +107,16 @@ const sameRow = (a: Row, b: Row) =>
  * `children` (nothing else), and a row follows its node's own states. The keyboard moves over the flattened rows
  * (`TreeNavigation`), scrolling its target into view.
  */
-export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter?: Observable<string> }) {
+export function SceneTree(props: {
+  scene: SceneModel;
+  shell?: ShellModel;
+  filter?: Observable<string>;
+  /**
+   * Node rows as recycled slots (`RecycledList`, the default) or keyed rows (`VirtualList`, false: the measurement's
+   * baseline; rendering.md §1).
+   */
+  recycle?: boolean;
+}) {
   const { scene, shell } = props;
   // A search: the rows that match, with the rows they are in (opened); lazy contents are looked into to be searched.
   const filter = (props.filter ?? of('')).pipe(
@@ -271,6 +290,38 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     });
   });
   onCleanup(() => cancelAnimationFrame(frame));
+  // The rows that are not a node's: Show all, Loading…, an extension's row (keyed, never recycled).
+  const otherRow = (row: Row) => {
+    switch (row.kind) {
+      case 'node':
+        return null;
+      case 'more':
+        return (
+          <MoreRow
+            row={row}
+            states={states}
+            nav={nav}
+            onShowAll={() => {
+              showAll.add(row.node);
+              reflow();
+            }}
+          />
+        );
+      case 'loading':
+        return <LoadingRow row={row} states={states} nav={nav} />;
+      case 'row':
+        return (
+          <ExtensionRow
+            section={row.section}
+            shell={shell!}
+            node={row.node}
+            depth={row.depth}
+            states={states}
+            register={nav.row(row.key)}
+          />
+        );
+    }
+  };
   return (
     <>
       <Show when={derive(scene.roots, (r) => r.length === 0)}>
@@ -284,53 +335,47 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
       >
         {() => <p class={classes.empty}>Nothing matches.</p>}
       </Show>
-      <VirtualList
-        items={rows.asReadonly}
-        key={(r) => r.key}
-        rowHeight={26}
-        class={classes.tree}
-        edge
-        role="tree"
-        aria-label="Scene"
-        contentRef={nav.tree}
-        ref={(l) => {
-          list = l;
-        }}
-      >
-        {(row) => {
-          switch (row.kind) {
-            case 'node':
-              return (
-                <TreeItem scene={scene} node={row.node} depth={row.depth} states={states} picked={picked} nav={nav} />
-              );
-            case 'more':
-              return (
-                <MoreRow
-                  row={row}
-                  states={states}
-                  nav={nav}
-                  onShowAll={() => {
-                    showAll.add(row.node);
-                    reflow();
-                  }}
-                />
-              );
-            case 'loading':
-              return <LoadingRow row={row} states={states} nav={nav} />;
-            case 'row':
-              return (
-                <ExtensionRow
-                  section={row.section}
-                  shell={shell!}
-                  node={row.node}
-                  depth={row.depth}
-                  states={states}
-                  register={nav.row(row.key)}
-                />
-              );
+      {(props.recycle ?? true) ? (
+        <RecycledList
+          items={rows.asReadonly}
+          itemKey={(r) => r.key}
+          rowHeight={26}
+          class={classes.tree}
+          edge
+          role="tree"
+          aria-label="Scene"
+          contentRef={nav.tree}
+          ref={(l) => {
+            list = l;
+          }}
+          slot={() => nodeSlot({ scene, nav, states, picked })}
+          recycle={(row) => row.kind === 'node'}
+        >
+          {(row) => otherRow(row)}
+        </RecycledList>
+      ) : (
+        <VirtualList
+          items={rows.asReadonly}
+          key={(r) => r.key}
+          rowHeight={26}
+          class={classes.tree}
+          edge
+          role="tree"
+          aria-label="Scene"
+          contentRef={nav.tree}
+          ref={(l) => {
+            list = l;
+          }}
+        >
+          {(row) =>
+            row.kind === 'node' ? (
+              <TreeItem scene={scene} node={row.node} depth={row.depth} states={states} picked={picked} nav={nav} />
+            ) : (
+              otherRow(row)
+            )
           }
-        }}
-      </VirtualList>
+        </VirtualList>
+      )}
     </>
   );
 }
@@ -567,6 +612,236 @@ function TreeItem(props: {
     }
   });
   return el;
+}
+
+/**
+ * A node's row, recycled (`RecycledList`, rendering.md §1): its DOM made once per slot, with every part a node may have
+ * (the top-level icon, the swatch, the menu button) shown or hidden per node, and one `watch` re-pointed at the node it
+ * shows (`retarget`): its own states and its keys of the tree's (its place, whether it is picked). Re-pointed, it
+ * closes its menu, moves the hover highlight, and the keyboard's registration (`TreeNavigation.slot`).
+ */
+function nodeSlot(props: {
+  scene: SceneModel;
+  nav: TreeNavigation<Row>;
+  states: RowStates;
+  picked: KeyedSelector<SceneNode | undefined>;
+}): VirtualSlot<Row> {
+  const { scene, states } = props;
+  let node: SceneNode | undefined;
+  let depth = 0;
+  let hovered = false;
+  const menuOpen = observableState(false);
+  const labelId = uniqueId('msp-tree-label');
+  const label = document.createTextNode('');
+  const description = document.createTextNode('');
+  let line!: HTMLElement;
+  let expander!: HTMLElement;
+  let labelEl!: HTMLElement;
+  let swatch!: HTMLElement;
+  let eyeButton!: HTMLElement;
+  let menuButton!: HTMLElement;
+  let actionSlot!: HTMLElement;
+  const eye = Icon({ name: 'eye', size: 14 });
+  let eyeOff: SVGSVGElement | undefined;
+  let eyeShown: SVGSVGElement = eye;
+  const el = (
+    <div role="treeitem" aria-labelledby={`${labelId} ${labelId}-d`} tabIndex={-1} class={classes.item}>
+      <div
+        data-tip-row=""
+        data-tree-row=""
+        class={classes.row}
+        ref={(e: HTMLElement) => (line = e)}
+        onClick={() => node && scene.pick(node)}
+        onPointerEnter={() => {
+          hovered = true;
+          node?.highlight(true);
+        }}
+        onPointerLeave={() => {
+          hovered = false;
+          node?.highlight(false);
+        }}
+      >
+        <button
+          type="button"
+          class={classes.expander}
+          data-tree-toggle=""
+          tabIndex={-1}
+          aria-label="Expand"
+          ref={(e: HTMLElement) => (expander = e)}
+          onClick={(e) => {
+            e.stopPropagation();
+            node?.toggleExpanded();
+          }}
+        >
+          <Icon name="chevron-right" size={14} />
+        </button>
+        <span class={classes.label} id={labelId} data-tip-part="" ref={(e: HTMLElement) => (labelEl = e)}>
+          {label}
+        </span>
+        <span class={classes.swatch} aria-hidden="true" ref={(e: HTMLElement) => (swatch = e)} />
+        <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
+          {description}
+        </span>
+        <span class={classes.actions}>
+          <button
+            type="button"
+            class={classes.action}
+            ref={(e: HTMLElement) => (eyeButton = e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              node?.toggleVisibility();
+            }}
+          >
+            {eye}
+          </button>
+          <button
+            type="button"
+            class={classes.action}
+            title="More"
+            aria-haspopup="menu"
+            ref={(e: HTMLElement) => (menuButton = e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              menuOpen.set(!menuOpen.value);
+            }}
+          >
+            <Icon name="ellipsis" size={14} />
+          </button>
+          {/* No menu: its slot stays, so every row's eye sits in the same column. */}
+          <span class={classes.actionSlot} aria-hidden="true" ref={(e: HTMLElement) => (actionSlot = e)} />
+        </span>
+      </div>
+      <Show when={menuOpen}>
+        {() => (
+          <RowMenu
+            items={node ? menuOf(node) : []}
+            anchor={menuButton}
+            onDone={(refocus) => {
+              menuOpen.set(false);
+              if (refocus) menuButton.focus();
+            }}
+          />
+        )}
+      </Show>
+    </div>
+  ) as HTMLElement;
+  const point = props.nav.slot(el);
+  // The top-level row's icon: one element per icon the slot has shown, made once, shown or not.
+  const kinds = new Map<string, SVGSVGElement>();
+  let kind: SVGSVGElement | undefined;
+  let place = states.key('');
+  let isPicked = props.picked.key(undefined);
+  const NotYet = {};
+  let lastLabel: unknown = NotYet;
+  let lastDescription: unknown = NotYet;
+  let lastSwatch: unknown = NotYet;
+  let lastHidden: unknown = NotYet;
+  let lastPicked: unknown = NotYet;
+  let lastPlace: RowState | undefined | typeof NotYet = NotYet;
+  let lastOpen: unknown = NotYet;
+  let lastNode: SceneNode | undefined;
+  const render = () => {
+    // Its menu's state first: a slot put away (no node) still shows its menu closed.
+    const open = menuOpen.value;
+    if (open !== lastOpen) {
+      lastOpen = open;
+      setClass(menuButton, classes.keep, open);
+      setAttr(menuButton, 'aria-expanded', open ? 'true' : 'false');
+    }
+    const n = node;
+    if (!n) return;
+    if (n !== lastNode) {
+      lastNode = n;
+      setAttr(el, 'aria-level', depth + 1);
+      setStyle(line, '--msp-tree-depth', String(depth));
+      setAttr(line, 'data-node-id', n.id);
+      setShown(swatch, !!n.swatch);
+      const menu = hasMenu(n);
+      setShown(menuButton, menu);
+      setShown(actionSlot, !menu);
+      const icon = depth === 0 ? n.icon : undefined;
+      let next = icon ? kinds.get(icon) : undefined;
+      if (icon && !next) {
+        next = Icon({ name: icon, size: 15, class: classes.kind });
+        kinds.set(icon, next);
+        line.insertBefore(next, labelEl);
+      }
+      if (next !== kind) {
+        if (kind) kind.style.display = 'none';
+        if (next) next.style.display = '';
+        kind = next;
+      }
+    }
+    const text = n.label.value;
+    if (text !== lastLabel) setText(label, (lastLabel = text));
+    const d = n.description.value;
+    if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
+    const c = n.swatch?.value;
+    if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    const hidden = n.isHidden.value;
+    if (hidden !== lastHidden) {
+      lastHidden = hidden;
+      setClass(line, classes.hidden, hidden);
+      setClass(eyeButton, classes.keep, hidden);
+      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
+      if (icon !== eyeShown) {
+        eyeShown.replaceWith(icon);
+        eyeShown = icon;
+      }
+    }
+    const picked = isPicked.value;
+    if (picked !== lastPicked) {
+      lastPicked = picked;
+      setAttr(el, 'aria-selected', picked ? 'true' : 'false');
+      setClass(line, classes.picked, picked);
+    }
+    const s = place.value;
+    const was = lastPlace as RowState | undefined;
+    if (
+      lastPlace === NotYet ||
+      s?.posinset !== was?.posinset ||
+      s?.setsize !== was?.setsize ||
+      s?.expanded !== was?.expanded
+    ) {
+      lastPlace = s;
+      writePlace(el, s);
+      setAttr(el, 'aria-expanded', s?.expanded === undefined ? undefined : s.expanded ? 'true' : 'false');
+      setClass(expander, classes.leaf, s?.expanded === undefined);
+    }
+  };
+  const handle = watch([], render);
+  return {
+    el,
+    show(next) {
+      const n = next?.kind === 'node' ? next.node : undefined;
+      if (n === node) {
+        if (next?.kind === 'node' && next.depth !== depth) {
+          depth = next.depth;
+          lastNode = undefined;
+        }
+        render();
+        return;
+      }
+      // Its menu closes on the node it was open for; the hover moves to the node it shows now.
+      if (menuOpen.value) menuOpen.set(false);
+      if (hovered) node?.highlight(false);
+      node = n;
+      depth = next?.kind === 'node' ? next.depth : 0;
+      point(n?.id);
+      if (!n) hovered = false;
+      else if (hovered) n.highlight(true);
+      if (!n) {
+        handle.retarget([]);
+        return;
+      }
+      place = states.key(n.id);
+      isPicked = props.picked.key(n);
+      const sources: WatchSource[] = [n.label, n.description, n.isHidden, isPicked, place, menuOpen];
+      if (n.swatch) sources.push(n.swatch);
+      handle.retarget(sources);
+    },
+  };
 }
 
 /** Loading…: a quiet row while a lazy node computes its rows. */

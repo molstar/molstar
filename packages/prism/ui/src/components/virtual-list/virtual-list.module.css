@@ -22,3 +22,11 @@
   inset: 0 0 auto;
   will-change: transform;
 }
+
+/* A row of a `RecycledList`: placed by its own transform (its index × the row height); a recycled one is moved, never
+   made again. */
+.row {
+  position: absolute;
+  inset: 0 0 auto;
+  contain: layout style;
+}
