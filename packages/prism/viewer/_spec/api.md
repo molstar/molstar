@@ -198,9 +198,10 @@ agent):
 - `changed`: an `Observable` of the view after a frame drew a different one (the person dragging, a call, a transition's
   frames). Not replaying. It speaks only when the view differs from the one last announced or set, by value
   (`sameView`), so a view set `silent` is never announced.
-- `set(snapshot, { silent? })`: cuts the camera to the view (no transition; the radius is clamped to the scene's) and
-  asks for a draw; false without a canvas. `silent` marks it the last announced, so a host that mirrors one camera onto
-  another does not hear its own setting back: no echo loop, however many viewers follow each other.
+- `set(snapshot, { silent? })`: cuts the camera to the view (no transition: one under way ends there; the radius is
+  clamped to the scene's) and asks for a draw; false without a canvas. `silent` marks the view the camera took (after
+  the clamp) the last announced, so a host that mirrors one camera onto another does not hear its own setting back: no
+  echo loop, however many viewers follow each other, and a follower's clamp never comes back to its leader.
 - `syncCameras(viewers, from?)` (`@molstar/prism-viewer`): each viewer's `changed` sets the others silently; `from`
   applies its view to the rest at once; returns the unlink. The radius is part of the view so the clipping and fog
-  match; a viewer whose scene is smaller clamps it.
+  match; a viewer whose scene is smaller clamps it (silently: the leader keeps its own).
