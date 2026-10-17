@@ -739,3 +739,6 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism: the right panel is pinned by default on the desktop (the canvas ends at it); a phone's bottom sheet and an
   embedded viewer never pin. The panel's header is as tall as a rail button at every rail size, a selected rail button
   has no outline, and a pinned panel is opaque with its tree rows the same color and the rail's hairline unbroken.
+- Prism viewer: a predicted model opens colored by its pLDDT (or QMEAN) out of the box, as v5's viewer did: the
+  model-archive extension makes its automatic preset, colored by the model's confidence where it has one, the default
+  representation preset. Other structures open as before.
