@@ -346,6 +346,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         map(([data, layout]) => data && layout.buttons[id] !== false),
         distinctUntilChanged(),
       );
+    // The side panel open (a tab, not a card in its place): the trajectory bar is compact then, its row in the panel.
+    const panelOpen = combineLatest([shell.dock('right').active, shell.overlay]).pipe(
+      map(([tab, overlay]) => !!tab && !overlay),
+      distinctUntilChanged(),
+    );
     const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
     unregister.push(
       shell.registerToolbar(
@@ -692,19 +697,29 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             </Show>
           }
           playback={
-            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's: only while
-            // frames play (the controls are the Structure panel's trajectory row; its pause is here too).
+            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's. The side
+            // panel open (its Structure tab has the trajectory's row), a compact chip while frames play; closed, the
+            // full bar, playing or not: the controls are always at hand.
             <PlaybackDeck>
               <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
               {trajectory ? (
-                <Show
-                  when={shown(
-                    'trajectory',
-                    combineLatest([hasData, trajectory.model.isPlaying]).pipe(map(([d, playing]) => d && playing)),
-                  )}
-                >
-                  {() => <TrajectoryRow model={trajectory.model} />}
-                </Show>
+                <>
+                  <Show
+                    when={shown('trajectory', combineLatest([hasData, panelOpen]).pipe(map(([d, open]) => d && !open)))}
+                  >
+                    {() => <TrajectoryRow model={trajectory.model} />}
+                  </Show>
+                  <Show
+                    when={shown(
+                      'trajectory',
+                      combineLatest([hasData, panelOpen, trajectory.model.isPlaying]).pipe(
+                        map(([d, open, playing]) => d && open && playing),
+                      ),
+                    )}
+                  >
+                    {() => <TrajectoryRow model={trajectory.model} compact />}
+                  </Show>
+                </>
               ) : null}
             </PlaybackDeck>
           }

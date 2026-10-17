@@ -72,10 +72,15 @@ export function TrajectoryBar(props: { model: TrajectoryControlsModel }) {
 
 /**
  * The trajectory's row: the models of one structure (named, since it is that structure's model index), a scrubber
- * and play. Only for a multi-model structure.
+ * and play; `compact`, only its name, the frame and play (where the full controls are at hand elsewhere: the viewer's
+ * Structure panel). Only for a multi-model structure.
  */
-export function TrajectoryRow(props: { model: TrajectoryControlsModel }) {
-  return <Show when={derive(props.model.count, (c) => c > 1)}>{() => <Trajectory model={props.model} />}</Show>;
+export function TrajectoryRow(props: { model: TrajectoryControlsModel; compact?: boolean }) {
+  return (
+    <Show when={derive(props.model.count, (c) => c > 1)}>
+      {() => <Trajectory model={props.model} compact={props.compact} />}
+    </Show>
+  );
 }
 
 /**
@@ -397,8 +402,20 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
   );
 }
 
-function Trajectory(props: { model: TrajectoryControlsModel }) {
+function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }) {
   const { model } = props;
+  if (props.compact) {
+    return (
+      <div class={classes.bar} role="group" aria-label="Models" data-row>
+        <span class={classes.lead}>
+          <Icon name="trajectory" size={16} />
+        </span>
+        <span class={classes.trajectoryLabel}>{model.label}</span>
+        <span class={classes.counter}>{derive([model.index, model.count], (i, c) => `${i + 1} / ${c}`)}</span>
+        <PlayButton playing={model.isPlaying} title="Play models" onClick={() => model.togglePlay()} />
+      </div>
+    );
+  }
   // One model back or forth, past the end to the start (as v5's arrows).
   const step = (by: number) => {
     const c = model.count.value;

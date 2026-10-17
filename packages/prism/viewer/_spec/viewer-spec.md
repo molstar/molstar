@@ -141,7 +141,8 @@ beyond it (README decision 13).
   row ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a row of its own first under it
   (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked, the same at full width and how
   it plays (mode, seconds per pass) in the inspector. Play is of that structure (`trajectory.play` with `structure`),
-  one at a time; the canvas shows a chip only while frames play.
+  one at a time. The canvas' trajectory bar: with the side panel open (a tab, not a card), a compact chip while frames
+  play (name, frame, pause); closed, the full bar (scrubber, ‹ ›, play), paused or not.
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).
