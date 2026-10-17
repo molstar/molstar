@@ -68,7 +68,28 @@ export function observableState<T>(initial: T, options?: ObservableStateOptions<
 export function observableState<T>(initial: T, options?: ObservableStateOptions<T>): ObservableState<T> {
   const subject = new BehaviorSubject(initial);
   const asReadonly = subject.asObservable() as ReadonlyState<T>;
+  // Listeners (`listen`): plain callbacks, told after each change (no value, no rxjs Subscriber), for `watch`.
+  let listeners: Set<() => void> | undefined;
+  const listen = (fn: () => void) => {
+    // A wrapper per call: the same function listening twice is told twice and stops once per call.
+    const entry = () => fn();
+    (listeners ??= new Set()).add(entry);
+    return () => {
+      listeners?.delete(entry);
+    };
+  };
+  const notify = () => {
+    if (!listeners || listeners.size === 0) return;
+    for (const fn of listeners) {
+      try {
+        fn();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
   Object.defineProperty(asReadonly, 'value', { get: () => state.value });
+  Object.defineProperty(asReadonly, 'listen', { value: listen });
   const compare = options?.compare ?? sameShallow;
   // A set during a delivery (from a subscriber) is queued and delivered after
   // it, so every subscriber gets the values in the order they were set and ends on the latest; a
@@ -110,6 +131,8 @@ export function observableState<T>(initial: T, options?: ObservableStateOptions<
         delivering = false;
         queued.length = 0;
       }
+      // After the subscribers, and outside the delivery: a listener that sets the state sets it anew.
+      notify();
     },
   };
   if (!isPlainRecord(initial)) return state;

@@ -7,21 +7,32 @@
  */
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
+import { listen } from '../reactive/listen.js';
 import type { ObservableState } from '../reactive/observable-state.js';
+import type { ReadonlyState } from '../reactive/readonly-state.js';
+
+/** What a scope stops and starts with its activity: a binding, a watch. */
+abstract class Live implements Unsubscribable {
+  abstract start(): void;
+  abstract stop(): void;
+  abstract unsubscribe(): void;
+}
 
 /**
  * A binding's subscription that can be stopped and started again with its scope's activity (`Scope.setActive`): stopped
  * it holds no subscription (nothing runs for it), started it subscribes `fn` itself, so an update costs what it always
  * did.
  */
-class Binding<T> implements Unsubscribable {
+class Binding<T> extends Live {
   #sub: Subscription | undefined;
   #live = false;
   #dead = false;
   constructor(
     readonly stream: Observable<T>,
     readonly fn: (value: T) => void,
-  ) {}
+  ) {
+    super();
+  }
 
   start() {
     if (this.#live || this.#dead) return;
@@ -45,6 +56,114 @@ class Binding<T> implements Unsubscribable {
   }
 }
 
+// --- watch ---------------------------------------------------------------------------------------
+
+/** The watches marked by a change since the last flush (rendering.md §2.2): rendered together, in a microtask. */
+let dirty = new Set<Watcher>();
+let scheduled = false;
+let flushing = false;
+/** Flushes in a row before a watch that keeps marking itself (a render that sets what it watches) is dropped. */
+const MaxPasses = 100;
+
+function schedule(w: Watcher) {
+  dirty.add(w);
+  if (scheduled) return;
+  scheduled = true;
+  queueMicrotask(flush);
+}
+
+const byDepth = (a: Watcher, b: Watcher) => a.depth - b.depth;
+
+/**
+ * Renders now what `watch`es are waiting for (they render in a microtask otherwise): for code that sets state and then
+ * reads the DOM in the same task (scrolling to a row just opened, focusing one, a test). Parents render before their
+ * children, a disposed or paused watch not at all; renders that mark others are rendered in the same flush. Nested in a
+ * flush (a render that calls it), it does nothing: the running flush goes on.
+ */
+export function flush(): void {
+  scheduled = false;
+  if (flushing) return;
+  flushing = true;
+  try {
+    for (let pass = 0; dirty.size > 0; pass++) {
+      const list = [...dirty];
+      dirty = new Set();
+      if (pass === MaxPasses) {
+        console.error('watch: renders kept marking watches (a render sets what it watches?); dropped', list.length);
+        break;
+      }
+      // A Set keeps the order of marking; the sort is stable, so siblings render in the order they changed.
+      if (list.length > 1) list.sort(byDepth);
+      for (let i = 0; i < list.length; i++) list[i].run();
+    }
+  } finally {
+    flushing = false;
+  }
+}
+
+/**
+ * What `watch` makes: one listener per source (`listen`, no operators), `render` once when it starts and once per flush
+ * after a change; stopped (its scope paused), it holds no listener.
+ */
+class Watcher extends Live {
+  readonly #sources: readonly (Observable<unknown> | ReadonlyState<unknown>)[];
+  readonly #render: () => void;
+  #stops: (() => void)[] | undefined;
+  #live = false;
+  #dead = false;
+  constructor(
+    readonly depth: number,
+    sources: readonly (Observable<unknown> | ReadonlyState<unknown>)[],
+    render: () => void,
+  ) {
+    super();
+    this.#sources = sources;
+    this.#render = render;
+  }
+
+  readonly #mark = () => {
+    if (this.#live) schedule(this);
+  };
+
+  start() {
+    if (this.#live || this.#dead) return;
+    this.#live = true;
+    const sources = this.#sources;
+    const stops: (() => void)[] = new Array(sources.length);
+    for (let i = 0; i < sources.length; i++) stops[i] = listen(sources[i], this.#mark);
+    this.#stops = stops;
+    this.run();
+  }
+
+  /** Renders (outside any scope: a render writes, it makes nothing to own), unless stopped meanwhile. */
+  run() {
+    if (!this.#live) return;
+    const previous = current;
+    current = undefined;
+    try {
+      this.#render();
+    } catch (e) {
+      // One failing render must not keep the others in the flush from running; the watch goes on.
+      console.error(e);
+    } finally {
+      current = previous;
+    }
+  }
+
+  stop() {
+    this.#live = false;
+    dirty.delete(this);
+    const stops = this.#stops;
+    this.#stops = undefined;
+    if (stops) for (let i = 0; i < stops.length; i++) stops[i]();
+  }
+
+  unsubscribe() {
+    this.#dead = true;
+    this.stop();
+  }
+}
+
 /**
  * Owns what a piece of rendered DOM needs to clean up: subscriptions of its bindings, child scopes of its dynamic
  * regions, and anything registered with `onCleanup`. Disposing a scope disposes its children first, then runs its own
@@ -58,6 +177,8 @@ class Binding<T> implements Unsubscribable {
  */
 export class Scope {
   readonly #parent: Scope | undefined;
+  /** How many scopes are above it: a watch's place in a flush (parents first). */
+  readonly depth: number;
   // Allocated on first use: most scopes (a list's rows) own a few subscriptions and no children.
   #children: Set<Scope> | undefined;
   #cleanups: ((() => void) | Unsubscribable)[] | undefined;
@@ -71,6 +192,7 @@ export class Scope {
 
   constructor(parent?: Scope) {
     this.#parent = parent;
+    this.depth = parent ? parent.depth + 1 : 0;
     this.#active = parent ? parent.#active : true;
   }
 
@@ -111,7 +233,7 @@ export class Scope {
     // By index: a binding that starts may add one (the list stays the same length otherwise).
     for (let i = 0; i < cleanups.length; i++) {
       const c = cleanups[i];
-      if (c instanceof Binding) {
+      if (c instanceof Live) {
         if (start) c.start();
         else c.stop();
       }
@@ -163,6 +285,18 @@ export class Scope {
     const binding = new Binding(stream, fn);
     this.own(binding);
     if (this.#active) binding.start();
+  }
+
+  /** `watch` in this scope. */
+  watch(sources: readonly WatchSource[], render: () => void): void {
+    const streams: (Observable<unknown> | ReadonlyState<unknown>)[] = [];
+    for (const s of sources) {
+      const stream = toStream(s);
+      if (stream) streams.push(stream);
+    }
+    const watcher = new Watcher(this.depth, streams, render);
+    this.own(watcher);
+    if (this.#active) watcher.start();
   }
 
   get disposed(): boolean {
@@ -303,4 +437,19 @@ export function bind<T>(source: MaybeReactive<T>, fn: (value: T) => void): void 
     return;
   }
   requireScope().bind(stream, fn);
+}
+
+/** What a `watch` follows: a state (its `listen`), a writable state, or any stream (subscribed). */
+export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Observable<unknown>;
+
+/**
+ * A view as a function of its state (rendering.md §2): `render` reads the current values (`state.value`) and writes
+ * what differs from the DOM (`dom/writes.ts`). It runs now, and again after any of `sources` changes: the change marks
+ * the watch, and every marked watch renders once in a microtask (`flush`), parents before children, so many changes in
+ * a task are one render. While the scope is paused (`Scope.setActive`) it listens to nothing; resumed, it renders once.
+ * A render owns nothing (it runs outside the scope: structure goes in regions, `Show`, `For`); one that throws is
+ * logged and the watch goes on.
+ */
+export function watch(sources: readonly WatchSource[], render: () => void): void {
+  requireScope('watch').watch(sources, render);
 }
