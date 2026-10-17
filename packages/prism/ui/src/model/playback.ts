@@ -56,6 +56,8 @@ export interface SnapshotTransitionModel {
 export interface TrajectoryControlsModel {
   /** The structure it belongs to ("1TQN"). */
   label: ReadonlyState<string>;
+  /** What its frames are called (an ensemble's models, a simulation's frames); `models` when not given. */
+  unit?: ReadonlyState<'models' | 'frames'>;
   count: ReadonlyState<number>;
   /** 0-based. */
   index: ReadonlyState<number>;

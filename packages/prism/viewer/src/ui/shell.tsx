@@ -346,11 +346,17 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         map(([data, layout]) => data && layout.buttons[id] !== false),
         distinctUntilChanged(),
       );
-    // The side panel open (a tab, not a card in its place): the trajectory bar is compact then, its row in the panel.
-    const panelOpen = combineLatest([shell.dock('right').active, shell.overlay]).pipe(
-      map(([tab, overlay]) => !!tab && !overlay),
-      distinctUntilChanged(),
-    );
+    // The followed trajectory's row on screen in the Structure panel (not under a card in the panel's place): the bar
+    // steps back to a compact chip then (the row has the controls). Any other way (another tab, the panel closed, the
+    // structure collapsed or searched away, the canvas expanded) the full bar is there, playing or not.
+    const rowOpen = trajectory
+      ? combineLatest([trajectory.rowShown, shell.overlay]).pipe(
+          map(([row, overlay]) => row && !overlay),
+          distinctUntilChanged(),
+        )
+      : undefined;
+    // The chip stays while it has the focus (its Pause pressed from the keyboard does not drop the focus to the page).
+    const chipFocused = observableState(false);
     const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
     unregister.push(
       shell.registerToolbar(
@@ -697,27 +703,37 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             </Show>
           }
           playback={
-            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's. The side
-            // panel open (its Structure tab has the trajectory's row), a compact chip while frames play; closed, the
-            // full bar, playing or not: the controls are always at hand.
+            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's: a compact
+            // chip while frames play and its row is on screen (`rowOpen`), else the full bar, playing or not.
             <PlaybackDeck>
               <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
               {trajectory ? (
                 <>
                   <Show
-                    when={shown('trajectory', combineLatest([hasData, panelOpen]).pipe(map(([d, open]) => d && !open)))}
+                    when={shown('trajectory', combineLatest([hasData, rowOpen!]).pipe(map(([d, open]) => d && !open)))}
                   >
                     {() => <TrajectoryRow model={trajectory.model} />}
                   </Show>
                   <Show
                     when={shown(
                       'trajectory',
-                      combineLatest([hasData, panelOpen, trajectory.model.isPlaying]).pipe(
-                        map(([d, open, playing]) => d && open && playing),
+                      combineLatest([hasData, rowOpen!, trajectory.model.isPlaying, chipFocused.asReadonly]).pipe(
+                        map(([d, open, playing, focused]) => d && open && (playing || focused)),
                       ),
                     )}
                   >
-                    {() => <TrajectoryRow model={trajectory.model} compact />}
+                    {() => (
+                      <div
+                        style={{ display: 'contents' }}
+                        onFocusIn={() => chipFocused.set(true)}
+                        onFocusOut={(e) => {
+                          if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null))
+                            chipFocused.set(false);
+                        }}
+                      >
+                        <TrajectoryRow model={trajectory.model} compact />
+                      </div>
+                    )}
                   </Show>
                 </>
               ) : null}

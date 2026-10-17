@@ -10,7 +10,13 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
-import { isPlayingFrames, type TrajectoryInfo, trajectoryInfos, whileViewing } from '../sources/trajectory.js';
+import {
+  isPlayingAll,
+  isPlayingFrames,
+  type TrajectoryInfo,
+  trajectoryInfos,
+  whileViewing,
+} from '../sources/trajectory.js';
 import { ApiArea, type ApiContext, ApiResult } from './area.js';
 import { StructureParam, OptionalParam } from './params.js';
 import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
@@ -136,7 +142,7 @@ export class TrajectoryApi extends ApiArea {
         one = all.find((t) => t.ref === found.cell.transform.ref);
         if (!one) return ApiResult.fail('blocked', `${labelOf(ctx, found)} has one model, no frames to play.`);
         if (isPlayingFrames(ctx.plugin, one.model)) return ApiResult.already(`${one.label}'s ${one.unit} are playing.`);
-      } else if (isPlayingFrames(ctx.plugin)) return ApiResult.already('The models are playing.');
+      } else if (isPlayingAll(ctx.plugin)) return ApiResult.already('The models are playing.');
       await ctx.plugin.managers.animation.play(AnimateModelIndex, {
         mode:
           mode === 'palindrome'

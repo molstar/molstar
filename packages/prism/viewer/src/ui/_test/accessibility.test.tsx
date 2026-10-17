@@ -220,7 +220,31 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
   });
   afterAll(() => page.dispose());
 
-  it("the trajectory's row in the Structure panel (the canvas shows a chip only while it plays)", async () => {
+  it("shows the canvas' full trajectory bar unless the trajectory's row is on screen (another tab, the canvas expanded)", async () => {
+    const bar = () => {
+      const g = page.mounted.root.querySelector<HTMLElement>('[role=group][aria-label=Models]');
+      return g ? (g.querySelector('input[type=range]') ? 'full' : 'compact') : 'none';
+    };
+    page.mounted.shell.show('structure');
+    await wait(300);
+    expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
+    // The row has the controls, paused: no bar on the canvas.
+    expect(bar()).toBe('none');
+    page.mounted.shell.show('selection');
+    await wait(300);
+    expect(bar()).toBe('full');
+    page.mounted.shell.show('structure');
+    await wait(300);
+    expect(bar()).toBe('none');
+    page.mounted.shell.setExpanded(true);
+    await wait(300);
+    expect(bar()).toBe('full');
+    page.mounted.shell.setExpanded(false);
+    await wait(300);
+    expect(bar()).toBe('none');
+  });
+
+  it("the trajectory's row in the Structure panel (the canvas' bar steps back while it is on screen)", async () => {
     page.mounted.shell.show('structure');
     await wait(300);
     expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();

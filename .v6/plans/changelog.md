@@ -746,5 +746,5 @@ the [API change ledger](breaking-v6-changes.md).
   ("10 models"; "frames" for a simulation's coordinates) and has a row of its own under it: the frame shown, a scrubber,
   ‹ ›, play; picked, the inspector has the scrubber at full width and how it plays (loop, back and forth, once; seconds
   per pass). Play is of that structure, one at a time (`trajectory.play` takes `structure`). The canvas' trajectory bar is a
-  compact chip while frames play with the side panel open, and the full bar (paused or not) with it closed. The structure inspector's Model field is gone. Mol*: the trajectory animations take
+  compact chip while frames play and that structure's row is on screen, else the full bar (paused or not, so the controls are always at hand). The structure inspector's Model field is gone. Mol*: the trajectory animations take
   `refs`, the frame cells to step (empty: all, as before).

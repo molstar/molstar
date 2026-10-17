@@ -11,6 +11,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { domView, Icon, ParamsForm, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import { onActive, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneNode, SceneTrajectory } from '../../model/scene.js';
@@ -20,7 +21,8 @@ import { SceneRowSlot } from './scene-row-slot.js';
 
 // A structure's frames in the Structure panel (an NMR ensemble's models, a simulation's frames): a row of its own, the
 // first under the structure, with the frame, a scrubber, ‹ ›, and play; picked, the inspector has the same at full
-// width with how it plays (mode, seconds per pass). The canvas shows a chip only while frames play (shell.tsx).
+// width with how it plays (mode, seconds per pass). While the row is on screen the canvas' bar steps back to a compact
+// chip (shown while frames play); otherwise the canvas has the full bar (ui/shell.tsx).
 
 const Capital = { models: 'Models', frames: 'Frames' } as const;
 
@@ -41,6 +43,18 @@ export const TrajectoryRowSection: ShellSection = {
 
 function TrajectoryRow(props: { trajectory: SceneTrajectory }) {
   const t = props.trajectory;
+  // On screen while its view is active (the Structure tab shown, the structure open, the row in the tree's window): the
+  // canvas' bar steps back then (ui/shell.tsx). Hidden, collapsed, searched away, scrolled out or expanded over: not.
+  const scope = requireScope('TrajectoryRow');
+  let shown = false;
+  const show = (on: boolean) => {
+    if (on === shown) return;
+    shown = on;
+    t.markShown(on);
+  };
+  show(scope.active);
+  onActive(show);
+  onCleanup(() => show(false));
   return (
     <SceneRow
       label={Capital[t.unit]}
@@ -69,6 +83,8 @@ function Scrubber(props: { trajectory: SceneTrajectory; compact?: boolean }) {
           '--msp-progress': derive([t.index, t.count], (i, c) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`),
         }}
         aria-label={`${Capital[t.unit].slice(0, -1)} shown`}
+        // Said as people count them ("Model 3 of 10"), not the 0-based value.
+        aria-valuetext={derive([t.index, t.count], (i, c) => `${Capital[t.unit].slice(0, -1)} ${i + 1} of ${c}`)}
         onInput={(e) => t.seek(Number((e.currentTarget as HTMLInputElement).value))}
       />
       <button type="button" class={classes.button} tabIndex={tab} title={`Previous ${one}`} onClick={() => t.step(-1)}>

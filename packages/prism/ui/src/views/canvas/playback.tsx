@@ -19,7 +19,7 @@ import { restartable } from '../../dom/scoped.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
-import { derive } from '../../reactive/state.js';
+import { derive, State } from '../../reactive/state.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { classes } from './_generated/playback.module.css.js';
@@ -402,17 +402,28 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
   );
 }
 
+const ModelsUnit: ReadonlyState<'models' | 'frames'> = new State<'models' | 'frames'>('models').asReadonly;
+
 function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }) {
   const { model } = props;
+  // An ensemble's models or a simulation's frames: what the controls say (it follows the structure the bar follows).
+  const unitOf = model.unit ?? ModelsUnit;
+  const Unit = derive(unitOf, (u) => (u === 'models' ? 'Models' : 'Frames'));
+  const one = derive(unitOf, (u) => (u === 'models' ? 'model' : 'frame'));
+  const shownLabel = derive(Unit, (u) => `${u.slice(0, -1)} shown`);
   if (props.compact) {
     return (
-      <div class={classes.bar} role="group" aria-label="Models" data-row>
+      <div class={classes.bar} role="group" aria-label={Unit} data-row>
         <span class={classes.lead}>
           <Icon name="trajectory" size={16} />
         </span>
         <span class={classes.trajectoryLabel}>{model.label}</span>
         <span class={classes.counter}>{derive([model.index, model.count], (i, c) => `${i + 1} / ${c}`)}</span>
-        <PlayButton playing={model.isPlaying} title="Play models" onClick={() => model.togglePlay()} />
+        <PlayButton
+          playing={model.isPlaying}
+          title={derive(unitOf, (u) => `Play ${u}`)}
+          onClick={() => model.togglePlay()}
+        />
       </div>
     );
   }
@@ -424,7 +435,7 @@ function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }
   // The played part of the track, for the scrubber's fill.
   const progress = derive([model.index, model.count], (i, c) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`);
   return (
-    <div class={classes.bar} role="group" aria-label="Models" data-row>
+    <div class={classes.bar} role="group" aria-label={Unit} data-row>
       <span class={classes.lead}>
         <Icon name="trajectory" size={16} />
       </span>
@@ -437,29 +448,40 @@ function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }
         max={derive(model.count, (c) => String(c - 1))}
         value={derive(model.index, String)}
         style={{ '--msp-progress': progress }}
-        aria-label="Model"
+        aria-label={shownLabel}
+        // Said as people count them ("Model 3 of 10"), not the 0-based value.
+        aria-valuetext={derive([Unit, model.index, model.count], (u, i, c) => `${u.slice(0, -1)} ${i + 1} of ${c}`)}
         onInput={(e) => model.seek(Number(e.currentTarget.value))}
       />
       <Button
         variant="ghost"
         size="sm"
         icon={<Icon name="chevron-left" />}
-        title="Previous model"
+        title={derive(one, (o) => `Previous ${o}`)}
         onClick={() => step(-1)}
       />
-      <PlayButton playing={model.isPlaying} title="Play models" onClick={() => model.togglePlay()} />
+      <PlayButton
+        playing={model.isPlaying}
+        title={derive(unitOf, (u) => `Play ${u}`)}
+        onClick={() => model.togglePlay()}
+      />
       <Button
         variant="ghost"
         size="sm"
         icon={<Icon name="chevron-right" />}
-        title="Next model"
+        title={derive(one, (o) => `Next ${o}`)}
         onClick={() => step(1)}
       />
     </div>
   );
 }
 
-function PlayButton(props: { playing: ReadonlyState<boolean>; title: string; onClick(): void }) {
+function PlayButton(props: {
+  playing: ReadonlyState<boolean>;
+  title: string | ReadonlyState<string>;
+  onClick(): void;
+}) {
+  const title = typeof props.title === 'string' ? new State(props.title).asReadonly : props.title;
   return (
     <Button
       variant="ghost"
@@ -469,7 +491,7 @@ function PlayButton(props: { playing: ReadonlyState<boolean>; title: string; onC
           {() => <Icon name="pause" />}
         </Show>
       }
-      title={derive(props.playing, (p) => (p ? 'Pause' : props.title))}
+      title={derive([props.playing, title], (p, t) => (p ? 'Pause' : t))}
       pressed={props.playing}
       onClick={() => props.onClick()}
     />

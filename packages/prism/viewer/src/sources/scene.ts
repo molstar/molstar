@@ -72,7 +72,7 @@ import {
   volumeStats,
 } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, measurementLocis, readMeasurements } from './measurements.js';
-import { createTrajectorySource, type TrajectorySource } from './trajectory.js';
+import { type TrajectorySource, trajectorySourceOf } from './trajectory.js';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import { structureNames } from './naming.js';
 import { fromChanged, onceATask, type SourceScope } from './state.js';
@@ -263,8 +263,7 @@ export function createSceneSource(
   const picked = observableState<SceneNode | undefined>(undefined);
   // The frames of the structures that have several (made when the first such structure is shown; its states listen to
   // the plugin only while a row or the inspector reads them).
-  let trajectorySource: TrajectorySource | undefined;
-  const trajectories = () => (trajectorySource ??= createTrajectorySource(plugin));
+  const trajectories = () => trajectorySourceOf(plugin);
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
   // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
   // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
@@ -314,9 +313,12 @@ export function createSceneSource(
     const frames = s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
     const unit =
       s.model?.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models';
+    // Gained, lost or changed (its unit): told as a change of the node, so the tree flattens it again (its frames' row).
+    const before = n.trajectory;
     if (frames < 2) n.trajectory = undefined;
     else if (!n.trajectory || n.trajectory.unit !== unit)
       n.trajectory = sceneTrajectory(trajectories(), api, ref, unit);
+    if (n.trajectory !== before) n.log?.touch(n.id);
     n.set(
       name,
       data ? `${describeStructure(data)}${frames > 1 ? ` · ${frames.toLocaleString('en')} ${unit}` : ''}` : undefined,
@@ -997,7 +999,8 @@ const FromCoordinates = 'trajectory-from-model-and-coordinates';
 
 /**
  * A structure's frames as its row and the inspector use them (model/scene.ts, `SceneTrajectory`): read from the shared
- * trajectory source, acting through the API. A seek in flight takes only the latest index after it (a scrubber's drag).
+ * trajectory source (its own by ref), acting through the API. A seek in flight takes only the latest index after it (a
+ * scrubber's drag); a step counts from the frame last asked for (pending or in flight), so quick presses add up.
  */
 function sceneTrajectory(
   source: TrajectorySource,
@@ -1005,25 +1008,26 @@ function sceneTrajectory(
   structure: string,
   unit: SceneTrajectory['unit'],
 ): SceneTrajectory {
-  const info = derive(source.frames, (list) => list.find((t) => t.ref === structure));
+  const info = derive(source.byRef, (m) => m.get(structure));
   const count = derive(info, (i) => i?.count ?? 0);
-  const index = derive(info, (i) => i?.index ?? 0);
-  const playing = derive(source.playingRef, (r) => r === structure);
+  const index = derive(source.indexByRef, (m) => m.get(structure) ?? 0);
+  // Every structure's (a play of all) or this one's.
+  const playing = derive(source.playingRefs, (r) => r.has(structure));
   const mode = observableState<'loop' | 'palindrome' | 'once'>('loop');
   const seconds = observableState(5);
+  /** The frame to show next (not sent yet), and the one being shown (sent, not done). */
   let wanted: number | undefined;
-  let busy = false;
+  let sending: number | undefined;
   const flush = async () => {
-    if (busy) return;
-    busy = true;
+    if (sending !== undefined) return;
     try {
       while (wanted !== undefined) {
-        const to = wanted;
+        sending = wanted;
         wanted = undefined;
-        await api.run('trajectory.frame', { structure, index: to });
+        await api.run('trajectory.frame', { structure, index: sending });
       }
     } finally {
-      busy = false;
+      sending = undefined;
     }
   };
   return {
@@ -1040,14 +1044,17 @@ function sceneTrajectory(
     step(by) {
       const c = count.value;
       if (c < 2) return;
-      // From a step still in flight, not the frame shown: quick presses add up.
-      wanted = ((((wanted ?? index.value) + by) % c) + c) % c;
+      // From the frame last asked for (pending, else in flight), not the frame shown: quick presses add up.
+      wanted = ((((wanted ?? sending ?? index.value) + by) % c) + c) % c;
       void flush();
     },
     togglePlay() {
       void (playing.value
         ? api.run('trajectory.stop')
         : api.run('trajectory.play', { structure, mode: mode.value, seconds: seconds.value }));
+    },
+    markShown(on) {
+      source.markRowShown(structure, on);
     },
   };
 }

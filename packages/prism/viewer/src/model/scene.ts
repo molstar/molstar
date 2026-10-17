@@ -108,6 +108,8 @@ export interface SceneTrajectory {
   /** Moves by `by` frames, wrapping around. */
   step(by: number): void;
   togglePlay(): void;
+  /** Its row is on screen (`true`) or no longer: the canvas' bar steps back while it is (ui/shell.tsx). */
+  markShown(on: boolean): void;
 }
 
 export interface SceneMenuItem {
