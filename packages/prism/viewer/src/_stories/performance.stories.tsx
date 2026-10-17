@@ -603,8 +603,22 @@ export const Interactive: StoryObj = {
       host.style.cssText = 'position: fixed; inset: 0; overflow: auto; background: var(--msp-color-bg);';
       document.body.append(host);
       const dispose = render(() => content(), host);
+      // A/B for the skeleton (virtual-list.module.css): off, the lists' tall content boxes are not painted, so a slow
+      // scroll that is the raster of those boxes (not script) shows as the difference between the two.
+      const off = document.createElement('style');
+      off.textContent = '.msp-virtual-list-content { background-image: none !important; }';
+      const toggle = document.createElement('label');
+      toggle.style.cssText =
+        'position: fixed; right: 16px; top: 12px; display: flex; gap: 6px; align-items: center; font: 13px system-ui; color: var(--msp-color-text);';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = true;
+      box.addEventListener('change', () => (box.checked ? off.remove() : document.head.append(off)));
+      toggle.append(box, 'Skeleton behind the rows');
+      host.append(toggle);
       onCleanup(() => {
         dispose();
+        off.remove();
         host.remove();
       });
       return <p>The trees are mounted outside Storybook's root (its addons watch every change there).</p>;
