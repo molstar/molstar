@@ -14,6 +14,12 @@ import type { ReadonlyState } from './readonly-state.js';
 // boundary: a state is also an `Observable` (`asObservable`, made by subscribing: one listener per subscriber), and
 // `toState` turns a stream at a model's edge into a state, once.
 
+/**
+ * Counts for the benches (Internals › Performance › Trees, `__mspRows.updates`): listener calls (every state's and
+ * derived value's), derived recomputes, `watch` renders. A plain increment each.
+ */
+export const ReactiveCounts = { listener: 0, derive: 0, render: 0 };
+
 /** A listener: told each value set, in order (one set inside a delivery is told after it). */
 export type Listener<T> = (value: T) => void;
 
@@ -72,6 +78,7 @@ abstract class Listened<T> extends Observable<T> {
         const fn = list[i];
         if (!fn) continue;
         try {
+          ReactiveCounts.listener++;
           fn(value);
         } catch (e) {
           console.error(e);
@@ -294,6 +301,7 @@ class Derived1<S, T> extends Listened<T> implements ReadonlyState<T> {
   }
 
   readonly #changed = () => {
+    ReactiveCounts.derive++;
     const v = this.source.value;
     const next = this.fn(v);
     this.#from = v;
@@ -359,6 +367,7 @@ class Derived<T> extends Listened<T> implements ReadonlyState<T> {
   }
 
   readonly #changed = () => {
+    ReactiveCounts.derive++;
     this.#remember();
     const next = this.#compute();
     if (this.same(this.#cached, next)) return;

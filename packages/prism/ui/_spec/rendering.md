@@ -32,6 +32,30 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   4.8 → 2.2 ms. What remains per row is the DOM (making it; laying it out, about 0.1 ms a scene-tree row at the frame),
   `For`'s entry and scope, the menu's region.
 
+- **The update path** of a mounted row, from a state's change to the DOM showing it (the same rows, 48 in the window;
+  Chromium cross-origin isolated, a 5 µs clock; `__mspRows.updates`/`updateCase`, `watch-bench/update-path.mjs`). Time
+  is script until the DOM is right, for `watch` after its microtask flush; heap is JS allocated per update (no GC in
+  between); calls are listener calls, derived recomputes and `watch` renders per update (a burst: per burst), in
+  brackets those on rows the update does not change (from 48 rows against 12):
+
+  | case (per update)                     | rxjs pipes             | `derive` JSX            | `watch`, DOM compares    | `watch` (JS compares)   |
+  | ------------------------------------- | ---------------------- | ----------------------- | ------------------------ | ----------------------- |
+  | a row's label                         | 0.6 µs, 85 B, 1        | 0.6 µs, 85 B, 1         | 3.0 µs, 229 B, 2         | 1.0 µs, 189 B, 2        |
+  | a row's hidden (class, title, icon)   | 3.6 µs, 466 B, 4       | 3.3 µs, 466 B, 6        | 1.9 µs, 183 B, 2         | 1.1 µs, 142 B, 2        |
+  | a row's swatch (a style)              | 0.4 µs, 71 B, 1        | 0.4 µs, 71 B, 3         | 1.2 µs, 199 B, 2         | 0.8 µs, 199 B, 2        |
+  | the pick moves between two rows       | 4.9 µs, 937 B, 97 (82) | 2.1 µs, 933 B, 101 (92) | 59 µs, 5.2 KB, 97 (82)   | 4.9 µs, 3.3 KB, 97 (82) |
+  | a reflow far below (places map anew)  | 86 µs, 275 B, 53 (45)  | 82 µs, 322 B, 101 (91)  | 130 µs, 4.3 KB, 101 (91) | 87 µs, 2.9 KB, 101 (91) |
+  | 100 label sets in one task (10 rows)  | 25 µs, 6.3 KB, 100     | 26 µs, 6.3 KB, 100      | 18.5 µs, 3.0 KB, 110     | 7.2 µs, 2.8 KB, 110     |
+  | 100 sets, each in its own task, a set | 14 µs, 1               | 16 µs, 1                | 38 µs, 2                 | 19 µs, 2                |
+
+  With bindings the DOM is right when `set` returns; with `watch` a read right after `set` sees the old DOM until the
+  microtask (or `flush()`), and `set` itself costs 0.1–1.3 µs (marking). A row's own change costs about the same either
+  way (1 µs). A state every row reads (the pick) runs every row: two cold rxjs chains a row, a `derive` per row, or a
+  render per row; a `watch` render that compares its sources' values with what it last wrote, in JS, costs what the
+  chains do (4.9 µs); one that compares with the DOM (`getAttribute`, `classList`) costs twelve times that. A burst in
+  one task is one render a row (7 µs against 25). A set alone in its task pays the microtask and the flush (19 µs
+  against 14–16). The reflow's 80 µs is the tree's flattening, not its rows.
+
 - **Hand-rolled, not `@preact/signals-core`**: backing `State` and `derive` with signals measured the same time and more
   memory (the `watch` row 3.7 vs 3.4 KB, the `derive` row 9.5 vs 8.8 KB: an effect per listener), needed this batch's
   and queue's semantics given up, and its auto-tracking misses sources that are not signals.
@@ -106,8 +130,11 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   click's change is rendered when the dispatch returns, as a click by code in a test is).
 - **A render owns nothing**: it runs outside any scope (a reactive `bind` in it throws), reads `.value`, writes through
   `dom/writes.ts` (`setText`, `setAttr`, `setClass`, `setStyle`, `setShown`: each compares with the DOM, reads no
-  layout). Content of a few plain nodes may be replaced whole (the command menu's marked title); content with bindings
-  of its own is a region.
+  layout).
+- **A render compares in JS first**: it keeps what it last wrote per source (or per derived value) and touches the DOM
+  only for what changed. A shared source (the picked node, a tree's places) renders every row, and most write nothing:
+  compared with the DOM, a pick over 48 rows took 59 µs; compared in JS, 4.9 µs (§1, the update path). Content of a few
+  plain nodes may be replaced whole (the command menu's marked title); content with bindings of its own is a region.
 - **Sources are explicit**: states and derived values (their `listen`), writable states, anything with `listen`
   (`keyedSelector(...).key(k)`: told only when that key becomes or stops being the current one, so a highlight's move
   renders two rows, not all), or, as the exception, a stream (subscribed; what it emits while subscribing is not a

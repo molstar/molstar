@@ -16,6 +16,9 @@ export interface SceneFixtureNode {
   readonly node: SceneNode;
   readonly label: ObservableState<string>;
   readonly expanded: ObservableState<boolean>;
+  readonly hidden: ObservableState<boolean>;
+  /** With `swatches` only. */
+  readonly swatch?: ObservableState<number | undefined>;
 }
 
 export interface SceneFixture {
@@ -26,8 +29,16 @@ export interface SceneFixture {
   representations: number;
 }
 
-function node(id: string, kind: SceneNodeKind, label: string, children: SceneFixtureNode[] = [], expanded = false) {
+function node(
+  id: string,
+  kind: SceneNodeKind,
+  label: string,
+  children: SceneFixtureNode[] = [],
+  expanded = false,
+  withSwatch = false,
+) {
   const text = observableState(label);
+  const swatch = withSwatch ? observableState<number | undefined>(0x2e86c1) : undefined;
   const isExpanded = observableState(expanded);
   const hidden = observableState(false);
   const n = {
@@ -38,6 +49,7 @@ function node(id: string, kind: SceneNodeKind, label: string, children: SceneFix
     description: observableState<string | undefined>(kind === 'representation' ? 'Cartoon · Chain ID' : '120 atoms')
       .asReadonly,
     isHidden: hidden.asReadonly,
+    ...(swatch ? { swatch: swatch.asReadonly } : {}),
     isExpanded: isExpanded.asReadonly,
     children: observableState<readonly SceneNode[]>(children.map((c) => c.node)).asReadonly,
     toggleVisibility: () => hidden.set(!hidden.value),
@@ -46,17 +58,22 @@ function node(id: string, kind: SceneNodeKind, label: string, children: SceneFix
     focus: () => {},
     remove: () => {},
   } as unknown as SceneNode;
-  return { node: n, label: text, expanded: isExpanded } satisfies SceneFixtureNode;
+  return { node: n, label: text, expanded: isExpanded, hidden, swatch } satisfies SceneFixtureNode;
 }
 
-/** One structure with `components` components (closed), each with `representations` representations. */
-export function makeScene(components = 1000, representations = 3): SceneFixture {
+/**
+ * One structure with `components` components (closed), each with `representations` representations; with `swatches`,
+ * each component has a color swatch.
+ */
+export function makeScene(components = 1000, representations = 3, swatches = false): SceneFixture {
   const comps = Array.from({ length: components }, (_, i) =>
     node(
       `c${i}`,
       'component',
       `Component ${i}`,
       Array.from({ length: representations }, (_, r) => node(`c${i}r${r}`, 'representation', `Representation ${r}`)),
+      false,
+      swatches,
     ),
   );
   const entities = Array.from({ length: 12 }, (_, i) => node(`e${i}`, 'entity', `Entity ${i}`));

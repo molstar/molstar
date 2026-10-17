@@ -8,6 +8,7 @@
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
 import { type Listenable, listen } from '../reactive/listen.js';
+import { ReactiveCounts } from '../reactive/state.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
@@ -147,6 +148,7 @@ class Watcher extends Live {
   /** Renders (outside any scope: a render writes, it makes nothing to own), unless stopped meanwhile. */
   run() {
     if (!this.#live) return;
+    ReactiveCounts.render++;
     const previous = current;
     current = undefined;
     try {

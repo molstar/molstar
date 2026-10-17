@@ -13,6 +13,7 @@ import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '@molstar/prism-ui/dom/control-flow';
 import { render } from '@molstar/prism-ui/dom/render';
 import { flush } from '@molstar/prism-ui/dom/scope';
+import { ReactiveCounts } from '@molstar/prism-ui/reactive/state';
 import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { flattenTree, VirtualList } from '@molstar/prism-ui';
@@ -766,7 +767,219 @@ async function steps(kind: TreeKind, count = 300, by = 26) {
 
 let mounted: ReturnType<typeof mountTree> | undefined;
 
+// --- The update path: a mounted row, from a state's change to the DOM showing it -----------------
+
+/**
+ * The scene tree with its 1,000 components closed (each with a swatch), `height` px tall (600: about 48 rows in the
+ * window), for `updateCase`: one row's own states (its label, hidden, swatch), the picked node moving between two
+ * rows (every row reads it), the tree's places map replaced by a reflow far below (the shown rows' places stay), and
+ * bursts of label sets in one task and across tasks. Each case reports per update: script until `set` returns
+ * (`syncMs`) and until the DOM is right, after `flush()` (`domMs`); whether a read right after `set` saw the old DOM
+ * (`stale`); and the runtime's counts (`ReactiveCounts`: listener calls, derived recomputes, `watch` renders).
+ */
+let upd: { fx: ReturnType<typeof makeScene>; box: HTMLElement; dispose(): void } | undefined;
+
+const lineOf = (id: string) => upd!.box.querySelector<HTMLElement>(`[data-node-id="${id}"]`)!;
+const labelOf = (id: string) => lineOf(id).querySelector('[data-tip-part]')!.textContent;
+
+type UpdateCase = 'label' | 'hidden' | 'swatch' | 'pick' | 'reflow' | 'burst' | 'burstTasks';
+
+/**
+ * One update of a case (`k` its count): what it sets, and whether the DOM shows it. Bursts are 100 label sets over the
+ * first 10 rows (in the window at every size).
+ */
+function updateOf(name: Exclude<UpdateCase, 'burstTasks'>, k: number): { mutate: () => void; shows: () => boolean } {
+  const { fx } = upd!;
+  const c = fx.components;
+  const tick = `${name} ${k}`;
+  switch (name) {
+    case 'label':
+      return { mutate: () => c[3].label.set(tick), shows: () => labelOf('c3') === tick };
+    case 'hidden': {
+      const to = k % 2 === 0;
+      return {
+        mutate: () => c[3].hidden.set(to),
+        shows: () => /hidden/.test(lineOf('c3').className) === to,
+      };
+    }
+    case 'swatch': {
+      const to = k % 2 ? 0xff0000 : 0x00ff00;
+      const rgb = to === 0xff0000 ? '255, 0, 0' : '0, 255, 0';
+      return {
+        mutate: () => c[3].swatch!.set(to),
+        shows: () =>
+          !!lineOf('c3').querySelector<HTMLElement>('[aria-hidden="true"][style]')?.style.background.includes(rgb),
+      };
+    }
+    case 'pick': {
+      const [to, from] = k % 2 ? ['c3', 'c5'] : ['c5', 'c3'];
+      return {
+        mutate: () => fx.scene.pick(c[to === 'c3' ? 3 : 5].node),
+        shows: () => /picked/.test(lineOf(to).className) && !/picked/.test(lineOf(from).className),
+      };
+    }
+    case 'reflow':
+      return { mutate: () => c[900].expanded.set(k % 2 === 0), shows: () => true };
+    case 'burst':
+      return {
+        mutate: () => {
+          for (let i = 0; i < 100; i++) c[i % 10].label.set(`${tick} ${i}`);
+        },
+        shows: () => labelOf('c9') === `${tick} 99`,
+      };
+  }
+}
+
+/**
+ * `n` updates of a case. Timed as loops (the page's clock is coarse: 0.1 ms): `domMs`, each update set and flushed;
+ * `syncMs`, the sets alone (flushed once after the loop, untimed). `stale`: a read right after a set (before the
+ * microtask) saw the old DOM. Counts are per update. `burstTasks`: 100 sets, each in a task of its own, timed one by
+ * one (set and flush), per burst.
+ */
+async function updateCase(name: UpdateCase, n: number) {
+  const zero = () => {
+    ReactiveCounts.listener = ReactiveCounts.derive = ReactiveCounts.render = 0;
+  };
+  const per = (x: number, d = n) => +(x / d).toFixed(4);
+  let k0 = Math.floor(Math.random() * 1e6) * 2;
+  if (name === 'burstTasks') {
+    const c = upd!.fx.components;
+    let dom = 0;
+    let sync = 0;
+    let stale = false;
+    zero();
+    for (let b = 0; b < n; b++) {
+      for (let i = 0; i < 100; i++) {
+        const text = `tasks ${k0++}`;
+        const t0 = performance.now();
+        c[i % 10].label.set(text);
+        const t1 = performance.now();
+        flush();
+        const t2 = performance.now();
+        sync += t1 - t0;
+        dom += t2 - t0;
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+    const counts = { ...ReactiveCounts };
+    for (let i = 0; i < 3; i++) {
+      const text = `tasks ${k0++}`;
+      c[i].label.set(text);
+      if (labelOf(`c${i}`) !== text) stale = true;
+      flush();
+    }
+    return {
+      syncMs: per(sync),
+      domMs: per(dom),
+      stale,
+      listener: per(counts.listener),
+      derive: per(counts.derive),
+      render: per(counts.render),
+    };
+  }
+  // A read right after a set, then the DOM after the flush (untimed).
+  let stale = false;
+  for (let i = 0; i < 3; i++) {
+    const u = updateOf(name, k0++);
+    u.mutate();
+    if (!u.shows()) stale = true;
+    flush();
+    if (!u.shows()) throw new Error(`${name}: the DOM is wrong after flush`);
+  }
+  const updates = Array.from({ length: n }, () => updateOf(name, k0++));
+  zero();
+  let t0 = performance.now();
+  for (const u of updates) {
+    u.mutate();
+    flush();
+  }
+  const dom = performance.now() - t0;
+  const counts = { ...ReactiveCounts };
+  if (!updates[n - 1].shows()) throw new Error(`${name}: the DOM is wrong`);
+  const again = Array.from({ length: n }, () => updateOf(name, k0++));
+  t0 = performance.now();
+  for (const u of again) u.mutate();
+  const sync = performance.now() - t0;
+  flush();
+  return {
+    syncMs: per(sync),
+    domMs: per(dom),
+    stale,
+    listener: per(counts.listener),
+    derive: per(counts.derive),
+    render: per(counts.render),
+  };
+}
+
+/**
+ * `n` updates of a case, set and flushed, with nothing else allocated (no closures, no checks): for a driver that reads
+ * the heap before and after (allocated per update). Bursts across tasks are not run here.
+ */
+function updateHeap(name: Exclude<UpdateCase, 'burstTasks'>, n: number, labels: readonly string[]) {
+  const { fx } = upd!;
+  const c = fx.components;
+  for (let k = 0; k < n; k++) {
+    switch (name) {
+      case 'label':
+        c[3].label.set(labels[k]);
+        break;
+      case 'hidden':
+        c[3].hidden.set(k % 2 === 0);
+        break;
+      case 'swatch':
+        c[3].swatch!.set(k % 2 ? 0xff0000 : 0x00ff00);
+        break;
+      case 'pick':
+        fx.scene.pick(c[k % 2 ? 3 : 5].node);
+        break;
+      case 'reflow':
+        c[900].expanded.set(k % 2 === 0);
+        break;
+      case 'burst':
+        for (let i = 0; i < 100; i++) c[i % 10].label.set(labels[(k * 100 + i) % labels.length]);
+        break;
+    }
+    flush();
+  }
+}
+
+/** Labels made ahead, so a heap reading counts the update, not the strings. */
+let heapLabels: string[] = [];
+
 (window as any).__mspRows = {
+  /** Makes `n` distinct labels ahead of `updateHeap`. */
+  heapLabels(n: number) {
+    const base = Math.floor(Math.random() * 1e9);
+    heapLabels = Array.from({ length: n }, (_, i) => `heap ${base + i}`);
+  },
+  updateHeap: (name: Exclude<UpdateCase, 'burstTasks'>, n: number) => updateHeap(name, n, heapLabels),
+  /** Mounts the closed tree with swatches for `updateCase`; returns the rows in the window. */
+  async updates(height = 600) {
+    upd?.dispose();
+    mounted?.dispose();
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = `position: fixed; left: 16px; top: 16px; width: 320px; height: ${height}px; contain: strict;`;
+    document.body.append(host);
+    const box = document.createElement('div');
+    box.style.cssText = `height: ${height}px; width: 320px; display: flex; flex-direction: column;`;
+    host.append(box);
+    const fx = makeScene(1000, 3, true);
+    const dispose = render(() => <SceneTree scene={fx.scene} />, box);
+    upd = {
+      fx,
+      box,
+      dispose: () => {
+        dispose();
+        host.remove();
+      },
+    };
+    for (let k = 0; k < 300 && box.querySelectorAll('[role=treeitem]').length < 4; k++) await frame();
+    await wait(200);
+    await frame();
+    return box.querySelectorAll('[role=treeitem]').length;
+  },
+  updateCase,
   jumps,
   steps,
   /** Mounts a tall tree (`height` px) and leaves it; returns the rows in the DOM once settled. */
@@ -779,6 +992,8 @@ let mounted: ReturnType<typeof mountTree> | undefined;
   unmount() {
     mounted?.dispose();
     mounted = undefined;
+    upd?.dispose();
+    upd = undefined;
   },
   /** Mounts the normal tree for a wheel test by a driver: the viewport's center in page coordinates. */
   async wheelTarget(kind: TreeKind) {

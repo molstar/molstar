@@ -494,33 +494,63 @@ function TreeItem(props: {
   const sources: WatchSource[] = [node.label, node.description, node.isHidden, scene.picked, states];
   if (node.swatch) sources.push(node.swatch);
   if (menu) sources.push(menuOpen);
+  // What the last render wrote, by source: a render that runs for one source's change compares the others' values here,
+  // in JS, and touches the DOM only for what changed (a pick renders every row: most write nothing).
+  const NotYet = {};
+  let lastLabel: unknown = NotYet;
+  let lastDescription: unknown = NotYet;
+  let lastSwatch: unknown = NotYet;
+  let lastHidden: unknown = NotYet;
+  let lastPicked: unknown = NotYet;
+  let lastPlace: RowState | undefined | typeof NotYet = NotYet;
+  let lastOpen: unknown = NotYet;
   watch(sources, () => {
-    setText(label, node.label.value);
-    setText(description, node.description.value ?? '');
+    const text = node.label.value;
+    if (text !== lastLabel) setText(label, (lastLabel = text));
+    const d = node.description.value;
+    if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
     if (swatch) {
       const c = node.swatch!.value;
-      setStyle(swatch, 'background', c === undefined ? '' : colorToHex(c));
+      if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
     }
     const hidden = node.isHidden.value;
-    setClass(line, classes.hidden, hidden);
-    setClass(eyeButton, classes.keep, hidden);
-    setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
-    const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
-    if (icon !== eyeShown) {
-      eyeShown.replaceWith(icon);
-      eyeShown = icon;
+    if (hidden !== lastHidden) {
+      lastHidden = hidden;
+      setClass(line, classes.hidden, hidden);
+      setClass(eyeButton, classes.keep, hidden);
+      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
+      if (icon !== eyeShown) {
+        eyeShown.replaceWith(icon);
+        eyeShown = icon;
+      }
     }
     const picked = scene.picked.value === node;
-    setAttr(el, 'aria-selected', String(picked));
-    setClass(line, classes.picked, picked);
+    if (picked !== lastPicked) {
+      lastPicked = picked;
+      setAttr(el, 'aria-selected', picked ? 'true' : 'false');
+      setClass(line, classes.picked, picked);
+    }
     const s = states.value.get(node.id);
-    writePlace(el, s);
-    setAttr(el, 'aria-expanded', s?.expanded === undefined ? undefined : String(s.expanded));
-    setClass(expander, classes.leaf, s?.expanded === undefined);
+    const was = lastPlace as RowState | undefined;
+    if (
+      lastPlace === NotYet ||
+      s?.posinset !== was?.posinset ||
+      s?.setsize !== was?.setsize ||
+      s?.expanded !== was?.expanded
+    ) {
+      lastPlace = s;
+      writePlace(el, s);
+      setAttr(el, 'aria-expanded', s?.expanded === undefined ? undefined : s.expanded ? 'true' : 'false');
+      setClass(expander, classes.leaf, s?.expanded === undefined);
+    }
     if (menuButton) {
       const open = menuOpen.value;
-      setClass(menuButton, classes.keep, open);
-      setAttr(menuButton, 'aria-expanded', String(open));
+      if (open !== lastOpen) {
+        lastOpen = open;
+        setClass(menuButton, classes.keep, open);
+        setAttr(menuButton, 'aria-expanded', open ? 'true' : 'false');
+      }
     }
   });
   return el;
