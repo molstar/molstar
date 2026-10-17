@@ -23,12 +23,21 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
 
 .msp-virtual-list-content {
   contain: strict;
+  background-image: linear-gradient(to bottom,
+    transparent 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 62%,
+    transparent 62%);
+  background-size: 40% var(--msp-virtual-row, 26px);
+  background-repeat: repeat-y;
+  background-position: var(--msp-space-6) 0;
   width: 100%;
   position: relative;
 }
 
 .msp-virtual-list-window {
   will-change: transform;
+  background-color: var(--msp-surface, var(--msp-color-panel));
   position: absolute;
   inset: 0 0 auto;
 }

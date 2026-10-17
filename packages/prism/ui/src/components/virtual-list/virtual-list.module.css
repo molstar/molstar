@@ -10,15 +10,31 @@
   flex: 1 1 0;
 }
 
-/* As tall as all the rows; only the window is in it, moved to where it shows. */
+/* As tall as all the rows; only the window is in it, moved to where it shows. Behind the rows, a skeleton of empty rows
+   (a quiet bar where a label would be, one per row height): a fast wheel or flick scrolls on the compositor before the
+   rows are made, and what it uncovers reads as rows loading, never as a white patch. Painted by the compositor, it costs
+   nothing; the rows cover it. */
 .content {
   position: relative;
   contain: strict;
   width: 100%;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 62%,
+    transparent 62%
+  );
+  background-size: 40% var(--msp-virtual-row, 26px);
+  background-repeat: repeat-y;
+  background-position: var(--msp-space-6) 0;
 }
 
 .window {
   position: absolute;
   inset: 0 0 auto;
   will-change: transform;
+  /* Opaque in the surface's color, so the skeleton shows only where no row is made yet (a list on another surface than a
+     panel sets `--msp-surface`). */
+  background-color: var(--msp-surface, var(--msp-color-panel));
 }

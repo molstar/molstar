@@ -177,6 +177,8 @@ export function VirtualList<T>(props: {
       ref={(el: HTMLElement) => props.contentRef?.(el)}
       style={{
         height: combineLatest([props.items, rowHeight.asReadonly]).pipe(map(([items, rh]) => `${items.length * rh}px`)),
+        // The skeleton's row height (virtual-list.module.css): what the browser uncovers before the rows are made.
+        '--msp-virtual-row': rowHeight.asReadonly.pipe(map((rh) => `${rh}px`)),
       }}
     >
       <div
