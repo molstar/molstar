@@ -55,7 +55,10 @@ export function setTrackHidden(
 /** Every hidden track shown: `sequence.track.show` with no track. */
 export function showAllTracks(viewer: SequenceViewer, api: SequenceApiRunner | undefined) {
   if (api) return api.run('sequence.track.show', {});
-  return Promise.all(viewer.tracks.value.filter((t) => t.hidden).map((t) => viewer.setTrackHidden(t.ref, false)));
+  return viewer.setTracksHidden(
+    viewer.tracks.value.filter((t) => t.hidden).map((t) => t.ref),
+    false,
+  );
 }
 
 /** A choice of the tracks that `keep` (by ref, labelled by name), for a command's form. */

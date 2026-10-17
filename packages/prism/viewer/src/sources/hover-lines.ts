@@ -20,6 +20,57 @@ const Entities = new Map([
   ['#39', "'"],
 ]);
 
+const isSpace = (c: number) => c === 32 || (c >= 9 && c <= 13) || (c > 127 && /\s/.test(String.fromCharCode(c)));
+
+/** A `<…>` of a label: where it is and, when it reads as a tag (`<b>`, `</ b >`, `<br/>`), its name (lower case). */
+interface TagHit {
+  readonly start: number;
+  readonly end: number;
+  readonly close: boolean;
+  readonly name: string;
+}
+
+/**
+ * The tags of `text` in one pass (labels come from loaded documents: no regex with adjacent quantifiers over runs of
+ * `<` or spaces, which are quadratic). A tag starts at the last `<` before its `>`; a `<` with no `>` after it is text.
+ */
+function* scanTags(text: string): Generator<TagHit> {
+  let lt = -1;
+  for (let p = 0; p < text.length; p++) {
+    const c = text.charCodeAt(p);
+    if (c === 60) lt = p;
+    else if (c === 62 && lt >= 0) {
+      let i = lt + 1;
+      while (i < p && isSpace(text.charCodeAt(i))) i++;
+      const close = text.charCodeAt(i) === 47;
+      if (close) i++;
+      while (i < p && isSpace(text.charCodeAt(i))) i++;
+      const from = i;
+      for (; i < p; i++) {
+        const l = text.charCodeAt(i) | 32;
+        if (l < 97 || l > 122) break;
+      }
+      yield { start: lt, end: p + 1, close, name: text.slice(from, i).toLowerCase() };
+      lt = -1;
+    }
+  }
+}
+
+/** `\s*\|\|\s*` → one space, in one pass. */
+function collapseBars(text: string): string {
+  if (!text.includes('||')) return text;
+  let out = '';
+  let i = 0;
+  for (let bar = text.indexOf('||'); bar >= 0; bar = text.indexOf('||', i)) {
+    let end = bar;
+    while (end > i && isSpace(text.charCodeAt(end - 1))) end--;
+    out += `${text.slice(i, end)} `;
+    i = bar + 2;
+    while (i < text.length && isSpace(text.charCodeAt(i))) i++;
+  }
+  return out + text.slice(i);
+}
+
 /**
  * Mol*'s loci labels (`plugin.behaviors.labels.highlight`: strings with `</br>` between lines and a `<small>` count)
  * as plain lines for the shell's hover label. Edge rate: once per hovered element, not per pointer move.
@@ -28,11 +79,14 @@ export function hoverLines(labels: readonly unknown[]): readonly string[] {
   const out: string[] = [];
   for (const label of labels) {
     if (typeof label !== 'string') continue;
-    const text = label
-      .replace(/<\s*\/?\s*br\s*\/?\s*>/gi, '\n')
-      .replace(/<[^>]*>/g, '')
-      .replace(/&(#?\w+);/g, decodeEntity)
-      .replace(/\s*\|\|\s*/g, ' ');
+    let stripped = '';
+    let last = 0;
+    for (const tag of scanTags(label)) {
+      stripped += label.slice(last, tag.start);
+      if (tag.name === 'br') stripped += '\n';
+      last = tag.end;
+    }
+    const text = collapseBars((stripped + label.slice(last)).replace(/&(#?\w+);/g, decodeEntity));
     for (const line of text.split('\n')) {
       const trimmed = line.trim();
       if (trimmed) out.push(trimmed);
@@ -68,7 +122,7 @@ const decode = (s: string) => s.replace(/&(#?\w+);/g, decodeEntity);
 
 /** Mol*'s HTML: a line per `<br>`, runs by the allowed tags. The first line of the label is its title. */
 function htmlLines(label: string, out: HoverLine[], first: boolean): void {
-  const text = label.replace(/\s*\|\|\s*/g, ' ');
+  const text = collapseBars(label);
   let runs: HoverRun[] = [];
   const style = { bold: 0, italic: 0, small: 0, sub: 0, sup: 0 };
   const flush = () => {
@@ -78,13 +132,14 @@ function htmlLines(label: string, out: HoverLine[], first: boolean): void {
     const role = first && out.length === 0 ? 'title' : 'text';
     out.push(merged.every(plain) ? merged.map((r) => r.text).join('') : { runs: merged, role });
   };
-  const re = /<\s*(\/?)\s*([a-zA-Z]+)[^>]*>/g;
   let last = 0;
-  for (let m = re.exec(text); m; m = re.exec(text)) {
-    push(runs, decode(text.slice(last, m.index)), style);
-    last = re.lastIndex;
-    const close = m[1] === '/';
-    const tag = m[2].toLowerCase();
+  for (const hit of scanTags(text)) {
+    // Not a tag (`<3 >`): text.
+    if (!hit.name) continue;
+    push(runs, decode(text.slice(last, hit.start)), style);
+    last = hit.end;
+    const close = hit.close;
+    const tag = hit.name;
     if (tag === 'br') flush();
     else if (tag === 'b' || tag === 'strong') style.bold += close ? -1 : 1;
     else if (tag === 'i' || tag === 'em') style.italic += close ? -1 : 1;

@@ -44,3 +44,10 @@ export const SelectCommandGroups: readonly CommandGroup[] = [
   },
   { id: 'select.structure.elements', title: 'Elements', icon: 'pick-atom', parent: 'select.structure', order: 3 },
 ];
+
+const StructureQueryId = /^select\.(entity|chain|residue|element)\.[^\s]+$/;
+
+/** The id of a command made from the loaded structures (an entity, chain, residue or element): it exists once one is loaded. */
+export function isStructureQueryId(id: string): boolean {
+  return StructureQueryId.test(id);
+}

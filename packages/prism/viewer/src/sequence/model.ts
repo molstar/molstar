@@ -255,6 +255,11 @@ export interface SequenceViewer {
    * so (nothing changes).
    */
   setTrackHidden(track: string, hidden: boolean): Promise<boolean>;
+  /**
+   * Hides or shows several tracks in one edit (one patch, one update of the document); resolves how many changed (the
+   * unknown and the already so are left).
+   */
+  setTracksHidden(tracks: readonly string[], hidden: boolean): Promise<number>;
 }
 
 export interface SequenceViewers {
@@ -534,13 +539,23 @@ class Viewer implements SequenceViewer {
   }
 
   async setTrackHidden(track: string, hidden: boolean): Promise<boolean> {
-    const now = this.tracksState.value.find((t) => t.ref === track);
-    if (!now || now.hidden === hidden) return false;
-    // Only a change from the document's own value is an edit: showing a track the person hid drops its entry.
-    const { [track]: _, ...rest } = this.editsState.value.tracks ?? {};
-    const tracks = hidden === this.sourceHidden(track) ? rest : { ...rest, [track]: { hidden } };
+    return (await this.setTracksHidden([track], hidden)) > 0;
+  }
+
+  async setTracksHidden(refs: readonly string[], hidden: boolean): Promise<number> {
+    const shown = new Map(this.tracksState.value.map((t) => [t.ref, t.hidden]));
+    const tracks = { ...this.editsState.value.tracks };
+    let changed = 0;
+    for (const ref of new Set(refs)) {
+      if (!shown.has(ref) || shown.get(ref) === hidden) continue;
+      changed++;
+      // Only a change from the document's own value is an edit: showing a track the person hid drops its entry.
+      if (hidden === this.sourceHidden(ref)) delete tracks[ref];
+      else tracks[ref] = { hidden };
+    }
+    if (!changed) return 0;
     await this.setEdits(Object.keys(tracks).length ? { tracks } : {});
-    return true;
+    return changed;
   }
 
   /** What the colors mean: the letters' scheme, the secondary structure, and the behaviors' blocks (a pLDDT track's bands). */

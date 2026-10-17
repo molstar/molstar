@@ -9,7 +9,7 @@
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { DocNode } from '@molstar/seq-core/format';
 import { filter, firstValueFrom } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { SequenceViewer } from '../model.js';
 import { headlessViewers, hostStructure, ValuesTrack, valuesBehavior } from './fixtures.js';
 
@@ -60,6 +60,25 @@ describe("the sequence's edits", () => {
     // An edit for a track this document lacks stays for the next that has it.
     await h.viewer.setEdits({ tracks: { [ValuesTrack]: { hidden: true }, later: { hidden: true } } });
     expect(h.viewer.edits.value.tracks?.later).toEqual({ hidden: true });
+    h.viewers.dispose();
+  });
+
+  it('hides or shows several tracks in one patch', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    await until(() => h.viewer.tracks.value.length >= 2);
+    const refs = h.viewer.tracks.value.map((t) => t.ref);
+    const patch = vi.spyOn(h.viewer.seq, 'applyPatch');
+    expect(await h.viewer.setTracksHidden([...refs, 'nothing'], true)).toBe(refs.length);
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(hidden(h.viewer)).toEqual(refs);
+    expect(await h.viewer.setTracksHidden(refs, true)).toBe(0);
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(await h.viewer.setTracksHidden(refs, false)).toBe(refs.length);
+    expect(patch).toHaveBeenCalledTimes(2);
+    expect(hidden(h.viewer)).toEqual([]);
+    expect(h.viewer.edits.value).toEqual({});
     h.viewers.dispose();
   });
 

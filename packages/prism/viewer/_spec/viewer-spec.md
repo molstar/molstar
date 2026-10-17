@@ -68,8 +68,11 @@ import of the plugin.
 
 `layout` (docks, mode, compact width, `tabs` placement, `start` tab, `compactRail`), `theme`, `keybindings` (the
 keymap's app layer: `{ command, key }`, `key: null` removes one; ui's commands.md §6). The person's remaps (Help) are
-kept with the preferences (`persist.preferences`, key `keybindings`; `commands/keymap-store.ts`). What shows is decided
-by parts and `overrides` (§4), one way to hide anything. Ignored headless.
+kept with the preferences (`persist.preferences`, key `keybindings`; `commands/keymap-store.ts`); Forget on them in
+Storage also resets the keymap's person layer (`viewerStorageSources` `resetKeybindings`). The Select commands made from
+the loaded structures (`select.entity.*`, `.chain.*`, `.residue.*`, `.element.*`) exist only once a structure is loaded:
+an override or a keybinding of a well-formed id of those families is known at creation (`isStructureQueryId`). What
+shows is decided by parts and `overrides` (§4), one way to hide anything. Ignored headless.
 
 - **The embedded layout** (`layout.compactRail: true`; the app's `?hide-rail`): the rail is hidden behind a button in
   the canvas's corner and the canvas goes edge to edge; the button slides the rail in over the canvas, a panel opens

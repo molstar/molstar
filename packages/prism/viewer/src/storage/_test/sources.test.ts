@@ -163,6 +163,19 @@ describe('the light stores', () => {
     expect(local.getItem('prism-assistant.setup')).not.toBeNull();
   });
 
+  it('Forget on the keyboard shortcuts resets the keymap’s in-memory layer, and nothing else does', async () => {
+    const preferences = memoryStore({ version: '1', budget: 1000 });
+    preferences.set('keybindings', { a: { key: 'j' } });
+    preferences.set('theme', 'dark');
+    const reset = vi.fn();
+    const prefs = viewerStorageSources({ persist: { key: 'v', preferences }, resetKeybindings: reset }).sources[1];
+    await prefs.forget('theme');
+    expect(reset).not.toHaveBeenCalled();
+    await prefs.forget('keybindings');
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(preferences.get('keybindings')).toBeUndefined();
+  });
+
   it("are the viewer's sources when the spec gives listing stores", async () => {
     const local = new MemoryStorage();
     const session = new MemoryStorage();

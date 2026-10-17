@@ -86,3 +86,42 @@ describe('pickHoverLabel', () => {
     expect(pickHoverLabel([], [], false)).toEqual([]);
   });
 });
+
+describe('labels from documents cannot make the parsing slow', () => {
+  const N = 100_000;
+  const adversarial = [
+    ' '.repeat(N),
+    '<'.repeat(N),
+    '< '.repeat(N / 2),
+    `<${' '.repeat(N)}`,
+    `<${' '.repeat(N)}x`,
+    '<b'.repeat(N / 2),
+    '<'.repeat(N / 2) + '>'.repeat(N / 2),
+    '> '.repeat(N / 2),
+    '|'.repeat(N),
+    `a${' '.repeat(N)}|`,
+    '& '.repeat(N / 2),
+    `&${'a'.repeat(N)}`,
+    `<${' '.repeat(N / 2)}/${' '.repeat(N / 2)}br`,
+  ];
+
+  it('reads 100 KB of adversarial text in under 50 ms, each way', () => {
+    for (const text of adversarial) {
+      for (const read of [hoverLines, hoverRich]) {
+        const t0 = performance.now();
+        read([text]);
+        expect(performance.now() - t0, `${read.name} on ${text.slice(0, 12).trim()}…`).toBeLessThan(50);
+      }
+    }
+  });
+
+  it('reads tags as before: br in its forms, a stray < or >, "||" with its spaces', () => {
+    expect(hoverLines(['a< br />b<BR>c</ br>d'])).toEqual(['a', 'b', 'c', 'd']);
+    expect(hoverLines(['1 < 2 and 3 > 2'])).toEqual(['1  2']);
+    expect(hoverLines(['x <y <br> z'])).toEqual(['x <y', 'z']);
+    expect(hoverLines(['a   ||   b || || c'])).toEqual(['a b  c']);
+    expect(hoverRich(['3 <  4, <b>bold</b>'])).toEqual([
+      { role: 'title', runs: [{ text: '3 < 4, ' }, { text: 'bold', bold: true }] },
+    ]);
+  });
+});

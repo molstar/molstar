@@ -40,6 +40,11 @@ export interface SelectCommandsOptions {
   readonly targets: TargetResolver;
   /** Emits when the loaded structures change (`sources.structures`). */
   readonly structures: Observable<unknown>;
+  /**
+   * The loaded structures' data now: a resolved target is kept only while these are the same objects (a trajectory
+   * frame or a model swap makes new ones, with counts that may be the same).
+   */
+  readonly data?: () => readonly object[];
   /** Registers commands (the viewer's `registerCommands`: overrides applied); returns the removal. */
   readonly register: (defs: readonly CommandDefinition<Ctx>[]) => () => void;
   readonly registerGroups: (groups: readonly CommandGroup[]) => () => void;
@@ -59,7 +64,13 @@ export function watchSelectCommands(o: SelectCommandsOptions): () => void {
   let cache = new Map<string, Promise<ResolvedTarget | ApiFailure>>();
 
   const ensure = (entry: QueryEntry) => queries.ensure(entry);
+  let seen: readonly object[] = o.data?.() ?? [];
   const resolve = (entry: QueryEntry) => {
+    const now = o.data?.();
+    if (now && (now.length !== seen.length || now.some((x, i) => x !== seen[i]))) {
+      seen = now;
+      cache = new Map();
+    }
     let r = cache.get(entry.id);
     if (!r) {
       r = ensure(entry).then(() => o.targets.resolve({ molql: entry.expression }));

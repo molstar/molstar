@@ -30,10 +30,10 @@ export class AmbientPace {
     this.#input = now();
   }
 
-  /** Whether to step and draw in this frame. */
-  due(): boolean {
+  /** Whether to step and draw in this frame; `animating` (the glass shatters or gathers) keeps the full rate. */
+  due(animating = false): boolean {
     const t = now();
-    return t - this.#input < ActiveMs || t - this.#stepped >= IdleStepMs;
+    return animating || t - this.#input < ActiveMs || t - this.#stepped >= IdleStepMs;
   }
 
   stepped(): void {

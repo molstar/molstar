@@ -523,7 +523,7 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
           if (Number.isFinite(v)) binding.set(v);
-          else e.currentTarget.value = format(binding.get() as number, param.step);
+          e.currentTarget.value = format(Number.isFinite(v) ? v : (binding.get() as number), param.step);
         }}
       />
     ) as HTMLInputElement;
@@ -558,7 +558,10 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelI
         ref={(e: HTMLInputElement) => (number = e)}
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
-          if (Number.isFinite(v)) binding.set(Math.min(max, Math.max(min, v)));
+          const shown = Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : (binding.get() as number);
+          if (Number.isFinite(v)) binding.set(shown);
+          // The box says what holds, whether or not the value changed (a clamp to the same value, text that is no number).
+          e.currentTarget.value = format(shown, param.step);
         }}
       />
     </div>

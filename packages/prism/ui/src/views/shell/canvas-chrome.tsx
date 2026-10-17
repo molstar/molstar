@@ -23,7 +23,15 @@ import {
   trapTab,
   uniqueId,
 } from '../../dom/focus.js';
-import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, toStream } from '../../dom/scope.js';
+import {
+  bind,
+  type MaybeReactive,
+  onCleanup,
+  requireScope,
+  runInScope,
+  type Scope,
+  toStream,
+} from '../../dom/scope.js';
 import { frame, on } from '../../dom/scoped.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
@@ -328,21 +336,33 @@ function collapsedRows(
   lead: MaybeReactive<readonly CanvasMenuItem[]> | undefined,
   anchor: () => Element,
 ): ReadonlyState<readonly CanvasMenuItem[]> {
-  // An item's row is made once, in the stack's scope (its pressed state follows the item while the stack lives).
+  // An item's row is made once, in a scope of its own under the stack's (its pressed state follows the item); the row
+  // of an item that left is dropped with its scope.
   const scope = requireScope('collapsedRows');
-  const rows = new Map<CanvasToolbarItem, CanvasMenuItem>();
+  const rows = new Map<CanvasToolbarItem, { row: CanvasMenuItem; scope: Scope }>();
   const rowOf = (i: CanvasToolbarItem) => {
-    let row = rows.get(i);
-    if (!row) rows.set(i, (row = runInScope(scope, () => toolRow(shell, i, anchor))));
-    return row;
+    let made = rows.get(i);
+    if (!made) {
+      const own = scope.child();
+      rows.set(i, (made = { row: runInScope(own, () => toolRow(shell, i, anchor)), scope: own }));
+    }
+    return made.row;
   };
   const tools = shownItems(
     derive(shell.toolbar, (items) => sectionsOf(items.filter((i) => i.place === 'canvas')).flatMap((s) => s.items)),
   );
-  return derive([stateOf(lead ?? [], []), tools], (l, t) => [
-    ...l.map((r) => ({ ...r, group: r.group ?? 'lead' })),
-    ...t.map(rowOf),
-  ]);
+  return derive([stateOf(lead ?? [], []), tools], (l, t) => {
+    const out = [...l.map((r) => ({ ...r, group: r.group ?? 'lead' })), ...t.map(rowOf)];
+    if (rows.size > t.length) {
+      const now = new Set(t);
+      for (const [item, made] of rows) {
+        if (now.has(item)) continue;
+        made.scope.dispose();
+        rows.delete(item);
+      }
+    }
+    return out;
+  });
 }
 
 /** What the collapsed toolbar's menu is made of (`ToolMenus.show`): its rows. */

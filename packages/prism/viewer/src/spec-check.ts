@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isStructureQueryId } from './commands/select-groups.js';
 import { CoreParts } from './extensions/overrides.js';
 import { isLazyExtension, type PartKind, type PrismViewerSpec } from './spec.js';
 
@@ -67,7 +68,7 @@ export function checkSpec(spec: PrismViewerSpec, coreAreas: readonly string[] = 
   }
   for (const id of Object.keys(spec.overrides ?? {})) {
     const isPart = isPartId(id);
-    if (!isPart && !CommandIdPattern.test(id)) {
+    if (!isPart && !CommandIdPattern.test(id) && !isStructureQueryId(id)) {
       problems.push(`override '${id}' is neither a part id (<owner>.<kind>.<name>) nor a command id`);
       continue;
     }

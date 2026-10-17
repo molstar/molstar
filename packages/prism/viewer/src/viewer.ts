@@ -47,8 +47,9 @@ import { SourceScope } from './sources/state.js';
 import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
 import { appKeybindings, keymapStore } from './commands/keymap-store.js';
+import { isStructureQueryId } from './commands/select-groups.js';
 import { watchSelectCommands } from './commands/select.js';
-import { lociPreviewSink, selectQuerySource } from './sources/select-queries.js';
+import { loadedStructureData, lociPreviewSink, selectQuerySource } from './sources/select-queries.js';
 import { createViewerSources, publicSources, type ViewerSources } from './sources/viewer-sources.js';
 import {
   type BuiltInViews,
@@ -324,6 +325,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         api: person,
         targets,
         structures: sources.structures,
+        data: () => loadedStructureData(plugin),
         register: registerCommands,
         registerGroups: (groups) => managers.commands.registerGroups(groups),
       }),
@@ -373,7 +375,11 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // The origin that holds it, where there is one (a file: page's is 'null').
     const origin = globalThis.location?.origin;
     const storage = createStorageModel(origin && origin !== 'null' ? { origin } : {});
-    const own = viewerStorageSources({ ...(spec.persist ? { persist: spec.persist } : {}), record });
+    const own = viewerStorageSources({
+      ...(spec.persist ? { persist: spec.persist } : {}),
+      record,
+      resetKeybindings: () => managers.commands.keymap.resetAll(),
+    });
     for (const s of own.sources) disposers.push(storage.register(s));
     disposers.push(() => {
       own.dispose();
@@ -413,12 +419,15 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // An override of a command nobody registers is a mistake (viewer-spec.md §4), and a keybinding of one is said:
     // checked once every command is in, the page's after its shell (`checkSpecCommands`), headless at once.
     const checkSpecCommands = (tolerate: (id: string) => boolean = () => false) => {
-      const unknown = overrides.unused().filter((k) => !isPartId(k) && !tolerate(k) && !managers.commands.get(k));
+      // The Select families of the loaded structures exist only once one is loaded: a well-formed id is known.
+      const unknown = overrides
+        .unused()
+        .filter((k) => !isPartId(k) && !tolerate(k) && !isStructureQueryId(k) && !managers.commands.get(k));
       if (unknown.length) {
         throw new PrismViewerSpecError(unknown.map((k) => `override '${k}': there is no command '${k}'`));
       }
       for (const id of keys.keys()) {
-        if (!tolerate(id) && !managers.commands.get(id)) {
+        if (!tolerate(id) && !isStructureQueryId(id) && !managers.commands.get(id)) {
           console.warn(`ui.keybindings: there is no command '${id}' (its key is not bound).`);
         }
       }
