@@ -461,7 +461,10 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       const text = (state.previews.get(o.attemptId) ?? '') + o.delta.text;
       state.previews.set(o.attemptId, text);
       state.replies.set(o.callId, text);
-      if (text.trim()) {
+      // Whether the text says anything yet, from the delta alone: `trim()` of the whole text would flatten its rope
+      // at every delta (an answer's length squared), and a text with something in it keeps it as it grows.
+      if (!state.said.has(o.attemptId) && o.delta.text.trim()) state.said.add(o.attemptId);
+      if (state.said.has(o.attemptId)) {
         state.lastText = text;
         state.hooks.onText?.(text);
       }

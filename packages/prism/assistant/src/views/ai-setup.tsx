@@ -9,6 +9,9 @@
  */
 
 import { Icon, Select, TextInput, For, Show, type ObservableState, observableState } from '@molstar/prism-ui';
+import { watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setShown, setText } from '@molstar/prism-ui/dom/writes';
+import { held, present } from '../held.js';
 import { type AIProvider, type AISettingsModel, checkLimits, type KeyScope } from '../model.js';
 import { classes } from './_generated/ai-setup.module.css.js';
 
@@ -37,6 +40,12 @@ export function AISetup(props: { settings: AISettingsModel }) {
     ps.filter((p) => p.key).flatMap((p) => p.models.map((m) => [`${p.id}|${m}`, `${p.label} · ${m}`] as const)),
   );
   const own = observableState(false);
+  const ownFold = (
+    <button type="button" class={classes.fold} onClick={() => own.set(!own.value)}>
+      <span>Your own endpoint</span>
+    </button>
+  ) as HTMLElement;
+  watch([own.asReadonly], () => setAttr(ownFold, 'aria-expanded', String(own.value)));
   // Which provider's key is being entered (here: rows are made anew when their provider changes). No key yet: the
   // first provider's, so the way in is obvious.
   const editing = observableState<string | undefined>(
@@ -85,9 +94,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
           {(p) => <ProviderRow settings={settings} provider={p} editing={editing} />}
         </For>
       </div>
-      <button type="button" class={classes.fold} aria-expanded={own.asReadonly} onClick={() => own.set(!own.value)}>
-        <span>Your own endpoint</span>
-      </button>
+      {ownFold}
       <Show when={own.asReadonly} reveal>
         {() => <OwnEndpoint settings={settings} onDone={() => own.set(false)} />}
       </Show>
@@ -108,32 +115,42 @@ function ProviderRow(props: {
   editing: ObservableState<string | undefined>;
 }) {
   const { settings, provider } = props;
-  const live = derive(settings.providers, (ps) => ps.find((x) => x.id === props.provider.id)!);
+  // Held when the provider goes (its row goes with it, after this has been told).
+  const live = held(
+    derive(settings.providers, (ps) => ps.find((x) => x.id === props.provider.id)),
+    present,
+  );
   const editing = derive(props.editing.asReadonly, (id) => id === provider.id);
   const toggle = () => props.editing.set(props.editing.value === provider.id ? undefined : provider.id);
+  // Made once; one render writes what the provider's record says: its key's state and the ways to change it.
+  const stateText = document.createTextNode('');
+  const toggleText = document.createTextNode('');
+  const state = (<span class={classes.providerState}>{stateText}</span>) as HTMLElement;
+  const change = (
+    <button type="button" class={classes.link} onClick={toggle}>
+      {toggleText}
+    </button>
+  ) as HTMLElement;
+  const remove = (
+    <button type="button" class={classes.link} onClick={() => settings.removeKey(props.provider.id)}>
+      Remove
+    </button>
+  ) as HTMLElement;
+  watch([live, editing], () => {
+    const p = live.value;
+    setAttr(state, 'data-has', !!p.key);
+    setText(stateText, !p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope]);
+    setShown(change, p.key?.from !== 'server');
+    setText(toggleText, editing.value ? 'Cancel' : p.key ? 'Change' : 'Add key');
+    setShown(remove, p.key?.from === 'here');
+  });
   return (
     <div class={classes.provider}>
       <div class={classes.providerHead}>
         <span class={classes.providerName}>{props.provider.label}</span>
-        <span class={classes.providerState} data-has={derive(live, (p) => (p.key ? '' : undefined))}>
-          {derive(live, (p) =>
-            !p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope],
-          )}
-        </span>
-        <Show when={derive(live, (p) => p.key?.from !== 'server')}>
-          {() => (
-            <button type="button" class={classes.link} onClick={toggle}>
-              {derive([live, editing], (p, e) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key'))}
-            </button>
-          )}
-        </Show>
-        <Show when={derive(live, (p) => p.key?.from === 'here')}>
-          {() => (
-            <button type="button" class={classes.link} onClick={() => settings.removeKey(props.provider.id)}>
-              Remove
-            </button>
-          )}
-        </Show>
+        {state}
+        {change}
+        {remove}
       </div>
       <Show when={editing} reveal>
         {() => (
@@ -187,20 +204,21 @@ function KeyForm(props: {
 
 /** How long a key is kept: until reload, this session, this browser. */
 function ScopeChoice(props: { scope: ObservableState<KeyScope> }) {
+  const buttons = Scopes.map(([id, label]) => ({
+    id,
+    button: (
+      <button type="button" role="radio" class={classes.scope} onClick={() => props.scope.set(id)}>
+        {label}
+      </button>
+    ) as HTMLElement,
+  }));
+  watch([props.scope.asReadonly], () => {
+    for (const b of buttons) setAttr(b.button, 'aria-checked', String(b.id === props.scope.value));
+  });
   return (
     <div class={classes.scopes} role="radiogroup" aria-label="Keep the key">
       <span class={classes.scopesLabel}>Keep</span>
-      {Scopes.map(([id, label]) => (
-        <button
-          type="button"
-          role="radio"
-          class={classes.scope}
-          aria-checked={derive(props.scope.asReadonly, (s) => s === id)}
-          onClick={() => props.scope.set(id)}
-        >
-          {label}
-        </button>
-      ))}
+      {buttons.map((b) => b.button)}
     </div>
   );
 }
@@ -208,14 +226,12 @@ function ScopeChoice(props: { scope: ObservableState<KeyScope> }) {
 /** Asks the providers with a key for the models they offer now (their `/models`). */
 function RefreshModels(props: { settings: AISettingsModel }) {
   const busy = observableState(false);
-  return (
+  const button = (
     <button
       type="button"
       class={classes.refresh}
       aria-label="Ask the providers for their models"
       data-tip="Ask the providers for their models"
-      disabled={busy.asReadonly}
-      data-busy={derive(busy.asReadonly, (b) => (b ? '' : undefined))}
       onClick={async () => {
         busy.set(true);
         try {
@@ -227,7 +243,12 @@ function RefreshModels(props: { settings: AISettingsModel }) {
     >
       <Icon name="refresh-cw" size={14} />
     </button>
-  );
+  ) as HTMLElement;
+  watch([busy.asReadonly], () => {
+    setAttr(button, 'disabled', busy.value);
+    setAttr(button, 'data-busy', busy.value);
+  });
+  return button;
 }
 
 /**
@@ -292,6 +313,21 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
     });
     props.onDone();
   };
+  const fetchText = document.createTextNode('');
+  const fetchButton = (
+    <button type="button" class={classes.link} onClick={fetchModels}>
+      {fetchText}
+    </button>
+  ) as HTMLElement;
+  const problemText = document.createTextNode('');
+  const problemNote = (<p class={classes.error}>{problemText}</p>) as HTMLElement;
+  watch([fetching.asReadonly, problem.asReadonly], () => {
+    const busy = fetching.value === 'busy';
+    setAttr(fetchButton, 'disabled', busy);
+    setText(fetchText, busy ? 'Fetching…' : 'Fetch');
+    setText(problemText, problem.value ?? '');
+    setShown(problemNote, problem.value !== undefined);
+  });
   return (
     <div class={classes.own}>
       {field('label', 'Name', 'e.g. Lab')}
@@ -324,14 +360,7 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
             value={models.asReadonly}
             onInput={(v) => models.set(v)}
           />
-          <button
-            type="button"
-            class={classes.link}
-            disabled={derive(fetching.asReadonly, (f) => f === 'busy')}
-            onClick={fetchModels}
-          >
-            {derive(fetching.asReadonly, (f) => (f === 'busy' ? 'Fetching…' : 'Fetch'))}
-          </button>
+          {fetchButton}
         </div>
       </div>
       <Show when={derive(fetching.asReadonly, (f) => f === 'failed')}>
@@ -341,9 +370,7 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
       </Show>
       {field('contextWindow', 'Context window', 'Optional: 32,768 tokens if empty')}
       {field('maxOutputTokens', 'Max output', 'Optional: 4,096 tokens if empty')}
-      <Show when={derive(problem.asReadonly, (p) => p !== undefined)}>
-        {() => <p class={classes.error}>{derive(problem.asReadonly, (p) => p ?? '')}</p>}
-      </Show>
+      {problemNote}
       <p class={classes.note}>It must speak an OpenAI API, and allow this page to call it (CORS).</p>
       <div class={classes.ownFoot}>
         <button type="button" class={classes.action} onClick={add}>

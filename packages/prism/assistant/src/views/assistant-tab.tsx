@@ -8,7 +8,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { formatChord, type MaybeReactive, ScrollArea } from '@molstar/prism-ui';
+import { formatChord, type ReadonlyState, ScrollArea } from '@molstar/prism-ui';
+import { watch } from '@molstar/prism-ui/dom/scope';
+import { setText } from '@molstar/prism-ui/dom/writes';
 import type { AgentModel } from '../model.js';
 import { AISetup } from './ai-setup.js';
 import { classes } from './_generated/assistant-tab.module.css.js';
@@ -17,13 +19,27 @@ import { classes } from './_generated/assistant-tab.module.css.js';
 export interface InspectLink {
   id: string;
   label: string;
-  detail: MaybeReactive<string>;
+  detail: string | ReadonlyState<string>;
 }
 
 /** The Inspect block: the Inspector's views, each opening the page there (the Inspector itself is a separate entry). */
 export interface AssistantInspect {
   links: readonly InspectLink[];
   open(id: string): void;
+}
+
+/** One way into the Inspector: its name, and what it holds, which follows the Inspector's data. */
+function InspectRow(props: { link: InspectLink; onOpen(): void }) {
+  const { detail } = props.link;
+  const text = document.createTextNode('');
+  if (typeof detail === 'string') text.data = detail;
+  else watch([detail], () => setText(text, detail.value));
+  return (
+    <button type="button" class={classes.link} onClick={props.onOpen}>
+      <span>{props.link.label}</span>
+      <span class={classes.detail}>{text}</span>
+    </button>
+  );
 }
 
 /**
@@ -40,10 +56,7 @@ export function AssistantTab(props: { agent: AgentModel; inspect?: AssistantInsp
         <section class={classes.inspect} aria-label="Inspect">
           <p class={classes.caption}>Inspect</p>
           {inspect.links.map((l) => (
-            <button type="button" class={classes.link} onClick={() => inspect.open(l.id)}>
-              <span>{l.label}</span>
-              <span class={classes.detail}>{l.detail}</span>
-            </button>
+            <InspectRow link={l} onOpen={() => inspect.open(l.id)} />
           ))}
         </section>
       ) : null}

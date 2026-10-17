@@ -12,8 +12,10 @@ import type { BudgetView, TokensView } from '@molstar/ai/trace';
 import { credits, formatUsage, k } from '@molstar/ai/trace';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import { on } from '@molstar/prism-ui/dom/scoped';
-import { type Child, type MaybeReactive, Show } from '@molstar/prism-ui';
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { type Child, type KeyedValue, type ReadonlyState, Show } from '@molstar/prism-ui';
+import { watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setShown, setStyle, setText } from '@molstar/prism-ui/dom/writes';
+import { derive, isState } from '@molstar/prism-ui/reactive/state';
 import { classes } from './_generated/parts.module.css.js';
 
 // What the Inspector's views share: quiet text tabs, a facts list, colored JSON, the budget meter, a usage line, thin
@@ -25,36 +27,49 @@ export interface TextTab<T extends string> {
   id: T;
   label: string;
   /** A count after the label (Trace 3, Tools 14). */
-  count?: MaybeReactive<string | number>;
+  count?: string | number | ReadonlyState<string | number>;
 }
+
+/** A value given plain or as a state, now. */
+const read = <T,>(x: T | ReadonlyState<T>): T => (isState(x) ? (x.value as T) : (x as T));
 
 /** Tabs as words: the current one in the text color on the control surface, the others muted. */
 export function TextTabs<T extends string>(props: {
   label: string;
   tabs: readonly TextTab<T>[];
-  value: Observable<T>;
+  value: ReadonlyState<T>;
   onChange(id: T): void;
   class?: string;
 }) {
+  // Made once; one render writes which is current and the counts that follow a state.
+  const made = props.tabs.map((t) => {
+    const count = t.count !== undefined ? document.createTextNode('') : undefined;
+    const button = (
+      <button type="button" role="tab" class={classes.tab} onClick={() => props.onChange(t.id)}>
+        {t.label}
+        {count ? <span class={classes.count}>{count}</span> : null}
+      </button>
+    ) as HTMLElement;
+    return { id: t.id, source: t.count, button, count };
+  });
+  watch([props.value, ...props.tabs.flatMap((t) => (isState(t.count) ? [t.count] : []))], () => {
+    const current = props.value.value;
+    for (const t of made) {
+      setAttr(t.button, 'aria-selected', String(t.id === current));
+      if (t.count) setText(t.count, String(read(t.source as string | number | ReadonlyState<string | number>)));
+    }
+  });
   return (
     <div class={`${classes.tabs} ${props.class ?? ''}`} role="tablist" aria-label={props.label}>
-      {props.tabs.map((t) => (
-        <button
-          type="button"
-          role="tab"
-          class={classes.tab}
-          aria-selected={props.value.pipe(
-            map((v) => v === t.id),
-            distinctUntilChanged(),
-          )}
-          onClick={() => props.onChange(t.id)}
-        >
-          {t.label}
-          {t.count !== undefined ? <span class={classes.count}>{t.count}</span> : null}
-        </button>
-      ))}
+      {made.map((t) => t.button)}
     </div>
   );
+}
+
+/** A row that says whether it is the selected one (its key of the selection: only the rows a move concerns hear of it). */
+export function selectable(el: HTMLElement, selected: KeyedValue<boolean>): HTMLElement {
+  watch([selected], () => setAttr(el, 'aria-selected', String(selected.value)));
+  return el;
 }
 
 /** A detail's kind (quiet, mono) and where it is (its id), with anything after. */
@@ -107,16 +122,16 @@ export function Usage(props: { tokens: TokensView; class?: string }) {
   return <span class={`${classes.usage} ${props.class ?? ''}`}>{formatUsage(props.tokens)}</span>;
 }
 
-/** A thin bar: `share` (0..1) of it filled. */
-export function Meter(props: { share: number | Observable<number>; class?: string; danger?: boolean }) {
+/** A thin bar: `share` (0..1) of it filled, given plain or as a state. */
+export function Meter(props: { share: number | ReadonlyState<number>; class?: string; danger?: boolean }) {
+  const fill = (<span class={classes.meterFill} />) as HTMLElement;
   const width = (s: number) => `${Math.max(0, Math.min(1, s)) * 100}%`;
   const share = props.share;
+  if (typeof share === 'number') setStyle(fill, 'width', width(share));
+  else watch([share], () => setStyle(fill, 'width', width(share.value)));
   return (
     <span class={`${classes.meter} ${props.class ?? ''}`} data-danger={props.danger ? '' : undefined}>
-      <span
-        class={classes.meterFill}
-        style={{ width: typeof share === 'number' ? width(share) : share.pipe(map((s) => width(s))) }}
-      />
+      {fill}
     </span>
   );
 }
@@ -125,23 +140,36 @@ export function Meter(props: { share: number | Observable<number>; class?: strin
  * The latest turn against its budget: the kind of count nearest its ceiling, consumed / ceiling, and its credits.
  * Nothing while there is no trace.
  */
-export function BudgetMeter(props: { budget: Observable<BudgetView | undefined> }) {
-  return (
-    <Show when={props.budget}>
-      {(b) => (
-        <span
-          class={classes.budget}
-          data-tip={`${b.scope ? `The ${b.scope}: ` : ''}its budget is counted by kind; this is the kind nearest its ceiling.${b.credits !== undefined ? ' Credits: what it cost, in the app’s credits.' : ''}`}
-        >
-          {b.ceiling > 0 ? <Meter share={b.consumed / b.ceiling} class={classes.budgetBar} /> : null}
-          <span class={classes.budgetText}>
-            {b.ceiling > 0 ? `${k(b.consumed)} / ${k(b.ceiling)}` : k(b.consumed)} {b.dimension ?? 'tokens'}
-            {b.credits !== undefined ? ` · ${credits(b.credits)}` : ''}
-          </span>
-        </span>
-      )}
-    </Show>
-  );
+export function BudgetMeter(props: { budget: ReadonlyState<BudgetView | undefined> }) {
+  const present = derive(props.budget, (b) => b !== undefined);
+  return <Show when={present}>{() => <Budget budget={props.budget as ReadonlyState<BudgetView>} />}</Show>;
+}
+
+function Budget(props: { budget: ReadonlyState<BudgetView> }) {
+  const { budget } = props;
+  const text = document.createTextNode('');
+  const share = derive(budget, (b) => (b.ceiling > 0 ? b.consumed / b.ceiling : 0));
+  const bar = (<Meter share={share} class={classes.budgetBar} />) as HTMLElement;
+  const root = (
+    <span class={classes.budget}>
+      {bar}
+      <span class={classes.budgetText}>{text}</span>
+    </span>
+  ) as HTMLElement;
+  watch([budget], () => {
+    const b = budget.value;
+    setAttr(
+      root,
+      'data-tip',
+      `${b.scope ? `The ${b.scope}: ` : ''}its budget is counted by kind; this is the kind nearest its ceiling.${b.credits !== undefined ? ' Credits: what it cost, in the app’s credits.' : ''}`,
+    );
+    setShown(bar, b.ceiling > 0);
+    setText(
+      text,
+      `${b.ceiling > 0 ? `${k(b.consumed)} / ${k(b.ceiling)}` : k(b.consumed)} ${b.dimension ?? 'tokens'}${b.credits !== undefined ? ` · ${credits(b.credits)}` : ''}`,
+    );
+  });
+  return root;
 }
 
 /** The first line of a text (a result, an entry). */

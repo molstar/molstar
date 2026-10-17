@@ -8,8 +8,10 @@
 
 import { describe, expect, it } from 'vitest';
 import { firstValueFrom } from 'rxjs';
-import { mockInspector } from '../../testing/mock-inspector.js';
-import { findLimit } from '../model.js';
+import { observableState } from '@molstar/prism-ui';
+import type { TraceData, TurnView } from '@molstar/ai/trace';
+import { MockTools, mockLimits, mockInspector, mockTrace } from '../../testing/mock-inspector.js';
+import { findLimit, InspectorModel } from '../model.js';
 
 describe('InspectorModel', () => {
   it('selects the latest row until one is chosen; move steps through the rows and stops at the ends', async () => {
@@ -96,5 +98,34 @@ describe('InspectorModel', () => {
     model.move(1);
     expect(model.focus('turn:turn-1')).toBe(true);
     expect(await firstValueFrom(model.selected)).toBeUndefined();
+  });
+  it('keeps the rows of what did not change when the trace is read again: the running turn’s new step is the only new row', async () => {
+    const trace = mockTrace({ running: true });
+    const state = observableState<TraceData | undefined>(trace);
+    const model = new InspectorModel({
+      trace: state.asReadonly,
+      tools: observableState(MockTools).asReadonly,
+      limits: observableState(mockLimits(trace)).asReadonly,
+      settle: 0,
+    });
+    const first = await firstValueFrom(model.rows);
+    const latest = trace.turns.at(-1) as TurnView;
+    // A read gives the turns that did not change as they were, and the running one as a new turn with one more step.
+    const step = {
+      ...(latest.steps.at(-1) as TurnView['steps'][number]),
+      id: 'later',
+      callId: 'later',
+      under: undefined,
+    };
+    const grown: TurnView = { ...latest, steps: [...latest.steps, step] };
+    state.set({ ...trace, turns: [...trace.turns.slice(0, -1), grown] });
+    const second = await firstValueFrom(model.rows);
+    expect(second).toHaveLength(first.length + 1);
+    // Every row but the running turn's header and the new step is the same object; so is a step row of the running turn.
+    const changed = second.filter((r) => !first.includes(r)).map((r) => r.key);
+    expect(changed).toEqual([`turn:${latest.id}`, 'step:later']);
+    // The same turns in a new trace object: the same rows.
+    state.set({ ...(state.value as TraceData), turns: [...(state.value as TraceData).turns] });
+    expect(await firstValueFrom(model.rows)).toBe(second);
   });
 });

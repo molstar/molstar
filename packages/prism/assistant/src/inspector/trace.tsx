@@ -21,14 +21,27 @@ import type {
   WindowView,
 } from '@molstar/ai/trace';
 import { cachedShare, formatUsage, k, ms } from '@molstar/ai/trace';
-import { type Child, For, formatChord, observableState, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
-import { distinctUntilChanged, map, skip, take } from 'rxjs';
+import { type Child, For, formatChord, type KeyedValue, observableState, ScrollArea, Show } from '@molstar/prism-ui';
+import { effect, watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setStyle } from '@molstar/prism-ui/dom/writes';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { classes } from './_generated/trace.module.css.js';
-import type { DetailTabs, InspectorModel, TraceRow } from './model.js';
-import { DetailHead, Facts, firstLine, Json, listKeys, Meter, parts, reveal, TextTabs, Usage } from './parts.js';
+import type { DetailTabs, InspectorModel, TraceRow, TurnRequest } from './model.js';
+import {
+  DetailHead,
+  Facts,
+  firstLine,
+  Json,
+  listKeys,
+  Meter,
+  parts,
+  reveal,
+  selectable,
+  TextTabs,
+  Usage,
+} from './parts.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /** The height the sticky turn header takes over the rows (px): a revealed row goes below it. */
 const HeadHeight = 40;
 
@@ -48,10 +61,7 @@ export const TurnStatusWords: Record<TurnStatus, string> = {
  */
 export function TraceView(props: { model: InspectorModel }) {
   const { model } = props;
-  const has = model.rows.pipe(
-    map((r) => r.length > 0),
-    distinctUntilChanged(),
-  );
+  const has = derive(model.rows, (r) => r.length > 0);
   return (
     <Show
       when={has}
@@ -97,13 +107,11 @@ function Trace(props: { model: InspectorModel }) {
     (d) => model.move(d),
   );
   // Opens on the selected row (in the middle); a moved selection is kept in view.
-  const first = model.selected.pipe(take(1)).subscribe((key) => queueMicrotask(() => reveal(viewport, key, 'center')));
-  const moves = model.selected
-    .pipe(skip(1))
-    .subscribe((key) => queueMicrotask(() => reveal(viewport, key, 'nearest', HeadHeight)));
-  onCleanup(() => {
-    first.unsubscribe();
-    moves.unsubscribe();
+  let opened = false;
+  effect(model.selected, (key) => {
+    const how = opened ? 'nearest' : 'center';
+    opened = true;
+    queueMicrotask(() => reveal(viewport, key, how, how === 'nearest' ? HeadHeight : 0));
   });
   return root;
 }
@@ -157,47 +165,76 @@ function Overview(props: { model: InspectorModel }) {
   );
 }
 
+/** A block that says whether it is the selected one (`aria-pressed`: its key of the selection). */
+function pressable(el: HTMLElement, selected: KeyedValue<boolean>) {
+  watch([selected], () => setAttr(el, 'aria-pressed', String(selected.value)));
+  return el;
+}
+
+/** A turn's column: as wide as its steps (by the scale), marked while its header is the selected row. */
 function Column(props: { model: InspectorModel; turn: TurnView; index: number }) {
   const { model, turn } = props;
-  const grow = (f: (scale: 'steps' | 'time') => number) => derive(model.scale, f);
   const request = `req:${turn.id}`;
-  return (
-    <div
-      class={classes.column}
-      data-selected={model.isSelected(`turn:${turn.id}`).pipe(map((s) => (s ? '' : undefined)))}
-      style={{ flexGrow: grow((scale) => turn.steps.reduce((a, s) => a + unit(scale, s), 0.6)) }}
-    >
-      <button
-        type="button"
-        class={classes.block}
-        data-kind="request"
-        aria-label={`Turn ${props.index + 1}: ${turn.prompt}`}
-        data-tip={`Turn ${props.index + 1}: ${turn.prompt}`}
-        aria-pressed={model.isSelected(request)}
-        onClick={() => model.select(request)}
-      />
-      {turn.steps.map((s) => {
-        const key = `step:${s.id}`;
-        const label = `${stepLabel(s)} · ${runningStep(s) ? 'running' : ms(duration(s))}`;
-        return (
+  const root = (
+    <div class={classes.column}>
+      {pressable(
+        (
           <button
             type="button"
             class={classes.block}
-            data-kind={s.kind}
-            data-nested={s.under !== undefined ? '' : undefined}
-            data-failed={failedStep(s) ? '' : undefined}
-            data-retried={s.attempts.length > 1 ? '' : undefined}
-            data-running={runningStep(s) ? '' : undefined}
-            aria-label={label}
-            data-tip={label}
-            aria-pressed={model.isSelected(key)}
-            style={{ flexGrow: grow((scale) => unit(scale, s)) }}
-            onClick={() => model.select(key)}
+            data-kind="request"
+            aria-label={`Turn ${props.index + 1}: ${turn.prompt}`}
+            data-tip={`Turn ${props.index + 1}: ${turn.prompt}`}
+            onClick={() => model.select(request)}
           />
-        );
-      })}
+        ) as HTMLElement,
+        model.isSelected(request),
+      )}
+      {turn.steps.map((s) => (
+        <StepBlock model={model} step={s} />
+      ))}
     </div>
-  );
+  ) as HTMLElement;
+  const selected = model.isSelected(`turn:${turn.id}`);
+  let scale: 'steps' | 'time' | undefined;
+  watch([model.scale, selected], () => {
+    setAttr(root, 'data-selected', selected.value);
+    if (scale === model.scale.value) return;
+    scale = model.scale.value;
+    const grow = turn.steps.reduce((a, s) => a + unit(scale as 'steps' | 'time', s), 0.6);
+    setStyle(root, 'flex-grow', String(grow));
+  });
+  return root;
+}
+
+/** A step's block: its width follows the scale, whether it is pressed the selection. */
+function StepBlock(props: { model: InspectorModel; step: StepView }) {
+  const { model, step: s } = props;
+  const key = `step:${s.id}`;
+  const label = `${stepLabel(s)} · ${runningStep(s) ? 'running' : ms(duration(s))}`;
+  const el = (
+    <button
+      type="button"
+      class={classes.block}
+      data-kind={s.kind}
+      data-nested={s.under !== undefined ? '' : undefined}
+      data-failed={failedStep(s) ? '' : undefined}
+      data-retried={s.attempts.length > 1 ? '' : undefined}
+      data-running={runningStep(s) ? '' : undefined}
+      aria-label={label}
+      data-tip={label}
+      onClick={() => model.select(key)}
+    />
+  ) as HTMLElement;
+  const pressed = model.isSelected(key);
+  let scale: 'steps' | 'time' | undefined;
+  watch([model.scale, pressed], () => {
+    setAttr(el, 'aria-pressed', String(pressed.value));
+    if (scale === model.scale.value) return;
+    scale = model.scale.value;
+    setStyle(el, 'flex-grow', String(unit(scale, s)));
+  });
+  return el;
 }
 
 // ------------------------------------------------------------------------------------------------- rows
@@ -209,15 +246,8 @@ function Row(props: { model: InspectorModel; row: TraceRow }) {
   if (row.kind === 'turn') {
     const t = row.turn;
     const tools = t.steps.filter((s) => s.kind === 'tool').length;
-    return (
-      <button
-        type="button"
-        role="option"
-        class={layout.head}
-        data-row={row.key}
-        aria-selected={selected}
-        onClick={select}
-      >
+    const head = (
+      <button type="button" role="option" class={layout.head} data-row={row.key} onClick={select}>
         <span class={layout.headTitle}>Turn {row.index + 1}</span>
         <span class={layout.status} data-status={t.status}>
           {TurnStatusWords[t.status]}
@@ -230,7 +260,8 @@ function Row(props: { model: InspectorModel; row: TraceRow }) {
           ].join(' · ')}
         </span>
       </button>
-    );
+    ) as HTMLElement;
+    return selectable(head, selected);
   }
   if (row.kind === 'request')
     return (
@@ -308,14 +339,14 @@ function Row(props: { model: InspectorModel; row: TraceRow }) {
 function Line(props: {
   row: string;
   role: string;
-  selected: ReturnType<InspectorModel['isSelected']>;
+  selected: KeyedValue<boolean>;
   onSelect(): void;
   failed?: boolean;
   nested?: boolean;
   meta?: Child;
   children: Child;
 }) {
-  return (
+  const el = (
     <button
       type="button"
       role="option"
@@ -323,7 +354,6 @@ function Line(props: {
       data-row={props.row}
       data-failed={props.failed ? '' : undefined}
       data-nested={props.nested ? '' : undefined}
-      aria-selected={props.selected}
       onClick={() => props.onSelect()}
     >
       <span class={layout.role}>{props.role}</span>
@@ -333,7 +363,8 @@ function Line(props: {
       </span>
       <span class={layout.meta}>{props.meta}</span>
     </button>
-  );
+  ) as HTMLElement;
+  return selectable(el, props.selected);
 }
 
 /** A call's arguments in one line: `id=1tqn source=pdb` (the row fades what does not fit). */
@@ -414,7 +445,7 @@ function TurnDetail(props: { turn: TurnView; index: number }) {
   );
 }
 
-function RequestDetail(props: { turn: TurnView }) {
+function RequestDetail(props: { turn: TurnRequest }) {
   const { turn } = props;
   return (
     <>
@@ -660,22 +691,25 @@ function WindowDetail(props: { window: WindowView; prefixBreak?: PrefixBreak }) 
 function Entry(props: { entry: WindowEntryView }) {
   const e = props.entry;
   const open = observableState(false);
+  const button = (
+    <button
+      type="button"
+      class={classes.entry}
+      data-fresh={e.fresh ? '' : undefined}
+      data-failed={e.failed ? '' : undefined}
+      onClick={() => open.set(!open.value)}
+    >
+      <span class={classes.fresh} data-tip={e.fresh ? 'New since the previous call' : undefined} />
+      <span class={classes.entryRole}>{EntryRoles[e.role]}</span>
+      <span class={classes.entryTitle}>{e.title}</span>
+      <span class={classes.entryText}>{firstLine(e.text)}</span>
+      <span class={classes.entryTokens}>{k(e.tokens)}</span>
+    </button>
+  ) as HTMLElement;
+  watch([open], () => setAttr(button, 'aria-expanded', String(open.value)));
   return (
     <li>
-      <button
-        type="button"
-        class={classes.entry}
-        data-fresh={e.fresh ? '' : undefined}
-        data-failed={e.failed ? '' : undefined}
-        aria-expanded={open.asReadonly}
-        onClick={() => open.set(!open.value)}
-      >
-        <span class={classes.fresh} data-tip={e.fresh ? 'New since the previous call' : undefined} />
-        <span class={classes.entryRole}>{EntryRoles[e.role]}</span>
-        <span class={classes.entryTitle}>{e.title}</span>
-        <span class={classes.entryText}>{firstLine(e.text)}</span>
-        <span class={classes.entryTokens}>{k(e.tokens)}</span>
-      </button>
+      {button}
       <Show when={open.asReadonly}>{() => <pre class={`${parts.code} ${classes.entryBody}`}>{e.text}</pre>}</Show>
     </li>
   );

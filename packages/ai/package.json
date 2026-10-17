@@ -80,7 +80,8 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:scaling": "vitest run --config vitest.scaling.config.ts"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",

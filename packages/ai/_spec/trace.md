@@ -45,6 +45,30 @@ latest turn), `preamble` (guidance and tool definitions with token estimates), `
 - `TokensView`: `input` (uncached + cache read + cache write), `output`, `cached`, `written`, `reasoning`, `estimated`,
   `credits` (display only).
 
+## Incremental reads
+
+A host reads again at every change of the harness while a turn runs, so a read costs what changed (`TraceCache`, kept by
+the host across reads of one harness; another harness resets it). Reason: a read that maps every call's window is calls
+× messages, and its fresh view objects rebuild every row built on them.
+
+- **Events**: fetched after the last seq held, grouped by turn as they come (one pass over the new ones).
+- **A model call** keeps its view, while its `CallRecord` is the same object and it follows the same calls: the run's
+  previous call (what is `fresh`), the run's previous request and the latest request of any run (where the provider's
+  cache broke). Those are held as the reads of those calls, so a changed call changes every call after it, and nothing
+  else. Its window entries are made once per message (`windowEntries`, by entry id). A new call costs its own window.
+- **A tool call** keeps its view while its record and the host's `toolCall` notes on it are the same.
+- **A turn** keeps its view, and what it carries on to the turns after it (the tool names it learned, the tools first
+  loaded in it, the preamble), while its events (count and last), summary and status, the flow into it and the first
+  event's time are the same. A turn with a new call is rebuilt from its calls' kept views, and keeps its own view when
+  every call is the one it had. So after a turn ends nothing of it is read again, and the running turn costs its calls
+  listing plus the new call's window.
+- **The definitions in `main`** are read from where the head extended the one read before.
+- **Kept only when whole**: a call or turn whose blob or head could not be read is read again, not kept. The host's
+  `toolCall` notes of a turn that has not changed are not asked again (a notes change shows with the turn's next event).
+- A cold read of N calls is Σ windows: the output itself holds a window per call. The scaling guards
+  (`_test/reading.scaling.ts`, `pnpm -C packages/ai test:scaling`) read one more call of N, and N reads with nothing
+  new, at n and 4n; a read with no cache is the control.
+
 ## The other tabs
 
 - `toolsView({ tools: ToolEntry[], skills, loaded, declared, titles })` → `ToolsData`: groups core, each skill (its

@@ -10,12 +10,12 @@
 
 import type { ToolGroupView, ToolView } from '@molstar/ai/trace';
 import { k } from '@molstar/ai/trace';
-import { For, onCleanup, ScrollArea, Show } from '@molstar/prism-ui';
-import { skip, take } from 'rxjs';
+import { For, ScrollArea, Show } from '@molstar/prism-ui';
+import { effect } from '@molstar/prism-ui/dom/scope';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { classes } from './_generated/tools.module.css.js';
 import type { InspectorModel, ToolsRow } from './model.js';
-import { DetailHead, Facts, firstSentence, Json, listKeys, parts, reveal, TextTabs } from './parts.js';
+import { DetailHead, Facts, firstSentence, Json, listKeys, parts, reveal, selectable, TextTabs } from './parts.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
 const HeadHeight = 40;
@@ -64,15 +64,11 @@ export function ToolsView(props: { model: InspectorModel }) {
     (d) => model.moveTool(d),
   );
   // Opens on the selected tool (one asked for from the trace: in the middle); a moved selection is kept in view.
-  const first = model.selectedTool
-    .pipe(take(1))
-    .subscribe((key) => queueMicrotask(() => reveal(viewport, key, 'center')));
-  const moves = model.selectedTool
-    .pipe(skip(1))
-    .subscribe((key) => queueMicrotask(() => reveal(viewport, key, 'nearest', HeadHeight)));
-  onCleanup(() => {
-    first.unsubscribe();
-    moves.unsubscribe();
+  let opened = false;
+  effect(model.selectedTool, (key) => {
+    const how = opened ? 'nearest' : 'center';
+    opened = true;
+    queueMicrotask(() => reveal(viewport, key, how, how === 'nearest' ? HeadHeight : 0));
   });
   return root;
 }
@@ -91,13 +87,12 @@ function GroupRow(props: { model: InspectorModel; row: Extract<ToolsRow, { kind:
   const { model, row } = props;
   const g = row.group;
   const n = g.tools.length;
-  return (
+  const el = (
     <button
       type="button"
       role="option"
       class={layout.head}
       data-row={row.key}
-      aria-selected={model.isSelectedTool(row.key)}
       onClick={() => model.selectTool(row.key)}
     >
       <span class={layout.headTitle}>{g.title}</span>
@@ -112,20 +107,20 @@ function GroupRow(props: { model: InspectorModel; row: Extract<ToolsRow, { kind:
         {n} {n === 1 ? 'tool' : 'tools'} · ~{k(tokensOf(g.tools))} tokens
       </span>
     </button>
-  );
+  ) as HTMLElement;
+  return selectable(el, model.isSelectedTool(row.key));
 }
 
 function ToolRow(props: { model: InspectorModel; row: Extract<ToolsRow, { kind: 'tool' }> }) {
   const { model, row } = props;
   const t = row.tool;
-  return (
+  const el = (
     <button
       type="button"
       role="option"
       class={layout.row}
       data-row={row.key}
       data-off={!t.enabled || t.unavailable ? '' : undefined}
-      aria-selected={model.isSelectedTool(row.key)}
       onClick={() => model.selectTool(row.key)}
     >
       <span class={layout.role}>{t.read ? 'reads' : 'tool'}</span>
@@ -143,7 +138,8 @@ function ToolRow(props: { model: InspectorModel; row: Extract<ToolsRow, { kind: 
         <span>~{k(t.tokens)}</span>
       </span>
     </button>
-  );
+  ) as HTMLElement;
+  return selectable(el, model.isSelectedTool(row.key));
 }
 
 const Placement: Record<ToolGroupView['kind'], string> = {

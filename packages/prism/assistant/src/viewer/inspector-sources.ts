@@ -52,7 +52,16 @@ export function createInspectorSources(agent: Pick<ViewerAgent, 'inspect' | 'too
     const before = trace.value;
     trace.set(next);
     if (before?.loaded !== next?.loaded || before?.declared !== next?.declared) tools.set(toolsOf(agent, next));
-    limits.set(limitsOf(agent, next));
+    setLimits(next);
+  };
+  // The limits follow the latest turn's counts and the session's budget: a read that changes none leaves the view.
+  let limitsKey = '';
+  const setLimits = (data: TraceData | undefined) => {
+    const next = limitsOf(agent, data);
+    const key = JSON.stringify(next);
+    if (key === limitsKey) return;
+    limitsKey = key;
+    limits.set(next);
   };
 
   // One read at a time; changes while one runs make one more read after it (a running turn's records come in bursts).
