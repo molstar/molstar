@@ -57,6 +57,13 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   render. A burst in one task is one render a row (7 µs against 25). A set alone in its task pays the microtask and the
   flush (19 µs against 14–16). The reflow's 80 µs is the tree's flattening, not its rows.
 
+- **No frame budget for rows, measured** (a scheduler that makes rows within a few ms a frame, cancels what left the
+  window and shows placeholders was asked for, to build only if a budget would bite): a thumb drag over the scene tree
+  (4,000 rows, top to bottom and back in 1.5 s, the mouse on the scrollbar's thumb; `watch-bench/thumbdrag.mjs`) costs
+  0.17–0.18 ms of UI script and 0.19–0.21 ms of native DOM work a frame with recycled slots (0.30–0.52 and 0.44–1.07
+  with keyed rows); no frame over 20 ms after the first run's warm-up, no frame showing a blank row. A far jump is
+  0.6–0.9 ms of script (p90 3.1–3.4 ms with its layout): under any budget worth having. The window moves in the frame
+  lane (the scroll position is a frame state), so a drag's events make one window a frame; nothing more is scheduled.
 - **While a structure animates, the UI is 2–6% of the main thread's work** (0.01–0.02 of 0.4–0.5 ms a frame; the table
   and the hidden-UI checks are in [styling.md](styling.md) §5).
 - **Recycled rows for the scene tree** (`RecycledList`, the default there; `VirtualList` keeps keyed rows elsewhere): a
