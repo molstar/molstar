@@ -72,6 +72,7 @@ describe('the kept layout', () => {
     a.viewState.setTabHidden('history', true);
     a.viewState.setButtons({ xr: true });
     a.viewState.setMode('desktop');
+    a.viewState.setToolbar('collapsed');
     a.navigation.setDock('top', { collapsed: true });
     a.navigation.setCard({ id: 'export' });
     stop();
@@ -82,6 +83,8 @@ describe('the kept layout', () => {
     expect(layout.docks.right).toMatchObject({ size: 420, pinned: true, tabs: ['home', 'gone'] });
     expect(layout.hiddenTabs).toEqual(['history']);
     expect(layout).toMatchObject({ mode: 'auto', compactRail: true, buttons: { xr: false } });
+    // The toolbar is the person's choice (a kept layout's), not the host's.
+    expect(layout.toolbar).toBe('collapsed');
     expect(b.navigation.state.value.docks.top.collapsed).toBe(true);
     expect(b.navigation.state.value.card).toBeUndefined();
   });
@@ -146,6 +149,10 @@ describe('the kept layout', () => {
     first.mounted.shell.hideTab('home');
     first.mounted.shell.hideTab('history');
     first.mounted.shell.setSize('right', 460);
+    // The command folds the canvas toolbar into its button.
+    expect(first.mounted.shell.toolbarCollapsed.value).toBe(false);
+    await first.core.managers.commands.open('view.toolbar.toggle');
+    expect(first.mounted.shell.toolbarCollapsed.value).toBe(true);
     first.mounted.dispose();
 
     const second = await mount();
@@ -155,11 +162,39 @@ describe('the kept layout', () => {
     expect(shell.dock('right').tabs.value.some((t) => t.id === 'history')).toBe(false);
     // Home, hidden, does not open at start.
     expect(shell.dock('right').active.value).toBeUndefined();
+    // The toolbar comes back folded; the command opens it again.
+    expect(shell.toolbarCollapsed.value).toBe(true);
+    await second.core.managers.commands.open('view.toolbar.toggle');
+    expect(shell.toolbarCollapsed.value).toBe(false);
+    await second.core.managers.commands.open('view.toolbar.toggle');
 
-    // Reset layout, as the command does: the tab is back, the size the default.
+    // Reset layout, as the command does: the tab is back, the size and the toolbar the defaults.
     await second.core.managers.commands.open('view.reset-layout');
     expect(shell.hiddenTabs.value).toEqual([]);
     expect(shell.dock('right').state.value.size).toBe(340);
+    expect(shell.toolbarCollapsed.value).toBe(false);
     second.mounted.dispose();
+  });
+
+  it('starts folded where the spec says so, and Reset layout goes back to that', async () => {
+    const core = await createViewerCore({
+      spec: {
+        ...DefaultPrismViewerSpec(),
+        ui: { layout: { toolbar: 'collapsed' } },
+        persist: { key: 'toolbar-test', preferences: store() },
+      },
+      createPlugin: createDefaultPlugin,
+      modules: ['files', 'page'],
+    });
+    cores.push(core);
+    vi.spyOn(core, 'mountCanvas').mockResolvedValue(false);
+    const target = document.createElement('div');
+    document.body.append(target);
+    const { shell, dispose } = await mountShell(core, target);
+    expect(shell.toolbarCollapsed.value).toBe(true);
+    shell.setToolbarCollapsed(false);
+    await core.managers.commands.open('view.reset-layout');
+    expect(shell.toolbarCollapsed.value).toBe(true);
+    dispose();
   });
 });

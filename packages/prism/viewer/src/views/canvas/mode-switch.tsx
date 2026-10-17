@@ -8,8 +8,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { distinctUntilChanged, map, of } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
+import type { CanvasMenuItem } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { deepActiveElement, focusFirstItem, menuKeys } from '@molstar/prism-ui/dom/focus';
@@ -100,6 +101,63 @@ export function ModeSwitch(props: ModeSwitchProps) {
       </button>
     </div>
   );
+}
+
+/**
+ * The mode switch and the picking level as rows of the collapsed toolbar's menu (ui shell.md §2): Interact and Select
+ * as a choice, and the levels as a submenu (picking one turns select mode on, as in `PickLevel`).
+ */
+export function modeMenuRows(props: ModeSwitchProps): readonly CanvasMenuItem[] {
+  const selecting = props.mode.pipe(
+    map((m) => m === 'select'),
+    distinctUntilChanged(),
+  );
+  const rows: CanvasMenuItem[] = [
+    {
+      id: 'mode-interact',
+      label: 'Interact',
+      icon: 'rotate-3d',
+      group: 'mode',
+      choice: true,
+      pressed: selecting.pipe(map((s) => !s)),
+      run: () => props.setMode('interact'),
+    },
+    {
+      id: 'mode-select',
+      label: 'Select',
+      icon: 'mouse-pointer-click',
+      group: 'mode',
+      choice: true,
+      pressed: selecting,
+      run: () => props.setMode('select'),
+    },
+  ];
+  const { granularity, granularities, setGranularity } = props;
+  if (granularity && granularities && setGranularity) {
+    rows.push({
+      id: 'mode-level',
+      label: 'What a click selects',
+      group: 'mode',
+      run: () => {},
+      items: of(
+        granularities.map(
+          (l): CanvasMenuItem => ({
+            id: `level-${l.value}`,
+            label: l.label,
+            icon: l.icon,
+            group: l.group ?? '',
+            choice: true,
+            pressed: granularity.pipe(map((g) => g === l.value)),
+            run: () => {
+              setGranularity(l.value);
+              props.setMode('select');
+            },
+          }),
+        ),
+      ),
+    });
+  }
+  return rows;
 }
 
 /**

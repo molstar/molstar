@@ -15,7 +15,7 @@ import { eventTarget, isEditable, ownsKey } from '../../dom/events.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
-import { BandDissolvePx, BandFadePx, type ShellModel } from '../../shell/shell.js';
+import { BandDissolvePx, BandFadePx, type CanvasMenuItem, type ShellModel } from '../../shell/shell.js';
 import type { NotificationsManager } from '../../managers/notifications.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
@@ -71,6 +71,11 @@ export interface ShellViewProps {
   commandMenu?: Child;
   /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
   canvasLead?: Child;
+  /**
+   * The rows of `canvasLead` for the collapsed toolbar's menu (the mode choices, a submenu for their options): the
+   * stack lists them above the toolbar items (shell.md §2). Without it the menu lists the items only.
+   */
+  canvasLeadMenu?: Observable<readonly CanvasMenuItem[]>;
   /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
   canvasAside?: Child;
   onOpenLog?: () => void;
@@ -261,7 +266,13 @@ export function ShellView(props: ShellViewProps) {
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>
-                <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} quiet={props.empty} />
+                <CanvasStack
+                  shell={shell}
+                  lead={props.canvasLead}
+                  aside={props.canvasAside}
+                  {...(props.canvasLeadMenu ? { leadMenu: props.canvasLeadMenu } : {})}
+                  quiet={props.empty}
+                />
                 <ContextChips status={status} lead={props.context?.()} />
               </div>
             </div>

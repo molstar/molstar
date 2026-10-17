@@ -574,6 +574,7 @@ function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues)
     docks,
     ...(layout.mode ? { mode: layout.mode } : {}),
     compactRail: !!layout.compactRail,
+    ...(layout.toolbar ? { toolbar: layout.toolbar } : {}),
     buttons,
   });
   const navigation = new NavigationManager({ docks: nav });

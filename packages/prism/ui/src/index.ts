@@ -37,6 +37,7 @@ export {
   defaultViewLayout,
   MinDockSizes,
   type StoredViewLayout,
+  type ToolbarState,
   type ViewLayout,
   type ViewLayoutSeed,
   ViewStateManager,

@@ -8,11 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, of, switchMap } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
-import { For, Show } from '../../dom/control-flow.js';
+import { activity, For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import {
   deepActiveElement,
@@ -114,6 +114,15 @@ export function CanvasToolbar(props: {
   );
 }
 
+/** Whether a button shows pressed: its overlay is open, or its own state says so. */
+function toolPressed(shell: ShellModel, item: CanvasToolbarItem): Observable<boolean> {
+  const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
+  return combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
+    map(([a, b]) => a || b),
+    distinctUntilChanged(),
+  );
+}
+
 function ToolButton(props: {
   shell: ShellModel;
   item: CanvasToolbarItem;
@@ -124,11 +133,7 @@ function ToolButton(props: {
   const railMenu = !menus && item.menu?.length ? props.railMenu : undefined;
   // A button with a menu shows the menu on hover instead of a tooltip (both would open in the same spot).
   const withMenu = menus && item.menu?.length ? menus : undefined;
-  const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
-  const pressed = combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
-    map(([a, b]) => a || b),
-    distinctUntilChanged(),
-  );
+  const pressed = toolPressed(shell, item);
   // The menu button pattern (accessibility.md): ↓ or ↑ opens the menu at its first item (Enter and Space too, on a
   // button that only holds a menu); the pointer opens it on hover. Focus alone does not open it: Tab goes on to the
   // next button.
@@ -275,36 +280,218 @@ export function ToolMenuRows(props: { items: readonly CanvasMenuItem[]; onRun():
 }
 
 /**
- * The canvas stack at the top right of the canvas, below what floats at the top and beside the rail or the open
- * panel: one frame with the mode buttons (`lead`) and then the toolbar items placed on the canvas (camera, lighting,
- * XR, expand, sequence); `aside` is what opens beside it (the picking level).
+ * A canvas toolbar item as a row of the collapsed toolbar's menu (shell.md §2): a toggle (pressed) or an action; an
+ * item with a menu is a submenu of its own rows, led by its own action (unless a row of the menu is that action
+ * already: Expand's first row).
+ */
+function toolRow(shell: ShellModel, item: CanvasToolbarItem, anchor: () => Element): CanvasMenuItem {
+  const toggle = item.pressed || item.overlay ? toolPressed(shell, item) : undefined;
+  const act = () => {
+    if (item.overlay) shell.toggleOverlay(item.overlay, anchor());
+    else item.run?.(anchor());
+  };
+  const row = { id: item.id, label: item.title, icon: item.icon, group: item.group ?? '' };
+  const menu = item.menu ?? [];
+  if (!menu.length) return { ...row, ...(toggle ? { pressed: toggle } : {}), run: act };
+  const own: CanvasMenuItem[] =
+    (item.run || item.overlay) && !menu.some((m) => m.label === item.title)
+      ? [
+          {
+            id: `${item.id}:self`,
+            label: item.title,
+            icon: item.icon,
+            group: '',
+            ...(toggle ? { pressed: toggle } : {}),
+            run: act,
+          },
+        ]
+      : [];
+  return { ...row, run: () => {}, items: of([...own, ...menu]) };
+}
+
+/**
+ * What the collapsed toolbar's menu lists: the app's lead rows (the mode buttons), then the canvas items that show, in
+ * the order of the bar's sections, a hairline between sections. Follows the items and their `visible`.
+ */
+function collapsedRows(
+  shell: ShellModel,
+  lead: Observable<readonly CanvasMenuItem[]> | undefined,
+  anchor: () => Element,
+): Observable<readonly CanvasMenuItem[]> {
+  const tools = shell.toolbar.pipe(
+    map((items) => sectionsOf(items.filter((i) => i.place === 'canvas')).flatMap((s) => s.items)),
+    switchMap((items) =>
+      items.length
+        ? combineLatest(items.map((i) => i.visible ?? of(true))).pipe(map((v) => items.filter((_, k) => v[k])))
+        : of([] as readonly CanvasToolbarItem[]),
+    ),
+    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+    map((items) => items.map((i) => toolRow(shell, i, anchor))),
+  );
+  return combineLatest([lead ?? of([] as readonly CanvasMenuItem[]), tools]).pipe(
+    map(([l, t]) => [...l.map((r) => ({ ...r, group: r.group ?? 'lead' })), ...t]),
+  );
+}
+
+/** What the collapsed toolbar's menu is made of (`ToolMenus.show`): its rows, and how it opens the bar again. */
+interface StackPopup {
+  readonly rows: Observable<readonly CanvasMenuItem[]>;
+  expand(): void;
+}
+
+/** The collapsed toolbar's one button, as a toolbar item (its menu is `StackPopup`'s). */
+const CollapsedItem: CanvasToolbarItem = { id: 'toolbar', place: 'canvas', icon: 'wrench', title: 'Toolbar' };
+
+/**
+ * The canvas stack at the bottom right of the canvas, beside the rail or the open panel: one frame with the mode buttons
+ * (`lead`) and then the toolbar items placed on the canvas (camera, lighting, XR, expand, sequence); `aside` is what
+ * opens beside it (the picking level).
+ *
+ * It collapses (`ShellModel.toolbarCollapsed`, shell.md §2): a chevron at its leading edge, shown while the pointer or
+ * the focus is on the bar, folds it into one button whose menu lists the same tools (`leadMenu`: the rows of what
+ * `lead` holds; the items' own menus as submenus), with the chevron that opens the bar again as its first row. The
+ * bar stays mounted while folded, hidden, inert and paused (`activity`).
  */
 export function CanvasStack(props: {
   shell: ShellModel;
   lead?: Child;
   aside?: Child;
+  /** The rows of `lead` for the collapsed toolbar's menu (the mode choices); they follow what `lead` shows. */
+  leadMenu?: Observable<readonly CanvasMenuItem[]>;
   /**
    * The canvas is empty: the stack fades out (`CanvasStackFadeMs`; what is in it should stay that long), and in again
    * when it has something (canvas.module.css, `@starting-style`).
    */
   quiet?: Observable<boolean>;
 }) {
+  const { shell } = props;
   const menus = new ToolMenus();
-  const stack = (
-    <div class={classes.stack} data-quiet={props.quiet?.pipe(map((q) => (q ? '' : undefined)))}>
+  const collapsed = shell.toolbarCollapsed;
+  const expanded = collapsed.pipe(map((c) => !c));
+  let stack: HTMLElement | undefined;
+  let chevron: HTMLElement | undefined;
+  let folded: HTMLElement | undefined;
+  // Motion only for a change the person makes, not for the state the stack starts in.
+  let moved = false;
+  let starting = true;
+  const stopMoved = collapsed.subscribe(() => {
+    if (!starting) moved = true;
+  });
+  starting = false;
+  const popup: StackPopup = {
+    rows: collapsedRows(shell, props.leadMenu, () => folded ?? stack!),
+    expand: () => fold(false),
+  };
+  // Folding or unfolding: the focus follows the control it was on (it is replaced by the other state's).
+  const fold = (collapse: boolean) => {
+    const active = deepActiveElement();
+    const hadFocus = !!active && !!stack?.contains(active);
+    menus.hide();
+    shell.setToolbarCollapsed(collapse);
+    if (hadFocus) queueMicrotask(() => (collapse ? folded : chevron)?.focus({ preventScroll: true }));
+  };
+  const bar = activity(expanded, () => (
+    <div class={classes.bar}>
+      <button
+        type="button"
+        class={classes.stackToggle}
+        data-stack-toggle=""
+        data-tip="Collapse toolbar"
+        data-tip-side="top"
+        aria-label="Collapse toolbar"
+        aria-expanded={expanded}
+        ref={(el) => {
+          chevron = el;
+        }}
+        onClick={() => fold(true)}
+      >
+        <Icon name="chevrons-right" size={14} />
+      </button>
       <div class={classes.frame}>
         <ScrollArea axis="x" contentClass={classes.stackTools}>
           {props.lead}
-          <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
+          <CanvasToolbar shell={shell} part="canvas" menus={menus} />
         </ScrollArea>
       </div>
       {props.aside}
+    </div>
+  )) as HTMLElement;
+  const hasTools = popup.rows.pipe(
+    map((rows) => rows.length > 0),
+    distinctUntilChanged(),
+  );
+  const root = (
+    <div class={classes.stack} data-quiet={props.quiet?.pipe(map((q) => (q ? '' : undefined)))}>
+      {bar}
+      <Show when={collapsed}>
+        {() => (
+          <Show when={hasTools}>
+            {() => (
+              <div class={`${classes.frame} ${classes.folded}`} data-moved={moved ? '' : undefined}>
+                <CollapsedButton
+                  menus={menus}
+                  popup={popup}
+                  ref={(el) => {
+                    folded = el;
+                  }}
+                />
+              </div>
+            )}
+          </Show>
+        )}
+      </Show>
       <ToolMenu menus={menus} />
     </div>
   ) as HTMLElement;
-  menus.stack = stack;
-  onCleanup(() => menus.dispose());
-  return stack;
+  stack = root;
+  // Folded: hidden and inert (its buttons are neither seen, tabbed to nor read); the menu of a button that went closes.
+  bind(collapsed, (c) => {
+    bar.toggleAttribute('data-moved', moved);
+    bar.toggleAttribute('hidden', c);
+    menus.hide();
+  });
+  menus.stack = root;
+  onCleanup(() => {
+    stopMoved.unsubscribe();
+    menus.dispose();
+  });
+  return root;
+}
+
+/** The collapsed toolbar's button: opens the menu of the tools as a tool with a menu does (hover, a click, ↓ or ↑). */
+function CollapsedButton(props: { menus: ToolMenus; popup: StackPopup; ref(el: HTMLElement): void }) {
+  const { menus, popup } = props;
+  const expanded = menus.open.asReadonly.pipe(
+    map((o) => o?.item === CollapsedItem),
+    distinctUntilChanged(),
+  );
+  return (
+    <button
+      type="button"
+      class={classes.tool}
+      data-stack-collapsed=""
+      aria-label="Toolbar"
+      aria-haspopup="menu"
+      aria-expanded={expanded}
+      ref={props.ref}
+      onClick={(e) => {
+        // A touch screen has no hover: a tap opens the menu, or closes it. From the keyboard it opens at its first row.
+        if (noHover() && menus.open.value?.item === CollapsedItem) return menus.hide();
+        menus.show(CollapsedItem, e.currentTarget, e.detail === 0, popup);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        menus.show(CollapsedItem, e.currentTarget, true, popup);
+      }}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && menus.show(CollapsedItem, e.currentTarget, false, popup)}
+      onPointerLeave={() => menus.hideSoon()}
+      onBlur={() => menus.hideSoon()}
+    >
+      <Icon name="wrench" size={18} />
+      <span class={classes.menuMark} aria-hidden="true" />
+    </button>
+  );
 }
 
 /**
@@ -312,21 +499,43 @@ export function CanvasStack(props: {
  * button's ↓, ↑, Enter), closes a moment after the pointer leaves both the button and the menu (so it can travel
  * between them), when the focus leaves it, on a choice, or on Escape (the focus goes back to its button).
  */
+/** The margin (px) a menu keeps from the canvas's top: `--msp-canvas-edge`. */
+const MenuEdgePx = 8;
+
 export class ToolMenus {
-  readonly open = observableState<{ item: CanvasToolbarItem; right: number; button: Element } | undefined>(undefined);
+  readonly open = observableState<
+    { item: CanvasToolbarItem; right: number; room: number; button: Element; popup?: StackPopup } | undefined
+  >(undefined);
   stack: HTMLElement | undefined;
   /** The open menu's element (`ToolMenu` sets it). */
   menu: HTMLElement | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
-  /** Opens `item`'s menu by its button; `focus`: at its first item (opened from the keyboard). */
-  show(item: CanvasToolbarItem, button: Element, focus = false) {
+  /**
+   * Opens `item`'s menu by its button; `focus`: at its first item (opened from the keyboard). `popup`: the collapsed
+   * toolbar's menu, whose rows follow its tools in place of the item's `menu`.
+   */
+  show(item: CanvasToolbarItem, button: Element, focus = false, popup?: StackPopup) {
     this.keep();
     // The menu opens upward from the stack (a row in the canvas' corner), its right edge level with the button's.
     const right = this.stack ? this.stack.getBoundingClientRect().right - button.getBoundingClientRect().right : 0;
+    const room = this.roomAbove(this.stack);
     const current = this.open.value;
-    if (current?.item !== item || current.right !== right) this.open.set({ item, right, button });
+    if (current?.item !== item || current.right !== right || current.room !== room) {
+      this.open.set({ item, right, room, button, ...(popup ? { popup } : {}) });
+    }
     if (focus) queueMicrotask(() => this.menu && focusFirstItem(this.menu));
+  }
+
+  /**
+   * The room a menu has above `el` (px): from the canvas's top (its viewport, else the page's) to `el`'s top, less a
+   * margin. A menu is as tall as that and scrolls inside; 0 where there is no layout. Measured once, when a menu opens.
+   */
+  roomAbove(el: Element | undefined, below?: number): number {
+    if (!el) return 0;
+    const viewport = el.closest('[data-msp-viewport]');
+    const room = (below ?? el.getBoundingClientRect().top) - (viewport?.getBoundingClientRect().top ?? 0) - MenuEdgePx;
+    return room > 0 ? Math.round(room) : 0;
   }
 
   keep() {
@@ -385,15 +594,22 @@ function ToolMenu(props: { menus: ToolMenus }) {
           if (!now || el?.contains(now)) (open.button as HTMLElement).focus({ preventScroll: true });
         });
         // The open submenu: its row, and where it sits (its bottom level with the row's, measured once on opening).
-        const sub = observableState<{ item: CanvasMenuItem; row: HTMLElement; bottom: number } | undefined>(undefined);
+        const sub = observableState<
+          { item: CanvasMenuItem; row: HTMLElement; bottom: number; room: number } | undefined
+        >(undefined);
         let subEl: HTMLElement | undefined;
         const onSubmenu: OpenSubmenu = (item, row, focus = false) => {
           if (!item || !row || !el) {
             if (sub.value) sub.set(undefined);
             return;
           }
-          const bottom = el.offsetHeight - (row.offsetTop + row.offsetHeight);
-          if (sub.value?.item !== item || sub.value.bottom !== bottom) sub.set({ item, row, bottom });
+          // Rects, not offsets: the rows sit in a scrolling area. Its room: from the canvas's top to its row's bottom.
+          const rowBottom = row.getBoundingClientRect().bottom;
+          const bottom = Math.round(el.getBoundingClientRect().bottom - rowBottom);
+          const room = menus.roomAbove(menus.stack, rowBottom);
+          if (sub.value?.item !== item || sub.value.bottom !== bottom || sub.value.room !== room) {
+            sub.set({ item, row, bottom, room });
+          }
           if (focus) queueMicrotask(() => subEl && focusFirstItem(subEl));
         };
         // ← or Escape in the submenu: back to its row (the menu stays open).
@@ -410,7 +626,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
         return (
           <div
             class={classes.toolMenu}
-            style={{ right: `${open.right}px` }}
+            style={{ right: `${open.right}px`, ...(open.room ? { '--msp-menu-room': `${open.room}px` } : {}) }}
             role="menu"
             aria-label={open.item.title}
             ref={(x) => {
@@ -426,17 +642,49 @@ function ToolMenu(props: { menus: ToolMenus }) {
             onFocusOut={() => menus.hideSoon()}
           >
             <div class={classes.toolMenuCard} onKeyDown={menuKeys}>
-              <ToolMenuRows
-                items={withOwnAction(open.item, open.button)}
-                onRun={() => menus.hide()}
-                onSubmenu={onSubmenu}
-              />
+              {open.popup ? (
+                <>
+                  {/* The bar's way back: the first row, with a hairline under it. */}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class={`${classes.toolMenuRow} ${classes.toolMenuExpand}`}
+                    aria-expanded="false"
+                    onPointerEnter={() => onSubmenu(undefined)}
+                    onClick={() => {
+                      menus.hide();
+                      open.popup!.expand();
+                    }}
+                  >
+                    <Icon name="chevrons-left" size={16} />
+                    <span class={classes.toolMenuLabel}>Expand toolbar</span>
+                    <span />
+                  </button>
+                  <div class={classes.toolMenuDivider} role="separator" />
+                  {/* The rows scroll where the canvas is too short for them (an embedded viewer); the first row stays. */}
+                  <Show when={open.popup.rows}>
+                    {(rows) => (
+                      <ScrollArea class={classes.toolMenuScroll} contentClass={classes.toolMenuScrollContent}>
+                        <ToolMenuRows items={rows} onRun={() => menus.hide()} onSubmenu={onSubmenu} />
+                      </ScrollArea>
+                    )}
+                  </Show>
+                </>
+              ) : (
+                <ScrollArea class={classes.toolMenuScroll} contentClass={classes.toolMenuScrollContent}>
+                  <ToolMenuRows
+                    items={withOwnAction(open.item, open.button)}
+                    onRun={() => menus.hide()}
+                    onSubmenu={onSubmenu}
+                  />
+                </ScrollArea>
+              )}
             </div>
             <Show when={sub}>
               {(s) => (
                 <div
                   class={classes.toolSubmenu}
-                  style={{ bottom: `${s.bottom}px` }}
+                  style={{ bottom: `${s.bottom}px`, ...(s.room ? { '--msp-menu-room': `${s.room}px` } : {}) }}
                   role="menu"
                   aria-label={s.item.label}
                   ref={(x) => {
@@ -445,9 +693,11 @@ function ToolMenu(props: { menus: ToolMenus }) {
                   onKeyDown={subKeys}
                 >
                   <div class={classes.toolMenuCard}>
-                    <Show when={s.item.items!}>
-                      {(rows) => <ToolMenuRows items={rows} onRun={() => menus.hide()} />}
-                    </Show>
+                    <ScrollArea class={classes.toolMenuScroll} contentClass={classes.toolMenuScrollContent}>
+                      <Show when={s.item.items!}>
+                        {(rows) => <ToolMenuRows items={rows} onRun={() => menus.hide()} />}
+                      </Show>
+                    </ScrollArea>
                   </div>
                 </div>
               )}

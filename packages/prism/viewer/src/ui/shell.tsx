@@ -47,7 +47,7 @@ import { exportCard } from './export-card.js';
 import { isLazyExtension } from '../spec.js';
 import { settingsTab } from './settings.js';
 import { keepLayout, layoutCommands, layoutStore, restoreLayout } from './layout.js';
-import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
+import { ModeSwitch, modeMenuRows, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
@@ -305,6 +305,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const trajectory = person.area('trajectory') ? createTrajectoryControls(core.plugin, person) : undefined;
     if (trajectory) unregister.push(trajectory.dispose);
     const modeProps = modeSwitchProps(sources.interaction, person);
+    // The mode choices as rows of the collapsed toolbar's menu (ui shell.md §2); the same buttons as `ModeSwitch`.
+    const modeRows = modeMenuRows(modeProps);
     // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
     const shown = (id: string, data = hasData) =>
       combineLatest([data, managers.viewState.layout]).pipe(
@@ -679,6 +681,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           busy={sources.busy}
           context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
           canvasLead={<Show when={shown('selection-mode', stackData)}>{() => <ModeSwitch {...modeProps} />}</Show>}
+          canvasLeadMenu={shown('selection-mode', stackData).pipe(map((on) => (on ? modeRows : [])))}
           canvasAside={<Show when={stackData}>{() => <PickLevel {...modeProps} />}</Show>}
           onDropFiles={openFiles}
           dropFormats={sources.formats}

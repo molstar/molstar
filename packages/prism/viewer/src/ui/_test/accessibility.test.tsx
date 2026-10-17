@@ -201,6 +201,23 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
 
+  it('the canvas toolbar folded into one button, its menu open with the mode choices and a submenu', async () => {
+    mounted.shell.setToolbarCollapsed(true);
+    await wait(100);
+    const folded = mounted.root.querySelector<HTMLElement>('[data-stack-collapsed]');
+    expect(folded).not.toBeNull();
+    await check();
+    folded!.click();
+    await wait(100);
+    const menu = mounted.root.querySelector('[role=menu][aria-label=Toolbar]');
+    expect(menu?.textContent).toContain('Expand toolbar');
+    expect(menu?.textContent).toContain('Interact');
+    expect(menu?.textContent).toContain('What a click selects');
+    await check();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    mounted.shell.setToolbarCollapsed(false);
+  });
+
   it('a compact shell', async () => {
     mounted.shell.setMode('compact');
     mounted.shell.show('home');

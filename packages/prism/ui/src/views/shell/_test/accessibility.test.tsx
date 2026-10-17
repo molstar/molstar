@@ -61,6 +61,18 @@ describe('the shell has no accessibility violations (axe)', () => {
     t.done();
   });
 
+  it('the canvas toolbar folded into one button, and its menu open', async () => {
+    const t = mount({ noPanel: true, toolbarCollapsed: true });
+    await frame();
+    const folded = t.container.querySelector<HTMLButtonElement>('[data-stack-collapsed]');
+    expect(folded).not.toBeNull();
+    await expectNoAxeViolations(t.container);
+    folded!.click();
+    expect(t.container.querySelector('[role=menu]')).not.toBeNull();
+    await expectNoAxeViolations(t.container);
+    t.done();
+  });
+
   it('the empty canvas', async () => {
     const t = mount({ loaded: false, noPanel: true });
     await frame();

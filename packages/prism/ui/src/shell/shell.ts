@@ -16,6 +16,7 @@ import {
   DockIds,
   type DockLayout,
   type ShellMode,
+  type ToolbarState,
   type ViewLayout,
   ViewStateManager,
 } from '../managers/view-state.js';
@@ -136,6 +137,11 @@ export interface ShellOptions {
    * (`railOpen`).
    */
   compactRail?: boolean;
+  /**
+   * The canvas toolbar's starting state (`ViewLayout.toolbar`): `collapsed` shows one button whose menu lists the tools.
+   * The person's choice is part of the kept layout; Reset layout goes back to this.
+   */
+  toolbar?: ToolbarState;
 }
 
 /**
@@ -323,6 +329,7 @@ export class ShellModel extends ReactiveModel {
     compare: Object.is,
   });
   readonly #compactRail = observableState(false);
+  readonly #toolbarCollapsed = observableState(false);
   readonly #railOpen = observableState(false);
   readonly #hiddenTabs = observableState<readonly ShellTab[]>([]);
   /** Every registered item, and the shown ones (`buttons` applied). */
@@ -366,6 +373,19 @@ export class ShellModel extends ReactiveModel {
   /** Whether the rail column is shown: always, unless the rail is compact and not open. */
   get railShown(): ReadonlyState<boolean> {
     return this.#railShown.asReadonly;
+  }
+
+  /** The canvas toolbar is collapsed into one button with a menu (`ViewLayout.toolbar`, shell.md §2). */
+  get toolbarCollapsed(): ReadonlyState<boolean> {
+    return this.#toolbarCollapsed.asReadonly;
+  }
+
+  setToolbarCollapsed(collapsed: boolean): void {
+    this.#viewState.setToolbar(collapsed ? 'collapsed' : 'expanded');
+  }
+
+  toggleToolbar(): void {
+    this.setToolbarCollapsed(!this.#toolbarCollapsed.value);
   }
 
   setCompactRail(compact: boolean): void {
@@ -738,6 +758,7 @@ export class ShellModel extends ReactiveModel {
     // Embedded, the rail is always the compact one (shell.md §3).
     const compactRail = layout.compactRail || this.#effectiveMode.value === 'embedded';
     this.#compactRail.set(compactRail);
+    this.#toolbarCollapsed.set(layout.toolbar === 'collapsed');
     this.#railOpen.set(nav.railOpen);
     this.#railShown.set(!compactRail || nav.railOpen);
     this.#tabFocus.set(nav.focus);
@@ -795,6 +816,7 @@ function layoutOptions(options: ShellOptions): ConstructorParameters<typeof View
     docks,
     ...(options.mode ? { mode: options.mode } : {}),
     compactRail: !!options.compactRail,
+    ...(options.toolbar ? { toolbar: options.toolbar } : {}),
     buttons: options.buttons ?? {},
   };
 }

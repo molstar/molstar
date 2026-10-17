@@ -10,7 +10,7 @@ import { type ObservableState, observableState } from '../reactive/observable-st
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
 // The UI's layout as state (api.md §11, library.md §1): the docks' tabs, sizes and float, the shell's mode and its
-// rail, which toolbar buttons show, which tabs are hidden. DOM-free and serializable: what a layout preference keeps
+// rail, the canvas toolbar's state, which toolbar buttons show, which tabs are hidden. DOM-free and serializable: what a layout preference keeps
 // and restores (shell.md §3). What is open is `navigation`'s; `ShellModel` registers the parts and reads both.
 
 export type DockId = 'left' | 'right' | 'top' | 'bottom';
@@ -37,11 +37,20 @@ export interface DockLayout {
   readonly pinned: boolean;
 }
 
+/** The canvas toolbar (the canvas stack): the row of tools, or one button holding them in a menu (shell.md §2). */
+export type ToolbarState = 'expanded' | 'collapsed';
+const ToolbarStates: readonly ToolbarState[] = ['expanded', 'collapsed'];
+
 export interface ViewLayout {
   readonly docks: Readonly<Record<DockId, DockLayout>>;
   readonly mode: 'auto' | ShellMode;
   /** The rail column hidden behind a button in the canvas's corner (`ShellOptions.compactRail`). */
   readonly compactRail: boolean;
+  /**
+   * The canvas toolbar collapsed into one button with a menu (`ShellOptions.toolbar`, `ShellModel.setToolbarCollapsed`).
+   * A kept layout without it restores the starting one (`expanded` unless the app seeds `collapsed`).
+   */
+  readonly toolbar: ToolbarState;
   /** Which toolbar buttons show, by item id; ids not listed show. */
   readonly buttons: Readonly<Record<string, boolean>>;
   /**
@@ -65,7 +74,7 @@ export function defaultViewLayout(): ViewLayout {
   for (const id of DockIds) {
     docks[id] = { tabs: [], size: DefaultDockSizes[id], floating: id === 'right' || id === 'top', pinned: false };
   }
-  return { docks, mode: 'auto', compactRail: false, buttons: {}, hiddenTabs: [] };
+  return { docks, mode: 'auto', compactRail: false, toolbar: 'expanded', buttons: {}, hiddenTabs: [] };
 }
 
 /** The serialized form, versioned: a stored layout of another version is dropped (journal.md §7). */
@@ -84,7 +93,7 @@ export class ViewStateManager {
     this.#layout = observableState<ViewLayout>(this.#initial);
   }
 
-  /** The docks, the mode, the rail, the buttons and the hidden tabs. */
+  /** The docks, the mode, the rail, the toolbar, the buttons and the hidden tabs. */
   get layout(): ReadonlyState<ViewLayout> {
     return this.#layout.asReadonly;
   }
@@ -95,7 +104,7 @@ export class ViewStateManager {
   }
 
   /**
-   * Back to the layout it started with (shell.md §3): docks, mode, rail, buttons; hidden tabs show again. Tabs the seed
+   * Back to the layout it started with (shell.md §3): docks, mode, rail, toolbar, buttons; hidden tabs show again. Tabs the seed
    * does not place leave their docks: `ShellModel.resetLayout` puts the registered ones back by their defaults.
    */
   reset(): void {
@@ -130,6 +139,10 @@ export class ViewStateManager {
 
   setCompactRail(compactRail: boolean): void {
     if (this.#layout.value.compactRail !== compactRail) this.#layout.set({ ...this.#layout.value, compactRail });
+  }
+
+  setToolbar(toolbar: ToolbarState): void {
+    if (this.#layout.value.toolbar !== toolbar) this.#layout.set({ ...this.#layout.value, toolbar });
   }
 
   setButtons(buttons: Readonly<Record<string, boolean>>): void {
@@ -178,6 +191,7 @@ function mergeLayout(base: ViewLayout, over: ViewLayoutSeed): ViewLayout {
     docks,
     mode: over.mode ?? base.mode,
     compactRail: over.compactRail ?? base.compactRail,
+    toolbar: over.toolbar ?? base.toolbar,
     buttons: { ...base.buttons, ...over.buttons },
     hiddenTabs: over.hiddenTabs ? [...new Set(over.hiddenTabs)] : base.hiddenTabs,
   };
@@ -189,9 +203,10 @@ function isStoredLayout(value: unknown): value is StoredViewLayout {
   if (v.version !== 1 || !v.layout || typeof v.layout !== 'object') return false;
   const docks = v.layout.docks as Record<string, unknown> | undefined;
   if (!docks || typeof docks !== 'object') return false;
-  const { mode, compactRail, buttons, hiddenTabs } = v.layout;
+  const { mode, compactRail, toolbar, buttons, hiddenTabs } = v.layout;
   if (mode !== undefined && !(mode === 'auto' || (ShellModes as readonly unknown[]).includes(mode))) return false;
   if (compactRail !== undefined && typeof compactRail !== 'boolean') return false;
+  if (toolbar !== undefined && !(ToolbarStates as readonly unknown[]).includes(toolbar)) return false;
   if (buttons !== undefined && (!buttons || typeof buttons !== 'object')) return false;
   if (hiddenTabs !== undefined && !(Array.isArray(hiddenTabs) && hiddenTabs.every((t) => typeof t === 'string'))) {
     return false;
