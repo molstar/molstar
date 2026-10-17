@@ -48,10 +48,11 @@ the truth for how.
 - **The reply streams**: the agent's `onText` (the text of the model call under way) goes to `TurnWriter.reply`, which
   writes thread deltas coalesced to one per `ReplyMs` (300 ms): `{ text }` with what was appended since, `{ replace }`
   when the text is not an extension of what was sent (a retried call). A read of an open turn folds its deltas into
-  `reply` (incrementally: a read costs what was added); the final text of `settle` replaces them (a settle with none
-  keeps what had streamed). Not previewed: a reply over 32,000 characters, more than 1,000 deltas, a stream that cannot
-  be written (the record was kept meanwhile; the settle carries the text). An aborted turn (the page went away) shows no
-  reply: the thread does not give an ended stream's deltas back.
+  `reply` (incrementally: a read costs what was added; reads of one stream go in turn, so two readers at once, History
+  and the assistant, never fold a delta twice; the preview is let go once the turn is not under way); the final text of
+  `settle` replaces them (a settle with none keeps what had streamed). Not previewed: a reply over 32,000 characters,
+  more than 1,000 deltas, a stream that cannot be written (the record was kept meanwhile; the settle carries the text).
+  An aborted turn (the page went away) shows no reply: the thread does not give an ended stream's deltas back.
 - **Reads are windows**, newest first, at most 256 entries per page.
 
 ## 3. Shown back
@@ -61,7 +62,8 @@ the truth for how.
   it was pointed at and changed ("1CBS · A:10-20 · 3 nodes, view", `metaOf`) and "Undone by the assistant" when it was
   not the person who undid it; a turn shows its reply as it streams, and its model's name (the provider in the tooltip).
 - **`journal/history-model.ts`** reads only while the tab shows: a window, "Show earlier", then once per frame only what
-  came since (from the oldest open turn). Loaded rows are bounded.
+  came since (from the oldest open turn). Loaded rows are bounded; a row that did not change keeps its object (a turn's
+  reply compared by its text: a retried call can keep its length).
 - **The assistant's history** (`AgentModel.history`) maps History's rows; the turn card holds Undo turn while the newest
   step is that turn's.
 - **After a reload** only kept records exist: Home lists them while it shows (`journal/kept-records.ts`); one opens

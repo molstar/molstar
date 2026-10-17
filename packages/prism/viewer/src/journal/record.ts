@@ -664,6 +664,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
               }),
               'settle a turn',
             );
+            forgetPreview(host, entryId);
             dirty = true;
             await touch(true);
           }),
@@ -907,6 +908,7 @@ export function recordFromLines(text: string): FileRecord | undefined {
 }
 
 async function itemOf(host: ThreadHost, fid: ThreadId, e: ThreadEntry): Promise<RecordItem | undefined> {
+  if (e.state.kind !== 'streaming') forgetPreview(host, e.entryId);
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;
     if (!begun || typeof begun !== 'object' || begun.kind !== 'turn') return undefined;
@@ -922,31 +924,47 @@ async function itemOf(host: ThreadHost, fid: ThreadId, e: ThreadEntry): Promise<
   return { id: e.entryId, position: e.position, entry: value, open: e.state.kind !== 'settled' };
 }
 
-/** The reply streamed so far per stream, read incrementally: a read of a turn under way costs what was added since. */
-const previews = new WeakMap<ThreadHost, Map<string, { offset: number; text: string }>>();
+/**
+ * The reply streamed so far per stream, read incrementally: a read of a turn under way costs what was added since.
+ * `tail` is the stream's reads in order (journal.md §2): two readers at once (History and the assistant, an export
+ * racing a refresh) would both fold the deltas after the same offset, and the reply would double.
+ */
+type Preview = { offset: number; text: string; tail: Promise<string> };
+const previews = new WeakMap<ThreadHost, Map<string, Preview>>();
+
+/** @internal For tests: how many streams' previews are held for a host. */
+export const previewsHeld = (host: ThreadHost): number => previews.get(host)?.size ?? 0;
+
+/** A stream's preview is let go once its turn is not under way (settled, aborted, or gone with the host). */
+const forgetPreview = (host: ThreadHost, entryId: string) => void previews.get(host)?.delete(entryId);
 
 /** A turn's streamed reply: the deltas folded (`{ text }` appends, `{ replace }` starts over). Empty when there is none. */
-async function previewOf(host: ThreadHost, fid: ThreadId, entryId: ThreadEntryId): Promise<string> {
+function previewOf(host: ThreadHost, fid: ThreadId, entryId: ThreadEntryId): Promise<string> {
   let cache = previews.get(host);
   if (!cache) previews.set(host, (cache = new Map()));
-  const seen = cache.get(entryId) ?? { offset: 0, text: '' };
-  cache.set(entryId, seen);
-  try {
-    for (;;) {
-      const page = await host.deltas({ threadId: fid, entryId, afterOffset: seen.offset, limit: 256 });
-      if ('status' in page) break;
-      for (const b of page.batches) {
-        const v = b.payload.value as { text?: unknown; replace?: unknown } | null;
-        if (typeof v?.replace === 'string') seen.text = v.replace;
-        else if (typeof v?.text === 'string') seen.text += v.text;
+  let seen = cache.get(entryId);
+  if (!seen) cache.set(entryId, (seen = { offset: 0, text: '', tail: Promise.resolve('') }));
+  const s = seen;
+  const fold = async () => {
+    try {
+      for (;;) {
+        const page = await host.deltas({ threadId: fid, entryId, afterOffset: s.offset, limit: 256 });
+        if ('status' in page) break;
+        for (const b of page.batches) {
+          const v = b.payload.value as { text?: unknown; replace?: unknown } | null;
+          if (typeof v?.replace === 'string') s.text = v.replace;
+          else if (typeof v?.text === 'string') s.text += v.text;
+        }
+        s.offset = page.nextOffset;
+        if (!page.hasMore || !page.batches.length) break;
       }
-      seen.offset = page.nextOffset;
-      if (!page.hasMore || !page.batches.length) break;
+    } catch {
+      // a stream that cannot be read shows nothing more
     }
-  } catch {
-    // a stream that cannot be read shows nothing
-  }
-  return seen.text;
+    return s.text;
+  };
+  s.tail = s.tail.then(fold, fold);
+  return s.tail;
 }
 
 /** Every entry of a thread into another, in order, at the same positions (keep, and unkeep back into memory). */
