@@ -229,9 +229,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   scope, and the frame lane skips disposed and paused watches. Released by construction, not by memory: a raw
   `addEventListener`, `new ResizeObserver`/`IntersectionObserver`, `setInterval`, `requestAnimationFrame` or a frame
   callback by hand in a component file fails (`ui/src/_test/scoped-attach.test.ts`, strict since every view moved to the
-  helpers: 93 in 30 files at the start). A listener added in an event handler (no scope there) is attached once instead,
-  scoped, and acts while a drag is on; a frame asked for from a handler or a binding is `frames(fn)`'s `request()` (made
-  with the scope: once a frame, put off while paused, cancelled at the end).
+  helpers: 93 in 30 files at the start): every `.tsx`, and the `.ts` view code (`components/`, `views/`, and helpers a
+  view calls in its scope: the tooltips, `TreeNavigation`, `rovingTabs`), a `.ts` that attaches for a reason listed in
+  the test with it (a press-attached `dragToReorder` for code with no scope, a splash simulation's loop). A listener
+  added in an event handler (no scope there) is attached once instead, scoped, and acts while a drag is on; a frame
+  asked for from a handler or a binding is `frames(fn)`'s `request()` (made with the scope: once a frame, put off while
+  paused, cancelled at the end).
 - **Gestures** (`drag(target, { start, move, end })`, `dom/scoped.ts`): the press, the moves and every end are listeners
   attached once with the scope, acting while a drag is on; the pointer is captured at the press. A drag ends on
   `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
