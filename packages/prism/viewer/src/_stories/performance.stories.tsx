@@ -538,7 +538,7 @@ export const Interactive: StoryObj = {
         readout.style.cssText = 'font-variant-numeric: tabular-nums; color: var(--msp-color-text-subtle);';
         const box = document.createElement('div');
         box.style.cssText =
-          'height: 600px; width: 320px; display: flex; flex-direction: column; border: 1px solid var(--msp-color-border, #8884);';
+          'height: 600px; width: 320px; display: flex; flex-direction: column; border: 1px solid var(--msp-color-border, #8884); --msp-surface: var(--msp-color-bg);';
         const wrap = document.createElement('div');
         wrap.style.cssText = 'display: grid; gap: var(--msp-space-2); align-content: start;';
         const heading = document.createElement('strong');
