@@ -379,3 +379,53 @@ describe('setBase keeps changes made by divergence handlers', () => {
     });
   });
 });
+
+describe('an appended contribution folds onto the projection as it stands', () => {
+  it('gives what a refold gives, and reports a contribution still failing again', () => {
+    const coordinator = createUiTransactionCoordinator();
+    const projection = createOptimisticProjection<number[]>([], coordinator);
+    const seen: number[][] = [];
+    projection.projected.subscribe((v) => seen.push(v));
+    const reported: string[] = [];
+    projection.divergences.subscribe((d) => reported.push(d.transactionId));
+    const applied: number[] = [];
+    const failing = coordinator.begin();
+    projection.contribute(failing, {
+      apply: () => {
+        throw new Error('never applies');
+      },
+    });
+    const txs = [1, 2, 3].map((k) => {
+      const t = coordinator.begin();
+      projection.contribute(t, {
+        apply: (v) => {
+          applied.push(k);
+          return [...v, k];
+        },
+      });
+      return t;
+    });
+    // Each contribution applied once, at its arrival; the failing one reported at each publish.
+    expect(applied).toEqual([1, 2, 3]);
+    expect(projection.projected.value).toEqual([1, 2, 3]);
+    expect(reported).toEqual([failing.id, failing.id, failing.id, failing.id]);
+    // A retirement refolds what is left over the base.
+    txs[1].reject();
+    expect(projection.projected.value).toEqual([1, 3]);
+    expect(seen.at(-1)).toEqual([1, 3]);
+    failing.reject();
+    expect(projection.projected.value).toEqual([1, 3]);
+  });
+
+  it('a retirement of a transaction it holds nothing of publishes nothing', () => {
+    const coordinator = createUiTransactionCoordinator();
+    const projection = createOptimisticProjection(0, coordinator);
+    projection.contribute(coordinator.begin(), { apply: (v) => v + 1 });
+    let published = 0;
+    projection.projected.subscribe(() => published++);
+    const before = published;
+    coordinator.begin().reject();
+    expect(published).toBe(before);
+    expect(projection.projected.value).toBe(1);
+  });
+});

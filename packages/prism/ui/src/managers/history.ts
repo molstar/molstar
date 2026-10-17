@@ -117,6 +117,11 @@ interface Entry<C> {
   checkpoint: C | undefined;
   /** An open group's key while the group can still take runs. */
   openKey?: string;
+  /**
+   * The step's runs, appended in place while its group takes more (`#record`): each published step reads its own
+   * length of it (`stepWith`), so a run joins without a copy of the runs before it.
+   */
+  log: string[];
 }
 
 interface OpenGroup {
@@ -141,6 +146,29 @@ export function historyGroupKey(origin: HistoryOrigin): string | undefined {
 
 const labelOf = <T>(label: string | ((value: T) => string), value: T) =>
   typeof label === 'function' ? label(value) : label;
+
+type StepFields = Omit<HistoryStep, 'runs'>;
+
+/** A step's fields but its runs (read without copying them). */
+function fieldsOf({ id, label, origin, time, unsafe }: HistoryStep): StepFields {
+  return unsafe === undefined ? { id, label, origin, time } : { id, label, origin, time, unsafe };
+}
+
+/**
+ * A step whose `runs` are the first `length` of `log`, an append-only list: copied out the first time they are read (and
+ * kept), so a step published per run costs nothing until a reader asks, and an older step never sees later runs (a
+ * copy of the runs per run was R² for a long agent turn; ui/_spec/README.md, the history).
+ */
+function stepWith(fields: StepFields, log: readonly string[], length: number): HistoryStep {
+  let runs: readonly string[] | undefined;
+  return {
+    ...fields,
+    get runs() {
+      runs ??= length === 0 ? [] : log.slice(0, length);
+      return runs;
+    },
+  };
+}
 
 /** Checkpoints over the time budget in a row that turn per-step checkpoints off (sequence.md §7.4). */
 const SlowCheckpointsToTurnOff = 3;
@@ -457,7 +485,7 @@ export class HistoryManager<C = unknown> {
     for (const e of this.#entries) {
       e.openKey = undefined;
       if (e.step.unsafe) continue;
-      e.step = { ...e.step, unsafe: reason };
+      e.step = stepWith({ ...fieldsOf(e.step), unsafe: reason }, e.log, e.log.length);
       changed = true;
     }
     if (changed) this.#publish();
@@ -548,24 +576,30 @@ export class HistoryManager<C = unknown> {
     const top = this.#entries[0];
     const group = key ? this.#open.get(key) : undefined;
     if (group && top?.openKey === key) {
-      top.step = { ...top.step, runs: [...top.step.runs, ...runs] };
+      for (const run of runs) top.log.push(run);
+      top.step = stepWith(fieldsOf(top.step), top.log, top.log.length);
       this.#publish();
       return top.step;
     }
     // A new step: what Undo took back can no longer be put back.
     this.#setRedo([]);
-    const step: HistoryStep = {
-      id: ++this.#serial,
-      label,
-      origin,
-      time: this.#options.now(),
-      runs,
-      ...(checkpoint.unsafe ? { unsafe: checkpoint.unsafe } : {}),
-    };
-    this.#entries = [{ step, checkpoint: checkpoint.value, openKey: group ? key : undefined }, ...this.#entries].slice(
-      0,
-      this.#options.capacity,
+    // Its own list of runs (the caller's may be a group's outcome): appended to while its group goes on.
+    const log = [...runs];
+    const step = stepWith(
+      {
+        id: ++this.#serial,
+        label,
+        origin,
+        time: this.#options.now(),
+        ...(checkpoint.unsafe ? { unsafe: checkpoint.unsafe } : {}),
+      },
+      log,
+      log.length,
     );
+    this.#entries = [
+      { step, checkpoint: checkpoint.value, openKey: group ? key : undefined, log },
+      ...this.#entries,
+    ].slice(0, this.#options.capacity);
     this.#publish();
     return step;
   }

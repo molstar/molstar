@@ -324,4 +324,33 @@ describe('HistoryManager', () => {
     for (let i = 1; i <= 4; i++) await h.run(`set ${i}`, person, async () => s.set('a', i));
     expect(h.steps.value.map((x) => x.label)).toEqual(['set 4', 'set 3']);
   });
+
+  it('a turn’s runs join its entry in place, and a step once published keeps its runs', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port);
+    const agent = { kind: 'agent', turn: 't1' };
+    const end = h.beginGroup('Turn', agent);
+    await h.run('one', agent, async () => s.set('a', 1));
+    const first = h.steps.value[0];
+    await h.run('two', agent, async () => s.set('a', 2));
+    const second = h.steps.value[0];
+    await h.group('snippet', agent, async (ctx) => {
+      await h.run('three', agent, async () => s.set('a', 3), { within: ctx });
+      await h.run('four', agent, async () => s.set('a', 4), { within: ctx });
+    });
+    end();
+    // Older snapshots never see later runs; the same snapshot reads the same list.
+    expect(first.runs).toEqual(['one']);
+    expect(second.runs).toEqual(['one', 'two']);
+    expect(h.steps.value[0].runs).toEqual(['one', 'two', 'three', 'four']);
+    expect(h.steps.value[0].runs).toBe(h.steps.value[0].runs);
+    expect({ ...h.steps.value[0] }).toMatchObject({
+      id: first.id,
+      label: 'Turn',
+      runs: ['one', 'two', 'three', 'four'],
+    });
+    h.invalidate('changed outside');
+    expect(h.steps.value[0]).toMatchObject({ unsafe: 'changed outside', runs: ['one', 'two', 'three', 'four'] });
+    expect(second.unsafe).toBeUndefined();
+  });
 });

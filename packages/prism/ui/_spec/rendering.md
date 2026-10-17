@@ -247,7 +247,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   pointer that started it**: another pointer's moves, release and cancel are not its own, and its press starts nothing
   while the first still holds the capture (a second finger); a press after the first pointer ended unseen (its capture
   gone) starts anew. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release
-  twenty times and counts the listeners on every target (`testing/gestures.ts`).
+  twenty times and counts the listeners on every target (`testing/gestures.ts`). **A move reads no layout**: what a drag
+  hit-tests against is read at the press, before its first write, and again only after a scroll or a resize (a row
+  reorder's midpoints, then a binary search a move; `reorderRows`, guarded in `test:scaling`).
 - **Views leave nothing behind** (`ui/src/dom/_test/leaks.heap.tsx`, `test:heap`): a keyed list with rows, a recycled
   list, the command menu, the mock shell with a tab shown and a context menu, mounted and disposed again and again, keep
   no heap outside code (n and 4n cycles, a frame between them) and leave no listener on the window, the document or its
@@ -261,7 +263,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **`Show`** renders again, in a fresh scope, whenever the value changes identity (a flag: when it flips). Narrow the
   stream first (`map`, `distinctUntilChanged`) when the content should stay.
 - **`For each key`**: an entry keeps its nodes and scope while its key stays **and** its item is the same value; a new
-  value under the same key renders it anew. `index` is a state. A duplicate key warns once.
+  value under the same key renders it anew. `index` is a state. A duplicate key warns once. A long list renders over
+  time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each before the next entry placed,
+  never a reconcile of the whole list again (that was quadratic over the slices; `dom/_test/for-slices.scaling.tsx`).
 - **`Switch`/`Match`**, **`Dynamic`**: the first truthy case; the current component.
 - **Views follow records by id.** Where a list's records are replaced on every change (an agent turn's runs, History),
   run `For` over the ids (`distinctUntilChanged` on their contents) and give each row a stream of its record, so a row

@@ -93,4 +93,47 @@ describe('reorderRows', () => {
     expect(moves).toEqual([]);
     expect([...list.children].some((c) => c.hasAttribute('data-drop') || c.hasAttribute('data-dragging'))).toBe(false);
   });
+
+  it('reads the rows once a drag (again after a scroll or a resize) and moves where the last move pointed', () => {
+    const box = document.createElement('div');
+    document.body.append(box);
+    const moves: [string, number][] = [];
+    let reads = 0;
+    let shift = 0;
+    let list!: HTMLElement;
+    const dispose = render(() => {
+      list = document.createElement('div');
+      ['a', 'b', 'c', 'd'].forEach((id, i) => {
+        const row = document.createElement('div');
+        row.dataset.id = id;
+        row.getBoundingClientRect = () => {
+          reads++;
+          return { top: i * 20 - shift, height: 20, bottom: i * 20 + 20 - shift } as DOMRect;
+        };
+        const grip = document.createElement('span');
+        grip.className = 'grip';
+        row.append(grip);
+        list.append(row);
+      });
+      reorderRows(list, '.grip', (id, index) => moves.push([id, index]));
+      return list;
+    }, box);
+    const grip = list.querySelector('[data-id=a] .grip')!;
+    grip.dispatchEvent(pointer('pointerdown', { x: 0, y: 5 }));
+    expect(reads).toBe(4);
+    for (let y = 5; y < 80; y += 5) grip.dispatchEvent(pointer('pointermove', { x: 0, y }));
+    expect(reads).toBe(4);
+    const marks = () => [...list.children].map((c) => c.getAttribute('data-drop'));
+    expect(marks()).toEqual([null, null, null, 'after']);
+    // The list scrolled 40 px up: y 25 is now over row d's top half.
+    shift = 40;
+    list.dispatchEvent(new Event('scroll'));
+    grip.dispatchEvent(pointer('pointermove', { x: 0, y: 25 }));
+    expect(reads).toBe(8);
+    expect(marks()).toEqual([null, null, null, 'before']);
+    grip.dispatchEvent(pointer('pointerup', { x: 0, y: 25 }));
+    expect(moves).toEqual([['a', 2]]);
+    expect(marks()).toEqual([null, null, null, null]);
+    dispose();
+  });
 });
