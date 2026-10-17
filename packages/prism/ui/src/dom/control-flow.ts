@@ -314,6 +314,12 @@ function flushWaiting() {
   }
 }
 
+/**
+ * The slice, for a list that makes its entries itself (`RecycledList`'s rows): `sliceHasRoom()` counts one new entry
+ * with `For`'s and tells whether the slice has room for it; `nextSlice(fn)` runs `fn` in the next one.
+ */
+export { sliceRoom as sliceHasRoom, nextSlice };
+
 function sliceSpent(): boolean {
   return sliceEnd !== 0 && sliceMade > SliceFrom && performance.now() >= sliceEnd;
 }
@@ -338,12 +344,15 @@ interface ForEntry<T> {
  */
 export function For<T>(props: {
   each: MaybeReactive<readonly T[]>;
+  /** Not received through JSX (the runtime keeps `key` for itself): use `by`. */
   key?: (item: T) => unknown;
+  /** An item's key (what `key` means; the JSX runtime keeps `key` for itself, so a component never gets it). */
+  by?: (item: T) => unknown;
   fallback?: () => Child;
   children: (item: T, index: ReadonlyState<number>) => Child;
 }): Node {
   const owner = requireScope('For');
-  const keyOf = props.key ?? ((item: T) => item);
+  const keyOf = props.by ?? props.key ?? ((item: T) => item);
   const start = document.createComment('for');
   const end = document.createComment('/for');
   const fragment = document.createDocumentFragment();
@@ -402,8 +411,19 @@ export function For<T>(props: {
     });
   };
 
+  // The entries as last placed in full: the same items in another array (a list recomputed to what it was) find them in
+  // order, and nothing is done (the quick tier read 33 KB a step for 200 rows before; hot.quick.ts).
+  let placed: readonly ForEntry<T>[] = [];
+  const unchanged = (items: readonly T[]) => {
+    const n = items.length;
+    if (n === 0 || n !== placed.length) return false;
+    for (let i = 0; i < n; i++) if (placed[i].item !== items[i]) return false;
+    return true;
+  };
+
   const reconcile = (items: readonly T[]) => {
     latest = items;
+    if (unchanged(items)) return;
     const parent = end.parentNode!;
     // Emptied: every entry goes at once, and its nodes in one range.
     if (items.length === 0 && entries.size > 0) {
@@ -460,6 +480,7 @@ export function For<T>(props: {
       ref = entry.first;
     }
     for (let i = 0; i < order.length; i++) order[i].pos = i;
+    placed = deferred ? [] : order;
 
     if (order.length === 0 && props.fallback && !fallback) {
       fallback = owner.child();

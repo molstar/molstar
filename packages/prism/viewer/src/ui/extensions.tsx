@@ -12,7 +12,6 @@ import { Button, domView, type ShellModel } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { onActive } from '@molstar/prism-ui/dom/scope';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map } from 'rxjs';
 import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
@@ -20,6 +19,7 @@ import type { SceneNode } from '../model/scene.js';
 import { SceneRowSlot } from '../views/structure/scene-row-slot.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // Extensions' views in the page's shell (viewer-spec.md §3): sections in the viewer's named slots, tabs,
 // cards, pages over the app, rows in the scene tree, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
 // extension, whose real views take their places (same ids).
@@ -53,7 +53,7 @@ export function extensionUIPort(
       started = true;
       start();
     });
-    const isFailed = state.asReadonly.pipe(map((s) => s === 'failed'));
+    const isFailed = derive(state.asReadonly, (s) => s === 'failed');
     return (
       <div style="padding: var(--msp-space-4); display: grid; gap: var(--msp-space-2); justify-items: start">
         <Show when={isFailed} fallback={() => <p style="opacity: 0.7">Loading…</p>}>
@@ -116,6 +116,7 @@ export function extensionUIPort(
               slot: SceneRowSlot,
               title: r.id,
               when: (c) => !!c.subject && r.when(c.subject as SceneNode),
+              ...(r.whenChanged ? { whenChanged: r.whenChanged } : {}),
               render: r.render,
             })),
           ),

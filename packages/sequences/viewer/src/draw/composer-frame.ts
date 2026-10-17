@@ -164,6 +164,13 @@ export class ComposerFrame {
   readonly bandRows = new Int32Array(2);
   /** Side by side: where the entries drawn end (CSS px), the marks' bottom. */
   bottom = 0;
+  /**
+   * The layers drawn across tracks (a renderer's `across`: frames, seqspec:viewer#frames), and per layer its span's
+   * first and last track (indices in the resolved view), set with the model.
+   */
+  across = new Int32Array(0);
+  spanFrom = new Int32Array(0);
+  spanTo = new Int32Array(0);
   /** The rows layer's data row → display row (-1: not shown), at layout version `displayAt`. */
   display = new Int32Array(0);
   displayAt = -1;
@@ -275,6 +282,7 @@ export function place(f: ComposerFrame, l: SectionLayout, e: number) {
   const r = l.rows;
   v.dataRow = v.row = -1;
   if (r.layer >= 0 && l.entryTrack[e] === r.track && e >= r.entry && !r.lazy) onRow(f, l, l.entryRow[e]);
+  v.textRows = l.textRows.layer >= 0 ? l.textRows : null;
   if (l.geometry === WRAPPED) {
     const line = l.entryRow[e];
     v.line = line;
@@ -352,11 +360,152 @@ export function depth(f: ComposerFrame, group: number): number {
 export function index(f: ComposerFrame): number {
   return f.ctx.layout.sectionIndex(f.section);
 }
+/**
+ * Edge rate, with the model: the layers drawn across tracks and their spans' first and last track (a ref the section
+ * does not hold: the layer's own track; seqspec:viewer#frames).
+ */
+export function acrossOf(f: ComposerFrame, model: ViewModel | null) {
+  const n = model?.prepared.length ?? 0;
+  const out: number[] = [];
+  f.spanFrom = new Int32Array(n).fill(-1);
+  f.spanTo = new Int32Array(n).fill(-1);
+  if (!model) {
+    f.across = new Int32Array(0);
+    return;
+  }
+  const rv = model.resolved;
+  const trackOf = (ref: unknown, section: number): number => {
+    if (typeof ref !== 'string') return -1;
+    for (let t = 0; t < rv.tracks.count; t++)
+      if (rv.tracks.section[t] === section && model.set.strings.get(rv.tracks.ref[t]) === ref) return t;
+    return -1;
+  };
+  for (let k = 0; k < n; k++) {
+    if (!f.renderers[k]?.across) continue;
+    const own = rv.layers.track[k];
+    const section = own >= 0 ? rv.tracks.section[own] : -1;
+    const span = rv.layers.params[k].span as { from?: unknown; to?: unknown } | null | undefined;
+    const from = trackOf(span?.from, section);
+    const to = trackOf(span?.to ?? span?.from, section);
+    const a = from >= 0 ? from : own;
+    const z = to >= 0 ? to : a;
+    f.spanFrom[k] = Math.min(a, z);
+    f.spanTo[k] = Math.max(a, z);
+    out.push(k);
+  }
+  f.across = Int32Array.from(out);
+}
+
+/**
+ * What the layers drawn across tracks draw (frames, seqspec:viewer#frames), after the region's entries and in its
+ * clip within the scrolled data area: wrapped per line in view (the line's entries of the span's tracks), linear over
+ * the span's scrolled entries. Each layer's `across` with `v.top`, `v.height` the span (wrapped, half a track gap
+ * outside it), `v.spanRows` where a rows band is its top or bottom.
+ */
+function frames(f: ComposerFrame, l: SectionLayout) {
+  const v = f.v;
+  const c = f.clip;
+  if (f.across.length === 0 || !v.axis || l.geometry === CIRCULAR || !f.model) return;
+  const dpr = v.dpr;
+  const x0 = Math.max(c[0], Math.round(l.dataLeft * dpr)) | 0;
+  const x1 = Math.min(c[1], Math.round(l.dataRight * dpr)) | 0;
+  const y0 = Math.max(c[2], Math.round(l.scrolledTop * dpr)) | 0;
+  const y1 = Math.min(c[3], Math.round(l.height * dpr)) | 0;
+  if (x1 <= x0 || y1 <= y0) return;
+  v.backend.pushClip(x0, y0, x1 - x0, y1 - y0);
+  const wrapped = l.geometry === WRAPPED;
+  for (let q = 0; q < f.across.length; q++) {
+    const k = f.across[q];
+    if (f.failed.has(k)) continue;
+    if (!wrapped) {
+      acrossSpan(f, l, k, -1);
+      continue;
+    }
+    // From the first line in view (a binary search over the lines' bottoms, in content y), to the last.
+    const from = y0 / dpr - l.scrolledTop + v.scrollY;
+    let line = 0;
+    for (let hi = l.lines.count; line < hi; ) {
+      const mid = (line + hi) >> 1;
+      if (l.lines.bottom[mid] <= from) line = mid + 1;
+      else hi = mid;
+    }
+    for (; line < l.lines.count; line++) {
+      const top = l.scrolledTop + l.lines.top[line] - v.scrollY;
+      if (top * dpr >= y1) break;
+      acrossSpan(f, l, k, line);
+    }
+  }
+  v.backend.popClip();
+}
+/** Layer k's span on wrapped `line` (-1: linear): its first and last entries with height, then its `across`. */
+function acrossSpan(f: ComposerFrame, l: SectionLayout, k: number, line: number) {
+  const v = f.v;
+  const a = f.spanFrom[k];
+  const z = f.spanTo[k];
+  let e0 = -1;
+  let e1 = -1;
+  if (line >= 0) {
+    for (let e = l.lineEntries[2 * line]; e < l.lineEntries[2 * line + 1]; e++) {
+      const t = l.entryTrack[e];
+      if (l.entryKind[e] !== TRACK || l.entryRow[e] !== line || t < a || t > z || !(l.entryHeight[e] > 0)) continue;
+      if (e0 < 0) e0 = e;
+      e1 = e;
+    }
+  } else
+    for (let t = a; t <= z && t < l.trackFirst.length; t++) {
+      if (l.trackFirst[t] < 0) continue;
+      if (e0 < 0 || l.trackFirst[t] < e0) e0 = l.trackFirst[t];
+      if (l.trackLast[t] > e1) e1 = l.trackLast[t];
+    }
+  if (e0 < 0) return;
+  const pad = line >= 0 ? v.props.wrappedTrackGap / 2 : 0;
+  const top = l.scrolledTop + l.entryTop[e0] - v.scrollY;
+  const bottom = l.scrolledTop + l.entryTop[e1] + l.entryHeight[e1] - v.scrollY;
+  // A rows band at an edge: its display row 0's y and a row's height (text: `textRows`; linear: the rows' entries).
+  const sr = v.spanRows;
+  sr[0] = sr[1] = sr[2] = sr[3] = 0;
+  v.spanDisplay = null;
+  const tr = l.textRows;
+  const r = l.rows;
+  if (line >= 0 && tr.layer >= 0) {
+    if (l.entryTrack[e0] === tr.track) {
+      sr[0] = top;
+      sr[2] = 1;
+    }
+    if (l.entryTrack[e1] === tr.track) {
+      sr[0] = l.scrolledTop + l.entryTop[e1] - v.scrollY;
+      sr[3] = 1;
+    }
+    sr[1] = tr.height;
+  } else if (line < 0 && r.layer >= 0 && r.entry >= 0) {
+    sr[0] = l.scrolledTop + l.entryTop[r.entry] - v.scrollY;
+    sr[1] = r.height;
+    sr[2] = l.entryTrack[e0] === r.track ? 1 : 0;
+    sr[3] = l.entryTrack[e1] === r.track ? 1 : 0;
+    v.spanDisplay = r.display;
+  }
+  const m = f.model as ViewModel;
+  const rend = f.renderers[k] as LayerRenderer;
+  place(f, l, e0);
+  prime(f, k, l, e0);
+  v.top = top - pad;
+  v.height = bottom - top + 2 * pad;
+  try {
+    rend.across?.(v, m.prepared[k].state, m.resolved.layers.params[k]);
+  } catch (err) {
+    fail(f, k, err);
+  } finally {
+    release(f);
+    v.spanDisplay = null;
+  }
+}
+
 /** Where a filter skips positions or a cyclic origin falls: a full-height hairline, from the shown runs. */
 export function breaks(f: ComposerFrame, l: SectionLayout) {
   const v = f.v;
   const ax = v.axis;
   const c = f.clip;
+  frames(f, l);
   if (!ax || l.geometry !== LINEAR) return;
   const r = f.rects;
   const w = Math.max(1, Math.round(v.dpr)) | 0;

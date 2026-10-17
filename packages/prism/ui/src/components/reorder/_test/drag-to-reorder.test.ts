@@ -67,12 +67,29 @@ describe('dragToReorder', () => {
     const handle = el.children[0].firstElementChild as HTMLElement;
     const down = pointer('pointerdown', 5);
     Object.defineProperty(down, 'currentTarget', { value: handle });
-    dragToReorder(down, el, 'a', () => {});
+    const moves: number[] = [];
+    dragToReorder(down, el, 'a', (i) => moves.push(i));
     document.body.dispatchEvent(pointer('pointermove', 35));
     expect((el.children[2] as HTMLElement).dataset.drop).toBe('before');
     window.dispatchEvent(new Event('blur'));
     expect([...el.children].some((c) => (c as HTMLElement).dataset.drop || (c as HTMLElement).dataset.dragging)).toBe(
       false,
     );
+    // A cancel never moves the row.
+    expect(moves).toEqual([]);
+  });
+
+  it('a cancelled pointer ends the drag without moving the row', () => {
+    const el = list(['a', 'b', 'c']);
+    const handle = el.children[0].firstElementChild as HTMLElement;
+    const down = pointer('pointerdown', 5);
+    Object.defineProperty(down, 'currentTarget', { value: handle });
+    const moves: number[] = [];
+    dragToReorder(down, el, 'a', (i) => moves.push(i));
+    handle.dispatchEvent(pointer('pointermove', 55));
+    handle.dispatchEvent(pointer('pointercancel', 55));
+    handle.dispatchEvent(pointer('pointerup', 55));
+    expect(moves).toEqual([]);
+    expect((el.children[0] as HTMLElement).dataset.dragging).toBeUndefined();
   });
 });

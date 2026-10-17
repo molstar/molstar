@@ -62,7 +62,7 @@ annotations as data, and views of sections, tracks and layers over them
 ([Concepts](?path=/docs/seq-docs-concepts--docs) defines each); it never says how a viewer draws it. The Seq\* viewer,
 the reference renderer, decides how: layouts, navigators, sizes, levels of detail, gestures and the skin; Nightingale
 is a second renderer of the same documents. Stories Untold is its first host (a sequence panel beside each scene's 3D state); the Mol\* adapter
-(`@molstar/seq-molstar-poc`) links a viewer to a Mol\* canvas.
+(Mol\*'s, in the Prism viewer: `@molstar/prism-viewer/sequence/molstar`) links a viewer to a Mol\* canvas.
 
 Seq\* is a set of packages under `packages/sequences/`. These pages are for a developer who embeds it or
 extends it: [**Concepts**](?path=/docs/seq-docs-concepts--docs) explains the vocabulary (molecules, units, coordinate systems,
@@ -89,10 +89,10 @@ folder is an entry; a bundle keeps only what it imports.
 | `@molstar/seq-nightingale` | A second viewer for the format: a resolved view materialized as EBI's Nightingale components, with what it cannot draw reported. |
 | `@molstar/seq-viewer/interactions` | An extension: interaction pairs and the fingerprint, a format half and a viewer half (`/viewer`). |
 | `@molstar/seq-core/links` | Command links for a host's markdown: the codec, the runner and a remark adapter (`/remark`). |
-| `@molstar/seq-core/translate` | Maps between coordinate systems, a host's own (Mol\*'s chain residues) and Seq\*'s (units, molecules, rows): the `Translator`, a registry of systems and the routes between them. The viewer's `ctx.systems` is one. |
+| `@molstar/seq-core/translate` | Maps between coordinate systems, a host's own (Mol\*'s chain residues) and Seq\*'s (units, molecules, rows): the `Translator`, a registry of systems and the routes between them, and the `SystemRegistry` over a sequence set, which maps between a structure, the set and an alignment's columns with no viewer (`map`). The viewer's `ctx.systems` is one. |
 | `@molstar/seq-core/algorithms` | Aligners behind one interface (biomsa, Needleman–Wunsch, Myers) and the search matchers (`/search`). No DOM. |
 | `@molstar/seq-core/stream/gmod` | Stream providers for indexed genome files read by byte range: 2bit (letters), BigWig (values), BigBed and tabix VCF (items). |
-| `@molstar/seq-molstar-poc` | The Mol\* adapter: the `molstar:structure` complex provider, structure formats, and the maps between Mol\* loci and Seq\* runs. |
+| `@molstar/prism-viewer/sequence/molstar` | The Mol\* adapter (Mol\*'s, in the Prism viewer): the `molstar:structure` complex provider, structure formats, and the maps between Mol\* loci and Seq\* runs. |
 | `@molstar/seq-core/stream/tiles` | The reference stream provider, `seqstar-tiles/1`: the tile client, `tilesStream` (a provider for the host's `loaders.stream`) and the procedural tile server. |
 | `@molstar/seq-core/query` | SeqQL, the query language: the symbol table, the reader, binder and printer, the builder `Q`. Imports nothing. |
 

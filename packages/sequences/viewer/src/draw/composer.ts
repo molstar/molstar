@@ -35,6 +35,7 @@ import { BackendCaps, Pass, type RenderBackend } from './backend.js';
 import { bandCopies, cutRows, entry } from './composer-entries.js';
 import {
   ALL,
+  acrossOf,
   banded,
   bands,
   breaks,
@@ -161,6 +162,7 @@ export class SectionComposer extends ComposerFrame {
     this.fresh = new Uint8Array(p.length);
     this.pend = new Uint8Array(p.length);
     this.cols = new Int32Array(2 * p.length);
+    acrossOf(this, model);
   }
   private setSkin(skin: Skin) {
     this.skin = skin;

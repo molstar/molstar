@@ -328,7 +328,7 @@ describe('points and variants', () => {
 });
 
 describe('secondary', () => {
-  it('a coil line, a helix, a strand arrow, a turn arch and a bar for what is neither, in their rows', async () => {
+  it('a coil line, a helix cylinder, a strand arrow, a turn arch and a bar for what is neither, in their rows', async () => {
     const t = await drawn(featuresDoc(), { width: 900, height: 420 });
     await zoom(t, 'Secondary', 14);
     const { rec, frame } = record(t.ctx, 'Secondary');
@@ -336,7 +336,7 @@ describe('secondary', () => {
     const v = frame.v;
     const cy = Math.round(e.top + 11);
     const h = Math.round(22 * 0.31);
-    const [coil, helix, other] = rects(rec);
+    const [coil, other] = rects(rec);
     expect(coil).toEqual([
       v.xd(0, v.visLo[0]),
       cy,
@@ -345,9 +345,11 @@ describe('secondary', () => {
       SkinToken.inkFaint,
       255,
     ]);
-    expect(helix.slice(0, 4)).toEqual([v.xd(0, 4), cy - h, v.xd(0, 12) - v.xd(0, 4), 2 * h]);
     expect(other[1]).toBe(cy - Math.round(h * 0.45));
-    const [strand, turn] = paths(rec);
+    const [helix, strand, turn] = paths(rec);
+    // The helix: a cylinder, its body's top edge between its rounded ends (seqspec:format#layer-types).
+    const rx = Math.min(Math.max(1, Math.round(h * 0.6)), (v.xd(0, 12) - v.xd(0, 4)) >> 1);
+    expect(helix.slice(4, 8)).toEqual([v.xd(0, 4) + rx, cy - h, v.xd(0, 12) - rx, cy - h]);
     // The strand: seven corners and a close; the arrow's tip at its end, on the coil line.
     expect(strand.slice(4, 6)).toEqual([v.xd(0, 14), cy - Math.round(h * 0.55)]);
     expect(strand.slice(4 + 6, 4 + 8)).toEqual([v.xd(0, 24), cy]);
@@ -361,7 +363,7 @@ describe('secondary', () => {
     expect(record(t.ctx, 'Secondary').rec.pathItems.n).toBe(0);
     expect(rects(record(t.ctx, 'Secondary').rec).length).toBeGreaterThan(4);
     await zoom(t, 'Secondary', 14);
-    expect(record(t.ctx, 'Secondary').rec.pathItems.n).toBe(2);
+    expect(record(t.ctx, 'Secondary').rec.pathItems.n).toBe(3);
     expect(record(t.ctx, 'Secondary', undefined, true).rec.pathItems.n).toBe(0);
     expect(rects(record(t.ctx, 'Secondary', undefined, true).rec).length).toBeGreaterThan(4);
   });

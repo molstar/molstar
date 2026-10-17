@@ -8,16 +8,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { activeElement, eventTarget, isInside } from '../../dom/events.js';
-import { bind, type MaybeReactive, onCleanup, toStream } from '../../dom/scope.js';
+import { bind, effect, type MaybeReactive, toStream } from '../../dom/scope.js';
+import { frame, on } from '../../dom/scoped.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { Icon } from '../icon/icon.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
+import { derive, isState } from '../../reactive/state.js';
 /** An option: its value, its label, and the group it is listed under (Mol*'s option categories), if any. */
 export type SelectOption = readonly [value: string, label: string, group?: string];
 
@@ -53,7 +55,7 @@ export function Select(props: SelectProps) {
       }}
     >
       <SelectButton
-        label={value.pipe(map((v) => props.options.find((o) => o[0] === v)?.[1] ?? ''))}
+        label={derive(value, (v) => props.options.find((o) => o[0] === v)?.[1] ?? '')}
         open={open}
         size={props.size}
         title={props.title}
@@ -71,6 +73,7 @@ export function Select(props: SelectProps) {
               }}
               onClose={() => open.set(false)}
               floating={props.over}
+              aria-label={props['aria-label'] ?? props.title}
             />
           );
           return props.over ? <Floating anchor={anchor}>{list}</Floating> : list;
@@ -82,7 +85,7 @@ export function Select(props: SelectProps) {
 
 /** The closed choice: the current option's label and a chevron; toggles `open`. */
 export function SelectButton(props: {
-  label: Observable<string>;
+  label: MaybeReactive<string>;
   open: ObservableState<boolean>;
   size?: 'sm' | 'md';
   title?: string;
@@ -112,11 +115,13 @@ export function SelectButton(props: {
  */
 export function OptionList(props: {
   options: readonly SelectOption[];
-  value: Observable<string | undefined>;
+  value: ReadonlyState<string | undefined>;
   onPick(value: string): void;
   onClose(): void;
   /** Floating over the page (a popover): the wheel stays in it. Inline (default), at its ends it scrolls the panel. */
   floating?: boolean;
+  /** The list's accessible name (a listbox has one): what the choice is, as its button's. */
+  'aria-label'?: string;
 }) {
   // The current value when opened: its group starts open.
   let current: string | undefined;
@@ -138,10 +143,7 @@ export function OptionList(props: {
         type="button"
         role="option"
         class={classes.option}
-        aria-selected={props.value.pipe(
-          map((v) => v === value),
-          distinctUntilChanged(),
-        )}
+        aria-selected={derive(props.value, (v) => v === value)}
         onClick={() => props.onPick(value)}
       >
         <span>{label}</span>
@@ -172,7 +174,7 @@ export function OptionList(props: {
           <Icon name="chevron-right" size={13} class={classes.groupChevron} />
           <span>{name}</span>
         </button>
-        <div class={classes.groupBody} hidden={open.asReadonly.pipe(map((o) => !o))}>
+        <div class={classes.groupBody} hidden={derive(open.asReadonly, (o) => !o)}>
           {options.map(option)}
         </div>
       </div>
@@ -184,6 +186,7 @@ export function OptionList(props: {
       contentClass={classes.listContent}
       chain={!props.floating}
       role="listbox"
+      aria-label={props['aria-label']}
       onKeyDown={(e) => {
         const all = navigable();
         const i = all.indexOf(activeElement(list) as HTMLElement);
@@ -213,15 +216,16 @@ export function OptionList(props: {
     if (isInside(e, list) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
     props.onClose();
   };
-  document.addEventListener('pointerdown', onDown, true);
-  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
+  on(document, 'pointerdown', onDown, { capture: true });
   return list;
 }
 
-function toValue(value: MaybeReactive<string> | undefined): Observable<string | undefined> {
+/** The value as a state: a state as it is; a stream or a plain value held in one (a stream with the current scope). */
+function toValue(value: MaybeReactive<string> | undefined): ReadonlyState<string | undefined> {
+  if (isState(value)) return value as ReadonlyState<string | undefined>;
   const stream = toStream(value as MaybeReactive<string | undefined>);
-  if (stream) return stream as Observable<string | undefined>;
-  const state = observableState<string | undefined>(value as string | undefined);
+  const state = observableState<string | undefined>(stream ? undefined : (value as string | undefined));
+  if (stream) effect(stream, (v) => state.set(v));
   return state.asReadonly;
 }
 
@@ -250,12 +254,8 @@ export function MenuPopover(props: {
     if (isInside(e, menu) || isInside(e, props.anchor)) return;
     props.onClose();
   };
-  document.addEventListener('keydown', onKey, true);
-  document.addEventListener('pointerdown', onDown, true);
-  onCleanup(() => {
-    document.removeEventListener('keydown', onKey, true);
-    document.removeEventListener('pointerdown', onDown, true);
-  });
+  on(document, 'keydown', onKey, { capture: true });
+  on(document, 'pointerdown', onDown, { capture: true });
   return (
     <Floating anchor={props.anchor} align="end">
       <div
@@ -265,7 +265,7 @@ export function MenuPopover(props: {
         ref={(el: HTMLElement) => {
           menu = el;
           // Into it once it shows (the popover opens on the next microtask).
-          requestAnimationFrame(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
+          frame(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
         }}
       >
         {props.children}
@@ -316,11 +316,7 @@ export function Floating(props: {
       el.querySelector<HTMLElement>('[aria-selected="true"]') ?? el.querySelector<HTMLElement>('[role=option]')
     )?.focus();
   });
-  window.addEventListener('scroll', onScroll, true);
-  window.addEventListener('resize', place);
-  onCleanup(() => {
-    window.removeEventListener('scroll', onScroll, true);
-    window.removeEventListener('resize', place);
-  });
+  on(window, 'scroll', onScroll, { capture: true });
+  on(window, 'resize', place);
   return el;
 }

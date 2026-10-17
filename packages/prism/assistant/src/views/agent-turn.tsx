@@ -8,10 +8,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon, type IconName, ScrollArea, For, Show, onCleanup, StatusPill } from '@molstar/prism-ui';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { ownsKey } from '@molstar/prism-ui/dom/events';
+import { Icon, type IconName, ScrollArea, For, Show, StatusPill, type ReadonlyState } from '@molstar/prism-ui';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../model.js';
 import { classes } from './_generated/agent-turn.module.css.js';
+
+import { derive } from '@molstar/prism-ui/reactive/state';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { on } from '@molstar/prism-ui/dom/scoped';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 
 const StatusIcons: Record<RunStatus, IconName> = {
   running: 'loader-circle',
@@ -54,32 +59,40 @@ export function isRunning(t: AgentTurn) {
 }
 
 /**
+ * `source`'s value while `keep` holds for it, else the last one that did (what a `filter` did on a stream): a row's
+ * record by key, gone only as the row goes; the card's turn while it is the latest. `source` holds a kept value when
+ * this is made.
+ */
+export function held<S, T extends S>(source: ReadonlyState<S>, keep: (v: S) => v is T): ReadonlyState<T> {
+  let last = source.value as T;
+  return derive(source, (v) => (keep(v) ? (last = v) : last));
+}
+
+const present = <T,>(x: T | undefined): x is T => x !== undefined;
+
+/**
  * One command run, following its record by id: its state (a spinner while running, waiting for approval, done,
  * failed, stopped), what it does in words, its outcome or error under it, and its progress while it reports one.
  * A read is quieter.
  */
-export function RunRow(props: { run: Observable<CommandRun> }) {
+export function RunRow(props: { run: ReadonlyState<CommandRun> }) {
   const run = props.run;
-  const field = <K extends keyof CommandRun>(k: K) =>
-    run.pipe(
-      map((r) => r[k]),
-      distinctUntilChanged(),
-    );
+  const field = <K extends keyof CommandRun>(k: K) => derive(run, (r) => r[k]);
   const status = field('status');
   return (
-    <div class={classes.run} data-status={status} data-read={field('read').pipe(map((r) => (r ? '' : undefined)))}>
+    <div class={classes.run} data-status={status} data-read={derive(run, (r) => (r.read ? '' : undefined))}>
       <Show when={status}>{(s) => <Icon name={StatusIcons[s]} size={14} class={classes.mark} />}</Show>
       <span class={classes.runTitle} data-tip-overflow="">
         {field('title')}
       </span>
-      <span class={classes.runTime}>{field('durationMs').pipe(map(formatDuration))}</span>
+      <span class={classes.runTime}>{derive(run, (r) => formatDuration(r.durationMs))}</span>
       <Show when={field('detail')}>{(d) => <span class={classes.runDetail}>{d}</span>}</Show>
-      <Show when={field('progress').pipe(map((p) => p !== undefined))}>
+      <Show when={derive(run, (r) => r.progress !== undefined)}>
         {() => (
           <span class={classes.bar}>
             <span
               class={classes.barFill}
-              style={{ width: field('progress').pipe(map((p) => `${Math.round((p ?? 0) * 100)}%`)) }}
+              style={{ width: derive(run, (r) => `${Math.round((r.progress ?? 0) * 100)}%`) }}
             />
           </span>
         )}
@@ -89,26 +102,25 @@ export function RunRow(props: { run: Observable<CommandRun> }) {
 }
 
 /** A turn's runs, each row following its record. */
-export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) {
-  const runs = props.turn.pipe(map((t) => t.runs));
+export function RunList(props: { turn: ReadonlyState<AgentTurn>; class?: string }) {
+  const runs = derive(props.turn, (t) => t.runs);
   // By id: a run's record is replaced on every change, and a row made anew would restart its spinner.
-  const ids = runs.pipe(
-    map((rs) => rs.map((r) => r.id)),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  const ids = derive(
+    runs,
+    (rs) => rs.map((r) => r.id),
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
+  // The runs by id, one map a change; a row is told only when its own run's record changes (a `find` a row, and a field,
+  // on every streamed token was runs² a token).
+  const byId = keyedState<string, CommandRun>();
+  bind(runs, (rs) => {
+    const m = new Map<string, CommandRun>();
+    for (const r of rs) m.set(r.id, r);
+    byId.replace(m);
+  });
   return (
     <div class={props.class}>
-      <For each={ids}>
-        {(id) => (
-          <RunRow
-            run={runs.pipe(
-              map((rs) => rs.find((x) => x.id === id)),
-              filter((x): x is CommandRun => !!x),
-              distinctUntilChanged(),
-            )}
-          />
-        )}
-      </For>
+      <For each={ids}>{(id) => <RunRow run={held(byId.key(id), present)} />}</For>
     </div>
   );
 }
@@ -136,9 +148,12 @@ export function UndoTurn(props: { agent: AgentModel; id: string }) {
  */
 export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: string) => void }) {
   const { agent } = props;
+  // Where the card is: its viewer's keys only (several viewers on a page).
+  const anchor = (<span hidden />) as HTMLElement;
   // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || agent.view.value !== 'card' || !agent.turn.value) return;
+    if (!ownsKey(anchor, e)) return;
     const target = e.target as HTMLElement | null;
     if (
       target?.isContentEditable ||
@@ -151,15 +166,11 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
     e.stopPropagation();
     agent.dismiss();
   };
-  document.addEventListener('keydown', onKey, true);
-  onCleanup(() => document.removeEventListener('keydown', onKey, true));
-  const which = (view: 'card' | 'line') =>
-    combineLatest([agent.turn, agent.view]).pipe(
-      map(([t, v]) => (v === view ? t?.id : undefined)),
-      distinctUntilChanged(),
-    );
+  on(document, 'keydown', onKey, { capture: true });
+  const which = (view: 'card' | 'line') => derive([agent.turn, agent.view], (t, v) => (v === view ? t?.id : undefined));
   return (
     <>
+      {anchor}
       <Show when={which('line')}>{() => <TurnLine agent={agent} />}</Show>
       <Show when={which('card')}>{(id) => <Card agent={agent} id={id} onTrace={props.onTrace} />}</Show>
     </>
@@ -174,23 +185,20 @@ const FinishedLineMs = 8000;
  * runs); a click opens the card again, ✕ takes the line away (the turn stays in History).
  */
 function TurnLine(props: { agent: AgentModel }) {
-  const turn = props.agent.turn.pipe(filter((t): t is AgentTurn => !!t));
-  const status = turn.pipe(
-    map((t) => t.status),
-    distinctUntilChanged(),
-  );
+  const turn = held(props.agent.turn, present);
+  const status = derive(turn, (t) => t.status);
   return (
     <span class={classes.line} data-status={status}>
       <StatusPill
         icon={<Icon name="sparkles" size={14} class={classes.spark} />}
-        text={turn.pipe(map((t) => t.prompt))}
-        after={<span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>}
+        text={derive(turn, (t) => t.prompt)}
+        after={<span class={classes.state}>{derive(status, (s) => TurnLabels[s])}</span>}
         label="Show the assistant’s turn"
         onClick={() => props.agent.reopen()}
         dismissLabel="Hide"
         onDismiss={() => props.agent.hide()}
         // Finished (done, stopped): it goes after a while; a turn that waits or failed stays.
-        autoDismiss={status.pipe(map((s) => (s === 'done' || s === 'stopped' ? FinishedLineMs : undefined)))}
+        autoDismiss={derive(status, (s) => (s === 'done' || s === 'stopped' ? FinishedLineMs : undefined))}
       />
     </span>
   );
@@ -202,19 +210,13 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
   return (
     <Show when={id}>
       {() => {
-        const turn = agent.turn.pipe(
-          filter((t): t is AgentTurn => t?.id === id),
-          distinctUntilChanged(),
-        );
-        const status = turn.pipe(
-          map((t) => t.status),
-          distinctUntilChanged(),
-        );
-        const running = turn.pipe(map(isRunning), distinctUntilChanged());
-        const waiting = turn.pipe(
-          map((t) => t.runs.find((r) => r.status === 'waiting')),
-          distinctUntilChanged(),
-        );
+        const turn = held(agent.turn, (t): t is AgentTurn => t?.id === id);
+        const status = derive(turn, (t) => t.status);
+        const running = derive(turn, isRunning);
+        // The answer so far, and whether there is one (states: the paragraph is made once, its text follows).
+        const text = derive(agent.turn, (t) => (t?.id === id ? t.text : ''));
+        const hasText = derive(text, (x) => !!x);
+        const waiting = derive(turn, (t) => t.runs.find((r) => r.status === 'waiting'));
         return (
           // Not a live region: the text streams in; the finished reply is said once by the shell's region
           // (accessibility.md; agent-model.ts announces it).
@@ -222,9 +224,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
             <header class={classes.header}>
               <Icon name="sparkles" size={14} class={classes.spark} />
               <span class={classes.prompt} data-tip-overflow="">
-                {turn.pipe(map((t) => t.prompt))}
+                {derive(turn, (t) => t.prompt)}
               </span>
-              <span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>
+              <span class={classes.state}>{derive(status, (s) => TurnLabels[s])}</span>
               <Show when={running}>
                 {() => (
                   <button type="button" class={classes.stop} onClick={() => agent.stop()}>
@@ -245,14 +247,16 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
               </button>
             </header>
             <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
-              <Show when={turn.pipe(map((t) => t.text))}>
-                {(text) => (
-                  <p class={classes.text} data-streaming={running.pipe(map((r) => (r ? '' : undefined)))}>
+              <Show when={hasText}>
+                {() => (
+                  // Made once: a streamed token changes its text, not the paragraph (made anew with the whole text a
+                  // token, a long answer was its length² of work).
+                  <p class={classes.text} data-streaming={derive(running, (r) => (r ? '' : undefined))}>
                     {text}
                   </p>
                 )}
               </Show>
-              <Show when={turn.pipe(map((t) => t.retries ?? 0))}>
+              <Show when={derive(turn, (t) => t.retries ?? 0)}>
                 {(n) => (
                   <p class={classes.note}>
                     Retried the model {n === 1 ? 'once' : `${n} times`} (the provider was busy)
@@ -301,10 +305,10 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
                 );
               }}
             </Show>
-            <Show when={running.pipe(map((r) => !r))}>
+            <Show when={derive(running, (r) => !r)}>
               {() => (
                 <footer class={classes.footer}>
-                  <span class={classes.summary}>{turn.pipe(map(turnSummary))}</span>
+                  <span class={classes.summary}>{derive(turn, turnSummary)}</span>
                   {props.onTrace ? (
                     <button
                       type="button"
@@ -316,9 +320,9 @@ function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string)
                     </button>
                   ) : null}
                   <Show
-                    when={turn.pipe(map((t) => t.checkpoint && !t.undone))}
+                    when={derive(turn, (t) => t.checkpoint && !t.undone)}
                     fallback={() => (
-                      <Show when={turn.pipe(map((t) => !!t.undone))}>
+                      <Show when={derive(turn, (t) => !!t.undone)}>
                         {() => <span class={classes.undone}>Undone</span>}
                       </Show>
                     )}

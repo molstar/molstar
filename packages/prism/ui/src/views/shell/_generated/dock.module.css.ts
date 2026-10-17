@@ -237,6 +237,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   & .msp-shell-dock-content {
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-panel-bg);
+    --msp-surface: var(--msp-glass-panel-bg);
     box-shadow: var(--msp-glass-shadow);
     -webkit-backdrop-filter: var(--msp-glass-filter);
     align-self: stretch;
@@ -270,6 +271,11 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & .msp-shell-dock-tab[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: none;
+  }
+
+  & .msp-shell-dock-header {
+    height: max(var(--msp-rail-head, 40px), var(--msp-touch-target, 0px));
   }
 }
 
@@ -289,8 +295,19 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & .msp-shell-dock-rail {
     background: var(--msp-glass-panel-bg);
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    box-shadow: none;
     border-radius: 0;
+    position: relative;
+
+    &:before {
+      content: "";
+      z-index: 1;
+      background: var(--msp-glass-edge);
+      pointer-events: none;
+      width: 1px;
+      position: absolute;
+      inset: 0 auto 0 0;
+    }
   }
 
   &[data-rail-overlay] {
@@ -314,12 +331,19 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 }
 
+[data-pinned] {
+  --msp-pinned-bg: var(--msp-color-panel);
+  --msp-pinned-edge: -1px 0 0 var(--msp-glass-edge);
+}
+
 [data-pinned] > .msp-shell-dock-floatingRight {
   gap: 0;
 
   & .msp-shell-dock-content {
-    box-shadow: -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
     border-radius: 0;
     margin: 0;
   }

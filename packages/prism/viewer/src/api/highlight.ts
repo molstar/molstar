@@ -41,7 +41,7 @@ export class HighlightApi extends ApiArea {
     params: {
       target: TargetParam('What to highlight: ligand, A:120-130, resn HEM, …'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       sequence: PD.Boolean(false, {
         isHidden: true,
         description: 'Light it in the sequence too (a view other than the sequence pointing at it)',
@@ -112,7 +112,7 @@ export class HighlightApi extends ApiArea {
         description: 'The marks: id, label, tone (highlight, accent), target',
       }),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       dimRest: PD.Boolean(false, { description: 'Grey the rest of the structure while the marks are shown' }),
     },
     history: false,

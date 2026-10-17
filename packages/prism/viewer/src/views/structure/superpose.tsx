@@ -8,10 +8,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { ActionFooter } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import { For } from '@molstar/prism-ui/dom/control-flow';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { SuperpositionModel } from '../../model/superposition.js';
 import { Superposed } from '../selection/superposed.js';
 import { classes } from './_generated/superpose.module.css.js';
@@ -35,7 +35,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
               title={entry.problem ? `${entry.label}: ${entry.problem}` : 'Focus'}
               onClick={() => model.focus(entry.id)}
             >
-              <span class={classes.index}>{index.pipe(map((i) => `${i + 1}`))}</span>
+              <span class={classes.index}>{derive(index, (i) => `${i + 1}`)}</span>
               <span class={classes.label}>{entry.label}</span>
               {entry.problem ? <span class={classes.problem}>{entry.problem}</span> : null}
               {!entry.problem && index.value === 0 ? <span class={classes.role}>reference</span> : null}
@@ -46,8 +46,8 @@ export function Superpose(props: { model: SuperpositionModel }) {
       <ActionFooter
         icon="superpose"
         label="Superpose"
-        disabled={model.ready.pipe(map((r) => !r))}
-        info={model.blocked?.pipe(map((b) => b ?? ''))}
+        disabled={derive(model.ready, (r) => !r)}
+        info={model.blocked ? derive(model.blocked, (b) => b ?? '') : undefined}
         onReset={() => model.form.reset()}
         onApply={() => model.superpose()}
       />

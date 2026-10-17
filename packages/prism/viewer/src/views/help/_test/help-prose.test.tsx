@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type CommandManager, HelpPanel, observableState, render } from '@molstar/prism-ui';
+import { CommandManager, HelpPanel, observableState, render } from '@molstar/prism-ui';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CanvasBindings } from '../../../ui/bindings.js';
 import { HelpProse } from '../help-prose.js';
@@ -24,8 +24,11 @@ describe("Help's prose", () => {
   it('says the basics before the bindings', () => {
     const host = document.createElement('div');
     document.body.append(host);
-    // The panel reads the registry's list only.
-    const commands = { commands: observableState<readonly never[]>([]).asReadonly } as unknown as CommandManager<any>;
+    // An empty registry: the panel reads its list and its keymap.
+    const commands = new CommandManager<object>({
+      context: observableState({}).asReadonly,
+      formats: { get: () => undefined },
+    });
     render(() => <HelpPanel commands={commands} bindings={CanvasBindings} intro={() => <HelpProse />} />, host);
     const titles = [...host.querySelectorAll('dt')].map((d) => d.textContent);
     expect(titles.slice(0, 6)).toEqual(['Load', 'Select', 'Focus', 'Commands', 'Undo', 'Assistant']);

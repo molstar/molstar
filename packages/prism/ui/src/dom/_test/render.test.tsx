@@ -10,13 +10,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { map, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { observableState } from '../../reactive/observable-state.js';
 import type { Child } from '../jsx-types.js';
 import { Show } from '../control-flow.js';
 import { render } from '../render.js';
 import { createRoot, getScope, onCleanup } from '../scope.js';
 
+import { derive } from '../../reactive/state.js';
 function mount(fn: () => Child) {
   const container = document.createElement('div');
   const dispose = render(fn, container);
@@ -148,7 +149,7 @@ describe('bindings', () => {
       onCleanup(() => cleaned.push(m));
       return <em>{m}</em>;
     };
-    const { html } = mount(() => <div>{mode.asReadonly.pipe(map(view))}</div>);
+    const { html } = mount(() => <div>{derive(mode.asReadonly, view)}</div>);
     expect(html()).toBe('<div><em>a</em></div>');
     mode.set('b');
     expect(html()).toBe('<div><em>b</em></div>');

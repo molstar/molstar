@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { holdCanvas } from '../../sources/canvas-presence.js';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -308,6 +309,26 @@ export function readViewport(
 
 const stopped = () => ApiResult.fail('aborted', 'Stopped before it started.', 'Nothing was rendered.');
 
+/**
+ * Renders on purpose: the canvas is held while `work` runs (README decision 29: its context restored if it was released,
+ * what is pending in its scene committed, its loop left alone and put back after). Stopping while it waits for the
+ * context renders nothing.
+ */
+async function held<T>(ctx: ApiContext, work: () => Promise<ApiResult<T>>): Promise<ApiResult<T>> {
+  let unhold: () => void;
+  try {
+    unhold = await holdCanvas(ctx.plugin, { signal: ctx.signal });
+  } catch (e) {
+    if (ctx.signal.aborted) return stopped();
+    return ApiResult.fail('unavailable', `The canvas has no WebGL context: ${message(e)}`, 'Try again in a moment.');
+  }
+  try {
+    return await work();
+  } finally {
+    unhold();
+  }
+}
+
 export class ExportApi extends ApiArea {
   readonly id = 'export';
 
@@ -328,22 +349,24 @@ export class ExportApi extends ApiArea {
         if (!helper) return noCanvas();
         const bad = check(v);
         if (bad) return ApiResult.fail('invalid', bad);
-        const restore = configure(helper, v);
-        try {
-          await settleCrop(ctx, helper);
-          const size = dims(helper);
-          const filename = fileNameOf(helper, v);
-          const blob = await helper.getImageBlob();
-          return ApiResult.ok(
-            `Rendered ${filename} (${size.width} × ${size.height}).`,
-            {},
-            { value: { ...size, blob, filename } },
-          );
-        } catch (e) {
-          return ApiResult.fail('failed', `Could not render the image: ${message(e)}`);
-        } finally {
-          restore();
-        }
+        return held(ctx, async () => {
+          const restore = configure(helper, v);
+          try {
+            await settleCrop(ctx, helper);
+            const size = dims(helper);
+            const filename = fileNameOf(helper, v);
+            const blob = await helper.getImageBlob();
+            return ApiResult.ok(
+              `Rendered ${filename} (${size.width} × ${size.height}).`,
+              {},
+              { value: { ...size, blob, filename } },
+            );
+          } catch (e) {
+            return ApiResult.fail('failed', `Could not render the image: ${message(e)}`);
+          } finally {
+            restore();
+          }
+        });
       }),
   });
 
@@ -361,24 +384,26 @@ export class ExportApi extends ApiArea {
         if (!helper) return noCanvas();
         const bad = check(v);
         if (bad) return ApiResult.fail('invalid', bad);
-        const restore = configure(helper, v);
-        try {
-          await settleCrop(ctx, helper);
-          const size = dims(helper);
-          const done = helper.copyToClipboard();
-          if (!done)
-            return ApiResult.fail('unavailable', 'This browser cannot copy images.', 'Download the image instead.');
-          await done;
-          return ApiResult.ok(
-            `Copied the image (${size.width} × ${size.height}) to the clipboard.`,
-            {},
-            { value: size },
-          );
-        } catch (e) {
-          return ApiResult.fail('failed', `Could not copy the image: ${message(e)}`);
-        } finally {
-          restore();
-        }
+        return held(ctx, async () => {
+          const restore = configure(helper, v);
+          try {
+            await settleCrop(ctx, helper);
+            const size = dims(helper);
+            const done = helper.copyToClipboard();
+            if (!done)
+              return ApiResult.fail('unavailable', 'This browser cannot copy images.', 'Download the image instead.');
+            await done;
+            return ApiResult.ok(
+              `Copied the image (${size.width} × ${size.height}) to the clipboard.`,
+              {},
+              { value: size },
+            );
+          } catch (e) {
+            return ApiResult.fail('failed', `Could not copy the image: ${message(e)}`);
+          } finally {
+            restore();
+          }
+        });
       }),
   });
 
@@ -441,23 +466,25 @@ export class ExportApi extends ApiArea {
         if (!helper) return noCanvas();
         const bad = check(v);
         if (bad) return ApiResult.fail('invalid', bad);
-        const restore = configure(helper, v);
-        try {
-          const shot = await ctx.plugin.runTask(Task.create('Preview', (rt) => helper.getPreview(rt, v.max)));
-          if (!shot) return ApiResult.fail('failed', 'The canvas has no size to preview.');
-          const { width, height } = helper.getSizeAndViewport();
-          const value: PreviewResult = {
-            dataUri: shot.canvas.toDataURL('image/png'),
-            width,
-            height,
-            crop: { ...helper.relativeCrop },
-          };
-          return ApiResult.ok('Previewed the image.', {}, { value });
-        } catch (e) {
-          return ApiResult.fail('failed', `Could not preview the image: ${message(e)}`);
-        } finally {
-          restore();
-        }
+        return held(ctx, async () => {
+          const restore = configure(helper, v);
+          try {
+            const shot = await ctx.plugin.runTask(Task.create('Preview', (rt) => helper.getPreview(rt, v.max)));
+            if (!shot) return ApiResult.fail('failed', 'The canvas has no size to preview.');
+            const { width, height } = helper.getSizeAndViewport();
+            const value: PreviewResult = {
+              dataUri: shot.canvas.toDataURL('image/png'),
+              width,
+              height,
+              crop: { ...helper.relativeCrop },
+            };
+            return ApiResult.ok('Previewed the image.', {}, { value });
+          } catch (e) {
+            return ApiResult.fail('failed', `Could not preview the image: ${message(e)}`);
+          } finally {
+            restore();
+          }
+        });
       }),
   });
 }

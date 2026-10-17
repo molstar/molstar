@@ -159,9 +159,9 @@ describe('snapshot.apply', () => {
     const v = await viewer();
     const original = representationTypes(v);
     expectOk(await snap(v).add({ name: 'Cartoon' }));
-    expectOk(await v.api.styles.apply({ style: 'surface' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     const changed = representationTypes(v);
-    expect(changed).toContain('molecular-surface');
+    expect(changed).toContain('spacefill');
     const before = steps(v);
 
     const r = await snap(v).apply({ entry: 'Cartoon' });
@@ -189,7 +189,7 @@ describe('snapshot.replace', () => {
     const v = await viewer();
     const a = await snap(v).add({ name: 'A', key: 'a', description: 'd' });
     expectOk(a);
-    expectOk(await v.api.styles.apply({ style: 'surface' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     const before = steps(v);
     const r = await snap(v).replace({ entry: 'A' });
     expectOk(r);
@@ -202,7 +202,7 @@ describe('snapshot.replace', () => {
     // Applying it brings the surface back after the scene is changed again.
     expectOk(await v.api.styles.apply({ style: 'cartoon' }));
     expectOk(await snap(v).apply({ entry: 'a' }));
-    expect(representationTypes(v)).toContain('molecular-surface');
+    expect(representationTypes(v)).toContain('spacefill');
   });
 
   it('needs an entry', async () => {
@@ -277,12 +277,12 @@ describe('snapshot.next and previous', () => {
     const v = await viewer();
     const original = representationTypes(v);
     await snap(v).add({ name: 'A' });
-    await v.api.styles.apply({ style: 'surface' });
+    await v.api.styles.apply({ style: 'spacefill' });
     await snap(v).add({ name: 'B' });
     expectOk(await snap(v).previous());
     expect(representationTypes(v)).toEqual(original);
     expectOk(await v.api.history.undo());
-    expect(representationTypes(v)).toContain('molecular-surface');
+    expect(representationTypes(v)).toContain('spacefill');
   });
 });
 
@@ -321,7 +321,7 @@ describe('playing', () => {
   it('is a presentation: no steps, and the steps before it stay undoable', async () => {
     const v = await viewer();
     await snap(v).add({ name: 'A' });
-    await v.api.styles.apply({ style: 'surface' });
+    await v.api.styles.apply({ style: 'spacefill' });
     await snap(v).add({ name: 'B' });
     const before = steps(v);
     expectOk(await snap(v).play());

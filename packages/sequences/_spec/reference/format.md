@@ -529,6 +529,7 @@ No params.
 | Param | Type | Default | |
 |---|---|---|---|
 | `thickness` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
+| `labels` | `bool` | `false` | each item's label over its shape where it fits (α1, β2); a hint |
 
 `type: "values"`:
 
@@ -583,6 +584,14 @@ No params.
 |---|---|---|---|
 | `domain` | `[float, float] \| null` | `null` | null: over all the layer's data; outside: clamped |
 | `aspect_ratio` | `float \| null` | `1` | the plot's width ÷ height (1: square), its height following the data area's width within what the section shows, never flatter than a viewer's stretch of it; null: the track's own height; a hint |
+
+`type: "frame"`:
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `span` | `{from: ref<track>, to?: ref<track> \| null}` | required | the tracks each item's frame encloses, from the top of from's band to the bottom of to's (a rows track: the rows the item targets) |
+| `line_style` | `ThemeRef<line_style> \| null` | `null` | a line style theme: solid, dashed or dotted (the others drawn solid); null: solid |
+| `labels` | `bool` | `true` | each item's label as its frame's title, in the frame's own track |
 
 `type: "<namespace>:<name>"`:
 
@@ -678,7 +687,7 @@ A position label: an int (`315`), or a string without whitespace: `"27A"`, `"111
 | Type | Shows | Data | Where | Axes | Sizing | Fallback |
 |---|---|---|---|---|---|---|
 | `letters` | residues (element symbols for atoms), one alignment row's, or another polymer's through a mapping | none | tracks, text | blocks, columns | row | none |
-| `rows` | an alignment's rows in tree order, with the tree and data columns | none | tracks | columns | free | letters |
+| `rows` | an alignment's rows in tree order, with the tree and data columns | none | tracks, text | columns | free | letters |
 | `ranges` | labeled ranges, discontinuous items, boundaries | ranges | tracks, text | blocks, columns | row | none |
 | `points` | point features | ranges | tracks, text | blocks, columns | row | ranges |
 | `emphasis` | positions emphasized in the letters or rows of its track | ranges | tracks, text | blocks, columns | row | points |
@@ -691,6 +700,7 @@ A position label: an int (`315`), or a string without whitespace: `"27A"`, `"111
 | `logo` | letter frequencies per column | matrix | tracks | columns | free | values |
 | `matrix` | a value per position and state | matrix | tracks | blocks, columns | free | values |
 | `dot_plot` | positions against positions on two axes: pairs as segments, a grid's values as cells | pairs, grid | tracks | blocks | free | omit |
+| `frame` | named regions outlined across tracks, titled | ranges | tracks, text | blocks, columns | row | ranges |
 
 ### `letters`
 
@@ -751,6 +761,7 @@ No params.
 | Param | Type | Default | |
 |---|---|---|---|
 | `thickness` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
+| `labels` | `bool` | `false` | each item's label over its shape where it fits (α1, β2); a hint |
 
 ### `values`
 
@@ -805,6 +816,14 @@ No params.
 |---|---|---|---|
 | `domain` | `[float, float] \| null` | `null` | null: over all the layer's data; outside: clamped |
 | `aspect_ratio` | `float \| null` | `1` | the plot's width ÷ height (1: square), its height following the data area's width within what the section shows, never flatter than a viewer's stretch of it; null: the track's own height; a hint |
+
+### `frame`
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `span` | `{from: ref<track>, to?: ref<track> \| null}` | required | the tracks each item's frame encloses, from the top of from's band to the bottom of to's (a rows track: the rows the item targets) |
+| `line_style` | `ThemeRef<line_style> \| null` | `null` | a line style theme: solid, dashed or dotted (the others drawn solid); null: solid |
+| `labels` | `bool` | `true` | each item's label as its frame's title, in the frame's own track |
 
 ## Color themes
 
@@ -862,6 +881,17 @@ No params.
 the consensus letter where more than 80, 60, 40% of the column agree (Jalview's); a named rule table
 
 No params.
+
+### `espript`
+
+ESPript's shading: identical columns in one color, a letter whose group holds at least similarity of its column in another; none elsewhere; a named rule table
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `identical` | `Color` | `"#000000"` | where every residue of the column is the letter |
+| `similar` | `Color` | `"#bdbdbd"` | where the letter's group holds at least similarity of the column |
+| `similarity` | `float` | `0.7` | the share of the column, from 0 to 1 |
+| `groups` | `list<str>` | `["ILMV","FWY","KRH","DE","ST","NQ","AG"]` | letter groups read as similar |
 
 ### `scheme`
 
@@ -987,6 +1017,7 @@ A `scheme` color theme names one (`{"theme": "scheme", "params": {"name": "zappo
 | `taylor` | Taylor | letters: protein |  | each residue its own hue, similar residues near |
 | `hydrophobicity` | Hydrophobicity | letters: protein |  | Kyte–Doolittle: red most hydrophobic, blue most hydrophilic |
 | `percent_identity` | Percent identity | theme: protein, dna, rna, generic | yes | the consensus residue where more than 80, 60, 40% of the column agree |
+| `espript` | ESPript | theme: protein | yes | identical columns black, similar residues grey (ESPript's shading, by residue groups) |
 | `nucleotide` | Nucleotide | letters: dna, rna |  | A, C, G and T or U each a color |
 | `purine_pyrimidine` | Purine/pyrimidine | letters: dna, rna |  | purines and pyrimidines |
 | `nucleotide_cb` | Nucleotide, Okabe–Ito | letters: dna, rna | yes | A, C, G and T or U from the Okabe–Ito colors |
@@ -1130,6 +1161,7 @@ A `scheme` color theme names one (`{"theme": "scheme", "params": {"name": "zappo
 | `svs.mapping.align` | warning |
 | `svs.source.id` | warning |
 | `svs.stream.load` | warning |
+| `svs.layer.span` | warning |
 | `svs.alignment.inserts` | info |
 | `svs.source.empty_record` | info |
 | `svs.source.skipped` | info |

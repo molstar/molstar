@@ -6,9 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The `secondary` renderer (seqspec:viewer#extension-points): helices, strands and turns over a coil line; below 3 px a
-// feature (and on the tiny path) a bar; wrapped, underlines on the lanes of the line. Placed through `placeRun`, in
-// device px. The overlay outlines the hovered element inside its own pixels (seqspec:interaction#hover).
+// The `secondary` renderer (seqspec:viewer#extension-points): helices as cylinders (their ends rounded where the helix
+// ends, square where a line, the view or an intron cuts it), strands as arrows and turns over a coil line; below 3 px
+// a feature (and on the tiny path) a bar; with `labels`, each feature's label over its shape (seqspec:format#layer-types);
+// wrapped, underlines on the lanes of the line. Placed through `placeRun`, in device px. The overlay outlines the
+// hovered element inside its own pixels (seqspec:interaction#hover).
 import {
   AxisGeometry,
   type DrawView,
@@ -18,6 +20,8 @@ import {
   featureInk,
   featureKey,
   featureSize,
+  fitIn,
+  fitted,
   HoverOutline,
   hitLineLanes,
   hoverEmphasis,
@@ -34,9 +38,13 @@ import {
   PathVerb,
   placeRun,
   RectBatch,
+  runHull,
   SecondaryKind,
   SkinToken,
   segWindow,
+  TextAlign,
+  TextBaseline,
+  TextBatch,
   shownHull,
   sizeTheme,
   ThemeLocation,
@@ -45,6 +53,16 @@ import {
 
 // Read once: a module member read per frame allocates under the test runner's module wrapper.
 const STRAND = SecondaryKind.strand;
+const HELIX = SecondaryKind.helix;
+const OTHER = SecondaryKind.other;
+const WRAPPED = AxisGeometry.wrapped;
+/** The labels (`labels`), one font a draw. */
+const names = new TextBatch(16);
+const fitArgs = new Float64Array(2);
+/** A label's extent (device px): the feature's pieces drawn. */
+const ext = new Int32Array(2);
+const helixHull = new Int32Array(2);
+const INK = SkinToken.ink;
 const rects = new RectBatch(64);
 const shapes = new PathBatch(32);
 const range = new Int32Array(2);
@@ -71,7 +89,8 @@ function curve(cx: number, cy: number, x: number, y: number) {
  * the piece's right (`head` 1), its left (-1) or none (0).
  */
 function shape(kind: number, x0: number, x1: number, cy: number, h: number, ink: number, alpha: number, head = 1) {
-  if (kind === SecondaryKind.helix) rects.push(x0, cy - h, x1 - x0, 2 * h);
+  // A helix's ends: `head` bit 1 its left rounded, bit 2 its right (`helixEnds`).
+  if (kind === HELIX) cylinder(x0, x1, cy, h, ink, alpha, head);
   else if (kind === SecondaryKind.strand) {
     shapes.begin(ink, alpha, PathMode.fill);
     const hl = head === 0 ? 0 : Math.min(2 * h, (x1 - x0) >> 1);
@@ -103,16 +122,81 @@ function shape(kind: number, x0: number, x1: number, cy: number, h: number, ink:
   }
 }
 
-function draw(v: DrawView, f: Features, tiny: boolean) {
+/**
+ * A helix's piece [x0, x1) as a cylinder: its body, each end rounded (a quarter ellipse above and below the axis, as
+ * wide as 0.6 of its half height, at most half the piece) where `ends` says the helix ends there (bit 1 left, 2 right),
+ * else square. Device px, integers.
+ */
+function cylinder(x0: number, x1: number, cy: number, h: number, ink: number, alpha: number, ends: number) {
+  const rx = Math.min(Math.max(1, Math.round(h * 0.6)) | 0, (x1 - x0) >> 1);
+  const l = ends & 1 ? rx : 0;
+  const r = ends & 2 ? rx : 0;
+  shapes.begin(ink, alpha, PathMode.fill);
+  vertex(true, x0 + l, cy - h);
+  vertex(false, x1 - r, cy - h);
+  if (r > 0) {
+    curve(x1, cy - h, x1, cy);
+    curve(x1, cy + h, x1 - r, cy + h);
+  } else vertex(false, x1, cy + h);
+  vertex(false, x0 + l, cy + h);
+  if (l > 0) {
+    curve(x0, cy + h, x0, cy);
+    curve(x0, cy - h, x0 + l, cy - h);
+  } else vertex(false, x0, cy - h);
+  shapes.close();
+}
+
+/**
+ * Which ends of piece [x0, x1) of helix k (block b) are the helix's own (bit 1 left, 2 right): where the piece's edge is
+ * its first or last shown cell's (a reversed piece too: shown order is screen order); a line's, the view's or an
+ * intron's cut stays square. Ints in and out.
+ */
+function helixEnds(v: DrawView, f: Features, k: number, b: number, x0: number, x1: number): number {
+  if (!runHull(v, b, f.start[k], Math.max(f.stop[k], f.start[k] + 1), helixHull)) return 0;
+  const lo = helixHull[0];
+  const hi = helixHull[1];
+  const right = v.geometry === WRAPPED ? v.xe(b, hi - 1) : v.xd(b, hi);
+  return (Math.abs(x0 - v.xd(b, lo)) <= 1 ? 1 : 0) | (Math.abs(x1 - right) <= 1 ? 2 : 0);
+}
+
+/** Feature k's label over its pieces' extent (`ext`), in the label row [y0, y1) (device px), where it fits. */
+function label(v: DrawView, f: Features, k: number, y: number) {
+  const text = f.label[k];
+  if (text === null || ext[1] <= ext[0]) return;
+  const p = v.text.label(text, names.font);
+  fitArgs[0] = (ext[1] - ext[0]) / v.dpr;
+  const m = fitIn(p, fitArgs);
+  // Whole, or cut down to three graphemes at least (a short label, α1, is never cut to nothing).
+  if (m === 0 || (m < p.ends.length && m < 3)) return;
+  const t = names.add(fitted(p, m));
+  names.x[t] = (ext[0] + ext[1]) >> 1;
+  names.y[t] = y;
+}
+
+function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
   const ax = v.axis;
   rects.reset();
   shapes.reset();
+  names.reset();
   ThemeLocation.reset(v.loc);
   if (v.geometry === AxisGeometry.wrapped && !v.trackForm) drawLineLanes(v, f, rects);
   else if (ax) {
     const dpr = v.dpr;
-    const cy = centerY(v);
-    const h = halfHeight(v);
+    const labels = shapeBand(v, labeled, tiny);
+    const cy = band[0];
+    const h = band[1];
+    const top = v.top;
+    const height = v.height;
+    if (labels) {
+      names.style(
+        v.text.font('ui', Math.max(7, Math.min(11, Math.floor(height * 0.4)))),
+        TextAlign.center,
+        TextBaseline.bottom,
+      );
+      names.begin(INK);
+      fitArgs[1] = v.text.label('…', names.font).width;
+    }
+    const labelY = Math.round((top + height * 0.45) * dpr) | 0;
     const thickness = sizeTheme(v, 0, 1);
     // The coil line across each block's view, under the features.
     rects.begin(SkinToken.inkFaint);
@@ -138,18 +222,26 @@ function draw(v: DrawView, f: Features, tiny: boolean) {
           const alpha = keyAlpha(key);
           const hk = thick(h, featureSize(v, f, k, thickness));
           rects.begin(ink, alpha);
+          ext[0] = 0x7fffffff;
+          ext[1] = -0x7fffffff;
           for (let q = 0; q < n; q++) {
             const x0 = piece[2 * q] | 0;
             const x1 = Math.max(x0 + 1, piece[2 * q + 1] | 0);
-            const kind = tiny || x1 - x0 < 3 * dpr ? SecondaryKind.other : f.kind[k];
-            shape(kind, x0, x1, cy, hk, ink, alpha, kind === STRAND ? headAt(v, f, k, b, x0, x1) : 0);
+            const kind = tiny || x1 - x0 < 3 * dpr ? OTHER : f.kind[k];
+            const head =
+              kind === STRAND ? headAt(v, f, k, b, x0, x1) : kind === HELIX ? helixEnds(v, f, k, b, x0, x1) : 0;
+            shape(kind, x0, x1, cy, hk, ink, alpha, head);
+            if (x0 < ext[0]) ext[0] = x0;
+            if (x1 > ext[1]) ext[1] = x1;
           }
+          if (labels) label(v, f, k, labelY);
         }
       }
     }
   }
   if (rects.n > 0) v.backend.rects(rects);
   if (shapes.n > 0) v.backend.paths(shapes);
+  if (names.n > 0) v.backend.text(names);
 }
 
 const lasts = new WeakMap<Features, Uint8Array>();
@@ -209,6 +301,25 @@ function headAt(v: DrawView, f: Features, k: number, b: number, x0: number, x1: 
 /** The coil line and a shape's half height (device px). */
 const centerY = (v: DrawView) => Math.round((v.top + v.height / 2) * v.dpr) | 0;
 const halfHeight = (v: DrawView) => Math.max(1, Math.round(Math.max(1, v.height * 0.31) * v.dpr)) | 0;
+const band = new Int32Array(2);
+/**
+ * The shapes' coil line and half height (device px) into `band`, the draw's and the hover outline's: with labels, the
+ * shapes in the band's lower 55%, the labels over them (seqspec:format#layer-types). Whether the labels show.
+ */
+function shapeBand(v: DrawView, labeled: boolean, tiny: boolean): boolean {
+  const labels = labeled && !tiny && v.height >= 14;
+  const top = v.top;
+  const height = v.height;
+  if (labels) {
+    v.top = top + height * 0.45;
+    v.height = height * 0.55;
+  }
+  band[0] = centerY(v);
+  band[1] = halfHeight(v);
+  v.top = top;
+  v.height = height;
+  return labels;
+}
 /** The thickness channel: half height `h` (device px) at a share of the shape's (a size theme's int; < 0: whole). */
 const thick = (h: number, size: number) => (size < 0 ? h : Math.max(1, (h * Math.min(size, 256) + 128) >> 8));
 
@@ -217,7 +328,7 @@ const hovered = new Int32Array(2);
  * The hovered element inside its own pixels: a helix's or a bar's box outlined inside; a strand's arrow in the hover
  * ink with the arrow `hoverWidth` smaller in its fill over it; a turn's thin arch in the ink; wrapped, its underline.
  */
-function overlay(v: DrawView, f: Features) {
+function overlay(v: DrawView, f: Features, labeled: boolean) {
   if (!hoverEmphasis(v) || !v.axis) return;
   if (v.geometry === AxisGeometry.wrapped && !v.trackForm) {
     outlineLineLanes(v, f);
@@ -228,8 +339,9 @@ function overlay(v: DrawView, f: Features) {
   const tiny = v.height < (SecondaryRenderer.minHeight ?? 0);
   const dpr = v.dpr;
   const d = hoverWidth(dpr);
-  const cy = centerY(v);
-  const h0 = halfHeight(v);
+  shapeBand(v, labeled, tiny);
+  const cy = band[0];
+  const h0 = band[1];
   const thickness = sizeTheme(v, 0, 1);
   rects.reset();
   shapes.reset();
@@ -243,8 +355,8 @@ function overlay(v: DrawView, f: Features) {
     for (let q = 0; q < n; q++) {
       const x0 = piece[2 * q] | 0;
       const x1 = Math.max(x0 + 1, piece[2 * q + 1] | 0);
-      const kind = tiny || x1 - x0 < 3 * dpr ? SecondaryKind.other : f.kind[k];
-      if (kind === SecondaryKind.helix) HoverOutline.box(v, key, x0, cy - h, x1 - x0, 2 * h);
+      const kind = tiny || x1 - x0 < 3 * dpr ? OTHER : f.kind[k];
+      if (kind === HELIX) HoverOutline.box(v, key, x0, cy - h, x1 - x0, 2 * h);
       else if (kind === SecondaryKind.other) {
         const e = Math.max(1, Math.round(h * 0.45) | 0);
         HoverOutline.box(v, key, x0, cy - e, x1 - x0, 2 * e);
@@ -262,9 +374,9 @@ function overlay(v: DrawView, f: Features) {
 
 export const SecondaryRenderer = kernelEntry<Features>('secondary', 18, {
   geometries: ['linear', 'wrapped'],
-  draw: (v, f) => draw(v, f, false),
-  tiny: (v, f) => draw(v, f, true),
-  overlay: (v, f) => overlay(v, f),
+  draw: (v, f, p) => draw(v, f, false, (p as { labels?: boolean }).labels === true),
+  tiny: (v, f) => draw(v, f, true, false),
+  overlay: (v, f, p) => overlay(v, f, (p as { labels?: boolean }).labels === true),
   // Wrapped, its underlines on the line's lanes; linear, the position's item (hit.ts's lookup).
   hit: (v, f, _p, out) => hitLineLanes(v, f, out),
   sized: ['thickness'],

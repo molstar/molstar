@@ -11,7 +11,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '../../../dom/render.js';
-import { StatusModel } from '../../../shell/status.js';
+import { NotificationsManager } from '../../../managers/notifications.js';
 import { LogView } from '../log-view.js';
 
 afterEach(() => {
@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe('the Log tab', () => {
   it('lists the newest message first', () => {
-    const status = new StatusModel();
+    const status = new NotificationsManager();
     const host = document.createElement('div');
     document.body.append(host);
     render(() => <LogView status={status} />, host);

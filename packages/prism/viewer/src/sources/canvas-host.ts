@@ -9,6 +9,7 @@
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
+import { followCanvasPresence, pausesOutOfView, unfollowCanvasPresence } from './canvas-presence.js';
 
 // The canvas in a page's viewer. Resizes (README decision 28): the plugin waits out a 50 ms debounce and a 100 ms
 // throttle, and sizing the canvas element clears it, so the frame after is blank until the next draw. Here the host's
@@ -19,16 +20,27 @@ import type { PluginContext } from '@molstar/plugin/context';
 const observers = new WeakMap<PluginContext, ResizeObserver>();
 
 /** Mounts the plugin's canvas in `host` (a page's viewer); false when the canvas cannot start (no WebGL). */
-export async function mountCanvas(plugin: PluginContext, host: HTMLElement): Promise<boolean> {
-  const ok = !!(await plugin.mountAsync(host));
+export async function mountCanvas(
+  plugin: PluginContext,
+  host: HTMLElement,
+  o: { pauseOutOfView?: 'auto' | 'always' | 'never' } = {},
+): Promise<boolean> {
+  const pauses = pausesOutOfView(o.pauseOutOfView ?? 'auto');
+  const mounting = plugin.mountAsync(host);
+  // The WebGL context is made in that call, before its promise settles: it joins the page's budget in the same task, so
+  // viewers mounted together never pass the browser's limit (README decision 29). Again after the await, in case it was not.
+  if (pauses) followCanvasPresence(plugin);
+  const ok = !!(await mounting);
   if (ok) {
     smoothResizes(plugin);
     longPress(plugin);
-  }
+    if (pauses) followCanvasPresence(plugin);
+  } else unfollowCanvasPresence(plugin);
   return ok;
 }
 
 export function unmountCanvas(plugin: PluginContext): void {
+  unfollowCanvasPresence(plugin);
   observers.get(plugin)?.disconnect();
   observers.delete(plugin);
   presses.get(plugin)?.();
@@ -60,14 +72,14 @@ function smoothResizes(plugin: PluginContext): void {
 
 const presses = new WeakMap<PluginContext, () => void>();
 /** How long a touch is held to be a long press (ms), and how far it may move (px). */
-const PressMs = 450;
-const PressSlop = 8;
+export const PressMs = 450;
+export const PressSlop = 8;
 
 /**
  * Touch (accessibility.md): what hover gives a mouse, a long press gives a finger: the label of what is under it (the
  * plugin's highlight, so the hover label shows it), until the next touch.
  */
-function longPress(plugin: PluginContext): void {
+export function longPress(plugin: PluginContext): void {
   const canvas = plugin.canvas3dContext?.canvas;
   if (!canvas) return;
   let timer: ReturnType<typeof setTimeout> | undefined;

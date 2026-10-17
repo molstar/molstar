@@ -343,7 +343,7 @@ const structureFormat = (name: string): FormatEntry => ({
   },
 });
 
-/** AlphaFold DB's PAE JSON as `@molstar/seq-molstar-poc`'s `afdb_pae` reads it (its current form): an N × N matrix. */
+/** AlphaFold DB's PAE JSON as the Mol* adapter's `afdb_pae` reads it (its current form): an N × N matrix. */
 const paeFormat: FormatEntry = {
   name: 'afdb_pae',
   gives: ['object'],
@@ -354,7 +354,7 @@ const paeFormat: FormatEntry = {
   },
 };
 
-/** `@molstar/seq-molstar-poc`'s entries as the cases use them, over recorded outputs. */
+/** The Mol* adapter's entries (Prism's) as the cases use them, over recorded outputs. */
 export const MolstarFixture: SvsRegistryEntry = {
   formats: [...['mmcif', 'sdf'].map(structureFormat), paeFormat],
   services: [

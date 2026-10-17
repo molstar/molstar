@@ -24,6 +24,8 @@ export const CoreParts: Readonly<Record<string, readonly string[]>> = {
 export const ShellCommandIds: readonly string[] = [
   'help.show',
   'view.theme',
+  'view.reset-layout',
+  'view.show-tabs',
   'sequence.none',
   'sequence.text',
   'sequence.tracks',
@@ -31,6 +33,9 @@ export const ShellCommandIds: readonly string[] = [
   'sequence.rail.strip',
   'sequence.rail.band',
   'sequence.rail.none',
+  'sequence.track.hide',
+  'sequence.track.show',
+  'sequence.track.show-all',
   'sequence.legend',
 ];
 

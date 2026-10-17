@@ -449,3 +449,36 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* A group's shared argument (Select's mode): quiet toggles under the input, the current one in the accent. */
+.shared {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+  font-size: var(--msp-font-size-xs);
+}
+
+.sharedTitle {
+  margin-right: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+}
+
+.sharedOption {
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-accent);
+  }
+}

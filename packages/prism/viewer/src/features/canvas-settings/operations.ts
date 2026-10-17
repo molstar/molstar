@@ -33,6 +33,8 @@ export const CanvasSections = {
   }),
   camera: Canvas3DParams.camera,
   clipping: PD.Group({ ...Canvas3DParams.cameraClipping.params }),
+  // WebXR's settings (Canvas3D's `xr`, the classic XRManager's params): used the next time the headset view is entered.
+  xr: Canvas3DParams.xr,
   advanced: PD.Group({
     illumination: Canvas3DParams.illumination,
     multiSample: Canvas3DParams.multiSample,
@@ -76,6 +78,8 @@ export function sectionValues(section: CanvasSection, p: Canvas3DProps): Record<
       return p.camera as unknown as Record<string, unknown>;
     case 'clipping':
       return p.cameraClipping as unknown as Record<string, unknown>;
+    case 'xr':
+      return p.xr as unknown as Record<string, unknown>;
     case 'advanced':
       return {
         illumination: p.illumination,
@@ -104,6 +108,8 @@ export function sectionProps(section: CanvasSection, v: Record<string, any>): Pa
       return { camera: v as never };
     case 'clipping':
       return { cameraClipping: v as never };
+    case 'xr':
+      return { xr: v as never };
     case 'advanced':
       return {
         illumination: v.illumination,
@@ -140,7 +146,9 @@ export const CameraParams = {
       PD.arrayToOptions(['perspective', 'orthographic'] as const),
     ),
   ),
-  fov: OptionalParam(PD.Numeric(45, { min: 10, max: 130, step: 1 }, { description: 'Field of view in degrees' })),
+  fov: OptionalParam(
+    PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of view', description: 'Field of view in degrees' }),
+  ),
 };
 export const XrParams = {
   on: PD.Boolean(true, { description: 'Enter (true) or leave (false) the headset view' }),
@@ -148,9 +156,13 @@ export const XrParams = {
 export const ClippingParams = {
   // As Canvas3D's `cameraClipping.radius`: how much is clipped away, around the camera's target.
   clip: OptionalParam(
-    PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
+    PD.Numeric(
+      0,
+      { min: 0, max: 99, step: 1 },
+      { label: 'Clip (%)', description: 'Percent of the scene clipped away (0: none)' },
+    ),
   ),
-  far: OptionalParam(PD.Boolean(true, { description: 'Hide the scene in the distance' })),
+  far: OptionalParam(PD.Boolean(true, { label: 'Hide distant scene', description: 'Hide the scene in the distance' })),
 };
 
 const canvasModule = ['canvas'] as const;

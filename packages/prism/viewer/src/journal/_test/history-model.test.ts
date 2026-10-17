@@ -28,7 +28,7 @@ async function setup() {
 describe('the History model', () => {
   it('shows a person run as one row, newest first, and marks it undone', async () => {
     const { v, record, model } = await setup();
-    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'spacefill' }));
     expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'cartoon' }));
     await record.flush();
     model.setActive(true);
@@ -81,7 +81,7 @@ describe('the History model', () => {
     model.setActive(true);
     const turn = record.beginTurn('t1', 'make it a surface');
     const agent = v.api.as({ kind: 'agent', turn: 't1' });
-    expectOk(await agent.styles.apply({ style: 'surface' }));
+    expectOk(await agent.styles.apply({ style: 'spacefill' }));
     await record.flush();
     await model.idle();
     let rows = model.rows.value;
@@ -111,7 +111,7 @@ describe('the History model', () => {
   it('keeps a row object while it does not change', async () => {
     const { v, record, model } = await setup();
     model.setActive(true);
-    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'spacefill' }));
     await record.flush();
     await model.idle();
     const first = model.rows.value[0];
@@ -159,7 +159,7 @@ describe('the History model', () => {
     _.dispose();
     const model = createHistoryModel(record, { window: 2 });
     const person = v.api.as({ kind: 'person' });
-    for (const style of ['surface', 'cartoon', 'surface', 'cartoon', 'surface'] as const) {
+    for (const style of ['spacefill', 'cartoon', 'spacefill', 'cartoon', 'spacefill'] as const) {
       expectOk(await person.styles.apply({ style }));
     }
     await record.flush();
@@ -192,7 +192,7 @@ describe('the History model', () => {
     const person = v.api.as({ kind: 'person' });
 
     // Inactive: writes read nothing, and nothing is subscribed.
-    expectOk(await person.styles.apply({ style: 'surface' }));
+    expectOk(await person.styles.apply({ style: 'spacefill' }));
     await record.flush();
     expect(read).not.toHaveBeenCalled();
     expect(frames).toHaveLength(0);
@@ -205,7 +205,7 @@ describe('the History model', () => {
     // Three writes before the frame: one read, of what is new only.
     read.mockClear();
     expectOk(await person.styles.apply({ style: 'cartoon' }));
-    expectOk(await person.styles.apply({ style: 'surface' }));
+    expectOk(await person.styles.apply({ style: 'spacefill' }));
     expectOk(await person.styles.apply({ style: 'cartoon' }));
     await record.flush();
     expect(frames).toHaveLength(1);
@@ -221,7 +221,7 @@ describe('the History model', () => {
     m.setActive(false);
     read.mockClear();
     readAfter.mockClear();
-    expectOk(await person.styles.apply({ style: 'surface' }));
+    expectOk(await person.styles.apply({ style: 'spacefill' }));
     await record.flush();
     expect(frames).toHaveLength(0);
     expect(read).not.toHaveBeenCalled();

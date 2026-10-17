@@ -11,7 +11,7 @@ export const ZenodoImport = PluginBehavior.create<{}>({
   name: 'extension-zenodo-import',
   category: 'misc',
   display: {
-    name: 'Zenodo Export',
+    name: 'Zenodo Import',
   },
   ctor: class extends PluginBehavior.Handler<{}> {
     register(): void {

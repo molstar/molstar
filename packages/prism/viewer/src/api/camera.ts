@@ -63,7 +63,7 @@ export class CameraApi extends ApiArea {
     params: {
       target: TargetParam('What to bring into view: ligand, A:120-130, resn HEM, …'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       animate: AnimateParam(),
     },
     history: false,

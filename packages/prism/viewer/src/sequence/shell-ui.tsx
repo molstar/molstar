@@ -10,7 +10,7 @@
 
 import { type CommandDefinition, domView, type ShellModel, type ShellOverlay, type ShellTab } from '@molstar/prism-ui';
 import type { CanvasToolbarItem } from '@molstar/prism-ui/shell/shell';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { SequenceSource } from '../sources/sequence.js';
@@ -20,6 +20,7 @@ import type { SequenceViewers } from './model.js';
 import type { MarksView } from '../sources/marks.js';
 import { SequenceControl } from './sequence-control.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The sequence's parts in the page's shell (sequence.md §8): its commands, the legend card, the band (a tab of
 // the top dock, there from the first document in until the host shows no structure; the first one shows it) and its
 // canvas button. In the sequence's chunk (`runtime.ts`): the shell mounts them once the runtime is in, as a structure is
@@ -79,6 +80,7 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
             shell={ctx.shell}
             dock={ctx.dock ?? 'top'}
             onHover={d.onHover}
+            api={d.person}
             {...(d.marks ? { marks: d.marks } : {})}
           />
         )),
@@ -100,8 +102,8 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
           group: 'view',
           icon: 'sequence',
           title: 'Sequence',
-          visible: viewer.structure.pipe(map((s) => s !== undefined)),
-          menu: sequenceMenu(viewer, shell, d.openCommand),
+          visible: derive(viewer.structure, (s) => s !== undefined),
+          menu: sequenceMenu(viewer, shell, d.openCommand, d.person),
         },
       ]),
     ),

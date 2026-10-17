@@ -54,10 +54,10 @@ const patched = (doc: ReturnType<typeof case3>, ops: Patch['ops']) =>
   applyPatch(doc, { format: 'seq_view_spec_patch', ops }, reg).doc;
 
 describe('the v1 schemes against their published definitions', () => {
-  it('16, each named once, with a label, a description and its provenance', () => {
+  it('17, each named once, with a label, a description and its provenance', () => {
     const names = KernelColorSchemes.map((e) => e.name);
-    expect(names).toHaveLength(16);
-    expect(new Set(names).size).toBe(16);
+    expect(names).toHaveLength(17);
+    expect(new Set(names).size).toBe(17);
     for (const e of KernelColorSchemes) for (const s of [e.label, e.description, e.provenance]) expect(s).not.toBe('');
   });
 
@@ -122,6 +122,31 @@ describe('the v1 schemes against their published definitions', () => {
       label: 'cysteine',
       color: '#f0c',
     });
+  });
+
+  it("legends: a theme scheme's dark variant never lists the light theme's colors", () => {
+    // ESPript's and percent identity's rules are labeled: their theme lists them, in the colors drawn on either skin.
+    for (const name of ['espript', 'percent_identity']) {
+      expect(schemeLegend(reg, { name }, false)).toEqual([]);
+      expect(schemeLegend(reg, { name }, true)).toEqual([]);
+    }
+    // Every theme scheme with a dark variant: its dark legend is `darkLegend`, never `legend`.
+    for (const e of KernelColorSchemes) {
+      const def = e.scheme;
+      if (def.kind !== 'theme' || !def.dark) continue;
+      expect(schemeLegend(reg, { name: e.name }, true)).toEqual([...(def.darkLegend ?? [])]);
+    }
+    const custom = {
+      kind: 'theme',
+      alphabets: ['protein'],
+      columns: true,
+      theme: { theme: 'espript' },
+      dark: { theme: 'espript', params: { identical: '#f0f0f0' } },
+      legend: [{ label: 'x', color: '#000000' }],
+      darkLegend: [{ label: 'x', color: '#f0f0f0' }],
+    } as const;
+    expect(schemeLegend(reg, { custom }, false)).toEqual([{ label: 'x', color: '#000000' }]);
+    expect(schemeLegend(reg, { custom }, true)).toEqual([{ label: 'x', color: '#f0f0f0' }]);
   });
 
   it('legends: a letters scheme with no labeled groups lists its letters, those of one color together', () => {
@@ -232,7 +257,11 @@ describe('what fits', () => {
   it('letters by alphabet, column tables only on held columns; values; categories', () => {
     const protein = ['clustal_x', 'zappo', 'taylor', 'hydrophobicity'];
     expect(names({ kind: 'letters', alphabet: 'protein', columns: false })).toEqual(protein);
-    expect(names({ kind: 'letters', alphabet: 'protein', columns: true })).toEqual([...protein, 'percent_identity']);
+    expect(names({ kind: 'letters', alphabet: 'protein', columns: true })).toEqual([
+      ...protein,
+      'percent_identity',
+      'espript',
+    ]);
     expect(names({ kind: 'letters', alphabet: 'dna', columns: false })).toEqual([
       'nucleotide',
       'purine_pyrimidine',

@@ -15,7 +15,7 @@ import type { Expression } from '@molstar/query-language/language/expression';
 import { type AddressResult, parseAddressList } from './addresses.js';
 import { LanguageName, checkMolQL, compileQuery, failure, formatMolQL, messageOf } from './compile.js';
 import { KEYWORD_EXPRESSIONS, isKeyword, readKeyword } from './keywords.js';
-import { defaultQueryLanguage } from './languages.js';
+import { pageQueryLanguages, type QueryLanguages } from './languages.js';
 import { isMolQLSelector, itemsExpression } from './selector.js';
 import type {
   CompileOptions,
@@ -38,17 +38,20 @@ type Read = { ok: true; parsed: ParsedTarget; molql?: Expression } | Failure;
  * Reads a target. Does not resolve `selection` and `focus` (the viewer does; see `CompileOptions.resolvePerson`).
  * A string that is none of keyword, addresses or query text fails with the part that did not read and a hint.
  */
-export function parseTarget(target: Target, options: Pick<CompileOptions, 'language'> = {}): ParseResult {
+export function parseTarget(target: Target, options: Pick<CompileOptions, 'language' | 'languages'> = {}): ParseResult {
   const read = readTarget(target, options);
   return read.ok ? { ok: true, parsed: read.parsed } : read;
 }
 
-function readTarget(target: Target, options: Pick<CompileOptions, 'language'>): Read {
-  if (typeof target === 'string') return parseString(target, options.language ?? defaultQueryLanguage());
+function readTarget(target: Target, options: Pick<CompileOptions, 'language' | 'languages'>): Read {
+  if (typeof target === 'string') {
+    const languages = options.languages ?? pageQueryLanguages();
+    return parseString(target, options.language ?? languages.default, languages);
+  }
   return parseSelector(target);
 }
 
-function parseString(text: string, language: NonNullable<CompileOptions['language']>): Read {
+function parseString(text: string, language: NonNullable<CompileOptions['language']>, languages: QueryLanguages): Read {
   if (!text.trim()) {
     return failure(
       'The target is empty.',
@@ -61,7 +64,7 @@ function parseString(text: string, language: NonNullable<CompileOptions['languag
   }
   const addresses: AddressResult = parseAddressList(text);
   if (addresses.ok) return { ok: true, parsed: { kind: 'addresses', items: addresses.items } };
-  const query = compileQuery(text, language);
+  const query = compileQuery(text, language, languages);
   if (query.ok) {
     return { ok: true, parsed: { kind: 'query', language, text }, molql: query.molql };
   }

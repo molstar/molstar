@@ -14,6 +14,7 @@
 
 import type { ElementProps } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
+import { drag, observeResize } from '../../dom/scoped.js';
 import { classes } from './_generated/scroll-area.module.css.js';
 
 /** The thumb never gets smaller than this (px). */
@@ -40,6 +41,12 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
    * panel, a popover).
    */
   chain?: boolean;
+  /**
+   * The edges' fade where there is more to scroll (default on). A virtual list turns it off: the fade is a mask that a
+   * scroll-driven animation changes every scroll frame, a repaint of the whole area on the main thread while it
+   * scrolls, which a list that also swaps its rows cannot afford.
+   */
+  fade?: boolean;
 };
 
 /**
@@ -48,7 +55,17 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
  * of the UI that scrolls uses it.
  */
 export function ScrollArea(props: ScrollAreaProps) {
-  const { class: rootClass, contentClass, axis = 'y', viewportRef, edge, chain, children, ...contentProps } = props;
+  const {
+    class: rootClass,
+    contentClass,
+    axis = 'y',
+    viewportRef,
+    edge,
+    chain,
+    fade = true,
+    children,
+    ...contentProps
+  } = props;
   let root!: HTMLDivElement;
   let viewport!: HTMLDivElement;
   let content!: HTMLDivElement;
@@ -103,34 +120,26 @@ export function ScrollArea(props: ScrollAreaProps) {
   const scrollOf = (bar: Bar) => (bar.axis === 'y' ? viewport.scrollTop : viewport.scrollLeft);
   const along = (bar: Bar, e: PointerEvent) => (bar.axis === 'y' ? e.clientY : e.clientX);
 
-  // A press on the thumb drags it; on the track it jumps there (the thumb centred on the pointer) and drags on.
-  const onPointerDown = (bar: Bar) => (e: PointerEvent) => {
-    if (e.button !== 0 || !bar.overflows) return;
-    e.preventDefault();
-    if (e.target !== bar.thumb && bar.travel > 0) {
-      const r = bar.track.getBoundingClientRect();
-      const at = along(bar, e) - (bar.axis === 'y' ? r.top : r.left) - bar.size / 2;
-      scrollTo(bar, (Math.min(Math.max(at, 0), bar.travel) / bar.travel) * bar.range);
-    }
-    const start = along(bar, e);
-    const startScroll = scrollOf(bar);
-    bar.track.setPointerCapture(e.pointerId);
-    bar.track.setAttribute('data-dragging', '');
-    const move = (ev: PointerEvent) => {
-      // A move without the button held: the release went missing (capture dropped); end here.
-      if ((ev.buttons & 1) === 0) return end();
-      if (bar.travel > 0) scrollTo(bar, startScroll + ((along(bar, ev) - start) / bar.travel) * bar.range);
-    };
-    const end = () => {
-      bar.track.removeEventListener('pointermove', move);
-      bar.track.removeEventListener('pointerup', end);
-      bar.track.removeEventListener('pointercancel', end);
-      bar.track.removeAttribute('data-dragging');
-    };
-    bar.track.addEventListener('pointermove', move);
-    bar.track.addEventListener('pointerup', end);
-    bar.track.addEventListener('pointercancel', end);
-  };
+  // A press on the thumb drags it; on the track it jumps there (the thumb centred on the pointer) and drags on. The
+  // drag's listeners are attached once (`drag`, dom/scoped.ts: every end path ends it), acting while a drag is on.
+  const dragBar = (bar: Bar) =>
+    drag<{ start: number; scroll: number }>(bar.track, {
+      start: (e) => {
+        if (e.button !== 0 || !bar.overflows) return undefined;
+        e.preventDefault();
+        if (e.target !== bar.thumb && bar.travel > 0) {
+          const r = bar.track.getBoundingClientRect();
+          const at = along(bar, e) - (bar.axis === 'y' ? r.top : r.left) - bar.size / 2;
+          scrollTo(bar, (Math.min(Math.max(at, 0), bar.travel) / bar.travel) * bar.range);
+        }
+        bar.track.setAttribute('data-dragging', '');
+        return { start: along(bar, e), scroll: scrollOf(bar) };
+      },
+      move: (ev, d) => {
+        if (bar.travel > 0) scrollTo(bar, d.scroll + ((along(bar, ev) - d.start) / bar.travel) * bar.range);
+      },
+      end: () => bar.track.removeAttribute('data-dragging'),
+    });
 
   const scrollbar = (which: 'y' | 'x') => {
     const thumb = (<div class={classes.thumb} />) as HTMLDivElement;
@@ -146,7 +155,7 @@ export function ScrollArea(props: ScrollAreaProps) {
       </div>
     ) as HTMLDivElement;
     const bar: Bar = { axis: which, track, thumb, overflows: false, size: -1, offset: -1, travel: 0, range: 0 };
-    track.addEventListener('pointerdown', onPointerDown(bar));
+    dragBar(bar);
     bars[which] = bar;
     return track;
   };
@@ -157,6 +166,7 @@ export function ScrollArea(props: ScrollAreaProps) {
       data-axis={axis}
       data-edge={edge ? '' : undefined}
       data-chain={chain ? '' : undefined}
+      data-no-fade={fade ? undefined : ''}
     >
       <div
         class={classes.viewport}
@@ -183,12 +193,7 @@ export function ScrollArea(props: ScrollAreaProps) {
   ) as HTMLDivElement;
 
   // The viewport (the area resized) and the content (items added, opened, removed) change what overflows.
-  if (typeof ResizeObserver !== 'undefined') {
-    const observer = new ResizeObserver(update);
-    observer.observe(viewport);
-    observer.observe(content);
-    onCleanup(() => observer.disconnect());
-  }
+  observeResize(viewport, update)?.observe(content);
   onCleanup(() => {
     if (scrollingTimer !== undefined) clearTimeout(scrollingTimer);
   });

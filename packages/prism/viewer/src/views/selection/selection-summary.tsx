@@ -10,7 +10,7 @@
 
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { distinctUntilChanged, map } from 'rxjs';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { SelectionSummaryModel } from '../../model/selection.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
@@ -24,11 +24,8 @@ const MaxParts = 3;
  */
 export function SelectionSummary(props: { model: SelectionSummaryModel }) {
   const { model } = props;
-  const shown = model.parts.pipe(map((p) => (p.length > MaxParts ? p.slice(0, MaxParts) : p)));
-  const more = model.parts.pipe(
-    map((p) => Math.max(0, p.length - MaxParts)),
-    distinctUntilChanged(),
-  );
+  const shown = derive(model.parts, (p) => (p.length > MaxParts ? p.slice(0, MaxParts) : p));
+  const more = derive(model.parts, (p) => Math.max(0, p.length - MaxParts));
   return (
     <div class={classes.summary} role="status" aria-label="Selection">
       <Show
@@ -58,7 +55,7 @@ export function SelectionSummary(props: { model: SelectionSummaryModel }) {
               {() => (
                 <p class={classes.summaryHint}>
                   Click to pick a{' '}
-                  <span class={classes.summaryLevel}>{model.pickLevel.pipe(map((l) => l.toLowerCase()))}</span>; Shift
+                  <span class={classes.summaryLevel}>{derive(model.pickLevel, (l) => l.toLowerCase())}</span>; Shift
                   extends along the chain. Or pick residues in the sequence.
                 </p>
               )}
@@ -98,10 +95,10 @@ export function SelectionSummary(props: { model: SelectionSummaryModel }) {
                 </div>
               )}
             </For>
-            <Show when={more.pipe(map((n) => n > 0))}>
+            <Show when={derive(more, (n) => n > 0)}>
               {() => (
                 <div class={classes.part}>
-                  <span class={classes.partLine}>{more.pipe(map((n) => `+${n} more structures`))}</span>
+                  <span class={classes.partLine}>{derive(more, (n) => `+${n} more structures`)}</span>
                 </div>
               )}
             </Show>

@@ -6,17 +6,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryTable, MolstarSvsEntry, readStructure, type StructureFormat } from '@molstar/seq-molstar-poc';
+import {
+  categoryTable,
+  MolstarSvsEntry,
+  readStructure,
+  type StructureFormat,
+} from '@molstar/prism-viewer/sequence/molstar';
 import { useLiveVersion, useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
 import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { readPromise } from './support/seqstar-read.js';
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from 'react';
 import kinaseSvsx from '../../../core/_test/format/fixtures/kinase.svsx?url';
-import featuresJson from '../../../molstar-poc/_test/fixtures/p53/P04637.json?raw';
-import variantsJson from '../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw';
-import ocjUrl from '../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url';
-import afUrl from '../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
-import ins1 from '../../../molstar-poc/_test/fixtures/structures/ins1.cif?raw';
+import ocjUrl from '../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/2ocj.bcif?url';
+import afUrl from '../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
+import ins1 from '../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/ins1.cif?raw';
+import featuresJson from '../../_test/fixtures/p53/P04637.json?raw';
+import variantsJson from '../../_test/fixtures/p53/variation-P04637.json?raw';
 import {
   AF_P53_URI,
   ALIGNMENT_FORMATS,
@@ -362,10 +367,10 @@ function StructuresPage() {
       title="Structure files: mmCIF and BinaryCIF"
       caption={
         <>
-          A structure file read by URI through the Mol* adapter (<code>@molstar/seq-molstar-poc</code>, Mol*'s own
-          parsers, headless): the <code>molstar:structure</code> complex provider makes its chains units, and a CIF
-          category is read as a table (<code>from_source</code>, <code>category_name</code>), its columns mapped by{' '}
-          <code>fields</code>. AlphaFold DB's model of P04637 (BinaryCIF, CC BY 4.0) gives its pLDDT from{' '}
+          A structure file read by URI through the Mol* adapter (<code>@molstar/prism-viewer/sequence/molstar</code>,
+          Mol*'s own parsers, headless): the <code>molstar:structure</code> complex provider makes its chains units, and
+          a CIF category is read as a table (<code>from_source</code>, <code>category_name</code>), its columns mapped
+          by <code>fields</code>. AlphaFold DB's model of P04637 (BinaryCIF, CC BY 4.0) gives its pLDDT from{' '}
           <code>ma_qa_metric_local</code> by <code>label_seq_id</code>; a small hand-written mmCIF gives B-factors from{' '}
           <code>atom_site</code> by author numbers, <code>auth_seq_id</code> with <code>pdbx_PDB_ins_code</code> as{' '}
           <code>ins_code</code>, so 52A and 52B are their own residues. PDB, SDF and MOL2 read the same way, without

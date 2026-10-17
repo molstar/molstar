@@ -8,12 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
-import { onCleanup } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/file-drop.module.css.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * Files dragged anywhere over the plugin: the whole plugin becomes the drop target (Mol*'s drag overlay; the spec turns
  * it off, `components.disableDragOverlay`). Shown only for drags that carry files; dropped files go to `onDrop` (the
@@ -30,8 +30,7 @@ export function FileDropOverlay(props: {
   const onEnter = (e: DragEvent) => {
     if (hasFiles(e)) shown.set(true);
   };
-  props.target.addEventListener('dragenter', onEnter);
-  onCleanup(() => props.target.removeEventListener('dragenter', onEnter));
+  on(props.target, 'dragenter', onEnter);
   // Over the overlay: copy, not the browser opening the file; leaving it or dropping hides it.
   const over = (e: DragEvent) => {
     e.preventDefault();
@@ -41,7 +40,7 @@ export function FileDropOverlay(props: {
   return (
     <div
       class={classes.overlay}
-      hidden={shown.asReadonly.pipe(map((s) => !s))}
+      hidden={derive(shown.asReadonly, (s) => !s)}
       onDragEnter={over}
       onDragOver={over}
       onDragLeave={() => shown.set(false)}

@@ -18,9 +18,9 @@ const PROTEIN = 'MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAY
 
 /**
  * The hover document: `n` residues, a track per type, each by ref (`t.<type>`); `lineColor`: the line's color theme
- * (none: one color).
+ * (none: one color); `labels`: the secondary structure labeled, its track tall enough to show them.
  */
-export function hoverDoc(n = 100, o: { style?: Record<string, unknown>; lineColor?: unknown } = {}) {
+export function hoverDoc(n = 100, o: { style?: Record<string, unknown>; lineColor?: unknown; labels?: boolean } = {}) {
   const b = createSeqViewSpec({ title: 'Hover' });
   const a = b.data.sequence({
     ref: 'a',
@@ -38,7 +38,12 @@ export function hoverDoc(n = 100, o: { style?: Record<string, unknown>; lineColo
   });
   const pt = ann('pt', 'ranges', { start: [12, 50, 70], stop: [13, 51, 71], category: ['p', 'q', 'p'] });
   const vr = ann('vr', 'ranges', { start: [12, 12, 50], stop: [13, 13, 51], alt: ['A', 'C', 'D'] });
-  const ss = ann('ss', 'ranges', { start: [5, 25, 55], stop: [15, 35, 65], category: ['helix', 'strand', 'turn'] });
+  const ss = ann('ss', 'ranges', {
+    start: [5, 25, 55],
+    stop: [15, 35, 65],
+    category: ['helix', 'strand', 'turn'],
+    label: ['α1', 'β1', 'T1'],
+  });
   const index = Array.from({ length: n }, (_, i) => i);
   const vv = ann('vv', 'values', { index, value: index.map((i) => 0.2 + ((i * 31) % 80) / 100) });
   const mx = ann(
@@ -53,7 +58,11 @@ export function hoverDoc(n = 100, o: { style?: Record<string, unknown>; lineColo
   v.track({ ref: 't.ranges', label: 'Ranges' }).ranges({ data: rg });
   v.track({ ref: 't.points', label: 'Points' }).points({ data: pt });
   v.track({ ref: 't.variants', label: 'Variants' }).variants({ data: vr });
-  v.track({ ref: 't.secondary', label: 'Secondary' }).secondary({ data: ss });
+  const labels = o.labels ? { labels: true } : {};
+  v.track({ ref: 't.secondary', label: 'Secondary', ...(o.labels ? { height: 3 } : {}) } as never).secondary({
+    data: ss,
+    ...labels,
+  } as never);
   v.track({ ref: 't.values', label: 'Values' }).values({ data: vv });
   const lineColor = o.lineColor ? { color: o.lineColor } : {};
   v.track({ ref: 't.line', label: 'Line' }).values({ data: vv, encoding: 'line', ...lineColor } as never);

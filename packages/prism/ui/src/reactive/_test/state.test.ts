@@ -86,6 +86,30 @@ describe('grouped behavior projections', () => {
 });
 
 describe('ReactiveModel lifecycle', () => {
+  it('gives each mount an abort signal that ends with it', () => {
+    class Example extends ReactiveModel {
+      read = () => this.mountSignal;
+      inMount?: AbortSignal;
+      protected override onMount() {
+        this.inMount = this.mountSignal;
+      }
+    }
+    const model = new Example();
+    expect(model.read().aborted).toBe(true);
+    model.mount();
+    const first = model.inMount!;
+    expect(first.aborted).toBe(false);
+    expect(model.read()).toBe(first);
+    model.unmount();
+    expect(first.aborted).toBe(true);
+    model.mount();
+    const second = model.read();
+    expect(second).not.toBe(first);
+    expect(second.aborted).toBe(false);
+    model.retire();
+    expect(second.aborted).toBe(true);
+  });
+
   it('supports models that need no lifecycle hooks', () => {
     class Example extends ReactiveModel {}
 

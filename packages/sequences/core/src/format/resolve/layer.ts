@@ -171,6 +171,17 @@ function letterMapped(
   return { ...params, letter_map: typeof m === 'string' ? (fits && e ? e.map : null) : m };
 }
 
+/** A frame's span's first or last track that holds rows (lanes), else null. */
+function spanRows(section: ResolvedSection, set: SeqSet, span: unknown): ResolvedSection['tracks'][number] | null {
+  const sp = (span ?? null) as { from?: unknown; to?: unknown } | null;
+  for (const end of [sp?.from, sp?.to]) {
+    if (typeof end !== 'string') continue;
+    const t = section.tracks.find((x) => x.ref >= 0 && set.strings.get(x.ref) === end);
+    if (t && t.laneCount > 0) return t;
+  }
+  return null;
+}
+
 /**
  * One layer of a resolved section. `supported`: the drawing viewer's types, themes and glyphs. `node`: a template
  * layer's instance, `"$node"` naming it; its ref is `instanceRef(layer, node)`, and it is never unplaced.
@@ -197,14 +208,31 @@ export function resolveLayer(
   const axis = section.row.axis === SectionAxis.columns ? 'columns' : 'blocks';
   const layout = section.layout === Layout.text ? 'text' : 'tracks';
   let type: string | null = p.type as string;
+  // A streamed alignment's rows are not drawn in text, which is a figure of rows held (seqspec:format#layer-types).
+  const lazyRows = layout === 'text' && section.blocks.some((x) => set.alignments[x.alignment]?.lazy === true);
   for (let k = 0; type !== null && type !== 'omit'; k++) {
     const e: LayerTypeEntry | undefined = reg.get('layerTypes', type);
-    if (e && supported.has(type) && e.axes.includes(axis) && e.layouts.includes(layout)) break;
+    const drawn = !(lazyRows && type === 'rows');
+    if (e && drawn && supported.has(type) && e.axes.includes(axis) && e.layouts.includes(layout)) break;
     type = k > 8 ? null : ((k === 0 && typeof p.fallback === 'string' ? p.fallback : e?.fallback) ?? null);
   }
   const entry = type === null ? undefined : reg.get('layerTypes', type);
   if (!entry) say('svs.render.omitted', 'type', `"${p.type}" cannot be drawn here; its fallbacks end in omit`);
   else if (type !== p.type) say('svs.render.fallback', 'type', `"${p.type}" cannot be drawn here; drawn as "${type}"`);
+  // A frame's span names tracks of its own section (seqspec:format#layer-types); else it draws on its own band.
+  if (type === 'frame') {
+    const span = (p.span ?? null) as { from?: unknown; to?: unknown } | null;
+    for (const end of ['from', 'to'] as const) {
+      const r = span?.[end];
+      if (typeof r !== 'string') continue;
+      if (!section.tracks.some((t) => t.ref >= 0 && set.strings.get(t.ref) === r))
+        say(
+          'svs.layer.span',
+          `span/${end}`,
+          `"${r}" is not a track of section "${section.ref}": the frame is drawn on its own track`,
+        );
+    }
+  }
 
   // Themes after defaults and fallbacks; a named rule table expanded (its name kept as `table`), so a viewer implements
   // `rules` alone, the themes nested in a `rules` theme resolved alike; glyphs a viewer cannot draw as their fallback
@@ -320,7 +348,9 @@ export function resolveLayer(
   const placements: PlacementRow[] = [];
   const paths: ComposedPath[] = [];
   const index = new Map<ComposedPath, number>();
-  const tr = section.tracks[track];
+  // A frame's rows (seqspec:format#layer-types): placed on the lanes of the rows track its span reaches, so its edge
+  // there is the rows its item targets.
+  const tr = type === 'frame' ? (spanRows(section, set, p.span) ?? section.tracks[track]) : section.tracks[track];
   // A lazy run's lane is its row's rank: in data order the row itself; in an order ranked below (one scan of it), a row it leaves out dropped.
   const run = tr && tr.laneCount > 0 ? section.lanes.lazy.find((z) => z.start === tr.laneStart) : undefined;
   const ranked: number[] = [];

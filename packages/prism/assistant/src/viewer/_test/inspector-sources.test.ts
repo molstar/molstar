@@ -60,7 +60,7 @@ describe('the Inspector over the viewer agent', () => {
   it('reads the trace of a turn with its calls, lists the tools and skills with what is loaded, shows the limits', async () => {
     const { agent } = await agentOn([
       { calls: [call('disclose_skills', { skills: ['styles'] })] },
-      { calls: [call('apply_style', { style: 'surface' })] },
+      { calls: [call('apply_style', { style: 'spacefill' })] },
       { text: 'A surface.' },
     ]);
     const sources = createInspectorSources(agent);

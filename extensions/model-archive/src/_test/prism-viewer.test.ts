@@ -15,12 +15,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ModelArchiveExtension, PlddtTrack } from '../prism-viewer.js';
 
 // Model Archive's quality in the Prism viewer on a headless viewer (parity.md §6): AlphaFold DB's P04637 model
-// (recorded, Seq*'s fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
+// (recorded, the Prism viewer's Mol* adapter fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
 
 const fixture = (path: string, name: string) => new File([readFileSync(new URL(path, import.meta.url))], name);
 const alphafold = () =>
   fixture(
-    '../../../../packages/sequences/molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
+    '../../../../packages/prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
     'AF-P04637-F1.bcif',
   );
 const cbs = () => fixture('../../../../data/examples/1cbs_updated.cif', '1cbs.cif');
@@ -59,10 +59,24 @@ const polymerThemes = (v: PrismViewer) =>
   );
 
 describe('the model-archive extension in the Prism viewer', () => {
+  it('opens a predicted model colored by its pLDDT out of the box, and leaves other structures as they were', async () => {
+    const predicted = await viewer([alphafold()]);
+    const themes = polymerThemes(predicted);
+    expect(themes.length).toBeGreaterThan(0);
+    expect(new Set(themes)).toEqual(new Set(['plddt-confidence']));
+    const experimental = await viewer([cbs()]);
+    expect(polymerThemes(experimental)).not.toContain('plddt-confidence');
+    // Without the extension the viewer knows nothing of pLDDT.
+    expect(polymerThemes(await viewer([alphafold()], false))).not.toContain('plddt-confidence');
+  });
+
   it('lists pLDDT for a predicted model and colors the polymer by it, as one step', async () => {
     const v = await viewer([alphafold()]);
     const list = await v.api.annotations.list({});
     expect(list.ok && JSON.stringify(list.value)).toMatch(/plddt/);
+    // It opens colored by pLDDT: recolored by chain first, so applying pLDDT is a change.
+    expect((await v.api.representation.color({ target: 'polymer', theme: 'chain-id' })).ok).toBe(true);
+    expect(polymerThemes(v)).not.toContain('plddt-confidence');
     const steps = v.managers.history.steps.value.length;
     const r = await v.api.annotations.apply({ annotation: 'plddt' });
     expect(r.ok, r.ok ? '' : r.message).toBe(true);

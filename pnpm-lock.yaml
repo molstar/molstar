@@ -123,6 +123,9 @@ catalogs:
     astro:
       specifier: 7.3.8
       version: 7.3.8
+    axe-core:
+      specifier: 4.14.0
+      version: 4.14.0
     benchmark:
       specifier: 2.1.4
       version: 2.1.4
@@ -2926,6 +2929,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
+      axe-core:
+        specifier: 'catalog:'
+        version: 4.14.0
       lightningcss:
         specifier: 'catalog:'
         version: 1.33.0
@@ -2959,6 +2965,9 @@ importers:
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
       '@molstar/model':
         specifier: workspace:*
         version: link:../../model
@@ -2977,9 +2986,6 @@ importers:
       '@molstar/seq-core':
         specifier: workspace:*
         version: link:../../sequences/core
-      '@molstar/seq-molstar-poc':
-        specifier: workspace:*
-        version: link:../../sequences/molstar-poc
       '@molstar/seq-viewer':
         specifier: workspace:*
         version: link:../../sequences/viewer
@@ -3005,6 +3011,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@22.20.1)(@vitest/browser-playwright@5.0.4)(@vitest/ui@5.0.4)(jsdom@30.1.2)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/query-language:
     dependencies:
@@ -3055,52 +3064,6 @@ importers:
       unified:
         specifier: ^11.0.5
         version: 11.0.5
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.4(@types/node@22.20.1)(@vitest/browser-playwright@5.0.4)(@vitest/ui@5.0.4)(jsdom@30.1.2)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
-
-  packages/sequences/molstar-poc:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../model
-      '@molstar/mvs':
-        specifier: workspace:*
-        version: link:../../mvs/runtime
-      '@molstar/mvs-builder':
-        specifier: workspace:*
-        version: link:../../mvs/builder
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../plugin/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../query-language
-      '@molstar/seq-core':
-        specifier: workspace:*
-        version: link:../core
-      '@molstar/seq-viewer':
-        specifier: workspace:*
-        version: link:../viewer
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.0.4(@types/node@22.20.1)(@vitest/browser-playwright@5.0.4)(@vitest/ui@5.0.4)(jsdom@30.1.2)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
@@ -3180,15 +3143,33 @@ importers:
 
   packages/sequences/storybook:
     dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/mvs':
+        specifier: workspace:*
+        version: link:../../mvs/runtime
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../mvs/builder
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
       '@molstar/prism-ui':
         specifier: workspace:*
         version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
       '@molstar/seq-core':
         specifier: workspace:*
         version: link:../core
-      '@molstar/seq-molstar-poc':
-        specifier: workspace:*
-        version: link:../molstar-poc
       '@molstar/seq-nightingale':
         specifier: workspace:*
         version: link:../nightingale

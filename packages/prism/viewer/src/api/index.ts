@@ -41,6 +41,7 @@ import { SelectApi } from './select.js';
 import { SessionApi } from './session.js';
 import { SettingsApi } from './settings.js';
 import type { TargetResolver } from './targets.js';
+import type { QueryLanguages } from '../targets/languages.js';
 import { ViewApi } from './view.js';
 
 // The viewer's API object (api.md §2–§6). Each area is made once; the API a caller gets is a facade bound to how its
@@ -69,6 +70,7 @@ export interface ViewerApiDeps {
   readonly plugin: PluginContext;
   readonly sources: ApiSources;
   readonly targets: TargetResolver;
+  readonly languages: QueryLanguages;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
   readonly extensions: ExtensionPort;
@@ -99,6 +101,7 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
     plugin: deps.plugin,
     sources: deps.sources,
     targets: deps.targets,
+    languages: deps.languages,
     modules: deps.modules,
     managers: deps.managers,
     extensions: deps.extensions,

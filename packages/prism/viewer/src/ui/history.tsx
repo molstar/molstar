@@ -33,11 +33,12 @@ import {
   type HistoryTurnRow,
 } from '../journal/history-model.js';
 import type { OpenedRecord } from '../journal/kept-records.js';
-import { createRecordIndex, type KeptRecord } from '../journal/record.js';
+import { createRecordIndex, type KeptRecord, recordsDatabase } from '../journal/record.js';
 import { recordSpan } from '../views/home/kept-records.js';
 import type { PrismViewer } from '../viewer.js';
 import { classes } from './_generated/history.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The History tab (api.md §11, journal.md §3): the session's record, newest first. A person's run is a row (who made
 // it, what it did, when), an agent's turn a group (its prompt, its reply, its runs under it), an undone step is struck,
 // a session event a small separator. Undo takes back the latest step, "Undo turn" the agent's latest turn. The model
@@ -51,10 +52,14 @@ const Origins: Readonly<Record<string, { icon: IconName; title: string }>> = {
   link: { icon: 'link', title: 'The sequence' },
 };
 
-const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+/** "Undone", and by whom when it was not the person (journal.md §2). */
+const undoneText = (by: string | undefined) =>
+  by === 'agent' ? 'Undone by the assistant' : by === 'script' ? 'Undone by a script' : 'Undone';
 
-/** The name IndexedDB keeps the record in (journal.md §1). */
-const RecordsDatabase = 'prism-viewer-records';
+/** The model of a turn without its provider ("claude-sonnet-4"); the whole is its tooltip. */
+const modelName = (model: string) => model.slice(model.indexOf(':') + 1);
+
+const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** What kept records are listed under: the loaded structures' names, else "Session". */
 export function recordTitle(structures: readonly { label: string }[]): string {
@@ -71,7 +76,9 @@ const keeping = new WeakMap<object, Promise<boolean>>();
  * IndexedDB, and goes on writing there. Only the record: no state, no files. Says so when it cannot (no IndexedDB), and
  * returns whether it is kept.
  */
-export function keepSessionRecord(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
+export function keepSessionRecord(
+  viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers' | 'spec'>,
+): Promise<boolean> {
   const { record } = viewer;
   if (record.kept) return Promise.resolve(true);
   let p = keeping.get(record);
@@ -82,7 +89,7 @@ export function keepSessionRecord(viewer: Pick<PrismViewer, 'record' | 'sources'
   return p;
 }
 
-async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>): Promise<boolean> {
+async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers' | 'spec'>): Promise<boolean> {
   const { record, sources, managers } = viewer;
   try {
     // Loaded when asked: the viewer without a kept record never pays for it.
@@ -90,7 +97,7 @@ async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>
     const made = record.keepIn
       ? undefined
       : (await import('../journal/indexeddb-rows.js')).createIndexedDbRows<import('@molstar/ai').ThreadTable>(
-          RecordsDatabase,
+          recordsDatabase(viewer.spec.persist?.key),
         );
     const rows = record.keepIn ?? made!;
     let handed = false;
@@ -129,10 +136,7 @@ export function historyTab(
     order: 2.55,
     place: 'foot',
     render: domView<ShellViewContext>(({ ctx }) => {
-      const compact = ctx.shell.mode.pipe(
-        map((m) => m === 'compact'),
-        distinctUntilChanged(),
-      );
+      const compact = derive(ctx.shell.mode, (m) => m === 'compact');
       // Split, both halves are always in view (the log at `log` too).
       const half = (title: string, body: () => Child) => (
         <section class={classes.half} aria-label={title}>
@@ -168,7 +172,7 @@ export function historyTab(
                 active={shown.asReadonly}
                 onPick={(id) => shown.set(id as 'steps' | 'log')}
               />
-              <Show when={shown.asReadonly.pipe(map((v) => v === 'log'))} fallback={steps}>
+              <Show when={derive(shown.asReadonly, (v) => v === 'log')} fallback={steps}>
                 {log}
               </Show>
             </div>
@@ -196,11 +200,11 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
 
   // Undo says what it undoes, or why it cannot.
   // Undo says what it undoes (in its tooltip: the button is a word), or why it cannot.
-  const undoLabel = history.steps.pipe(map((steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo')));
+  const undoLabel = derive(history.steps, (steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo'));
   const title = combineLatest([history.undoBlocked, undoLabel]).pipe(map(([reason, label]) => reason ?? label));
-  const redoLabel = history.redoable.pipe(map((r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo')));
-  const count = history.steps.pipe(
-    map((steps) => (steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '')),
+  const redoLabel = derive(history.redoable, (r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo'));
+  const count = derive(history.steps, (steps) =>
+    steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '',
   );
   // "Undo turn" is for the agent's latest turn: the newest step that is its.
   // Shared: computed once per change, not once per turn row that reads it.
@@ -221,7 +225,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
           variant="ghost"
           icon={<Icon name="undo-2" />}
           title={title}
-          disabled={history.canUndo.pipe(map((can) => !can))}
+          disabled={derive(history.canUndo, (can) => !can)}
           onClick={() => void api.history.undo().then(say)}
         >
           Undo
@@ -232,7 +236,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
           icon={<Icon name="redo-2" />}
           title={redoLabel}
           aria-label="Redo"
-          disabled={history.redoable.pipe(map((r) => r.length === 0))}
+          disabled={derive(history.redoable, (r) => r.length === 0)}
           onClick={() => void api.history.redo().then(say)}
         />
         <span class={classes.count}>{count}</span>
@@ -453,9 +457,10 @@ function Run(props: { row: HistoryRunRow; nested?: boolean }) {
       <time class={classes.time} dateTime={new Date(row.at).toISOString()}>
         {time.format(row.at)}
       </time>
-      {row.undone || row.failed ? (
+      {row.undone || row.failed || row.meta ? (
         <div class={classes.detail}>
-          <span>{row.failed ? 'Failed' : 'Undone'}</span>
+          {row.meta ? <span class={classes.meta}>{row.meta}</span> : null}
+          {row.undone || row.failed ? <span>{row.failed ? 'Failed' : undoneText(row.undoneBy)}</span> : null}
         </div>
       ) : null}
     </div>
@@ -489,7 +494,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
   const caption = row.open
     ? 'Under way'
     : row.undone
-      ? 'Undone'
+      ? undoneText(row.undoneBy)
       : row.outcome === 'stopped'
         ? 'Stopped'
         : row.outcome === 'failed'
@@ -505,7 +510,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
       <button
         type="button"
         class={classes.turnHead}
-        aria-expanded={expanded.asReadonly.pipe(map(String))}
+        aria-expanded={derive(expanded.asReadonly, String)}
         onClick={toggle}
       >
         <Icon name="bot" size={14} class={classes.origin} label="The assistant" />
@@ -532,6 +537,7 @@ function Turn(props: Omit<RowProps, 'row'> & { row: HistoryTurnRow }) {
       </Show>
       <div class={classes.detail}>
         {caption ? <span>{caption}</span> : null}
+        {row.model ? <span title={row.model}>{modelName(row.model)}</span> : null}
         {row.runs.length ? (
           <span>
             {row.runs.length} change{row.runs.length === 1 ? '' : 's'}

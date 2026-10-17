@@ -72,3 +72,19 @@ export function structuresWithSelection(plugin: PluginContext, list: readonly St
     return StructureElement.Loci.is(loci) && !StructureElement.Loci.isEmpty(loci);
   });
 }
+
+/**
+ * The loaded structures' names by ref, made once while the structures and the state stay the same (the hierarchy's list
+ * and the state tree are new objects at every change; a name changes only with one). Made per call, a result naming
+ * every structure (a preset over all) was structures × structures.
+ */
+const namesCache = new WeakMap<object, { list: unknown; tree: unknown; names: ReadonlyMap<string, string> }>();
+export function loadedNames(plugin: PluginContext): ReadonlyMap<string, string> {
+  const list = plugin.managers.structure.hierarchy.current.structures;
+  const tree = plugin.state.data.tree;
+  const hit = namesCache.get(plugin);
+  if (hit && hit.list === list && hit.tree === tree) return hit.names;
+  const names = structureNames(list);
+  namesCache.set(plugin, { list, tree, names });
+  return names;
+}

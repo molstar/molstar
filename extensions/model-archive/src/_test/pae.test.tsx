@@ -49,7 +49,8 @@ const pae = (i: number, j: number) => 2 * Math.abs(i - j) + 1;
 /** Their pLDDT: one in each band. */
 const Plddt = [95, 80, 60, 30];
 
-function modelCif(): string {
+/** `partialTo`: the metric covers only the residues of that chain (a domain's PAE of a bigger model). */
+function modelCif(partialTo?: string): string {
   const atoms = Residues.map(
     ([chain, seq, comp], k) =>
       `ATOM ${k + 1} C CA . ${comp} ${chain} 1 ${seq} ? ${(3.8 * k).toFixed(3)} 0.000 0.000 1 90.0 ${seq} ${chain} 1`,
@@ -58,6 +59,7 @@ function modelCif(): string {
   let n = 0;
   Residues.forEach(([c1, s1, r1], i) => {
     Residues.forEach(([c2, s2, r2], j) => {
+      if (partialTo && (c1 !== partialTo || c2 !== partialTo)) return;
       pairs.push(`${++n} 1 ${c1} ${s1} ${r1} ${c2} ${s2} ${r2} 2 ${pae(i, j).toFixed(2)}`);
     });
   });
@@ -128,7 +130,7 @@ function modelCif(): string {
   ].join('\n');
 }
 
-const modelFile = () => new File([modelCif()], 'pae-test.cif');
+const modelFile = (partialTo?: string) => new File([modelCif(partialTo)], 'pae-test.cif');
 // jsdom's `import.meta.url` is not a file URL: the path from the folder.
 const cbs = () =>
   new File([readFileSync(resolve(import.meta.dirname, '../../../../data/examples/1cbs_updated.cif'))], '1cbs.cif');
@@ -237,6 +239,13 @@ describe('model-archive.pae', () => {
     expect(cbsViewer.api['model-archive']!.paeSize(refOf(cbsViewer))).toBeUndefined();
   });
 
+  it("sizes a partial metric by the residues it covers, not the model's polymer", async () => {
+    const v = await viewer([modelFile('A')]);
+    const area = v.api['model-archive']!;
+    expect(area.paeSize(refOf(v))).toEqual({ residues: 3, chains: 1 });
+    expect(area.paeMatrix(refOf(v))?.size).toBe(3);
+  });
+
   it('says so when a structure has none, and fails when nothing is loaded', async () => {
     const v = await viewer([cbs()]);
     const r = await v.api['model-archive']!.pae({});
@@ -296,7 +305,16 @@ describe('the PAE card', () => {
     toggle.click();
     expect(legend.style.display).toBe('flex');
     const pointer = (type: string, x: number, y: number) =>
-      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
+      // The main button held but on the release (a drag ends on a move without it, as a lost release).
+      plot.dispatchEvent(
+        new MouseEvent(type, {
+          clientX: x,
+          clientY: y,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          bubbles: true,
+        }),
+      );
 
     // (300, 50): aligned on residue 0 (A 1), residue 3 (B 1) scored; lit in the sequence too (the marks' hover).
     pointer('pointermove', 300, 50);
@@ -372,7 +390,16 @@ describe('the PAE card', () => {
     const unmount = ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
     const plot = host.querySelector<HTMLElement>('[role="img"]')!;
     const pointer = (type: string, x: number, y: number) =>
-      plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
+      // The main button held but on the release (a drag ends on a move without it, as a lost release).
+      plot.dispatchEvent(
+        new MouseEvent(type, {
+          clientX: x,
+          clientY: y,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          bubbles: true,
+        }),
+      );
     const frame = () => new Promise((r) => requestAnimationFrame(r));
     const hair = () => plot.querySelectorAll('line[stroke="rgba(255, 255, 255, 0.7)"][visibility="visible"]').length;
 
@@ -395,6 +422,23 @@ describe('the PAE card', () => {
     const v = await viewer([cbs()]);
     const ui = paeUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
     expect(await firstValueFrom(ui.toolbar![0].visible!)).toBe(false);
+  });
+
+  it('has a toolbar button for an AlphaFold DB entry that has no PAE yet, to fetch it from the card', async () => {
+    const af = new File(
+      [
+        readFileSync(
+          resolve(
+            import.meta.dirname,
+            '../../../../packages/prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
+          ),
+        ),
+      ],
+      'AF-P04637-F1.bcif',
+    );
+    const v = await viewer([af]);
+    const ui = paeUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
+    expect(await firstValueFrom(ui.toolbar![0].visible!)).toBe(true);
   });
 
   it('ticks residue numbers at a round step per chain, names runs as targets and words, and averages a box', () => {

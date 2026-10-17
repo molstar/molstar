@@ -8,15 +8,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { activity, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { eventTarget, isEditable, ownsKey } from '../../dom/events.js';
-import { bind, onCleanup } from '../../dom/scope.js';
+import { bind, type MaybeReactive, onCleanup } from '../../dom/scope.js';
+import { observeResize, on } from '../../dom/scoped.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
-import { BandDissolvePx, BandFadePx, type ShellModel } from '../../shell/shell.js';
-import type { StatusModel } from '../../shell/status.js';
+import { derive } from '../../reactive/state.js';
+import { BandDissolvePx, BandFadePx, type CanvasMenuItem, type ShellModel } from '../../shell/shell.js';
+import type { NotificationsManager } from '../../managers/notifications.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
 import { installTooltips } from '../../components/tooltip/tooltip.js';
@@ -30,7 +31,7 @@ import {
   RailToggle,
   StatusLine,
 } from './canvas-chrome.js';
-import { DockView, FloatingDock } from './dock-view.js';
+import { DockView, dockFacets, FloatingDock } from './dock-view.js';
 import { EmptyCanvas } from './empty-canvas.js';
 import type { SplashKind } from './prism-splash.js';
 import { FileDropOverlay } from './file-drop.js';
@@ -47,7 +48,7 @@ const CornerRoom = 34 + Edge;
 
 export interface ShellViewProps {
   shell: ShellModel;
-  status: StatusModel;
+  status: NotificationsManager;
   /** The canvas (the Mol* viewport, or a placeholder in stories). */
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
@@ -71,11 +72,16 @@ export interface ShellViewProps {
   commandMenu?: Child;
   /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
   canvasLead?: Child;
+  /**
+   * The rows of `canvasLead` for the collapsed toolbar's menu (the mode choices, a submenu for their options): the
+   * stack lists them above the toolbar items (shell.md §2). Without it the menu lists the items only.
+   */
+  canvasLeadMenu?: MaybeReactive<readonly CanvasMenuItem[]>;
   /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
   canvasAside?: Child;
   onOpenLog?: () => void;
   /** Nothing loaded: a while after, the Mol* wordmark shows in the middle of the canvas. */
-  empty?: Observable<boolean>;
+  empty?: MaybeReactive<boolean>;
   /**
    * The splash under the mark once the viewer has been idle on the empty canvas a while (on by default), and which:
    * the light's particles, the light as a wave, or either at random each time it shows (the default).
@@ -83,7 +89,7 @@ export interface ShellViewProps {
   splash?: boolean;
   splashField?: SplashKind | 'random';
   /** The viewer is working: the splash waits for it to be idle. */
-  busy?: Observable<boolean>;
+  busy?: MaybeReactive<boolean>;
   /**
    * Files dropped anywhere on the plugin (to the plugin's drag-and-drop manager). Given, dragging files in shows a drop
    * overlay over everything; the host leaves it out when the spec turns the overlay off.
@@ -97,104 +103,79 @@ export interface ShellViewProps {
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
-  const compact = shell.mode.pipe(
-    map((m) => m === 'compact'),
-    distinctUntilChanged(),
-  );
+  const compact = derive(shell.mode, (m) => m === 'compact');
   const top = shell.dock('top');
   // Expanded (`view.expand`): the canvas fills the viewer; the rail, the docks and the band are left out (not rendered),
   // and the insets they take go to the frame's margin.
   const expanded = shell.expanded;
-  const shown = expanded.pipe(map((e) => !e));
+  const shown = derive(expanded, (e) => !e);
   // The right dock floats over the canvas unless it is docked, or the shell is compact (then it is a bottom sheet).
-  const floating = combineLatest([right.state, shell.mode]).pipe(
-    map(([s, mode]) => s.floating && mode !== 'compact'),
-    distinctUntilChanged(),
-  );
+  // What the right dock's state decides here, through its facets (a change of its state wakes each once).
+  const rightDock = dockFacets(shell, right);
+  const floating = derive([rightDock.floating, shell.mode], (f, mode) => f && mode !== 'compact');
   // The top dock (the sequence band) floats in the compact layout too: a band of the canvas, not a panel above it.
-  const floatingTop = top.state.pipe(
-    map((s) => s.floating),
-    distinctUntilChanged(),
-  );
+  const floatingTop = dockFacets(shell, top).floating;
   // A top tab with no frame is a band of the canvas area (the sequence), over the canvas' top: the canvas' own color
   // behind its lines, fading out below them (BandFadePx); the canvas' chrome goes below the lines.
   // What floats at the top (the sequence card, or the text of a band) takes this much: the snapshots and the canvas stack
   // go below it (a band's faded bottom is not in the way).
-  const topInset = combineLatest([top.state, top.active, floatingTop, expanded]).pipe(
-    map(([s, tab, f, e]) =>
-      f && tab && !e ? (tab.frame === 'none' ? s.size - BandFadePx + Edge : Edge + s.size + Edge) : Edge,
-    ),
-    distinctUntilChanged(),
-    map((px) => `${px}px`),
+  const topInset = derive(
+    [dockFacets(shell, top).size, top.active, floatingTop, expanded],
+    (size, tab, f, e) =>
+      `${f && tab && !e ? (tab.frame === 'none' ? size - BandFadePx + Edge : Edge + size + Edge) : Edge}px`,
   );
   // A compact rail's column hidden: the canvas takes its width.
-  const railHidden = combineLatest([floating, shell.railShown, expanded]).pipe(
-    map(([f, shown, e]) => (f && !shown) || e),
-    distinctUntilChanged(),
-  );
-  const railPx = railHidden.pipe(map((h) => (h ? 0 : RailWidth)));
+  const railPx = derive([floating, shell.railShown, expanded], (f, shown, e) => ((f && !shown) || e ? 0 : RailWidth));
   // A compact rail lies over the canvas' edge (it does not take the canvas' width, so opening it moves nothing): the
   // canvas runs to the edge, and the corner keeps clear of the rail's column (where its toggle sits) whether it shows.
-  const compactRail = combineLatest([floating, shell.compactRail, expanded]).pipe(
-    map(([f, c, e]) => f && c && !e),
-    distinctUntilChanged(),
-  );
-  const railTake = combineLatest([railPx, compactRail]).pipe(
-    map(([px, c]) => (c ? 0 : px)),
-    distinctUntilChanged(),
-  );
+  const compactRail = derive([floating, shell.compactRail, expanded], (f, c, e) => f && c && !e);
+  const railTake = derive([railPx, compactRail], (px, c) => (c ? 0 : px));
   // The button that shows and hides it, in the canvas's corner: only where the rail floats, and the rail is compact.
-  const railToggle = combineLatest([floating, shell.compactRail, expanded]).pipe(
-    map(([f, c, e]) => f && c && !e),
-    distinctUntilChanged(),
-  );
+  const railToggle = compactRail;
   // Pinned: the canvas ends where the rail, or the open panel, begins (they sit beside it, not over it).
-  const pinned = combineLatest([right.state, floating, expanded]).pipe(
-    map(([s, f, e]) => f && s.pinned && !e),
-    distinctUntilChanged(),
-  );
+  const pinned = derive([rightDock.pinned, floating, expanded], (p, f, e) => f && p && !e);
   // An overlay card open in the panel's place counts as the panel.
-  const pinnedWidth = combineLatest([right.state, right.active, shell.overlay, pinned, railPx]).pipe(
-    map(([s, active, overlay, p, rail]) => (p ? rail + (active || overlay ? s.size : 0) : 0)),
-    distinctUntilChanged(),
+  const pinnedWidth = derive(
+    [rightDock.size, right.active, shell.overlay, pinned, railPx],
+    (size, active, overlay, p, rail) => (p ? rail + (active || overlay ? size : 0) : 0),
   );
   // The canvas and the band end where the fixed part of the layout begins: a pinned panel and the rail, or the rail alone
   // while the panel floats (it lies over both).
-  const canvasEnd = combineLatest([pinnedWidth, floating, railTake]).pipe(
-    map(([pinnedPx, f, rail]) => (pinnedPx > 0 ? pinnedPx : f ? rail : 0)),
-    distinctUntilChanged(),
+  const canvasEnd = derive([pinnedWidth, floating, railTake], (pinnedPx, f, rail) =>
+    pinnedPx > 0 ? pinnedPx : f ? rail : 0,
   );
-  // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
-  const rightInset = combineLatest([right.state, right.active, floating, pinned, railPx, expanded, compact]).pipe(
-    // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
-    // margin. Pinned, both are outside the canvas: only the margin is left. Compact, the rail is the bottom bar.
-    map(([s, active, f, p, rail, e, c]) => (p || e ? Edge : (c ? 0 : rail) + Edge + (f && active ? s.size + Edge : 0))),
-    distinctUntilChanged(),
-    map((px) => `${px}px`),
+  // What floats on the right takes this much of the canvas: the bottom bar and the hover label keep clear of it.
+  const rightInset = derive(
+    [rightDock.size, right.active, shell.overlay, floating, pinned, railPx, expanded, compact],
+    // The docked rail is the canvas's right edge, and the open panel is too, or an overlay card open in its place: what
+    // sits beside either keeps the frame margin. Pinned, both are outside the canvas: only the margin is left. Compact,
+    // the rail is the bottom bar.
+    (size, active, overlay, f, p, rail, e, c) =>
+      `${p || e ? Edge : (c ? 0 : rail) + Edge + (f && (active || !!overlay) ? size + Edge : 0)}px`,
   );
-  const cornerInset = combineLatest([pinned, compact, railTake, compactRail, expanded]).pipe(
-    map(([p, c, rail, overlay, e]) => (p || c || e ? Edge : (overlay ? RailWidth : rail) + Edge)),
-    distinctUntilChanged(),
-    map((px) => `${px}px`),
+  const cornerInset = derive(
+    [pinned, compact, railTake, compactRail, expanded],
+    (p, c, rail, overlay, e) => `${p || c || e ? Edge : (overlay ? RailWidth : rail) + Edge}px`,
   );
   // An open floating right panel: overlays then open in its place instead of stacking glass on glass.
-  const rightPanelOpen = combineLatest([right.active, floating, expanded]).pipe(
-    map(([active, f, e]) => (f && active && !e ? 'open' : undefined)),
-    distinctUntilChanged(),
+  const rightPanelOpen = derive([right.active, floating, expanded], (active, f, e) =>
+    f && active && !e ? 'open' : undefined,
   );
-  const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
+  const rightPanelWidth = rightDock.sizePx;
+  const railInset = derive(railPx, (px) => `${px + Edge}px`);
   // The canvas: quiet (transparent, its axes and all) from the start and while the empty canvas's mark and splash are
   // up, coming in gradually over its own color when something is in it (shell.module.css `.canvas[data-quiet]`); a
-  // load the mark never showed for finds it shown.
+  // load the mark never showed for finds it shown. Keys scoped to the canvas work while the focus is in it
+  // (`data-msp-scope`, commands.md §6).
   const canvasBox = (
-    <div class={classes.canvas} data-msp-canvas="" data-quiet={props.empty ? '' : undefined}>
+    <div class={classes.canvas} data-msp-canvas="" data-msp-scope="canvas" data-quiet={props.empty ? '' : undefined}>
       {props.canvas}
     </div>
   ) as HTMLElement;
   const canvasShown = (shown: boolean) => canvasBox.toggleAttribute('data-quiet', !shown);
   const root = (
-    <div class={classes.shell} data-mode={shell.mode} data-expanded={expanded.pipe(map((e) => (e ? '' : undefined)))}>
-      <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => !f && !e))}>
+    <div class={classes.shell} data-mode={shell.mode} data-expanded={derive(expanded, (e) => (e ? '' : undefined))}>
+      <Show when={derive([floatingTop, expanded], (f, e) => !f && !e)}>
         {() => <DockView shell={shell} dock={top} />}
       </Show>
       <Show when={shown}>{() => <DockView shell={shell} dock={shell.dock('left')} />}</Show>
@@ -212,31 +193,31 @@ export function ShellView(props: ShellViewProps) {
           '--msp-canvas-top-inset': topInset,
           // Where the canvas and a band end, px from the right: the rail (and a pinned panel). Anchored to the viewport's
           // right edge.
-          '--msp-canvas-end': canvasEnd.pipe(map((px) => `${px}px`)),
+          '--msp-canvas-end': derive(canvasEnd, (px) => `${px}px`),
           '--msp-band-fade': `${BandFadePx}px`,
           '--msp-band-dissolve': `${BandDissolvePx}px`,
           // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
-          '--msp-canvas-rail-inset': railPx.pipe(map((px) => `${px + Edge}px`)),
+          '--msp-canvas-rail-inset': railInset,
           '--msp-right-panel-width': rightPanelWidth,
           // Where cards beside the rail end (the floating panel's right edge).
-          '--msp-canvas-panel-right': railPx.pipe(map((px) => `${px + Edge}px`)),
+          '--msp-canvas-panel-right': railInset,
           // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
-          '--msp-canvas-pinned': pinnedWidth.pipe(map((px) => `${px}px`)),
+          '--msp-canvas-pinned': derive(pinnedWidth, (px) => `${px}px`),
           // The canvas's own color under it: a canvas fading in (`reveal`) shows the structure coming, not the shell.
-          background: props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
+          background: props.ink ? derive(props.ink, (i) => i.color) : undefined,
         }}
       >
         {canvasBox}
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}
-          data-msp-theme={props.ink ? props.ink.pipe(map((i) => i.theme)) : 'light'}
+          data-msp-theme={props.ink ? derive(props.ink, (i) => i.theme) : 'light'}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
-            '--msp-color-bg': props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
+            '--msp-color-bg': props.ink ? derive(props.ink, (i) => i.color) : undefined,
           }}
         >
-          <Show when={combineLatest([floatingTop, expanded]).pipe(map(([f, e]) => f && !e))}>
+          <Show when={derive([floatingTop, expanded], (f, e) => f && !e)}>
             {() => <FloatingDock shell={shell} dock={top} />}
           </Show>
           {props.empty ? (
@@ -260,7 +241,13 @@ export function ShellView(props: ShellViewProps) {
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>
-                <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} quiet={props.empty} />
+                <CanvasStack
+                  shell={shell}
+                  lead={props.canvasLead}
+                  aside={props.canvasAside}
+                  {...(props.canvasLeadMenu ? { leadMenu: props.canvasLeadMenu } : {})}
+                  quiet={props.empty}
+                />
                 <ContextChips status={status} lead={props.context?.()} />
               </div>
             </div>
@@ -270,8 +257,8 @@ export function ShellView(props: ShellViewProps) {
         <div
           class={classes.layer}
           data-right-panel={rightPanelOpen}
-          data-pinned={pinned.pipe(map((p) => (p ? '' : undefined)))}
-          data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
+          data-pinned={derive(pinned, (p) => (p ? '' : undefined))}
+          data-overlay={derive(shell.overlay, (o) => (o ? 'open' : undefined))}
         >
           <OverlayHost shell={shell} />
           {/* Over the canvas, beside the rail and the open panel (they stay, and the page makes room for them). */}
@@ -282,7 +269,7 @@ export function ShellView(props: ShellViewProps) {
                 when={floating}
                 fallback={() => (
                   // Docked beside the canvas (not compact: there the rail's actions are under More).
-                  <Show when={compact.pipe(map((c) => !c))}>
+                  <Show when={derive(compact, (c) => !c)}>
                     {() => (
                       <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
                         <CanvasToolbar shell={shell} />
@@ -325,7 +312,7 @@ export function ShellView(props: ShellViewProps) {
           </Show>
         </div>
       </main>
-      <Show when={combineLatest([floating, expanded]).pipe(map(([f, e]) => !f && !e))}>
+      <Show when={derive([floating, expanded], (f, e) => !f && !e)}>
         {() => (
           <DockView
             shell={shell}
@@ -362,13 +349,10 @@ export function ShellView(props: ShellViewProps) {
       e.preventDefault();
     }
   };
-  document.addEventListener('keydown', onKeyDown);
-  onCleanup(() => document.removeEventListener('keydown', onKeyDown));
+  on(document, 'keydown', onKeyDown);
   // Tooltips for the icon buttons of the rail and the canvas stack.
   onCleanup(installTooltips(root));
   // The shell decides compact or desktop by its own width, not the window's.
-  const observer = new ResizeObserver((entries) => shell.setWidth(entries[0].contentRect.width));
-  observer.observe(root);
-  onCleanup(() => observer.disconnect());
+  observeResize(root, (entries) => shell.setWidth(entries[0].contentRect.width));
   return root;
 }

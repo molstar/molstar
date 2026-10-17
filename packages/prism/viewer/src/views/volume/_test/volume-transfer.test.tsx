@@ -11,7 +11,10 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { flushFrame } from '@molstar/prism-ui/dom/scope';
+import { pendingFrameCallbacks } from '@molstar/prism-ui/reactive/frame-state';
+import { lostReleases, stubPointerCapture } from '@molstar/prism-ui/testing/gestures';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { VolumeLevelUnit } from '../../../model/volume-levels.js';
 import type {
   TransferChange,
@@ -24,7 +27,9 @@ import { VolumeTransfer } from '../volume-transfer.js';
 // The transfer function's view: a point per control point, stepped with the keys (left and right along the axis, up
 // and down in opacity, Delete removes it), a stop on a point moving with it; the strip's stops.
 
+beforeAll(stubPointerCapture);
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.innerHTML = '';
 });
 
@@ -114,22 +119,63 @@ describe('the transfer function view', () => {
   });
 
   it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
-    const frames: FrameRequestCallback[] = [];
-    const cancelled: number[] = [];
-    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
-    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
-    HTMLElement.prototype.setPointerCapture = () => undefined;
+    // The drag's step waits for the frame (a frame state, published in the page's one frame tick); disposed, it is
+    // dropped, and no frame callback is left.
+    const before = pendingFrameCallbacks();
     const t = mount();
     const point = t.sliders()[1];
-    point.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 5 }));
-    point.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6, clientY: 6 }));
+    point.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, buttons: 1, clientX: 5, clientY: 5 }));
+    point.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, buttons: 1, clientX: 6, clientY: 6 }));
     expect(t.settled).toEqual([]);
-    expect(frames.length).toBeGreaterThan(0);
+    expect(t.changes).toHaveLength(0);
 
     t.dispose();
     expect(t.settled).toEqual([1]);
-    expect(cancelled.length).toBeGreaterThan(0);
-    raf.mockRestore();
-    caf.mockRestore();
+    flushFrame();
+    expect(t.changes).toHaveLength(0);
+    expect(pendingFrameCallbacks()).toBe(before);
+  });
+
+  /** Presses a second apart: none is a double click (which removes what it is on). */
+  const slowPresses = () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => (now += 1000));
+  };
+
+  it('a point drag that loses its release leaves no listener, and the next one moves the point', () => {
+    slowPresses();
+    const t = mount();
+    const plot = t.sliders()[0].closest<HTMLElement>('[title^="Drag a point"]')!;
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+    const r = lostReleases({
+      target: () => t.sliders()[1],
+      from: { x: 30, y: 50 },
+      to: { x: 35, y: 50 },
+      reset: () => (t.changes.length = 0),
+      worked: () => t.points.value.length === 4 && Math.abs(t.points.value[1].x - 0.35) < 1e-9,
+    });
+    expect(r.grown).toBe(0);
+    expect(r.worked).toBe(true);
+  });
+
+  it('a stop drag that loses its release leaves no listener, and the next one moves the stop', () => {
+    slowPresses();
+    const t = mount();
+    const strip = t.container.querySelector<HTMLElement>('[data-stop]')!.parentElement!.parentElement!;
+    // Wide enough that 0.45 is not within a snap (6 px) of a point.
+    strip.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 10 }) as DOMRect;
+    const stop = () => t.container.querySelector<HTMLElement>('[data-stop="1"]')!;
+    const r = lostReleases({
+      target: stop,
+      from: { x: 400, y: 5 },
+      to: { x: 450, y: 5 },
+      reset: () => (t.changes.length = 0),
+      worked: () => {
+        const c = t.colors.value;
+        return c.kind === 'value' && c.stops.length === 2 && Math.abs(c.stops[1].x - 0.45) < 1e-9;
+      },
+    });
+    expect(r.grown).toBe(0);
+    expect(r.worked).toBe(true);
   });
 });

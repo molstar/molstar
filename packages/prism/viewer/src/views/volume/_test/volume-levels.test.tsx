@@ -11,7 +11,10 @@
 
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { flushFrame } from '@molstar/prism-ui/dom/scope';
+import { pendingFrameCallbacks } from '@molstar/prism-ui/reactive/frame-state';
+import { lostReleases, stubPointerCapture } from '@molstar/prism-ui/testing/gestures';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type {
   VolumeLevel,
   VolumeLevelChange,
@@ -23,6 +26,10 @@ import { VolumeLevels } from '../volume-levels.js';
 // The levels view: a marker per level on the map's histogram, stepped with the keys in σ; a row per level whose value
 // is typed in the unit chosen, the other unit beside it.
 
+beforeAll(() => {
+  stubPointerCapture();
+  (globalThis as { CSS?: unknown }).CSS ??= { escape: (s: string) => s };
+});
 afterEach(() => {
   document.body.innerHTML = '';
 });
@@ -99,23 +106,39 @@ describe('the levels view', () => {
   });
 
   it('closes the step of a drag it is disposed in the middle of, and asks for no more frames', () => {
-    const frames: FrameRequestCallback[] = [];
-    const cancelled: number[] = [];
-    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => frames.push(f));
-    const caf = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => void cancelled.push(id));
-    (globalThis as { CSS?: unknown }).CSS ??= { escape: (s: string) => s };
+    // The drag's step waits for the frame (a frame state, published in the page's one frame tick); disposed, it is
+    // dropped, and no frame callback is left.
+    const before = pendingFrameCallbacks();
     const t = mount();
     const marker = t.container.querySelector<HTMLElement>('[data-level]')!;
-    HTMLElement.prototype.setPointerCapture = () => undefined;
-    marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 5 }));
-    marker.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 6 }));
+    marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, buttons: 1, clientX: 5 }));
+    const pressed = t.changes.length;
+    marker.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, buttons: 1, clientX: 6 }));
     expect(t.settled()).toBe(0);
-    expect(frames.length).toBeGreaterThan(0);
+    expect(t.changes).toHaveLength(pressed);
 
     t.dispose();
     expect(t.settled()).toBe(1);
-    expect(cancelled.length).toBeGreaterThan(0);
-    raf.mockRestore();
-    caf.mockRestore();
+    flushFrame();
+    expect(t.changes).toHaveLength(pressed);
+    expect(pendingFrameCallbacks()).toBe(before);
+  });
+
+  it('a marker drag that loses its release leaves no listener, and the next one moves the level', () => {
+    const t = mount();
+    const plot = t.container.querySelector<HTMLElement>('[data-level]')!.closest<HTMLElement>('section')!
+      .children[1] as HTMLElement;
+    plot.getBoundingClientRect = () => ({ left: 0, width: 200 }) as DOMRect;
+    const marker = () => t.container.querySelector<HTMLElement>('[data-level="plus"]')!;
+    const r = lostReleases({
+      target: marker,
+      from: { x: 130, y: 0 },
+      to: { x: 180, y: 0 },
+      reset: () => (t.changes.length = 0),
+      // 180 of 200 px: 8 on −10 … 10.
+      worked: () => t.changes.at(-1)?.[0] === 'plus' && t.changes.at(-1)?.[1].value === 8,
+    });
+    expect(r.grown).toBe(0);
+    expect(r.worked).toBe(true);
   });
 });

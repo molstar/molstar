@@ -473,7 +473,7 @@ export function contactsAB() {
   };
 }
 
-/** AlphaFold DB's PAE colors (`@molstar/seq-molstar-poc`'s `PaeScale`): dark green at 0 Å to white at 30 Å. */
+/** AlphaFold DB's PAE colors (the Mol* adapter's `PaeScale`): dark green at 0 Å to white at 30 Å. */
 const PAE_SCALE = {
   theme: 'field_palette',
   params: {

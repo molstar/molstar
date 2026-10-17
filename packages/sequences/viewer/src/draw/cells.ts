@@ -115,6 +115,35 @@ export function shownHull(v: { axis: Axis | null }, b: number, k0: number, k1: n
   out[0] = Math.min(a, c);
   out[1] = Math.max(a, c) + 1;
 }
+let hullRuns = new Int32Array(32);
+/**
+ * The shown hull of block b's run [start, stop) of indices (`shownHull`'s inverse): its first shown position and one
+ * past its last, into `out`; false: none of it is shown. Through the axis's `runToShown` (a filter's runs, a reversed
+ * piece, a cyclic origin), module scratch grown only. Ints in and out.
+ */
+export function runHull(
+  v: { runToShown(b: number, start: number, stop: number, out: Int32Array): number },
+  b: number,
+  start: number,
+  stop: number,
+  out: Int32Array,
+): boolean {
+  let n = v.runToShown(b, start, stop, hullRuns);
+  if (2 * n > hullRuns.length) {
+    hullRuns = new Int32Array(4 * n);
+    n = v.runToShown(b, start, stop, hullRuns);
+  }
+  if (n === 0) return false;
+  let lo = hullRuns[0];
+  let hi = hullRuns[1];
+  for (let r = 1; r < n; r++) {
+    if (hullRuns[2 * r] < lo) lo = hullRuns[2 * r];
+    if (hullRuns[2 * r + 1] > hi) hi = hullRuns[2 * r + 1];
+  }
+  out[0] = lo;
+  out[1] = hi;
+  return hi > lo;
+}
 /** The pyramid level for block b's device columns (positions per column), of `levels`; -1: raw. */
 export function columnLevel(v: DrawView, b: number, levels: number, base = PYRAMID_BASE): number {
   const per = 1 / (v.cell * v.span[b] * v.dpr);

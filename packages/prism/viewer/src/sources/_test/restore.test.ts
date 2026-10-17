@@ -35,7 +35,7 @@ describe('the light restore', () => {
     const store = memoryStore({ version: 'test', budget: 256 * 1024 });
     const first = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
     expectOk(await first.api.load.url!({ url: Url, format: 'mmcif' }));
-    expectOk(await first.api.styles.apply({ style: 'surface' }));
+    expectOk(await first.api.styles.apply({ style: 'spacefill' }));
     first.restore!.flush();
     expect(first.restore!.available).toBe(true);
 

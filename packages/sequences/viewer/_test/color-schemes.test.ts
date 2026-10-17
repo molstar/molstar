@@ -74,7 +74,7 @@ describe('the picker', () => {
   it("lists only the schemes that fit: a protein alignment's rows, its points, its values; a DNA sequence", async () => {
     const t = await opened(case3());
     const [rows, points] = options(t.ctx, 'Members');
-    expect(rows).toEqual([null, 'clustal_x', 'zappo', 'taylor', 'hydrophobicity', 'percent_identity']);
+    expect(rows).toEqual([null, 'clustal_x', 'zappo', 'taylor', 'hydrophobicity', 'percent_identity', 'espript']);
     expect(points).toEqual([null, 'category10', 'okabe_ito', 'tableau10']);
     expect(options(t.ctx, 'Conservation')).toEqual([[null, 'viridis', 'cividis', 'magma', 'blues', 'rd_bu']]);
     const labels = colorSchemePickers(t.ctx, layer(t.ctx, 'Members').t)[0].options.map((o) => o.label);
@@ -181,6 +181,25 @@ describe('the override', () => {
     t.ctx.setSkin({ ...t.ctx.skin.value, dark: true });
     await settle(t.ctx);
     expect(color(t.ctx, 'Conservation').theme.value(at({ value: hi }))).toBe(0xf7fbff);
+    t.ctx.dispose();
+  });
+
+  it("ESPript's legend lists the colors drawn on either skin, once each", async () => {
+    const t = await opened(case3());
+    const { ref } = color(t.ctx, 'Members');
+    t.ctx.actions.run('layer.colorScheme', { layer: ref, scheme: 'espript' });
+    await settle(t.ctx);
+    // Deduped on label and color, as the legend lists them (`legend.ts`): one item per rule.
+    const items = () => {
+      const out: string[] = [];
+      const sink = { item: (label: string, c: number) => out.includes(`${label} ${c}`) || out.push(`${label} ${c}`) };
+      color(t.ctx, 'Members').theme.legend?.(sink as never);
+      return out;
+    };
+    expect(items()).toEqual([`identical ${0x000000}`, `similar ${0xbdbdbd}`]);
+    t.ctx.setSkin({ ...t.ctx.skin.value, dark: true });
+    await settle(t.ctx);
+    expect(items()).toEqual([`identical ${0xf0f0f0}`, `similar ${0x6b6b6b}`]);
     t.ctx.dispose();
   });
 

@@ -49,6 +49,13 @@ export interface Surface {
   readonly element: HTMLElement;
   /** Draws what is pending now, synchronously (tests, benchmarks, hidden pages). */
   renderNow(): void;
+  /**
+   * Whether the surface draws (true by default): an embedding host pauses one it hides
+   * (seqspec:viewer#the-render-backend). Inactive, it schedules no frame, `invalidate` only gathers its flags and a
+   * resize records the size; active again, one frame draws all that waited, sizing first, and an animation running when
+   * paused (a skeleton's shimmer, a region's fade) runs on.
+   */
+  setActive(active: boolean): void;
   dispose(): void;
 }
 export interface SurfaceStats {
@@ -157,6 +164,8 @@ export class SectionSurface implements Surface {
   private dirty: number = Dirty.all;
   private frameId = -1;
   private disposed = false;
+  /** The host's (`setActive`): drawn only while it and the viewer (`ui.active`) are. */
+  private active = true;
   private vp: SectionViewport | null = null;
   private live: Live<SectionLayout> | null = null;
   private readonly bound: Unsubscribable[] = [];
@@ -228,11 +237,32 @@ export class SectionSurface implements Surface {
     this.measure(this.dprNow());
   }
 
-  /** ORs `flags` (`Dirty`) in and asks for one frame; none while paused (`ui.active` false) or disposed. */
+  /**
+   * ORs `flags` (`Dirty`) in and asks for one frame; none while paused (the viewer's `ui.active`, or the host's
+   * `setActive`) or disposed: the flags wait for the resume.
+   */
   invalidate(flags: number): void {
     this.dirty |= flags;
-    if (this.frameId === -1 && this.dirty !== 0 && !this.disposed && this.ctx.ui.active.value)
+    if (this.frameId === -1 && this.dirty !== 0 && !this.disposed && this.active && this.ctx.ui.active.value)
       this.frameId = this.ctx.scheduler.requestFrame(this.onFrame);
+  }
+  setActive(active: boolean): void {
+    if (this.disposed || active === this.active) return;
+    this.active = active;
+    if (!active) {
+      if (this.frameId >= 0) this.ctx.scheduler.cancelFrame(this.frameId);
+      if (this.animId >= 0) this.ctx.scheduler.cancelFrame(this.animId);
+      this.frameId = this.animId = -1;
+      return;
+    }
+    this.resume();
+  }
+  /**
+   * One frame for all that waited; it sizes the canvases from the layout first (`frame`). A skeleton shimmering or a
+   * region fading in when paused (its polling frame cancelled, or let lapse) draws its overlay again, and so runs on.
+   */
+  private resume() {
+    this.invalidate(this.composer.animating ? Dirty.overlay : 0);
   }
   renderNow(): void {
     if (this.frameId >= 0) this.ctx.scheduler.cancelFrame(this.frameId);
@@ -302,7 +332,7 @@ export class SectionSurface implements Surface {
    */
   private readonly onStreams = () => this.invalidate(Dirty.all);
   private readonly onActive = (on: boolean) => {
-    if (on) this.invalidate(0);
+    if (on) this.resume();
   };
   /** The overlay only when the rail's or the navigator row's hot state changes (the composer's `navOf` test). */
   private readonly onPointer = () => {
@@ -345,7 +375,9 @@ export class SectionSurface implements Surface {
     z[1] = h;
     z[2] = dpr;
     this.vp?.setSize(w, h, dpr);
-    if (this.ctx.ui.active.value) this.renderNow();
+    if (this.active && this.ctx.ui.active.value) this.renderNow();
+    // Paused: the size is recorded, the whole surface drawn in the resume's frame.
+    else this.dirty |= Dirty.all;
   }
   /**
    * Each canvas at its pass's size, from the layout the composer draws (its `W`, `H`: the layout's CSS px × DPR,
@@ -388,7 +420,7 @@ export class SectionSurface implements Surface {
   private animId = -1;
   private readonly onAnim = () => {
     this.animId = -1;
-    if (this.disposed || !this.ctx.ui.active.value) return;
+    if (this.disposed || !this.active || !this.ctx.ui.active.value) return;
     if (this.ctx.scheduler.now() < this.due[0] - 1) {
       this.animId = this.ctx.scheduler.requestFrame(this.onAnim);
       return;
@@ -399,7 +431,7 @@ export class SectionSurface implements Surface {
   };
   private readonly onFrame = () => {
     this.frameId = -1;
-    if (!this.disposed && this.ctx.ui.active.value) this.frame();
+    if (!this.disposed && this.active && this.ctx.ui.active.value) this.frame();
   };
   /** Reads the layout (built if stale), sizes the canvases from it, then the composer draws the flags gathered. */
   private frame() {

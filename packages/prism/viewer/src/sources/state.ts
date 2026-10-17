@@ -7,7 +7,7 @@
  */
 
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import type { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { type BehaviorSubject, Observable, type Subscription } from 'rxjs';
 
 // One shape for every source (state.md §4): the plugin's patterns (a BehaviorSubject, a mutable field with a void
 // `changed`, events to accumulate) turned into `ReadonlyState<T>`: a synchronous `value`, emitting only on change. Each
@@ -80,4 +80,23 @@ export function sameItems<T>(a: readonly T[], b: readonly T[], same: (x: T, y: T
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (!same(a[i], b[i])) return false;
   return true;
+}
+
+/**
+ * An event told at most once a task (a microtask after the first): Mol*'s per-item events (the selection's `changed`
+ * for each structure a select writes) followed by a listener that reads every structure would be items × structures.
+ */
+export function onceATask(event: Observable<unknown>): Observable<void> {
+  return new Observable<void>((subscriber) => {
+    let pending = false;
+    const sub = event.subscribe(() => {
+      if (pending) return;
+      pending = true;
+      queueMicrotask(() => {
+        pending = false;
+        if (!subscriber.closed) subscriber.next();
+      });
+    });
+    return () => sub.unsubscribe();
+  });
 }

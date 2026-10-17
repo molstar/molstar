@@ -11,6 +11,7 @@
 // throw omits the layer, reported once), a split row's guide, the rows' band in one `rows` call, and a moved lazy
 // band's cut rows. Per frame nothing is allocated (RN1's draw pattern).
 
+import { Lanes } from '@molstar/seq-core/format';
 import { AxisGeometry } from '../axis.js';
 import type { ViewModel } from '../graph.js';
 import { EntryKind, type SectionLayout, SectionLayouts, SPLIT_GUIDE_PX } from '../layout.js';
@@ -101,15 +102,21 @@ function data(f: ComposerFrame, l: SectionLayout, e: number, parts: number) {
   v.top = b[0];
   v.height = b[4];
   place(f, l, e);
-  // Wrapped, under the line's first letters: what the line's other tracks draw on its text.
-  if (l.geometry === WRAPPED && lettersEntry(f, l, e)) behindText(f, l, e);
+  // Wrapped, with the line's first letters: what the line's other tracks draw on its text, under the letters (over
+  // them where the letters sit on cells, `wrappedCells`: a highlight is translucent).
+  const text = l.geometry === WRAPPED && lettersEntry(f, l, e);
+  const under = !v.props.wrappedCells;
+  if (text && under) behindText(f, l, e);
   // A split row's guide, under its data.
   if (b[4] === b[1] && b[1] * v.dpr >= SPLIT_GUIDE_PX && SectionLayouts.splitGuide(l, e)) guide(f, b);
   const t = l.entryTrack[e];
   const k0 = l.entryLayer[e];
   const one = SectionLayouts.splitRow(l, e) >= 0;
-  for (let k = k0; k < rv.layers.count && rv.layers.track[k] === t && !(one && k > k0); k++)
-    if (l.entryRow[e] !== -2 || k !== rv.tracks.split[t]) layer(f, k, l, e);
+  if (l.geometry === WRAPPED && t === l.textRows.track) textRows(f, l, e);
+  else
+    for (let k = k0; k < rv.layers.count && rv.layers.track[k] === t && !(one && k > k0); k++)
+      if (l.entryRow[e] !== -2 || k !== rv.tracks.split[t]) layer(f, k, l, e);
+  if (text && !under) behindText(f, l, e);
   // The row's border, inside its box below its content (thin split rows, a grid, share one: the track's bottom).
   if (b[4] < b[1]) {
     const r = f.rects;
@@ -156,6 +163,45 @@ function layer(f: ComposerFrame, k: number, l: SectionLayout, e: number) {
   } finally {
     release(f);
   }
+}
+/**
+ * Wrapped, the rows drawn as text (seqspec:viewer#rows-in-text): the rows layer over the line's band, then each other
+ * layer of the track on the text row of the row it targets (`v.row`, its lane offset), its `behindText` alone (a range's
+ * `box` or `highlight`); the rows in view only. A throw omits the layer.
+ */
+function textRows(f: ComposerFrame, l: SectionLayout, e: number) {
+  const v = f.v;
+  const tr = l.textRows;
+  const L = (f.model as ViewModel).resolved.layers;
+  const lanes = (f.model as ViewModel).resolved.lanes;
+  layer(f, tr.layer, l, e);
+  const top = v.top;
+  const height = v.height;
+  const h = tr.height;
+  const d0 = Math.max(0, Math.floor((f.box[2] - top) / h)) | 0;
+  const d1 = Math.min(tr.count, Math.ceil((f.box[3] - top) / h)) | 0;
+  const t = l.entryTrack[e];
+  for (let k = Math.max(0, l.entryLayer[e]); k < L.count && L.track[k] === t; k++) {
+    const r = f.renderers[k];
+    if (k === tr.layer || !r?.behindText || f.failed.has(k)) continue;
+    prime(f, k, l, e);
+    try {
+      for (let d = d0; d < d1; d++) {
+        v.top = top + d * h;
+        v.height = h;
+        v.row = d;
+        v.dataRow = Lanes.rowOf(lanes, tr.laneStart + d);
+        r.behindText(v, stateOf(f, k, l, e), L.params[k]);
+      }
+    } catch (err) {
+      fail(f, k, err);
+    } finally {
+      release(f);
+    }
+  }
+  v.top = top;
+  v.height = height;
+  v.row = v.dataRow = -1;
 }
 /** Whether entry e's track holds a `letters` layer: the text's band on a wrapped line. */
 function lettersEntry(f: ComposerFrame, l: SectionLayout, e: number): boolean {

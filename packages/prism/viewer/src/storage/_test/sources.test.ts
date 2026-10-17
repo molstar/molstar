@@ -121,6 +121,20 @@ describe('kept records', () => {
     source.dispose();
   });
 
+  it("a viewer without a key lists its own records, never the app's", async () => {
+    const app = createIndexedDbRows<ThreadTable>('prism-viewer-records');
+    const record = await keptRecord(app, 'The app’s', Date.now());
+    await record.dispose();
+    app.close();
+
+    const unkeyed = viewerStorageSources({});
+    expect(await unkeyed.sources[0].list()).toEqual([]);
+    const keyed = viewerStorageSources({ persist: { key: 'prism-viewer' } });
+    expect((await keyed.sources[0].list()).map((e) => e.label)).toEqual(['The app’s']);
+    unkeyed.dispose();
+    keyed.dispose();
+  });
+
   it('lists nothing where there is no IndexedDB', async () => {
     vi.stubGlobal('indexedDB', undefined);
     expect(await keptRecordsSource().list()).toEqual([]);
@@ -161,6 +175,19 @@ describe('the light stores', () => {
     expect(local.getItem('prism-viewer.layout')).toBeNull();
     expect(local.getItem('prism-viewer.notours')).toBe('plain text');
     expect(local.getItem('prism-assistant.setup')).not.toBeNull();
+  });
+
+  it('Forget on the keyboard shortcuts resets the keymap’s in-memory layer, and nothing else does', async () => {
+    const preferences = memoryStore({ version: '1', budget: 1000 });
+    preferences.set('keybindings', { a: { key: 'j' } });
+    preferences.set('theme', 'dark');
+    const reset = vi.fn();
+    const prefs = viewerStorageSources({ persist: { key: 'v', preferences }, resetKeybindings: reset }).sources[1];
+    await prefs.forget('theme');
+    expect(reset).not.toHaveBeenCalled();
+    await prefs.forget('keybindings');
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(preferences.get('keybindings')).toBeUndefined();
   });
 
   it("are the viewer's sources when the spec gives listing stores", async () => {

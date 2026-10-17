@@ -15,6 +15,8 @@
 import type { LineStyle } from '@molstar/seq-core/format';
 import {
   ANNOTATION_COLOR,
+  ANNOTATION_GLYPH,
+  ANNOTATION_GLYPHS,
   ANNOTATION_STYLE,
   ANNOTATION_STYLES,
   type AnnotationEntry,
@@ -25,6 +27,7 @@ import {
   annotationStates,
   annotationTarget,
   deleteName,
+  placeGlyphs,
   removeAnnotation,
   revealAnnotation,
   showName,
@@ -88,6 +91,14 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
   style.value = ANNOTATION_STYLE;
   const lineStyle = () => style.value as LineStyle;
   style.addEventListener('change', () => refresh());
+  // A place of markers (`kind` `points`) takes a glyph in the line style's place.
+  const shape = h(
+    'select',
+    { class: 'seqv-annotations-style', 'aria-label': 'Annotation glyph', 'data-seqv-key': 'glyph' },
+    ...ANNOTATION_GLYPHS.map((x) => h('option', { value: x }, x)),
+  );
+  shape.value = ANNOTATION_GLYPH;
+  shape.addEventListener('change', () => refresh());
   const add = button(
     { class: 'seqv-switch-trigger seqv-annotations-add', 'data-seqv-key': 'add' },
     () => run(),
@@ -101,9 +112,17 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
   const places = () => annotationPlaces(p.section, p.data, p.places);
   /** The set the next add goes to: the chosen place while it is one of the places, else the first. */
   let chosen = '';
-  const target = () => {
+  const place = () => {
     const all = places();
-    return (all.find((x) => x.data === chosen) ?? all[0]).data;
+    return all.find((x) => x.data === chosen) ?? all[0];
+  };
+  const target = () => place().data;
+  const glyph = () => (placeGlyphs(place()) ? shape.value : undefined);
+  /** The line style's picker, or the glyph's on a place of markers. */
+  const picker = () => {
+    const want = glyph() === undefined ? style : shape;
+    if (want.isConnected) return;
+    (want === style ? shape : style).replaceWith(want);
   };
   const marks = () => {
     const now = target();
@@ -127,6 +146,7 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
             () => {
               chosen = x.data;
               marks();
+              picker();
               refresh();
             },
             x.label,
@@ -140,7 +160,7 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
   };
   const run = () => {
     if (add.getAttribute('aria-disabled') === 'true') return;
-    if (addAnnotation(ctx, p.section, label.value, color.value, target(), lineStyle())) label.value = '';
+    if (addAnnotation(ctx, p.section, label.value, color.value, target(), lineStyle(), glyph())) label.value = '';
   };
   label.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
@@ -162,7 +182,11 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
       () => revealAnnotation(ctx, p.section, a.id, a.data),
       swatch,
       h('span', { class: 'seqv-annotation-label' }, a.label),
-      a.lineStyle !== ANNOTATION_STYLE ? h('span', { class: 'seqv-quiet seqv-annotation-style' }, a.lineStyle) : null,
+      a.glyph
+        ? h('span', { class: 'seqv-quiet seqv-annotation-style' }, a.glyph)
+        : a.lineStyle !== ANNOTATION_STYLE
+          ? h('span', { class: 'seqv-quiet seqv-annotation-style' }, a.lineStyle)
+          : null,
       a.place ? h('span', { class: 'seqv-quiet seqv-annotation-place' }, a.place) : null,
       h('span', { class: 'seqv-quiet' }, a.span),
     );
@@ -193,11 +217,12 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
     setAttr(
       add,
       'aria-disabled',
-      annotationTarget(ctx, p.section, label.value, color.value, target(), lineStyle()) === null,
+      annotationTarget(ctx, p.section, label.value, color.value, target(), lineStyle(), glyph()) === null,
     );
   };
   at.set(root);
   choices();
+  picker();
   const subs = [
     ...derived([ctx.document.shown], () => annotationEntries(ctx, places()), show, sameData),
     ...watch(annotationStates(ctx), refresh),
@@ -206,6 +231,7 @@ export const AnnotationsPanel: DomPart<AnnotationsPanelProps> = (host, ctx, prop
     update(next) {
       p = next;
       choices();
+      picker();
       show(annotationEntries(ctx, places()));
       refresh();
     },

@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ScrollArea } from '@molstar/prism-ui';
@@ -16,6 +15,7 @@ import { OptionList, type SelectOption } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import { classes } from './_generated/sequence-strip.module.css.js';
 
 /**
@@ -32,7 +32,7 @@ export interface SequenceSelector {
   /** The button's text for a value, shorter than the option ("1TQN" for "1TQN | Crystal structure of …"). */
   display?: (value: string) => string;
   /** Shown only while true (entity and chain in Chain mode; the instance with several). */
-  visible?: Observable<boolean>;
+  visible?: ReadonlyState<boolean>;
   /** Set in the text color and bold (the structure); the others quieter. */
   strong?: boolean;
 }
@@ -139,12 +139,11 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
   const open = observableState(false);
   // Fixed to the window under the button: the strip's card clips what overflows it.
   const at = observableState({ top: 0, left: 0 });
-  const text = selector.value.pipe(
-    map((v) => selector.display?.(v) ?? selector.options.find((o) => o[0] === v)?.[1] ?? v),
+  const text = derive(
+    selector.value,
+    (v) => selector.display?.(v) ?? selector.options.find((o) => o[0] === v)?.[1] ?? v,
   );
-  const tip = selector.value.pipe(
-    map((v) => `${selector.title}: ${selector.options.find((o) => o[0] === v)?.[1] ?? v}`),
-  );
+  const tip = derive(selector.value, (v) => `${selector.title}: ${selector.options.find((o) => o[0] === v)?.[1] ?? v}`);
   return (
     <span class={classes.choice}>
       <button
@@ -169,8 +168,8 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
           <div
             class={classes.popover}
             style={{
-              top: at.asReadonly.pipe(map((p) => `${p.top}px`)),
-              left: at.asReadonly.pipe(map((p) => `${p.left}px`)),
+              top: derive(at.asReadonly, (p) => `${p.top}px`),
+              left: derive(at.asReadonly, (p) => `${p.left}px`),
             }}
           >
             <OptionList
@@ -181,6 +180,7 @@ function HeaderSelect(props: { selector: SequenceSelector }) {
                 selector.set(v);
               }}
               onClose={() => open.set(false)}
+              aria-label={selector.title}
             />
           </div>
         )}

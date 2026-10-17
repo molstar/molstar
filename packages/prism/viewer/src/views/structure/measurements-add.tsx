@@ -8,16 +8,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { bind, ParamsForm } from '@molstar/prism-ui';
-import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
-import type { SceneNode } from '../../model/scene.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
+import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
+import type { SceneNode } from '../../model/scene.js';
 import { classes } from './_generated/measurements-add.module.css.js';
+import { reorderRows } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
 
 /** How many of the latest selections a measurement can use. */
 const MaxPoints = 4;
@@ -29,14 +29,11 @@ const MaxPoints = 4;
  */
 export function MeasurementsAdd(props: { model: MeasurementsModel }) {
   const { model } = props;
-  const used = model.points.pipe(map((p) => p.slice(0, MaxPoints)));
-  const older = model.points.pipe(
-    map((p) => Math.max(0, p.length - MaxPoints)),
-    distinctUntilChanged(),
-  );
+  const used = derive(model.points, (p) => p.slice(0, MaxPoints));
+  const older = derive(model.points, (p) => Math.max(0, p.length - MaxPoints));
   const options = observableState(false);
   let list: HTMLElement | undefined;
-  return (
+  const add = (
     <div class={classes.add}>
       <p class={classes.caption}>Points · the latest selections</p>
       <div class={classes.points} ref={(el: HTMLElement) => (list = el)}>
@@ -49,17 +46,10 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
             </p>
           )}
         >
-          {(point, index) => (
-            <PointRow
-              model={model}
-              point={point}
-              index={index}
-              onGrab={(e) => dragToReorder(e, list, point.id, (i) => model.movePointTo(point.id, i))}
-            />
-          )}
+          {(point, index) => <PointRow model={model} point={point} index={index} />}
         </For>
-        <Show when={older.pipe(map((n) => n > 0))}>
-          {() => <p class={classes.more}>{older.pipe(map((n) => `+${n} older, not used`))}</p>}
+        <Show when={derive(older, (n) => n > 0)}>
+          {() => <p class={classes.more}>{derive(older, (n) => `+${n} older, not used`)}</p>}
         </Show>
       </div>
       <p class={classes.caption}>Measure</p>
@@ -69,7 +59,7 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
         ))}
       </div>
       {/* The measurements made: adjust them here too (the same as their rows in the Structure tab). */}
-      <Show when={model.added.pipe(map((a) => a.length > 0))}>
+      <Show when={derive(model.added, (a) => a.length > 0)}>
         {() => (
           <>
             <p class={classes.caption}>Added</p>
@@ -99,14 +89,11 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
       </Show>
     </div>
   );
+  if (list) reorderRows(list, `.${classes.grip}`, (id, index) => model.movePointTo(id, index));
+  return add;
 }
 
-function PointRow(props: {
-  model: MeasurementsModel;
-  point: MeasurementPoint;
-  index: ReadonlyState<number>;
-  onGrab: (e: PointerEvent) => void;
-}) {
+function PointRow(props: { model: MeasurementsModel; point: MeasurementPoint; index: ReadonlyState<number> }) {
   const { model, point } = props;
   return (
     <div
@@ -117,8 +104,8 @@ function PointRow(props: {
     >
       {/* The position; on hover, the handle that drags the point (the arrows stay for the keyboard). */}
       <span class={classes.slot}>
-        <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
-        <span class={classes.grip} aria-hidden="true" data-tip="Drag to reorder" onPointerDown={props.onGrab}>
+        <span class={classes.index}>{derive(props.index, (i) => `${i + 1}`)}</span>
+        <span class={classes.grip} aria-hidden="true" data-tip="Drag to reorder">
           <Icon name="grip-vertical" size={13} />
         </span>
       </span>
@@ -168,18 +155,15 @@ function PointRow(props: {
 /** A measurement: its icon and name, and how many points it takes; enabled once there are enough. */
 function KindRow(props: { model: MeasurementsModel; kind: MeasurementKind }) {
   const { model, kind } = props;
-  const ready = model.points.pipe(
-    map((p) => (kind.points === 0 ? p.length > 0 : p.length >= kind.points)),
-    distinctUntilChanged(),
-  );
+  const ready = derive(model.points, (p) => (kind.points === 0 ? p.length > 0 : p.length >= kind.points));
   const hint =
     kind.points === 0
-      ? ready.pipe(map((r) => (r ? 'of the selection' : 'needs a selection')))
-      : ready.pipe(
-          map((r) => (r ? (kind.points === 1 ? 'point 1' : `points 1–${kind.points}`) : `needs ${kind.points} points`)),
+      ? derive(ready, (r) => (r ? 'of the selection' : 'needs a selection'))
+      : derive(ready, (r) =>
+          r ? (kind.points === 1 ? 'point 1' : `points 1–${kind.points}`) : `needs ${kind.points} points`,
         );
   return (
-    <button type="button" class={classes.kind} disabled={ready.pipe(map((r) => !r))} onClick={() => model.add(kind.id)}>
+    <button type="button" class={classes.kind} disabled={derive(ready, (r) => !r)} onClick={() => model.add(kind.id)}>
       <span class={classes.kindTitle}>{kind.title}</span>
       <span class={classes.kindHint}>{hint}</span>
     </button>
@@ -193,14 +177,14 @@ function AddedRow(props: { model: MeasurementsModel; node: SceneNode }) {
   const style = model.styleOf(node);
   return (
     <div class={classes.addedItem}>
-      <div class={classes.addedRow} data-hidden={node.isHidden.pipe(map((h) => (h ? '' : undefined)))}>
+      <div class={classes.addedRow} data-hidden={derive(node.isHidden, (h) => (h ? '' : undefined))}>
         <span class={classes.pointLabel}>{node.label}</span>
         <span class={classes.addedValue}>{node.description}</span>
         <span class={classes.pointActions}>
           <button
             type="button"
             class={classes.addedAction}
-            title={node.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+            title={derive(node.isHidden, (h) => (h ? 'Show' : 'Hide'))}
             onClick={() => node.toggleVisibility()}
           >
             <Show when={node.isHidden} fallback={() => <Icon name="eye" size={14} />}>

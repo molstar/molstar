@@ -9,7 +9,7 @@
 import { StateTransform } from '@molstar/core/state';
 import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
-import { entryOf, structureNames, workingStructure } from '../sources/naming.js';
+import { entryOf, loadedNames, structureNames, workingStructure } from '../sources/naming.js';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 
 // Which things an operation acts on (targets.md §1, "the structure"): the one rule that turns a name into one of a
@@ -93,7 +93,7 @@ export function structureId(ctx: Pick<ApiContext, 'plugin'>, s: StructureRef): S
 
 /** The structure's name for people (`sources/naming.ts`): its entry, told apart when two share one. */
 export function labelOf(ctx: Pick<ApiContext, 'plugin'>, s: StructureRef): string {
-  return structureNames(loadedStructures(ctx)).get(s.cell.transform.ref) ?? s.cell.transform.ref;
+  return loadedNames(ctx.plugin).get(s.cell.transform.ref) ?? s.cell.transform.ref;
 }
 
 function structureRule(list: readonly StructureRef[]): NameRule<StructureRef> {

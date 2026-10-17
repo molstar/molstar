@@ -179,6 +179,14 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
   residues in the skin's unobserved color, in text and in cells). A focus scrolls the text to its lines
   (`focusViewport`'s `reveal`), and a new text section opens on its focus. A host that opens its own track menu at
   the pointer adds the `contextMenu` behavior (`SeqViewerOptionalBehaviors`): a secondary press asks for it.
+- **Alignment figures.** An alignment's rows are text too: a block of rows on every line, each row named on the left
+  and numbered on the right in its own numbering, the group numbers the reference row's. With the style's
+  `text_cells` the rows sit on their theme's cells, each letter in the ink that reads on its cell; the `espript`
+  scheme shades identical columns black and similar residues grey. A `frame` layer outlines named regions across
+  tracks (every row of the block, or the rows its item targets), titled, open where a line break cuts it, in the
+  tracks view too; `secondary` draws helices as cylinders and, with `labels`, their names (α1, β2). The Annotations
+  panel adds frames, boxes on a row and glyph markers from the selection.
+  [Alignment figure](?path=/story/seq-text-view--alignment-figure).
 - **Follow.** A section follows another's window through a coordinate map, a codon step's third
   included. [Following sections](?path=/story/seq-views-and-layouts-axes-and-strands--follow).
 - **Patches, snapshots, undo.** Filter view, hide and remove, each a patch (a small change to the
@@ -203,14 +211,14 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
 - **Location sets and bookmarks.** A section's `highlights` show annotations (a SeqQL query node
   among them) persistently, each entry a highlight channel: a band behind the tracks, or the
   overlay's highlight or accent; Nightingale lights them as its `highlight`. Bookmarks are an inline
-  ranges set the `bookmark.add` (with a label and a `color`), `bookmark.remove` and `bookmark.step` actions edit and step through; the `Annotations` part (`/react`, `/dom`) is that as a panel: add the selection with a label and a color, a ranges track over the set draws it, in the text view and the tracks view alike ([Publication tracks](?path=/story/seq-text-view--publication-tracks)). [Location sets and bookmarks](?path=/story/seq-query-and-search-search--location-sets),
+  ranges set the `bookmark.add` (with a label and a `color`), `bookmark.remove` and `bookmark.step` actions edit and step through; the `Annotations` part (`/react`, `/dom`) is that as a panel: add the selection with a label and a color (and a line style, or a glyph on a place of markers), the set's track draws it (ranges, a frame, points), in the text view and the tracks view alike ([Publication tracks](?path=/story/seq-text-view--publication-tracks)). [Location sets and bookmarks](?path=/story/seq-query-and-search-search--location-sets),
   [finding things in p53](?path=/story/seq-cases-viewer--case-18).
 - **The hover card.** Items with a host's actions (`UI.ItemActions`) get an interactive card after a short rest: the
   hover's label and a button per action; it stays while the pointer crosses into it, and closes on leaving, Escape,
   a press outside, a pan or a zoom. The tooltip keeps its rule (it never takes the pointer). From the keyboard, the
   track menu (Shift+F10) lists the cursor's item's actions first. A host's track menu items can carry a check mark
   (`checked`).
-- **Structures (Mol\*).** `@molstar/seq-molstar-poc` (a proof of concept) reads structures headless, maps their chains onto
+- **Structures (Mol\*).** The Mol\* adapter (Mol\*'s, in the Prism viewer: `@molstar/prism-viewer/sequence/molstar`) reads structures headless, maps their chains onto
   UniProt by SIFTS, and links a Mol\* canvas: hover and selection both ways, "Show in 3D" from the hover card and the
   track menu, and the structure colored by any track as drawn (MVS color tables). Its providers give pLDDT and the
   model's own secondary structure (`molstar:secondary_structure`); a hover or selection on a ligand lights the whole

@@ -236,10 +236,11 @@ One per layer type; a geometry it lacks draws the layer's extents as bars and is
 | `color` | linear, wrapped, circular |
 | `ruler` | linear, circular |
 | `pairs` | linear, circular |
-| `rows` | linear |
+| `rows` | linear, wrapped |
 | `logo` | linear, circular |
 | `matrix` | linear |
 | `dot_plot` | linear |
+| `frame` | linear, wrapped, circular |
 | `seqv:map` | linear |
 
 ### Data columns

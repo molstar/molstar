@@ -8,9 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon, type ReadonlyState } from '@molstar/prism-ui';
+import { Icon, openContextMenu, type ReadonlyState } from '@molstar/prism-ui';
 import { EntryKind, type SectionLayout } from '@molstar/seq-viewer';
+import { effect, frameState, getScope } from '@molstar/prism-ui/dom/scope';
+import { on } from '@molstar/prism-ui/dom/scoped';
 import { switchMap } from 'rxjs';
+import { type SequenceApiRunner, setTrackHidden, showAllTracks } from './commands.js';
 import type { SequenceViewer, TrackColoring } from './model.js';
 import { classes } from './_generated/track-gutter.module.css.js';
 
@@ -18,7 +21,9 @@ import { classes } from './_generated/track-gutter.module.css.js';
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
 // tops and heights are read from Seq*'s section layout when the layout is rebuilt, never per frame or pointer move; the
 // row the pointer is over is Seq*'s `interaction.hover` (its track, whatever part of the row), which fires only when
-// what is under the pointer changes, and the DOM changes when the track differs.
+// what is under the pointer changes, and the DOM changes when the track differs. While tracks are hidden, a faint
+// "N hidden" at the foot of the tracks opens a menu that shows them again (sequence.md §8); with none hidden it is not
+// there.
 
 /** A track row that has an icon: its place in the section (px from the surface's top). */
 export interface GutterRow {
@@ -59,10 +64,56 @@ export function mountTrackGutter(
   surface: HTMLElement,
   root: HTMLElement,
   section: ReadonlyState<string>,
+  /** The API as the person: the hint's menu shows tracks through it (steps); none: on the model. */
+  api?: SequenceApiRunner,
 ): () => void {
   const seq = viewer.seq;
   const gutter = (<div class={classes.gutter} />) as HTMLElement;
   root.append(gutter);
+
+  // The hidden tracks' hint: its menu lists them (Show all first), opened under it.
+  let closeMenu: (() => void) | undefined;
+  const hint = (
+    <button
+      type="button"
+      class={classes.hint}
+      onClick={() => {
+        const hidden = viewer.tracks.value.filter((t) => t.hidden);
+        if (!hidden.length) return;
+        const r = hint.getBoundingClientRect();
+        closeMenu?.();
+        closeMenu = openContextMenu(
+          hint.closest<HTMLElement>('.msp-root') ?? document.body,
+          { x: r.left, y: r.bottom },
+          [
+            { id: 'show-all', label: 'Show all tracks', icon: 'eye', run: () => void showAllTracks(viewer, api) },
+            ...hidden.map((t) => ({
+              id: `show:${t.ref}`,
+              label: `Show ${t.label}`,
+              run: () => void setTrackHidden(viewer, api, t.ref, false),
+            })),
+          ],
+        );
+      }}
+    />
+  ) as HTMLElement;
+  /** The hint's text and place, written when they change. */
+  let hintText = '';
+  let hintTop = -1;
+  const placeHint = (count: number, top: number) => {
+    const text = count > 0 ? `${count} hidden` : '';
+    if (text !== hintText) {
+      hintText = text;
+      hint.textContent = text;
+      hint.setAttribute('aria-label', count === 1 ? '1 hidden track: show it' : `${count} hidden tracks: show them`);
+      if (text) gutter.append(hint);
+      else hint.remove();
+    }
+    if (text && top !== hintTop) {
+      hintTop = top;
+      hint.style.transform = `translateY(${top}px)`;
+    }
+  };
 
   const buttons = new Map<string, { el: HTMLElement; coloring: TrackColoring }>();
   let over: string | undefined;
@@ -83,20 +134,29 @@ export function mountTrackGutter(
     refresh();
   };
 
+  // A coloring run from an icon: the marker read again in the next frame too (a frame state of the runs, counted; its
+  // pending offer goes with the scope).
+  let runs = 0;
+  const ran = frameState(0);
+  effect(ran, (n) => {
+    if (n > 0) refresh();
+  });
+
   /** The rows again, on the layout's rebuild (a resize, tracks coming and going, the style): edge rate. */
   const rebuild = () => {
     const a = seq.graph.assembled.value;
     const layout = seq.layout.get(section.value)?.current;
     const view = a?.view;
-    gutter.replaceChildren();
+    for (const { el } of buttons.values()) el.remove();
     buttons.clear();
     over = undefined;
-    if (!layout || !view || viewer.style.value !== 'tracks') return;
-    const rows = gutterRows(
-      layout,
-      (t) => a.set.strings.get(view.resolved.tracks.ref[t]),
-      (ref) => viewer.trackColoring(ref) !== undefined,
-    );
+    if (!layout || !view || viewer.style.value !== 'tracks') return placeHint(0, 0);
+    const refOf = (t: number) => a.set.strings.get(view.resolved.tracks.ref[t]);
+    // The hint sits under the last row shown.
+    const all = gutterRows(layout, refOf, () => true);
+    const last = all[all.length - 1];
+    placeHint(viewer.tracks.value.filter((t) => t.hidden).length, last ? last.top + last.height : 0);
+    const rows = gutterRows(layout, refOf, (ref) => viewer.trackColoring(ref) !== undefined);
     for (const row of rows) {
       const coloring = viewer.trackColoring(row.track);
       const icon = coloring?.icon;
@@ -113,7 +173,7 @@ export function mountTrackGutter(
             coloring.run();
             // The action is asynchronous (one Mol* state update): the marker follows when it has run.
             setTimeout(refresh, 0);
-            requestAnimationFrame(() => refresh());
+            ran.offer(++runs);
           }}
         >
           <Icon name={icon} size={16} />
@@ -125,20 +185,38 @@ export function mountTrackGutter(
     refresh();
   };
 
+  // Hidden UI does no UI updates (styling.md §5): while the band's scope is paused (a hidden dock), a change marks the
+  // gutter stale and it is rebuilt once on resume, not on every layout version.
+  let active = true;
+  let stale = false;
+  const update = () => {
+    if (active) rebuild();
+    else stale = true;
+  };
+  getScope()?.onActive((a) => {
+    active = a;
+    if (a && stale) {
+      stale = false;
+      rebuild();
+    }
+  });
+
   let stop: (() => void) | undefined;
   const follow = () => {
     stop?.();
     stop = undefined;
     const live = seq.layout.get(section.value);
-    rebuild();
+    update();
     if (!live) return;
-    const sub = live.version.subscribe(rebuild);
+    const sub = live.version.subscribe(update);
     stop = () => sub.unsubscribe();
   };
   const sections = seq.viewports.sections.subscribe(follow);
   const style = viewer.style.subscribe(follow);
   const structure = viewer.structure.subscribe(follow);
   const shown = section.subscribe(follow);
+  // Hiding or showing a track changes the hint (the layout rebuilds too, but the list may come after it).
+  const tracks = viewer.tracks.subscribe(update);
 
   const hovers = section.pipe(switchMap((ref) => seq.interaction.on('hover', { section: ref })));
   const hovered = hovers.subscribe((e) =>
@@ -152,8 +230,8 @@ export function mountTrackGutter(
   const onGutterLeave = (e: PointerEvent) => {
     if (!surface.contains(e.relatedTarget as Node | null)) onLeave();
   };
-  surface.addEventListener('pointerleave', onSurfaceLeave);
-  gutter.addEventListener('pointerleave', onGutterLeave);
+  on(surface, 'pointerleave', onSurfaceLeave);
+  on(gutter, 'pointerleave', onGutterLeave);
 
   return () => {
     stop?.();
@@ -161,9 +239,9 @@ export function mountTrackGutter(
     style.unsubscribe();
     structure.unsubscribe();
     shown.unsubscribe();
+    tracks.unsubscribe();
+    closeMenu?.();
     hovered.unsubscribe();
-    surface.removeEventListener('pointerleave', onSurfaceLeave);
-    gutter.removeEventListener('pointerleave', onGutterLeave);
     gutter.remove();
   };
 }

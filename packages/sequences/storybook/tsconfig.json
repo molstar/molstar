@@ -1,6 +1,6 @@
 {
   "extends": "../../../tsconfig.base.json",
-  // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* through @molstar/seq-molstar-poc. Its references are the packages it imports, as built `lib` declarations (`tsc -b ../molstar-poc ../nightingale ../../prism/ui` first: the `typecheck` script); the stories' Storybook types are local (`src/_stories/support/seqstar-story.ts`).
+  // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* directly (the Mol* demo's plugin and MVS support) and the Mol* adapter through @molstar/prism-viewer/sequence/molstar. Its references are the packages it imports, as built `lib` declarations (`tsc -b ../nightingale ../../prism/ui ../../prism/viewer ../../mvs/builder` first: the `typecheck` script); the stories' Storybook types are local (`src/_stories/support/seqstar-story.ts`).
   "compilerOptions": {
     "strict": true,
     "strictPropertyInitialization": true,
@@ -20,9 +20,14 @@
     { "path": "../core" },
     { "path": "../viewer" },
     { "path": "../nightingale" },
-    { "path": "../molstar-poc" },
     { "path": "../../core" },
     { "path": "../../io" },
-    { "path": "../../prism/ui" }
+    { "path": "../../model" },
+    { "path": "../../query-language" },
+    { "path": "../../plugin/core" },
+    { "path": "../../mvs/builder" },
+    { "path": "../../mvs/runtime" },
+    { "path": "../../prism/ui" },
+    { "path": "../../prism/viewer" }
   ]
 }

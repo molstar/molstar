@@ -10,6 +10,7 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import { mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
@@ -19,13 +20,14 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { SceneRow } from '../scene-row.js';
 import { SceneRowSlot } from '../scene-tree.js';
 import type { SceneInspection } from '../../../model/scene.js';
+import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
 function mount() {
   const scene = mockScene();
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
-  const rows = () => [...container.querySelectorAll('[role=treeitem] > div:first-child')] as HTMLElement[];
+  const rows = () => shownInOrder(container, '[role=treeitem] > div:first-child');
   const row = (text: string) => rows().find((r) => r.querySelector('span')?.textContent === text)!;
   return { scene, container, dispose, rows, row };
 }
@@ -56,6 +58,7 @@ describe('StructureTab', () => {
     expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
     const before = rows().length;
     scene.roots.value[0].toggleExpanded();
+    flush();
     expect(rows().length).toBeLessThan(before);
   });
 
@@ -96,9 +99,7 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={shell} scene={scene} />, container);
-    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
-      r.textContent?.startsWith('Membrane'),
-    )!;
+    const row = shownInOrder(container, '[data-tree-row]').find((r) => r.textContent?.startsWith('Membrane'))!;
     row.click();
     const inspector = container.querySelector('[aria-label="Inspector"]')!;
     expect(inspector.textContent).toContain('Membrane');
@@ -131,16 +132,14 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={shell} scene={scene} />, container);
-    const rows = () =>
-      [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].filter((r) =>
-        r.textContent?.startsWith('Membrane'),
-      );
+    const rows = () => shownInOrder(container, '[data-tree-row]').filter((r) => r.textContent?.startsWith('Membrane'));
     const before = rows().length;
     rows()[0].click();
     const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
     expect(inspector().textContent).toContain('Fit…');
     // Its structure goes, and the row with it: its controls would act on nothing.
     scene.roots.value[0].remove();
+    flush();
     expect(rows().length).toBe(before - 1);
     expect(inspector().textContent).not.toContain('Fit…');
     expect(inspector().textContent).toContain('Select an item in the tree');
@@ -153,9 +152,7 @@ describe('StructureTab', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
-    const row = [...container.querySelectorAll<HTMLElement>('[data-tree-row]')].find((r) =>
-      r.textContent?.startsWith('Cartoon'),
-    )!;
+    const row = shownInOrder(container, '[data-tree-row]').find((r) => r.textContent?.startsWith('Cartoon'))!;
     row.click();
     const picked = scene.picked.value!;
     const inspector = () => container.querySelector('[aria-label="Inspector"]')!;

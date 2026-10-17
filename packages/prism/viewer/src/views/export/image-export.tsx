@@ -8,14 +8,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
-import { ActionFooter, Choices, onCleanup } from '@molstar/prism-ui';
+import { ActionFooter, Choices } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { effect, frameState } from '@molstar/prism-ui/dom/scope';
+import { drag } from '@molstar/prism-ui/dom/scoped';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive, State } from '@molstar/prism-ui/reactive/state';
 import type { CropBox, ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
+
+/** What a model without a settled flag, or a view without kinds, gets: states that never change. */
+const Settled: ReadonlyState<boolean> = new State(true).asReadonly;
+const NoKinds: ReadonlyState<readonly PictureKind[]> = new State<readonly PictureKind[]>([]).asReadonly;
 
 /** Besides an image, what else renders the view (an animation): a choice of the switch, and its controls. */
 export interface PictureKind {
@@ -32,20 +39,17 @@ export interface PictureKind {
  */
 export function ImageExport(props: {
   model: ImageExportModel;
-  kinds?: Observable<readonly PictureKind[]>;
+  kinds?: ReadonlyState<readonly PictureKind[]>;
   kind?: (id: string) => Child;
 }) {
   const { model } = props;
   // Whether the preview matches the settings (the first one after opening may not yet).
-  const settled = model.settled ?? of(true);
-  const mode = model.form.values.pipe(
-    map((v) => (v.mode as string | undefined) || 'image'),
-    distinctUntilChanged(),
-  );
-  const kinds = props.kinds ?? of([]);
+  const settled = model.settled ?? Settled;
+  const mode = derive(model.form.values, (v) => (v.mode as string | undefined) || 'image');
+  const kinds = props.kinds ?? NoKinds;
   return (
     <div class={classes.export}>
-      <Show when={kinds.pipe(map((k) => (k.length ? k : undefined)))}>
+      <Show when={derive(kinds, (k) => (k.length ? k : undefined))}>
         {(k) => (
           <Choices
             choices={[
@@ -61,15 +65,15 @@ export function ImageExport(props: {
         <div
           class={classes.preview}
           style={{
-            'aspect-ratio': model.aspect.pipe(map((a) => `${a}`)),
-            background: model.preview.pipe(map((p) => p ?? 'var(--msp-color-control)')),
+            'aspect-ratio': derive(model.aspect, (a) => `${a}`),
+            background: derive(model.preview, (p) => p ?? 'var(--msp-color-control)'),
           }}
         >
           <Crop model={model} settled={settled} />
           <button
             type="button"
             class={classes.autoCrop}
-            aria-pressed={combineLatest([model.autoCrop.asReadonly, settled]).pipe(map(([a, s]) => a && s))}
+            aria-pressed={derive([model.autoCrop.asReadonly, settled], (a, s) => a && s)}
             title="Crop to the visible content"
             onClick={() => model.autoCrop.set(!model.autoCrop.value)}
           >
@@ -138,30 +142,19 @@ function dragged(start: CropBox, edge: Edge, dx: number, dy: number): CropBox {
  * keys move it and ⇧ arrow keys resize it. A drag turns auto-crop off (`setCrop`). The preview's size is read once
  * when a drag starts and the box is set at most once per frame (AGENTS.md, snappy).
  */
-function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) {
+function Crop(props: { model: ImageExportModel; settled: ReadonlyState<boolean> }) {
   const { model } = props;
-  let drag: { edge: Edge; width: number; height: number; start: CropBox; x0: number; y0: number } | undefined;
   let x = 0;
   let y = 0;
-  let frame = 0;
+  let held: { edge: Edge; width: number; height: number; start: CropBox; x0: number; y0: number } | undefined;
+  // The pointer's moves, counted: a frame state, so the box is set once a frame (its value is only a tick).
+  const moves = frameState(0);
+  let n = 0;
   const apply = () => {
-    frame = 0;
-    if (drag) model.setCrop(dragged(drag.start, drag.edge, (x - drag.x0) / drag.width, (y - drag.y0) / drag.height));
+    if (held) model.setCrop(dragged(held.start, held.edge, (x - held.x0) / held.width, (y - held.y0) / held.height));
   };
-  const end = (e: PointerEvent) => {
-    if (!drag) return;
-    if (frame) cancelAnimationFrame(frame);
-    apply();
-    drag = undefined;
-    const el = e.currentTarget as HTMLElement;
-    delete el.dataset.dragging;
-    if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
-  };
-  onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
-    drag = undefined;
-  });
-  return (
+  effect(moves, apply);
+  const el = (
     <div
       class={classes.crop}
       tabIndex={0}
@@ -169,42 +162,14 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
       aria-label="Crop: drag to move, drag an edge or a corner to resize; arrow keys move it, ⇧ arrow keys resize it"
       // Until the preview matches the settings, an automatic crop is not drawn (a stale preview would show the wrong
       // one); a crop the person set is theirs and stays.
-      hidden={combineLatest([props.settled, model.autoCrop.asReadonly]).pipe(map(([s, a]) => a && !s))}
-      data-auto={model.autoCrop.asReadonly.pipe(map((a) => (a ? '' : undefined)))}
+      hidden={derive([props.settled, model.autoCrop.asReadonly], (s, a) => a && !s)}
+      data-auto={derive(model.autoCrop.asReadonly, (a) => (a ? '' : undefined))}
       style={{
-        left: model.crop.pipe(map((c) => pct(c.x))),
-        top: model.crop.pipe(map((c) => pct(c.y))),
-        width: model.crop.pipe(map((c) => pct(c.width))),
-        height: model.crop.pipe(map((c) => pct(c.height))),
+        left: derive(model.crop, (c) => pct(c.x)),
+        top: derive(model.crop, (c) => pct(c.y)),
+        width: derive(model.crop, (c) => pct(c.width)),
+        height: derive(model.crop, (c) => pct(c.height)),
       }}
-      onPointerDown={(e: PointerEvent) => {
-        if (e.button !== 0 || drag) return;
-        const el = e.currentTarget as HTMLElement;
-        const preview = el.parentElement?.getBoundingClientRect();
-        if (!preview?.width || !preview.height) return;
-        const edge = ((e.target as HTMLElement).dataset.edge as Edge | undefined) ?? 'move';
-        drag = {
-          edge,
-          width: preview.width,
-          height: preview.height,
-          start: { ...model.crop.value },
-          x0: e.clientX,
-          y0: e.clientY,
-        };
-        x = e.clientX;
-        y = e.clientY;
-        el.dataset.dragging = '';
-        el.setPointerCapture?.(e.pointerId);
-        e.preventDefault();
-      }}
-      onPointerMove={(e: PointerEvent) => {
-        if (!drag) return;
-        x = e.clientX;
-        y = e.clientY;
-        if (!frame) frame = requestAnimationFrame(apply);
-      }}
-      onPointerUp={end}
-      onPointerCancel={end}
       onKeyDown={(e: KeyboardEvent) => {
         const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
         if (!step) return;
@@ -216,5 +181,40 @@ function Crop(props: { model: ImageExportModel; settled: Observable<boolean> }) 
         <span class={classes.handle} data-edge={edge} aria-hidden="true" />
       ))}
     </div>
-  );
+  ) as HTMLElement;
+  // The drag's listeners attached once (`drag`, dom/scoped.ts: every way it ends ends it); the preview's size read at
+  // the press.
+  drag(el, {
+    start: (e) => {
+      if (e.button !== 0) return undefined;
+      const preview = el.parentElement?.getBoundingClientRect();
+      if (!preview?.width || !preview.height) return undefined;
+      const edge = ((e.target as HTMLElement).dataset.edge as Edge | undefined) ?? 'move';
+      held = {
+        edge,
+        width: preview.width,
+        height: preview.height,
+        start: { ...model.crop.value },
+        x0: e.clientX,
+        y0: e.clientY,
+      };
+      x = e.clientX;
+      y = e.clientY;
+      el.dataset.dragging = '';
+      e.preventDefault();
+      return held;
+    },
+    move: (e) => {
+      x = e.clientX;
+      y = e.clientY;
+      moves.offer(++n);
+    },
+    end: (_s, _how, e) => {
+      // Ended by the pointer: where it is, now (a step still waiting for its frame is then a no-op); by the scope: not.
+      if (e) apply();
+      held = undefined;
+      delete el.dataset.dragging;
+    },
+  });
+  return el;
 }

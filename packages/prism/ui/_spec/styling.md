@@ -89,13 +89,16 @@ Every padding, margin and gap is a step of the scale or a rule named after it:
 - **Cut-off text fades out, no ellipsis**: `msp-fade-overflow` (`reset.css`, CSS only, on the element's inline scroll
   timeline); `data-tip-overflow` shows the full text in the tooltip only while cut off.
 - **Motion**: state changes take `--msp-motion-fast`; opening content grows and fades in `--msp-motion-base` (`Show`'s
-  `reveal`, `dom/motion.ts`). Nothing animates on first render, on a tab switch, for list rows, or under reduced motion
-  (the reset finishes every animation at once).
+  `reveal`, `dom/motion.ts`); a virtual tree's opened node too (its run of rows comes in, view-models.md §3: the user
+  expects it to open as a tree did before it was virtualized). Nothing animates on first render, on a tab switch, for a
+  list's other changes or its scrolling, or under reduced motion (the reset finishes every animation at once).
 - **Every scrolling area is a `ScrollArea`** (`components/scroll-area`): overlay scrollbars, fading edges where there is
   more to scroll (`msp-fade-scroll-*`).
 - **Shared controls**: `Select` opens inline (or floats with `over`); `ParamsForm` renders `PD.Params` as they are
   (essentials, then Advanced; on/off params as a switch); one `ColorPicker`; one `ActionFooter` ends every block applied
-  by a button; `Choices` for a row of one-click actions.
+  by a button, and Enter in a one-line field of that block applies it (as Mol* v5's actions: the field commits first;
+  not in a text area, a list box, a check or a slider, nor while it cannot apply); `Choices` for a row of one-click
+  actions.
 - **Focus rings** are a 2px `--msp-color-focus-ring` outline; fields, rows and footer buttons draw theirs inside.
 - **The canvas follows the theme when it is plain**: each theme has `--msp-canvas-bg`; choosing a theme sets it as the
   3D canvas's background only while that background is a plain color (no image, gradient or skybox style), and at the
@@ -128,7 +131,7 @@ content loads.
   shadows.
 - **Hover is instant**: no transition on a hover's colors (it reads as lag and makes neighbours blink on a sweep).
 - **Containment**: panels and cards set `contain` (`layout paint`, or `content` where the size is known), so a change
-  inside does not relayout the shell; off-screen rows use `content-visibility: auto`.
+  inside does not relayout the shell; off-screen rows use `content-visibility: auto` where a list is not virtualized.
 - **Hidden UI is inert and does no UI updates.** What is hidden but kept mounted (a folded section, a panel behind an
   overlay card, a closing animation) is `inert` (no pointer, tooltip, focus or screen reader) and **paused**: its scope
   is inactive (`activity(flag, …)` in `dom/control-flow`, `Scope.setActive`), which drops every `bind` subscription
@@ -137,6 +140,40 @@ content loads.
   subscription) pauses it with `onActive(active => …)`. Prefer removing content that is cheap to build (`Show`); keep it
   mounted and paused where state or cost matters. Tooltips never show for an inert element.
   `views/shell/_test/hidden.test.tsx`.
+  - **Checked on the real shell** (`viewer/src/ui/_test/hidden-quiet.test.tsx`, jsdom, 1CBS): with the Structure tab
+    shown and the toolbar folded, the Selection tab with its sections folded, and the compact rail closed over the
+    docks, a load, picks, a selection, hide and show, renames and trajectory frames write nothing inside `[inert]` but
+    the `inert` toggles (a MutationObserver on the shadow root), and the runtime's probe (`RuntimeProbe`) counts no
+    binding write and no `watch` render in a paused scope, against 156, 44 and 39 in what shows. A raw subscription
+    planted in a hidden part is caught. Tabs that are not shown are not mounted at all; the hidden-but-mounted parts are
+    the folded toolbar, folded sections and docks behind the compact rail.
+  - **New base primitives and hot views come with a guard** (packages/prism/AGENTS.md, Tests): a quick case (bytes a
+    step, its positive control) and a heap guard; the base primitives (a state set, derive, bind, a `watch` render and
+    flush, the keyed selector and store) read 0 bytes a step.
+  - **A view subscribes to the narrowest source that determines its output** (view-models.md §3): hidden or shown, a
+    change that writes nothing is budgeted waste (`waste.test.tsx`, `waste-budget.json`).
+  - **Imperative views**: the sequence band's track gutter rebuilt its icons on every Seq\* layout version with raw
+    subscriptions; paused, it now marks itself stale and rebuilds once on resume. Left as they are: Seq\*'s section
+    surface keeps scheduling its frames while hidden (it skips drawing at no size; pausing it needs a Seq\* API); the
+    PAE plot (model-archive) follows its colors by `bind` now (it pauses with its card); menus' and popovers' document
+    listeners and observers live only while they are open; one-shot frames (a scroll into view, a font read) do not
+    repeat.
+  - **What the UI costs while a structure animates** (Internals › Performance › Animation, `watch-bench/anim.mjs`:
+    1GRM's 5 NMR models looping at 5 a second, 6 s a setup, Chromium on an M4 with its GPU, a CPU profile split by
+    source): every setup holds 60 fps (16.7 ms frames, p95 18.7 ms); the main thread works 0.37–0.53 ms a frame, the UI
+    (Prism, Seq\*) 0.008–0.024 ms of it:
+
+    | setup                 | busy ms/frame | UI ms/frame (share) | Mol\* ms/frame | writes | renders | DOM mutations/frame              |
+    | --------------------- | ------------- | ------------------- | -------------- | ------ | ------- | -------------------------------- |
+    | all panels closed     | 0.51          | 0.010 (2%)          | 0.37           | 0.3    | 0       | trajectory bar 0.2               |
+    | the Structure tab     | 0.45          | 0.010 (2–3%)        | 0.32           | 0.3    | 0       | trajectory bar 0.2               |
+    | the state tree        | 0.43          | 0.015–0.024 (4–6%)  | 0.28           | 1      | 0.8     | state tree 0.5, bar 0.2          |
+    | the sequence band     | 0.38–0.42     | 0.008 (2%)          | 0.28           | 0.2    | 0       | bar 0.2 (Seq\* draws its canvas) |
+    | the command menu open | 0.37–0.40     | 0.009–0.013 (2–3%)  | 0.27           | 0.3    | 0       | bar 0.2                          |
+
+    The rest of a frame's work is the engine's (deps, native, GC: 0.08–0.15 ms). The state tree is the one view that
+    works per model: a model's cell record is replaced, so its row is made anew (`For` by item). The scene tree and the
+    inspector write nothing while the models play. Long animation frames: at most one in 6 s per setup.
 - **Fonts and images** reserve their size; fonts have metric-compatible fallbacks.
 - **Check it**: record the interaction in the browser's performance panel (CPU throttled 4x): forced reflows, long style
   recalculations, long tasks. A story with a heavy view is the place to measure.

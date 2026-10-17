@@ -13,6 +13,7 @@ import {
   CanvasStackFadeMs,
   type CanvasBackgroundProps,
   CommandMenu,
+  commandItems,
   type CommandMenuAssistant,
   canvasInk,
   domView,
@@ -36,16 +37,30 @@ import {
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
+import type { HoverLine } from '@molstar/prism-ui/model/playback';
+import { pickHoverLabel } from '../sources/hover-lines.js';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { combineLatest, debounceTime, distinctUntilChanged, map, of, shareReplay, skip, switchMap, timer } from 'rxjs';
+import {
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  type Observable,
+  of,
+  shareReplay,
+  skip,
+  switchMap,
+  timer,
+} from 'rxjs';
 import { extensionUIPort } from './extensions.js';
 import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard } from './export-card.js';
 import { isLazyExtension } from '../spec.js';
 import { settingsTab } from './settings.js';
-import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
+import { keepLayout, layoutCommands, layoutStore, restoreLayout } from './layout.js';
+import { ModeSwitch, modeMenuRows, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
@@ -54,6 +69,9 @@ import { frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
+import { createRoot, getScope, runInScope } from '@molstar/prism-ui/dom/scope';
+import { frame, on } from '@molstar/prism-ui/dom/scoped';
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The viewer on a page (viewer-spec.md §6): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
 // 29); styles are adopted into its shadow root (library.md §3).
@@ -87,12 +105,15 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   root.className = 'msp-root';
   root.style.cssText = 'position: absolute; inset: 0';
   shadow.appendChild(root);
+  // The shell's own attachments (its keys, the first frame: rendering.md §2.4) in a root scope of their own, ended with
+  // the shell.
+  const attached = createRoot(() => getScope()!);
   // The shell's teardown, defined first: on a failure partway through, a step whose part was never made is passed
   // over (each one guarded), so what was made goes; `dispose` runs it whole.
   let teardown: (() => void) | undefined;
   try {
     const steps: (() => void)[] = [
-      () => document.removeEventListener('keydown', onKey),
+      () => attached.dispose(),
       () => {
         for (const u of unregister.reverse()) u();
       },
@@ -130,6 +151,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     });
     if (layout.compactRail) shell.setCompactRail(true);
     if (layout.mode) shell.setMode(layout.mode);
+    // The layout the person left (journal.md §6, `ui/layout.ts`), before the tabs register so each lands where it was;
+    // the host's parts of it (mode, compact rail, buttons) stay the spec's.
+    const layoutPreferences = layoutStore(spec);
+    if (layoutPreferences) restoreLayout(managers, layoutPreferences);
     // The theme the person chose last, kept in the preferences when the spec gives them (journal.md §6).
     const preferences = spec.persist?.preferences;
     const kept = preferences?.get('theme');
@@ -243,7 +268,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       );
     }
 
-    const hasData = sources.empty.pipe(map((e) => !e));
+    const hasData = derive(sources.empty, (e) => !e);
     // The canvas stack's own: its buttons stay while it fades out as the canvas empties (`CanvasStackFadeMs`).
     const stackData = hasData.pipe(
       switchMap((data) => (data ? of(true) : timer(CanvasStackFadeMs).pipe(map(() => false)))),
@@ -252,13 +277,27 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
     const sequence = core.views.sequence;
     const seqLines = observableState<readonly string[]>([]);
-    const hoverLines = observableState<readonly string[]>([]);
-    const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLines.value);
+    const hoverLines = observableState<readonly HoverLine[]>([]);
+    // The label is Mol*'s whenever there is one: a sequence hover the link maps into the structure lights it in 3D, and
+    // Mol*'s label providers label that (sequence.md §10). Seq*'s own label is for what does not map (a gap, an
+    // annotation track); while a mapped hover waits for Mol*'s label, nothing new is shown (the label holds a frame).
+    // Seq*'s lines come a frame after the mapped flag (sequence-control.tsx hands them on per frame): lines seen while
+    // mapped stay Mol*'s after the flag drops, so leaving a mapped residue never shows Seq*'s label of it.
+    let mappedSeq: readonly string[] | undefined;
+    const mergeHover = () => {
+      const mol = sources.pointer.hoverLabel.value;
+      const seq = seqLines.value;
+      const mapped = sequence?.source.hoverMapped.value ?? false;
+      if (mapped) mappedSeq = seq;
+      hoverLines.set(pickHoverLabel(mol, seq, mapped || seq === mappedSeq));
+    };
     const seqHoverSub = seqLines.asReadonly.subscribe(mergeHover);
-    const pointerHoverSub = sources.pointer.hoverLines.subscribe(mergeHover);
+    const pointerHoverSub = sources.pointer.hoverLabel.subscribe(mergeHover);
+    const mappedSub = sequence ? sequence.source.hoverMapped.subscribe(mergeHover) : undefined;
     unregister.push(() => {
       seqHoverSub.unsubscribe();
       pointerHoverSub.unsubscribe();
+      if (mappedSub) mappedSub.unsubscribe();
     });
     // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays. Its views come with its
     // runtime (its own chunk), once the core has loaded it (a structure shown).
@@ -299,12 +338,25 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const trajectory = person.area('trajectory') ? createTrajectoryControls(core.plugin, person) : undefined;
     if (trajectory) unregister.push(trajectory.dispose);
     const modeProps = modeSwitchProps(sources.interaction, person);
+    // The mode choices as rows of the collapsed toolbar's menu (ui shell.md §2); the same buttons as `ModeSwitch`.
+    const modeRows = modeMenuRows(modeProps);
     // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
-    const shown = (id: string, data = hasData) =>
+    const shown = (id: string, data: Observable<boolean> = hasData) =>
       combineLatest([data, managers.viewState.layout]).pipe(
         map(([data, layout]) => data && layout.buttons[id] !== false),
         distinctUntilChanged(),
       );
+    // The followed trajectory's row on screen in the Structure panel (not under a card in the panel's place): the bar
+    // steps back to a compact chip then (the row has the controls). Any other way (another tab, the panel closed, the
+    // structure collapsed or searched away, the canvas expanded) the full bar is there, playing or not.
+    const rowOpen = trajectory
+      ? combineLatest([trajectory.rowShown, shell.overlay]).pipe(
+          map(([row, overlay]) => row && !overlay),
+          distinctUntilChanged(),
+        )
+      : undefined;
+    // The chip stays while it has the focus (its Pause pressed from the keyboard does not drop the focus to the page).
+    const chipFocused = observableState(false);
     const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
     unregister.push(
       shell.registerToolbar(
@@ -314,19 +366,17 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             priority: 100,
             icon: 'sun',
             title: 'Theme',
-            face: theme.theme.pipe(
-              map((t) => {
-                const current = UIThemes.find((u) => u.id === t)!;
-                return { icon: current.icon, title: `Theme: ${current.title}` };
-              }),
-            ),
+            face: derive(theme.theme, (t) => {
+              const current = UIThemes.find((u) => u.id === t)!;
+              return { icon: current.icon, title: `Theme: ${current.title}` };
+            }),
             // A choice of the themes beside the rail (five is too many to cycle through); under More, a click cycles.
             menu: UIThemes.map((t) => ({
               id: t.id,
               label: t.title,
               icon: t.icon,
               choice: true,
-              pressed: theme.theme.pipe(map((x) => x === t.id)),
+              pressed: derive(theme.theme, (x) => x === t.id),
               run: () => theme.set(t.id),
             })),
             run: () => theme.next(),
@@ -348,23 +398,22 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             icon: 'focus',
             title: 'Reset camera',
             run: () => void person.camera.reset(),
-            // v5's Reset menu (parity.md §4): the principal axes, or x, y and z.
-            menu: [
+            // v5's Reset menu (parity.md §4): the principal axes, or x, y and z. Entries by command id (commands.md §7):
+            // whether they can run and their keys are the commands'; a command an override removed takes its entry.
+            menu: commandItems(managers.commands, [
               {
+                command: 'camera.orient',
                 id: 'orient-axes',
                 label: 'Orient axes',
-                icon: 'axis-3d',
                 hint: 'Principal axes along the screen',
-                run: () => void person.camera.orient(),
               },
               {
+                command: 'camera.reset-axes',
                 id: 'reset-axes',
                 label: 'Reset axes',
-                icon: 'rotate-ccw',
                 hint: 'x, y and z along the screen',
-                run: () => void person.camera.resetAxes(),
               },
-            ],
+            ]),
           },
           // Expand (the canvas fills the viewer, `view.expand`), or fullscreen where expanding would only fill an iframe
           // (FullscreenModel.mode); the other beside it in the menu.
@@ -375,7 +424,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             visible: stackData,
             icon: fullscreen.mode === 'fullscreen' ? 'fullscreen' : 'maximize-2',
             title: fullscreen.mode === 'fullscreen' ? 'Fullscreen' : 'Expand',
-            pressed: combineLatest([managers.navigation.expanded, fullscreen.active]).pipe(map(([e, f]) => e || f)),
+            pressed: derive([managers.navigation.expanded, fullscreen.active], (e, f) => e || f),
             run: () =>
               void (fullscreen.mode === 'fullscreen'
                 ? person.view.fullscreen({ on: !managers.navigation.fullscreen.value })
@@ -411,10 +460,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             ),
             icon: 'lightbulb',
             title: 'Illumination',
-            pressed: sources.canvas.pipe(
-              map((c) => !!c?.illumination),
-              distinctUntilChanged(),
-            ),
+            pressed: derive(sources.canvas, (c) => !!c?.illumination),
             // The lighting's illumination switch, set to the other of what it is (api.md §1).
             run: () =>
               void person.canvas.lighting({
@@ -425,17 +471,29 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             id: 'xr',
             place: 'canvas',
             group: 'rendering',
+            // `options.ui.xr` (viewer-spec.md §2.2): auto, only where WebXR is; always, with a note where it is not.
+            // Either way only while `canvas.xr` is there to run.
             visible: combineLatest([stackData, xr.state]).pipe(
-              map(([data, x]) => data && x.supported && person.describe('canvas.xr') !== undefined),
+              map(([data, x]) => {
+                const mode = core.options.ui.xr;
+                if (!data || mode === 'never' || person.describe('canvas.xr') === undefined) return false;
+                return mode === 'always' || x.supported;
+              }),
               distinctUntilChanged(),
             ),
             icon: 'glasses',
             title: 'XR',
-            pressed: xr.state.pipe(
-              map((x) => x.presenting),
-              distinctUntilChanged(),
-            ),
-            run: () => void person.canvas.xr({ on: !xr.state.value.presenting }),
+            pressed: derive(xr.state, (x) => x.presenting),
+            run: () => {
+              if (!xr.state.value.supported) {
+                managers.notifications.post(
+                  'XR is not available: this browser or device does not support WebXR.',
+                  'warning',
+                );
+                return;
+              }
+              void person.canvas.xr({ on: !xr.state.value.presenting });
+            },
           },
         ]),
       ),
@@ -472,6 +530,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             return { message: '' };
           },
         },
+        ...layoutCommands(shell),
       ]),
     );
 
@@ -606,14 +665,21 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         openCommandMenu();
       } else if (!commandMenuOpen.value && managers.commands.handleKey(e, isMac())) e.preventDefault();
     };
-    document.addEventListener('keydown', onKey);
+    runInScope(attached, () => on(document, 'keydown', onKey));
 
     // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab, or
-    // `homeWhenEmpty` opens Home while nothing is loaded (where to load from).
-    const start = layout.start ?? (core.options.ui.homeWhenEmpty && sources.empty.value ? 'home' : undefined);
-    if (start && !core.options.ui.collapsed) shell.show(start);
+    // `homeWhenEmpty` opens Home while nothing is loaded (where to load from); not in the embedded layout, whose rail
+    // starts hidden and whose page drives what loads (shell.md §3).
+    const homeAtStart = core.options.ui.homeWhenEmpty && sources.empty.value && layout.mode !== 'embedded';
+    const start = layout.start ?? (homeAtStart ? 'home' : undefined);
+    // A tab the person hid does not open at start (`show` would bring it back).
+    const startHidden = !!start && managers.viewState.layout.value.hiddenTabs.includes(start);
+    if (start && !startHidden && !core.options.ui.collapsed) shell.show(start);
     else managers.navigation.setDock('right', { collapsed: true });
     shell.mount();
+    // From here on, what changes is the person's: kept a moment after each change. Stopped first on dispose, before
+    // the tabs unregister (that is not a change to keep).
+    if (layoutPreferences) steps.unshift(keepLayout(managers, layoutPreferences));
 
     const disposeRender = render(
       () => (
@@ -631,16 +697,45 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                   area={() => canvasHost.closest<HTMLElement>('[data-msp-viewport]') ?? canvasHost.parentElement}
                   // Over the canvas or the sequence, not a panel over them (a tree row has its own card).
                   over={(t) => !!t.closest?.('[data-msp-canvas], [data-msp-hover-source]')}
+                  placement={core.options.ui.hoverLabel}
                 />
               )}
             </Show>
           }
           playback={
-            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's.
+            // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's: a compact
+            // chip while frames play and its row is on screen (`rowOpen`), else the full bar, playing or not.
             <PlaybackDeck>
               <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
               {trajectory ? (
-                <Show when={shown('trajectory')}>{() => <TrajectoryRow model={trajectory.model} />}</Show>
+                <>
+                  <Show
+                    when={shown('trajectory', combineLatest([hasData, rowOpen!]).pipe(map(([d, open]) => d && !open)))}
+                  >
+                    {() => <TrajectoryRow model={trajectory.model} />}
+                  </Show>
+                  <Show
+                    when={shown(
+                      'trajectory',
+                      combineLatest([hasData, rowOpen!, trajectory.model.isPlaying, chipFocused.asReadonly]).pipe(
+                        map(([d, open, playing, focused]) => d && open && (playing || focused)),
+                      ),
+                    )}
+                  >
+                    {() => (
+                      <div
+                        style={{ display: 'contents' }}
+                        onFocusIn={() => chipFocused.set(true)}
+                        onFocusOut={(e) => {
+                          if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null))
+                            chipFocused.set(false);
+                        }}
+                      >
+                        <TrajectoryRow model={trajectory.model} compact />
+                      </div>
+                    )}
+                  </Show>
+                </>
               ) : null}
             </PlaybackDeck>
           }
@@ -652,6 +747,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           busy={sources.busy}
           context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
           canvasLead={<Show when={shown('selection-mode', stackData)}>{() => <ModeSwitch {...modeProps} />}</Show>}
+          canvasLeadMenu={shown('selection-mode', stackData).pipe(map((on) => (on ? modeRows : [])))}
           canvasAside={<Show when={stackData}>{() => <PickLevel {...modeProps} />}</Show>}
           onDropFiles={openFiles}
           dropFormats={sources.formats}
@@ -688,7 +784,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
     // The next frame, or a moment later where there are no frames (a background tab): creation never waits on visibility.
     await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
+      runInScope(attached, () => frame(() => resolve()));
       setTimeout(resolve, 50);
     });
     const mounted = await core.mountCanvas(canvasHost);

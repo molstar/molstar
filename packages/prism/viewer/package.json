@@ -104,10 +104,20 @@
       "types": "./lib/sources/watched.d.ts",
       "import": "./lib/sources/watched.js"
     },
+    "./sources/canvas-presence": {
+      "molstar-src": "./src/sources/canvas-presence.ts",
+      "types": "./lib/sources/canvas-presence.d.ts",
+      "import": "./lib/sources/canvas-presence.js"
+    },
     "./sequence/index": {
       "molstar-src": "./src/sequence/index.ts",
       "types": "./lib/sequence/index.d.ts",
       "import": "./lib/sequence/index.js"
+    },
+    "./sequence/molstar": {
+      "molstar-src": "./src/sequence/molstar/index.ts",
+      "types": "./lib/sequence/molstar/index.d.ts",
+      "import": "./lib/sequence/molstar/index.js"
     },
     "./sequence/runtime": {
       "molstar-src": "./src/sequence/runtime.ts",
@@ -184,6 +194,9 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "typecheck:storybook": "tsc -p tsconfig.storybook.json",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:scaling": "vitest run --config vitest.scaling.config.ts",
     "styles": "node ../ui/scripts/css.mjs --root . --prefix viewer",
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix viewer --check"
   },
@@ -191,13 +204,13 @@
     "@molstar/ai": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
     "@molstar/query-language": "workspace:*",
     "@molstar/seq-core": "workspace:*",
-    "@molstar/seq-molstar-poc": "workspace:*",
     "@molstar/seq-viewer": "workspace:*",
     "rxjs": "catalog:",
     "tslib": "catalog:"
@@ -207,6 +220,7 @@
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",
     "fake-indexeddb": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

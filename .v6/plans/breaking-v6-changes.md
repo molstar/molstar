@@ -738,3 +738,30 @@ through the indices of the model instead of a MolScript query on every atom for 
   `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON annotations are
   converted to the type of the field.
 - The annotation color theme and the annotation tooltips already used these semantics for missing values before.
+
+## Prism UI: duplicates removed, strict command ids
+
+- `@molstar/prism-ui`: `StatusModel` is gone (use `NotificationsManager`, same class); `shell/status.ts` is removed.
+- `ShellModel.layout` and the `ShellLayout` type are gone; read `viewState.layout` (a `ViewLayout`) or save it with
+  `viewState.save()`/`restore()`, and `navigation.save()` for what is open. `ShellOptions.mode` and `setMode` take
+  `ViewLayout['mode']`.
+- `CommandManager.register` and `registerGroups` throw on an id that is already registered (or repeated in the call),
+  naming it, where the later command used to replace the earlier one silently. Override before registering.
+- The viewer's Structure tab has no inline preset or style lists: `StructureTab` loses `presets`, `quickStyles` and
+  `onAction`; Preset and Styles open the command menu through `openCommands`.
+
+## Prism UI: the shell's layout
+
+- `ViewLayout` has `hiddenTabs` (the tabs `ShellModel.hideTab` took out of view); a `ViewLayout` built by hand needs
+  it (`defaultViewLayout()` has it). A kept layout without it restores with none hidden.
+- The `embedded` mode is a layout of its own (shell.md §3): the compact rail, a floating right panel, nothing pinned,
+  and compact below `compactWidth` (it was the desktop layout under another name).
+
+## Seq\*: the system registry in core
+
+- `@molstar/seq-viewer` no longer exports `SystemRegistry`: the registry is core's (`@molstar/seq-core/translate`,
+  `SystemRegistry`, with no `version`); the viewer's `ctx.systems` is a `ViewerSystems` (core's registry plus the
+  reactive `version`, exported by the viewer). Code that named the viewer's class names `ViewerSystems`.
+- The `Coordinates` type is core's (`@molstar/seq-core/translate`); the viewer re-exports it and `isCoordinates` as
+  before.
+- Prism's saved sequence state (`prism-viewer.sequence`) is version 3 (adds `edits`); versions 1 and 2 still read.

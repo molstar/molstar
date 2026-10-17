@@ -116,5 +116,5 @@ function pickLevelLabel(value: string): string {
   return g.group ? `${g.label} (${g.group.toLowerCase()})` : g.label;
 }
 
-export { ModeSwitch, PickLevel } from '../views/canvas/mode-switch.js';
+export { ModeSwitch, modeMenuRows, PickLevel } from '../views/canvas/mode-switch.js';
 export { SelectionBar } from '../views/canvas/selection-bar.js';

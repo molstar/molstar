@@ -10,7 +10,6 @@
 
 import type { TraceData } from '@molstar/ai/trace';
 import { domView, onCleanup, type ShellPage, Show } from '@molstar/prism-ui';
-import { distinctUntilChanged, map } from 'rxjs';
 import { InspectorPageId } from '../inspector-access.js';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { LimitsView } from './limits.js';
@@ -19,6 +18,7 @@ import { BudgetMeter, TextTabs } from './parts.js';
 import { ToolsView } from './tools.js';
 import { TraceView } from './trace.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * The Inspector as a page over the whole app (packages/ai/_spec/trace.md § The Inspector): it needs the room. Its
  * header has the three views as words (Trace with its turns, Tools with its tools, Limits), then whether the agent
@@ -52,9 +52,9 @@ function runState(trace: TraceData | undefined): RunState {
 
 export function InspectorHeader(props: { model: InspectorModel }) {
   const { model } = props;
-  const state = model.trace.pipe(map(runState), distinctUntilChanged());
-  const turns = model.trace.pipe(map((t) => (t?.turns.length ? t.turns.length : '')));
-  const tools = model.tools.pipe(map((t) => toolCounts(t).tools));
+  const state = derive(model.trace, runState);
+  const turns = derive(model.trace, (t) => (t?.turns.length ? t.turns.length : ''));
+  const tools = derive(model.tools, (t) => toolCounts(t).tools);
   return (
     <>
       <TextTabs<InspectorView>
@@ -68,7 +68,7 @@ export function InspectorHeader(props: { model: InspectorModel }) {
         onChange={(v) => model.setView(v)}
       />
       <span class={layout.spacer} />
-      <Show when={model.trace.pipe(map((t) => !!t))}>
+      <Show when={derive(model.trace, (t) => !!t)}>
         {() => (
           <span class={layout.state} data-state={state}>
             <i class={layout.dot} />
@@ -76,7 +76,7 @@ export function InspectorHeader(props: { model: InspectorModel }) {
           </span>
         )}
       </Show>
-      <BudgetMeter budget={model.trace.pipe(map((t) => t?.budget))} />
+      <BudgetMeter budget={derive(model.trace, (t) => t?.budget)} />
     </>
   );
 }

@@ -45,8 +45,7 @@ export interface StatusChip {
 /**
  * What the status line on the canvas shows: the latest message (it fades after a while; errors stay until dismissed),
  * running tasks, and chips (selection, focus). Keeps a bounded history for the log overlay. The viewer's
- * `managers.notifications` (api.md §11, prism-viewer README decision 22: `current`, `tasks`, `chips`; `posted`);
- * `StatusModel` is its older name, kept for the views.
+ * `managers.notifications` (api.md §11, prism-viewer README decision 22: `current`, `tasks`, `chips`; `posted`).
  */
 export class NotificationsManager extends ReactiveModel {
   readonly #current = observableState<StatusMessage | undefined>(undefined);
@@ -152,7 +151,3 @@ export class NotificationsManager extends ReactiveModel {
     this.#posted.complete();
   }
 }
-
-/** The older name of `NotificationsManager`, used by the views. */
-export const StatusModel = NotificationsManager;
-export type StatusModel = NotificationsManager;

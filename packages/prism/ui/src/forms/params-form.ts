@@ -7,10 +7,11 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
+import { derive } from '../reactive/state.js';
 export interface ParamsFormOptions<P extends PD.Params> {
   /** Called with the new values after each change (apply them, or keep them as a draft). */
   onChange?(values: PD.Values<P>, changed: keyof P & string): void;
@@ -43,10 +44,7 @@ export class ParamsFormModel<P extends PD.Params = PD.Params> {
   field<K extends keyof P & string>(name: K): Observable<PD.Values<P>[K]> {
     let stream = this.#fields.get(name);
     if (!stream) {
-      stream = this.#values.asReadonly.pipe(
-        map((v) => v[name]),
-        distinctUntilChanged(),
-      );
+      stream = derive(this.#values.asReadonly, (v) => v[name]);
       this.#fields.set(name, stream);
     }
     return stream as Observable<PD.Values<P>[K]>;
@@ -55,15 +53,8 @@ export class ParamsFormModel<P extends PD.Params = PD.Params> {
   /** Is the field shown now (its `hideIf` evaluated on the current values)? */
   visible(name: keyof P & string): Observable<boolean> {
     const param = this.params[name];
-    if (!param.hideIf)
-      return this.#values.asReadonly.pipe(
-        map(() => true),
-        distinctUntilChanged(),
-      );
-    return this.#values.asReadonly.pipe(
-      map((v) => !param.hideIf!(v)),
-      distinctUntilChanged(),
-    );
+    if (!param.hideIf) return derive(this.#values.asReadonly, () => true);
+    return derive(this.#values.asReadonly, (v) => !param.hideIf!(v));
   }
 
   set<K extends keyof P & string>(name: K, value: PD.Values<P>[K]): void {

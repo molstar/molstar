@@ -48,7 +48,8 @@ export function assemblySymmetryUI(ctx: ViewerUIContext): ViewerExtensionUI {
     rows: [
       {
         id: SymmetryRow,
-        when: (node) => node.kind === 'structure',
+        // Only under the structures it is for: a row whose `when` holds takes a slot in the (virtualized) tree.
+        when: (node) => node.kind === 'structure' && area.applies(node.id),
         render: domView(({ ctx: view }) => {
           const structure = (view.subject as SceneNode).id;
           const state = area.rowState(structure);

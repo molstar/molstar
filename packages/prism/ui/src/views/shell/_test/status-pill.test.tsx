@@ -12,7 +12,7 @@
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
-import { StatusModel } from '../../../shell/status.js';
+import { NotificationsManager } from '../../../managers/notifications.js';
 import { StatusLine, StatusPill } from '../canvas-chrome.js';
 
 // The status column's lines: a finished one goes on its own, held while hovered (a ring around its ✕ counts it down);
@@ -49,7 +49,7 @@ describe('the status column', () => {
   });
 
   it('keeps an error until its ✕', () => {
-    const status = new StatusModel();
+    const status = new NotificationsManager();
     const host = mount(() => <StatusLine status={status} />);
     status.post('state-tree could not load', 'error');
     vi.advanceTimersByTime(60_000);

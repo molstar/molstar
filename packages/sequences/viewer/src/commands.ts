@@ -122,7 +122,9 @@ const target = union(
       'narrows each ref',
     ),
   }),
-  object({ coordinates: RequiredField(coordinates, 'runs in coordinate systems by key (seqspec:interaction#focus)') }),
+  object({
+    coordinates: RequiredField(coordinates, 'runs in coordinate systems by key (seqspec:libraries#coordinates)'),
+  }),
 );
 const closure = OptionalField(literal<Closure>('element', 'containing'), 'element', 'closed before it lights or acts');
 const origin = OptionalField(str, 'api', "the caller's: `run` sets it");

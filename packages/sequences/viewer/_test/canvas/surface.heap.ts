@@ -13,7 +13,8 @@
 // 0.5 MB over the 3 × N extra steps (heap-browser.ts): the surface's own paths are clean to a few bytes a step (hover:
 // none measured); a frame of all three passes measured 10 to 70 bytes a step in Chromium where each pass alone measured
 // none (CS2 hot paths: the composer's, routed). The positive control: hover frames allocating garbage each, sized to
-// the run (`leaking`), warmed and measured alike, are caught.
+// the run (`leaking`), warmed and measured alike, are caught. A paused surface (`setActive(false)`) takes the same
+// events and allocates nothing either, with its own control.
 
 import { expect, it, vi } from 'vitest';
 import { controlCaught, heapScaling, isFlat, leaking } from './heap-browser.js';
@@ -51,6 +52,34 @@ for (const kind of ['hover', 'pan', 'both'] as const)
       t.dispose();
     }
   }, 120_000);
+
+// Paused (`setActive(false)`; a hidden host's): the events still run, the surface only ORs their flags, no frame.
+it('pans and hovers reaching a paused surface are flat, and draw nothing', async () => {
+  vi.resetModules();
+  const { surfaceFrames } = await import('./surface-fixtures.js');
+  const t = await surfaceFrames('both');
+  try {
+    t.surface.setActive(false);
+    const frames = t.surface.stats.frames;
+    const { r } = measure(t.step, N.both);
+    expect(isFlat(r), JSON.stringify(r)).toBe(true);
+    expect(t.surface.stats.frames).toBe(frames);
+  } finally {
+    t.dispose();
+  }
+}, 120_000);
+
+it('paused steps allocating garbage sized to the run each are caught (positive control)', async () => {
+  vi.resetModules();
+  const { surfaceFrames } = await import('./surface-fixtures.js');
+  const t = await surfaceFrames('both');
+  try {
+    t.surface.setActive(false);
+    expect(controlCaught(() => measure(leaking(t.step, N.both), N.both).r)).toBe(true);
+  } finally {
+    t.dispose();
+  }
+}, 120_000);
 
 it('hover frames allocating garbage sized to the run each are caught (positive control)', async () => {
   vi.resetModules();

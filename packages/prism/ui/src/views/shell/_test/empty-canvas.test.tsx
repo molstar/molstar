@@ -11,6 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
+import { runInScope, Scope } from '../../../dom/scope.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { EmptyCanvas } from '../empty-canvas.js';
 
@@ -38,6 +39,23 @@ describe('EmptyCanvas', () => {
     expect(mark()?.dataset.phase).toBe('out');
     vi.advanceTimersByTime(300);
     expect(mark()).toBeNull();
+  });
+
+  it('holds its wait while its scope is paused, and does not show a mark from hidden UI', () => {
+    const empty = observableState(true);
+    const scope = new Scope();
+    const el = runInScope(scope, () => <EmptyCanvas empty={empty.asReadonly} />) as HTMLElement;
+    const mark = () => el.querySelector('[role=img]');
+    vi.advanceTimersByTime(300);
+    scope.setActive(false);
+    vi.advanceTimersByTime(5000);
+    expect(mark()).toBeNull();
+    scope.setActive(true);
+    vi.advanceTimersByTime(650);
+    expect(mark()).toBeNull();
+    vi.advanceTimersByTime(100);
+    expect(mark()).not.toBeNull();
+    scope.dispose();
   });
 
   it('never shows when something loads before the delay (clearing a scene to load the next)', () => {

@@ -89,6 +89,15 @@ export class AssemblySymmetryApi extends ApiArea {
    * read for views, as the animation area's `state` (the Prism viewer's `_spec/README.md`, Folders). It never fetches:
    * the symmetries show once an operation has asked RCSB PDB for them.
    */
+  /**
+   * Whether a structure (by state ref) is a PDB entry's assembly, which RCSB PDB annotates: the row's `when`, so the
+   * Structure panel gives a row only to the structures it is for (its rows are of one height: a row that renders
+   * nothing would leave a gap).
+   */
+  applies(structure: string): boolean {
+    return isApplicableRef(this.ctx.plugin, structure);
+  }
+
   rowState(structure: string): ReadonlyState<SymmetryRowState> {
     const plugin = this.ctx.plugin;
     return watchedState(
@@ -187,6 +196,12 @@ export class AssemblySymmetryApi extends ApiArea {
 }
 
 // --- helpers ----------------------------------------------------------------------------------------------------
+
+function isApplicableRef(plugin: PluginContext, ref: string): boolean {
+  const s = plugin.managers.structure.hierarchy.current.refs.get(ref);
+  const data = s?.kind === 'structure' ? s.cell.obj?.data : undefined;
+  return !!data && AssemblySymmetryData.isApplicable(data);
+}
 
 function readRow(plugin: PluginContext, ref: string): SymmetryRowState {
   const s = plugin.managers.structure.hierarchy.current.refs.get(ref);

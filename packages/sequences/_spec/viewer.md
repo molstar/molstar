@@ -237,12 +237,13 @@ What the core promises each kind of entry, and what the entry must do. The built
   give the band a data hover lights on its track (`rowHover`: its rows, or none), else the track's box. It declares
   `stable` when its draw of a strip of the view (a pan's uncovered part) equals its draw of the whole view there, so a
   pan copies the rest: a decision over the view (items or density) reads the whole view's range, not the strip's. Its
-  other optional parts: `tiny`, its draw below its `minHeight` (else bars); `miniature: false`, left out of a
-  navigator's miniature; `overview`, its rows in the vertical overview; `ringLabels`, its items' labels outside the
-  rings; `cache`, a store kept per prepared state and skin (made and disposed by the engine); `bands`, a multi-band
-  layer's band labels; `header` and `gutter`, its rows' header and gutter (a rows layer's labels and tree, its line
-  numbers). Renderers run the conformance kit (`@molstar/seq-viewer/testing`) as the built-ins do, its edge geometries
-  (`EdgeKinds`: reversed, a cyclic origin, stacked, filtered, copies) included: drawn and hit back in each.
+  other optional parts: `tiny`, its draw below its `minHeight` (else bars); `across`, what it draws across the tracks
+  its layer spans, after the entries (a frame's outline: Frames); `miniature: false`, left out of a navigator's
+  miniature; `overview`, its rows in the vertical overview; `ringLabels`, its items' labels outside the rings; `cache`,
+  a store kept per prepared state and skin (made and disposed by the engine); `bands`, a multi-band layer's band labels;
+  `header` and `gutter`, its rows' header and gutter (a rows layer's labels and tree, its line numbers). Renderers run
+  the conformance kit (`@molstar/seq-viewer/testing`) as the built-ins do, its edge geometries (`EdgeKinds`: reversed, a
+  cyclic origin, stacked, filtered, copies) included: drawn and hit back in each.
 - **Data columns** draw a `rows` annotation's field per alignment row; an unknown column type is `text`.
 - **Theme providers** are the drawing half of a format theme entry of the same name; one provider serves every channel
   kind its entry declares. A renderer fills a reused theme location (layer, block, unit, index, item, letter, value,
@@ -283,14 +284,14 @@ compute and hide it is the `hoverLabel` behavior's.
 
 The viewer talks to its host in coordinates, and a host may own coordinate systems (Mol\*'s chains).
 
-- **Own keys.** The shown set's systems are `seqstar:<ref>` (a unit, a molecule, a complex, an alignment's columns by
-  the alignment's ref, a row `<alignment>/<k>`, `k` in digits); a descriptor lists a numbering's name once.
+- **`ctx.systems`** is core's system registry over the shown set (`seqspec:libraries#the-system-registry`: its own keys
+  `seqstar:<ref>` and their descriptors) with a reactive `version`, bumped by every registration.
 - **Events describe their systems.** What the viewer reports outward gives extents as `Coordinates` with a plain-data
   descriptor per system (key, kind, domain, refs, a unit's `mvs` fields, numberings, a complex's members), so a host
   needs no Seq\* types.
 - **Requests in any registered system.** `hover.setLoci`, `highlight.set`, the selection verbs and `focus.fromLoci` take
-  `Coordinates`. A host registers an external system with its maps (`ctx.systems.register`, a `Translator`:
-  `seqspec:libraries#translate`); it joins the view only through them. A structure registers as one complex system whose
+  `Coordinates` (`seqspec:libraries#coordinates`). A host registers an external system with its maps
+  (`ctx.systems.register`); it joins the view only through them. A structure registers as one complex system whose
   members are its chains'.
 - Coordinates naming a key not registered survive as keys in a hover or a highlight, light nothing, and light again when
   it returns. The selection holds loci: its verbs convert Coordinates at once through the systems registered then, so a
@@ -309,6 +310,14 @@ platform-free: the same code exports from a page and renders figures in Node), a
   blank canvas, and follow the host's size and device pixel ratio. Each pass canvas carries `data-pass` (`main`,
   `overlay`, `nav`, `nav-overlay`, `vnav`, `vnav-overlay`), marks for a host's CSS: the vertical overview and scrollbar
   are the `vnav` ones.
+- **A surface pauses on its own** (`setActive(false)`, active by default): a host that hides one section's surface (a
+  folded panel, a tab not shown) without pausing the whole viewer. Paused, it asks for no frame: `invalidate` only ORs
+  its flags, a resize records the size, an animated overlay stops polling, and a frame already asked for is cancelled.
+  Resumed (by the host, or the viewer's `ui.active`), one frame draws all that waited, sizing first, and an animated
+  overlay stopped by the pause (a skeleton's shimmer, a region's fade) runs on. Its events still run (the viewport pans,
+  the hover moves); only drawing waits. Guards: `_test/canvas/active.test.ts` (no frame asked for while paused, one on
+  resume, the size given while paused, an animation running on) and the paused case of `surface.heap.ts`, each with a
+  positive control; `_test/surface-resume.test.ts` in the fast tier.
 - **Per-position text** (a block's letters, another polymer's residues, three-letter codes, atom symbols) is set per
   row: one font size and one form for the whole row, from its cells' width and never larger than the row allows nor than
   the cap (the render prop `maxLetterPx`; by default the header labels' size, `labelFontPx`), so zoomed in past it the
@@ -381,14 +390,17 @@ The layout reads no CSS (an SVG export draws it the same): a host that changes `
 between groups, `wrappedGap` between lines, `wrappedTrackGap` between a line's letters and a track's lanes,
 `wrappedLaneHeight` an underline lane, `wrappedStripHeight` a strip lane (Lanes, below), `wrappedMaxWidth` the longest
 line in px (0, the default: the whole data area), `wrappedColors` the letters themselves in the layer's color theme
-(false, the default: the ink), `unobservedGray` a unit's unobserved positions (`observed` ranges that leave them out) in
-the skin's `unobserved` color, opaque, in the letters' cells at every zoom (zoomed out, a column's share of them as
-their own class) and in text, plain or colored (false, the default), `wrappedAlign` (`start`, the default, or `center`)
-where the lines sit: centered, the block is as wide as its widest line, centered in the data area the section ends with
-(the vertical overview's room only where the text scrolls), and the margins either side belong to the gutters, hits and
-the selection reading the same geometry. A line holds whole groups, and a short last group goes on a line of its own
-where a full group would not fit. The `wrapped` preset spaces the text to read; `compact` is the dense one (half the
-group gap, lines and lanes touching, lower lanes), still in groups of 10.
+(false, the default: the ink), `wrappedCells` the letters and an alignment's rows on cells in their layer's color theme,
+each letter in the ink that reads on its cell (false, the default; the style's `text_cells`; it wins over
+`wrappedColors`: a figure's shading is legible only on its cells), `unobservedGray` a unit's unobserved positions
+(`observed` ranges that leave them out) in the skin's `unobserved` color, opaque, in the letters' cells at every zoom
+(zoomed out, a column's share of them as their own class) and in text, plain or colored (false, the default),
+`wrappedAlign` (`start`, the default, or `center`) where the lines sit: centered, the block is as wide as its widest
+line, centered in the data area the section ends with (the vertical overview's room only where the text scrolls), and
+the margins either side belong to the gutters, hits and the selection reading the same geometry. A line holds whole
+groups, and a short last group goes on a line of its own where a full group would not fit. The `wrapped` preset spaces
+the text to read; `compact` is the dense one (half the group gap, lines and lanes touching, lower lanes), still in
+groups of 10.
 
 **Lanes.** Under each line, every track that draws there takes a band, in track order (under the group labels' band,
 `aboveEnd`); the layers of one track share its band, the tallest of theirs:
@@ -396,6 +408,8 @@ group gap, lines and lanes touching, lower lanes), still in groups of 10.
 | Layer kind                                        | Its band on a line                                                                       |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `letters`, `emphasis`                             | the letters: 1.6 × `wrappedFontPx` (`emphasis` draws its track's letters, emphasized)    |
+| `rows`                                            | a text row (the letters') per row: the rows as text (Rows in text, below)                |
+| `frame`                                           | its titles' row on a line where a titled item starts (Frames, below), else none          |
 | `ranges`, `points`, `secondary`                   | underline lanes: `wrappedTrackGap`, then `wrappedLaneHeight` per lane with an item there |
 | `values`, `color`                                 | a strip lane: `wrappedTrackGap`, then `wrappedStripHeight` (3 px; `compact` 2)           |
 | `ruler`, `dot_plot`, the types text does not draw | none                                                                                     |
@@ -413,8 +427,8 @@ group gap, lines and lanes touching, lower lanes), still in groups of 10.
   with an ellipsis, left out under three graphemes, never past the line's end), `secondary` its shapes, `color` its
   cells; `variants` take their fallback, points. An extension renderer that declares `wrapped` draws its linear form
   there (`AxisView.trackForm`, the line's positions as `visLo`/`visHi` and its advance as `cell`). Two-dimensional kinds
-  (dot plots, pairs, trees, rows) are not drawn in text. On a chip's line a track keeps its lane. Hits there are by
-  drawn geometry, as in tracks.
+  (dot plots, pairs, trees) are not drawn in text; an alignment's rows are drawn as text (Rows in text). On a chip's
+  line a track keeps its lane. Hits there are by drawn geometry, as in tracks.
 - **A line's block** is one unit: its group labels' band topmost, then its tracks in track order (one ordered before the
   letters between the group labels and the letters), each band `wrappedTrackGap` below the one before; the next line's
   block `wrappedGap` below its last band. A block reads as one where `wrappedGap` is clearly the larger: the `figure`
@@ -429,14 +443,17 @@ group gap, lines and lanes touching, lower lanes), still in groups of 10.
 - **Underline lanes** are compacted per line to the lanes with an item on it, each underline 2 px less than its lane. An
   item's line style (`seqspec:format#themes`) draws its underline (a wave over the whole lane); a `highlight` or `box`
   item also draws behind the line's letters (the line's first `letters` track): a translucent fill or an outline over
-  its cells, drawn before the letters (`LayerRenderer.behindText`), its lane keeping its own mark.
+  its cells, drawn before the letters (`LayerRenderer.behindText`), its lane keeping its own mark; where the letters sit
+  on cells (`wrappedCells`) it is drawn over them, the fill translucent, so the cells do not hide it.
 - **A strip lane** is on each line of a block the layer has data on: a color per position from the layer's color theme
   (a `values` layer's at its value; with none, the ink), cut at the gaps between groups; a missing value draws nothing.
 - **No lane without a drawing.** A type whose renderer leaves out `wrapped` takes its fallback in text
-  (`seqspec:format#layer-types`: `rows` its letters, `variants` and `pairs` points) or is omitted (a ruler, a dot plot),
-  and takes no band; a track whose layers draw nothing on any line takes none.
+  (`seqspec:format#layer-types`: a streamed alignment's `rows` its letters, `variants` and `pairs` points) or is omitted
+  (a ruler, a dot plot), and takes no band; a track whose layers draw nothing on any line takes none.
 - **Beside the letters**, on their track, a `color` or `values` layer colors the letters' cells behind them (a `values`
-  layer with no color theme there draws nothing: its ink would hide them); alone on its track it is the strip.
+  layer with no color theme there draws nothing: its ink would hide them); alone on its track it is the strip. Their
+  cells never change the letters' ink: a figure shades letters by their own theme (`wrappedCells`), where each letter
+  reads on its cell.
 - **Consistent heights**: every band's height is a render prop's (the letters' the font's), so a line's spacing reads
   the same whatever is under it. The `compact` preset sets them tighter (`wrappedTrackGap` 0, `wrappedLaneHeight` 4,
   `wrappedStripHeight` 2).
@@ -451,6 +468,52 @@ group gap, lines and lanes touching, lower lanes), still in groups of 10.
 - **Hits** (`seqspec:interaction#hover`): a point on a track's band is that track's; on an underline its item, by lane;
   on a strip, and in its gap, its layer's position, so the hover and the hover card show the value, as on a linear
   track. Lanes only add height to a line: the selection, a drag's nearest positions and its scroll read the lines alone.
+
+### Rows in text
+
+An alignment's `rows` layer in a text layout is a block of text rows on every line of its block, so a line reads as a
+figure of the alignment (ESPript's): each row is named and numbered on every line, and its residues line up in columns.
+
+- **The block.** A text row (the letters' band, 1.6 × `wrappedFontPx`) per display row: `order`, `filter` and
+  `row_subset` apply; no tree, every clade unfolded; under `lanes` and `full` alike (a `height` on its track is ignored:
+  the rows are the text). Only the rows in view are drawn. A streamed alignment's rows take their fallback in text
+  (`seqspec:format#layer-types`): text is a figure of rows held.
+- **Letters and cells.** Under `wrappedCells` each residue sits on a cell in the layer's color theme (a conservation
+  shading: `espript`, `seqspec:format#themes`), its letter in the ink that reads on the cell; with `wrappedColors` the
+  letters themselves in it; else the ink. A gap is the quiet ink and no cell (`letter_map` `{"-": "."}` draws dots).
+- **Beside the lines.** Each row's label left of every line, in a column as wide as the widest label (at most
+  `wrappedRowLabelMax`, 160 px; a longer one cut with an ellipsis), and right of the line the number of the row's last
+  residue on it in the row's numbering (`NAME/27-137` starts at 27; none on a line where the row has no residue). The
+  layout keeps the room for both.
+- **Group labels** (`aboveEnd`, `inlineStart`) number the alignment's reference row (row 0 unless `reference_row` says):
+  the group's last (inline: first) residue of that row, none where the group holds none of its residues, as ESPript
+  numbers its first sequence.
+- **The rows track's other layers** draw on the text row of the row their item targets: a range's `box` or `highlight`
+  (`LayerRenderer.behindText`, with `v.row` its lane offset) over the row's cells; nothing of theirs is drawn as a lane.
+  Tracks before the rows track are drawn above the block, those after it below; no track sits between its rows.
+- **Hits.** On the block, y names the display row and x the column: the row's residue there (`aligned`, the row's own
+  position), or on a gap the row at that column. Items of the track's other layers are hit on their row by the position,
+  as on a rows track's row. The hover and the selection light columns over the line's bands, as on letters.
+
+### Frames
+
+A `frame` layer (`seqspec:format#layer-types`) outlines named regions across tracks: a figure's domains and indels over
+every row of an alignment, in text and in tracks.
+
+- **The outline** is drawn after the entries of each region the composer draws, in its clip (`LayerRenderer.across`,
+  `v.top` and `v.height` its span), so a pan's strip, a scroll's band and an export draw what a full draw does. It runs
+  from the top of `span.from`'s band to the bottom of `span.to`'s (wrapped, on each line, half `wrappedTrackGap` outside
+  them; linear, over the span's scrolled entries, so it follows a row zoom without a rebuild). Where a rows band is that
+  edge, the edge is the topmost or bottommost row the item targets (an item on the columns spans every row; a row inside
+  a collapsed clade, its wedge's row).
+- **Open sides.** A side is drawn only at its item's own end: where a line break (or, in tracks, the view's edge) cuts
+  the item, that side stays open and the top and bottom edges run to the line's end. The edges sit on the cells' edges,
+  1.5 CSS px rounded to whole device px, in the item's color; `dashed` and `dotted` line styles are drawn so, the
+  pattern fixed to the content, the others solid.
+- **Titles.** Each item's label is drawn in the frame's own track, at its left edge, on the line (or in the view) where
+  the item starts, up to the next title or the line's end, cut with an ellipsis; in text the track takes a title's row
+  only on such lines, and in tracks a row; a frame without titles (`labels: false`) takes no band. The title's band hits
+  the frame's item over its columns; the outline takes no hits from the tracks under it.
 
 ## Performance
 

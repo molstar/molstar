@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { on } from '../../dom/scoped.js';
 import { classes } from './_generated/wordmark.module.css.js';
 
 // The Mol* wordmark as outlines, after the logo, drawn on the pixel grid at its size (20 px, with a 1 px margin for the
@@ -138,7 +139,7 @@ export function MolstarWordmark(props: {
   ) as HTMLElement;
   if (glow) {
     // Follow the pointer across: the colors' centre (drawing units) and the shown strip (px); nothing allocated per move.
-    root.addEventListener('pointermove', (e) => {
+    on<PointerEvent>(root, 'pointermove', (e) => {
       const r = root.getBoundingClientRect();
       const x = e.clientX - r.left;
       const at = x / scale - 1;

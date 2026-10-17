@@ -15,6 +15,8 @@ import type { SequenceBehavior, SequenceShown, ViewerExtension } from '@molstar/
 import { PLDDTConfidenceColorThemeProvider } from './quality-assessment/color/plddt.js';
 import { QmeanScoreColorThemeProvider } from './quality-assessment/color/qmean.js';
 import { ModelArchiveApi } from './pae/operations.js';
+import { PluginConfig } from '@molstar/plugin/config';
+import { QualityAutoPreset } from './quality-assessment/auto-preset.js';
 import { QualityAssessment } from './quality-assessment/prop.js';
 
 declare module '@molstar/prism-viewer/api' {
@@ -127,8 +129,18 @@ export const ModelArchiveExtension: ViewerExtension = {
   id: 'model-archive',
   title: 'Model quality',
   plugin: {
-    registry: [{ structure: { themes: { color: [PLDDTConfidenceColorThemeProvider, QmeanScoreColorThemeProvider] } } }],
+    registry: [
+      {
+        structure: {
+          themes: { color: [PLDDTConfidenceColorThemeProvider, QmeanScoreColorThemeProvider] },
+          presets: { representation: [QualityAutoPreset] },
+        },
+      },
+    ],
     behaviors: [],
+    // A predicted model opens colored by its confidence (v5's viewer's default preset): the automatic representation,
+    // by pLDDT or QMEAN where the model carries one (quality-assessment/auto-preset.ts).
+    config: [[PluginConfig.Structure.DefaultRepresentationPreset, QualityAutoPreset.id]],
   },
   api: { 'model-archive': (ctx) => new ModelArchiveApi(ctx) },
   annotations: QualityAnnotations,
@@ -174,6 +186,12 @@ function paeCommands(api: ViewerApi, area: ModelArchiveApi): CommandDefinition<a
       icon: 'gauge',
       alias: ['pae', 'predicted aligned error', 'alphafold', 'model quality'],
       action: 'Read',
+    }),
+    operationCommand(api, area.fetchPae, {
+      category: 'Structure',
+      icon: 'download',
+      alias: ['pae', 'predicted aligned error', 'alphafold', 'download pae', 'afdb'],
+      action: 'Fetch',
     }),
     {
       id: 'model-archive.show-pae',

@@ -9,10 +9,10 @@
  */
 
 import { Icon, Select, TextInput, For, Show, type ObservableState, observableState } from '@molstar/prism-ui';
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { type AIProvider, type AISettingsModel, checkLimits, type KeyScope } from '../model.js';
 import { classes } from './_generated/ai-setup.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 const Scopes: readonly (readonly [KeyScope, string])[] = [
   ['reload', 'Until reload'],
   ['session', 'This session'],
@@ -32,14 +32,9 @@ const scopeText: Record<KeyScope, string> = {
  */
 export function AISetup(props: { settings: AISettingsModel }) {
   const { settings } = props;
-  const anyKey = settings.providers.pipe(
-    map((ps) => ps.some((p) => p.key)),
-    distinctUntilChanged(),
-  );
-  const options = settings.providers.pipe(
-    map((ps) =>
-      ps.filter((p) => p.key).flatMap((p) => p.models.map((m) => [`${p.id}|${m}`, `${p.label} · ${m}`] as const)),
-    ),
+  const anyKey = derive(settings.providers, (ps) => ps.some((p) => p.key));
+  const options = derive(settings.providers, (ps) =>
+    ps.filter((p) => p.key).flatMap((p) => p.models.map((m) => [`${p.id}|${m}`, `${p.label} · ${m}`] as const)),
   );
   const own = observableState(false);
   // Which provider's key is being entered (here: rows are made anew when their provider changes). No key yet: the
@@ -49,7 +44,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
   );
   return (
     <section class={classes.setup} aria-label="AI assistant">
-      <Show when={anyKey.pipe(map((k) => !k))}>
+      <Show when={derive(anyKey, (k) => !k)}>
         {() => (
           <div class={classes.intro}>
             <p class={classes.lead}>Add a model key to ask AI assistant</p>
@@ -72,7 +67,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
                   class={classes.grow}
                   aria-label="Model"
                   options={opts}
-                  value={settings.setup.pipe(map((s) => (s ? `${s.provider}|${s.model}` : '')))}
+                  value={derive(settings.setup, (s) => (s ? `${s.provider}|${s.model}` : ''))}
                   onChange={(v) => {
                     const [provider, model] = v.split('|');
                     settings.choose({ provider, model });
@@ -113,32 +108,26 @@ function ProviderRow(props: {
   editing: ObservableState<string | undefined>;
 }) {
   const { settings, provider } = props;
-  const live = settings.providers.pipe(
-    map((ps) => ps.find((x) => x.id === props.provider.id)!),
-    distinctUntilChanged(),
-  );
-  const editing = props.editing.asReadonly.pipe(
-    map((id) => id === provider.id),
-    distinctUntilChanged(),
-  );
+  const live = derive(settings.providers, (ps) => ps.find((x) => x.id === props.provider.id)!);
+  const editing = derive(props.editing.asReadonly, (id) => id === provider.id);
   const toggle = () => props.editing.set(props.editing.value === provider.id ? undefined : provider.id);
   return (
     <div class={classes.provider}>
       <div class={classes.providerHead}>
         <span class={classes.providerName}>{props.provider.label}</span>
-        <span class={classes.providerState} data-has={live.pipe(map((p) => (p.key ? '' : undefined)))}>
-          {live.pipe(
-            map((p) => (!p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope])),
+        <span class={classes.providerState} data-has={derive(live, (p) => (p.key ? '' : undefined))}>
+          {derive(live, (p) =>
+            !p.key ? 'no key' : p.key.from === 'server' ? 'key from the server' : scopeText[p.key.scope],
           )}
         </span>
-        <Show when={live.pipe(map((p) => p.key?.from !== 'server'))}>
+        <Show when={derive(live, (p) => p.key?.from !== 'server')}>
           {() => (
             <button type="button" class={classes.link} onClick={toggle}>
-              {combineLatest([live, editing]).pipe(map(([p, e]) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key')))}
+              {derive([live, editing], (p, e) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key'))}
             </button>
           )}
         </Show>
-        <Show when={live.pipe(map((p) => p.key?.from === 'here'))}>
+        <Show when={derive(live, (p) => p.key?.from === 'here')}>
           {() => (
             <button type="button" class={classes.link} onClick={() => settings.removeKey(props.provider.id)}>
               Remove
@@ -206,7 +195,7 @@ function ScopeChoice(props: { scope: ObservableState<KeyScope> }) {
           type="button"
           role="radio"
           class={classes.scope}
-          aria-checked={props.scope.asReadonly.pipe(map((s) => s === id))}
+          aria-checked={derive(props.scope.asReadonly, (s) => s === id)}
           onClick={() => props.scope.set(id)}
         >
           {label}
@@ -226,7 +215,7 @@ function RefreshModels(props: { settings: AISettingsModel }) {
       aria-label="Ask the providers for their models"
       data-tip="Ask the providers for their models"
       disabled={busy.asReadonly}
-      data-busy={busy.asReadonly.pipe(map((b) => (b ? '' : undefined)))}
+      data-busy={derive(busy.asReadonly, (b) => (b ? '' : undefined))}
       onClick={async () => {
         busy.set(true);
         try {
@@ -338,22 +327,22 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
           <button
             type="button"
             class={classes.link}
-            disabled={fetching.asReadonly.pipe(map((f) => f === 'busy'))}
+            disabled={derive(fetching.asReadonly, (f) => f === 'busy')}
             onClick={fetchModels}
           >
-            {fetching.asReadonly.pipe(map((f) => (f === 'busy' ? 'Fetching…' : 'Fetch')))}
+            {derive(fetching.asReadonly, (f) => (f === 'busy' ? 'Fetching…' : 'Fetch'))}
           </button>
         </div>
       </div>
-      <Show when={fetching.asReadonly.pipe(map((f) => f === 'failed'))}>
+      <Show when={derive(fetching.asReadonly, (f) => f === 'failed')}>
         {() => (
           <p class={classes.error}>Could not list its models: check the endpoint, the key, and that it allows CORS.</p>
         )}
       </Show>
       {field('contextWindow', 'Context window', 'Optional: 32,768 tokens if empty')}
       {field('maxOutputTokens', 'Max output', 'Optional: 4,096 tokens if empty')}
-      <Show when={problem.asReadonly.pipe(map((p) => p !== undefined))}>
-        {() => <p class={classes.error}>{problem.asReadonly.pipe(map((p) => p ?? ''))}</p>}
+      <Show when={derive(problem.asReadonly, (p) => p !== undefined)}>
+        {() => <p class={classes.error}>{derive(problem.asReadonly, (p) => p ?? '')}</p>}
       </Show>
       <p class={classes.note}>It must speak an OpenAI API, and allow this page to call it (CORS).</p>
       <div class={classes.ownFoot}>

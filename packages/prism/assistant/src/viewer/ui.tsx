@@ -21,7 +21,13 @@ import { createViewerAgentModel } from './agent-model.js';
 import { createInspectorSources } from './inspector-sources.js';
 import { listedModels } from '@molstar/ai/models';
 import type { AISetup } from '../model.js';
-import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs } from './settings-model.js';
+import {
+  assistantPrefsPrefix,
+  createAISettings,
+  localPrefs,
+  type ProvidedModels,
+  type SettingsPrefs,
+} from './settings-model.js';
 import { domainsStorageSource, keptDomains, keysStorageSource } from './storage.js';
 import { createDomainRules } from '@molstar/prism-viewer/agent/policies';
 
@@ -38,7 +44,7 @@ export interface AssistantOptions {
   readonly provided?: readonly ProvidedModels[];
   /** Where the person's keys are kept; default the browser's (`createKeyStore`). */
   readonly keys?: KeyStore;
-  /** Where the choice of model is kept; default localStorage (`localPrefs`). */
+  /** Where the choice of model, own endpoints and allowed domains are kept; default localStorage, per viewer (`localPrefs`). */
   readonly prefs?: SettingsPrefs;
   /**
    * The model until the person chooses one (default Anthropic's `claude-sonnet-5-5`): a provider id (`anthropic`,
@@ -71,7 +77,8 @@ export const createAssistant: AssistantFactory = createAssistantWith();
 async function makeAssistant(host: AssistantHost, options: AssistantOptions): Promise<AssistantUI> {
   const { notifications } = host.viewer.managers;
   const keys = options.keys ?? createKeyStore();
-  const prefs = options.prefs ?? localPrefs();
+  // Per viewer (its persist key): the keys are the person's and shared, the choices and allowed domains are the viewer's.
+  const prefs = options.prefs ?? localPrefs(assistantPrefsPrefix(host.viewer.spec.persist?.key));
   // Domains the person allowed (agent.md §4): for the session, or kept in this browser (the prefs, as a list).
   const rules = createDomainRules(keptDomains(prefs.get('domains')), (browser) =>
     prefs.set('domains', JSON.stringify(browser)),

@@ -73,4 +73,34 @@ describe('viewState and navigation', () => {
     expect(v.layout.value.mode).toBe('compact');
     expect(v.layout.value.docks.right.size).toBe(180);
   });
+
+  it('keeps hidden tabs in a saved layout, and drops a malformed list', () => {
+    const v = new ViewStateManager();
+    v.setTabHidden('history', true);
+    v.setTabHidden('history', true);
+    const saved = JSON.parse(JSON.stringify(v.save()));
+    const w = new ViewStateManager();
+    expect(w.restore(saved)).toBe(true);
+    expect(w.layout.value.hiddenTabs).toEqual(['history']);
+    expect(w.restore({ version: 1, layout: { docks: {}, hiddenTabs: [1] } })).toBe(false);
+    // A layout kept before hidden tabs existed restores with none.
+    const old = new ViewStateManager();
+    expect(old.restore({ version: 1, layout: { docks: { right: { tabs: ['x'] } } } })).toBe(true);
+    expect(old.layout.value.hiddenTabs).toEqual([]);
+    expect(old.layout.value.docks.right.tabs).toEqual(['x']);
+  });
+
+  it('resets to the layout it started with', () => {
+    const v = new ViewStateManager({ compactRail: true, docks: { right: { size: 400 } }, buttons: { xr: false } });
+    v.setDock('right', { size: 500, pinned: false });
+    v.setTabHidden('a', true);
+    v.setButtons({ xr: true });
+    v.reset();
+    expect(v.layout.value).toEqual(v.initial);
+    // Pinned is the right dock's default (the seed does not say).
+    expect(v.layout.value.docks.right).toMatchObject({ size: 400, pinned: true });
+    expect(v.layout.value.buttons).toEqual({ xr: false });
+    expect(v.layout.value.hiddenTabs).toEqual([]);
+    expect(v.layout.value.compactRail).toBe(true);
+  });
 });

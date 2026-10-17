@@ -22,7 +22,8 @@
       "!**/npm-shrinkwrap.json",
       "!**/_generated/**",
       "!packages/sequences/**/_test/**/*.json",
-      "!packages/prism/viewer/src/_stories/**/fixtures/**"
+      "!packages/prism/viewer/src/_stories/**/fixtures/**",
+      "!packages/prism/viewer/src/**/_test/fixtures/**"
     ]
   },
   "formatter": {
@@ -80,6 +81,9 @@
         "vitest.config.ts",
         "vitest.live.config.ts",
         "packages/sequences/**/vitest*.config.ts",
+        "packages/prism/viewer/vitest*.config.ts",
+        "packages/prism/ui/vitest*.config.ts",
+        "packages/prism/assistant/vitest*.config.ts",
         "apps/docs/astro.config.ts",
         "examples/minimal-prism-viewer/vite.config.ts"
       ],
@@ -709,47 +713,6 @@
               "level": "error",
               "options": {
                 "patterns": [
-                  {
-                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
-                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
-                  },
-                  {
-                    "group": [
-                      "@molstar/seq-core/stream/tiles",
-                      "@molstar/seq-core/stream/tiles/**",
-                      "@molstar/seq-core/stream/gmod",
-                      "@molstar/seq-core/stream/gmod/**"
-                    ],
-                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
-                  },
-                  {
-                    "group": ["@nightingale-elements/**"],
-                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
-                  },
-                  {
-                    "group": ["zod", "zod/**"],
-                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "includes": ["packages/sequences/molstar-poc/src/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": ["@molstar/plugin-ui", "@molstar/plugin-ui/**"],
-                    "message": "Never Mol*'s default UI: a canvas plus its streams."
-                  },
                   {
                     "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."

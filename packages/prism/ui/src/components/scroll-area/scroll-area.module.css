@@ -49,7 +49,7 @@
   }
 
   /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  .root:not([data-axis="x"]) > & {
+  .root:not([data-axis="x"], [data-no-fade]) > & {
     mask-image: linear-gradient(
       to bottom,
       transparent,

@@ -45,6 +45,9 @@ export const classes = {
   'run': 'msp-command-menu-run',
   'scrim': 'msp-command-menu-scrim',
   'sentence': 'msp-command-menu-sentence',
+  'shared': 'msp-command-menu-shared',
+  'sharedOption': 'msp-command-menu-sharedOption',
+  'sharedTitle': 'msp-command-menu-sharedTitle',
   'spacer': 'msp-command-menu-spacer',
   'srOnly': 'msp-command-menu-srOnly',
   'tail': 'msp-command-menu-tail',
@@ -470,6 +473,38 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   height: 1px;
   position: absolute;
   overflow: hidden;
+}
+
+.msp-command-menu-shared {
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
+  display: flex;
+}
+
+.msp-command-menu-sharedTitle {
+  margin-right: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-command-menu-sharedOption {
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-accent);
+  }
 }
 }
 `);

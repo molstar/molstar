@@ -9,10 +9,10 @@
  */
 
 import { ActionFooter, domView, ParamsForm, SectionList, Show } from '@molstar/prism-ui';
-import { map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { createAnimationModel } from './model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Animation card (parity.md §4; the mock's `registerMockAnimation`): a list of sections in the `animation` slot,
 // like Export's. Play chooses an animation of the plugin's (with its own params) and plays or stops it; Wiggle is
 // Mol*'s procedural animation. Both act through the person's API; other extensions add sections to the same slot.
@@ -52,8 +52,8 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
                   <ActionFooter
                     icon="play"
                     label="Play"
-                    info={model.blocked.pipe(map((b) => b ?? ''))}
-                    disabled={model.blocked.pipe(map((b) => b !== undefined))}
+                    info={derive(model.blocked, (b) => b ?? '')}
+                    disabled={derive(model.blocked, (b) => b !== undefined)}
                     onReset={() => form.reset()}
                     onApply={() => model.play()}
                   />
@@ -79,7 +79,7 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
             <ActionFooter
               icon="orbit"
               label="Apply"
-              info={model.wiggle.pipe(map((w) => (w.mode === 'off' ? '' : `Wiggling by ${w.mode}`)))}
+              info={derive(model.wiggle, (w) => (w.mode === 'off' ? '' : `Wiggling by ${w.mode}`))}
               secondary={{ icon: 'x', label: 'Clear', onClick: () => model.clearWiggle() }}
               onApply={() => model.applyWiggle()}
             />

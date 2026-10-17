@@ -39,7 +39,9 @@ describe('the structure inspector: the source', () => {
     const type = form.params.type as { options: readonly (readonly [string, string])[]; isHidden?: boolean };
     expect(type.options.map(([id]) => id)).toEqual(expect.arrayContaining(['model', 'assembly:1', 'mates', 'cells']));
     expect(type.isHidden).toBeFalsy();
-    expect(form.params.model.isHidden).toBe(true);
+    // The model shown is the trajectory row's (a structure with several), not a field here.
+    expect(form.params.model).toBeUndefined();
+    expect(v.views.scene.roots.value[0].trajectory).toBeUndefined();
     expect(form.layout().essentials).toEqual(expect.arrayContaining(['type', 'transform']));
   });
 
@@ -76,14 +78,22 @@ describe('the structure inspector: the source', () => {
     await until(() => values().type === 'cells' && values().cells === 2, 10000);
   });
 
-  it('shows another model of a trajectory', async () => {
+  it('shows another model of a trajectory, from its row (the structure says how many)', async () => {
     const v = await headlessViewer({ files: [twoModels()] });
-    const form = v.views.scene.inspect(v.views.scene.roots.value[0]).form!;
-    expect(form.params.model.isHidden).toBeFalsy();
-    expect(form.values.value.model).toBe(1);
-    form.set('model', 2);
+    const node = v.views.scene.roots.value[0];
+    const form = v.views.scene.inspect(node).form!;
+    expect(node.description.value).toMatch(/· 2 models$/);
+    const t = node.trajectory!;
+    expect(t.unit).toBe('models');
+    // Read while followed, as the row reads them.
+    const off = [t.count.listen?.(() => {}), t.index.listen?.(() => {})];
+    expect([t.count.value, t.index.value]).toEqual([2, 0]);
+    t.seek(1);
     await until(() => (structure(v).model?.cell.transform.params as { modelIndex: number }).modelIndex === 1, 10000);
-    expect(form.values.value.model).toBe(2);
+    await until(() => t.index.value === 1, 10000);
+    t.step(1);
+    await until(() => t.index.value === 0, 10000);
+    for (const o of off) o?.();
     // A crystal-less file: no symmetry among its types.
     const type = form.params.type as { options: readonly (readonly [string, string])[] };
     expect(type.options.map(([id]) => id)).not.toContain('mates');

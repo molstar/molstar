@@ -23,7 +23,7 @@ import {
   RowSizing,
   Sizing,
 } from '@molstar/seq-core/format';
-import { type Alphabet, Numbering, type SeqSet, type SortedArray } from '@molstar/seq-core/model';
+import { type Alphabet, NO_LABEL, Numbering, type SeqSet, type SortedArray } from '@molstar/seq-core/model';
 import { Axis, AxisGeometry, SectionAxisView, type ShownIndex, sameList } from './axis.js';
 import { type ConfigManager, SeqViewerConfig } from './config.js';
 import type { ViewModel } from './graph.js';
@@ -89,6 +89,13 @@ export interface RenderProps extends ViewportProps {
    * (the default): the text is plain, as text is.
    */
   readonly wrappedColors: boolean;
+  /**
+   * Wrapped: the letters and an alignment's rows drawn on cells in their layer's color theme, each letter in the ink
+   * that reads on its cell (seqspec:viewer#the-text-view); wins over `wrappedColors`. False (the default): plain text.
+   */
+  readonly wrappedCells: boolean;
+  /** Wrapped, an alignment's rows: the widest row label's px (longer ones are cut with an ellipsis). */
+  readonly wrappedRowLabelMax: number;
   /**
    * A unit's unobserved positions (in the sequence, not modelled in its structure: `observed` of the unit) drawn in the
    * skin's `unobserved` color, in the letters' cells and text, not in the layer's color. False (the default): as any
@@ -197,6 +204,8 @@ export const DefaultRenderProps: RenderProps = {
   wrappedGroupGap: 8,
   wrappedAlign: 'start',
   wrappedColors: false,
+  wrappedCells: false,
+  wrappedRowLabelMax: 160,
   unobservedGray: false,
   wrappedMaxWidth: 0,
   wrappedGap: 4,
@@ -316,7 +325,7 @@ export const WRAPPED_AXIS_ROOM = 30;
 const fullTracks = new WeakMap<ResolvedView, Uint8Array>();
 /**
  * Wrapped: a track drawn in full in the text view, its layers in their track forms: under `wrappedTracks: full`, one
- * with a `height` and no `letters` layer (the letters are the text: their track keeps its band and its lanes).
+ * with a `height` and no `letters` or `rows` layer (the letters are the text: their track keeps its band and lanes).
  */
 export function fullTrack(p: RenderProps, v: ResolvedView, set: SeqSet, t: number): boolean {
   if (p.wrappedTracks !== 'full') return false;
@@ -328,7 +337,8 @@ export function fullTrack(p: RenderProps, v: ResolvedView, set: SeqSet, t: numbe
       if (u >= 0 && u < full.length && v.tracks.height[u] > 0) full[u] |= 1;
     }
     for (let k = 0; k < v.layers.count; k++)
-      if (typeIs(v, set, k, 'letters') && v.layers.track[k] >= 0) full[v.layers.track[k]] = 2;
+      if ((typeIs(v, set, k, 'letters') || typeIs(v, set, k, 'rows')) && v.layers.track[k] >= 0)
+        full[v.layers.track[k]] = 2;
     fullTracks.set(v, full);
   }
   return t >= 0 && t < full.length && full[t] === 1;
@@ -384,6 +394,25 @@ export interface RowModel {
   /** Bumped on each build of the rows (the tree lays itself out again). */
   version: number;
 }
+
+/**
+ * Wrapped: the section's `rows` layer drawn as text (seqspec:viewer#rows-in-text), one text row per display row on
+ * every line of its block: its layer and track (-1: none), its lanes, a row's height, and the px left of the lines for
+ * the rows' labels and right of them for their numbers.
+ */
+export interface TextRows {
+  layer: number;
+  track: number;
+  laneStart: number;
+  count: number;
+  height: number;
+  labelRoom: number;
+  numberRoom: number;
+}
+/** The rows' labels' and numbers' font px in the text: the group labels' size up to the letters'. */
+export const textRowLabelPx = (fontPx: number) => Math.max(7, Math.round(fontPx * 0.8));
+/** Px between a line and its rows' labels or numbers. */
+export const TEXT_ROWS_PAD = 8;
 
 /** Px right of the data area before the vertical overview: the right gutter, wrapped at least the text's inset. */
 const rightOf = (p: RenderProps, wrapped: boolean) =>
@@ -446,7 +475,17 @@ export interface SectionLayout {
   /** The fitted row scale (box), else 1. */
   minRowScale: number;
   rows: RowModel;
+  /** Wrapped: the rows drawn as text; `layer` -1: none. */
+  textRows: TextRows;
   lines: LineTable;
+  /** Wrapped: per line its row's entries [first, end) (a row of chips shares one). */
+  lineEntries: Int32Array;
+  /**
+   * Per track of the view (its index in the resolved view), its first and last scrolled entry (-1: none): what a
+   * frame spans (seqspec:viewer#frames).
+   */
+  trackFirst: Int32Array;
+  trackLast: Int32Array;
   /**
    * Per block b, the scrolled entries that draw it, [2b, 2b + 1]: stacked, its title and lane (its marks stay there);
    * wrapped, its lines'; side by side, every scrolled entry.
@@ -536,7 +575,11 @@ function emptyLayout(): SectionLayout {
       display: null,
       version: 0,
     },
+    textRows: { layer: -1, track: -1, laneStart: 0, count: 0, height: 0, labelRoom: 0, numberRoom: 0 },
     lines: lineTable(),
+    lineEntries: I(0),
+    trackFirst: I(0),
+    trackLast: I(0),
     blockEntries: I(0),
   };
 }
@@ -808,6 +851,8 @@ export class SectionEntry {
   zoomedCount = 0;
   /** The section's `rows` layer (its first, VW4), and its rows' key when last laid out. */
   rowsLayer = -1;
+  /** Wrapped: the section's `rows` layer drawn as text (seqspec:viewer#rows-in-text); -1: none. */
+  textRowsLayer = -1;
   readonly rowsKey = {
     layer: -1,
     laneStart: -1,
@@ -1086,6 +1131,7 @@ export class Layouts implements LayoutManager {
     const wrapped = preset?.geometry ? preset.geometry === 'wrapped' : v.layout === Layout.text;
     const circular = preset?.geometry === 'circular' && !wrapped;
     e.rowsLayer = wrapped ? -1 : rowsLayer(v, set, i);
+    e.textRowsLayer = wrapped ? rowsLayer(v, set, i) : -1;
     const nav = navigatorOf(this.host.registry, preset?.navigator);
     e.navigator = e.drawnNavigator = nav;
     e.rail = nav?.parts.onRuler === true;
@@ -1130,9 +1176,12 @@ export class Layouts implements LayoutManager {
     const gutter =
       (props.wrappedGroupLabels === 'none' ? props.wrappedGutter : 0) +
       (props.wrappedTrackAxes ? WRAPPED_AXIS_ROOM : 0);
-    if (wrapped) lefts[0] = props.headerWidth + props.wrappedInset + gutter;
+    // Rows as text: their labels' column left of the lines, their numbers right of them (seqspec:viewer#rows-in-text).
+    const tr = l.textRows;
+    this.textRows(e, v, set, ax, props);
+    if (wrapped) lefts[0] = props.headerWidth + props.wrappedInset + gutter + tr.labelRoom;
     ax.lefts = lefts;
-    ax.reserve = rightOf(props, wrapped) + overviewWidth(props);
+    ax.reserve = rightOf(props, wrapped) + overviewWidth(props) + tr.numberRoom;
     ax.floor = props.dataFloor;
     ax.left = lefts[columns.length];
     ax.insetX = ax.left + ax.reserve;
@@ -1150,7 +1199,7 @@ export class Layouts implements LayoutManager {
     const same = old?.equals(ax) && old.fixedCell === ax.fixedCell && group === props.wrappedGroup;
     // ...and the group labels' numbering (the Numbering switch re-resolves the view, keeping the axis).
     const b0 = v.sections.blockStart[i];
-    const labels: unknown[] = [props.wrappedGroupLabels, props.wrappedFontPx];
+    const labels: unknown[] = [props.wrappedGroupLabels, props.wrappedFontPx, e.textRowsLayer];
     for (let b = 0; wrapped && b < ax.count; b++)
       labels.push(v.blocks.numbering[b0 + b], v.blocks.numberingPath[b0 + b]);
     if (!same || e.runsText !== this.host.text.version.value || !sameList(labels, e.runsLabels)) e.runs = null;
@@ -1435,6 +1484,7 @@ export class Layouts implements LayoutManager {
       l.dataRight -= side;
     }
     this.blockEntries(l, ax);
+    trackEntries(l, v.tracks.count);
   }
 
   /**
@@ -1694,9 +1744,11 @@ export class Layouts implements LayoutManager {
     const unlabeled = tracks.map(
       (t, j) => full[j] && labelRow > 0 && v.tracks.label[t] >= 0 && set.strings.get(v.tracks.label[t]) !== '',
     );
+    if (l.lineEntries.length < 2 * n) l.lineEntries = I(2 * n);
     // By row: a line, or chips sharing one (seqspec:viewer#the-text-view); each track's band the row's tallest.
     for (let k0 = 0, k1 = 0; k0 < n; k0 = k1) {
       for (k1 = k0 + 1; k1 < n && lines.follows[k1] === 1; ) k1++;
+      const first = l.entryCount;
       const chips = runs[lines.block[k0]].chip;
       // Chips follow at the lines' spacing; a new block otherwise at the blocks' gap.
       if (k0 > 0) y += chips || lines.block[k0] === lines.block[k0 - 1] ? p.wrappedGap : p.stackGap;
@@ -1730,7 +1782,11 @@ export class Layouts implements LayoutManager {
           push(l, EntryKind.track, t, v.tracks.group[t], firstLayer(v, t), k, lines.block[k], y, h, 0);
         y += h;
       }
-      for (let k = k0; k < k1; k++) lines.bottom[k] = y;
+      for (let k = k0; k < k1; k++) {
+        lines.bottom[k] = y;
+        l.lineEntries[2 * k] = first;
+        l.lineEntries[2 * k + 1] = l.entryCount;
+      }
     }
     return y + p.wrappedInset;
   }
@@ -1755,6 +1811,43 @@ export class Layouts implements LayoutManager {
   }
 
   /**
+   * Wrapped: the rows drawn as text (seqspec:viewer#rows-in-text): their track and lanes, a row's height, and the room
+   * their labels (the widest, at most `wrappedRowLabelMax`) and numbers (the largest's digits) take beside the lines,
+   * in the rows' font (`textRowLabelPx`). Edge rate: measured once per configure.
+   */
+  private textRows(e: SectionEntry, v: ResolvedView, set: SeqSet, ax: Axis, p: RenderProps) {
+    const tr = e.layout.textRows;
+    const k = e.textRowsLayer;
+    const t = k >= 0 ? v.layers.track[k] : -1;
+    const aln = t >= 0 && ax.count > 0 ? set.alignments[ax.alignment[0]] : undefined;
+    if (!aln) {
+      tr.layer = tr.track = -1;
+      tr.count = tr.labelRoom = tr.numberRoom = 0;
+      return;
+    }
+    tr.layer = k;
+    tr.track = t;
+    tr.laneStart = v.tracks.laneStart[t];
+    tr.count = v.tracks.laneCount[t];
+    tr.height = textRow(p);
+    const tm = this.host.text;
+    const font = tm.font('mono', textRowLabelPx(p.wrappedFontPx));
+    let widest = 0;
+    let most = 1;
+    for (let q = 0; q < tr.count; q++) {
+      const row = Lanes.rowOf(v.lanes, tr.laneStart + q);
+      const id = aln.labelOf(row as never);
+      if (id >= 0) widest = Math.max(widest, tm.label(set.strings.get(id), font).width);
+      const slot = aln.rows.slotOf(row as never);
+      if (slot < 0) continue;
+      const first = aln.rows.rowFirst[slot] === NO_LABEL ? 1 : aln.rows.rowFirst[slot];
+      most = Math.max(most, first + aln.rows.lengthOf(row as never) - 1);
+    }
+    tr.labelRoom = widest > 0 ? Math.ceil(Math.min(widest, p.wrappedRowLabelMax)) + TEXT_ROWS_PAD : 0;
+    tr.numberRoom = Math.ceil(tm.label(String(most), font).width) + TEXT_ROWS_PAD;
+  }
+
+  /**
    * The group labels: a group's last position (above the line) or first (inline) in the block's numbering through its
    * path, as the hover names it (insertion codes as they are; none where the numbering has no label, and none on a
    * ligand); ordinal without a numbering. Widths from the mono font's advances, measured once per font.
@@ -1766,9 +1859,12 @@ export class Layouts implements LayoutManager {
     const tm = this.host.text;
     const font = tm.font('mono', groupLabelPx(e.props.wrappedFontPx));
     const pad = e.props.wrappedGroupLabels === 'inlineStart' ? GROUP_LABEL_PAD : 0;
+    // Rows as text: the reference row's numbers, as ESPript numbers its first sequence (seqspec:viewer#rows-in-text).
+    const byRow = e.layout.textRows.layer >= 0;
     return {
       inline: pad > 0,
-      text: (b, k) => positionLabel(v, set, ax, b0, b, k),
+      text: (b, k, start, stop) =>
+        byRow ? referenceLabel(ax, b, k, pad > 0 ? 1 : -1, start, stop) : positionLabel(v, set, ax, b0, b, k),
       width(text) {
         const a = tm.advances(font);
         let w = 0;
@@ -1817,10 +1913,13 @@ export class Layouts implements LayoutManager {
       }
       const type = v.layers.type[k] >= 0 ? set.strings.get(v.layers.type[k]) : '';
       if (type === '' || type === 'ruler') continue;
+      // The section's rows as text: a text row per display row (seqspec:viewer#rows-in-text); another rows layer none.
+      const tr = e.layout.textRows;
+      if (type === 'rows' && k !== tr.layer) continue;
       nothing = false;
       kept = true;
       const text = type === 'letters' || type === 'emphasis';
-      fixed = Math.max(fixed, text ? textRow(p) : p.rowHeight);
+      fixed = Math.max(fixed, type === 'rows' ? tr.count * tr.height : text ? textRow(p) : p.rowHeight);
     }
     // A layer with per-line heights shares the band with the fixed ones (the letters): a strip beside the letters
     // colors their cells.
@@ -1858,6 +1957,8 @@ export class Layouts implements LayoutManager {
       }
       return floor;
     }
+    // Frames without titles take no band (seqspec:viewer#frames): their outlines are drawn over the tracks they span.
+    if (this.untitled(e, t)) return 0;
     const natural = v.sections.rowSizing[e.index] === RowSizing.natural;
     // The data area's width and a box's room for its rows, whole px (ints cross the call unboxed): a plot keeps its aspect.
     const l = e.layout;
@@ -1872,6 +1973,17 @@ export class Layouts implements LayoutManager {
       h = Math.max(h, fn ? fn(model.prepared[k]?.state, v.layers.params[k], p, e.built[2], width, room) : p.rowHeight);
     }
     return h || p.rowHeight;
+  }
+
+  /** Whether track t holds frames alone, none titled (`labels: false`). */
+  private untitled(e: SectionEntry, t: number): boolean {
+    const { resolved: v, set } = e.model as ViewModel;
+    let any = false;
+    for (let k = firstLayer(v, t); k >= 0 && k < v.layers.count && v.layers.track[k] === t; k++) {
+      if (!typeIs(v, set, k, 'frame') || v.layers.params[k].labels !== false) return false;
+      any = true;
+    }
+    return any;
   }
 
   /** Whether a track's height follows the row scale: a layer of it drawn by a renderer that `zooms`, with no height hint. */
@@ -2011,6 +2123,42 @@ function isRuler(v: ResolvedView, set: SeqSet, t: number): boolean {
     any = true;
   }
   return any;
+}
+/**
+ * Per track of the view, its first and last scrolled entry (`SectionLayout.trackFirst`, `trackLast`; -1: none), grown
+ * only. Edge rate: at a build.
+ */
+function trackEntries(l: SectionLayout, tracks: number) {
+  if (l.trackFirst.length < tracks) {
+    l.trackFirst = I(tracks);
+    l.trackLast = I(tracks);
+  }
+  l.trackFirst.fill(-1);
+  l.trackLast.fill(-1);
+  for (let e = l.pinnedCount; e < l.entryCount; e++) {
+    const t = l.entryTrack[e];
+    if (l.entryKind[e] !== EntryKind.track || t < 0 || t >= tracks) continue;
+    if (l.trackFirst[t] < 0) l.trackFirst[t] = e;
+    l.trackLast[t] = e;
+  }
+}
+/**
+ * A group's label over an alignment's rows drawn as text (seqspec:viewer#rows-in-text): the reference row's residue
+ * number at its last residue in the group [start, stop) (`dir` -1, from shown k back; inline, 1: its first, from k on);
+ * "" where the group holds none of its residues (a short group, the last or one a filter's break cuts, included).
+ */
+function referenceLabel(ax: Axis, b: number, k: number, dir: number, start: number, stop: number): string {
+  const aln = ax.set.alignments[ax.alignment[b]];
+  if (!aln) return '';
+  const row = Math.max(0, aln.referenceRow) as never;
+  const slot = aln.rows.slotOf(row);
+  if (slot < 0) return '';
+  const first = aln.rows.rowFirst[slot] === NO_LABEL ? 1 : aln.rows.rowFirst[slot];
+  for (let q = k; q >= start && q < stop; q += dir) {
+    const p = aln.rows.colToPos(row, ax.indexOf(b, q as ShownIndex) as never);
+    if (p >= 0) return String(first + p);
+  }
+  return '';
 }
 /** A block's alphabet: its unit's molecule's or its alignment's. */
 function alphabetOf(ax: Axis, b: number): Alphabet | null {

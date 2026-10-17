@@ -9,13 +9,22 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { For, timeSlicing } from '../dom/control-flow.js';
 import { render } from '../dom/render.js';
+import { flush, watch } from '../dom/scope.js';
+import { setClass, setText } from '../dom/writes.js';
 import { keyedSelector } from '../reactive/keyed-selector.js';
 import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
+import { CommandManager } from '../commands/manager.js';
+import type { CommandDefinition } from '../commands/types.js';
+import { CommandMenu } from '../views/command-menu/command-menu.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ParamsForm } from '../components/params/params-form.js';
+import { ParamsFormModel } from '../forms/params-form.js';
 
+import { derive } from '../reactive/state.js';
 const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
 
@@ -85,6 +94,37 @@ function Row(props: {
   );
 }
 
+/**
+ * The row as view = f(state) (rendering.md §2): its DOM made once, one `watch` render that writes what differs. The
+ * selection is read whole (every row renders when it changes, and writes only if its own flag flipped).
+ */
+function WatchRow(props: {
+  row: RowData;
+  selected: ObservableState<number | undefined>;
+  select(id: number): void;
+  remove(id: number): void;
+}) {
+  const { row, selected } = props;
+  const label = document.createTextNode('');
+  const tr = (
+    <tr>
+      <td class="col-md-1">{row.id}</td>
+      <td class="col-md-4">
+        <a onClick={() => props.select(row.id)}>{label}</a>
+      </td>
+      <td class="col-md-1">
+        <a onClick={() => props.remove(row.id)}>×</a>
+      </td>
+      <td class="col-md-6" />
+    </tr>
+  ) as HTMLElement;
+  watch([row.label, selected], () => {
+    setText(label, row.label.value);
+    setClass(tr, 'danger', selected.value === row.id);
+  });
+  return tr;
+}
+
 interface Bench {
   rows: ObservableState<readonly RowData[]>;
   selected: ObservableState<number | undefined>;
@@ -108,6 +148,13 @@ function mountBench(host: HTMLElement): Bench {
             {(row) =>
               (window as any).__mspStaticRows ? (
                 <StaticRow row={row} />
+              ) : (window as any).__mspWatchRows ? (
+                <WatchRow
+                  row={row}
+                  selected={selected}
+                  select={(id) => selected.set(id)}
+                  remove={(id) => rows.set(rows.value.filter((r) => r.id !== id))}
+                />
               ) : (
                 <Row
                   row={row}
@@ -223,10 +270,13 @@ async function runBench(host: HTMLElement, only?: string): Promise<Result[]> {
       for (let i = 0; i <= Runs; i++) {
         const b = mountBench(host);
         op.setup(b);
+        flush();
         void host.offsetHeight;
         await frame();
         const t0 = performance.now();
         op.run(b);
+        // Watched rows render in a microtask: in the operation's time.
+        flush();
         const t1 = performance.now();
         void host.offsetHeight;
         await frame();
@@ -284,7 +334,7 @@ export const Runtime: StoryObj = {
             disabled={running.asReadonly}
             onClick={run}
           >
-            {running.asReadonly.pipe(map((r) => (r ? 'Running…' : 'Run')))}
+            {derive(running.asReadonly, (r) => (r ? 'Running…' : 'Run'))}
           </button>
           <table style="border-collapse: collapse;">
             <For each={results.asReadonly}>
@@ -304,4 +354,170 @@ export const Runtime: StoryObj = {
         </div>
       );
     }),
+};
+
+// --- The command menu's rows ---------------------------------------------------------------------
+
+/**
+ * Probes for a driver (`window.__mspMenu`; Playwright adds garbage collection and the heap): the command menu with
+ * `n` commands in 20 categories, mounted outside Storybook's root (its highlight addon re-scans styles on every change
+ * there). `open` times the first render; `grow` scrolls it to the end, rendering every row; `type` times keystrokes
+ * (each a new list of rows); `moves` times the highlight moving down.
+ */
+let menu: { host: HTMLElement; dispose(): void } | undefined;
+(window as any).__mspMenu = {
+  open(n = 1000) {
+    menu?.dispose();
+    const manager = new CommandManager<object>({
+      context: observableState<object>({}).asReadonly,
+      formats: { get: () => undefined },
+    });
+    const commands: CommandDefinition<object>[] = [];
+    for (let i = 0; i < n; i++)
+      commands.push({
+        id: `cmd.${i}`,
+        title: `${pick(adjectives)} ${pick(colours)} ${pick(nouns)} ${i}`,
+        category: `Category ${i % 20}`,
+        icon: 'cartoon',
+        run: () => ({ message: '' }),
+      });
+    manager.register(commands);
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 480px; height: 600px; contain: strict;';
+    document.body.append(host);
+    const t0 = performance.now();
+    const dispose = render(() => <CommandMenu manager={manager} onClose={() => {}} />, host);
+    flush();
+    const ms = performance.now() - t0;
+    menu = {
+      host,
+      dispose: () => {
+        dispose();
+        host.remove();
+      },
+    };
+    return { ms: +ms.toFixed(2), rows: host.querySelectorAll('[role=option]').length };
+  },
+  /** Scrolls the list to its end until every row is rendered. */
+  async grow() {
+    const vp = menu!.host.querySelector<HTMLElement>('[role=listbox]')!.closest('[data-axis]')!
+      .firstElementChild as HTMLElement;
+    for (let k = 0; k < 400; k++) {
+      const before = menu!.host.querySelectorAll('[role=option]').length;
+      vp.scrollTop = vp.scrollHeight;
+      vp.dispatchEvent(new Event('scroll'));
+      flush();
+      await frame();
+      if (menu!.host.querySelectorAll('[role=option]').length === before) break;
+    }
+    return menu!.host.querySelectorAll('[role=option]').length;
+  },
+  type(text: string) {
+    const input = menu!.host.querySelector('input')!;
+    const times: number[] = [];
+    for (let i = 1; i <= text.length; i++) {
+      const t0 = performance.now();
+      input.value = text.slice(0, i);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      flush();
+      times.push(performance.now() - t0);
+    }
+    return {
+      msPerKey: +(times.reduce((a, b) => a + b, 0) / times.length).toFixed(2),
+      rows: menu!.host.querySelectorAll('[role=option]').length,
+    };
+  },
+  moves(k = 50) {
+    const input = menu!.host.querySelector('input')!;
+    const t0 = performance.now();
+    for (let i = 0; i < k; i++) {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      flush();
+    }
+    return { msPerMove: +((performance.now() - t0) / k).toFixed(3) };
+  },
+  close() {
+    menu?.dispose();
+    menu = undefined;
+  },
+};
+
+// --- The params form's fields --------------------------------------------------------------------
+
+/**
+ * Probes for a driver (`window.__mspForm`): a flat form of `n` fields (sliders, numbers, switches, texts, colors in
+ * turn), outside Storybook's root. `open` times the first render; `setAll` sets every field in one batch (a preset);
+ * `setOne` one field, `count` times (a slider dragged).
+ */
+let form: { model: ParamsFormModel<PD.Params>; host: HTMLElement; dispose(): void } | undefined;
+(window as any).__mspForm = {
+  open(n = 200) {
+    form?.dispose();
+    const params: PD.Params = {};
+    for (let i = 0; i < n; i++) {
+      const k = i % 5;
+      params[`f${i}`] =
+        k === 0
+          ? PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 })
+          : k === 1
+            ? PD.Numeric(3)
+            : k === 2
+              ? PD.Boolean(true)
+              : k === 3
+                ? PD.Text(`text ${i}`)
+                : PD.Color(0x2e86c1 as any);
+    }
+    const model = new ParamsFormModel(params);
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 360px; height: 600px; overflow: auto;';
+    document.body.append(host);
+    const t0 = performance.now();
+    const dispose = render(() => <ParamsForm form={model} />, host);
+    flush();
+    const ms = performance.now() - t0;
+    form = {
+      model,
+      host,
+      dispose: () => {
+        dispose();
+        host.remove();
+      },
+    };
+    return { ms: +ms.toFixed(2), fields: n };
+  },
+  setAll(round = 1) {
+    const m = form!.model;
+    const values: Record<string, unknown> = {};
+    for (const [k, p] of Object.entries(m.params)) {
+      values[k] =
+        p.type === 'number'
+          ? (p.max ?? 10) * ((round % 9) / 10)
+          : p.type === 'boolean'
+            ? round % 2 === 0
+            : p.type === 'text'
+              ? `text ${k} ${round}`
+              : p.type === 'color'
+                ? 0x100000 * (round % 15)
+                : m.values.value[k];
+    }
+    const t0 = performance.now();
+    m.load(values as any);
+    flush();
+    return +(performance.now() - t0).toFixed(2);
+  },
+  setOne(count = 100) {
+    const m = form!.model;
+    const t0 = performance.now();
+    for (let i = 0; i < count; i++) {
+      m.set('f0', (i % 100) / 100);
+      flush();
+    }
+    return +((performance.now() - t0) / count).toFixed(3);
+  },
+  close() {
+    form?.dispose();
+    form = undefined;
+  },
 };

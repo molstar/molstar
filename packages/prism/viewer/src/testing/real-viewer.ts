@@ -25,6 +25,9 @@ export const ExampleFiles = {
   crambin: new URL('../../../../../data/examples/1crn.cif', import.meta.url).href,
   /** 1GRM: gramicidin. */
   grm: new URL('../../../../../data/examples/1grm_updated.cif', import.meta.url).href,
+  /** A docking receptor (PDB) and four poses of a ligand docked into it (one SDF, four molecules). */
+  dockingReceptor: new URL('../../../../../data/examples/docking/receptor_1.pdb', import.meta.url).href,
+  dockingPoses: new URL('../../../../../data/examples/docking/ligands_1.sdf', import.meta.url).href,
   /** A small protein's trajectory: its model (PDB) and coordinates (DCD). */
   trajectoryModel: new URL('../../../../../data/examples/trajectory/protein.pdb', import.meta.url).href,
   trajectoryCoordinates: new URL('../../../../../data/examples/trajectory/protein.dcd', import.meta.url).href,

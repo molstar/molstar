@@ -14,7 +14,6 @@ import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Material } from '@molstar/core/util/material';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
 import { story } from '../../../testing/story-root.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
 import { observableState } from '../../../reactive/observable-state.js';
@@ -22,6 +21,7 @@ import { TextInput } from '../../text-input/text-input.js';
 import { installTooltips } from '../../tooltip/tooltip.js';
 import { ParamsForm } from '../params-form.js';
 
+import { derive } from '../../../reactive/state.js';
 /**
  * Every PD control, alone, in each state: on a panel and in a well (an open action block), at the panel's width, with
  * the values it produces below. For checking spacing and alignment in isolation, not inside whichever panel uses it.
@@ -67,7 +67,7 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
           ) : null}
           <ParamsForm form={form} filter={props.filter ? query.asReadonly : undefined} />
         </div>
-        <pre style={values}>{form.values.pipe(map(show))}</pre>
+        <pre style={values}>{derive(form.values, show)}</pre>
       </div>
     );
   };

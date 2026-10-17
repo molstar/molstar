@@ -29,9 +29,7 @@ export function structurePanelShell({ shell, core, own, openCommandMenu }: Built
             <StructureTab
               shell={ctx.shell}
               scene={views.scene}
-              presets={views.presets}
               options={views.componentOptions}
-              quickStyles={views.quickStyles}
               // Preset and Styles open the command menu in their groups (`structure-commands.ts`).
               openCommands={(group) => openCommandMenu(group)}
             />

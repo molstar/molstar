@@ -11,8 +11,9 @@
 // hash is exact and the machine's (Skia, the Chrome version, the OS's rasterizer, the fixture fonts), so each setup
 // keeps its own record: a user agent with none fails and says so (never a silent skip), and records its hashes with
 // `VITE_SEQ_PIXELS=record` once its render has been checked by eye. Re-recorded on 2026-10-13 (an M4 with 16 GB,
-// Chrome 155 headless) after the batch's look settled; SW1's migration record (`parity/baselines/pixels.json`, the old
-// and next stacks' hashes on an M5, Chrome 154) stays as the switch's history. Mounted as the parity layer did.
+// Chrome 155 headless) after the batch's look settled, and on 2026-10-16 (UTC) for the helices drawn as cylinders (the `msa`
+// view's six `main` canvases); SW1's migration record (`parity/baselines/pixels.json`, the old and next stacks' hashes
+// on an M5, Chrome 154) stays as the switch's history. Mounted as the parity layer did.
 
 import { describe, expect, it } from 'vitest';
 import { commands } from 'vitest/browser';

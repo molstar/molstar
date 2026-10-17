@@ -52,7 +52,15 @@ interface Placed {
 function placed(input: LayerInput, lanes = false): Placed[] {
   const { layer, set, section } = input;
   const out: Placed[] = [];
-  const first = section.tracks[layer.track]?.laneStart ?? 0;
+  const own = section.tracks[layer.track];
+  // A lane's offset in its track: the layer's own, or (a frame's, seqspec:format#layer-types) the rows track its span
+  // reaches.
+  const firstOf = (lane: number) =>
+    own && lane >= own.laneStart && lane < own.laneStart + own.laneCount
+      ? own.laneStart
+      : (section.tracks.find((t) => lane >= t.laneStart && lane < t.laneStart + t.laneCount)?.laneStart ??
+        own?.laneStart ??
+        0);
   for (const pl of layer.placements) {
     const ann = set.annotations[pl.annotation];
     const end = ann ? endsOf(ann).find((e) => e.slot === pl.slot) : undefined;
@@ -60,7 +68,7 @@ function placed(input: LayerInput, lanes = false): Placed[] {
     const kept = layer.kept[layer.data.indexOf(ann.id)];
     const rows = kept ? end.rows.filter((r) => kept[r]) : end.rows;
     const path = pl.path >= 0 ? layer.paths[pl.path] : null;
-    out.push({ block: pl.block, ann, slot: pl.slot, rows, path, on: pl.lane >= 0 ? pl.lane - first : -1 });
+    out.push({ block: pl.block, ann, slot: pl.slot, rows, path, on: pl.lane >= 0 ? pl.lane - firstOf(pl.lane) : -1 });
   }
   return out;
 }
@@ -1030,6 +1038,79 @@ const secondary = (input: LayerInput) =>
       SECONDARY[a.category && a.category[r] >= 0 ? input.set.strings.get(a.category[r]) : ''] ?? SecondaryKind.other,
   });
 const positions = (input: LayerInput) => features(input, { runs: false, pack: false });
+
+/** A frame layer's items (seqspec:format#layer-types): `Features`, one per item and column run, with its rows. */
+export interface FrameFeatures extends Features {
+  /** Per frame, the lane offsets [first, last] of the span's rows its item targets; -1: every row (column data). */
+  readonly laneLo: Int32Array;
+  readonly laneHi: Int32Array;
+}
+/**
+ * A frame per item (block, annotation, item) and per run of its parts that overlap or touch on the block: an item on
+ * several rows is one frame over those rows (`laneLo`, `laneHi`), on the alignment's columns over every row.
+ */
+function frames(input: LayerInput): FrameFeatures {
+  const f = features(input, { runs: true, pack: false });
+  const set = input.set;
+  const order = Array.from({ length: f.count }, (_, k) => k);
+  const item = (k: number) => set.annotations[f.annotation[k]]?.item[f.row[k]] ?? f.row[k];
+  order.sort(
+    (x, y) =>
+      f.block[x] - f.block[y] ||
+      f.annotation[x] - f.annotation[y] ||
+      item(x) - item(y) ||
+      f.start[x] - f.start[y] ||
+      f.stop[y] - f.stop[x],
+  );
+  const kept: { k: number; start: number; stop: number; lo: number; hi: number }[] = [];
+  for (const k of order) {
+    const last = kept.at(-1);
+    const same =
+      last &&
+      f.block[last.k] === f.block[k] &&
+      f.annotation[last.k] === f.annotation[k] &&
+      item(last.k) === item(k) &&
+      f.start[k] <= last.stop;
+    if (last && same) {
+      last.stop = Math.max(last.stop, f.stop[k]);
+      // Column data spans every row; else the rows its parts target.
+      if (last.lo < 0 || f.on[k] < 0) last.lo = last.hi = -1;
+      else {
+        last.lo = Math.min(last.lo, f.on[k]);
+        last.hi = Math.max(last.hi, f.on[k]);
+      }
+    } else kept.push({ k, start: f.start[k], stop: Math.max(f.stop[k], f.start[k]), lo: f.on[k], hi: f.on[k] });
+  }
+  kept.sort((x, y) => f.block[x.k] - f.block[y.k] || x.start - y.start);
+  const n = kept.length;
+  const I = () => new Int32Array(n);
+  const out = {
+    ...{ count: n, block: I(), start: I(), stop: I(), annotation: I(), row: I(), kind: I(), code: I(), lane: I() },
+    on: new Int32Array(n).fill(-1),
+    lanes: 1,
+    hasRows: false,
+    seg: new Int32Array(input.section.blocks.length + 1),
+    reach: I(),
+    joinFrom: new Int32Array(n).fill(-1),
+    label: kept.map((x) => f.label[x.k]),
+    split: null,
+    laneLo: Int32Array.from(kept, (x) => x.lo),
+    laneHi: Int32Array.from(kept, (x) => x.hi),
+  };
+  kept.forEach((x, j) => {
+    out.block[j] = f.block[x.k];
+    out.start[j] = x.start;
+    out.stop[j] = x.stop;
+    out.annotation[j] = f.annotation[x.k];
+    out.row[j] = f.row[x.k];
+  });
+  for (let g = 0, k = 0; g < out.seg.length; g++) {
+    while (k < n && out.block[k] < g) k++;
+    out.seg[g] = k;
+  }
+  for (let g = 0; g + 1 < out.seg.length; g++) prefixReach(out.start, out.stop, out.seg[g], out.seg[g + 1], out.reach);
+  return out;
+}
 /** Variants whole (a deletion over several positions is one), each at its place in its position's stack. */
 const variants = (input: LayerInput) => {
   const f = features(input, { runs: true, pack: false, code: (a, r) => firstCode(a, input.set, r) });
@@ -1082,6 +1163,7 @@ export const PreparedParts: Readonly<Record<string, PreparedPart>> = {
   emphasis: { prepare: emphasis },
   variants: { prepare: withStream(withSplit(variants)), content: false, stream: featureStream },
   secondary: { prepare: secondary, ...lanes },
+  frame: { prepare: frames, content: false },
   values: {
     prepare: perPositionValues,
     content: false,

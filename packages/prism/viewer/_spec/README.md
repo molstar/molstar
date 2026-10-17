@@ -152,8 +152,36 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   (`sources/framing.ts` `frameBelowTop`, `paddedFocus`); Mol*'s own first framing of a scene does not (no hook without
   changing the graphics package). A ResizeObserver on the viewer's element sizes and draws the canvas in the same
   callback, and an unchanged size is not set again (`sources/canvas-host.ts`).
-- **29. Several viewers on a page**: keys go to the viewer that has focus (`ownsKey`, never the window); stored state is
-  namespaced by `persist.key`, two live viewers with one key are refused (`src/page.ts`).
+- **29. Several viewers on a page** (`src/page.ts`, the stories `Viewer/Several viewers`): each is a shadow root with a
+  plugin of its own, and nothing it owns is page-wide. Keys go to the viewer that has focus (`ownsKey`, never the
+  window; also the assistant's Esc and Inspector keys); menus and the pick level live in the viewer's root; fullscreen
+  follows its own element only (`FullscreenModel`). The query languages are a set per viewer (the page-wide ones only
+  seed it: `targets/languages.ts`). Stored state is namespaced by `persist.key`: the store prefixes (the host builds the
+  stores with the key as prefix: `webStore`), the kept records' IndexedDB `<key>-records` (`prism-viewer-records` for
+  the app's key, `prism-viewer`; with no key `prism-default-records`, so an unkeyed viewer never sees the app's records,
+  and unkeyed viewers on one origin share one kept-records list, fenced per database: journal.md §1, §6), the
+  assistant's choices and allowed domains (`prism-assistant@<key>.`; the app's key keeps `prism-assistant.`, no key is
+  `prism-default`); two live viewers with one key are refused. **Shared on purpose**: the person's assistant keys
+  (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`: one key serves every viewer in the browser; Forget in one
+  viewer is seen by another after a reload), and module-level definitions that hold no state (the canvas settings' param
+  definitions, `sources/settings.ts`). A host that keeps cameras together uses `viewer.camera` / `syncCameras` (api.md
+  §12). **A canvas works only in view** (`sources/canvas-presence.ts`, the story
+  `Viewer/Several viewers › Fifty viewers`): one IntersectionObserver for the page's canvases stops a plugin's animation
+  loop out of view and starts it in view. WebGL contexts are the page's: a budget (12) is kept live, the viewers out of
+  view release theirs past it (the longest unseen first), and a viewer coming into view gets its context back (up to
+  `max`, 15, when more show at once; past it, those in view followed last go dark until a slot frees), so the page never
+  reaches the browser's limit (Chrome 16), past which a dropped context cannot come back. A frame's changes are
+  reconciled together (one observer callback), releases before restores; a viewer is reconciled at once when followed,
+  in the task that made its context (`mountCanvas`), so viewers mounted together never pass the limit; a restore waits
+  for the browser's `webglcontextlost` and counts as live until `webglcontextrestored`. **Work that renders on purpose
+  holds the canvas** (`holdCanvas`: image export, copy and preview, video export, snapshot thumbnails): a released
+  context, or one being restored, is back before the work starts, and what the scene has pending is committed (Canvas3D
+  commits only in its tick, which a stopped loop does not run; a camera transition left under way ends at its target);
+  its loop and context are left alone while held; the release puts the loop back to what being in view says, whoever
+  started it (the screenshot helper starts it after each image). A hold's wait is abortable (`signal`) and fails when
+  the browser refuses the restore; a viewer disposed meanwhile lets it go and frees its slot.
+  `options.ui.pauseOutOfView` (`auto`: on, except in an automated browser, `navigator.webdriver`, where a capture page
+  renders on purpose; `always`; `never`); Node headless has no canvas to follow.
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
   ([api.md](api.md) §1).
 - **31. Colorblind-safe and high-contrast palettes** for the UI and the data

@@ -140,7 +140,8 @@ describe('a track with a height in the text', () => {
     const dom = record(t.ctx, 'Domains').rec;
     expect(rects(dom).some((r) => r[3] > 6)).toBe(true);
     expect(texts(dom).some((d) => d.text.startsWith('Kinase') || d.text.startsWith('Linker'))).toBe(true);
-    expect(rects(record(t.ctx, 'Secondary').rec).some((r) => r[3] > 6)).toBe(true);
+    // A helix is a cylinder (a path), drawn in the track's band, not an underline.
+    expect(record(t.ctx, 'Secondary').rec.pathItems.n).toBeGreaterThan(0);
   });
 
   it("a glyph is hit as its item; a hover's outline is drawn on the glyph's line", async () => {

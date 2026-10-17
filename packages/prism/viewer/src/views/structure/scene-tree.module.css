@@ -6,13 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/* The tree's list (a `VirtualList`: rows of one height, only the window rendered; view-models.md §3). */
 .tree {
   /* One level's indent; a deep tree (the state tree) sets less. */
   --msp-tree-indent: 14px;
-
-  display: grid;
-  /* Rows never wider than the panel: the label and description give way, the actions stay in view. */
-  grid-template-columns: minmax(0, 1fr);
 }
 
 .empty {
@@ -21,18 +18,17 @@
   font-size: var(--msp-font-size-sm);
 }
 
-/* A tree item: focusable by the keyboard (dom/tree-keys.ts); its row shows the focus, not the item (which holds its
-   children). */
+/* A tree item: one row, focusable by the keyboard (dom/tree-keys.ts, roving); its row shows the focus. Rows never get
+   wider than the panel: the label and description give way, the actions stay in view. */
 .item {
+  min-width: 0;
   outline: none;
 }
 
-.item:focus-visible > .row {
+.item:focus-visible > .row,
+.item:focus-visible > .more,
+.item:focus-visible > .loading {
   box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
-}
-
-.tree:focus-visible {
-  outline: none;
 }
 
 .row {
@@ -40,10 +36,8 @@
   align-items: center;
   gap: var(--msp-space-2);
   min-width: 0;
+  /* Every row of a tree is this tall (the list is virtualized: rows of one height, measured). */
   height: max(26px, var(--msp-touch-target, 0px));
-  /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
-  content-visibility: auto;
-  contain-intrinsic-size: auto max(26px, var(--msp-touch-target, 0px));
   padding: 0 var(--msp-space-1) 0
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
@@ -249,7 +243,7 @@
   align-items: baseline;
   gap: var(--msp-space-2);
   width: 100%;
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding-left: calc(
     var(--msp-space-1) +
     var(--msp-tree-depth, 0) *
@@ -259,7 +253,7 @@
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-accent);
   font-size: var(--msp-font-size-sm);
-  line-height: 26px;
+  line-height: max(26px, var(--msp-touch-target, 0px));
   text-align: left;
 
   &:hover {
@@ -273,7 +267,7 @@
 }
 
 .loading {
-  height: 26px;
+  height: max(26px, var(--msp-touch-target, 0px));
   padding-left: calc(
     var(--msp-space-1) +
     var(--msp-tree-depth, 0) *
@@ -282,7 +276,7 @@
   ); /* off-scale: past the chevron and the kind icon */
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  line-height: 26px;
+  line-height: max(26px, var(--msp-touch-target, 0px));
 }
 
 /* Destructive (Remove): in the danger color, set apart by a hairline from what comes before it (alone, no line). */
@@ -324,4 +318,18 @@
   min-width: 0;
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
     calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+}
+
+/* A row's own controls (SceneRow `inline`: a trajectory's scrubber): after a short description, taking the rest. */
+.description.short {
+  flex: none;
+}
+
+.inline {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px; /* off-scale: the row's small buttons side by side, as the row's own actions */
+  min-width: 0;
+  margin-inline-start: var(--msp-space-2);
 }

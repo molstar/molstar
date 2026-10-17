@@ -63,6 +63,8 @@ export class ViewApi extends ApiArea {
       }
       const dock = DockSides.find((d) => ctx.managers.viewState.layout.value.docks[d].tabs.includes(tab));
       if (!dock) return ApiResult.fail('not-found', `There is no '${tab}' panel.`);
+      // A tab the person hid comes back when asked for by name (shell.md §3, as `ShellModel.show`).
+      ctx.managers.viewState.setTabHidden(tab, false);
       if (section) nav.setFocus({ tab, section });
       nav.setDock(dock, { active: tab, collapsed: false });
       return ApiResult.ok(`Opened ${tab}.`, { view: true });

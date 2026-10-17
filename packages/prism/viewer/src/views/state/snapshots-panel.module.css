@@ -102,37 +102,44 @@
 }
 
 .item {
-  display: grid;
-  min-width: 0;
-}
-
-.row {
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
   min-width: 0;
-  height: 28px;
-  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  height: max(28px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-1) 0 0;
   border-radius: var(--msp-radius-md);
-  cursor: default;
-  user-select: none;
 
   &:hover {
     background: var(--msp-color-hover);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-
   /* The one applied last: what the editor below edits. */
-  &[aria-selected="true"] {
+  &[data-current] {
     background: var(--msp-color-control);
 
     & .name {
       color: var(--msp-color-accent);
     }
+  }
+}
+
+/* The row (it applies the snapshot) and, beside it in the item, its buttons: an interactive role holds no buttons. */
+.row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  cursor: default;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 }
 
@@ -167,13 +174,13 @@
     color: var(--msp-color-text);
   }
 
-  .row:hover &,
+  .item:hover &,
   [data-dragging] & {
     opacity: 1;
   }
 }
 
-.row:hover .index,
+.item:hover .index,
 [data-dragging] .index {
   visibility: hidden;
 }
@@ -253,8 +260,8 @@
 .action {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;
@@ -264,8 +271,8 @@
     opacity: 1;
   }
 
-  .row:hover &,
-  .row:focus-within &,
+  .item:hover &,
+  .item:focus-within &,
   &[aria-expanded="true"] {
     opacity: 1;
   }

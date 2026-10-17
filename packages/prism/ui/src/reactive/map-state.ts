@@ -6,21 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
 import type { ReadonlyState } from './readonly-state.js';
 import { sameShallow } from './same-shallow.js';
+import { derive } from './state.js';
 
 /**
- * A state derived from another (prism-viewer README decision 22): its `value` is computed from the source's on read,
- * and it emits when the derived value changes (`compare`, shallow by default). Nothing is held: no subscription until
- * someone subscribes.
+ * A state derived from another (prism-viewer README decision 22): `derive` with a shallow comparison by default.
+ * Nothing is held while nothing listens.
  */
 export function mapState<S, T>(
   source: ReadonlyState<S>,
   fn: (value: S) => T,
   compare: (a: T, b: T) => boolean = sameShallow,
 ): ReadonlyState<T> {
-  const out = source.pipe(map(fn), distinctUntilChanged(compare)) as ReadonlyState<T>;
-  Object.defineProperty(out, 'value', { get: () => fn(source.value), enumerable: true });
-  return out;
+  return derive(source, fn, compare);
 }

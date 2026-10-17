@@ -11,8 +11,15 @@ import type { IconName } from '../components/icon/icon.js';
 import type { Child } from '../dom/jsx-types.js';
 import type { ViewRenderer } from '../dom/view.js';
 import { NavigationManager } from '../managers/navigation.js';
-import { type DockId, DockIds, type DockLayout, type ShellMode, ViewStateManager } from '../managers/view-state.js';
-import { type ObservableState, observableState } from '../reactive/observable-state.js';
+import {
+  type DockId,
+  DockIds,
+  type DockLayout,
+  type ShellMode,
+  type ViewLayout,
+  ViewStateManager,
+} from '../managers/view-state.js';
+import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 
@@ -101,15 +108,11 @@ export type DockState = {
   floating: boolean;
   /**
    * A floating side dock pinned open: the canvas gives it room instead of running under it (some workflows keep a
-   * panel open the whole time and want the whole molecule beside it). Only while floating; off by default.
+   * panel open the whole time and want the whole molecule beside it). Only while floating, on the desktop; the right
+   * dock's default (compact and embedded never pin: the layout keeps it for the desktop).
    */
   pinned: boolean;
 };
-
-export interface ShellLayout {
-  docks: Record<DockId, DockState>;
-  mode: 'auto' | ShellMode;
-}
 
 export interface ShellOptions {
   /**
@@ -119,7 +122,7 @@ export interface ShellOptions {
   viewState?: ViewStateManager;
   /** What is open: each dock's tab, the card, the page. Given or made, as `viewState`. */
   navigation?: NavigationManager;
-  mode?: ShellLayout['mode'];
+  mode?: ViewLayout['mode'];
   docks?: Partial<Record<DockId, Partial<DockState>>>;
   /** Below this width (px) an `auto` shell is compact. */
   compactWidth?: number;
@@ -134,6 +137,13 @@ export interface ShellOptions {
    * (`railOpen`).
    */
   compactRail?: boolean;
+  /**
+   * The canvas toolbar (`ShellModel.toolbarCollapsed`, shell.md §2): `collapsed` is one button whose menu lists the
+   * tools, `expanded` the full bar; `auto` (the default) is the button in the compact mode (below `compactWidth`, an
+   * embedded layout too) and the bar otherwise, following the mode as the shell resizes. The host's choice: the person
+   * has no control for it and it is not part of the kept layout.
+   */
+  toolbar?: 'auto' | 'expanded' | 'collapsed';
 }
 
 /**
@@ -168,6 +178,11 @@ export interface ShellSection {
   order?: number;
   /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
   when?(ctx: ShellViewContext): boolean;
+  /**
+   * Told when `when` may answer otherwise for reasons a list cannot see (a PAE fetched for a structure: no change of the
+   * scene); a list that shows its sections by `when` asks it again then. Not needed for what the list already follows.
+   */
+  whenChanged?: ReadonlyState<unknown>;
   /** Open until the person folds it, in a list whose sections start folded (`SectionList`'s `collapsed`). */
   open?: boolean;
   render: ViewRenderer<ShellViewContext>;
@@ -231,6 +246,12 @@ export interface CanvasMenuItem {
   group?: string;
   /** Why it cannot be used here (shown greyed, the reason in place of the hint): fullscreen in an iframe that forbids it. */
   disabled?: string;
+  /**
+   * A submenu: its rows (a list that may change while the menu is open), shown beside the menu on hover, a click or →
+   * (the canvas stack's menus), or under the row where a menu has no room beside it (the rail's). Its `run` is not
+   * called.
+   */
+  items?: Observable<readonly CanvasMenuItem[]>;
   run(): void;
 }
 
@@ -277,9 +298,13 @@ export class DockModel {
   }
 
   /** @internal */
-  sync(state: DockState, registered: ReadonlyMap<string, ShellTab>): void {
+  sync(state: DockState, registered: ReadonlyMap<string, ShellTab>, hidden: readonly string[]): void {
     this.#state.set(state);
-    const tabs = state.tabs.map((id) => registered.get(id)).filter((t): t is ShellTab => !!t);
+    // Hidden tabs (`ShellModel.hideTab`) keep their place in the layout and are left out here.
+    const tabs = state.tabs
+      .filter((id) => !hidden.includes(id))
+      .map((id) => registered.get(id))
+      .filter((t): t is ShellTab => !!t);
     this.#tabs.set(tabs);
     this.#active.set(state.collapsed ? undefined : tabs.find((t) => t.id === state.active));
   }
@@ -312,16 +337,20 @@ export class ShellModel extends ReactiveModel {
   });
   readonly #compactRail = observableState(false);
   readonly #railOpen = observableState(false);
+  readonly #hiddenTabs = observableState<readonly ShellTab[]>([]);
   /** Every registered item, and the shown ones (`buttons` applied). */
   readonly #toolbarAll = observableState<readonly CanvasToolbarItem[]>([]);
   readonly #toolbar = observableState<readonly CanvasToolbarItem[]>([]);
   readonly #sections = observableState<readonly ShellSection[]>([]);
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
   readonly #compactWidth: number;
+  readonly #toolbarOption: 'auto' | 'expanded' | 'collapsed';
+  readonly #toolbarCollapsed = observableState(false);
 
   constructor(options: ShellOptions = {}) {
     super();
     this.#compactWidth = options.compactWidth ?? 720;
+    this.#toolbarOption = options.toolbar ?? 'auto';
     this.#viewState = options.viewState ?? new ViewStateManager(layoutOptions(options));
     this.#navigation = options.navigation ?? new NavigationManager(navigationOptions(options));
     this.#docks = {} as Record<DockId, DockModel>;
@@ -355,6 +384,11 @@ export class ShellModel extends ReactiveModel {
     return this.#railShown.asReadonly;
   }
 
+  /** The canvas toolbar is one button with a menu (`ShellOptions.toolbar`, shell.md §2); follows the mode under `auto`. */
+  get toolbarCollapsed(): ReadonlyState<boolean> {
+    return this.#toolbarCollapsed.asReadonly;
+  }
+
   setCompactRail(compact: boolean): void {
     this.#viewState.setCompactRail(compact);
     this.setRailOpen(false);
@@ -368,7 +402,7 @@ export class ShellModel extends ReactiveModel {
   setRailOpen(open: boolean): void {
     // What opened from it closes first, while the rail is still shown: hidden UI is paused (styling.md §5), so a panel
     // closed after the rail hid would only see it when the rail came back, and flash open and shut then.
-    if (this.#viewState.layout.value.compactRail && !open) {
+    if (this.#compactRail.value && !open) {
       this.closeOverlay();
       this.#navigation.setDock('right', { collapsed: true });
     }
@@ -376,7 +410,7 @@ export class ShellModel extends ReactiveModel {
   }
 
   toggleRail(): void {
-    if (this.#viewState.layout.value.compactRail) this.setRailOpen(!this.#navigation.state.value.railOpen);
+    if (this.#compactRail.value) this.setRailOpen(!this.#navigation.state.value.railOpen);
   }
 
   /**
@@ -470,29 +504,12 @@ export class ShellModel extends ReactiveModel {
     this.#viewState.setButtons(buttons);
   }
 
-  /** The layout as it can be persisted. */
-  get layout(): ShellLayout {
-    const docks = {} as Record<DockId, DockState>;
-    for (const id of DockIds) docks[id] = this.#dockState(id);
-    return { docks, mode: this.#viewState.layout.value.mode };
-  }
-
   /** Adds tabs (to their dock, after the tabs there); returns a function that removes them. */
   registerTabs(tabs: readonly ShellTab[]): () => void {
     const added = [...tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     for (const tab of added) {
       this.#registered.set(tab.id, tab);
-      const dock = this.#dockOf(tab.id) ?? tab.dock ?? 'right';
-      const state = this.#dockState(dock);
-      // A new tab goes by its order among those already there (an extension's tab lands where its order says, not
-      // at the end); one already in the dock (a restored layout) keeps its place.
-      let ids = state.tabs;
-      if (!ids.includes(tab.id)) {
-        const order = tab.order ?? 0;
-        const at = ids.findIndex((id) => (this.#registered.get(id)?.order ?? 0) > order);
-        ids = at < 0 ? [...ids, tab.id] : [...ids.slice(0, at), tab.id, ...ids.slice(at)];
-      }
-      this.#update(dock, { tabs: ids, active: state.active ?? tab.id });
+      this.#place(tab);
     }
     this.#sync();
     return () => {
@@ -507,6 +524,75 @@ export class ShellModel extends ReactiveModel {
       }
       this.#sync();
     };
+  }
+
+  /**
+   * Puts a registered tab in its dock: where the layout has it, else its own dock (`dock`, default right) by its order
+   * among those already there (an extension's tab lands where its order says, not at the end).
+   */
+  #place(tab: ShellTab): void {
+    const dock = this.#dockOf(tab.id) ?? tab.dock ?? 'right';
+    const state = this.#dockState(dock);
+    let ids = state.tabs;
+    if (!ids.includes(tab.id)) {
+      const order = tab.order ?? 0;
+      const at = ids.findIndex((id) => (this.#registered.get(id)?.order ?? 0) > order);
+      ids = at < 0 ? [...ids, tab.id] : [...ids.slice(0, at), tab.id, ...ids.slice(at)];
+    }
+    // A hidden tab does not become the dock's open one.
+    const hidden = this.#viewState.layout.value.hiddenTabs.includes(tab.id);
+    this.#update(dock, { tabs: ids, active: state.active ?? (hidden ? undefined : tab.id) });
+  }
+
+  /** The registered tabs taken out of view (`hideTab`), in the order they were hidden. */
+  get hiddenTabs(): ReadonlyState<readonly ShellTab[]> {
+    return this.#hiddenTabs.asReadonly;
+  }
+
+  /**
+   * Takes a tab out of view without unregistering it (shell.md §3): its button and panel go, it keeps its dock and
+   * place, and the layout keeps it hidden (`viewState`, so a kept layout keeps it so). Its open panel closes.
+   */
+  hideTab(tabId: string): void {
+    const dock = this.#dockOf(tabId);
+    batch(() => {
+      this.#viewState.setTabHidden(tabId, true);
+      if (!dock) return;
+      const state = this.#dockState(dock);
+      if (state.active !== tabId) return;
+      const hidden = this.#viewState.layout.value.hiddenTabs;
+      const next = state.tabs.find((id) => id !== tabId && !hidden.includes(id) && this.#registered.has(id));
+      this.#update(dock, { active: next, collapsed: true });
+    });
+  }
+
+  /** Brings a hidden tab back where it was (closed: `show` opens it). */
+  showTab(tabId: string): void {
+    this.#viewState.setTabHidden(tabId, false);
+  }
+
+  /** Brings every hidden tab back. */
+  showAllTabs(): void {
+    this.#viewState.showAllTabs();
+  }
+
+  /**
+   * The layout back to its defaults (shell.md §3): `viewState.reset()` (the app's seed over `defaultViewLayout()`),
+   * then every registered tab the seed does not place goes back to its own dock by its order; hidden tabs show again.
+   * Each dock keeps its open tab where that tab is still in it, and whether it is collapsed.
+   */
+  resetLayout(): void {
+    batch(() => {
+      this.#viewState.reset();
+      const tabs = [...this.#registered.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      for (const tab of tabs) this.#place(tab);
+      for (const id of DockIds) {
+        const state = this.#dockState(id);
+        if (state.active !== undefined && !state.tabs.includes(state.active)) {
+          this.#navigation.setDock(id, { active: state.tabs.find((t) => this.#registered.has(t)) });
+        }
+      }
+    });
   }
 
   registerOverlays(overlays: readonly ShellOverlay[]): () => void {
@@ -550,6 +636,8 @@ export class ShellModel extends ReactiveModel {
   show(tabId: string, section?: string): void {
     const dock = this.#dockOf(tabId);
     if (!dock) return;
+    // Asked for by name (a command, a link): a hidden tab comes back.
+    this.showTab(tabId);
     // At a section, or plainly: a plain show forgets an earlier section request for this tab (it was done).
     if (section) this.#navigation.setFocus({ tab: tabId, section });
     else if (this.#navigation.state.value.focus?.tab === tabId) this.#navigation.setFocus(undefined);
@@ -596,14 +684,16 @@ export class ShellModel extends ReactiveModel {
     this.#viewState.setDock(dock, { pinned });
   }
 
-  setMode(mode: ShellLayout['mode']): void {
+  /** The layout's mode; `embedded` starts with the rail hidden (shell.md §3). */
+  setMode(mode: ViewLayout['mode']): void {
     this.#viewState.setMode(mode);
+    if (mode === 'embedded') this.setRailOpen(false);
   }
 
-  /** The shell's width, reported by its view; resolves `auto`. */
+  /** The shell's width, reported by its view; resolves `auto` (and a narrow `embedded`). */
   setWidth(width: number): void {
     this.#width.set(width);
-    this.#resolveMode();
+    if (this.#resolveMode()) this.#sync();
   }
 
   /** Opens an overlay; `focus` names a section to bring into view (a command opening the Export panel at MP4). */
@@ -636,7 +726,16 @@ export class ShellModel extends ReactiveModel {
   #dockState(id: DockId): DockState {
     const layout = this.#viewState.layout.value.docks[id];
     const nav = this.#navigation.state.value.docks[id];
-    return { ...layout, active: nav.active, collapsed: nav.collapsed };
+    const state = { ...layout, active: nav.active, collapsed: nav.collapsed };
+    // Embedded (shell.md §3): the right panel floats and nothing is pinned, whatever the layout says (it is kept for
+    // another mode); a viewer inside a page has no width to give a panel.
+    if (this.#effectiveMode.value === 'embedded') {
+      return { ...state, floating: id === 'right' ? true : state.floating, pinned: false };
+    }
+    // Compact (a phone): the panel is a bottom sheet, never pinned (the person's pin is kept for the desktop): Escape
+    // and a click outside close it, and a card over it is a dialog.
+    if (this.#effectiveMode.value === 'compact' && state.pinned) return { ...state, pinned: false };
+    return state;
   }
 
   /** Writes a dock's change to the manager that holds each part. */
@@ -653,12 +752,18 @@ export class ShellModel extends ReactiveModel {
   /** The views' states, from the managers and the registries. */
   #sync(): void {
     if (!this.#docks) return;
-    for (const id of DockIds) this.#docks[id].sync(this.#dockState(id), this.#registered);
+    this.#resolveMode();
     const layout = this.#viewState.layout.value;
+    for (const id of DockIds) this.#docks[id].sync(this.#dockState(id), this.#registered, layout.hiddenTabs);
+    const hidden = layout.hiddenTabs.map((id) => this.#registered.get(id)).filter((t): t is ShellTab => !!t);
+    const before = this.#hiddenTabs.value;
+    if (hidden.length !== before.length || hidden.some((t, i) => t !== before[i])) this.#hiddenTabs.set(hidden);
     const nav = this.#navigation.state.value;
-    this.#compactRail.set(layout.compactRail);
+    // Embedded, the rail is always the compact one (shell.md §3).
+    const compactRail = layout.compactRail || this.#effectiveMode.value === 'embedded';
+    this.#compactRail.set(compactRail);
     this.#railOpen.set(nav.railOpen);
-    this.#railShown.set(!layout.compactRail || nav.railOpen);
+    this.#railShown.set(!compactRail || nav.railOpen);
     this.#tabFocus.set(nav.focus);
     const page = nav.page ? this.#pages.get(nav.page.id) : undefined;
     const open = this.#page.value;
@@ -668,7 +773,6 @@ export class ShellModel extends ReactiveModel {
     }
     this.#syncOverlay(false);
     this.#updateToolbar();
-    this.#resolveMode();
   }
 
   #syncOverlay(again: boolean): void {
@@ -689,10 +793,18 @@ export class ShellModel extends ReactiveModel {
     this.#toolbar.set(this.#toolbarAll.value.filter((i) => buttons[i.id] !== false));
   }
 
-  #resolveMode(): void {
+  /** The mode in effect; whether it changed. `auto` and `embedded` are compact below `compactWidth` (shell.md §3). */
+  #resolveMode(): boolean {
     const mode = this.#viewState.layout.value.mode;
     const width = this.#width.value;
-    this.#effectiveMode.set(mode !== 'auto' ? mode : width > 0 && width < this.#compactWidth ? 'compact' : 'desktop');
+    const narrow = width > 0 && width < this.#compactWidth;
+    const next: ShellMode =
+      mode === 'auto' ? (narrow ? 'compact' : 'desktop') : mode === 'embedded' && narrow ? 'compact' : mode;
+    const option = this.#toolbarOption;
+    this.#toolbarCollapsed.set(option === 'auto' ? next === 'compact' : option === 'collapsed');
+    if (this.#effectiveMode.value === next) return false;
+    this.#effectiveMode.set(next);
+    return true;
   }
 }
 

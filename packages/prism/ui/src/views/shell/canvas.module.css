@@ -91,16 +91,18 @@
     animation: none;
   }
 
-  /* Pinned: in the pinned panel's place, its look too (full height, flat, beside the rail). */
+  /* Pinned: in the pinned panel's place, its look too (dock.module.css, `--msp-pinned-*`: one definition). */
   [data-pinned] > & {
     top: 0;
     /* Right against the rail (its inset less the margin). */
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
     bottom: 0;
     border-radius: 0;
-    box-shadow:
-      -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
   }
 }
 
@@ -311,14 +313,28 @@
 }
 
 .toolMenuCard {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 200px;
+  max-height: calc(var(--msp-menu-room) - var(--msp-space-3));
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+/* A menu's rows scroll inside the card where the canvas is too short for them: the card is as tall as the room the
+   menu was given when it opened (`--msp-menu-room`, set inline, less the gap that bridges to its button); without it,
+   its own height. The first row of the collapsed toolbar's menu stays above the rows. */
+.toolMenuScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.toolMenuScrollContent {
+  display: grid;
 }
 
 .toolMenuRow {
@@ -371,6 +387,27 @@
 }
 
 .toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* A submenu row's mark: its rows open beside the menu. */
+.toolMenuChevron {
+  color: var(--msp-color-text-subtle);
+}
+
+/* A submenu beside the menu (the canvas stack's), toward the canvas: its bottom level with its row's, set inline when
+   it opens (measured once). */
+.toolSubmenu {
+  position: absolute;
+  right: 100%;
+  margin-right: var(--msp-space-2);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+/* A submenu's name over its rows where a menu has no room beside it (the rail's menus). */
+.toolMenuHeading {
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
@@ -813,4 +850,11 @@
   height: 1px;
   margin: var(--msp-space-1) var(--msp-space-2);
   background: var(--msp-glass-edge);
+}
+
+/* The toolbar as a bar, or folded into its one button (`ui.layout.toolbar`): hooks for the two forms, no style of their
+   own. */
+.bar,
+.folded {
+  min-width: 0;
 }

@@ -11,13 +11,14 @@ import { type Structure, StructureElement } from '@molstar/model/model/structure
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import type { StructureFormat, StructureSource } from '@molstar/seq-molstar-poc';
+import type { StructureFormat, StructureSource } from '../sequence/molstar/source.js';
 import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
-import type { HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import { createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
-import type { SourceScope } from './state.js';
+import { onceATask, type SourceScope } from './state.js';
 
 // The sequence's side of the viewer (sequence.md §2–§5): which structure it follows, the parse it shares
 // with the 3D view, and the link's 3D side. Reads come from the plugin here; every write (highlight, selection, focus,
@@ -39,8 +40,16 @@ export interface SequenceSource {
   readonly shows: ReadonlyState<string | undefined>;
   /** What the track menus may do to the 3D view: through the API. */
   readonly actions: HostActions;
+  /** The plugin's data cells and their parses by address: the sequence's parse cache (sequence.md §2). */
+  readonly dataByUrl: DataByUrl;
   /** The link's 3D side over a structure. */
   view3d(structure: Structure, resetCamera?: () => void): SequenceView3D;
+  /**
+   * Whether the sequence's hover maps into the structure now (the link lit residues in 3D): then the hover label is
+   * Mol*'s, of those residues (its label providers label every highlight), and Seq*'s own label is for what does not
+   * map (sequence.md §10).
+   */
+  readonly hoverMapped: ReadonlyState<boolean>;
 }
 
 /** The format the plugin parsed a trajectory from, as the sequence's structure source names it. */
@@ -70,6 +79,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   const structure = observableState<HostStructure | undefined>(undefined, { compare: (a, b) => a?.key === b?.key });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
+  const hoverMapped = observableState(false);
   /** What was there when `show` was called: a structure added since, or another focus, ends it. */
   let showsSince: { refs: ReadonlySet<string>; focus: unknown } | undefined;
   let latestSelected: string | undefined;
@@ -143,7 +153,8 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   };
 
   scope.add(
-    plugin.managers.structure.selection.events.changed.subscribe(() => {
+    // Once a task: a select over many structures tells `changed` once a structure, and this reads every structure.
+    onceATask(plugin.managers.structure.selection.events.changed).subscribe(() => {
       // The structure whose selection grew in this change (an addition, not a clear); the last of them if several.
       const list = plugin.managers.structure.hierarchy.current.structures;
       const seen = new Set<string>();
@@ -204,7 +215,9 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
   };
 
   return {
+    hoverMapped: hoverMapped.asReadonly,
     structure: structure.asReadonly,
+    dataByUrl: createDataByUrl(scope, plugin),
     followed: followed.asReadonly,
     setFollowed: (ref) => {
       // Following a structure ends what `show` showed.
@@ -232,8 +245,12 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       const select = channel();
       const focus = channel();
       return {
-        highlight: (loci) =>
-          highlight(() => (loci?.elements.length ? link.highlight.set({ target: { loci } }) : link.highlight.clear())),
+        highlight: (loci) => {
+          hoverMapped.set(!!loci?.elements.length);
+          return highlight(() =>
+            loci?.elements.length ? link.highlight.set({ target: { loci } }) : link.highlight.clear(),
+          );
+        },
         select: (loci) =>
           select(() =>
             loci?.elements.length ? link.select.set({ target: { loci }, mode: 'set' }) : link.select.clear(),

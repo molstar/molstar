@@ -10,7 +10,8 @@ with its flags and params: [operations.md](operations.md) (generated). The code 
 registry-driven ones), flags `read`, `history: false` (view state), `undoable: false`, `quiet`, `record: false`,
 `approval` (`network` | `upload` | `destructive`; destructive wins), `addresses(values)` (what a network call reaches;
 absent: the agent asks), `modules`, `when` (true or the reason), `exists` (identity), `project` (optimistic edit),
-`surface` (§10), `aliases`, `run(values, ctx)`.
+`surface` (§10), `structureMenu` (an entry in a structure row's "…" menu that runs it for that structure where `applies`
+holds: model-archive's PAE fetch for an AlphaFold DB entry), `aliases`, `run(values, ctx)`.
 
 - **Params are PD.** One definition gives the command's form, the tool's flat input and validation (`checkValues`,
   `api/run.ts`). Targets are text fields with the `target` format ([targets.md](targets.md)).
@@ -152,7 +153,10 @@ nothing; the typings the model reads are generated from the API's definitions, a
 - **One command per operation by default** (`commands/operations.ts`, `operationCommand`): its id, title and params;
   form from the params, inline sentence from the flat fields ([commands.md](../../ui/_spec/commands.md)).
 - **Generated commands** where a list reads better: one per preset, quick style, selection query, applicable state
-  action, each the same operation with that argument fixed.
+  action, each the same operation with that argument fixed. The Select group (`commands/select.ts`, its queries from
+  `sources/select-queries.ts`): `select.set` per query of the plugin's registry (by category) and per entity, chain,
+  non-standard residue and element of the loaded structures (made again when they change), with the group's shared mode;
+  a highlighted row lights its atoms (`lociPreviewSink`) and is counted (ui's commands.md §5).
 - **Opening commands** (`<feature>.open`, `panel.<tab>`) run `view.open`: the way into a custom UI, whose actions are
   the area's operations.
 - **Keybindings and toolbar buttons name commands**, never operations, so hiding a command hides them.
@@ -182,3 +186,22 @@ Every operation has a command, a tool, or both, or `surface: 'ui-only' | 'agent-
 - **Evals** run an agent over the headless viewer and check the state account ([agent.md](agent.md) §6).
 - **Not Stories**: no closed document language; the "document" is the plugin's state tree plus the sequence's
   SeqViewSpec. Operations compile to state updates and sequence patches; undo restores snapshots, not inverses.
+
+## 12. The camera as a view, and viewers that follow each other
+
+`viewer.camera` (`sources/camera.ts`; not an operation: a pointer-rate stream and a cut belong neither in the run path
+nor in the record or the history, and `camera.get`/`camera.set` are rounded, a result, a transition: for people and the
+agent):
+
+- `snapshot()`: the view now, full precision: `{ mode, fov (rad), position, target, up, radius }`; none without a
+  canvas.
+- `changed`: an `Observable` of the view after a frame drew a different one (the person dragging, a call, a transition's
+  frames). Not replaying. It speaks only when the view differs from the one last announced or set, by value
+  (`sameView`), so a view set `silent` is never announced.
+- `set(snapshot, { silent? })`: cuts the camera to the view (no transition: one under way ends there; the radius is
+  clamped to the scene's) and asks for a draw; false without a canvas. `silent` marks the view the camera took (after
+  the clamp) the last announced, so a host that mirrors one camera onto another does not hear its own setting back: no
+  echo loop, however many viewers follow each other, and a follower's clamp never comes back to its leader.
+- `syncCameras(viewers, from?)` (`@molstar/prism-viewer`): each viewer's `changed` sets the others silently; `from`
+  applies its view to the rest at once; returns the unlink. The radius is part of the view so the clipping and fog
+  match; a viewer whose scene is smaller clamps it (silently: the leader keeps its own).

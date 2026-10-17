@@ -22,7 +22,6 @@ import {
   AudioRow,
   MuteButton,
 } from '@molstar/prism-ui';
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { SnapshotsPanel } from '../../views/state/snapshots-panel.js';
@@ -38,6 +37,7 @@ import {
   presentable,
 } from './model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Snapshots tab (parity.md §4: the classic State snapshots) and the playback card. The shell has no place for a
 // card at the canvas's top left that an extension can fill, so the playback card is an overlay opened from a toolbar
 // button, and by itself when a story is loaded (`openPlaybackOnLoad`); the views read the snapshot area's state and act through
@@ -67,7 +67,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
             <SnapshotsPanel
               model={model}
               actions={() => (
-                <Show when={stepper.count.pipe(map((c) => c >= 2))}>
+                <Show when={derive(stepper.count, (c) => c >= 2)}>
                   {() => (
                     <Button
                       size="sm"
@@ -77,7 +77,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
                           {() => <Icon name="pause" />}
                         </Show>
                       }
-                      title={stepper.isPlaying.pipe(map((p) => (p ? 'Stop the slideshow' : 'Play the snapshots')))}
+                      title={derive(stepper.isPlaying, (p) => (p ? 'Stop the slideshow' : 'Play the snapshots'))}
                       onClick={() => stepper.togglePlay()}
                     />
                   )}
@@ -101,10 +101,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
           // snapshots row (shown while the snapshot has one), and a story's audio muted from there, the Story card shut
           // or not (or in a row of its own when there is no snapshots row: one snapshot).
           const scrubbing = observableState(false);
-          const hasTransition = transition.duration.pipe(
-            map((d) => d > 0),
-            distinctUntilChanged(),
-          );
+          const hasTransition = derive(transition.duration, (d) => d > 0);
           const actions = () => (
             <>
               <Show when={hasTransition}>
@@ -113,8 +110,8 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
                     variant="ghost"
                     size="sm"
                     icon={<Icon name="film" />}
-                    title={scrubbing.asReadonly.pipe(
-                      map((on) => (on ? "Hide the snapshot's transition" : "The snapshot's transition")),
+                    title={derive(scrubbing.asReadonly, (on) =>
+                      on ? "Hide the snapshot's transition" : "The snapshot's transition",
                     )}
                     pressed={scrubbing.asReadonly}
                     onClick={() => scrubbing.set(!scrubbing.value)}
@@ -126,12 +123,9 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
               </Show>
             </>
           );
-          const alone = combineLatest([audio.present, stepper.count]).pipe(map(([a, c]) => a && c <= 1));
+          const alone = derive([audio.present, stepper.count], (a, c) => a && c <= 1);
           // A snapshot with a transition and no snapshots row to toggle it from (one snapshot): the scrubber shows.
-          const showTransition = combineLatest([scrubbing.asReadonly, stepper.count]).pipe(
-            map(([on, c]) => on || c <= 1),
-            distinctUntilChanged(),
-          );
+          const showTransition = derive([scrubbing.asReadonly, stepper.count], (on, c) => on || c <= 1);
           return (
             <>
               <SnapshotRow model={stepper} actions={actions} />
@@ -155,7 +149,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
             <div style="display: flex; flex: 1 1 0; flex-direction: column; gap: var(--msp-space-2); min-height: 0">
               <Show when={audio.present}>{() => <AudioBar model={audio} />}</Show>
               <Show
-                when={model.count.pipe(map((c) => c >= 1))}
+                when={derive(model.count, (c) => c >= 1)}
                 fallback={() => <p style="margin: 0">There are no snapshots: add some in the Snapshots tab.</p>}
               >
                 {() => <SnapshotCard model={model} bare />}
@@ -172,7 +166,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Story',
         group: 'scene',
         overlay: PlaybackCard,
-        visible: area.state.pipe(map(presentable), distinctUntilChanged()),
+        visible: derive(area.state, presentable),
       },
       {
         id: 'snapshots.toolbar.audio',
@@ -181,10 +175,8 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         group: 'view',
         place: 'canvas',
         visible: audio.present,
-        face: audio.playing.pipe(
-          map((p) =>
-            p ? { icon: 'pause' as const, title: 'Pause audio' } : { icon: 'play' as const, title: 'Play audio' },
-          ),
+        face: derive(audio.playing, (p) =>
+          p ? { icon: 'pause' as const, title: 'Pause audio' } : { icon: 'play' as const, title: 'Play audio' },
         ),
         run: () => audio.toggle(),
         menu: [

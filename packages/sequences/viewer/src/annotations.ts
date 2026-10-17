@@ -26,11 +26,21 @@ export const ANNOTATION_STYLE: LineStyle = 'solid';
 /** The styles the picker offers (the format's `LineStyles`). */
 export const ANNOTATION_STYLES: readonly LineStyle[] = LineStyles;
 
-/** A set the panel can add to and lists: its ref (`bookmark.add`'s `data`) and the name a person sees. */
+/** The glyphs the picker offers a place of markers (`kind` `points`), and the one a new marker starts from. */
+export const ANNOTATION_GLYPHS: readonly string[] = ['circle', 'triangle', 'star', 'diamond', 'square'];
+export const ANNOTATION_GLYPH = 'circle';
+
+/**
+ * A set the panel can add to and lists: its ref (`bookmark.add`'s `data`), the name a person sees, and what its track
+ * draws (`kind`): `ranges` (the default) and `frame` take a line style, `points` a glyph (seqspec:interaction#the-default-ui).
+ */
 export interface AnnotationPlace {
   readonly data: string;
   readonly label: string;
+  readonly kind?: 'ranges' | 'points' | 'frame';
 }
+/** Whether a place's rows are markers (a glyph each, no line style). */
+export const placeGlyphs = (place: AnnotationPlace | undefined) => place?.kind === 'points';
 
 /** The sets a panel edits: its `places` when given, else the one set `data` (default `<section>.bookmarks`). */
 export const annotationPlaces = (
@@ -54,6 +64,8 @@ export interface AnnotationEntry {
   readonly color: string;
   /** The row's `line_style` column, else `solid`. */
   readonly lineStyle: LineStyle;
+  /** The row's `glyph` column (a marker's), else "". */
+  readonly glyph: string;
   /** Its positions as people count them (1-based, inclusive), and `+n` for further runs. */
   readonly span: string;
 }
@@ -61,7 +73,15 @@ export interface AnnotationEntry {
 /** The states a list of entries and the add control are derived from. */
 export const annotationStates = (ctx: SeqViewerContext) => [ctx.document.shown, ctx.selection.current] as const;
 
-type Row = { start?: unknown; stop?: unknown; id?: unknown; label?: unknown; color?: unknown; line_style?: unknown };
+type Row = {
+  start?: unknown;
+  stop?: unknown;
+  id?: unknown;
+  label?: unknown;
+  color?: unknown;
+  line_style?: unknown;
+  glyph?: unknown;
+};
 
 /** One set's items in item order, from the shown document's inline rows; empty when it is not a set the actions edit. */
 function entriesOf(ctx: SeqViewerContext, place: AnnotationPlace, keyed: boolean): AnnotationEntry[] {
@@ -87,6 +107,7 @@ function entriesOf(ctx: SeqViewerContext, place: AnnotationPlace, keyed: boolean
         typeof first.line_style === 'string' && LineStyles.includes(first.line_style as LineStyle)
           ? (first.line_style as LineStyle)
           : ANNOTATION_STYLE,
+      glyph: typeof first.glyph === 'string' ? first.glyph : '',
       span: `${a === b ? a : `${a}–${b}`}${runs.length > 1 ? ` +${runs.length - 1}` : ''}`,
     };
   });
@@ -108,7 +129,7 @@ export function selectedLoci(ctx: SeqViewerContext): Loci | null {
 
 /**
  * What `bookmark.add` takes for the selection and the person's label, color and line style (`solid` writes no column:
- * the layer draws it plain); null: nothing to add now.
+ * the layer draws it plain), or a marker's glyph (written as its `glyph` column); null: nothing to add now.
  */
 export function annotationTarget(
   ctx: SeqViewerContext,
@@ -117,10 +138,11 @@ export function annotationTarget(
   color: string,
   data?: string,
   lineStyle: LineStyle = ANNOTATION_STYLE,
+  glyph?: string,
 ) {
   const loci = selectedLoci(ctx);
-  const line_style = lineStyle === ANNOTATION_STYLE ? undefined : lineStyle;
-  const target = { section, loci: loci as Loci, label: label.trim() || undefined, color, data, line_style };
+  const line_style = lineStyle === ANNOTATION_STYLE || glyph ? undefined : lineStyle;
+  const target = { section, loci: loci as Loci, label: label.trim() || undefined, color, data, line_style, glyph };
   return loci && ctx.actions.can('bookmark.add', target) ? target : null;
 }
 
@@ -132,8 +154,9 @@ export function addAnnotation(
   color: string,
   data?: string,
   lineStyle?: LineStyle,
+  glyph?: string,
 ) {
-  const target = annotationTarget(ctx, section, label, color, data, lineStyle);
+  const target = annotationTarget(ctx, section, label, color, data, lineStyle, glyph);
   return target !== null && ctx.actions.run('bookmark.add', target);
 }
 /** Deletes one (a patch; Undo brings it back). */

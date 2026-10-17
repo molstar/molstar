@@ -19,6 +19,7 @@ import type {
 import { keyedSelector, observableState, type ReadonlyState } from '@molstar/prism-ui';
 import { combineLatest, debounceTime, distinctUntilChanged, map, merge, type Observable, skip, take } from 'rxjs';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** The Inspector's three views (packages/ai/_spec/trace.md § The Inspector). */
 export type InspectorView = 'trace' | 'tools' | 'limits';
 
@@ -130,7 +131,7 @@ export class InspectorModel {
       map((r) => r?.key),
       distinctUntilChanged(),
     );
-    this.toolRows = sources.tools.pipe(map((t) => this.#toolRowsOf(t)));
+    this.toolRows = derive(sources.tools, (t) => this.#toolRowsOf(t));
     const toolState = combineLatest([this.toolRows, this.#tool.asReadonly]).pipe(
       map(([rows, key]) => pick(rows, key, rows[0])),
       distinctUntilChanged(),

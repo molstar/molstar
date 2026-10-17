@@ -35,7 +35,7 @@ synchronous task context (`@molstar/core`); Node's built-ins only in its CLIs an
 | `/model`                        | the data model; `/model/query`, the SeqQL runtime                                              | `query`, `algorithms/search` (from `/model/query` only) |
 | `/query`                        | SeqQL: the symbol table, reader, binder, printer, checker, skill                               | nothing                                                 |
 | `/algorithms`                   | aligners (biomsa, Needleman–Wunsch, Myers); `/algorithms/search`, the matchers                 | nothing                                                 |
-| `/translate`                    | translation between coordinate systems, a host's included                                      | `model`                                                 |
+| `/translate`                    | translation between coordinate systems, a host's included; `Coordinates`, the system registry  | `model`                                                 |
 | `/format`                       | the format: tables, validation, loading, resolving, patches, `.svsx` reading; the `svs-*` CLIs | `model`, `query`, `algorithms`                          |
 | `/builder`                      | the builder; `/builder/svsx`, writing and bundling archives                                    | `format` (types only, but `/builder/svsx`)              |
 | `/links`                        | command links for a host's markdown                                                            | `format` (types)                                        |
@@ -47,13 +47,15 @@ synchronous task context (`@molstar/core`); Node's built-ins only in its CLIs an
 `/react` only, React.
 
 **Adapters**: `@molstar/seq-nightingale` (a resolved view as EBI's Nightingale components: the format's second viewer;
-imports the core) and `@molstar/seq-molstar-poc` (the Mol\* adapter, a proof of concept to be refactored in Mol\*'s
-repository; it reads Mol\*'s structure packages). `@molstar/seq-storybook` holds the stories and docs pages (private).
+imports the core). The Mol\* adapter is Mol\*'s, in the Prism viewer (`@molstar/prism-viewer/sequence/molstar`;
+[libraries.md](libraries.md#the-mol-adapter)). `@molstar/seq-storybook` holds the stories and docs pages (private; its
+Mol\* demo imports the adapter and Mol\*'s plugin).
 
-No Seq\* code imports application code, `/links` or the stream providers (a host's), or Mol\* outside its adapter, but
-for the core's MessagePack codec and zip (from Mol\*'s io and core packages). The core's folder graph is
-`core/_test/layers.test.ts`; the viewer's edge `viewer/_test/layers.test.ts`; Biome (the repository's overrides on
-`packages/sequences`, and `layers.grit`) enforces the rest.
+No Seq\* code imports application code, `/links` or the stream providers (a host's). Of Mol\*, the libraries import the
+core's MessagePack codec and zip (from Mol\*'s io and core packages); the Storybook's Mol\* demo, a host, imports
+Mol\*'s plugin and Prism's adapter. The core's folder graph is `core/_test/layers.test.ts`; the viewer's edge
+`viewer/_test/layers.test.ts`; Biome (the repository's overrides on `packages/sequences`, and `layers.grit`) enforces
+the rest.
 
 ## Principles
 

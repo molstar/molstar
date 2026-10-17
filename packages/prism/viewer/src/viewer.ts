@@ -7,7 +7,7 @@
  */
 
 import type { AnnotationsApi } from './api/annotations.js';
-import { registerQueryLanguages } from './targets/languages.js';
+import { createQueryLanguages } from './targets/languages.js';
 import type { ThreadRows } from '@molstar/ai';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
@@ -37,6 +37,7 @@ import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from
 import { mountCanvas, unmountCanvas } from './sources/canvas-host.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
+import { createViewerCamera, type ViewerCamera } from './sources/camera.js';
 import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
 import { SequenceApi } from './api/sequence.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
@@ -45,6 +46,10 @@ import type { SavedSequence } from './sequence/runtime.js';
 import { SourceScope } from './sources/state.js';
 import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
+import { appKeybindings, keymapStore } from './commands/keymap-store.js';
+import { isStructureQueryId } from './commands/select-groups.js';
+import { watchSelectCommands } from './commands/select.js';
+import { loadedStructureData, lociPreviewSink, selectQuerySource } from './sources/select-queries.js';
 import { createViewerSources, publicSources, type ViewerSources } from './sources/viewer-sources.js';
 import {
   type BuiltInViews,
@@ -57,7 +62,13 @@ import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, shellIdOf } from './extensions/overrides.js';
 import { createKeptRecordsModel, type KeptRecordsModel } from './journal/kept-records.js';
-import { createSessionRecord, recordFromLines, recordLines, type SessionRecord } from './journal/record.js';
+import {
+  createSessionRecord,
+  recordFromLines,
+  recordLines,
+  recordsDatabase,
+  type SessionRecord,
+} from './journal/record.js';
 import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
@@ -123,6 +134,11 @@ export interface PrismViewer {
   readonly views: PrismViewerViews;
   /** Read-only states over the plugin (state.md §4): what views, view models and the agent's account read. */
   readonly sources: ViewerSources;
+  /**
+   * The camera as a view to follow and set from outside, for keeping viewers' cameras together (`syncCameras`); not
+   * the `camera` area's operations, which are a person's or the agent's (api.md §12).
+   */
+  readonly camera: ViewerCamera;
   readonly state: {
     readonly ready: ReadonlyState<boolean>;
     readonly busy: ReadonlyState<boolean>;
@@ -233,7 +249,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const emptySub = empty.subscribe((e) => commandContext.set({ empty: e }));
     disposers.push(() => emptySub.unsubscribe());
 
-    const targetFormat = createTargetFormat(plugin);
+    // This viewer's own query languages: the page-wide defaults, then the spec's (targets.md §1; README decision 29).
+    const languages = createQueryLanguages(spec.languages ?? []);
+    const targetFormat = createTargetFormat(plugin, languages);
     const history = new HistoryManager<ViewerCheckpoint>(createCheckpointPort(plugin));
     const notifications = new NotificationsManager();
     const { viewState, navigation } = layoutManagers(spec, options);
@@ -242,6 +260,10 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       commands: new CommandManager<ViewerCommandContext>({
         context: commandContext.asReadonly,
         formats: { get: (name) => (name === 'target' ? targetFormat : undefined) },
+        // The command menu's highlighted rows light their atoms (the Select group's queries, commands.md §5).
+        preview: lociPreviewSink(plugin),
+        // The spec's keys over the commands' own; the person's remaps, kept with the preferences (commands.md §6).
+        keymap: { app: appKeybindings(spec), store: keymapStore(spec.persist?.preferences) },
       }),
       transactions,
       history,
@@ -256,9 +278,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(watchOutsideChanges(plugin, history));
 
-    // The spec's query languages, readable from here on (targets.md §1).
-    registerQueryLanguages(spec.languages ?? []);
-    const targets = createTargetResolver(plugin);
+    const targets = createTargetResolver(plugin, languages);
     const modules = new Set(o.modules);
     // Operations that load what an extension owns ask the extensions first; set once they are added.
     const extensionPort: ExtensionPort = { ensureFor: async () => {} };
@@ -268,6 +288,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       plugin,
       sources,
       targets,
+      languages,
       modules: { has: (k) => modules.has(k) },
       managers,
       extensions: extensionPort,
@@ -278,15 +299,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keys = new Map((spec.ui?.keybindings ?? []).map((k) => [k.command, k.key]));
     // Every command goes through here: the core's, the shell's, extensions' and stubs' (overrides.ts).
     const overrides = new Overrides(spec.overrides);
+    // The spec's keybindings are the keymap's app layer (above), not rewritten into the definitions.
     const registerCommands = (defs: readonly CommandDefinition<ViewerCommandContext>[]) =>
-      managers.commands.register(
-        overrides.commands(defs).map((d) => {
-          if (!keys.has(d.id)) return d;
-          const key = keys.get(d.id);
-          const { shortcut: _, ...rest } = d;
-          return key ? { ...rest, shortcut: key } : rest;
-        }),
-      );
+      managers.commands.register(overrides.commands(defs));
 
     // The extensions, in order (viewer-spec.md §3): eager ones activated, lazy ones as stubs.
     const person = host.api.as({ kind: 'person' });
@@ -303,6 +318,18 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       : undefined;
     if (sequence) disposers.push(() => sequence.dispose());
     disposers.push(registerCommands(coreCommands(person)));
+    // The Select group: a command per selection query, made again as the structures change (commands/select.ts).
+    disposers.push(
+      watchSelectCommands({
+        queries: selectQuerySource(plugin),
+        api: person,
+        targets,
+        structures: sources.structures,
+        data: () => loadedStructureData(plugin),
+        register: registerCommands,
+        registerGroups: (groups) => managers.commands.registerGroups(groups),
+      }),
+    );
     const extensions = new ExtensionHost({
       host,
       person,
@@ -333,6 +360,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keptRecords = createKeptRecordsModel({
       record,
       ...(keepIn ? { rows: keepIn } : {}),
+      database: recordsDatabase(spec.persist?.key),
       max: options.ui.keptRecordsMax,
     });
     disposers.push(() => keptRecords.dispose());
@@ -347,7 +375,11 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // The origin that holds it, where there is one (a file: page's is 'null').
     const origin = globalThis.location?.origin;
     const storage = createStorageModel(origin && origin !== 'null' ? { origin } : {});
-    const own = viewerStorageSources({ ...(spec.persist ? { persist: spec.persist } : {}), record });
+    const own = viewerStorageSources({
+      ...(spec.persist ? { persist: spec.persist } : {}),
+      record,
+      resetKeybindings: () => managers.commands.keymap.resetAll(),
+    });
     for (const s of own.sources) disposers.push(storage.register(s));
     disposers.push(() => {
       own.dispose();
@@ -387,12 +419,15 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // An override of a command nobody registers is a mistake (viewer-spec.md §4), and a keybinding of one is said:
     // checked once every command is in, the page's after its shell (`checkSpecCommands`), headless at once.
     const checkSpecCommands = (tolerate: (id: string) => boolean = () => false) => {
-      const unknown = overrides.unused().filter((k) => !isPartId(k) && !tolerate(k) && !managers.commands.get(k));
+      // The Select families of the loaded structures exist only once one is loaded: a well-formed id is known.
+      const unknown = overrides
+        .unused()
+        .filter((k) => !isPartId(k) && !tolerate(k) && !isStructureQueryId(k) && !managers.commands.get(k));
       if (unknown.length) {
         throw new PrismViewerSpecError(unknown.map((k) => `override '${k}': there is no command '${k}'`));
       }
       for (const id of keys.keys()) {
-        if (!tolerate(id) && !managers.commands.get(id)) {
+        if (!tolerate(id) && !isStructureQueryId(id) && !managers.commands.get(id)) {
           console.warn(`ui.keybindings: there is no command '${id}' (its key is not bound).`);
         }
       }
@@ -460,6 +495,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     disposers.push(() => notifications.unmount());
 
     const ready = observableState(false);
+    const viewerCamera = createViewerCamera(plugin);
+    disposers.push(() => viewerCamera.dispose());
     let disposed = false;
     const core: ViewerCore = {
       plugin,
@@ -472,6 +509,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       views: viewsOf({ ...builtInViews, ...(sequence ? { sequence } : {}) }),
       // Read-only (api.md §6): the marks' writers are the API's (`highlight.mark`).
       sources: publicSources(sources),
+      camera: viewerCamera.camera,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
@@ -488,7 +526,12 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       checkSpecCommands,
       attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
-        const ok = await mountCanvas(plugin, el);
+        const ok = await mountCanvas(plugin, el, { pauseOutOfView: options.ui.pauseOutOfView });
+        // Disposed while it mounted: the disposers have run, so the canvas is let go here.
+        if (disposed) {
+          if (ok) unmountCanvas(plugin);
+          return false;
+        }
         if (ok) disposers.push(() => unmountCanvas(plugin));
         else modules.delete('canvas');
         return ok;
@@ -584,6 +627,7 @@ function createSequence(
         ink: ink.asReadonly,
         structure: source.structure,
         actions: source.actions,
+        dataByUrl: source.dataByUrl,
         scheduler: runtime.sequenceFrames(modules.includes('page')),
         // The viewer's own behaviors, overrides applied; the extensions' attach as they activate (sequence.md §3).
         behaviors: overrides.parts(spec.behaviors),

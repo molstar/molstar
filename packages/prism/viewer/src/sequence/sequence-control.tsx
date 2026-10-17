@@ -20,11 +20,14 @@ import {
 } from '@molstar/prism-ui';
 import type { HoverLabel } from '@molstar/seq-viewer';
 import { mountSection, type Surface } from '@molstar/seq-viewer/canvas';
+import { effect, frameState, onActive } from '@molstar/prism-ui/dom/scope';
+import { frame, on } from '@molstar/prism-ui/dom/scoped';
 import { combineLatest, filter, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
 import { mountTrackGutter } from './track-gutter.js';
 import type { MarksView } from '../sources/marks.js';
 import { linkSequence, type SequenceView3D } from './link.js';
+import { type SequenceApiRunner, setTrackHidden } from './commands.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
 
@@ -49,6 +52,8 @@ export interface SequenceControlProps {
   onHover?: (lines: readonly string[]) => void;
   /** A view's marks and hover (marks.md): shown here too, through the link. */
   marks?: MarksView;
+  /** The API as the person: a track's Hide and the hidden tracks' hint run through it (steps); none: on the model. */
+  api?: SequenceApiRunner;
 }
 
 /** The keyboard cursor's place is said this long after the last move, ms (not every step of a held arrow). */
@@ -92,9 +97,18 @@ export function SequenceControl(props: SequenceControlProps) {
   let section: Surface | undefined;
   // Seq*'s canvas draws through OffscreenCanvas: where there is none (jsdom, Node) the band stays empty.
   const drawable = typeof OffscreenCanvas === 'function';
+  // Hidden UI draws nothing (styling.md §5): the surface pauses with the control's scope (no frames, its flags and the
+  // size kept; seqspec:viewer#the-render-backend) and draws once all that waited on resume. A surface mounted while
+  // hidden starts paused.
+  let active = true;
   const mounted = band.subscribe((ref) => {
     section?.dispose();
     section = drawable ? mountSection(seq, ref, surface) : undefined;
+    if (!active) section?.setActive(false);
+  });
+  onActive((a) => {
+    active = a;
+    section?.setActive(a);
   });
   onCleanup(() => {
     bandSub.unsubscribe();
@@ -103,38 +117,40 @@ export function SequenceControl(props: SequenceControlProps) {
   });
 
   // The fonts: the host's tokens, read once at the start of a frame (the control is in the document by then).
-  const fontFrame = requestAnimationFrame(() => {
+  frame(() => {
     const css = getComputedStyle(surface);
     const mono = css.getPropertyValue('--msp-font-mono').trim();
     const ui = css.getPropertyValue('--msp-font-sans').trim();
     const size = Number.parseFloat(css.getPropertyValue('--msp-font-size-sm'));
     if (mono && ui) viewer.setFonts({ mono, ui, ...(size > 0 ? { size } : {}) });
   });
-  onCleanup(() => cancelAnimationFrame(fontFrame));
 
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
   if (props.view3d) onCleanup(linkSequence(viewer, props.view3d, props.marks ? { marks: props.marks } : undefined));
 
   // The track menus (sequence.md §8): the browser's context-menu request on a track (a right-click, Ctrl+click on
   // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and
-  // the place; the model says what the track offers, Prism's menu opens there and runs it on the 3D view. The browser's
-  // own menu is suppressed only over a track that offers one.
+  // the place; the model says what the track offers (its actions on the 3D view), then Hide track; Prism's menu opens
+  // there. The browser's own menu is suppressed only over a track.
   {
     let close: (() => void) | undefined;
     const menus = band.pipe(
       switchMap((ref) => seq.interaction.on('menu', { section: ref, part: ['data', 'header', 'gutter'] })),
     );
     const asked = menus.subscribe((e) => {
-      const actions = e.part.track === null ? [] : viewer.trackActions(e.part.track);
-      if (actions.length === 0) return;
+      const track = e.part.track;
+      if (track === null || !viewer.tracks.value.some((t) => t.ref === track)) return;
+      const actions = viewer.trackActions(track).map((a) => ({ id: a.id, label: a.label, icon: a.icon, run: a.run }));
+      const hide = {
+        id: 'hide-track',
+        label: 'Hide track',
+        icon: 'eye-off' as const,
+        run: () => void setTrackHidden(viewer, props.api, track, true),
+      };
       e.native.preventDefault();
       close?.();
       const root = surface.closest<HTMLElement>('.msp-root') ?? document.body;
-      close = openContextMenu(
-        root,
-        { x: e.place.clientX, y: e.place.clientY },
-        actions.map((a) => ({ id: a.id, label: a.label, icon: a.icon, run: a.run })),
-      );
+      close = openContextMenu(root, { x: e.place.clientX, y: e.place.clientY }, [...actions, hide]);
     });
     onCleanup(() => {
       asked.unsubscribe();
@@ -142,33 +158,23 @@ export function SequenceControl(props: SequenceControlProps) {
     });
   }
 
-  // The hover label: the latest label of a frame, handed on when its lines differ from the last handed on.
+  // The hover label: input, in the frame lane (rendering.md §2.3): Seq*'s label at every move, offered; handed on once
+  // a frame, when its lines differ from the last handed on.
   if (props.onHover) {
     const handOn = props.onHover;
-    let pending: HoverLabel | null = null;
     let last = NoLines;
-    let frame = 0;
-    const flush = () => {
-      frame = 0;
-      const lines = labelLines(pending);
+    const label = frameState<HoverLabel | null>(null, () => false);
+    effect(label, (l) => {
+      const lines = labelLines(l);
       if (sameLines(lines, last)) return;
       last = lines;
       handOn(lines);
-    };
-    const sub = seq.labels.current.subscribe((label) => {
-      pending = label;
-      if (!frame) frame = requestAnimationFrame(flush);
     });
-    // Leaving the surface ends the label at once (Seq* clears its hover on the same event).
-    const leave = () => {
-      pending = null;
-      if (!frame) frame = requestAnimationFrame(flush);
-    };
-    surface.addEventListener('pointerleave', leave);
+    const sub = seq.labels.current.subscribe((l) => label.offer(l));
+    // Leaving the surface ends the label (Seq* clears its hover on the same event).
+    on(surface, 'pointerleave', () => label.offer(null));
     onCleanup(() => {
       sub.unsubscribe();
-      surface.removeEventListener('pointerleave', leave);
-      if (frame) cancelAnimationFrame(frame);
       if (last.length > 0) handOn(NoLines);
     });
   }
@@ -237,8 +243,8 @@ export function SequenceControl(props: SequenceControlProps) {
     };
     const enter = () => ((hover = true), show());
     const leave = () => ((hover = false), show());
-    surface.addEventListener('pointerenter', enter);
-    surface.addEventListener('pointerleave', leave);
+    on(surface, 'pointerenter', enter);
+    on(surface, 'pointerleave', leave);
     const drag = seq.ui.drag.subscribe((d) => ((dragging = d !== null), show()));
     // The scroll: the viewport's `scrollY` moving (the section may be replaced, so it is followed by the sections).
     let lastY = 0;
@@ -264,8 +270,6 @@ export function SequenceControl(props: SequenceControlProps) {
     const sections = seq.viewports.sections.subscribe(follow);
     const shown = band.subscribe(follow);
     onCleanup(() => {
-      surface.removeEventListener('pointerenter', enter);
-      surface.removeEventListener('pointerleave', leave);
       drag.unsubscribe();
       sections.unsubscribe();
       shown.unsubscribe();
@@ -325,7 +329,7 @@ export function SequenceControl(props: SequenceControlProps) {
       {cursorSaid}
     </div>
   ) as HTMLElement;
-  // The coloring icons of the tracks (round 3), where the host offers colorings.
-  onCleanup(mountTrackGutter(viewer, surface, root, band));
+  // The coloring icons of the tracks (round 3), where the host offers colorings, and the hidden tracks' hint.
+  onCleanup(mountTrackGutter(viewer, surface, root, band, props.api));
   return root;
 }

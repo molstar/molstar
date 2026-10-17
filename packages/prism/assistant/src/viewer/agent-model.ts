@@ -11,10 +11,11 @@ import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { ViewerAgent } from '@molstar/prism-viewer/agent/session';
 import { createHistoryModel, type HistoryRow, type HistoryRunRow } from '@molstar/prism-viewer/journal/history-model';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import type { AgentModel, AgentTurn, CommandRun, HistoryItem, RunStatus, TurnStatus } from '../model.js';
 import type { ViewerAISettings } from './settings-model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The assistant's model over the viewer's agent (agent.md §1): the latest turn from the session's hooks (its
 // text, its calls, waiting for the person), asking with the model chosen in the setup, approvals answered as the turn
 // asks them, Undo turn through the viewer's history (the person's API), and the history as the viewer's History reads
@@ -204,7 +205,7 @@ export function createViewerAgentModel(
       return;
     }
     if (watchers++ === 0) records.setActive(true);
-    const sub = records.rows.pipe(map(itemsOf)).subscribe(subscriber);
+    const sub = derive(records.rows, itemsOf).subscribe(subscriber);
     return () => {
       sub.unsubscribe();
       if (--watchers === 0) records.setActive(false);
@@ -357,29 +358,46 @@ export function historyItemsOf(rows: readonly HistoryRow[]): HistoryItem[] {
   const out: HistoryItem[] = [];
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i];
-    if (row.kind === 'run') out.push({ kind: 'run', run: runItemOf(row) });
-    else if (row.kind === 'turn') {
-      out.push({
-        kind: 'turn',
-        turn: {
-          id: row.turn,
-          prompt: row.prompt,
-          source: { kind: 'assistant' },
-          status: row.open
-            ? 'working'
-            : row.outcome === 'done'
-              ? 'done'
-              : row.outcome === 'stopped'
-                ? 'stopped'
-                : 'failed',
-          text: row.reply ?? '',
-          runs: row.runs.map(runItemOf),
-          checkpoint: false,
-          ...(row.undone ? { undone: true } : {}),
-          time: new Date(row.at),
-        },
-      });
+    // History keeps a row that did not change the same object: its item stays the same object too, so what follows an
+    // item by key is told only of the items that changed (made anew each publish, every item was, every frame).
+    const kept = itemOfRow.get(row);
+    if (kept) {
+      out.push(kept);
+      continue;
     }
+    const item = itemOf(row);
+    if (!item) continue;
+    itemOfRow.set(row, item);
+    out.push(item);
   }
   return out;
+}
+
+const itemOfRow = new WeakMap<HistoryRow, HistoryItem>();
+
+function itemOf(row: HistoryRow): HistoryItem | undefined {
+  if (row.kind === 'run') return { kind: 'run', run: runItemOf(row) };
+  if (row.kind === 'turn') {
+    return {
+      kind: 'turn',
+      turn: {
+        id: row.turn,
+        prompt: row.prompt,
+        source: { kind: 'assistant' },
+        status: row.open
+          ? 'working'
+          : row.outcome === 'done'
+            ? 'done'
+            : row.outcome === 'stopped'
+              ? 'stopped'
+              : 'failed',
+        text: row.reply ?? '',
+        runs: row.runs.map(runItemOf),
+        checkpoint: false,
+        ...(row.undone ? { undone: true } : {}),
+        time: new Date(row.at),
+      },
+    };
+  }
+  return undefined;
 }

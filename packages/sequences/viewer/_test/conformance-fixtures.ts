@@ -208,3 +208,21 @@ export function edgeTypes(): SeqViewSpecDoc {
     });
   return d;
 }
+
+/** A document with a `frame` layer over `ra`'s items (labeled), spanning its own track: the kit draws its titles. */
+export function withFrame(d: SeqViewSpecDoc): SeqViewSpecDoc {
+  type N = { kind: string; ref?: string; params?: Record<string, unknown>; children?: N[] };
+  const root = d.root as N;
+  const section = (root.children?.find((c) => c.kind === 'view')?.children ?? []).find(
+    (c) => c.kind === 'section',
+  ) as N;
+  section.children?.push({
+    kind: 'track',
+    ref: 'frame.track',
+    params: { label: 'Frames' },
+    children: [
+      { kind: 'layer', ref: 'frame.layer', params: { type: 'frame', data: 'ra', span: { from: 'frame.track' } } },
+    ],
+  });
+  return d;
+}

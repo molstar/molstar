@@ -9,9 +9,10 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { ObservableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { Icon } from '../icon/icon.js';
 import { Floating, OptionList } from '../select/select.js';
 import { classes } from './_generated/params-form.module.css.js';
@@ -54,7 +55,7 @@ export function PresetsList<T>(props: {
   open: ObservableState<boolean>;
   presets: () => readonly PD.SelectOption<T>[];
   /** The preset the value matches, by index (undefined when none: Custom). */
-  current: Observable<number | undefined>;
+  current: ReadonlyState<number | undefined>;
   onPick(value: T): void;
   /** What it opens from, when not its `PresetsButton` (a select-like row). */
   anchor?: () => HTMLElement | undefined;
@@ -65,10 +66,12 @@ export function PresetsList<T>(props: {
       {() => {
         // Read when opened: a line graph's presets come from the data at hand (a volume's statistics).
         const presets = props.presets();
+        const anchor = props.anchor?.() ?? anchors.get(open);
         const list = (
           <OptionList
+            aria-label={anchor?.getAttribute('aria-label') ?? 'Presets'}
             options={presets.map(([, label], i) => [String(i), label] as const)}
-            value={props.current.pipe(map((i) => (i === undefined ? undefined : String(i))))}
+            value={derive(props.current, (i) => (i === undefined ? undefined : String(i)))}
             onPick={(i) => {
               open.set(false);
               const preset = presets[Number(i)];
@@ -78,7 +81,6 @@ export function PresetsList<T>(props: {
             floating
           />
         );
-        const anchor = props.anchor?.() ?? anchors.get(open);
         return anchor ? <Floating anchor={anchor}>{list}</Floating> : <div class={classes.presetsList}>{list}</div>;
       }}
     </Show>

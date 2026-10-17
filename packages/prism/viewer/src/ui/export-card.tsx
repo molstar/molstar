@@ -9,8 +9,8 @@
  */
 
 import { type CanvasToolbarItem, domView, SectionList, type ShellModel, type ShellOverlay } from '@molstar/prism-ui';
-import { map } from 'rxjs';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Export card (the core's home for the `export` slot, viewer-spec.md §3.1): image and session with their
 // features, geometry, models, video with Mol*'s extensions. Its button shows once something exports.
 
@@ -32,7 +32,7 @@ export function exportCard(shell: ShellModel): { overlay: ShellOverlay; toolbar:
       icon: 'download',
       title: 'Export…',
       overlay: 'export',
-      visible: shell.sections('export').pipe(map((list) => list.length > 0)),
+      visible: derive(shell.sections('export'), (list) => list.length > 0),
     },
   };
 }

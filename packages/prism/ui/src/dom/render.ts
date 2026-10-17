@@ -8,7 +8,7 @@
 
 import type { Observable } from 'rxjs';
 import type { Child, Component } from './jsx-types.js';
-import { bind, requireScope, runInScope, Scope, toStream } from './scope.js';
+import { bind, flush, requireScope, runInScope, Scope, toStream } from './scope.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -224,7 +224,8 @@ export function removeBetween(start: Node, end: Node): void {
  * an `MspElement`) listens once per type and walks from the target up to itself, calling the handlers it finds with
  * `currentTarget` as their own element; `stopPropagation` ends the walk as it ends propagation. A nested root goes
  * first and the next one (an outer root, then the document, for anything rendered outside a root) continues above it,
- * so nothing runs twice. Events that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch,
+ * so nothing runs twice. The walk ends with a `flush`: what the handlers changed is rendered when the dispatch returns
+ * (a discrete event, as a click dispatched by code, is on screen before the next line), not a microtask later. Events that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch,
  * wheel: they must stay passive) stay native, and so does anything given as `on:type`. Measured: one listener per root
  * instead of one per handler (Internals › Performance › Runtime).
  */
@@ -280,6 +281,7 @@ function dispatchToTarget(e: Event) {
     handler.call(target, e);
   } finally {
     delete (e as any).currentTarget;
+    flush();
   }
 }
 
@@ -307,7 +309,10 @@ function dispatchDelegated(e: Event) {
     }
   } finally {
     (e as any)[Walked] = root;
-    if (overridden) delete (e as any).currentTarget;
+    if (overridden) {
+      delete (e as any).currentTarget;
+      flush();
+    }
   }
 }
 

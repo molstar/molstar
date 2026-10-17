@@ -21,6 +21,8 @@ export { render } from './dom/render.js';
 export * from './reactive/combine-behaviors.js';
 export * from './reactive/disposable-group.js';
 export * from './reactive/keyed-selector.js';
+export * from './reactive/keyed-state.js';
+export * from './reactive/work-queue.js';
 export * from './reactive/map-state.js';
 export * from './reactive/observable-state.js';
 export * from './reactive/readonly-state.js';
@@ -38,6 +40,7 @@ export {
   MinDockSizes,
   type StoredViewLayout,
   type ViewLayout,
+  type ViewLayoutSeed,
   ViewStateManager,
 } from './managers/view-state.js';
 
@@ -45,12 +48,15 @@ export * from './shell/fullscreen.js';
 export * from './shell/shell.js';
 export * from './shell/theme.js';
 
+export * from './commands/items.js';
+export * from './commands/keymap.js';
 export * from './commands/keys.js';
 export * from './commands/manager.js';
 export * from './commands/types.js';
 
 export { ActionFooter, type ActionFooterProps } from './components/action-footer/action-footer.js';
 export { Button, type ButtonProps } from './components/button/button.js';
+export { CommandButton } from './components/button/command-button.js';
 export { type Choice, Choices } from './components/choices/choices.js';
 export { ColorPalette, ColorPicker, type ColorPickerProps, colorToHex } from './components/color/color-picker.js';
 export { type ContextMenuItem, openContextMenu } from './components/context-menu/context-menu.js';
@@ -71,7 +77,14 @@ export {
   type SelectProps,
 } from './components/select/select.js';
 export { TextInput, type TextInputProps } from './components/text-input/text-input.js';
-export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
+export {
+  type FlatNode,
+  flattenTree,
+  keepRows,
+  VirtualList,
+  type VirtualListHandle,
+} from './components/virtual-list/virtual-list.js';
+export { RecycledList, RecycledListStats, type VirtualSlot } from './components/virtual-list/recycled-list.js';
 
 export { HoverLabel } from './views/canvas/hover-label.js';
 export {

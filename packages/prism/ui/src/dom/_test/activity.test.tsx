@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BehaviorSubject, map } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { observableState } from '../../reactive/observable-state.js';
 import { ViewHost } from '../../views/shell/view-host.js';
@@ -19,6 +19,7 @@ import { render } from '../render.js';
 import { bind, onActive, onCleanup, runInScope, Scope } from '../scope.js';
 import { domView, type ViewRenderer } from '../view.js';
 
+import { derive } from '../../reactive/state.js';
 function mount(fn: () => Child) {
   const container = document.createElement('div');
   const dispose = render(fn, container);
@@ -219,7 +220,7 @@ describe('activity', () => {
     const { container } = mount(() =>
       activity(shown, () => (
         <ul>
-          <For each={keys}>{(k) => <li>{names.asReadonly.pipe(map((n) => n[k as 'a']))}</li>}</For>
+          <For each={keys}>{(k) => <li>{derive(names.asReadonly, (n) => n[k as 'a'])}</li>}</For>
         </ul>
       )),
     );
@@ -283,7 +284,7 @@ describe('activity', () => {
     const { container } = mount(() =>
       activity(shown, () => (
         <div>
-          <Show when={focus.asReadonly.pipe(map((section) => ({ section })))}>
+          <Show when={derive(focus.asReadonly, (section) => ({ section }))}>
             {() => {
               renders++;
               return <b />;
@@ -311,13 +312,13 @@ describe('activity', () => {
       activity(shown, () => (
         <div>
           <Switch>
-            <Match when={mode.asReadonly.pipe(map((m) => m === 'a'))}>
+            <Match when={derive(mode.asReadonly, (m) => m === 'a')}>
               {() => {
                 renders++;
                 return <b>a</b>;
               }}
             </Match>
-            <Match when={mode.asReadonly.pipe(map((m) => m === 'b'))}>{() => <i>b</i>}</Match>
+            <Match when={derive(mode.asReadonly, (m) => m === 'b')}>{() => <i>b</i>}</Match>
           </Switch>
         </div>
       )),

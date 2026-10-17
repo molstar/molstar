@@ -56,6 +56,8 @@ export interface SnapshotTransitionModel {
 export interface TrajectoryControlsModel {
   /** The structure it belongs to ("1TQN"). */
   label: ReadonlyState<string>;
+  /** What its frames are called (an ensemble's models, a simulation's frames); `models` when not given. */
+  unit?: ReadonlyState<'models' | 'frames'>;
   count: ReadonlyState<number>;
   /** 0-based. */
   index: ReadonlyState<number>;
@@ -64,8 +66,30 @@ export interface TrajectoryControlsModel {
   togglePlay(): void;
 }
 
+/** A run of a hover label's line: text with its emphasis (never markup: the view builds elements from these). */
+export interface HoverRun {
+  readonly text: string;
+  readonly bold?: boolean;
+  readonly italic?: boolean;
+  readonly small?: boolean;
+  readonly code?: boolean;
+  readonly sub?: boolean;
+  readonly sup?: boolean;
+  /** Link text (a label takes no pointer: shown as a link, not followed). */
+  readonly link?: boolean;
+}
+
+/** A formatted line: its runs and its role (a title, text, a list item). */
+export interface HoverRichLine {
+  readonly runs: readonly HoverRun[];
+  readonly role: 'title' | 'text' | 'item';
+}
+
+/** A hover label's line: plain text (the first is the title), or formatted runs. */
+export type HoverLine = string | HoverRichLine;
+
 /** The label under the cursor (implemented over the plugin's hover labels). */
 export interface HoverLabelModel {
-  /** Lines to show (markdown-free text); empty when nothing is hovered. */
-  lines: ReadonlyState<readonly string[]>;
+  /** Lines to show; empty when nothing is hovered. */
+  lines: ReadonlyState<readonly HoverLine[]>;
 }

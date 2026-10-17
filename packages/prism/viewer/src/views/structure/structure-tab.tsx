@@ -8,18 +8,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { debounceTime, distinctUntilChanged, filter, map, type Observable, of } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
-import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
+import type { SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { derive } from '@molstar/prism-ui/reactive/state';
+import { effect, onActive, onCleanup, requireScope, runInScope } from '@molstar/prism-ui/dom/scope';
+import { on, timeout } from '@molstar/prism-ui/dom/scoped';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
@@ -34,15 +35,9 @@ import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 export interface StructureTabProps {
   shell: ShellModel;
   scene: SceneModel;
-  /** The header's actions without a model here (presets, styles, adding components): commands. */
-  onAction?: (action: 'preset' | 'styles') => void;
-  /** The representation presets: the Preset button opens them under the header. */
-  presets?: PresetsModel;
-  /** Quick styles: the Styles button opens them under the header. */
-  quickStyles?: QuickStylesModel;
   /**
-   * Opens the command menu inside a group: given, Preset and Styles open theirs there (teaching the command menu as they
-   * go) instead of their inline lists.
+   * Opens the command menu inside a group: Preset and Styles open theirs there (teaching the command menu as they go).
+   * Given, the buttons show; the tab has no inline preset or style lists.
    */
   openCommands?: (group: 'preset' | 'styles') => void;
   /**
@@ -60,26 +55,50 @@ export interface StructureTabProps {
  */
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
-  // One inline block at a time under the header: the preset menu or the quick styles.
-  const open = observableState<'preset' | 'styles' | 'options' | undefined>(undefined);
-  const toggle = (block: 'preset' | 'styles' | 'options') => open.set(open.value === block ? undefined : block);
+  // The component options, an inline block under the header while open.
+  const open = observableState<'options' | undefined>(undefined);
+  const toggle = (block: 'options') => open.set(open.value === block ? undefined : block);
   // The tree's search: a field over the tree while open; closed, no filter.
   // An extension's row picked (its controls in the inspector); a node picked takes its place.
   const pickedRow = observableState<SceneRowPick | undefined>(undefined);
-  const picks = scene.picked.subscribe((n) => {
+  effect(scene.picked, (n) => {
     if (!n || !pickedRow.value) return;
     pickedRow.value.mark(false);
     pickedRow.set(undefined);
   });
   // The picked row gone from the tree: its inspector goes with it (what it controls may be gone).
-  let gone: { unsubscribe(): void } | undefined;
+  let gone: (() => void) | undefined;
   onCleanup(() => {
-    picks.unsubscribe();
-    gone?.unsubscribe();
+    gone?.();
     pickedRow.value?.mark(false);
   });
   const searchOpen = observableState(false);
   const search = observableState('');
+  // The tree searches what was typed once the typing pauses (120 ms): one timer, the last key's, a scoped one (it ends
+  // with the tab). Paused (the tab hidden), no timer runs: what was typed is searched when the tab shows again.
+  const filter = observableState('');
+  const owner = requireScope('StructureTab');
+  let cancelTyping: (() => void) | undefined;
+  effect(search.asReadonly, (text) => {
+    cancelTyping?.();
+    cancelTyping = undefined;
+    // Back to what the tree searches (and at the mount): no timer.
+    if (text === filter.value) return;
+    cancelTyping = runInScope(owner, () =>
+      timeout(() => {
+        cancelTyping = undefined;
+        filter.set(text);
+      }, 120),
+    );
+  });
+  onActive((active) => {
+    if (active) {
+      if (search.value !== filter.value && !cancelTyping) filter.set(search.value);
+    } else {
+      cancelTyping?.();
+      cancelTyping = undefined;
+    }
+  });
   const closeSearch = () => {
     search.set('');
     searchOpen.set(false);
@@ -87,36 +106,26 @@ export function StructureTab(props: StructureTabProps) {
   return (
     <div class={classes.tab}>
       <div class={classes.actions}>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="shapes" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'preset'))}
-          onClick={() =>
-            props.openCommands
-              ? props.openCommands('preset')
-              : props.presets
-                ? toggle('preset')
-                : props.onAction?.('preset')
-          }
-        >
-          <span class={classes.actionLabel}>Preset</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="paintbrush" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'styles'))}
-          onClick={() =>
-            props.openCommands
-              ? props.openCommands('styles')
-              : props.quickStyles
-                ? toggle('styles')
-                : props.onAction?.('styles')
-          }
-        >
-          <span class={classes.actionLabel}>Styles</span>
-        </Button>
+        {props.openCommands ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="shapes" />}
+            onClick={() => props.openCommands?.('preset')}
+          >
+            <span class={classes.actionLabel}>Preset</span>
+          </Button>
+        ) : null}
+        {props.openCommands ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="paintbrush" />}
+            onClick={() => props.openCommands?.('styles')}
+          >
+            <span class={classes.actionLabel}>Styles</span>
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="ghost"
@@ -133,18 +142,14 @@ export function StructureTab(props: StructureTabProps) {
             class={classes.optionsButton}
             icon={<Icon name="settings" />}
             title="Component options"
-            pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
+            pressed={derive(open.asReadonly, (o) => o === 'options')}
             onClick={() => toggle('options')}
           />
         ) : null}
       </div>
       <Show when={open} reveal>
         {(block) =>
-          block === 'preset' && props.presets ? (
-            <PresetMenu model={props.presets} onApplied={() => open.set(undefined)} />
-          ) : block === 'styles' && props.quickStyles ? (
-            <QuickStyles model={props.quickStyles} />
-          ) : block === 'options' && props.options ? (
+          block === 'options' && props.options ? (
             <ScrollArea
               class={classes.options}
               contentClass={classes.optionsContent}
@@ -170,8 +175,8 @@ export function StructureTab(props: StructureTabProps) {
           </div>
         )}
       </Show>
-      <ScrollArea
-        edge
+      {/* The tree scrolls itself (virtualized: scene-tree.tsx); this holds its place and takes its rows' picks. */}
+      <div
         class={classes.tree}
         ref={(el: HTMLElement) => {
           // An extension's row picked (Membrane, Assembly symmetry): its controls in the inspector, as a node's.
@@ -183,18 +188,17 @@ export function StructureTab(props: StructureTabProps) {
             pick.mark(true);
             pickedRow.set(pick);
             // Its row or its structure gone: its inspector goes too. One watch at a time, the last cleaned up.
-            const watch = pick.gone.subscribe(() => {
+            const stop = pick.gone.listen(() => {
               if (pickedRow.value === pick) pickedRow.set(undefined);
             });
-            gone?.unsubscribe();
-            gone = { unsubscribe: () => watch.unsubscribe() };
+            gone?.();
+            gone = stop;
           };
-          el.addEventListener(SceneRowPickEvent, onPick);
-          onCleanup(() => el.removeEventListener(SceneRowPickEvent, onPick));
+          on(el, SceneRowPickEvent, onPick);
         }}
       >
-        <SceneTree scene={scene} shell={shell} filter={search.asReadonly.pipe(debounceTime(120))} />
-      </ScrollArea>
+        <SceneTree scene={scene} shell={shell} filter={filter.asReadonly} />
+      </div>
       <ScrollArea
         class={classes.inspector}
         contentClass={classes.inspectorContent}
@@ -235,7 +239,7 @@ function RowInspector(props: { row: SceneRowPick }) {
         <span class={classes.inspectorTitle}>{row.label}</span>
         <span class={classes.inspectorKind}>{row.description ?? ''}</span>
         {row.shown && row.onToggle ? (
-          <VisibilityToggle hidden={row.shown.pipe(map((s) => !s))} feature onToggle={() => row.onToggle?.()} />
+          <VisibilityToggle hidden={derive(row.shown, (s) => !s)} feature onToggle={() => row.onToggle?.()} />
         ) : null}
       </header>
       {row.body ? row.body() : <p class={classes.nothing}>Nothing to set here.</p>}
@@ -302,7 +306,7 @@ function RenameTitle(props: { label: ReadonlyState<string>; onRename(label: stri
  * The inspector's eye at its header's end, as the tree row's: Show or Hide what is drawn, Turn on or off a feature
  * (the unit cell, the streaming, an extension's row); marked while hidden or off, so the way back is where it was.
  */
-function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean; onToggle(): void }) {
+function VisibilityToggle(props: { hidden: ReadonlyState<boolean>; feature: boolean; onToggle(): void }) {
   const [on, off] = props.feature ? ['Turn off', 'Turn on'] : ['Hide', 'Show'];
   return (
     <Button
@@ -314,12 +318,21 @@ function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean
           {() => <Icon name="eye-off" size={14} />}
         </Show>
       }
-      title={props.hidden.pipe(map((h) => (h ? off : on)))}
+      title={derive(props.hidden, (h) => (h ? off : on))}
       pressed={props.hidden}
       onClick={() => props.onToggle()}
     />
   );
 }
+
+/** What of an inspection is built anew and followed (`Inspector`). */
+const Parts = [
+  'facts',
+  'contents',
+  'quick',
+  'levels',
+  'transfer',
+] as const satisfies readonly (keyof SceneInspection)[];
 
 /** Rows that stand for a feature (on or off), not for something drawn (shown or hidden). */
 const TurnsOn: ReadonlySet<string> = new Set(['extension', 'unit-cell']);
@@ -328,17 +341,23 @@ function Inspector(props: {
   shell: ShellModel;
   inspection: SceneInspection;
   /** The node's inspection built anew (`SceneModel.inspection`): its facts, contents, levels and transfer follow. */
-  updates?: Observable<SceneInspection | undefined>;
+  updates?: ReadonlyState<SceneInspection | undefined>;
   onPick(node: SceneNode): void;
 }) {
   const { node, form, slot } = props.inspection;
-  // What is built anew follows (the form, the header and the sections stay, a gesture on them going on).
-  const current = (props.updates ?? of(props.inspection)).pipe(filter((i): i is SceneInspection => i?.node === node));
-  const part = <K extends keyof SceneInspection>(key: K) =>
-    current.pipe(
-      map((i) => i[key]),
-      distinctUntilChanged(),
-    );
+  // What is built anew follows (the form, the header and the sections stay, a gesture on them going on): its parts by
+  // name, each told only when it changes (view-models.md §3); one built for another node (on its way out) is not taken.
+  const parts = keyedState<keyof SceneInspection, unknown>();
+  const take = (i: SceneInspection) => {
+    for (const k of Parts) parts.set(k, i[k]);
+  };
+  take(props.inspection);
+  if (props.updates)
+    effect(props.updates, (i) => {
+      if (i?.node === node) take(i);
+    });
+  const part = <K extends (typeof Parts)[number]>(key: K) =>
+    parts.key(key) as ReadonlyState<SceneInspection[K] | undefined>;
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
@@ -348,7 +367,7 @@ function Inspector(props: {
           <span class={classes.inspectorTitle}>{node.label}</span>
         )}
         {/* The kind, unless the label already says it (Measurements). */}
-        <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
+        <Show when={derive(node.label, (l) => l.toLowerCase() !== node.kind.replace('-', ' '))}>
           {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
         </Show>
         <VisibilityToggle
@@ -399,9 +418,9 @@ function Inspector(props: {
         (node.menu?.length ?? 0) > 0 || node.removable !== false ? (
           <NodeActions node={node} />
         ) : !props.inspection.facts?.length ? (
-          <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
+          <Show when={derive(sectionsFor(props.shell, slot, node), (has) => !has)}>
             {() => (
-              <Show when={node.isHidden.pipe(map((h) => !h))}>
+              <Show when={derive(node.isHidden, (h) => !h)}>
                 {() => <p class={classes.nothing}>Nothing to set here.</p>}
               </Show>
             )}
@@ -414,9 +433,9 @@ function Inspector(props: {
 
 /** A component's representations in its inspector: icon, name, what it is colored by, its eye; a click opens it. */
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
-  const reprs = props.node.children.pipe(map((c) => c.filter((n) => n.kind === 'representation')));
+  const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
   return (
-    <Show when={reprs.pipe(map((r) => r.length > 0))}>
+    <Show when={derive(reprs, (r) => r.length > 0)}>
       {() => (
         <section class={classes.children} aria-label="Representations">
           <span class={classes.childrenTitle}>Representations</span>
@@ -441,8 +460,8 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
                 <button
                   type="button"
                   class={classes.childEye}
-                  aria-label={n.isHidden.pipe(map((h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`)))}
-                  data-tip={n.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+                  aria-label={derive(n.isHidden, (h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`))}
+                  data-tip={derive(n.isHidden, (h) => (h ? 'Show' : 'Hide'))}
                   onClick={() => n.toggleVisibility()}
                 >
                   <Show when={n.isHidden} fallback={() => <Icon name="eye" size={14} />}>
@@ -460,48 +479,5 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
 
 /** Whether any contributed section shows for a node (`inspector:<kind>` sections with their `when`). */
 function sectionsFor(shell: ShellModel, slot: string, subject: unknown) {
-  return shell.sections(slot).pipe(map((all) => all.some((s) => !s.when || s.when({ shell, subject }))));
-}
-
-/** One click restyles everything: a representation preset, or a visual style. */
-function QuickStyles(props: { model: QuickStylesModel }) {
-  const { model } = props;
-  return (
-    <section class={classes.quickStyles} aria-label="Quick styles">
-      <Choices label="Representation" choices={model.representations} onPick={(id) => model.applyRepresentation(id)} />
-      <Choices label="Style" choices={model.styles} onPick={(id) => model.applyStyle(id)} />
-    </section>
-  );
-}
-
-/**
- * The preset menu: every representation preset, grouped as the registry groups them, the one in effect marked; a click
- * applies it.
- */
-function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
-  const { model } = props;
-  return (
-    <ScrollArea class={classes.presets} contentClass={classes.presetsContent} role="region" aria-label="Presets">
-      {model.groups.map((group) => (
-        <div class={classes.presetGroup} role="group" aria-label={group.label ?? 'Presets'}>
-          {group.label ? <span class={classes.presetCaption}>{group.label}</span> : null}
-          {group.presets.map((p) => (
-            <button
-              type="button"
-              class={classes.preset}
-              aria-pressed={model.current.pipe(map((c) => c === p.id))}
-              title={p.description}
-              onClick={() => {
-                model.apply(p.id);
-                props.onApplied();
-              }}
-            >
-              <span>{p.label}</span>
-              <Icon name="check" size={14} class={classes.presetCheck} />
-            </button>
-          ))}
-        </div>
-      ))}
-    </ScrollArea>
-  );
+  return derive(shell.sections(slot), (all) => all.some((s) => !s.when || s.when({ shell, subject })));
 }

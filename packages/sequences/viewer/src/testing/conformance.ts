@@ -373,6 +373,8 @@ export class LayerFrame {
         v.row = lane >= 0 ? lane - rows.laneStart : -1;
         v.dataRow = lane >= 0 ? Lanes.rowOf(m.resolved.lanes, lane) : -1;
       }
+      // The rows drawn as text (seqspec:viewer#rows-in-text), as the composer's `place` sets them.
+      v.textRows = l.textRows.layer >= 0 ? l.textRows : null;
       if (l.geometry === AxisGeometry.wrapped) {
         const line = l.entryRow[e];
         v.line = line;

@@ -33,6 +33,8 @@ truth for how.
 - `spec` property (setting it remakes the viewer); attributes `theme`, `hide-controls` (read at creation), `pdb` (a new
   value adds that entry). Each element owns its viewer; leaving the page disposes it, a move keeps it; `ready` (promise
   and event), `error` event.
+- Several elements on a page: each its own `persist.key` (README decision 29); `viewer.camera` and `syncCameras` keep
+  their cameras together (api.md §12).
 - React hosts use the element.
 
 ## 4. The URL

@@ -124,6 +124,24 @@ describe('a viewer composed of fewer features', () => {
     warn.mockRestore();
   });
 
+  it('accepts overrides and keys of the structure-dependent Select commands before a structure is loaded', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const v = await createPrismViewerHeadless({
+      spec: {
+        ...DefaultPrismViewerSpec(),
+        overrides: { 'select.chain.A': null, 'select.residue.HEM': null },
+        ui: { keybindings: [{ command: 'select.element.C', key: { key: 'x' } }] },
+      },
+    });
+    viewers.push(v);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+    // A shape that no family makes is still a mistake.
+    await expect(
+      createPrismViewerHeadless({ spec: { ...DefaultPrismViewerSpec(), overrides: { 'select.chain.': null } } }),
+    ).rejects.toThrow("override 'select.chain.' is neither");
+  });
+
   it('says on viewer.events.error that an extension did not load', async () => {
     const v = await viewer([StructureFeature]);
     const errors: string[] = [];

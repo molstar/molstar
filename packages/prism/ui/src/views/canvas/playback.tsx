@@ -8,15 +8,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { effect } from '../../dom/scope.js';
+import { restartable } from '../../dom/scoped.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive, State } from '../../reactive/state.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { classes } from './_generated/playback.module.css.js';
@@ -35,7 +38,7 @@ export function SnapshotCard(props: {
   bare?: boolean;
 }) {
   return (
-    <Show when={props.model.count.pipe(map((c) => c > 0))}>
+    <Show when={derive(props.model.count, (c) => c > 0)}>
       {() => (
         <section class={props.bare ? classes.bare : classes.card} aria-label="Snapshots">
           <Snapshots model={props.model} />
@@ -69,10 +72,15 @@ export function TrajectoryBar(props: { model: TrajectoryControlsModel }) {
 
 /**
  * The trajectory's row: the models of one structure (named, since it is that structure's model index), a scrubber
- * and play. Only for a multi-model structure.
+ * and play; `compact`, only its name, the frame and play (where the full controls are at hand elsewhere: the viewer's
+ * Structure panel). Only for a multi-model structure.
  */
-export function TrajectoryRow(props: { model: TrajectoryControlsModel }) {
-  return <Show when={props.model.count.pipe(map((c) => c > 1))}>{() => <Trajectory model={props.model} />}</Show>;
+export function TrajectoryRow(props: { model: TrajectoryControlsModel; compact?: boolean }) {
+  return (
+    <Show when={derive(props.model.count, (c) => c > 1)}>
+      {() => <Trajectory model={props.model} compact={props.compact} />}
+    </Show>
+  );
 }
 
 /**
@@ -87,7 +95,7 @@ export function SnapshotRow(props: {
 }) {
   const { model } = props;
   return (
-    <Show when={model.count.pipe(map((c) => c > 1))}>
+    <Show when={derive(model.count, (c) => c > 1)}>
       {() => {
         const listOpen = observableState(false);
         return (
@@ -102,11 +110,11 @@ export function SnapshotRow(props: {
                 type="button"
                 class={classes.position}
                 aria-expanded={listOpen}
-                aria-label={model.title.pipe(map((t) => (t ? `Snapshots: ${t}` : 'Snapshots')))}
-                data-tip={model.title.pipe(map((t) => t ?? 'No snapshot applied'))}
+                aria-label={derive(model.title, (t) => (t ? `Snapshots: ${t}` : 'Snapshots'))}
+                data-tip={derive(model.title, (t) => t ?? 'No snapshot applied')}
                 onClick={() => listOpen.set(!listOpen.value)}
               >
-                {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i < 0 ? '–' : i + 1} / ${c}`))}
+                {derive([model.index, model.count], (i, c) => `${i < 0 ? '–' : i + 1} / ${c}`)}
               </button>
               <Button
                 variant="ghost"
@@ -144,7 +152,7 @@ export function MuteButton(props: { muted: ReadonlyState<boolean>; onClick(): vo
           {() => <Icon name="volume-x" />}
         </Show>
       }
-      title={props.muted.pipe(map((m) => (m ? 'Unmute' : 'Mute')))}
+      title={derive(props.muted, (m) => (m ? 'Unmute' : 'Mute'))}
       pressed={props.muted}
       onClick={() => props.onClick()}
     />
@@ -176,11 +184,9 @@ const seconds = (ms: number) => (ms / 1000).toFixed(1);
 export function TransitionRow(props: { model: SnapshotTransitionModel }) {
   const { model } = props;
   return (
-    <Show when={model.duration.pipe(map((d) => d > 0))}>
+    <Show when={derive(model.duration, (d) => d > 0)}>
       {() => {
-        const progress = combineLatest([model.time, model.duration]).pipe(
-          map(([t, d]) => `${d > 0 ? (100 * Math.min(t, d)) / d : 0}%`),
-        );
+        const progress = derive([model.time, model.duration], (t, d) => `${d > 0 ? (100 * Math.min(t, d)) / d : 0}%`);
         return (
           <div class={classes.bar} role="group" aria-label="Transition" data-row>
             <span class={classes.lead}>
@@ -190,15 +196,15 @@ export function TransitionRow(props: { model: SnapshotTransitionModel }) {
               class={classes.scrubber}
               type="range"
               min="0"
-              max={model.duration.pipe(map(String))}
-              step={model.step.pipe(map((s) => String(Math.max(1, Math.round(s)))))}
-              value={model.time.pipe(map((t) => String(Math.round(t))))}
+              max={derive(model.duration, String)}
+              step={derive(model.step, (s) => String(Math.max(1, Math.round(s))))}
+              value={derive(model.time, (t) => String(Math.round(t)))}
               style={{ '--msp-progress': progress }}
               aria-label="Transition time"
               onInput={(e) => model.seek(Number(e.currentTarget.value))}
             />
             <span class={classes.time}>
-              {combineLatest([model.time, model.duration]).pipe(map(([t, d]) => `${seconds(t)} / ${seconds(d)} s`))}
+              {derive([model.time, model.duration], (t, d) => `${seconds(t)} / ${seconds(d)} s`)}
             </span>
             <Button
               variant="ghost"
@@ -208,7 +214,7 @@ export function TransitionRow(props: { model: SnapshotTransitionModel }) {
                   {() => <Icon name="square" />}
                 </Show>
               }
-              title={model.isPlaying.pipe(map((p) => (p ? 'Stop the transition' : 'Play the transition')))}
+              title={derive(model.isPlaying, (p) => (p ? 'Stop the transition' : 'Play the transition'))}
               onClick={() => model.togglePlay()}
             />
           </div>
@@ -221,16 +227,25 @@ export function TransitionRow(props: { model: SnapshotTransitionModel }) {
 function Snapshots(props: { model: SnapshotStepperModel }) {
   const { model } = props;
   const listOpen = observableState(false);
-  const many = model.count.pipe(
-    map((c) => c > MaxDots),
-    distinctUntilChanged(),
+  const many = derive(model.count, (c) => c > MaxDots);
+  // The title and the description change together (another snapshot): taken once both have (the task after), so a
+  // heading is never compared with the other snapshot's title.
+  const description = observableState<string | undefined>(undefined);
+  let taken: string | undefined;
+  const timer = restartable(() => description.set(taken));
+  effect(
+    derive([model.description, model.title], (d, t) => (d ? withoutTitle(d, t ?? '') : d)),
+    (d) => {
+      taken = d;
+      timer.start(0);
+    },
   );
   return (
     <div class={classes.snapshots}>
       <div class={classes.bar}>
         <span class={classes.title}>{model.title}</span>
         {/* One snapshot (a single-state story) has its title and description only: nothing to step through. */}
-        <Show when={model.count.pipe(map((c) => c > 1))}>
+        <Show when={derive(model.count, (c) => c > 1)}>
           {() => (
             <>
               <Show when={many} fallback={() => <Dots model={model} />}>
@@ -242,7 +257,7 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
                     aria-label="Snapshots"
                     onClick={() => listOpen.set(!listOpen.value)}
                   >
-                    {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
+                    {derive([model.index, model.count], (i, c) => `${i + 1} / ${c}`)}
                   </button>
                 )}
               </Show>
@@ -266,15 +281,7 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
         </Show>
       </div>
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
-      {/* The title and the description change together (another snapshot): taken once both have, so a heading is never
-          compared with the other snapshot's title. */}
-      <Show
-        when={combineLatest([model.description, model.title]).pipe(
-          debounceTime(0),
-          map(([d, t]) => (d ? withoutTitle(d, t ?? '') : d)),
-          distinctUntilChanged(),
-        )}
-      >
+      <Show when={description.asReadonly}>
         {(source) => (
           <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
             <Show
@@ -339,7 +346,7 @@ function Dots(props: { model: SnapshotStepperModel }) {
             class={classes.dot}
             data-tip={title}
             aria-label={title}
-            aria-selected={combineLatest([model.index, index]).pipe(map(([i, j]) => i === j))}
+            aria-selected={derive([model.index, index], (i, j) => i === j)}
             onClick={() => model.goTo(index.value)}
           />
         )}
@@ -352,15 +359,14 @@ function Dots(props: { model: SnapshotStepperModel }) {
 function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
   const { model } = props;
   const filter = observableState('');
-  const rows = combineLatest([model.titles, filter.asReadonly]).pipe(
-    map(([titles, f]) => {
-      const q = f.trim().toLowerCase();
-      return titles.map((title, index) => ({ title, index })).filter((r) => !q || r.title.toLowerCase().includes(q));
-    }),
-  );
+  const rows = derive([model.titles, filter.asReadonly], (titles, f) => {
+    const q = f.trim().toLowerCase();
+    return titles.map((title, index) => ({ title, index })).filter((r) => !q || r.title.toLowerCase().includes(q));
+  });
+  const current = keyedSelector(model.index);
   return (
     <div class={classes.list}>
-      <Show when={model.count.pipe(map((c) => c > 12))}>
+      <Show when={derive(model.count, (c) => c > 12)}>
         {() => (
           <TextInput
             search
@@ -373,13 +379,14 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
         )}
       </Show>
       <ScrollArea class={classes.listRows} contentClass={classes.listRowsContent} role="listbox" aria-label="Snapshots">
+        {/* The current one, told to the two rows it moves between (view-models.md §3). */}
         <For each={rows} key={(r) => r.index}>
           {(r) => (
             <button
               type="button"
               role="option"
               class={classes.listRow}
-              aria-selected={model.index.pipe(map((i) => i === r.index))}
+              aria-selected={current.key(r.index)}
               onClick={() => {
                 model.goTo(r.index);
                 props.onClose();
@@ -395,56 +402,86 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
   );
 }
 
-function Trajectory(props: { model: TrajectoryControlsModel }) {
+const ModelsUnit: ReadonlyState<'models' | 'frames'> = new State<'models' | 'frames'>('models').asReadonly;
+
+function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }) {
   const { model } = props;
+  // An ensemble's models or a simulation's frames: what the controls say (it follows the structure the bar follows).
+  const unitOf = model.unit ?? ModelsUnit;
+  const Unit = derive(unitOf, (u) => (u === 'models' ? 'Models' : 'Frames'));
+  const one = derive(unitOf, (u) => (u === 'models' ? 'model' : 'frame'));
+  const shownLabel = derive(Unit, (u) => `${u.slice(0, -1)} shown`);
+  if (props.compact) {
+    return (
+      <div class={classes.bar} role="group" aria-label={Unit} data-row>
+        <span class={classes.lead}>
+          <Icon name="trajectory" size={16} />
+        </span>
+        <span class={classes.trajectoryLabel}>{model.label}</span>
+        <span class={classes.counter}>{derive([model.index, model.count], (i, c) => `${i + 1} / ${c}`)}</span>
+        <PlayButton
+          playing={model.isPlaying}
+          title={derive(unitOf, (u) => `Play ${u}`)}
+          onClick={() => model.togglePlay()}
+        />
+      </div>
+    );
+  }
   // One model back or forth, past the end to the start (as v5's arrows).
   const step = (by: number) => {
     const c = model.count.value;
     if (c > 1) model.seek((((model.index.value + by) % c) + c) % c);
   };
   // The played part of the track, for the scrubber's fill.
-  const progress = combineLatest([model.index, model.count]).pipe(
-    map(([i, c]) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`),
-  );
+  const progress = derive([model.index, model.count], (i, c) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`);
   return (
-    <div class={classes.bar} role="group" aria-label="Models" data-row>
+    <div class={classes.bar} role="group" aria-label={Unit} data-row>
       <span class={classes.lead}>
         <Icon name="trajectory" size={16} />
       </span>
       <span class={classes.trajectoryLabel}>{model.label}</span>
-      <span class={classes.counter}>
-        {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
-      </span>
+      <span class={classes.counter}>{derive([model.index, model.count], (i, c) => `${i + 1} / ${c}`)}</span>
       <input
         class={classes.scrubber}
         type="range"
         min="0"
-        max={model.count.pipe(map((c) => String(c - 1)))}
-        value={model.index.pipe(map(String))}
+        max={derive(model.count, (c) => String(c - 1))}
+        value={derive(model.index, String)}
         style={{ '--msp-progress': progress }}
-        aria-label="Model"
+        aria-label={shownLabel}
+        // Said as people count them ("Model 3 of 10"), not the 0-based value.
+        aria-valuetext={derive([Unit, model.index, model.count], (u, i, c) => `${u.slice(0, -1)} ${i + 1} of ${c}`)}
         onInput={(e) => model.seek(Number(e.currentTarget.value))}
       />
       <Button
         variant="ghost"
         size="sm"
         icon={<Icon name="chevron-left" />}
-        title="Previous model"
+        title={derive(one, (o) => `Previous ${o}`)}
         onClick={() => step(-1)}
       />
-      <PlayButton playing={model.isPlaying} title="Play models" onClick={() => model.togglePlay()} />
+      <PlayButton
+        playing={model.isPlaying}
+        title={derive(unitOf, (u) => `Play ${u}`)}
+        onClick={() => model.togglePlay()}
+      />
       <Button
         variant="ghost"
         size="sm"
         icon={<Icon name="chevron-right" />}
-        title="Next model"
+        title={derive(one, (o) => `Next ${o}`)}
         onClick={() => step(1)}
       />
     </div>
   );
 }
 
-function PlayButton(props: { playing: ReadonlyState<boolean>; title: string; onClick(): void }) {
+function PlayButton(props: {
+  playing: ReadonlyState<boolean>;
+  title: string | ReadonlyState<string>;
+  onClick(): void;
+}) {
+  const title = typeof props.title === 'string' ? new State(props.title).asReadonly : props.title;
   return (
     <Button
       variant="ghost"
@@ -454,7 +491,7 @@ function PlayButton(props: { playing: ReadonlyState<boolean>; title: string; onC
           {() => <Icon name="pause" />}
         </Show>
       }
-      title={props.playing.pipe(map((p) => (p ? 'Pause' : props.title)))}
+      title={derive([props.playing, title], (p, t) => (p ? 'Pause' : t))}
       pressed={props.playing}
       onClick={() => props.onClick()}
     />

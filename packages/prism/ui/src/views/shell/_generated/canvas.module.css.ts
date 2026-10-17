@@ -12,6 +12,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'announce': 'msp-shell-canvas-announce',
+  'bar': 'msp-shell-canvas-bar',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -39,6 +40,7 @@ export const classes = {
   'corner': 'msp-shell-canvas-corner',
   'countdown': 'msp-shell-canvas-countdown',
   'face': 'msp-shell-canvas-face',
+  'folded': 'msp-shell-canvas-folded',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
   'menuMark': 'msp-shell-canvas-menuMark',
@@ -65,10 +67,15 @@ export const classes = {
   'toolMenu': 'msp-shell-canvas-toolMenu',
   'toolMenuCard': 'msp-shell-canvas-toolMenuCard',
   'toolMenuCheck': 'msp-shell-canvas-toolMenuCheck',
+  'toolMenuChevron': 'msp-shell-canvas-toolMenuChevron',
   'toolMenuDivider': 'msp-shell-canvas-toolMenuDivider',
+  'toolMenuHeading': 'msp-shell-canvas-toolMenuHeading',
   'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
   'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
   'toolMenuRow': 'msp-shell-canvas-toolMenuRow',
+  'toolMenuScroll': 'msp-shell-canvas-toolMenuScroll',
+  'toolMenuScrollContent': 'msp-shell-canvas-toolMenuScrollContent',
+  'toolSubmenu': 'msp-shell-canvas-toolSubmenu',
   'toolbar': 'msp-shell-canvas-toolbar',
   'toolbarSlot': 'msp-shell-canvas-toolbarSlot',
 } as const;
@@ -141,8 +148,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   [data-pinned] > & {
     top: 0;
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
-    box-shadow: -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
     border-radius: 0;
     bottom: 0;
   }
@@ -323,11 +332,22 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-toolMenuCard {
   min-width: 200px;
+  max-height: calc(var(--msp-menu-room) - var(--msp-space-3));
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+  flex-direction: column;
+  display: flex;
+}
+
+.msp-shell-canvas-toolMenuScroll {
+  flex: auto;
+  min-height: 0;
+}
+
+.msp-shell-canvas-toolMenuScrollContent {
   display: grid;
 }
 
@@ -378,6 +398,23 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-shell-canvas-toolMenuChevron {
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-shell-canvas-toolSubmenu {
+  margin-right: var(--msp-space-2);
+  animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+  position: absolute;
+  right: 100%;
+}
+
+.msp-shell-canvas-toolMenuHeading {
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
@@ -780,6 +817,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   height: 1px;
   margin: var(--msp-space-1) var(--msp-space-2);
   background: var(--msp-glass-edge);
+}
+
+.msp-shell-canvas-bar, .msp-shell-canvas-folded {
+  min-width: 0;
 }
 }
 `);

@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { activity, For } from '../../dom/control-flow.js';
 import { playClose } from '../../dom/motion.js';
@@ -17,6 +16,7 @@ import type { ShellModel, ShellSection, ShellViewContext } from '../../shell/she
 import { classes } from './_generated/section-list.module.css.js';
 import { ViewHost } from './view-host.js';
 
+import { derive } from '../../reactive/state.js';
 /**
  * The sections of a slot as a list of collapsible blocks (the Export panel). Each opens as the user last left it; until
  * then, open, or folded with `collapsed` (the Selection tab: its sections read as a list of what can be done). The
@@ -39,7 +39,7 @@ export function SectionList(props: {
   const ctx: ShellViewContext = { shell, subject };
   const all = shell.sections(props.slot);
   const shown = (list: readonly ShellSection[]) => list.filter((s) => !s.when || s.when(ctx));
-  const sections = all.pipe(map(shown));
+  const sections = derive(all, shown);
   const focus = props.focus;
   const focuses = (id: string) => !!focus && (focus === id || focus.startsWith(`${id}/`));
   const inner = (id: string) => (focus?.startsWith(`${id}/`) ? focus.slice(id.length + 1) : undefined);
@@ -115,8 +115,8 @@ function SectionBlock(props: {
         ref={(el) => {
           body = el;
         }}
-        hidden={open.asReadonly.pipe(map((o) => !o))}
-        data-reveal={toggled.asReadonly.pipe(map((t) => (t ? '' : undefined)))}
+        hidden={derive(open.asReadonly, (o) => !o)}
+        data-reveal={derive(toggled.asReadonly, (t) => (t ? '' : undefined))}
       >
         {/* A folded section stays mounted but quiet: its views follow no model until it opens (`activity`). The `hidden`
             above is bound outside it, or it would pause with it. */}

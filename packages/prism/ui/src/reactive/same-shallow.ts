@@ -18,7 +18,10 @@ export function isPlainRecord(value: unknown): value is Record<string, unknown> 
 export function sameShallow(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
   if (Array.isArray(left) && Array.isArray(right)) {
-    return left.length === right.length && shallowEqual(left, right);
+    // Item by item: no list of keys made (each set of a state of N items made 2 × N key strings).
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i++) if (!Object.is(left[i], right[i])) return false;
+    return true;
   }
   return isPlainRecord(left) && isPlainRecord(right) && shallowEqual(left, right);
 }

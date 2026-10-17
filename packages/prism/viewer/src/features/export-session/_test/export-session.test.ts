@@ -145,7 +145,7 @@ describe('export session', () => {
 
   it("keeps the session's record in the file only when asked, and shows it read-only when the file opens", async () => {
     const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
-    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'spacefill' }));
     await v.record.flush();
 
     // Off by default: no record in the file, none shown.
@@ -195,7 +195,7 @@ describe('the Snapshots list', () => {
     v.plugin.state.setSnapshotParams({ camera: false });
     expectOk(await v.api.run('snapshot.add', { name: 'Mine' }));
     const mine = entries();
-    expectOk(await v.api.styles.apply({ style: 'surface' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     expectOk(await v.api.session.save!({ kind: 'state' }));
     expect(entries()).toEqual(mine);
   });

@@ -249,7 +249,7 @@ export class RepresentationApi extends ApiArea {
           description: 'A color theme: element-symbol, chain-id, uncertainty, …',
         }),
         structure: StructureParam(),
-        language: LanguageParam(),
+        language: LanguageParam(this.ctx.languages),
       };
     },
     async run({ target, color, theme, structure, language }, ctx) {
@@ -301,7 +301,7 @@ export class RepresentationApi extends ApiArea {
         { description: '0: opaque, 1: hidden (the geometry stays)' },
       ),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run({ target, alpha, structure, language }, ctx) {
       const where = await resolveCovered(ctx, target, structure, language);
@@ -325,7 +325,7 @@ export class RepresentationApi extends ApiArea {
       target: TargetParam(),
       strength: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { description: '0: none, 1: the full color glows' }),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run({ target, strength, structure, language }, ctx) {
       const where = await resolveCovered(ctx, target, structure, language);
@@ -356,7 +356,7 @@ export class RepresentationApi extends ApiArea {
         { description: 'The clip objects the target is excluded from (clipped by none of these); default all' },
       ),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run({ target, groups, structure, language }, ctx) {
       const names = groups ?? ClippingNames;
@@ -407,7 +407,7 @@ export class RepresentationApi extends ApiArea {
           ),
         ),
         structure: EveryStructureParam(),
-        language: LanguageParam(),
+        language: LanguageParam(this.ctx.languages),
       };
     },
     async run({ target, theme, factor, structure, language }, ctx) {

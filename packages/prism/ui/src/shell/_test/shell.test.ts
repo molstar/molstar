@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { ViewStateManager } from '../../managers/view-state.js';
 import type { ViewRenderer } from '../../dom/view.js';
 import { ShellModel, type ShellPage, type ShellTab, type ShellViewContext } from '../shell.js';
 
@@ -105,8 +106,93 @@ describe('ShellModel', () => {
     expect(shell.mode.value).toBe('desktop');
     shell.setWidth(500);
     expect(shell.mode.value).toBe('compact');
+    // Embedded is compact too where it is narrow (shell.md §3).
+    shell.setMode('embedded');
+    expect(shell.mode.value).toBe('compact');
+    shell.setWidth(900);
+    expect(shell.mode.value).toBe('embedded');
+  });
+
+  it('gives embedded a layout of its own: the compact rail, a floating right panel, nothing pinned', () => {
+    const viewState = new ViewStateManager({ docks: { right: { floating: false, pinned: true } } });
+    const shell = new ShellModel({ viewState });
+    shell.registerTabs([tab('a'), tab('b')]);
+    shell.show('a');
+    expect(shell.compactRail.value).toBe(false);
+    expect(shell.dock('right').state.value).toMatchObject({ floating: false, pinned: true });
+
     shell.setMode('embedded');
     expect(shell.mode.value).toBe('embedded');
+    expect(shell.compactRail.value).toBe(true);
+    expect(shell.railShown.value).toBe(false);
+    // The rail starts hidden, and what opened from it closed.
+    expect(shell.dock('right').active.value).toBeUndefined();
+    expect(shell.dock('right').state.value).toMatchObject({ floating: true, pinned: false });
+    shell.toggleRail();
+    expect(shell.railShown.value).toBe(true);
+    // The layout keeps its own values for another mode.
+    expect(viewState.layout.value.docks.right).toMatchObject({ floating: false, pinned: true });
+    expect(viewState.layout.value.compactRail).toBe(false);
+
+    shell.setMode('desktop');
+    expect(shell.compactRail.value).toBe(false);
+    expect(shell.dock('right').state.value).toMatchObject({ floating: false, pinned: true });
+  });
+
+  it('pins the right panel by default on the desktop only: compact reads it as unpinned and keeps the pin', () => {
+    const viewState = new ViewStateManager();
+    const shell = new ShellModel({ viewState });
+    shell.registerTabs([tab('a')]);
+    shell.show('a');
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+    // A phone: the panel is a bottom sheet, never pinned (Escape and a click outside close it).
+    shell.setMode('compact');
+    expect(shell.dock('right').state.value.pinned).toBe(false);
+    expect(viewState.layout.value.docks.right.pinned).toBe(true);
+    shell.setMode('desktop');
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+  });
+
+  it('hides a tab without unregistering it, and shows it again where it was', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('a', { order: 1 }), tab('b', { order: 2 }), tab('c', { order: 3 })]);
+    shell.show('b');
+    shell.hideTab('b');
+    expect(shell.dock('right').tabs.value.map((t) => t.id)).toEqual(['a', 'c']);
+    // Its open panel closed; it keeps its place in the layout, which keeps it hidden.
+    expect(shell.dock('right').active.value).toBeUndefined();
+    expect(shell.dock('right').state.value.tabs).toEqual(['a', 'b', 'c']);
+    expect(shell.viewState.layout.value.hiddenTabs).toEqual(['b']);
+    expect(shell.hiddenTabs.value.map((t) => t.id)).toEqual(['b']);
+
+    shell.showTab('b');
+    expect(shell.dock('right').tabs.value.map((t) => t.id)).toEqual(['a', 'b', 'c']);
+    expect(shell.hiddenTabs.value).toEqual([]);
+
+    // Shown by name (a command), a hidden tab comes back open.
+    shell.hideTab('c');
+    shell.show('c');
+    expect(shell.dock('right').active.value?.id).toBe('c');
+    expect(shell.hiddenTabs.value).toEqual([]);
+  });
+
+  it('resets the layout to its seed, putting registered tabs back and showing hidden ones', () => {
+    const viewState = new ViewStateManager({ docks: { right: { size: 400 } } });
+    const shell = new ShellModel({ viewState });
+    shell.registerTabs([tab('a', { order: 1 }), tab('b', { order: 2 }), tab('seq', { dock: 'top' })]);
+    shell.show('b');
+    shell.move('a', 'left');
+    shell.setSize('right', 600);
+    shell.setPinned('right', false);
+    shell.hideTab('seq');
+    shell.resetLayout();
+    expect(viewState.layout.value.docks.right).toMatchObject({ tabs: ['a', 'b'], size: 400, pinned: true });
+    expect(viewState.layout.value.docks.left.tabs).toEqual([]);
+    expect(viewState.layout.value.hiddenTabs).toEqual([]);
+    expect(shell.dock('top').tabs.value.map((t) => t.id)).toEqual(['seq']);
+    // What is open stays open where it still is; a dock left without its open tab has none.
+    expect(shell.dock('right').active.value?.id).toBe('b');
+    expect(shell.dock('left').state.value.active).toBeUndefined();
   });
 
   it('floats the right and top docks by default and can dock them', () => {
@@ -115,14 +201,16 @@ describe('ShellModel', () => {
     expect(shell.dock('top').state.value.floating).toBe(true);
     expect(shell.dock('left').state.value.floating).toBe(false);
     shell.setFloating('right', false);
-    expect(shell.layout.docks.right.floating).toBe(false);
+    expect(shell.dock('right').state.value.floating).toBe(false);
   });
 
-  it('clamps dock sizes and reports the layout', () => {
-    const shell = new ShellModel();
+  it('clamps dock sizes and keeps the layout in the view state', () => {
+    const viewState = new ViewStateManager();
+    const shell = new ShellModel({ viewState });
     shell.setSize('right', 20);
-    expect(shell.layout.docks.right.size).toBe(180);
-    expect(shell.layout.mode).toBe('auto');
+    expect(shell.dock('right').state.value.size).toBe(180);
+    expect(viewState.layout.value.docks.right.size).toBe(180);
+    expect(viewState.layout.value.mode).toBe('auto');
   });
 
   it('shows toolbar buttons as the spec says, and changes them at runtime', () => {

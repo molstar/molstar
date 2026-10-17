@@ -12,7 +12,7 @@ import { ScrollArea } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
-import { distinctUntilChanged, map } from 'rxjs';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { SuperposedEntry } from '../../model/superposition.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
@@ -25,19 +25,16 @@ export function Superposed(props: {
   remove(id: string): void;
   clear?(): void;
 }) {
-  const count = props.made.pipe(
-    map((l) => l.length),
-    distinctUntilChanged(),
-  );
+  const count = derive(props.made, (l) => l.length);
   return (
-    <Show when={count.pipe(map((n) => n > 0))}>
+    <Show when={derive(count, (n) => n > 0)}>
       {() => (
         <div class={classes.block}>
           <div class={classes.head}>
             <span class={classes.caption}>
               Superposed <span class={classes.count}>{count}</span>
             </span>
-            <Show when={count.pipe(map((n) => n > 1 && !!props.clear))}>
+            <Show when={derive(count, (n) => n > 1 && !!props.clear)}>
               {() => (
                 <button type="button" class={classes.clear} onClick={() => props.clear?.()}>
                   Clear all

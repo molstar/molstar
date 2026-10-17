@@ -110,6 +110,32 @@ export const PrismViewerOptions = {
       ],
       { description: 'The light behind the empty canvas’s mark' },
     ),
+    /**
+     * The toolbar's XR button (classic `PluginConfig.Viewport.ShowXR`): `auto` only where WebXR is supported, `always`
+     * shows it everywhere (where it is not supported, it says so), `never` leaves it out.
+     */
+    xr: PD.Select<'auto' | 'always' | 'never'>('auto', [
+      ['auto', 'Where supported'],
+      ['always', 'Always'],
+      ['never', 'Never'],
+    ]),
+    /**
+     * Whether a viewer's canvas pauses out of view, and its WebGL context joins the page's budget (README decision 29):
+     * `auto` does, except in an automated browser (`navigator.webdriver`: a capture or test page renders on purpose).
+     */
+    pauseOutOfView: PD.Select<'auto' | 'always' | 'never'>('auto', [
+      ['auto', 'Unless automated'],
+      ['always', 'Always'],
+      ['never', 'Never'],
+    ]),
+    /**
+     * Where the canvas' hover label shows (v5: the corner): `corner`, at the canvas' bottom right above the toolbar, still
+     * and out of the way; `cursor`, beside the pointer.
+     */
+    hoverLabel: PD.Select<'corner' | 'cursor'>('corner', [
+      ['corner', 'Bottom right'],
+      ['cursor', 'At the cursor'],
+    ]),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

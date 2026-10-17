@@ -9,10 +9,12 @@
  */
 
 import { ColorNames } from '@molstar/core/util/color/names';
-import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import { activeElement } from '../../dom/events.js';
-import { bind } from '../../dom/scope.js';
+import { bind, effect, type MaybeReactive } from '../../dom/scope.js';
+import { drag } from '../../dom/scoped.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive, isState } from '../../reactive/state.js';
 import { classes } from './_generated/color-picker.module.css.js';
 
 /** The palette's hues (vivid; their lighter and darker weights are the row under them, `colorWeights`). */
@@ -164,7 +166,7 @@ function placeOf(c: number): { greys: boolean; x: number; y: number } {
 }
 
 export interface ColorPickerProps {
-  value: Observable<number>;
+  value: MaybeReactive<number>;
   onChange(color: number): void;
 }
 
@@ -175,14 +177,14 @@ export interface ColorPickerProps {
  * that takes a color in most ways people write one (`parseColor`) and shows it as decimal channels.
  */
 export function ColorPicker(props: ColorPickerProps) {
-  const value = props.value.pipe(distinctUntilChanged());
-  const place = value.pipe(map(placeOf));
+  const value = held(props.value);
+  const place = derive(value, placeOf);
   let current = 0;
   let input: HTMLInputElement | undefined;
   // The color the weights are of: every pick but a weight's (and any change from outside) moves it.
   const base = observableState(0);
   let fromWeight = false;
-  const weights = base.asReadonly.pipe(map(colorWeights), shareReplay({ bufferSize: 1, refCount: true }));
+  const weights = derive(base.asReadonly, colorWeights);
   bind(value, (v) => {
     current = v;
     if (!fromWeight) base.set(v);
@@ -190,24 +192,21 @@ export function ColorPicker(props: ColorPickerProps) {
     if (input && activeElement(input) !== input) input.value = colorToRgb(v);
   });
 
-  // Click or drag across the field or the greys; the pointer is captured, so a drag can leave the strip.
-  const drag = (pick: (x: number, y: number) => number) => (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
-    const at = (ev: PointerEvent) => {
+  // Click or drag across the field or the greys (`drag`, dom/scoped.ts: attached once, the pointer captured, so a drag
+  // can leave the strip).
+  const strip = (pick: (x: number, y: number) => number) => (el: HTMLElement) => {
+    const at = (e: PointerEvent) => {
       const r = el.getBoundingClientRect();
-      props.onChange(pick((ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height));
+      props.onChange(pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
     };
-    const end = () => {
-      el.removeEventListener('pointermove', at);
-      el.removeEventListener('pointerup', end);
-      el.removeEventListener('pointercancel', end);
-    };
-    el.addEventListener('pointermove', at);
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
-    at(e);
+    drag(el, {
+      start(e) {
+        if (e.button !== 0) return undefined;
+        at(e);
+        return true;
+      },
+      move: at,
+    });
   };
   // Snapping at the ends: black and white exactly.
   const grey = (x: number) => {
@@ -217,18 +216,18 @@ export function ColorPicker(props: ColorPickerProps) {
 
   return (
     <div class={classes.picker}>
-      <div class={classes.field} aria-hidden="true" onPointerDown={drag(fieldColor)}>
+      <div class={classes.field} aria-hidden="true" ref={strip(fieldColor)}>
         <span
           class={classes.marker}
-          hidden={place.pipe(map((p) => p.greys))}
-          style={{ left: place.pipe(map((p) => `${p.x * 100}%`)), top: place.pipe(map((p) => `${p.y * 100}%`)) }}
+          hidden={derive(place, (p) => p.greys)}
+          style={{ left: derive(place, (p) => `${p.x * 100}%`), top: derive(place, (p) => `${p.y * 100}%`) }}
         />
       </div>
-      <div class={classes.greys} aria-hidden="true" onPointerDown={drag((x) => grey(x))}>
+      <div class={classes.greys} aria-hidden="true" ref={strip((x) => grey(x))}>
         <span
           class={classes.marker}
-          hidden={place.pipe(map((p) => !p.greys))}
-          style={{ left: place.pipe(map((p) => `${p.x * 100}%`)), top: '50%' }}
+          hidden={derive(place, (p) => !p.greys)}
+          style={{ left: derive(place, (p) => `${p.x * 100}%`), top: '50%' }}
         />
       </div>
       <div class={classes.palette} role="listbox" aria-label="Palette">
@@ -239,22 +238,22 @@ export function ColorPicker(props: ColorPickerProps) {
             class={classes.swatch}
             style={{ background: colorToHex(c) }}
             aria-label={colorToRgb(c)}
-            aria-selected={value.pipe(map((v) => v === c))}
+            aria-selected={derive(value, (v) => v === c)}
             onClick={() => props.onChange(c)}
           />
         ))}
       </div>
       <div class={classes.palette} role="listbox" aria-label="Weights">
         {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-          const color = weights.pipe(map((w) => w[i]));
+          const color = derive(weights, (w) => w[i]);
           return (
             <button
               type="button"
               role="option"
               class={classes.swatch}
-              style={{ background: color.pipe(map(colorToHex)) }}
-              aria-label={color.pipe(map(colorToRgb))}
-              aria-selected={combineLatest([color, value]).pipe(map(([c, v]) => c === v))}
+              style={{ background: derive(color, colorToHex) }}
+              aria-label={derive(color, colorToRgb)}
+              aria-selected={derive([color, value], (c, v) => c === v)}
               onClick={() => {
                 fromWeight = true;
                 props.onChange(colorWeights(base.value)[i]);
@@ -265,7 +264,7 @@ export function ColorPicker(props: ColorPickerProps) {
         })}
       </div>
       <div class={classes.custom}>
-        <span class={classes.preview} style={{ background: value.pipe(map(colorToHex)) }} />
+        <span class={classes.preview} style={{ background: derive(value, colorToHex) }} />
         <input
           ref={(el: HTMLInputElement) => {
             input = el;
@@ -291,4 +290,12 @@ export function ColorPicker(props: ColorPickerProps) {
       </div>
     </div>
   );
+}
+
+/** The value as a state: a state as it is; a stream (or a plain value) held in one, with the current scope. */
+function held(source: MaybeReactive<number>): ReadonlyState<number> {
+  if (isState(source)) return source as ReadonlyState<number>;
+  const state = observableState(0);
+  effect(source, (v) => state.set(v));
+  return state.asReadonly;
 }

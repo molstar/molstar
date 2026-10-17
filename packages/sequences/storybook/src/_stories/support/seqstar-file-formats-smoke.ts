@@ -8,11 +8,11 @@
 
 // The `Seq*/File formats` stories' entries for the smoke test (seqstar-smoke.ts): every format a story offers, each a
 // case, in the recorded mode only (the live mode fetches the public services; the smoke test never does). The Mol*
-// adapter is imported by a name held in a variable, as seqstar-molstar-smoke.ts does, so the packages that type-check
-// this file do not type-check Mol*'s sources with their own settings. No React.
+// adapter (`@molstar/prism-viewer/sequence/molstar`) is imported by a name held in a variable, as seqstar-molstar-smoke.ts
+// does, so the smoke test loads Prism's adapter only when it runs these cases. No React.
 
 import type { SvsRegistryEntry } from '@molstar/seq-core/format';
-import ins1 from '../../../../molstar-poc/_test/fixtures/structures/ins1.cif?raw';
+import ins1 from '../../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/ins1.cif?raw';
 import {
   ALIGNMENT_FORMATS,
   alignmentCase,
@@ -35,12 +35,18 @@ import {
 } from './seqstar-file-formats.js';
 import type { AllowedWarning, SmokeCase, SmokeEnv, SmokeStory } from './seqstar-smoke.js';
 
-const MOLSTAR = '@molstar/seq-molstar-poc';
+const MOLSTAR = '@molstar/prism-viewer/sequence/molstar';
 const molstar = async () => [
   { svs: ((await import(/* @vite-ignore */ MOLSTAR)) as { MolstarSvsEntry: SvsRegistryEntry }).MolstarSvsEntry },
 ];
 const text = (b: Uint8Array) => new TextDecoder().decode(b);
-const fixture = (env: SmokeEnv, path: string) => env.readFile(`packages/sequences/molstar-poc/_test/fixtures/${path}`);
+// The structures are the Mol* adapter's fixtures (Prism's), the p53 data the demo's (this package's).
+const fixture = (env: SmokeEnv, path: string) =>
+  env.readFile(
+    path.startsWith('p53/')
+      ? `packages/sequences/storybook/_test/fixtures/${path}`
+      : `packages/prism/viewer/src/sequence/molstar/_test/fixtures/${path}`,
+  );
 const of = (label: string, c: FormatCase, allow?: AllowedWarning[]): SmokeCase => ({
   label,
   doc: c.doc,

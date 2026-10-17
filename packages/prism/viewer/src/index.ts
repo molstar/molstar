@@ -14,6 +14,7 @@
 export { type CreatePrismViewerOptions, createPrismViewer } from './page.js';
 export { DefaultPrismViewerSpec } from './default-spec.js';
 export type { PrismViewer } from './viewer.js';
+export { type CameraSnapshot, type SetCameraOptions, syncCameras, type ViewerCamera } from './sources/camera.js';
 export type {
   LazyViewerExtension,
   PrismViewerSpec,

@@ -26,6 +26,7 @@ export const classes = {
   'keptTitle': 'msp-viewer-history-keptTitle',
   'label': 'msp-viewer-history-label',
   'list': 'msp-viewer-history-list',
+  'meta': 'msp-viewer-history-meta',
   'more': 'msp-viewer-history-more',
   'origin': 'msp-viewer-history-origin',
   'prompt': 'msp-viewer-history-prompt',
@@ -129,6 +130,16 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-xs);
   grid-column: 2 / -1;
   display: flex;
+}
+
+.msp-viewer-history-meta {
+  white-space: nowrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 
 .msp-viewer-history-unsafe {

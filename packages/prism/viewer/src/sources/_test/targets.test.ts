@@ -10,12 +10,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { StructureElement } from '@molstar/model/model/structure';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ResolvedTarget } from '../../api/targets.js';
+import type { ResolvedTarget, TargetResolver } from '../../api/targets.js';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
-import { queryLanguage } from '../../targets/languages.js';
-import { createTargetResolver } from '../targets.js';
+import { PyMolLanguage } from '../../targets/languages/pymol.js';
+import { targetsOf } from '../../_test/harness.js';
 
 // The resolver over a real plugin (targets.md §1–2).
 
@@ -31,10 +31,10 @@ afterEach(async () => {
 async function setup(...files: [string, string][]) {
   viewer = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec() });
   for (const [name, as] of files) await viewer.api.load.files({ files: [file(name, as)] as never });
-  return { viewer, resolver: createTargetResolver(viewer.plugin) };
+  return { viewer, resolver: targetsOf(viewer) };
 }
 
-function ok(r: Awaited<ReturnType<ReturnType<typeof createTargetResolver>['resolve']>>): ResolvedTarget {
+function ok(r: Awaited<ReturnType<TargetResolver['resolve']>>): ResolvedTarget {
   if (!r.ok) throw new Error(`${r.code}: ${r.message}`);
   return r;
 }
@@ -77,7 +77,7 @@ describe('the target resolver', () => {
 
   it('reads and compiles a target once for every structure in scope', async () => {
     const { resolver } = await setup(['1crn.cif', '1crn.cif'], ['1cbs_updated.cif', '1cbs.cif']);
-    const transpile = vi.spyOn(queryLanguage('pymol')!, 'transpile');
+    const transpile = vi.spyOn(PyMolLanguage, 'transpile');
     const all = ok(await resolver.resolve('resn ALA and name CA'));
     expect(all.parts).toHaveLength(2);
     expect(all.parts.every((p) => p.selected.atoms > 0)).toBe(true);

@@ -12,9 +12,11 @@ import {
   forgetKept,
   keptSize,
   openRecordsRows,
+  recordsDatabase,
   type RecordIndex,
   type SessionRecord,
 } from '../journal/record.js';
+import { KeybindingsKey } from '../commands/keymap-store.js';
 import { isListedStore, type ListedStore } from '../persist/stores.js';
 import type { PrismViewerPersist } from '../spec.js';
 import { formatAge, type StorageEntry, type StorageSource } from './model.js';
@@ -29,6 +31,8 @@ const DayMs = 24 * 60 * 60_000;
 export interface KeptRecordsSourceOptions {
   /** Where kept records are: the spec's `persist.rows`; else the browser's IndexedDB, opened only when it exists. */
   readonly rows?: ThreadRows;
+  /** The IndexedDB database when there are no rows (`recordsDatabase(persist.key)`, journal.md §6). */
+  readonly database?: string;
   /** This session's record: forgetting it while it is kept takes it back into memory (`unkeep`). */
   readonly record?: SessionRecord;
   readonly now?: () => number;
@@ -51,7 +55,7 @@ export function keptRecordsSource(o: KeptRecordsSourceOptions = {}): KeptRecords
 
   const open = () => {
     opening ??= (async () => {
-      const rows: Opened['rows'] | undefined = o.rows ?? (await openRecordsRows());
+      const rows: Opened['rows'] | undefined = o.rows ?? (await openRecordsRows(o.database));
       if (!rows) return undefined;
       if (disposed) {
         if (!o.rows) rows.close?.();
@@ -126,6 +130,8 @@ export interface StoreSourceOptions {
   readonly labels?: Readonly<Record<string, string>>;
   /** Said of every entry. */
   readonly detail?: string;
+  /** Called after a key is removed (the holder of its in-memory copy lets it go). */
+  readonly onForget?: (key: string) => void;
 }
 
 /** The values a light store keeps (journal.md §6), each with its size; Forget removes it. */
@@ -146,24 +152,38 @@ export function storeSource(o: StoreSourceOptions): StorageSource {
     },
     async forget(key) {
       o.store.remove(key);
+      o.onForget?.(key);
     },
   };
 }
 
 /** What the preferences hold, in words. */
-const PreferenceLabels: Readonly<Record<string, string>> = { theme: 'Theme' };
+const PreferenceLabels: Readonly<Record<string, string>> = {
+  theme: 'Theme',
+  layout: 'Layout',
+  keybindings: 'Keyboard shortcuts',
+};
 
 /**
  * The viewer's own sources: kept records always (empty when there are none), the preferences and the light restore when
  * the spec gives stores that list what they keep (`webStore`, `memoryStore`). Each source with a `dispose` is disposed
  * by `dispose` here.
  */
-export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?: SessionRecord }): {
+export function viewerStorageSources(o: {
+  persist?: PrismViewerPersist;
+  record?: SessionRecord;
+  /** Forgetting the person's keys resets the keymap's in-memory layer (a key of the preferences). */
+  resetKeybindings?: () => void;
+}): {
   readonly sources: readonly StorageSource[];
   dispose(): void;
 } {
   const rows = o.persist?.rows as ThreadRows | undefined;
-  const records = keptRecordsSource({ ...(rows ? { rows } : {}), ...(o.record ? { record: o.record } : {}) });
+  const records = keptRecordsSource({
+    ...(rows ? { rows } : {}),
+    database: recordsDatabase(o.persist?.key),
+    ...(o.record ? { record: o.record } : {}),
+  });
   const sources: StorageSource[] = [records];
   const preferences = o.persist?.preferences;
   if (isListedStore(preferences)) {
@@ -174,6 +194,9 @@ export function viewerStorageSources(o: { persist?: PrismViewerPersist; record?:
         where: 'localStorage',
         store: preferences,
         labels: PreferenceLabels,
+        onForget: (key) => {
+          if (key === KeybindingsKey) o.resetKeybindings?.();
+        },
       }),
     );
   }

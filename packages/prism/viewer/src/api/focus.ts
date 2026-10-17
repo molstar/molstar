@@ -48,7 +48,7 @@ export class FocusApi extends ApiArea {
     params: {
       target: TargetParam('What to focus on: ligand, A:120-130, resn HEM, …'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     history: false,
     async run({ target, structure, language }, ctx) {

@@ -60,7 +60,8 @@ search query.
 ## Translate
 
 `@molstar/seq-core/translate` maps between coordinate systems, a host's own and Seq\*'s, without the viewer. It depends
-on the model only and keeps the registry the stateless model does not; the viewer's `ctx.systems` is one `Translator`.
+on the model only and keeps the registry the stateless model does not: a `Translator`, and over a set the
+`SystemRegistry`, which the viewer's `ctx.systems` is.
 
 - **Registration.** `register(descriptor, maps)` gives a key its system (an external one, or a Seq\* one it names);
   registering again replaces its maps and keeps its id; `unregister` drops the maps, the key keeps its id. `addMap`
@@ -75,10 +76,38 @@ on the model only and keeps the registry the stateless model does not; the viewe
 - **Map builders** from common identities: `byLabels` (equal labels pair), `byNumbering` (auth numbers with insertion
   codes), `bySegments` (SIFTS-style triples, 0-based, half-open).
 
+### Coordinates
+
+`Coordinates` are runs in coordinate systems named by key, `(index into systems, start, stop)` triples: plain data, so a
+host, an event or a command holds a target with no Seq\* types. Their conversions (`Coordinates`): to `Extents` in a
+set's own systems through a translator (a host's system's runs through each map registered with it; a key not known
+gives nothing; allocation-free, a host's hover rate), from loci or `Extents` (a unit's runs also list its complex, whose
+descriptor's members name its units), and to loci, one per kind (edge rate).
+
+### The system registry
+
+`SystemRegistry`, a `Translator` over one `SeqSet` with no viewer: a host gives it the set (`update`; descriptors are
+kept within its lineage) and hears of every registration, unregistration and added map through a plain callback
+(`onChange`). The viewer's `ctx.systems` is one, plus a reactive `version`; the Mol\* adapter's `StructureLink`
+registers on any registry, so a host maps between a structure, a sequence set, an alignment's columns and a transcript
+without drawing anything (an agent's tool, validation, a server, a test), and a viewer joins the same registry later.
+
+- **Own keys.** The set's systems are `seqstar:<ref>` (a unit, a molecule, a complex, an alignment's columns by the
+  alignment's ref, a row `<alignment>/<k>`, `k` in digits), beside a host's keys. Their descriptors (`SystemDescriptor`,
+  plain data: key, kind, domain, refs, a unit's `mvs` fields, numberings listed once, a complex's members) are built on
+  first use, once per system and lineage.
+- **`map(target, to)`**: `Coordinates` or loci of the set into the system `to` names: a host's system's runs onto the
+  set's systems through its registered maps, then the set's own maps (the model's shortest paths:
+  `seqspec:model#paths`), then, for a host's `to`, through the maps registered with it (a composite: each member). A
+  path the model calls ambiguous takes its first candidate. Edge rate.
+- `coordinatesOf(loci)`, `extentsOf(c, out)`, `lociOf(c)`: the conversions over the registry and its set.
+
 ## The Mol\* adapter
 
-`@molstar/seq-molstar-poc`, a proof of concept, is the Seq\* package that reads Mol\*'s structures. It reads them
-headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs in a page, in Node and on a server.
+The adapter reads Mol\*'s structures for Seq\*. It is Mol\*'s, not a Seq\* package: it lives in the Prism viewer
+(`@molstar/prism-viewer/sequence/molstar`, `packages/prism/viewer/src/sequence/molstar`), whose sequence view is made on
+it, and the Seq\* Storybook's Mol\* demo imports it from there. It reads structures headless with Mol\*'s parsers (no
+canvas, no plugin UI), so its format half runs in a page, in Node and on a server.
 
 - **Formats and services**: `mmcif`, `bcif`, `pdb`, `sdf`, `mol2`, `afdb_pae`; `pdbe` (`structure`, `sifts`) and `afdb`
   (`structure`, `pae`). A file is parsed once; a host that parsed it for its 3D view shares the parse. Sequence and
@@ -105,8 +134,9 @@ headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs
   otherwise). Its default color is AlphaFold DB's green, 0 to 30 Å (`PaeScale`).
 - **The link** (`StructureLink`): each chain instance but waters is an external system mapped onto the unit with the
   same `label_asym_id` and `instance_id` (else the first with that `label_asym_id`; polymers by `label_seq_id`, others
-  by heavy-atom order), so a structure in 3D and its sequences light each other through `ctx.systems`, every copy
-  included. Mol\* → Seq\* runs at hover rate without allocating; Seq\* → Mol\* loci are made at edge rate.
+  by heavy-atom order), so a structure in 3D and its sequences light each other through the registry (`ctx.systems`, or
+  a host's own with no viewer: `seqspec:libraries#the-system-registry`), every copy included. Mol\* → Seq\* runs at
+  hover rate without allocating; Seq\* → Mol\* loci are made at edge rate.
 - **`linkViews`** links a viewer's hover and selection with a 3D view both ways. What it sends is composed in its
   options (`LinkViewsOptions`, defaults `DefaultLinkViewsOptions`), as a viewer's reactions are in its spec: a Seq\* set
   within `maxItems` items and `maxLength` positions (read from its size before it resolves) goes residue by residue, a
@@ -118,11 +148,12 @@ headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs
   link's own mapping (a SeqQL result back in 3D included) is always exact.
 - **SeqQL**: `molstar.select` (`molql`) runs a PyMOL (or VMD, Jmol, MolScript) selection on the linked structure and
   returns its residues on their units; `(input structure)` reads Mol\*'s selection passed by the host.
-- **MVS**: the structure, its colors (as MVS annotation tables), sticks and a selection's label go to the 3D view as an
-  MVS state; highlight, select and focus go as Mol\* loci through the plugin glue. The polymer can take a Mol\* color
-  theme by name in place of its base color (`colorTheme`, one the plugin has registered). `ligandComps` names the
-  ligands shown, by chemical component id: residues of a non-polymer entity that is not an ion, so a polymer's modified
-  residue is never drawn as a ligand and an ion is drawn once, as an ion; absent, every ligand; empty, none.
+- **MVS** (the Storybook's Mol\* demo, a host of the adapter: `storybook/src/_stories/support`): the structure, its
+  colors (as MVS annotation tables), sticks and a selection's label go to the 3D view as an MVS state; highlight, select
+  and focus go as Mol\* loci through the demo's plugin glue. The polymer can take a Mol\* color theme by name in place
+  of its base color (`colorTheme`, one the plugin has registered). `ligandComps` names the ligands shown, by chemical
+  component id: residues of a non-polymer entity that is not an ion, so a polymer's modified residue is never drawn as a
+  ligand and an ion is drawn once, as an ion; absent, every ligand; empty, none.
 - **The viewer half** (`/viewer`): a track's colors as drawn, host actions ("Show in 3D"), and linking a viewer to a
   Mol\* plugin; `/plugin` mounts Mol\* as a canvas only, MolViewSpec's registry entries and the host's own beside them
   (`registry`: the color themes and representations its MVS states name).

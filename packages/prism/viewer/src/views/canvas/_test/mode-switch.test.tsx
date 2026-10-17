@@ -9,10 +9,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { type CanvasMode, ModeSwitch, type ModeSwitchProps, PickLevel } from '../mode-switch.js';
+import { type CanvasMode, ModeSwitch, type ModeSwitchProps, modeMenuRows, PickLevel } from '../mode-switch.js';
 
 describe('ModeSwitch', () => {
   it('shows the mode and switches it; the picking levels are listed directly, one click from Select', () => {
@@ -145,5 +146,45 @@ describe('ModeSwitch', () => {
     expect(document.activeElement).not.toBe(select);
     container.remove();
     canvas.remove();
+  });
+});
+
+describe('modeMenuRows (the collapsed toolbar’s menu)', () => {
+  it('offers the two modes as a choice and the picking levels as a submenu, which turns select mode on', async () => {
+    const mode = observableState<CanvasMode>('interact');
+    const granularity = observableState('residue');
+    const rows = modeMenuRows({
+      mode: mode.asReadonly,
+      setMode: (m) => mode.set(m),
+      granularity: granularity.asReadonly,
+      granularities: [
+        { value: 'residue', label: 'Residue', icon: 'pick-residue' },
+        { value: 'chain', label: 'Chain', icon: 'pick-chain' },
+      ],
+      setGranularity: (g) => granularity.set(g),
+    });
+    expect(rows.map((r) => r.label)).toEqual(['Interact', 'Select', 'What a click selects']);
+    const [interact, select, level] = rows;
+    expect(await firstValueFrom(interact.pressed!)).toBe(true);
+    expect(await firstValueFrom(select.pressed!)).toBe(false);
+    select.run();
+    expect(mode.value).toBe('select');
+    expect(await firstValueFrom(select.pressed!)).toBe(true);
+    interact.run();
+    expect(mode.value).toBe('interact');
+
+    const levels = await firstValueFrom(level.items!);
+    expect(levels.map((l) => l.label)).toEqual(['Residue', 'Chain']);
+    expect(await firstValueFrom(levels[0].pressed!)).toBe(true);
+    levels[1].run();
+    expect(granularity.value).toBe('chain');
+    expect(mode.value).toBe('select');
+    expect(await firstValueFrom(levels[1].pressed!)).toBe(true);
+
+    // Without levels there is no submenu.
+    expect(modeMenuRows({ mode: mode.asReadonly, setMode: () => {} }).map((r) => r.label)).toEqual([
+      'Interact',
+      'Select',
+    ]);
   });
 });

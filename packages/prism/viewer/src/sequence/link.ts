@@ -8,8 +8,8 @@
 
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { Extents } from '@molstar/seq-core/model';
-import { StructureLink } from '@molstar/seq-molstar-poc';
-import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from '@molstar/seq-molstar-poc/viewer';
+import { StructureLink } from './molstar/link.js';
+import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from './molstar/link-views.js';
 import type { MarksView } from '../sources/marks.js';
 import { lociSize } from '@molstar/seq-viewer';
 import type { SequenceViewer } from './model.js';
@@ -39,16 +39,21 @@ export function linkSequence(
   const seq = viewer.seq;
   let unlink: (() => void) | undefined;
   let link: StructureLink | undefined;
+  let lit: SequenceView3D | undefined;
   const drop = () => {
     unlink?.();
     link?.detach();
     unlink = link = undefined;
+    // What the sequence hovered in 3D goes with the link (the 3D view also drops `hoverMapped`).
+    lit?.highlight(null);
+    lit = undefined;
   };
   const sub = viewer.structure.subscribe((shown) => {
     drop();
     const set = seq.graph.assembled.value?.set;
     const view = shown && view3d(shown.structure);
     if (!shown || !set || !view) return;
+    lit = view;
     link = StructureLink.attach(seq.systems, '3d', shown.structure, set, shown.complex);
     const stop = linkViews(seq, view, link, options);
     const stopMarks = options?.marks ? showMarks(seq, link, shown.structure, options.marks) : undefined;

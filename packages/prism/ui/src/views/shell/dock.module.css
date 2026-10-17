@@ -216,6 +216,8 @@
     align-self: stretch;
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-panel-bg);
+    /* What paints a surface of its own inside (a virtual list's rows) paints the panel's. */
+    --msp-surface: var(--msp-glass-panel-bg);
     box-shadow: var(--msp-glass-shadow);
     backdrop-filter: var(--msp-glass-filter);
     -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -250,8 +252,17 @@
     height: var(--msp-rail-icon, 20px);
   }
 
+  /* Selected: its background only. The strip's inset outline would draw 1px lines beside the panel's top and its edge
+     (reading as a misalignment) and double the rail's hairline. */
   & .tab[aria-selected="true"] {
     background: var(--msp-color-control);
+    box-shadow: none;
+  }
+
+  /* The panel's header is as tall as a rail button (its step, set from the rail's height: dock-view.tsx), so the
+     panel's content starts where the rail's first button ends. */
+  & .header {
+    height: max(var(--msp-rail-head, 40px), var(--msp-touch-target, 0px));
   }
 }
 
@@ -274,9 +285,24 @@
   }
 
   & .rail {
+    position: relative;
     border-radius: 0;
     background: var(--msp-glass-panel-bg);
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    /* Not the frame's ring (canvas.module.css): its one line is the hairline below. */
+    box-shadow: none;
+
+    /* Its hairline, the line between it and the panel or the canvas: inside its own left edge, above its buttons (a
+       selected one's background does not cover it). Outside the rail it would lie over the panel's last pixel and make
+       the panel's right margin a pixel narrower than its left. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 1;
+      width: 1px;
+      background: var(--msp-glass-edge);
+      pointer-events: none;
+    }
   }
 
   /* A compact rail lies over the canvas' edge and stops above the corner row (the toolbar and its toggle stay clear),
@@ -304,17 +330,27 @@
   }
 }
 
-/* Pinned: the panel is a column beside the canvas like the rail, full height, flat, a hairline between them. */
+/* The pinned side's look, one definition for what stands in the panel's place (the panel, an overlay card:
+   canvas.module.css): a column beside the canvas, full height, flat. Nothing is under it (the canvas ends at it), so it is
+   opaque, without glass, and what paints a surface inside (a tree's rows) paints the same color. Its one line is on the
+   canvas's side; the rail draws the line on the other (inside its own edge). */
+[data-pinned] {
+  --msp-pinned-bg: var(--msp-color-panel);
+  --msp-pinned-edge: -1px 0 0 var(--msp-glass-edge);
+}
+
+/* Pinned: the panel is a column beside the canvas like the rail. */
 [data-pinned] > .floatingRight {
   gap: 0;
 
   & .content {
     margin: 0;
     border-radius: 0;
-    /* Hairlines on both sides: the canvas on the left, the rail on the right. */
-    box-shadow:
-      -1px 0 0 var(--msp-glass-edge),
-      inset -1px 0 0 var(--msp-glass-edge);
+    background: var(--msp-pinned-bg);
+    --msp-surface: var(--msp-pinned-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--msp-pinned-edge);
   }
 }
 

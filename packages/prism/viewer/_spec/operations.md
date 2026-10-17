@@ -109,6 +109,8 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `sequence.get` | Describe the sequence view | read |  |
 | `sequence.rail` | Set the tracks' rail | agent-only | navigator, height |
 | `sequence.style` | Show the sequence as tracks or text | agent-only | style |
+| `sequence.track.hide` | Hide a sequence track | agent-only | track |
+| `sequence.track.show` | Show a hidden sequence track | agent-only | track |
 | `session.clear` | Clear the session | destructive |  |
 | `session.open` | Open a session | destructive | url, data, file, id, type |
 | `session.remote.list` | List the remote states | read; network (addresses); needs network | server |
@@ -159,7 +161,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `superpose.tm-align` | Superpose by TM-align |  | language, targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |
-| `trajectory.play` | Play the frames | view; needs canvas | mode, seconds |
+| `trajectory.play` | Play the frames | view; needs canvas | structure, mode, seconds |
 | `trajectory.stop` | Stop playing the frames | view |  |
 | `view.close` | Close the open panel and card | view; agent-only |  |
 | `view.expand` | Expand the viewport | view | on |

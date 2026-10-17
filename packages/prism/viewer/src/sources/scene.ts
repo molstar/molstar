@@ -51,7 +51,9 @@ import type {
   SceneModel,
   SceneNode,
   SceneNodeKind,
+  SceneTrajectory,
 } from '../model/scene.js';
+import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
 import { currentTransform } from '../api/structure.js';
@@ -70,12 +72,19 @@ import {
   volumeStats,
 } from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, measurementLocis, readMeasurements } from './measurements.js';
+import { type TrajectorySource, trajectorySourceOf } from './trajectory.js';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import { structureNames } from './naming.js';
-import { fromChanged, type SourceScope } from './state.js';
+import { fromChanged, onceATask, type SourceScope } from './state.js';
 import type { Observable } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
-import { createRepresentationQuick, type RepresentationQuickSource } from './representation-quick.js';
+import {
+  createRepresentationQuick,
+  representationChoices,
+  type RepresentationQuickSource,
+} from './representation-quick.js';
+import type { RepresentationQuickChange } from '../model/representation-quick.js';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -104,15 +113,32 @@ const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   'particles-representation': 'particles.update',
 };
 
+/** The source's nodes by ref: a node put in is given the source's change log. */
+class NodeMap extends Map<string, Node> {
+  constructor(readonly log: SceneChangeLog) {
+    super();
+  }
+  override set(key: string, node: Node): this {
+    node.log = this.log;
+    return super.set(key, node);
+  }
+}
+
 class Node implements SceneNode {
+  /** Where its structural changes are told (the source's log; set when it is put in the source's nodes). */
+  log?: SceneChangeLog;
   readonly #label: ObservableState<string>;
   readonly #description = observableState<string | undefined>(undefined);
   readonly #hidden = observableState(false);
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
+  /** A structure's frames (several): `structureNode` sets it, and takes it away when it has one model again. */
+  trajectory?: SceneTrajectory;
   icon: IconName;
-  menu?: readonly SceneMenuItem[];
+  #menu?: readonly SceneMenuItem[];
+  /** Builds the menu when read, for one that follows the state (a representation's current type marked). */
+  menuSource?: () => readonly SceneMenuItem[] | undefined;
   removable?: boolean;
   lazy?: boolean;
   load?: (peek?: boolean) => void;
@@ -135,6 +161,15 @@ class Node implements SceneNode {
     this.#expanded = observableState(expanded);
   }
 
+  get menu(): readonly SceneMenuItem[] | undefined {
+    return this.menuSource?.() ?? this.#menu;
+  }
+  get hasMenu(): boolean {
+    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0;
+  }
+  set menu(items: readonly SceneMenuItem[] | undefined) {
+    this.#menu = items;
+  }
   get label(): ReadonlyState<string> {
     return this.#label.asReadonly;
   }
@@ -167,15 +202,25 @@ class Node implements SceneNode {
   }
 
   setChildren(children: readonly SceneNode[]): void {
+    // A sync makes the arrays again: the same nodes in order are no change (told to nothing, the tree not reflowed).
+    if (sameChildren(this.#children.value, children)) return;
     this.#children.set(children);
+    this.log?.touch(this.id);
   }
 
   toggleVisibility(): void {
     this.actions.visibility?.(!this.#hidden.value);
   }
   toggleExpanded(): void {
-    this.#expanded.set(!this.#expanded.value);
-    if (this.#expanded.value && this.lazy) this.load?.();
+    const log = this.log;
+    const run = () => {
+      this.#expanded.set(!this.#expanded.value);
+      log?.touch(this.id);
+      if (this.#expanded.value && this.lazy) this.load?.();
+    };
+    // Opened with its children loaded: one change.
+    if (log) log.batch(run);
+    else run();
   }
   highlight(on: boolean): void {
     this.actions.highlight?.(on);
@@ -206,12 +251,19 @@ export function createSceneSource(
   api: ViewerApi,
   openCommand?: OpenCommand,
 ): SceneSource {
-  const nodes = new Map<string, Node>();
+  // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
+  const log = new SceneChangeLog();
+  const nodes = new NodeMap(log);
   // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
   const selection = plugin.managers.structure.selection;
-  const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, selection.events.changed);
+  // Read once a task (a select over many structures tells `changed` once a structure, and each read sums the whole
+  // selection).
+  const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, onceATask(selection.events.changed));
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
+  // The frames of the structures that have several (made when the first such structure is shown; its states listen to
+  // the plugin only while a row or the inspector reads them).
+  const trajectories = () => trajectorySourceOf(plugin);
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
   // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
   // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
@@ -257,9 +309,30 @@ export function createSceneSource(
       nodes.set(ref, n);
     }
     const data = s.cell.obj?.data;
-    n.set(name, data ? describeStructure(data) : undefined, !!s.cell.state.isHidden);
-    // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off).
-    n.menu = structureMenu(plugin, api, s);
+    // Several frames (an ensemble, a simulation): its row says how many, and a row under it shows and plays them.
+    const frames = s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
+    const unit =
+      s.model?.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models';
+    // Gained, lost or changed (its unit): told as a change of the node, so the tree flattens it again (its frames' row).
+    const before = n.trajectory;
+    if (frames < 2) n.trajectory = undefined;
+    else if (!n.trajectory || n.trajectory.unit !== unit)
+      n.trajectory = sceneTrajectory(trajectories(), api, ref, unit);
+    if (n.trajectory !== before) n.log?.touch(n.id);
+    n.set(
+      name,
+      data ? `${describeStructure(data)}${frames > 1 ? ` · ${frames.toLocaleString('en')} ${unit}` : ''}` : undefined,
+      !!s.cell.state.isHidden,
+    );
+    // Its menu follows what the structure offers (its assemblies, a crystal's symmetry, streaming on or off): built when
+    // read (the row's ⋯ opened), from the structure as it is then. Built every sync, it was every operation's offer and
+    // every preset's check, for every structure, at every change (structures × definitions a sync).
+    if (!n.menuSource) {
+      n.menuSource = () => {
+        const now = plugin.managers.structure.hierarchy.current.refs.get(ref);
+        return now?.kind === 'structure' ? structureMenu(plugin, api, now) : undefined;
+      };
+    }
     // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
     if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
     return n;
@@ -400,6 +473,8 @@ export function createSceneSource(
         remove: () => void api.run('representation.remove', { node: ref }),
       });
       n.removable = true;
+      const node = n;
+      n.menuSource = () => representationMenu(plugin, api, ref, () => picked.set(node));
       nodes.set(ref, n);
     }
     n.icon = ReprIcons[type] ?? 'cartoon';
@@ -431,7 +506,8 @@ export function createSceneSource(
       peeked = !!peek;
       if (!peek) node.lazy = false;
       const data = s.cell.obj?.data;
-      if (data) node.setChildren(entities(plugin, data, structureRef, nodes, api));
+      // Its entities and their chains: one change.
+      if (data) log.batch(() => node.setChildren(entities(plugin, data, structureRef, nodes, api)));
     };
     if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
@@ -776,7 +852,8 @@ export function createSceneSource(
       inspectionKeys.set(id, inspectionKey(plugin, n));
       if (picked.value === n) inspection.set(inspections.get(id));
     }
-    roots.set(top);
+    // The same roots (a sync makes the array again): no change, the tree not flattened again.
+    if (!sameChildren(roots.value, top)) roots.set(top);
   };
 
   const sync = () => {
@@ -784,7 +861,7 @@ export function createSceneSource(
     const ids = outer ?? new Set<string>();
     refreshing = ids;
     try {
-      syncRows();
+      log.batch(syncRows);
     } finally {
       if (!outer) {
         refreshing = undefined;
@@ -866,10 +943,14 @@ export function createSceneSource(
       };
       const found = path(roots.value);
       if (!found) return false;
-      for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+      // The path opened in one change.
+      log.batch(() => {
+        for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+      });
       picked.set(found[found.length - 1]);
       return true;
     },
+    changes: log.changes,
     inspection: inspection.asReadonly,
     inspect: inspectNode,
     sync,
@@ -911,6 +992,71 @@ function volumeRefOf(plugin: PluginContext, ref: string): VolumeRef | undefined 
 
 function Structure_toLoci(s: Structure): StructureElement.Loci {
   return StructureElement.Loci.all(s);
+}
+
+/** The transformer that adds coordinates (a simulation's frames) to a model: its frames are `frames`, not `models`. */
+const FromCoordinates = 'trajectory-from-model-and-coordinates';
+
+/**
+ * A structure's frames as its row and the inspector use them (model/scene.ts, `SceneTrajectory`): read from the shared
+ * trajectory source (its own by ref), acting through the API. A seek in flight takes only the latest index after it (a
+ * scrubber's drag); a step counts from the frame last asked for (pending or in flight), so quick presses add up.
+ */
+function sceneTrajectory(
+  source: TrajectorySource,
+  api: ViewerApi,
+  structure: string,
+  unit: SceneTrajectory['unit'],
+): SceneTrajectory {
+  const info = derive(source.byRef, (m) => m.get(structure));
+  const count = derive(info, (i) => i?.count ?? 0);
+  const index = derive(source.indexByRef, (m) => m.get(structure) ?? 0);
+  // Every structure's (a play of all) or this one's.
+  const playing = derive(source.playingRefs, (r) => r.has(structure));
+  const mode = observableState<'loop' | 'palindrome' | 'once'>('loop');
+  const seconds = observableState(5);
+  /** The frame to show next (not sent yet), and the one being shown (sent, not done). */
+  let wanted: number | undefined;
+  let sending: number | undefined;
+  const flush = async () => {
+    if (sending !== undefined) return;
+    try {
+      while (wanted !== undefined) {
+        sending = wanted;
+        wanted = undefined;
+        await api.run('trajectory.frame', { structure, index: sending });
+      }
+    } finally {
+      sending = undefined;
+    }
+  };
+  return {
+    unit,
+    count,
+    index,
+    playing,
+    mode,
+    seconds,
+    seek(i) {
+      wanted = i;
+      void flush();
+    },
+    step(by) {
+      const c = count.value;
+      if (c < 2) return;
+      // From the frame last asked for (pending, else in flight), not the frame shown: quick presses add up.
+      wanted = ((((wanted ?? sending ?? index.value) + by) % c) + c) % c;
+      void flush();
+    },
+    togglePlay() {
+      void (playing.value
+        ? api.run('trajectory.stop')
+        : api.run('trajectory.play', { structure, mode: mode.value, seconds: seconds.value }));
+    },
+    markShown(on) {
+      source.markRowShown(structure, on);
+    },
+  };
 }
 
 function describeStructure(s: Structure): string {
@@ -1118,7 +1264,9 @@ function entities(
   nodes: Map<string, Node>,
   api: ViewerApi,
 ): SceneNode[] {
-  const hidden = hiddenContents(plugin, structureRef);
+  const shown = hiddenContents(plugin, structureRef);
+  // As sets (an `includes` a chain was chains × hidden, at every sync, in a structure of thousands of chains).
+  const hidden = { entities: new Set(shown.entities), chains: new Set(shown.chains) };
   const { entities } = s.model;
   const byEntity = new Map<string, Map<string, number>>();
   const loc = StructureElement.Location.create(s);
@@ -1151,7 +1299,7 @@ function entities(
       n.removable = false;
       nodes.set(key, n);
     }
-    const entityHidden = hidden.entities.includes(id);
+    const entityHidden = hidden.entities.has(id);
     n.set(label, `${entities.data.type.value(i)} · ${chains.size} chain${chains.size === 1 ? '' : 's'}`, entityHidden);
     n.menu = contentsMenu(api, () => contentsLoci(s, id), label);
     const chainNodes: SceneNode[] = [];
@@ -1177,7 +1325,7 @@ function entities(
       c.set(
         `Chain ${chain}`,
         `${atoms.toLocaleString('en')} atoms`,
-        entityHidden || hidden.chains.includes(`${id}:${chain}`) || hidden.chains.includes(chain),
+        entityHidden || hidden.chains.has(`${id}:${chain}`) || hidden.chains.has(chain),
       );
       c.menu = contentsMenu(api, () => contentsLoci(s, id, chain), `${label} · chain ${chain}`);
       chainNodes.push(c);
@@ -1359,7 +1507,6 @@ function transformValues(m: Mat4, data: Structure): PD.Values<typeof TransformFo
 // `.symmetry`, above the Transform. A field with one choice is left out.
 
 interface SourceValues {
-  model: number;
   type: string;
   radius: number;
   cells: number;
@@ -1368,9 +1515,6 @@ interface SourceValues {
 type StructureType = { name: string; params?: { id?: string; radius?: number; ijkMax?: Vec3 } };
 
 const typeOf = (s: StructureRef) => (s.cell.transform.params as { type: StructureType } | undefined)?.type;
-const modelCount = (s: StructureRef) => s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
-const modelIndex = (s: StructureRef) =>
-  (s.model?.cell.transform.params as { modelIndex?: number } | undefined)?.modelIndex ?? 0;
 
 /** What the structure can be built as: the model, its assemblies, and for a crystal its mates or cells. */
 function structureTypes(s: StructureRef, data: Structure): [string, string][] {
@@ -1409,22 +1553,10 @@ function typeValue(s: StructureRef, data: Structure): string {
 }
 
 function sourceForm(s: StructureRef, data: Structure): PD.Params {
-  const count = modelCount(s);
   const types = structureTypes(s, data);
+  // The model shown is not here: a structure with several has a row of its own under it (its frames, a scrubber and
+  // play; views/structure/trajectory-row.tsx), its controls in the inspector when picked.
   return {
-    // A short trajectory as a list, a long one as a number.
-    model:
-      count <= 50
-        ? PD.Select<number>(
-            1,
-            Array.from({ length: count }, (_, i) => [i + 1, `${i + 1}`] as [number, string]),
-            { label: 'Model', description: `The model shown, of ${count}`, isHidden: count < 2 },
-          )
-        : PD.Numeric(
-            1,
-            { min: 1, max: count, step: 1 },
-            { label: 'Model', description: `The model shown, of ${count}` },
-          ),
     type: PD.Select<string>('model', types, {
       label: 'Type',
       description: 'What is built from the model: itself, an assembly, or its crystal symmetry',
@@ -1447,7 +1579,6 @@ function sourceForm(s: StructureRef, data: Structure): PD.Params {
 function structureValues(s: StructureRef, data: Structure): SourceValues & PD.Values<typeof TransformForm> {
   const t = typeOf(s);
   return {
-    model: modelIndex(s) + 1,
     type: typeValue(s, data),
     radius: t?.name === 'symmetry-mates' ? (t.params?.radius ?? 5) : 5,
     cells: t?.name === 'symmetry' && t.params?.ijkMax ? t.params.ijkMax[0] : 1,
@@ -1467,7 +1598,6 @@ function sourceChanges(
   const structure = s.cell.transform.ref;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const apply = async (v: SourceValues, name: string) => {
-    if (name === 'model') return api.run('trajectory.frame', { structure, index: v.model - 1 });
     if (v.type.startsWith('assembly:')) {
       return api.run('structure.assembly', { structure, id: v.type.slice('assembly:'.length) });
     }
@@ -1488,6 +1618,49 @@ function sourceChanges(
     if (name === 'radius' || name === 'cells') timer = setTimeout(run, 150);
     else run();
   };
+}
+
+/**
+ * A structure representation's row menu: its type and color (what people change most; the current ones checked), then
+ * the whole form in the inspector. Remove follows from the tree.
+ */
+function representationMenu(plugin: PluginContext, api: ViewerApi, ref: string, edit: () => void): SceneMenuItem[] {
+  const choices = representationChoices(plugin, ref);
+  // One change, one undo step: through the quick settings' own path (the params of another type keep the opacity).
+  const change = (c: RepresentationQuickChange) => {
+    const quick = createRepresentationQuick(plugin, api, ref);
+    quick?.change(c);
+    quick?.settle();
+  };
+  return [
+    ...(choices
+      ? [
+          {
+            id: 'type',
+            label: 'Type',
+            icon: 'shapes' as const,
+            items: choices.types.map((t) => ({
+              id: t.id,
+              label: t.label,
+              checked: t.id === choices.type,
+              run: () => change({ type: t.id }),
+            })),
+          },
+          {
+            id: 'color',
+            label: 'Color',
+            icon: 'palette' as const,
+            items: choices.themes.map((t) => ({
+              id: t.id,
+              label: t.label,
+              checked: t.id === choices.theme,
+              run: () => change(t.id === 'uniform' ? { theme: 'uniform' } : { theme: t.id, color: undefined }),
+            })),
+          },
+        ]
+      : []),
+    { id: 'edit', label: 'Edit…', icon: 'sliders-horizontal' as const, run: edit },
+  ];
 }
 
 /** The structure row's menu: presets, assemblies, crystal symmetry, density streaming, and the transform's reset. */
@@ -1552,6 +1725,17 @@ function structureMenu(plugin: PluginContext, api: ViewerApi, s: StructureRef): 
       label: 'Stream density',
       icon: 'volume',
       run: () => void api.run('volume.streaming', { structure, on: true }),
+    });
+  }
+  // What an operation offers for a structure (its `structureMenu`: model-archive's PAE fetch for an AlphaFold DB entry).
+  for (const def of api.definitions.value.values()) {
+    const offer = def.structureMenu;
+    if (!offer || api.describe(def.id)?.supported !== true || !offer.applies(plugin, structure)) continue;
+    items.push({
+      id: def.id,
+      label: offer.label,
+      ...(offer.icon ? { icon: offer.icon } : {}),
+      run: () => void api.run(def.id, { structure }),
     });
   }
   // parity.md §2: the Conformation Transform's reset (moving is the inspector's Transform).

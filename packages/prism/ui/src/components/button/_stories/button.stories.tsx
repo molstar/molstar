@@ -9,12 +9,12 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
 import { story } from '../../../testing/story-root.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { Icon } from '../../icon/icon.js';
 import { Button } from '../button.js';
 
+import { derive } from '../../../reactive/state.js';
 const meta: Meta = { title: 'Components/Button' };
 export default meta;
 
@@ -53,7 +53,7 @@ export const Variants: StoryObj = {
             <Button pressed={pressed} onClick={() => pressed.set(!pressed.value)}>
               Toggle
             </Button>
-            <span>pressed: {pressed.asReadonly.pipe(map(String))}</span>
+            <span>pressed: {derive(pressed.asReadonly, String)}</span>
           </div>
         </div>
       );

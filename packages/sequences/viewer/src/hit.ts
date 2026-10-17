@@ -42,11 +42,12 @@ import {
   SectionLayouts,
   type SplitFeatures,
 } from './layout.js';
-import type { SeqViewerRegistry } from './registry.js';
+import type { LayerRenderer, SeqViewerRegistry } from './registry.js';
 import { hitItem } from './renderer-helpers.js';
 import { Ring } from './ring.js';
 import { lineAtX, linePositionAt, linePositionDrawnNear, runXInto } from './runs.js';
 import type { StreamView } from './streams.js';
+import type { Theme } from './themes.js';
 
 /** A layer's regions by its ref (`ctx.streams.get`): a hit reads a streamed layer's items through `v.stream`. */
 export type StreamLookup = (layer: string) => StreamView | null;
@@ -438,6 +439,15 @@ function hitAt(
     out.dataRow = out.lane >= 0 ? Lanes.rowOf(rv.lanes, out.lane) : -1;
     if (rows.node && rows.node[d] >= 0) out.treeNode = rows.node[d];
   }
+  // Wrapped, the rows drawn as text (seqspec:viewer#rows-in-text): the row from y within the line's band.
+  const tr = l.textRows;
+  const onText = l.geometry === WRAPPED && tr.layer >= 0 && out.track === tr.track && tr.height > 0 && tr.count > 0;
+  if (onText) {
+    const d = Math.min(tr.count - 1, Math.max(0, Math.floor((yc - l.entryTop[entry]) / tr.height))) | 0;
+    out.displayRow = d;
+    out.lane = tr.laneStart + d;
+    out.dataRow = Lanes.rowOf(rv.lanes, out.lane);
+  }
   if (out.region === HitRegion.header) {
     out.kind = HoverKind.header;
     const r = onRows ? registry.get('renderers', set.strings.get(rv.layers.type[rows.layer])) : undefined;
@@ -510,7 +520,7 @@ function hitAt(
   // Locations for the hit's kind; just past a block's end, none: only a layer's own hit (an end glyph's) counts.
   if (!past) {
     const a = ax.alignment[b];
-    if (a >= 0 && !onRows) {
+    if (a >= 0 && !onRows && !onText) {
       out.region = entry < l.pinnedCount ? HitRegion.column : out.region;
       out.kind = HoverKind.column;
       const c = out.column;
@@ -567,7 +577,7 @@ function hitAt(
   v.onlyBlock = ax.stacked || wrapped ? l.entryBlock[entry] : -1;
   v.setTrackForm(wrapped && fullTrack(p, rv, set, t) && !v.runs[v.onlyBlock]?.chip);
   // On a rows track's row its lane offset (-2: a collapsed clade's wedge): its features are found by lane.
-  v.row = onRows ? (out.lane >= 0 ? out.lane - rows.laneStart : -2) : -1;
+  v.row = onRows ? (out.lane >= 0 ? out.lane - rows.laneStart : -2) : onText ? out.displayRow : -1;
   v.top = entry < l.pinnedCount ? l.entryTop[entry] : l.scrolledTop + l.entryTop[entry] - v.scrollY;
   // The row's content stands above its border, as the composer draws it (`SectionLayouts.entryBorder`; the border's
   // device px inline: a double passed to a call is boxed).
@@ -583,6 +593,18 @@ function hitAt(
     const r = type >= 0 ? registry.get('renderers', set.strings.get(type)) : undefined;
     if (past && r?.hitsPastEnd !== true) continue;
     const s = model.prepared[k]?.state;
+    // On the rows as text, the track's other layers drawn there (their `behindText` under a line style theme: a
+    // range's box or highlight) by their items on the row (`itemAt`), as on a rows track's row; the others draw nothing
+    // there and hit nothing.
+    if (onText) {
+      found =
+        k !== tr.layer &&
+        !past &&
+        drawnOnText(r, model.prepared[k]?.themes) &&
+        itemAt(e, k, b, shown, shown, out.lane, out, at);
+      if (found) out.layer = k;
+      continue;
+    }
     // Its themes, so a renderer's `hit` sizes its glyphs and bands as its draw does (hits by drawn geometry).
     hitLayer.axis = ax;
     hitLayer.layer = k;
@@ -624,6 +646,13 @@ function hitAt(
     if (ownUnitAt(e, b, out)) out.kind = HoverKind.seq;
   }
   return true;
+}
+
+/** Whether a layer draws on the rows as text: a `behindText` and a line style theme (seqspec:viewer#rows-in-text). */
+function drawnOnText(r: LayerRenderer | undefined, themes: readonly (Theme | null)[] | undefined): boolean {
+  if (!r?.behindText || !themes) return false;
+  for (let i = 0; i < themes.length; i++) if (themes[i]?.kind === 'line_style') return true;
+  return false;
 }
 
 /**

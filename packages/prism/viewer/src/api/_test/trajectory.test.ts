@@ -12,6 +12,8 @@ import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { PrismViewer } from '../../viewer.js';
 import { ensemble } from './trajectory-fixtures.js';
+import { isPlayingFrames, playingStructure } from '../../sources/trajectory.js';
+import { createTrajectoryControls } from '../../ui/trajectory.js';
 
 // `trajectory` (api.md §2) on a headless viewer, with a small NMR-like ensemble of three models.
 
@@ -145,6 +147,101 @@ describe('trajectory', () => {
       expect(v.managers.history.steps.value.length).toBe(steps);
       // The step before is still undoable: the animation was viewing.
       expect(v.managers.history.canUndo.value).toBe(true);
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it("plays one structure's frames when named, leaving another trajectory where it is", async () => {
+    const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await v.api.load.files({ files: [ensemble(), ensemble(4)] }));
+      const [a, b] = v.plugin.managers.structure.hierarchy.current.structures;
+      const index = (s: typeof a) =>
+        (v.plugin.state.data.cells.get(s.model!.cell.transform.ref)!.transform.params as { modelIndex: number })
+          .modelIndex;
+      const r = await v.api.trajectory.play({ structure: b.cell.transform.ref, mode: 'loop', seconds: 3 });
+      expectOk(r);
+      expect(JSON.stringify(r)).toMatch(/models/);
+      expect(isPlayingFrames(v.plugin, b.model!.cell.transform.ref)).toBe(true);
+      expect(isPlayingFrames(v.plugin, a.model!.cell.transform.ref)).toBe(false);
+      expect(playingStructure(v.plugin)).toBe(b.cell.transform.ref);
+      const animation = v.plugin.managers.animation;
+      await animation.tick(0, true);
+      await animation.tick(1500, true);
+      await until(() => index(b) !== 0);
+      expect(index(a)).toBe(0);
+      // Playing the other stops this one (one plays at a time).
+      expectOk(await v.api.trajectory.play({ structure: a.cell.transform.ref }));
+      expect(playingStructure(v.plugin)).toBe(a.cell.transform.ref);
+      expect(isPlayingFrames(v.plugin, b.model!.cell.transform.ref)).toBe(false);
+      expectOk(await v.api.trajectory.stop());
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('marks every row playing on a play of all, and plays all while one plays (review fixes)', async () => {
+    const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await v.api.load.files({ files: [ensemble(), ensemble(4)] }));
+      const [a, b] = v.views.scene.roots.value.map((n) => n.trajectory!);
+      const off = [a.playing.listen?.(() => {}), b.playing.listen?.(() => {})];
+      expectOk(await v.api.trajectory.play({ structure: v.views.scene.roots.value[0].id }));
+      await until(() => a.playing.value && !b.playing.value);
+      // All while one plays: all of them (not "already").
+      const r = await v.api.trajectory.play();
+      expect(r).toMatchObject({ ok: true });
+      expect((r as { unchanged?: boolean }).unchanged).toBeFalsy();
+      await until(() => a.playing.value && b.playing.value);
+      // A row's Pause stops it (every one: they play together).
+      b.togglePlay();
+      await until(() => !a.playing.value && !b.playing.value);
+      for (const o of off) o?.();
+    } finally {
+      await v.dispose();
+    }
+  });
+
+  it('adds up quick steps from a row, from the frame last asked for (review fix)', async () => {
+    const v = await headlessViewer({ files: [ensemble(6)] });
+    const t = v.views.scene.roots.value[0].trajectory!;
+    const off = t.index.listen?.(() => {});
+    t.step(1);
+    t.step(1);
+    t.step(1);
+    await until(() => t.index.value === 3, 10000);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(t.index.value).toBe(3);
+    off?.();
+  });
+
+  it('keeps the canvas bar on the structure that played last, and knows when its row is on screen', async () => {
+    const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await v.api.load.files({ files: [ensemble(), ensemble(4)] }));
+      const [ra, rb] = v.views.scene.roots.value;
+      const bar = createTrajectoryControls(v.plugin, v.api);
+      const off = [bar.model.label.listen?.(() => {}), bar.rowShown.listen?.(() => {})];
+      expectOk(await v.api.trajectory.play({ structure: rb.id }));
+      await until(() => bar.model.count.value === 4);
+      expectOk(await v.api.trajectory.stop());
+      await new Promise((r) => setTimeout(r, 50));
+      // Paused: still the one that played (Play plays it again), not the first.
+      expect(bar.model.count.value).toBe(4);
+      expect(bar.rowShown.value).toBe(false);
+      rb.trajectory!.markShown(true);
+      rb.trajectory!.markShown(true);
+      expect(bar.rowShown.value).toBe(true);
+      rb.trajectory!.markShown(false);
+      expect(bar.rowShown.value).toBe(true);
+      rb.trajectory!.markShown(false);
+      expect(bar.rowShown.value).toBe(false);
+      // Another structure's row on screen is not this one's.
+      ra.trajectory!.markShown(true);
+      expect(bar.rowShown.value).toBe(false);
+      ra.trajectory!.markShown(false);
+      for (const o of off) o?.();
     } finally {
       await v.dispose();
     }

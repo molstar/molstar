@@ -8,10 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, onCleanup, Show } from '@molstar/prism-ui';
+import { Button, onCleanup, type ReadonlyState, Show } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { drag, frames, on } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map, type Observable } from 'rxjs';
 import {
   type PaeMatrix,
   PaeColorStyles,
@@ -25,6 +26,7 @@ import {
 } from './data.js';
 import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The PAE plot (parity.md §6; AlphaFold DB's, in Prism's look): the heat map, scored residue across and aligned residue
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
@@ -60,7 +62,7 @@ export interface PaePlotProps {
   /** A box dragged over the plot; undefined: cleared. */
   onBox?(box: PaeBox | undefined): void;
   /** The marks' colors (the viewer's tones). */
-  colors?: Observable<PaeMarkColors>;
+  colors?: ReadonlyState<PaeMarkColors>;
 }
 
 const Quiet = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-xs)';
@@ -142,14 +144,13 @@ export function PaePlot(props: PaePlotProps) {
   const alignedSeg = seg(Fallback.highlight, 6);
   const scoredSeg = seg(Fallback.accent, 2.5);
   const tones = observableState<PaeMarkColors>(Fallback);
-  if (props.colors) {
-    const sub = props.colors.subscribe((c) => {
+  // Bound, not subscribed: it pauses with the card's scope while hidden (styling.md §5) and goes with it.
+  if (props.colors)
+    bind(props.colors, (c) => {
       tones.set(c);
       scoredSeg.setAttribute('stroke', hex(c.accent));
       alignedSeg.setAttribute('stroke', hex(c.highlight));
     });
-    onCleanup(() => sub.unsubscribe());
-  }
 
   const plot = (
     <div
@@ -245,7 +246,6 @@ export function PaePlot(props: PaePlotProps) {
 
   // Pointer-rate input, once per frame: a hover names and lights the cell; a drag draws a box, or on the box's edge or
   // corner resizes it, or inside it moves it; a press without a drag picks the cell. The box is set when the drag ends.
-  let frame = 0;
   let px = 0;
   let py = 0;
   let inside = false;
@@ -283,7 +283,9 @@ export function PaePlot(props: PaePlotProps) {
     readonly edges?: Edges;
     moved: boolean;
   };
-  let drag: Drag | undefined;
+  let pressed: Drag | undefined;
+  // Gone: a drag ended by the scope's end asks for no frame.
+  let disposed = false;
   const cellAt = (x: number, y: number) => {
     const r = plot.getBoundingClientRect();
     return r.width > 0 ? paeCellAt(m, (x - r.left) / r.width, (y - r.top) / r.height) : undefined;
@@ -342,9 +344,8 @@ export function PaePlot(props: PaePlotProps) {
     return { i0: Math.min(d.i, at.i), i1: Math.max(d.i, at.i), j0: Math.min(d.j, at.j), j1: Math.max(d.j, at.j) };
   };
   const update = () => {
-    frame = 0;
-    if (drag) {
-      const b = dragged(drag, clampCell(px, py));
+    if (pressed) {
+      const b = dragged(pressed, clampCell(px, py));
       drawBox(b);
       placeClose(b);
       drawHair(undefined);
@@ -361,50 +362,57 @@ export function PaePlot(props: PaePlotProps) {
     hoverText.set(at ? paeCellLabel(m, at.i, at.j) : undefined);
     hover(at);
   };
+  // Once a frame on the page's one tick, asked for from the pointer's listeners (`frames`: cancelled with the scope).
+  const updating = frames(update);
   const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(update);
+    if (!disposed) updating.request();
   };
-  plot.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    const at = cellAt(e.clientX, e.clientY);
-    if (!at) return;
-    plot.setPointerCapture?.(e.pointerId);
-    const hit = onBox(e.clientX, e.clientY);
-    const kind = hit?.edges ? 'resize' : hit?.inside ? 'move' : 'new';
-    drag = { kind, ...at, x: e.clientX, y: e.clientY, from: shown.value, edges: hit?.edges, moved: false };
+  // The box's drag (new, move, resize by its edges; `drag`: attached once, every way it can end ends it). A release
+  // without a move picks the cell; a cancel puts the box back as it was.
+  drag<Drag>(plot, {
+    start: (e) => {
+      if (e.button !== 0) return undefined;
+      const at = cellAt(e.clientX, e.clientY);
+      if (!at) return undefined;
+      const hit = onBox(e.clientX, e.clientY);
+      const kind = hit?.edges ? 'resize' : hit?.inside ? 'move' : 'new';
+      pressed = { kind, ...at, x: e.clientX, y: e.clientY, from: shown.value, edges: hit?.edges, moved: false };
+      return pressed;
+    },
+    move: (e, d) => {
+      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
+      if (d.moved) schedule();
+    },
+    end: (d, how, e) => {
+      pressed = undefined;
+      if (how === 'cancel' || !e) {
+        drawBox(shown.value);
+        placeClose(shown.value);
+        schedule();
+        return;
+      }
+      if (!d.moved) {
+        props.onPick?.(d.i, d.j);
+        return;
+      }
+      const b = dragged(d, clampCell(e.clientX, e.clientY));
+      shown.set(b);
+      drawBox(b);
+      placeClose(b);
+      props.onBox?.(b);
+      schedule();
+    },
   });
-  plot.addEventListener('pointermove', (e) => {
+  // The hover (the drag's moves are its own, above).
+  on<PointerEvent>(plot, 'pointermove', (e) => {
     px = e.clientX;
     py = e.clientY;
     inside = true;
-    if (drag && !drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) drag.moved = true;
-    if (drag && !drag.moved) return;
-    schedule();
+    if (!pressed) schedule();
   });
-  plot.addEventListener('pointerleave', () => {
+  on(plot, 'pointerleave', () => {
     inside = false;
-    if (!drag) schedule();
-  });
-  plot.addEventListener('pointerup', (e) => {
-    const d = drag;
-    drag = undefined;
-    if (!d) return;
-    if (!d.moved) {
-      props.onPick?.(d.i, d.j);
-      return;
-    }
-    const b = dragged(d, clampCell(e.clientX, e.clientY));
-    shown.set(b);
-    drawBox(b);
-    placeClose(b);
-    props.onBox?.(b);
-    schedule();
-  });
-  plot.addEventListener('pointercancel', () => {
-    drag = undefined;
-    drawBox(shown.value);
-    placeClose(shown.value);
-    schedule();
+    if (!pressed) schedule();
   });
   const clear = () => {
     shown.set(undefined);
@@ -413,7 +421,7 @@ export function PaePlot(props: PaePlotProps) {
     props.onBox?.(undefined);
   };
   onCleanup(() => {
-    if (frame) cancelAnimationFrame(frame);
+    disposed = true;
     if (hoverTimer !== undefined) clearTimeout(hoverTimer);
     // Leaving: what the plot lit goes with it.
     if (cellKey >= 0) props.onHover?.(undefined);
@@ -488,8 +496,8 @@ export function PaePlot(props: PaePlotProps) {
   /** A grid item shown with the strips only. */
   const withStrip = (child: unknown) => (
     <div
-      style={showPlddt.asReadonly.pipe(
-        map((on) => (on ? 'display: block; position: relative; min-width: 0; min-height: 0' : 'display: none')),
+      style={derive(showPlddt.asReadonly, (on) =>
+        on ? 'display: block; position: relative; min-width: 0; min-height: 0' : 'display: none',
       )}
     >
       {child as never}
@@ -497,8 +505,9 @@ export function PaePlot(props: PaePlotProps) {
   );
   const plddtLegend = (
     <div
-      style={showPlddt.asReadonly.pipe(
-        map((on) => `display: ${on ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px 10px; ${Quiet}`),
+      style={derive(
+        showPlddt.asReadonly,
+        (on) => `display: ${on ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px 10px; ${Quiet}`,
       )}
       aria-label="pLDDT bands"
     >
@@ -552,12 +561,10 @@ export function PaePlot(props: PaePlotProps) {
   return (
     <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
       <div
-        style={showPlddt.asReadonly.pipe(
-          map((on) => {
-            const strip = on && plddt ? '6px ' : '';
-            return `display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}${strip}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}${strip}auto auto; column-gap: 2px; row-gap: 2px`;
-          }),
-        )}
+        style={derive(showPlddt.asReadonly, (on) => {
+          const strip = on && plddt ? '6px ' : '';
+          return `display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}${strip}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}${strip}auto auto; column-gap: 2px; row-gap: 2px`;
+        })}
       >
         {complex ? (
           <>
@@ -590,7 +597,7 @@ export function PaePlot(props: PaePlotProps) {
       </div>
       {/* What the pointer is on: one line, always there (a box's summary goes at the end, so nothing above moves). */}
       <p style={`margin: 0; min-height: 1.5em; ${Quiet}`} aria-live="polite">
-        {hoverText.asReadonly.pipe(map((t) => t ?? idle))}
+        {derive(hoverText.asReadonly, (t) => t ?? idle)}
       </p>
       {scale}
       {/* The box's two ranges in their colors and its mean error, last. */}
@@ -602,15 +609,14 @@ export function PaePlot(props: PaePlotProps) {
 }
 
 /** The box's ranges, each with its color's swatch, and its mean error; ✕ clears it (and its marks). */
-function BoxSummary(props: { matrix: PaeMatrix; box: PaeBox; colors: Observable<PaeMarkColors>; onClear(): void }) {
+function BoxSummary(props: { matrix: PaeMatrix; box: PaeBox; colors: ReadonlyState<PaeMarkColors>; onClear(): void }) {
   const { matrix: m, box: b } = props;
   const mean = paeBoxMean(m, b.i0, b.i1, b.j0, b.j1);
   const swatch = (tone: keyof PaeMarkColors) =>
-    props.colors.pipe(
-      map(
-        (c) =>
-          `display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: ${hex(c[tone])}`,
-      ),
+    derive(
+      props.colors,
+      (c) =>
+        `display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: ${hex(c[tone])}`,
     );
   return (
     <div

@@ -34,6 +34,9 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "typecheck:storybook": "tsc -p tsconfig.storybook.json",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:scaling": "vitest run --config vitest.scaling.config.ts",
     "styles": "node scripts/css.mjs",
     "styles:check": "node scripts/css.mjs --check",
     "styles:watch": "node scripts/css.mjs --watch",
@@ -55,6 +58,7 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
+    "axe-core": "catalog:",
     "@types/node": "catalog:",
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",

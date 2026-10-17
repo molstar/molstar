@@ -14,6 +14,7 @@ import { mockCommands, mockPrefixes } from '../testing/commands.js';
 import { mockSnapshots } from '@molstar/prism-ui/testing/index';
 import { mockScene } from '../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
+import { flushFrame } from '@molstar/prism-ui/dom/scope';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { CommandMenu } from '@molstar/prism-ui';
 
@@ -34,13 +35,19 @@ function mount(options: { prefixes?: boolean } = {}) {
   document.body.append(container);
   const dispose = render(() => <CommandMenu manager={manager} prefixes={prefixes} onClose={closed} />, container);
   const input = () => container.querySelector('input') as HTMLInputElement;
-  const type = (text: string) => {
+  /** Typed text, without the frame that filters it (`type` runs it). */
+  const typeOnly = (text: string) => {
     input().value = text;
     input().dispatchEvent(new Event('input'));
   };
+  const type = (text: string) => {
+    typeOnly(text);
+    // The frame the input asks for: the list is filtered once a frame (rendering.md §2.3).
+    flushFrame();
+  };
   const key = (k: string) => input().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
   const rows = () => [...container.querySelectorAll('[role=option]')].map((r) => r.textContent ?? '');
-  return { manager, closed, results, container, input, type, key, rows, dispose };
+  return { manager, closed, results, container, input, type, typeOnly, key, rows, dispose };
 }
 
 afterEach(() => {
@@ -58,6 +65,30 @@ describe('CommandMenu', () => {
     query.mockClear();
     p.manager.register([{ id: 'test.late', title: 'Late', category: 'Test', run: () => {} } as never]);
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it('filters once for keys typed within a frame, for the latest text only', () => {
+    const p = mount();
+    const query = vi.spyOn(p.manager, 'query');
+    // Ten characters faster than frames (a fast typist, a held key): each one shown in the input, none filtered yet.
+    const text = 'reset zoom';
+    for (let i = 1; i <= text.length; i++) p.typeOnly(text.slice(0, i));
+    expect(p.input().value).toBe(text);
+    expect(query).not.toHaveBeenCalled();
+    flushFrame();
+    expect(query.mock.calls.map((c) => c[0])).toEqual([text]);
+    expect(p.rows()[0]).toContain('Reset zoom');
+    p.dispose();
+  });
+
+  it('a key acting on the rows filters the latest text first', async () => {
+    const p = mount();
+    p.typeOnly('reset zo');
+    // Enter before the frame: the rows it picks from are the latest text's.
+    p.key('Enter');
+    await flush();
+    expect(p.results).toEqual(['Zoom reset']);
+    p.dispose();
   });
 
   it('lists commands, searches, and runs one without arguments', async () => {

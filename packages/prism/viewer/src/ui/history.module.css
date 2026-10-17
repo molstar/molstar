@@ -102,6 +102,17 @@
   font-size: var(--msp-font-size-xs);
 }
 
+/* What a run was pointed at and changed: one quiet line, fading where it does not fit. */
+.meta {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
 .unsafe {
   min-width: 0;
   overflow-wrap: anywhere;

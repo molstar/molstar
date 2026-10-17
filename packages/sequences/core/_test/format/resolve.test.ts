@@ -380,6 +380,44 @@ describe('fallbacks and resolve-phase issues', () => {
     expect(text.view.sections.ref.length).toBe(1);
   });
 
+  it("an alignment's rows in text are drawn as rows; a frame's rows are its span's rows track's lanes", async () => {
+    const make = (layout: 'tracks' | 'text', from = 'msa') => {
+      const b = createSeqViewSpec({ title: 'rows in text' });
+      const aln = b.data.alignment({ ref: 'a', value: ['MK-LV', 'MKALV', 'M--LI'] } as never);
+      const f = b.data.annotation({
+        ref: 'f',
+        geometry: 'ranges',
+        value: [
+          { target: 'a', start: 0, stop: 2, id: 'f1', label: 'All' },
+          { target: 'a/1', start: 1, stop: 3, id: 'f2', label: 'Rows' },
+          { target: 'a/2', start: 0, stop: 1, id: 'f2', label: 'Rows' },
+        ],
+      } as never);
+      const view = b.view({ ref: 'v', label: 'V', layout });
+      const v = view.section({ ref: 's1' } as never).block({ alignment: aln } as never);
+      v.track({ ref: 'frames', label: 'F' }).frame({ ref: 'fl', data: f, span: { from } } as never);
+      v.track({ ref: 'msa', label: 'M' }).rows();
+      view
+        .section({ ref: 's2' } as never)
+        .block({ alignment: aln } as never)
+        .track({ ref: 'other' })
+        .rows();
+      return b.getDocument();
+    };
+    const text = await resolve(make('text'), 'v');
+    expect(Array.from(text.view.layers.type, (x) => label(text.set, x))).toEqual(['frame', 'rows', 'rows']);
+    expect(text.issues).toEqual([]);
+    // Column data on no lane; a row's on its lane in the rows track (lanes 0..2).
+    expect(
+      placed(text.view, text.set, 'fl')
+        .map((p) => p[2])
+        .sort(),
+    ).toEqual([-1, 1, 2]);
+    // A span naming a track the section does not hold: said, and drawn on its own band.
+    const off = await resolve(make('tracks', 'other'), 'v');
+    expect(off.issues.map((i) => [i.code, i.path])).toEqual([['svs.layer.span', expect.stringMatching(/span\/from$/)]]);
+  });
+
   it("a matrix's default palette follows its domain: sequential when non-negative, diverging at 0 when signed", async () => {
     const make = (value: (number | null)[][], color?: { theme: string; params: Record<string, unknown> }) => {
       const b = createSeqViewSpec({ title: 'matrix' });

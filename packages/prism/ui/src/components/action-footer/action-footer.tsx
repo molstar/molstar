@@ -8,9 +8,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, map, type Observable, of } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
-import type { MaybeReactive } from '../../dom/scope.js';
+import { effect, type MaybeReactive, requireScope, runInScope } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
+import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive, isState } from '../../reactive/state.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/action-footer.module.css.js';
 
@@ -19,9 +22,9 @@ export interface ActionFooterProps {
   icon: IconName;
   label: MaybeReactive<string>;
   /** Running: the action shows progress and is disabled. */
-  busy?: Observable<boolean>;
+  busy?: MaybeReactive<boolean>;
   /** Not possible yet (not enough selected): the action is disabled, no progress. */
-  disabled?: Observable<boolean>;
+  disabled?: MaybeReactive<boolean>;
   onApply(): void;
   /** Set defaults (the form's reset); without it, no reset button. */
   onReset?(): void;
@@ -38,10 +41,29 @@ export interface ActionFooterProps {
  * sides and bottom. No lines or fills; hovering darkens the text.
  */
 export function ActionFooter(props: ActionFooterProps) {
-  const busy = props.busy ?? of(false);
-  const disabled = combineLatest([busy, props.disabled ?? of(false)]).pipe(map(([b, d]) => b || d));
+  const busy = held(props.busy);
+  const disabled = derive([busy, held(props.disabled)], (b, d) => b || d);
+  const scope = requireScope('ActionFooter');
+  // Enter in a field of the block above it applies, as in Mol* v5's actions (a PDB id typed, Enter: it loads).
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+    const field = e.target as HTMLElement;
+    if (!submitsOnEnter(field) || disabled.value) return;
+    e.preventDefault();
+    // The field's value first (forms commit text and numbers on `change`, which a browser may send after the key).
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    queueMicrotask(() => {
+      if (!disabled.value) props.onApply();
+    });
+  };
+  const listen = (footer: HTMLElement) =>
+    // The block is its parent, there once the footer is placed in it.
+    queueMicrotask(() => {
+      const block = footer.parentElement;
+      if (block && !scope.disposed) runInScope(scope, () => on(block, 'keydown', onKey));
+    });
   return (
-    <div class={classes.footer}>
+    <div class={classes.footer} ref={(el: HTMLElement) => listen(el)}>
       {props.onReset ? (
         <button
           type="button"
@@ -67,4 +89,19 @@ export function ActionFooter(props: ActionFooterProps) {
       </button>
     </div>
   );
+}
+
+/** A one-line field whose Enter applies: text, number and the like; not a text area, a list box, a check or a slider. */
+function submitsOnEnter(el: HTMLElement): boolean {
+  if (!(el instanceof HTMLInputElement)) return false;
+  if (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-expanded') === 'true') return false;
+  return ['text', 'number', 'search', 'url', 'email', 'tel', ''].includes(el.type);
+}
+
+/** A flag as a state: a state as it is; a stream (or a plain value) held in one, with the current scope. */
+function held(source: MaybeReactive<boolean> | undefined): ReadonlyState<boolean> {
+  if (isState(source)) return source as ReadonlyState<boolean>;
+  const state = observableState(false);
+  effect(source ?? false, (v) => state.set(v));
+  return state.asReadonly;
 }

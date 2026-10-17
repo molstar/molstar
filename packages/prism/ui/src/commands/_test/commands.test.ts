@@ -104,8 +104,8 @@ function setup(options: { assistant?: CommandAssistant<Ctx> } = {}) {
     preview,
     ...(options.assistant ? { assistant: options.assistant } : {}),
   });
-  manager.register([show, focus, select]);
-  return { manager, context, preview };
+  const unregister = manager.register([show, focus, select]);
+  return { manager, context, preview, unregister };
 }
 
 describe('inline fields', () => {
@@ -126,10 +126,43 @@ describe('inline fields', () => {
   });
 });
 
+describe('CommandManager.register', () => {
+  it('throws on a duplicate id, naming it, and adds nothing', () => {
+    const { manager } = setup();
+    const before = manager.commands.value.length;
+    const dup = { id: 'view.focus', title: 'Again', category: 'View', run: () => ({ message: '' }) };
+    expect(() => manager.register([{ ...dup, id: 'new.one' }, dup])).toThrow("'view.focus'");
+    expect(manager.commands.value).toHaveLength(before);
+    expect(() =>
+      manager.register([
+        { ...dup, id: 'x.y' },
+        { ...dup, id: 'x.y' },
+      ]),
+    ).toThrow("'x.y'");
+  });
+
+  it('lets an id be registered again once its owner has gone', () => {
+    const { manager, unregister } = setup();
+    unregister();
+    expect(() =>
+      manager.register([{ id: 'view.focus', title: 'F', category: 'View', run: () => ({ message: '' }) }]),
+    ).not.toThrow();
+  });
+
+  it('throws on a duplicate group id', () => {
+    const { manager } = setup();
+    const undo = manager.registerGroups([{ id: 'g', title: 'G' } as never]);
+    expect(() => manager.registerGroups([{ id: 'g', title: 'G' } as never])).toThrow("'g'");
+    undo();
+    expect(() => manager.registerGroups([{ id: 'g', title: 'G' } as never])).not.toThrow();
+  });
+});
+
 describe('CommandManager.query', () => {
   it('reports every successful run even when a command returns the same result object', async () => {
-    const { manager } = setup();
+    const { manager, unregister } = setup();
     const result = { message: 'focused' };
+    unregister();
     manager.register([{ id: 'view.focus', title: 'Focus', category: 'View', run: () => result }]);
     const outcomes = vi.fn();
     const subscription = manager.outcomes.subscribe((outcome) => {
@@ -145,7 +178,8 @@ describe('CommandManager.query', () => {
   });
 
   it('reports every blocked shortcut even when the reason is unchanged', () => {
-    const { manager } = setup();
+    const { manager, unregister } = setup();
+    unregister();
     manager.register([
       {
         id: 'view.focus',
@@ -229,7 +263,8 @@ describe('CommandManager.query', () => {
   });
 
   it('keeps the start of a title a query; the longest alias that fits takes the arguments', () => {
-    const { manager } = setup();
+    const { manager, unregister } = setup();
+    unregister();
     manager.register([
       {
         id: 'view.focus',

@@ -13,6 +13,7 @@ import type { CropBox, ImageExportModel } from '../model/image-export.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** A state following a stream (the mocks live as long as the story). */
 function readonlyState<T>(source: Observable<T>): ReadonlyState<T> {
   const state = observableState<T>(undefined as T);
@@ -110,20 +111,14 @@ export function mockImageExport(post: (text: string, kind?: 'info' | 'success') 
   const autoCrop = observableState(true);
   const manual = observableState<CropBox>({ x: 0.05, y: 0.05, width: 0.9, height: 0.9 });
   const busy = observableState(false);
-  const dims = form.values.pipe(
-    map((v: any): [number, number] =>
-      v.resolution.name === 'custom'
-        ? [v.resolution.params.width, v.resolution.params.height]
-        : Sizes[v.resolution.name],
-    ),
+  const dims = derive(form.values, (v: any): [number, number] =>
+    v.resolution.name === 'custom' ? [v.resolution.params.width, v.resolution.params.height] : Sizes[v.resolution.name],
   );
-  const crop = combineLatest([autoCrop.asReadonly, manual.asReadonly]).pipe(map(([a, m]) => (a ? AutoCrop : m)));
-  const background = form.values.pipe(
-    map((v: any) =>
-      v.transparent
-        ? 'repeating-conic-gradient(#d8d8de 0 25%, #f2f2f5 0 50%) 0 0 / 12px 12px'
-        : 'radial-gradient(ellipse at 50% 45%, #fff 0, #eef0f4 70%)',
-    ),
+  const crop = derive([autoCrop.asReadonly, manual.asReadonly], (a, m) => (a ? AutoCrop : m));
+  const background = derive(form.values, (v: any) =>
+    v.transparent
+      ? 'repeating-conic-gradient(#d8d8de 0 25%, #f2f2f5 0 50%) 0 0 / 12px 12px'
+      : 'radial-gradient(ellipse at 50% 45%, #fff 0, #eef0f4 70%)',
   );
   const molecule =
     'radial-gradient(circle at 34% 62%, #6aa6d8 0 6%, transparent 6.5%), radial-gradient(circle at 46% 54%, #7a6fd6 0 7%, transparent 7.5%), radial-gradient(circle at 58% 40%, #b46ad0 0 8%, transparent 8.5%), radial-gradient(circle at 68% 52%, #d06a8c 0 6%, transparent 6.5%)';

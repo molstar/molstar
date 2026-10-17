@@ -9,6 +9,7 @@
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { RunOriginKind } from '../api/area.js';
 import type { RecordEntry, RecordItem, RecordReader, RunEntry, TurnEntry } from './record.js';
+import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // What History shows of the session's record (journal.md §3), DOM-free. The record is read in windows, newest first (the
 // newest `Window` entries, and "Show earlier" reads the window before the oldest loaded). After a change it reads only
@@ -32,6 +33,10 @@ export interface HistoryRunRow {
   readonly text: string;
   readonly failed: boolean;
   readonly undone: boolean;
+  /** Who undid it, when it is undone (the newest undo's actor). */
+  readonly undoneBy?: RunOriginKind;
+  /** What it was pointed at and what it changed, compact ("1CBS · A:10-20 · 3 nodes, view"); absent when the record says nothing. */
+  readonly meta?: string;
   readonly at: number;
 }
 
@@ -47,6 +52,10 @@ export interface HistoryTurnRow {
   readonly open: boolean;
   /** Every run of it that changed something was undone. */
   readonly undone: boolean;
+  /** Who undid it (the newest undo among its steps). */
+  readonly undoneBy?: RunOriginKind;
+  /** The model that ran it (`provider:model`). */
+  readonly model?: string;
   readonly runs: readonly HistoryRunRow[];
   readonly at: number;
 }
@@ -84,7 +93,7 @@ export interface HistoryModelOptions {
 }
 
 const nextFrame = (fn: () => void) => {
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fn());
+  if (typeof requestAnimationFrame === 'function') requestFrameCallback(() => fn());
   else queueMicrotask(fn);
 };
 
@@ -125,7 +134,9 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
     const out = next.map((row) => {
       const sig = signatureOf(row);
       sigs.set(row.key, sig);
-      const same = signatures.get(row.key) === sig ? previous.get(row.key) : undefined;
+      const had = signatures.get(row.key) === sig ? previous.get(row.key) : undefined;
+      // A turn's reply is compared by its text: a streamed `{ replace }` (a retried call) can keep its length.
+      const same = had && (row.kind !== 'turn' || (had as HistoryTurnRow).reply === row.reply) ? had : undefined;
       const use = same ?? row;
       prev.set(row.key, use);
       return use;
@@ -247,37 +258,71 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
 
 /**
  * What can change in a row once made: entries are append-only, so a run changes only by being undone, a turn by settling
- * (its reply, outcome) and by its runs; cheaper than comparing the rows' JSON, whole replies included, every frame.
+ * (its outcome), by its runs, and by its reply (compared beside this, by its text); cheaper than comparing the rows' JSON
+ * every frame.
  */
 function signatureOf(row: HistoryRow): string {
-  if (row.kind === 'run') return row.undone ? 'u' : '';
+  if (row.kind === 'run') return row.undone ? `u${row.undoneBy ?? ''}` : '';
   if (row.kind === 'session') return '';
-  const runs = row.runs.map((r) => `${r.key}${r.undone ? 'u' : ''}`).join(',');
-  return `${row.open}|${row.outcome ?? ''}|${row.undone}|${row.reply?.length ?? -1}|${runs}`;
+  const runs = row.runs.map((r) => `${r.key}${r.undone ? `u${r.undoneBy ?? ''}` : ''}`).join(',');
+  return `${row.open}|${row.outcome ?? ''}|${row.undone}${row.undoneBy ?? ''}|${runs}`;
 }
 
-const runRow = (item: RecordItem, e: RunEntry, undone: ReadonlySet<number>): HistoryRunRow => ({
-  kind: 'run',
-  key: item.id,
-  origin: e.origin.kind,
-  operation: e.operation,
-  title: e.title,
-  text: e.result.ok ? e.result.did : e.result.message,
-  failed: !e.result.ok,
-  undone: e.step !== undefined && undone.has(e.step),
-  at: e.at,
-});
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** What a run was pointed at and what it changed, in a line (journal.md §3); undefined when the record has neither. */
+export function metaOf(e: RunEntry): string | undefined {
+  const parts: string[] = [...(e.targets ?? [])];
+  const c = e.changed;
+  if (c) {
+    const said: string[] = [];
+    const nodes = (c.nodes?.length ?? 0) + (c.more ?? 0);
+    if (nodes) said.push(plural(nodes, 'node'));
+    if (c.selection) said.push('selection');
+    if (c.view) said.push('view');
+    if (c.sequence) said.push('sequence');
+    if (said.length) parts.push(said.join(', '));
+  }
+  return parts.length ? parts.join(' · ') : undefined;
+}
+
+const runRow = (
+  item: RecordItem,
+  e: RunEntry,
+  undone: ReadonlyMap<number, RunOriginKind | undefined>,
+): HistoryRunRow => {
+  const isUndone = e.step !== undefined && undone.has(e.step);
+  const by = e.step !== undefined ? undone.get(e.step) : undefined;
+  const meta = metaOf(e);
+  return {
+    kind: 'run',
+    key: item.id,
+    origin: e.origin.kind,
+    operation: e.operation,
+    title: e.title,
+    text: e.result.ok ? e.result.did : e.result.message,
+    failed: !e.result.ok,
+    undone: isUndone,
+    ...(isUndone && by ? { undoneBy: by } : {}),
+    ...(meta ? { meta } : {}),
+    at: e.at,
+  };
+};
 
 /** The rows of the loaded entries (newest first in, newest first out). */
 export function rowsOf(items: readonly RecordItem[]): HistoryRow[] {
-  // A step is undone when its newest undo or redo is an undo (newest first: the first one met decides).
-  const undone = new Set<number>();
+  // A step is undone when its newest undo or redo is an undo (newest first: the first one met decides); an Undo turn's
+  // entry names all its steps. The map says who undid it.
+  const undone = new Map<number, RunOriginKind | undefined>();
   const decided = new Set<number>();
   for (const i of items) {
     const e = i.entry;
-    if ((e.kind !== 'undo' && e.kind !== 'redo') || decided.has(e.step)) continue;
-    decided.add(e.step);
-    if (e.kind === 'undo') undone.add(e.step);
+    if (e.kind !== 'undo' && e.kind !== 'redo') continue;
+    for (const step of e.kind === 'undo' && e.steps ? e.steps : [e.step]) {
+      if (decided.has(step)) continue;
+      decided.add(step);
+      if (e.kind === 'undo') undone.set(step, e.by?.kind);
+    }
   }
 
   interface Turn {
@@ -311,6 +356,8 @@ export function rowsOf(items: readonly RecordItem[]): HistoryRow[] {
   }
   for (const t of turns) {
     const changed = t.runs.filter((r) => r.step !== undefined);
+    const every = changed.length > 0 && changed.every((r) => undone.has(r.step as number));
+    const by = every ? undone.get(changed[0].step as number) : undefined;
     out[t.slot] = {
       kind: 'turn',
       key: t.item.id,
@@ -319,7 +366,9 @@ export function rowsOf(items: readonly RecordItem[]): HistoryRow[] {
       ...(t.entry.reply !== undefined ? { reply: t.entry.reply } : {}),
       ...(t.entry.outcome ? { outcome: t.entry.outcome } : {}),
       open: t.item.open,
-      undone: changed.length > 0 && changed.every((r) => undone.has(r.step as number)),
+      undone: every,
+      ...(by ? { undoneBy: by } : {}),
+      ...(t.entry.model ? { model: t.entry.model } : {}),
       runs: t.rows,
       at: t.entry.at,
     };

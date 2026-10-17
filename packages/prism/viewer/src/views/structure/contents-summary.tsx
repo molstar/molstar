@@ -8,13 +8,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ContentsSummary } from '../../model/scene.js';
 import { classes } from './_generated/contents-summary.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // A structure's contents in its inspector: its counts as figures (entities, chains, residues, atoms), then its entities,
 // each a row: a dot for its kind, its name, its chains and atoms; a click opens it in the tree. Many entities (a
 // mesoscale structure): the first few, then Show all, as the tree's Contents.
@@ -34,7 +34,7 @@ export function ContentsSummaryView(props: { summary: ContentsSummary }) {
   const chains = (list: readonly string[]) =>
     list.length > 4 ? `${list.length} chains` : `${list.length === 1 ? 'Chain' : 'Chains'} ${list.join(', ')}`;
   const all = observableState(summary.entities.length <= PageSize + 1);
-  const shown = all.asReadonly.pipe(map((a) => (a ? summary.entities : summary.entities.slice(0, PageSize))));
+  const shown = derive(all.asReadonly, (a) => (a ? summary.entities : summary.entities.slice(0, PageSize)));
   return (
     <section class={classes.contents} aria-label="Contents">
       <dl class={classes.counts}>
@@ -69,7 +69,7 @@ export function ContentsSummaryView(props: { summary: ContentsSummary }) {
             }}
           </For>
         </div>
-        <Show when={all.asReadonly.pipe(map((a) => !a))}>
+        <Show when={derive(all.asReadonly, (a) => !a)}>
           {() => (
             <button type="button" class={classes.more} onClick={() => all.set(true)}>
               {`Show all ${summary.entities.length}`}

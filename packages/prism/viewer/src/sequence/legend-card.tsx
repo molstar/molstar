@@ -9,20 +9,20 @@
  */
 
 import { For, Legend } from '@molstar/prism-ui';
-import { map } from 'rxjs';
 import type { SequenceViewer } from './model.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 /** The legend of the sequence's colors, in Prism's `Legend`: the card the Sequence menu's "Legend…" opens. */
 export function LegendCard(props: { viewer: SequenceViewer }) {
   const { legend } = props.viewer;
   return (
     <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-3)">
       <Legend
-        title={legend.pipe(map((l) => l.title))}
-        items={legend.pipe(map((l) => l.items))}
-        ramps={legend.pipe(map((l) => l.ramps))}
+        title={derive(legend, (l) => l.title)}
+        items={derive(legend, (l) => l.items)}
+        ramps={derive(legend, (l) => l.ramps)}
       />
-      <For each={legend.pipe(map((l) => l.sections ?? []))}>
+      <For each={derive(legend, (l) => l.sections ?? [])}>
         {(section) => <Legend title={section.title} items={section.items} />}
       </For>
     </div>

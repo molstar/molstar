@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { expectOk, headlessViewer } from '../../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
+import { PrismViewerOptions, resolveOptions } from '../../../options.js';
 import { createXrSource } from '../../../sources/xr.js';
 import type { PrismViewer } from '../../../viewer.js';
 
@@ -82,5 +83,43 @@ describe('canvas.xr', () => {
     xr.isPresenting.next(true);
     expect(source.state.value).toEqual({ supported: true, presenting: true });
     source.dispose();
+  });
+
+  it("the XR section sets Canvas3D's xr params through canvas.settings", async () => {
+    const { v } = await withXr(true);
+    const props = {
+      xr: { minTargetDistance: 0.4, disablePostprocessing: true, resolutionScale: 1, sceneRadiusInMeters: 0.25 },
+    };
+    const sets: unknown[] = [];
+    Object.defineProperty(v.plugin, 'canvas3d', {
+      value: {
+        ...v.plugin.canvas3d,
+        get props() {
+          return structuredClone(props);
+        },
+      },
+      configurable: true,
+    });
+    v.plugin.setCanvas3DProps = (c: any) => {
+      sets.push(c);
+      Object.assign(props.xr, c.xr);
+    };
+    expectOk(await v.api.run('canvas.settings', { section: 'xr', values: { resolutionScale: 1.5 } }));
+    expect(sets).toEqual([{ xr: { ...props.xr, resolutionScale: 1.5 } }]);
+    expect(await v.api.run('canvas.settings', { section: 'xr', values: { resolutionScale: 1.5 } })).toMatchObject({
+      ok: true,
+      unchanged: true,
+    });
+    expect(await v.api.run('canvas.settings', { section: 'xr', values: { resolutionScale: 9 } })).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it('the ui.xr option: auto by default; always and never; others refused', () => {
+    expect(resolveOptions().ui.xr).toBe('auto');
+    expect(resolveOptions({ ui: { xr: 'always' } }).ui.xr).toBe('always');
+    expect(
+      (PrismViewerOptions.ui.params.xr as unknown as { options: [string, string][] }).options.map((o) => o[0]),
+    ).toEqual(['auto', 'always', 'never']);
   });
 });

@@ -12,10 +12,11 @@ import { Button, onActive, onCleanup } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/core';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { formatBytes, type StorageEntry, type StorageModel, type StorageSourceState } from '../storage/model.js';
 import { classes } from './_generated/storage.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Storage view (journal.md §7, README decision 32): what the viewer keeps in this browser and where (kept records,
 // preferences, the light restore, the assistant's stored keys), each with its size and Forget, and Forget everything
 // (asked first). A folded section of the Settings tab; it lists only while open and shown (`watch` under `onActive`):
@@ -62,10 +63,7 @@ function StorageBody(props: { storage: StorageModel }) {
     busy.set(true);
     void work().finally(() => busy.set(false));
   };
-  const empty = storage.sources.pipe(
-    map((sources) => sources.every((s) => s.listed && !s.entries.length && !s.error)),
-    distinctUntilChanged(),
-  );
+  const empty = derive(storage.sources, (sources) => sources.every((s) => s.listed && !s.entries.length && !s.error));
   const where = storage.origin ? `Kept in this browser for ${storage.origin}.` : 'Kept in this browser.';
   return (
     <div class={classes.body}>

@@ -11,7 +11,14 @@
 // bookmarks, an inline `ranges` annotation the bookmark actions edit, stepped through `ctx.results`; and
 // `results.save`, a results set kept as a location set. Edge rate throughout.
 
-import { type DocNode, type LineStyle, LineStyles, type Op, sectionHighlights } from '@molstar/seq-core/format';
+import {
+  type DocNode,
+  GlyphShapes,
+  type LineStyle,
+  LineStyles,
+  type Op,
+  sectionHighlights,
+} from '@molstar/seq-core/format';
 import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from '@molstar/seq-core/model';
 import { SeqSelection } from '@molstar/seq-core/model/query';
 import { type ActionEntry, nodePath } from './actions.js';
@@ -59,7 +66,8 @@ export class SetChannels {
 /**
  * `bookmark.add`'s target: what to keep (loci of the shown set), its label, and the set (`<section>.bookmarks`). A
  * `color` is written as the row's `color` column, which a layer shows through `field_color`, and a `line_style` (one
- * of the format's `LineStyles`) as its `line_style` column, which a layer shows through `field_line_style`; left out,
+ * of the format's `LineStyles`) as its `line_style` column, which a layer shows through `field_line_style`, and a
+ * `glyph` (a marker's shape name) as its `glyph` column, which a layer shows through `field_glyph`; left out,
  * no column is written (an old set's rows stay as they are).
  */
 export interface BookmarkAdd {
@@ -68,6 +76,11 @@ export interface BookmarkAdd {
   readonly label?: string;
   readonly color?: string;
   readonly line_style?: LineStyle;
+  /**
+   * A marker's glyph (one of the format's shape names, `GlyphShapes`), written as the row's `glyph` column, which a
+   * layer shows through `field_glyph`.
+   */
+  readonly glyph?: string;
   readonly data?: string;
 }
 export interface BookmarkItem {
@@ -88,6 +101,7 @@ type Row = {
   label?: string;
   color?: string;
   line_style?: LineStyle;
+  glyph?: string;
 };
 type Run = Parameters<ActionEntry['run']>[2];
 
@@ -165,6 +179,7 @@ function add(ctx: SeqViewerContext, a: BookmarkAdd, origin: Run) {
     ...r,
     ...(a.color ? { color: a.color } : {}),
     ...(a.line_style ? { line_style: a.line_style } : {}),
+    ...(a.glyph ? { glyph: a.glyph } : {}),
   }));
   const ops: Op[] = node
     ? [{ op: 'set', ref, params: { value: [...old, ...rows] } }]
@@ -258,6 +273,7 @@ export const BookmarkActions: readonly ActionEntry[] = [
       if (!a || !isSection(ctx, a.section) || !set || a.loci?.set !== set) return false;
       if (a.color !== undefined && typeof a.color !== 'string') return false;
       if (a.line_style !== undefined && !LineStyles.includes(a.line_style)) return false;
+      if (a.glyph !== undefined && !GlyphShapes.includes(a.glyph as never)) return false;
       const node = nodeOf(ctx, bookmarksOf(a.section, a.data));
       return (node === null || rowsOf(node) !== null) && !SeqSelection.isEmpty(SeqSelection.fromLoci(set, [a.loci]));
     },

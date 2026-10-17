@@ -6,8 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable, of, switchMap } from 'rxjs';
+import { effect, onActive, onCleanup } from '../../dom/scope.js';
+import { observeResize } from '../../dom/scoped.js';
 import { observableState, type ObservableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import type { CanvasToolbarItem, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 
 /**
@@ -129,14 +132,68 @@ export function railEntries(tabs: readonly ShellTab[], tools: readonly CanvasToo
 }
 
 /**
+ * The items that show (their `visible`), in order; in a component's scope. The flags are streams (shell.ts,
+ * `CanvasToolbarItem`): each followed once, by its subscription, while the scope is active (paused, none; the items'
+ * effect follows them again on the resume); one that has not said yet is hidden. A new list only when what shows changes.
+ */
+export function shownItems(
+  items: ReadonlyState<readonly CanvasToolbarItem[]>,
+): ReadonlyState<readonly CanvasToolbarItem[]> {
+  const shown = observableState<readonly CanvasToolbarItem[]>([]);
+  const flags = new Map<object, { on: boolean | undefined; stop(): void }>();
+  let all: readonly CanvasToolbarItem[] = [];
+  const update = () => shown.set(all.filter((i) => !i.visible || flags.get(i.visible)?.on === true));
+  const drop = () => {
+    for (const f of flags.values()) f.stop();
+    flags.clear();
+  };
+  effect(items, (next) => {
+    all = next;
+    const wanted = new Set<object>();
+    for (const i of next) {
+      const visible = i.visible;
+      if (!visible) continue;
+      wanted.add(visible);
+      if (flags.has(visible)) continue;
+      const flag: { on: boolean | undefined; stop(): void } = { on: undefined, stop: () => {} };
+      flags.set(visible, flag);
+      let subscribing = true;
+      const sub = visible.subscribe((on) => {
+        flag.on = on;
+        if (!subscribing) update();
+      });
+      subscribing = false;
+      flag.stop = () => sub.unsubscribe();
+    }
+    for (const [visible, f] of flags)
+      if (!wanted.has(visible)) {
+        f.stop();
+        flags.delete(visible);
+      }
+    update();
+  });
+  onActive((active) => {
+    if (!active) drop();
+  });
+  onCleanup(drop);
+  return shown.asReadonly;
+}
+
+const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
+  a.size === b.size && [...a].every((id) => b.has(id));
+const sameEntries = (a: readonly RailEntry[], b: readonly RailEntry[]) =>
+  a.length === b.length && a.every((e, i) => e === b[i]);
+
+/**
  * The rail's layout: which buttons are left out for the rail's height. Fed the height by the rail's ResizeObserver
  * (`height`), it is recomputed when the height or the set of buttons changes, nothing else; the CSS sizes the steps.
+ * Made in a component's scope (the floating dock's: `shownItems`).
  */
 export class RailLayout {
   /** The rail's height in px (0 until measured). */
   readonly height: ObservableState<number> = observableState(0);
-  readonly entries: Observable<readonly RailEntry[]>;
-  readonly hidden: Observable<ReadonlySet<string>>;
+  readonly entries: ReadonlyState<readonly RailEntry[]>;
+  readonly hidden: ReadonlyState<ReadonlySet<string>>;
   /**
    * The open menu beside the rail: its bottom edge's distance from the dock's bottom, and the button it belongs to; More's
    * (the left-out buttons) or a rail button's own (`item`: the theme's choices).
@@ -144,34 +201,16 @@ export class RailLayout {
   readonly menu: ObservableState<{ bottom: number; anchor: Element; item?: CanvasToolbarItem } | undefined> =
     observableState<{ bottom: number; anchor: Element; item?: CanvasToolbarItem } | undefined>(undefined);
   /** The left-out buttons, in rail order: the More menu's rows. */
-  readonly overflow: Observable<readonly RailEntry[]>;
+  readonly overflow: ReadonlyState<readonly RailEntry[]>;
 
   constructor(shell: ShellModel, dock: DockModel) {
-    const tools = shell.toolbar.pipe(
-      map((items) => items.filter((i) => i.place !== 'canvas')),
-      switchMap((items) =>
-        items.length === 0
-          ? of([] as CanvasToolbarItem[])
-          : combineLatest(items.map((i) => i.visible ?? of(true))).pipe(
-              map((flags) => items.filter((_, k) => flags[k])),
-            ),
-      ),
-    );
-    this.entries = combineLatest([dock.tabs, tools]).pipe(map(([tabs, items]) => railEntries(tabs, items)));
-    const fit = combineLatest([this.entries, this.height.asReadonly]).pipe(
-      map(([entries, h]) => ({ entries, fit: fitRail(entries, h) })),
-    );
-    this.hidden = fit.pipe(
-      map((f) => f.fit.hidden),
-      distinctUntilChanged((a, b) => a.size === b.size && [...a].every((id) => b.has(id))),
-    );
-    this.overflow = fit.pipe(
-      map((f) => f.entries.filter((e) => f.fit.hidden.has(e.id))),
-      distinctUntilChanged((a, b) => a.length === b.length && a.every((e, i) => e === b[i])),
-    );
+    const tools = shownItems(derive(shell.toolbar, (items) => items.filter((i) => i.place !== 'canvas')));
+    this.entries = derive([dock.tabs, tools], (tabs, items) => railEntries(tabs, items));
+    const fit = derive([this.entries, this.height.asReadonly], (entries, h) => ({ entries, fit: fitRail(entries, h) }));
+    this.hidden = derive(fit, (f) => f.fit.hidden, sameSet);
+    this.overflow = derive(fit, (f) => f.entries.filter((e) => f.fit.hidden.has(e.id)), sameEntries);
   }
 
-  /** Observes the rail element: its height is the only thing measured, and only when it changes. */
   /**
    * Opens a menu beside the rail at a button, its bottom edge level with the button's (one read, on the click), or
    * closes it when that button's is open: More's (no `item`) or the button's own.
@@ -186,13 +225,13 @@ export class RailLayout {
 
   #rail: Element | undefined;
 
+  /** Observes the rail element: its height is the only thing measured, and only when it changes. */
   observe(rail: Element): () => void {
     this.#rail = rail;
-    const ro = new ResizeObserver((entries) => {
+    const ro = observeResize(rail, (entries) => {
       const h = Math.round(entries[entries.length - 1].contentRect.height);
       if (h !== this.height.value) this.height.set(h);
     });
-    ro.observe(rail);
-    return () => ro.disconnect();
+    return () => ro?.disconnect();
   }
 }

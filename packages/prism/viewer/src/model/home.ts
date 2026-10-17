@@ -137,6 +137,8 @@ export function createAnnotationOffer(
     const mine = ++token;
     // The newest first: the offer is about what just loaded.
     for (const s of [...waiting].reverse()) {
+      // The viewer disposed meanwhile (its areas gone): nothing more to ask.
+      if (!api.area('annotations')) return;
       const r = await api.annotations.list({ structure: s.ref });
       if (mine !== token) return;
       waiting = waiting.filter((w) => w !== s);

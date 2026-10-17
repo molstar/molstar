@@ -1,0 +1,107 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// `molstar:secondary_structure` over a recorded structure (2OCJ, p53's core domain): helices, strands and turns as
+// ranges on the polymer units, read from the model's own assignment, one row per element of it; no network.
+
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { compile, type Loaders } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { categoryTable, readStructure } from '../index.js';
+import { bytesOf, loaders, registries } from './fixtures.js';
+
+/** The annotation's rows by unit: `start-stop category`, 0-based and half-open on the unit's label_seq_id - 1. */
+async function secondary(source: object, load: Loaders) {
+  const b = createSeqViewSpec();
+  const m = b.data.complex({ ref: 'c', provider: 'molstar:structure', source } as never);
+  b.data.computed({ ref: 'ss', provider: 'molstar:secondary_structure', options: { of: m } } as never);
+  b.view({ ref: 'v', label: 'V' }).track({ label: '' }).ruler();
+  const c = await compile(b.getDocument(), registries(), load);
+  const set = c.set;
+  const a = set.annotations.find((x) => x && set.strings.get(x.key).endsWith('ss'));
+  const byUnit = new Map<string, string[]>();
+  for (let r = 0; a && r < a.count; r++) {
+    const unit = set.strings.get(set.units.key[a.target.unit[r]]);
+    const rows = byUnit.get(unit) ?? [];
+    rows.push(`${a.start[r]}-${a.stop[r]} ${set.strings.get(a.category?.[r] ?? -1)}`);
+    byUnit.set(unit, rows);
+  }
+  return { issues: c.issues, annotation: a, byUnit };
+}
+
+const PDBE_2OCJ = { service: 'pdbe', resource: 'structure', id: '2ocj' };
+const kindOf = (confType: string) => (confType.startsWith('HELX') ? 'helix' : confType === 'STRN' ? 'strand' : 'turn');
+
+describe('molstar:secondary_structure', () => {
+  it("gives one range per element of the model's assignment, as the file's struct_conf has them", async () => {
+    const { issues, byUnit } = await secondary(PDBE_2OCJ, loaders());
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    // The file's own struct_conf (2OCJ lists every strand there too, beside struct_sheet_range): each row is one range
+    // on its chain's unit, label_seq_id beg..end as [beg - 1, end).
+    const src = await readStructure(bytesOf('2ocj.bcif'), 'bcif');
+    const conf = categoryTable(src.frame as NonNullable<typeof src.frame>, 'struct_conf');
+    const expected = new Map<string, string[]>();
+    for (let r = 0; conf && r < conf.length; r++) {
+      const unit = `c/${conf.columns.beg_label_asym_id[r]}`;
+      const rows = expected.get(unit) ?? [];
+      const beg = Number(conf.columns.beg_label_seq_id[r]);
+      const end = Number(conf.columns.end_label_seq_id[r]);
+      rows.push(`${beg - 1}-${end} ${kindOf(conf.columns.conf_type_id[r] ?? '')}`);
+      expected.set(unit, rows);
+    }
+    expect([...expected.keys()]).toEqual(['c/A', 'c/B', 'c/C', 'c/D']);
+    for (const [unit, rows] of expected) expect(byUnit.get(unit)).toEqual(rows);
+  });
+
+  it('keeps elements that touch apart: a bend beside a turn, a helix beside a turn, in each chain', async () => {
+    const { byUnit } = await secondary(PDBE_2OCJ, loaders());
+    const window = (unit: string, lo: number, hi: number) =>
+      (byUnit.get(unit) ?? []).filter((r) => {
+        const start = Number(r.split('-')[0]);
+        return start >= lo && start < hi;
+      });
+    // Chain A, label_seq_id 71–90: BEND 71–72, TURN 73–77, BEND 78, the PPII helix 79–80, the α-helix 84–88, BEND
+    // 89–90.
+    expect(window('c/A', 68, 90)).toEqual([
+      '70-72 turn',
+      '72-77 turn',
+      '77-78 turn',
+      '78-80 helix',
+      '83-88 helix',
+      '88-90 turn',
+    ]);
+    // Chain B has a 3₁₀ helix 73–75 where A has a turn, and its α-helix ends at 87: a turn 88, a bend 89–90 after
+    // it.
+    expect(window('c/B', 68, 90)).toEqual([
+      '70-72 turn',
+      '72-75 helix',
+      '75-77 turn',
+      '77-78 turn',
+      '78-80 helix',
+      '83-87 helix',
+      '87-88 turn',
+      '88-90 turn',
+    ]);
+    // The C-terminal α-helix, PRO 185–GLU 194, in every chain.
+    for (const unit of ['c/A', 'c/B', 'c/C', 'c/D']) expect(byUnit.get(unit)).toContain('184-194 helix');
+    // Chain D: a one-residue strand (VAL 79) right before a one-residue PPII helix (VAL 80).
+    expect(window('c/D', 78, 80)).toEqual(['78-79 strand', '79-80 helix']);
+  });
+
+  it('gives a chain with no assignment no rows: the zinc ions here, every chain of a model without one', async () => {
+    const { byUnit } = await secondary(PDBE_2OCJ, loaders());
+    for (const unit of ['c/E', 'c/F', 'c/G', 'c/H']) expect(byUnit.has(unit)).toBe(false);
+    // ins1.cif has no struct_conf or struct_sheet_range: the annotation is there, empty, and nothing is reported.
+    const ins1 = bytesOf('ins1.cif');
+    const none = await secondary({ uri: 'https://example.org/ins1.cif', format: 'mmcif' }, {
+      load: async () => ins1,
+    } as Loaders);
+    expect(none.issues).toEqual([]);
+    expect(none.annotation?.count).toBe(0);
+  });
+});

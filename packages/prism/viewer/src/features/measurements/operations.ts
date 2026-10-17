@@ -114,7 +114,7 @@ export class MeasureApi extends ApiArea {
       b: Pick('second'),
       text: TextParam('A text to show instead'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measurePoints(ctx, 'distance', [v.a, v.b], v);
@@ -130,7 +130,7 @@ export class MeasureApi extends ApiArea {
       c: Pick('third'),
       text: TextParam('A text to show instead'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measurePoints(ctx, 'angle', [v.a, v.b, v.c], v);
@@ -147,7 +147,7 @@ export class MeasureApi extends ApiArea {
       d: Pick('fourth'),
       text: TextParam('A text to show instead'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measurePoints(ctx, 'dihedral', [v.a, v.b, v.c, v.d], v);
@@ -161,7 +161,7 @@ export class MeasureApi extends ApiArea {
       a: Pick('labelled'),
       text: TextParam('The label text'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measurePoints(ctx, 'label', [v.a], v);
@@ -174,7 +174,7 @@ export class MeasureApi extends ApiArea {
     params: {
       target: TargetParam('What to orient (a ligand, A:10-40, …); empty: the current selection'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measureWhole(ctx, 'orientation', v);
@@ -187,7 +187,7 @@ export class MeasureApi extends ApiArea {
     params: {
       target: TargetParam('What to fit a plane to (a ligand, A:10-40, …); empty: the current selection'),
       structure: StructureParam(),
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
     },
     async run(v, ctx) {
       return measureWhole(ctx, 'plane', v);

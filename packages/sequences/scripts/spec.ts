@@ -122,9 +122,11 @@ function namesOf(span: string): string[] {
   return [s];
 }
 
+/** The Mol* adapter (libraries.md, The Mol* adapter) is Prism's: its names count as Seq*'s. */
+const ADAPTER = join(SEQSTAR, '../prism/viewer/src/sequence/molstar');
+
 function identifiers(misses: string[]): number {
-  const texts = readdirSync(SEQSTAR)
-    .map((pkg) => join(SEQSTAR, pkg, 'src'))
+  const texts = [...readdirSync(SEQSTAR).map((pkg) => join(SEQSTAR, pkg, 'src')), ADAPTER]
     .filter((src) => existsSync(src))
     .flatMap((src) => walk(src, (f) => /\.(ts|tsx|js|json|css)$/.test(f)))
     .map((f) => readFileSync(f, 'utf8'));

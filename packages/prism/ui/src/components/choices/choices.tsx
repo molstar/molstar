@@ -8,7 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable } from 'rxjs';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/choices.module.css.js';
 
@@ -26,9 +27,10 @@ export interface Choice {
 export function Choices(props: {
   label?: string;
   choices: readonly Choice[];
-  active?: Observable<string | undefined>;
+  active?: ReadonlyState<string | undefined>;
   onPick(id: string): void;
 }) {
+  const { active } = props;
   return (
     <div class={classes.group}>
       {props.label ? <span class={classes.label}>{props.label}</span> : null}
@@ -38,7 +40,7 @@ export function Choices(props: {
             type="button"
             class={classes.choice}
             title={c.title}
-            aria-pressed={props.active?.pipe(map((a) => a === c.id))}
+            aria-pressed={active && derive(active, (a) => a === c.id)}
             onClick={() => props.onPick(c.id)}
           >
             {c.icon ? <Icon name={c.icon} size={15} /> : null}

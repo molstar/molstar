@@ -19,11 +19,13 @@ section); an entry leaves when it is done (its spec section says so then). The s
   gzipped), and the AI SDK's providers import it, so it leaves the page only with providers of our own. Candidates: JSON
   Schema straight from `ParamDefinition` with a small validator over that closed vocabulary; zod everywhere (v4 emits
   JSON Schema; MolViewSpec off io-ts); a smaller validator. The harness side, slice 12b: [../ai/TODO.md](../ai/TODO.md).
-- **Duplicates**: `StatusModel` kept as an alias of `NotificationsManager` (`ui/src/managers/notifications.ts`);
-  `ShellModel.layout` beside `viewState.save()` (`ui/src/shell/shell.ts`, `ui/src/managers/view-state.ts`); three ways
-  to run Preset and Styles in the Structure tab (`viewer/src/views/structure/structure-tab.tsx`).
-- **The query languages' registry is page-wide** (`viewer/src/targets/languages.ts`): two viewers on a page offer each
-  other's languages. Recommended: page-wide until pages with several viewers matter.
+  Measured 2026-10-17 (esbuild, minified / gzip, English-only zod): a provider chunk on the AI SDK is 570–750 / 155–195
+  kB (zod 193 / 54, `ai` 184, the unused gateway 111); the official SDKs (`@anthropic-ai/sdk`, `openai`,
+  `@google/genai`) are 315–400 / 72–84 kB with no zod on the streaming path. A rewrite of `providers/` on them is ~900
+  lines and 2–3 weeks with the fixtures; `tools/input.ts` then needs a ~120-line validator over the closed field
+  vocabulary (or `zod/mini`, 18 / 6 kB).
+- **Assistant keys are shared by every viewer in the browser** (README decision 29): Forget in one viewer is seen by
+  another only after a reload; make the key store notify the other viewers if that matters.
 - **Size**: MolViewSpec in the startup bundle (~197 kB, a lazy MVS feature with stub format providers); the Seq\* chunk
   (one default for now, everything but streaming; its floor of ~721 kB is aligners, SeqQL, streams and palettes:
   [../sequences/todo.md](../sequences/todo.md)); eager extensions in the app (~190 kB, lazy stubs owning their formats);
@@ -36,8 +38,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
   every page that imports it)? `StateTransforms` for full v5 parity
   ([architecture.md](../../.v6/designs/architecture.md) §9.3 keeps it for the classic Viewer)?
 - **Choices to keep or change**: built-in areas typed as present and throwing when left out; panels keeping their tab
-  ids; History and Settings in the core; the runner re-checking `exists` only for loads; the kept-records index growing
-  (journal.md §1).
+  ids; History and Settings in the core; the runner re-checking `exists` only for loads.
 - **Mol\*'s other apps on Prism**: docking-viewer (its preset buttons as toolbar items and commands), mesoscale-explorer
   (its panels as views; the test of the shell's modularity), mvs-stories (embeddable viewport and snapshot-stepper
   elements), and examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`): port, or leave them on the classic
@@ -45,21 +46,25 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Missing: the viewer
 
+- **Split viewports** (David, 2026-10-17): one Prism instance hosting several plugin contexts side by side (one shell,
+  command menu, history and assistant over several canvases): comparing structures or states, linked cameras and
+  selections, a 3D view beside a 2D one, a detail view of a pocket next to the whole. Today a viewer is one plugin
+  (`viewer.ts`); the API, the sources and the journal assume it. Needs: which viewport an operation and the agent
+  target, the shell's focus between viewports, per-viewport sequence bands, and the WebGL budget across them
+  (`sources/canvas-presence.ts`).
+- **A canvas coming back into view is dark until its context is restored** (~1.2 s after a far jump in the Fifty viewers
+  story: Mol* rebuilds its resources). Keep a snapshot of the last frame when a context is released and show it until
+  the restore draws (`sources/canvas-presence.ts`).
 - A fast path in the runner for pointer-rate view operations; measure first: the hover is per element, not per frame
   (`viewer/src/api/run.ts`).
 - `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
 - The drop overlay and Home read `sources.formats` once, when the shell mounts (`viewer/src/ui/shell.tsx`,
   `viewer/src/features/home/shell.tsx`).
-- The PAE row's size before the matrix is read assumes a full ModelCIF PAE: the model's polymer residues, wrong for a
-  partial metric (`extensions/model-archive/src/prism-viewer.ts`).
 - Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`), kinds for shapes and particle lists; `node` on the
   structure-scoped operations ([nodes.md §5](viewer/_spec/nodes.md)).
 - Themes and presets that fetch as they apply carry no addresses (only known services today;
   `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
   (`extensions/model-archive/src/prism-viewer.ts`).
-- The record: a run's targets and `changed`, the turn's model, reply deltas, who undid a step, one entry per Undo turn,
-  the index's size and folding, the record inside a `.molx` ([journal.md §1–2](viewer/_spec/journal.md)).
-- The sequence's caches and its edits overlay ([sequence.md](viewer/_spec/sequence.md) §2, §7).
 - Mol*'s first framing of a scene (on load) frames it in the whole canvas, partly under the sequence band; resets frame
   below it (`viewer/src/sources/framing.ts`, [README](viewer/_spec/README.md) decision 28). Needs a reset hook in the
   graphics package's camera reset, after the WebGPU work.
@@ -67,27 +72,28 @@ section); an entry leaves when it is done (its spec section says so then). The s
   from the inline sentence (`ui/src/forms/flat-fields.ts`, [commands.md](ui/_spec/commands.md)).
 - The app: hashed entry names; publishing from the release workflow (today `pnpm deploy:remote` publishes the app and
   its single file at `prism/` and Storybook at `ui-storybook/`) ([app.md §1–2](viewer/_spec/app.md)).
-- Before Prism becomes the default viewer: accessibility and touch, compact mode, several viewers on a page, performance
+- Before Prism becomes the default viewer: accessibility and touch beyond the automated checks (a screen reader pass,
+  `target-size` and contrast in a real browser, the sub-24px controls, a single-pointer alternative to drag-reordering;
+  [accessibility.md](ui/_spec/accessibility.md) "Audit by view"), compact mode, several viewers on a page, performance
   budgets (a one-node change in a scene tree of 1,000 components or a state tree of 5,000 cells within a frame), and
   [parity.md](viewer/_spec/parity.md)'s missing rows; the classic `apps/viewer` stays beside it for a major version.
-- Kept data: preferences keep only the theme (not the layout, `viewState.save()`, or settings); kept records past 90
-  days are only marked; the Storage view does not refresh while open and does not list the assistant's own stores
-  (`prism-assistant.*` in localStorage, `prism-assistant-keys` in IndexedDB)
-  ([journal.md §6–7](viewer/_spec/journal.md)).
+- Kept data: preferences keep the theme and the layout, not settings; kept records past 90 days are only marked; the
+  Storage view does not refresh while open and does not list the assistant's own stores (`prism-assistant.*` in
+  localStorage, `prism-assistant-keys` in IndexedDB) ([journal.md §6–7](viewer/_spec/journal.md)).
 - Sources: no state of the latest registered presets, themes and actions (only Home's actions follow registrations,
-  `viewer/src/sources/home.ts`); none for trajectories from coordinate files or segmentations; the trajectory bar cannot
-  choose among several trajectories ([state.md §1](viewer/_spec/state.md)).
+  `viewer/src/sources/home.ts`); none for trajectories from coordinate files or segmentations
+  ([state.md §1](viewer/_spec/state.md)).
 - Parity gaps: SB-NCBR tunnels (their preset fetches from a service the policy does not know), Volumes & Segmentations
   and the PAE view (to be redesigned), XR checked on a headset, an extension's `reactRenderFn` in snapshot descriptions,
   a host's own bindings in Help ([parity.md §4–6](viewer/_spec/parity.md)).
 - Targets: `src/targets/` beside `@molstar/query-language`, so MolViewSpec and stories share it; a schema field for
   alternate locations (query text only today, [targets.md §5](viewer/_spec/targets.md)); SeqQL's `molstar.select` reads
-  with Mol\*'s transpilers, not the viewer's target compiler (`packages/sequences/molstar-poc/src/query.ts`).
+  with Mol\*'s transpilers, not the viewer's target compiler (`viewer/src/sequence/molstar/query.ts`).
 - The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
   test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
-  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring (Show in 3D,
-  results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several sequence views,
-  focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
+  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring and Hide track
+  (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several
+  sequence views, focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
   (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
   [marks.md](viewer/_spec/marks.md)).
 - Embeddable parts: a viewport alone (canvas, hover label, toolbar) for mvs-stories and the docking viewer, and the
@@ -104,32 +110,33 @@ section); an entry leaves when it is done (its spec section says so then). The s
   event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
-- Small bugs in Mol\*'s own code: the classic Help reads `clickSelectToggle` where the binding is `clickToggle`
-  (`plugin/ui/src/viewport/help.tsx`); kinemage probes a `ctx.customControls` that does not exist
-  (`extensions/kinemage/src/behavior.ts`); Zenodo's import behavior is named "Zenodo Export"
-  (`extensions/zenodo/src/index.ts`).
-- CI runs neither `styles:check`, `icons:check` nor `typecheck:storybook` of the Prism packages
-  (`.github/workflows/node.yml`).
-- A load from a URL that does not answer fails with `Cannot read properties of undefined (reading 'cell')` instead of
-  saying so (`api/load`; found in the AI simplification's gate).
 
 ## Missing: prism-ui
 
-- Commands: a `select` group with a shared mode, generated selection-query commands, previews while browsing, counts on
-  the highlighted row ([commands.md §5](ui/_spec/commands.md)); keybinding scopes, app overrides and remapping (§6); a
-  duplicate command id replaces the earlier one silently (`ui/src/commands/manager.ts`, §4); contextual commands, menus
-  and buttons by command id.
-- The shell's layout: restore and reset, `hideTab`, a layout of its own for `embedded`
-  ([shell.md §3](ui/_spec/shell.md)).
-- `ReactiveModel` has no mount-scope `AbortSignal` ([view-models.md §2](ui/_spec/view-models.md)); no lint rule against
-  `.value` inside JSX ([rendering.md §2.4](ui/_spec/rendering.md)); no `usePrism()` for React views (§5).
-- The viewer's scene and state trees are not virtualized (`VirtualList` only in
-  `viewer/src/_stories/performance.stories.tsx`; [view-models.md §3](ui/_spec/view-models.md)).
+- Commands: Select's one-run mode by a modifier on Enter (Shift+Enter removes, ⌥↵ intersects) and mode words in tails
+  ([commands.md §5](ui/_spec/commands.md)); trees marked as a key scope (`data-msp-scope="tree"`) and commands using
+  scopes (§6); more menus and buttons by command id: the scene tree's row menus, the selection bar, `CommandButton` in
+  views (§7).
+- No lint rule against `.value` inside JSX ([rendering.md §2.6](ui/_spec/rendering.md)); no `usePrism()` for React views
+  (§5).
+- Views still bound property by property ([rendering.md §2](ui/_spec/rendering.md), `watch`): the params form's rows
+  (`hidden` by `hideIf` and the search, a choice's and a group's headers, `SelectRow`'s label), the command menu's form
+  mode, the assistant's views, the shell. A scene-tree row's layout (~0.1 ms a row at the frame) is now its largest
+  cost: its CSS wants a look.
+- A visual check of the virtualized scene and state trees (light, dark, compact) in Storybook; no scene-tree case in the
+  performance story.
 - The subscription guard covers prism-ui only (`ui/src/_test/subscriptions.test.ts`); the other Prism packages want it.
 - The `--msp-ink` tokens are unused outside the canvas layer.
 
 ## Missing: the agent and the assistant
 
+- **Tool and skill definitions need a redesign** (David, 2026-10-17; do separately). A skill's `guidance` restates its
+  tools' ids and descriptions (`extensions/kinemage/src/prism-viewer.ts`: `KinemageSkill` names `get_kinemage`,
+  `show_kinemage_part`… in prose and again in `tools`), so the model reads them twice. `OperationToolSpec`
+  (`viewer/src/agent/skills.ts`) is a second vocabulary beside the operation's own definition: a model-facing id, a
+  description that repeats the operation's title, `fields`, `fixed` and `formats` per tool. Wanted: tools derived from
+  operations (their title, params and descriptions; one name), a skill whose guidance says only what the tools cannot
+  (when and why, how they combine), and every extension's skills moved over ([agent.md §2–3](viewer/_spec/agent.md)).
 - Skills: SeqQL selections and the sequence skill, `viewer-code` (TypeScript against the API, api.md §7), opening panels
   as tools ([agent.md §3](viewer/_spec/agent.md)).
 - `ask` parking the turn with the question in the turn card; today it ends the turn
@@ -146,6 +153,40 @@ section); an entry leaves when it is done (its spec section says so then). The s
   only scrambled) is not shown (`assistant/src/views/ai-setup.tsx`).
 - The command menu's assist: every request is a turn; reading words into one command (`assistant/src/viewer/ui.tsx`).
 - Web and data tools for the agent in the viewer (search, fetch a page or a file; `viewer/src/agent/skills.ts`).
+
+## Frames
+
+- _*Mol*'s canvas loop runs while idle_*: one `requestAnimationFrame` a frame per viewer whatever happens (Several
+  viewers: 3 a frame at rest); its tick draws only when something changed. Pausing it out of view is on the parent
+  branch (`sources/canvas-presence.ts`); at rest in view, the decision is David's (the Canvas3D pause).
+- **The splash fields at rest** (David, 2026-10-17: a lower rate): they step and draw about 20 to 24 times a second
+  without input, full rate under the pointer and 1.5 s after (`views/shell/ambient-pace.ts`; guarded in
+  `frames.quick.ts`). The light field at rest 36.4 → 13.8 ms a second; the wave field 141 → 93 to 102: its evolution
+  runs fixed substeps for the time that passed, so only its drawing is saved. Coarser substeps at rest (or slower light)
+  would save the rest and change how it looks: David's call.
+
+## Quadratic paths still open (the 2026-10-17 scan)
+
+The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:
+
+- **The scene source syncs over every structure at every change** (`viewer/src/sources/scene.ts` `syncRows`): loading N
+  structures one by one is N syncs of O(N) (48 structures: 51 ms of syncs). Incremental per structure (by its cell's
+  version) would make it O(changed).
+- **The assistant's Inspector re-reads the whole trace per harness change** (`assistant/src/viewer/inspector-sources.ts`
+  with `packages/ai/src/trace/read.ts`): each model call maps its whole window, so a read is calls × messages; and its
+  rows are new objects each settle, so the trace list, the Overview and the detail are rebuilt each time
+  (`assistant/src/inspector/model.ts` `#rowsOf`, `trace.tsx`). Keep the views of unchanged calls across reads.
+- **`ai/src/session/session.ts`**: `trim()` on the growing streamed text per delta flattens the rope (an answer's
+  length²).
+- **Commits per item in a transaction**: `representation.material`, `representation.set` on many components (one
+  `updateTransform` each: items × the tree; one build would do). Measurements: each op re-reads and labels every
+  measurement (`features/measurements/operations.ts`), O(M²) for M added one by one.
+- **prism-ui**: `reactive/transaction.ts` re-folds every contribution per contribution (K² for K in flight);
+  `managers/history.ts` copies a step's runs per run (R² a long agent turn); `For` re-reconciles the whole list per time
+  slice (a non-virtualized 5,000-row list's first render); `drag-to-reorder` reads every item's rect per move.
+- **Smaller**: `api/scope.ts` callers that still name structures one by one through `pickNamed` (superpose's named
+  structures: k × S); `sources/scene.ts` `emptiedComponents` per structure (S × saved params) and its order sort by
+  `indexOf`; snapshots moved one step at a time (`features/snapshots/operations.ts`).
 
 ## Considered and deferred
 

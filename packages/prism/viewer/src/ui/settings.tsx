@@ -11,7 +11,7 @@
 import { bind, domView, onCleanup, SectionList, SettingsTab, type ShellTab, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { SettingsGroup, SettingsModel } from '@molstar/prism-ui/model/settings';
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
+import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerManagers } from '../api/managers.js';
 import { type SettingsGroupState, withCheckpointing } from '../sources/settings.js';
@@ -20,6 +20,7 @@ import type { StorageModel } from '../storage/model.js';
 import { Debouncer } from './debounce.js';
 import { StorageSection } from './storage.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 // The Settings tab (parity.md §5): the groups of `sources.settings` as forms that follow the live values and apply
 // through `settings.set` as the person, debounced (`ui/debounce.ts`) like the Canvas card. A group of the tab is a step in the History.
 // The groups the host can show change with the canvas and the behaviors: the tab is made again when they do. Other
@@ -33,8 +34,8 @@ export function settingsTab(
   storage?: StorageModel,
 ): ShellTab {
   const current = () => withCheckpointing(sources.settings.groups.value, managers.history.checkpointing.value);
-  const live = combineLatest([sources.settings.groups, managers.history.checkpointing]).pipe(
-    map(([groups, on]) => withCheckpointing(groups, on)),
+  const live = derive([sources.settings.groups, managers.history.checkpointing], (groups, on) =>
+    withCheckpointing(groups, on),
   );
   // What decides the forms' shape (their params); values are loaded into them.
   const shape = live.pipe(

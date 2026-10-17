@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolstarSvsEntry } from '@molstar/seq-molstar-poc';
+import { MolstarSvsEntry } from './molstar/registry.js';
 import { DefaultRegistry, DefaultSeqViewerSpec, SeqViewerOptionalBehaviors, SeqViewerSpec } from '@molstar/seq-viewer';
 import { PrismRegistry } from './palette.js';
 

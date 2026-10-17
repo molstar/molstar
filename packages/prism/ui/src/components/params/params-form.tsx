@@ -11,13 +11,14 @@
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Asset } from '@molstar/core/util/assets';
 import { camelCaseToWords } from '@molstar/core/util/string';
-import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { uniqueId } from '../../dom/focus.js';
-import { onCleanup } from '../../dom/scope.js';
+import { effect, frameState, watch } from '../../dom/scope.js';
+import { setAttr, setStyle, setText } from '../../dom/writes.js';
 import { type ParamSection, ParamsFormModel, paramSections } from '../../forms/params-form.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { Floating, OptionList, SelectButton } from '../select/select.js';
 import { ColorPicker, colorToHex, colorToRgb } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
@@ -35,6 +36,7 @@ import type { FieldBinding } from './field-binding.js';
 import { helpOf, withHelp } from './help.js';
 import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
+import { derive } from '../../reactive/state.js';
 /** A field's value as a control sees it: a stream, the current value, and how to change it. */
 export type { FieldBinding };
 
@@ -49,7 +51,7 @@ export function ParamsForm(props: {
    * Shows only the rows whose label or description contains this text (or that hold such rows); groups open while it
    * is set. A search over settings.
    */
-  filter?: Observable<string>;
+  filter?: ReadonlyState<string>;
 }) {
   const { form } = props;
   return (
@@ -57,11 +59,12 @@ export function ParamsForm(props: {
       <ParamControls
         params={form.params}
         field={(name) => ({
-          value: form.field(name),
+          // States at runtime (`derive`), typed as streams by the model.
+          value: form.field(name) as ReadonlyState<any>,
           get: () => form.values.value[name],
           set: (v) => form.set(name, v),
         })}
-        visible={(name) => (form.params[name].hideIf ? form.visible(name) : undefined)}
+        visible={(name) => (form.params[name].hideIf ? (form.visible(name) as ReadonlyState<boolean>) : undefined)}
         filter={normalized(props.filter)}
         place={{ form, path: '' }}
       />
@@ -90,31 +93,31 @@ function ParamControls(props: {
   params: PD.Params;
   field(name: string): FieldBinding;
   /** Whether a row shows now (its `hideIf`); undefined when it always does. */
-  visible(name: string): Observable<boolean> | undefined;
-  filter?: Observable<string>;
+  visible(name: string): ReadonlyState<boolean> | undefined;
+  filter?: ReadonlyState<string>;
   place: Place;
 }): Child {
   const { params, filter, place } = props;
   const { essentials, advanced } = paramSections(params);
   const force = searching(filter);
-  const visibles = new Map<string, Observable<boolean> | undefined>();
+  const visibles = new Map<string, ReadonlyState<boolean> | undefined>();
   const visible = (name: string) => {
     if (!visibles.has(name)) visibles.set(name, props.visible(name));
     return visibles.get(name);
   };
-  const shown = (name: string): Observable<boolean> | undefined => {
+  const shown = (name: string): ReadonlyState<boolean> | undefined => {
     const v = visible(name);
     if (!filter) return v;
-    return combineLatest([v ?? of(true), filter]).pipe(map(([a, q]) => a && matches(name, params[name], q)));
+    return v
+      ? derive([v, filter], (a, q) => a && matches(name, params[name], q))
+      : derive(filter, (q) => matches(name, params[name], q));
   };
-  // Hidden while none of its rows shows (all hidden by their hideIf, none matching a search); undefined: always shown.
+  // Hidden while none of its rows shows (all hidden by their hideIf, none matching a search); undefined: always shown
+  // (a row that always shows among them).
   const hiddenWhenEmpty = (names: string[]) => {
-    const streams = names.map(shown);
-    if (streams.every((x) => !x)) return undefined;
-    return combineLatest(streams.map((x) => x ?? of(true))).pipe(
-      map((vs) => !vs.some(Boolean)),
-      distinctUntilChanged(),
-    );
+    const states = names.map(shown);
+    if (states.some((x) => !x)) return undefined;
+    return derive(states as ReadonlyState<boolean>[], (...vs) => !vs.some(Boolean));
   };
   const row = (name: string) => (
     <ParamRow
@@ -156,18 +159,12 @@ function ParamControls(props: {
 }
 
 /** The filter text, trimmed and lower-cased; undefined when there is no filter. */
-function normalized(filter?: Observable<string>): Observable<string> | undefined {
-  return filter?.pipe(
-    map((q) => q.trim().toLowerCase()),
-    distinctUntilChanged(),
-  );
+function normalized(filter?: ReadonlyState<string>): ReadonlyState<string> | undefined {
+  return filter && derive(filter, (q) => q.trim().toLowerCase());
 }
 
-function searching(filter?: Observable<string>): Observable<boolean> | undefined {
-  return filter?.pipe(
-    map((q) => q.length > 0),
-    distinctUntilChanged(),
-  );
+function searching(filter?: ReadonlyState<string>): ReadonlyState<boolean> | undefined {
+  return filter && derive(filter, (q) => q.length > 0);
 }
 
 function labelOf(name: string, param: PD.Any): string {
@@ -201,21 +198,21 @@ function ParamRow(props: {
   name: string;
   param: PD.Any;
   binding: FieldBinding;
-  visible?: Observable<boolean>;
-  filter?: Observable<string>;
+  visible?: ReadonlyState<boolean>;
+  filter?: ReadonlyState<string>;
   place: Place;
 }) {
   const { name, param, binding, filter, place } = props;
   const label = labelOf(name, param);
+  const visible = props.visible;
   const shown = filter
-    ? combineLatest([props.visible ?? of(true), filter]).pipe(map(([v, q]) => v && matches(name, param, q)))
-    : props.visible;
-  const hidden = shown?.pipe(
-    map((v) => !v),
-    distinctUntilChanged(),
-  );
+    ? visible
+      ? derive([visible, filter], (v, q) => v && matches(name, param, q))
+      : derive(filter, (q) => matches(name, param, q))
+    : visible;
+  const hidden = shown && derive(shown, (v) => !v);
   // A group or a choice whose own name matches shows all of its rows.
-  const inner = filter?.pipe(map((q) => (label.toLowerCase().includes(q) ? '' : q)));
+  const inner = filter && derive(filter, (q) => (label.toLowerCase().includes(q) ? '' : q));
   if (param.type === 'group') {
     return (
       <div hidden={hidden}>
@@ -291,7 +288,7 @@ function ParamRow(props: {
   // Converted: the control of what it converts to, the value converted both ways.
   if (param.type === 'converted') {
     const converted: FieldBinding = {
-      value: binding.value.pipe(map((v) => param.fromValue(v))),
+      value: derive(binding.value, (v) => param.fromValue(v)),
       get: () => param.fromValue(binding.get()),
       set: (v) => binding.set(param.toValue(v)),
     };
@@ -320,9 +317,9 @@ function ColorRow(props: {
 }) {
   const { binding, labelId } = props;
   const open = observableState(false);
-  const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
-  const channels = binding.value.pipe(map((v: number) => colorToRgb(v)));
-  return (
+  let swatch!: HTMLElement;
+  const channels = document.createTextNode('');
+  const content = (
     <>
       <div class={classes.row}>
         <span class={classes.label}>{props.head ?? <span id={labelId}>{props.label}</span>}</span>
@@ -334,7 +331,7 @@ function ColorRow(props: {
             aria-expanded={open}
             onClick={() => open.set(!open.value)}
           >
-            <span class={classes.swatch} style={{ background: hex }} />
+            <span class={classes.swatch} ref={(el: HTMLElement) => (swatch = el)} />
             <span class={classes.channels} id={`${labelId}-value`} data-tip-overflow="">
               {channels}
             </span>
@@ -346,6 +343,12 @@ function ColorRow(props: {
       </Show>
     </>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as number;
+    setStyle(swatch, 'background', colorToHex(v));
+    setText(channels, colorToRgb(v));
+  });
+  return content;
 }
 
 /**
@@ -372,11 +375,11 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
       }}
     />
   ) as HTMLInputElement;
-  const names = binding.value.pipe(
-    map((v: Asset.File | Asset.File[] | null) => (v ? (Array.isArray(v) ? v : [v]) : []).map((f) => f.name)),
+  const names = derive(binding.value, (v: Asset.File | Asset.File[] | null) =>
+    (v ? (Array.isArray(v) ? v : [v]) : []).map((f) => f.name),
   );
   return (
-    <div class={classes.file} data-dragging={dragging.asReadonly.pipe(map((d) => (d ? '' : undefined)))}>
+    <div class={classes.file} data-dragging={derive(dragging.asReadonly, (d) => (d ? '' : undefined))}>
       <button
         type="button"
         class={classes.filePick}
@@ -397,22 +400,20 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
         <span
           class={classes.fileNames}
           id={labelId ? `${labelId}-value` : undefined}
-          data-empty={names.pipe(map((n) => (n.length ? undefined : '')))}
+          data-empty={derive(names, (n) => (n.length ? undefined : ''))}
         >
-          {names.pipe(
-            map((n) =>
-              n.length === 0
-                ? multiple
-                  ? 'Select files…'
-                  : 'Select a file…'
-                : n.length === 1
-                  ? n[0]
-                  : `${n.length} files · ${n.join(', ')}`,
-            ),
+          {derive(names, (n) =>
+            n.length === 0
+              ? multiple
+                ? 'Select files…'
+                : 'Select a file…'
+              : n.length === 1
+                ? n[0]
+                : `${n.length} files · ${n.join(', ')}`,
           )}
         </span>
       </button>
-      <Show when={names.pipe(map((n) => n.length > 0))}>
+      <Show when={derive(names, (n) => n.length > 0)}>
         {() => (
           <button
             type="button"
@@ -439,26 +440,8 @@ function control(param: PD.Any, binding: FieldBinding, labelId: string, label: s
       return <NumberControl param={param} binding={binding} labelId={labelId} />;
     case 'text':
       // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
-      if (param.multiline) {
-        return (
-          <textarea
-            class={classes.textarea}
-            rows={3}
-            aria-labelledby={labelId}
-            value={binding.value}
-            placeholder={param.placeholder}
-            onChange={(e) => binding.set(e.currentTarget.value)}
-          />
-        );
-      }
       return (
-        <input
-          class={classes.input}
-          aria-labelledby={labelId}
-          value={binding.value}
-          placeholder={param.placeholder}
-          onChange={(e) => binding.set(e.currentTarget.value)}
-        />
+        <TextControl binding={binding} labelId={labelId} placeholder={param.placeholder} multiline={param.multiline} />
       );
     case 'file':
     case 'file-list':
@@ -474,72 +457,123 @@ function control(param: PD.Any, binding: FieldBinding, labelId: string, label: s
   }
 }
 
+/**
+ * A field's control as view = f(state) (rendering.md §2): its DOM made once, one `watch` on the field's stream whose
+ * render reads the current value (`binding.get()`) and writes what differs.
+ */
+function TextControl(props: { binding: FieldBinding; labelId?: string; placeholder?: string; multiline?: boolean }) {
+  const { binding } = props;
+  // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
+  const el = (
+    props.multiline ? (
+      <textarea
+        class={classes.textarea}
+        rows={3}
+        aria-labelledby={props.labelId}
+        placeholder={props.placeholder}
+        onChange={(e) => binding.set(e.currentTarget.value)}
+      />
+    ) : (
+      <input
+        class={classes.input}
+        aria-labelledby={props.labelId}
+        placeholder={props.placeholder}
+        onChange={(e) => binding.set(e.currentTarget.value)}
+      />
+    )
+  ) as HTMLInputElement | HTMLTextAreaElement;
+  watch([binding.value], () => setValue(el, binding.get()));
+  return el;
+}
+
+/** An input's value ('' for none), written only when it differs (a write moves the caret). */
+function setValue(el: HTMLInputElement | HTMLTextAreaElement, value: unknown) {
+  const v = value === null || value === undefined ? '' : String(value);
+  if (el.value !== v) el.value = v;
+}
+
 function Toggle(props: { binding: FieldBinding; labelId?: string }) {
   const { binding } = props;
-  return (
+  const el = (
     <button
       type="button"
       role="switch"
       class={classes.switch}
       aria-labelledby={props.labelId}
-      aria-checked={binding.value.pipe(map((v) => !!v))}
       onClick={() => binding.set(!binding.get())}
     >
       <span class={classes.knob} />
     </button>
-  );
+  ) as HTMLElement;
+  watch([binding.value], () => setAttr(el, 'aria-checked', String(!!binding.get())));
+  return el;
 }
 
 function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelId?: string }) {
   const { param, binding, labelId } = props;
-  const text = binding.value.pipe(map((v: number) => format(v, param.step)));
   if (param.min === undefined || param.max === undefined) {
-    return (
-      // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
-      // number reads "0.5"; a comma typed is read as the decimal point.
+    // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
+    // number reads "0.5"; a comma typed is read as the decimal point.
+    const input = (
       <input
         class={classes.input}
         type="text"
         inputMode="decimal"
         aria-labelledby={labelId}
-        value={text}
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
           if (Number.isFinite(v)) binding.set(v);
-          else e.currentTarget.value = format(binding.get() as number, param.step);
+          e.currentTarget.value = format(Number.isFinite(v) ? v : (binding.get() as number), param.step);
         }}
       />
-    );
+    ) as HTMLInputElement;
+    watch([binding.value], () => setValue(input, format(binding.get() as number, param.step)));
+    return input;
   }
-  return (
+  const min = param.min;
+  const max = param.max;
+  // A drag in the frame lane (rendering.md §2.3): input events come several a frame, the field is set once a frame (it
+  // may update a structure's representation).
+  const dragged = frameState(Number.NaN, (a, b) => Object.is(a, b));
+  effect(dragged, (v) => {
+    if (!Number.isNaN(v)) binding.set(v);
+  });
+  let range!: HTMLInputElement;
+  let number!: HTMLInputElement;
+  const el = (
     <div class={classes.slider}>
       <input
         class={classes.range}
         type="range"
         aria-labelledby={labelId}
-        min={String(param.min)}
-        max={String(param.max)}
-        step={String(param.step ?? (param.max - param.min) / 100)}
-        value={binding.value.pipe(map(String))}
-        style={{
-          // The filled part of the track, for the quiet styling (no native accent fill).
-          '--msp-progress': binding.value.pipe(
-            map((v: number) => `${(100 * (v - param.min!)) / (param.max! - param.min! || 1)}%`),
-          ),
-        }}
-        onInput={(e) => binding.set(Number(e.currentTarget.value))}
+        min={String(min)}
+        max={String(max)}
+        step={String(param.step ?? (max - min) / 100)}
+        ref={(e: HTMLInputElement) => (range = e)}
+        onInput={(e) => dragged.offer(Number(e.currentTarget.value))}
       />
       <input
         class={classes.number}
         aria-labelledby={labelId}
-        value={text}
+        ref={(e: HTMLInputElement) => (number = e)}
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
-          if (Number.isFinite(v)) binding.set(Math.min(param.max!, Math.max(param.min!, v)));
+          const shown = Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : (binding.get() as number);
+          if (Number.isFinite(v)) binding.set(shown);
+          // The box says what holds, whether or not the value changed (a clamp to the same value, text that is no number).
+          e.currentTarget.value = format(shown, param.step);
         }}
       />
     </div>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as number;
+    setValue(range, v);
+    // The filled part of the track, for the quiet styling (no native accent fill).
+    setStyle(range, '--msp-progress', `${(100 * (v - min)) / (max - min || 1)}%`);
+    setValue(number, format(v, param.step));
+  });
+  return el;
 }
 
 function format(v: number, step?: number) {
@@ -572,7 +606,7 @@ function SelectRow(props: {
 }) {
   const { options, binding } = props;
   const open = observableState(false);
-  const index = binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))));
+  const index = derive(binding.value, (v) => String(options.findIndex((o) => o[0] === v)));
   // Mol*'s option categories are the list's groups.
   const indexed = options.map(([, label, group], i) => [String(i), label, group] as const);
   let control: HTMLElement | undefined;
@@ -585,7 +619,7 @@ function SelectRow(props: {
             size="sm"
             open={open}
             aria-label={props.label}
-            label={index.pipe(map((i) => indexed[Number(i)]?.[1] ?? ''))}
+            label={derive(index, (i) => indexed[Number(i)]?.[1] ?? '')}
           />
           {props.after}
         </div>
@@ -603,6 +637,7 @@ function SelectRow(props: {
               }}
               onClose={() => open.set(false)}
               floating
+              aria-label={props.label}
             />
           );
           return control ? <Floating anchor={control}>{list}</Floating> : list;
@@ -617,9 +652,9 @@ function GroupControl(props: {
   param: PD.Group<any>;
   binding: FieldBinding;
   /** For its rows (cleared when the group's own name matches: all of them show). */
-  filter?: Observable<string>;
+  filter?: ReadonlyState<string>;
   /** Open while searching. */
-  force?: Observable<boolean>;
+  force?: ReadonlyState<boolean>;
   place: Place;
 }) {
   const { param, binding, filter, place } = props;
@@ -631,12 +666,7 @@ function GroupControl(props: {
   const folded = place.form.fold(`${place.path}#open`, !!param.isExpanded);
   // A preset sets the fields it names, over the group's current values (Mol*'s presets name them all).
   const apply = (value: unknown) => binding.set({ ...(binding.get() ?? {}), ...(value as object) });
-  const current = presets
-    ? binding.value.pipe(
-        map((v) => presetIndex(presets, v, true)),
-        distinctUntilChanged(),
-      )
-    : undefined;
+  const current = presets ? derive(binding.value, (v) => presetIndex(presets, v, true)) : undefined;
   // A flat group has no header of its own: its params are rows like the others, its presets a row before them.
   if (param.isFlat)
     return (
@@ -678,7 +708,7 @@ function GroupControl(props: {
       state={folded}
       force={props.force}
       openWhen={opened.asReadonly}
-      meta={current.pipe(map((i) => (i === undefined ? '' : presets[i][1])))}
+      meta={derive(current, (i) => (i === undefined ? '' : presets[i][1]))}
       action={<PresetsButton open={presetsOpen} label={props.label} />}
       below={() => (
         <PresetsList
@@ -701,7 +731,7 @@ function GroupControl(props: {
 function PresetsRow(props: {
   label: string;
   presets: readonly PD.SelectOption<unknown>[];
-  current: Observable<number | undefined>;
+  current: ReadonlyState<number | undefined>;
   onPick(value: unknown): void;
 }) {
   const open = observableState(false);
@@ -715,7 +745,7 @@ function PresetsRow(props: {
             size="sm"
             open={open}
             aria-label={`${props.label} presets`}
-            label={props.current.pipe(map((i) => (i === undefined ? 'Custom' : props.presets[i][1])))}
+            label={derive(props.current, (i) => (i === undefined ? 'Custom' : props.presets[i][1]))}
           />
         </div>
       </div>
@@ -750,10 +780,7 @@ function OnOffControl(props: {
   place: Place;
 }) {
   const { param, binding, place } = props;
-  const on = binding.value.pipe(
-    map((v) => v?.name === 'on'),
-    distinctUntilChanged(),
-  );
+  const on = derive(binding.value, (v) => v?.name === 'on');
   const open = place.form.fold(`${place.path}#params`);
   const set = (name: 'on' | 'off') => binding.set({ name, params: defaults(param.map(name)) });
   const toggle: FieldBinding = {
@@ -767,10 +794,7 @@ function OnOffControl(props: {
   const inner = param.map('on');
   const hasSettings = inner.type === 'group' && hasRows(inner.params);
   const paramsBinding: FieldBinding = {
-    value: binding.value.pipe(
-      map((v) => v?.params),
-      distinctUntilChanged(),
-    ),
+    value: derive(binding.value, (v) => v?.params),
     get: () => binding.get()?.params,
     set: (p) => binding.set({ name: 'on', params: p }),
   };
@@ -799,7 +823,7 @@ function OnOffControl(props: {
         </div>
       </div>
       {hasSettings ? (
-        <Show when={combineLatest([on, open.asReadonly]).pipe(map(([a, b]) => a && b))}>
+        <Show when={derive([on, open.asReadonly], (a, b) => a && b)}>
           {() => (
             <div class={classes.subSettings}>
               <GroupFields
@@ -827,16 +851,13 @@ function MappedControl(props: {
   param: PD.Mapped<any>;
   binding: FieldBinding;
   /** For the chosen case's rows. */
-  filter?: Observable<string>;
+  filter?: ReadonlyState<string>;
   /** Open while searching. */
-  force?: Observable<boolean>;
+  force?: ReadonlyState<boolean>;
   place: Place;
 }) {
   const { param, binding, place } = props;
-  const name = binding.value.pipe(
-    map((v) => v?.name),
-    distinctUntilChanged(),
-  );
+  const name = derive(binding.value, (v) => v?.name);
   const nameBinding: FieldBinding = {
     value: name,
     get: () => binding.get()?.name,
@@ -851,11 +872,9 @@ function MappedControl(props: {
     const inner = param.map(n);
     return inner.type === 'group' && !inner.isFlat && hasRows(inner.params);
   };
-  const hasToggle = name.pipe(map(toggled), distinctUntilChanged());
+  const hasToggle = derive(name, toggled);
   const open = place.form.fold(`${place.path}#params`);
-  const shown = props.force
-    ? combineLatest([open.asReadonly, props.force]).pipe(map(([o, f]) => o || f))
-    : open.asReadonly;
+  const shown = props.force ? derive([open.asReadonly, props.force], (o, f) => o || f) : open.asReadonly;
   const toggle = (
     <Show when={hasToggle}>
       {() => (
@@ -885,10 +904,7 @@ function MappedControl(props: {
         {(n) => {
           const inner = param.map(n);
           const paramsBinding: FieldBinding = {
-            value: binding.value.pipe(
-              map((v) => v?.params),
-              distinctUntilChanged(),
-            ),
+            value: derive(binding.value, (v) => v?.params),
             get: () => binding.get()?.params,
             set: (p) => binding.set({ name: n, params: p }),
           };
@@ -922,7 +938,7 @@ function GroupFields(props: {
   params: PD.Params;
   binding: FieldBinding;
   nested?: boolean;
-  filter?: Observable<string>;
+  filter?: ReadonlyState<string>;
   place: Place;
 }) {
   const { params, binding } = props;
@@ -931,20 +947,14 @@ function GroupFields(props: {
       <ParamControls
         params={params}
         field={(k) => ({
-          value: binding.value.pipe(
-            map((v) => v?.[k]),
-            distinctUntilChanged(),
-          ),
+          value: derive(binding.value, (v) => v?.[k]),
           get: () => binding.get()?.[k],
           set: (cv) => binding.set({ ...binding.get(), [k]: cv }),
         })}
         visible={(k) => {
           const hideIf = params[k].hideIf;
           if (!hideIf) return undefined;
-          return binding.value.pipe(
-            map((v) => !hideIf(v ?? {})),
-            distinctUntilChanged(),
-          );
+          return derive(binding.value, (v) => !hideIf(v ?? {}));
         }}
         filter={props.filter}
         place={props.place}
@@ -962,10 +972,7 @@ function ConditionedControl(props: {
   place: Place;
 }) {
   const { param, binding, place } = props;
-  const condition = binding.value.pipe(
-    map((v) => String(param.conditionForValue(v))),
-    distinctUntilChanged(),
-  );
+  const condition = derive(binding.value, (v) => String(param.conditionForValue(v)));
   const conditionBinding: FieldBinding = {
     value: condition,
     get: () => String(param.conditionForValue(binding.get())),
@@ -1001,10 +1008,7 @@ const ScriptLanguages: PD.SelectOption<string>[] = [
 function ScriptControl(props: { head: Child; label: string; binding: FieldBinding }) {
   const { binding } = props;
   const part = (k: 'language' | 'expression'): FieldBinding => ({
-    value: binding.value.pipe(
-      map((v) => v?.[k] ?? ''),
-      distinctUntilChanged(),
-    ),
+    value: derive(binding.value, (v) => v?.[k] ?? ''),
     get: () => binding.get()?.[k],
     set: (x) => binding.set({ ...binding.get(), [k]: x }),
   });
@@ -1042,7 +1046,7 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
   const { param, binding } = props;
   const presets = param.presets;
   const presetsOpen = observableState(false);
-  const items = binding.value.pipe(map((v: unknown[] | undefined) => v ?? []));
+  const items = derive(binding.value, (v: unknown[] | undefined) => v ?? []);
   const replace = (i: number, item: unknown) => {
     const list = [...(binding.get() ?? [])];
     list[i] = item;
@@ -1053,12 +1057,12 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
       <div class={classes.row}>
         <span class={classes.label}>{props.head}</span>
         <div class={classes.control}>
-          <span class={classes.count}>{items.pipe(map((l) => (l.length === 1 ? '1 item' : `${l.length} items`)))}</span>
+          <span class={classes.count}>{derive(items, (l) => (l.length === 1 ? '1 item' : `${l.length} items`))}</span>
         </div>
       </div>
       {/* The items in one quiet list under the row; Add ends it. */}
       <div class={classes.items}>
-        <For each={items.pipe(map((l) => l.map((_, i) => i)))}>
+        <For each={derive(items, (l) => l.map((_, i) => i))}>
           {(i) => <ObjectListItem param={param} binding={binding} index={i} replace={replace} />}
         </For>
         <div class={classes.itemActions}>
@@ -1077,10 +1081,7 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
           <PresetsList
             open={presetsOpen}
             presets={() => presets}
-            current={binding.value.pipe(
-              map((v) => presetIndex(presets, v)),
-              distinctUntilChanged(),
-            )}
+            current={derive(binding.value, (v) => presetIndex(presets, v))}
             onPick={(v) => binding.set(v)}
           />
         ) : null}
@@ -1098,11 +1099,11 @@ function ObjectListItem(props: {
   const { param, binding, index } = props;
   const open = observableState(false);
   return (
-    <div class={classes.item} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
+    <div class={classes.item} data-open={derive(open.asReadonly, (o) => (o ? '' : undefined))}>
       {/* A click anywhere on the row opens or closes the item's params (the sliders say so; remove does not). */}
       <div class={classes.itemRow} onClick={() => open.set(!open.value)}>
         <span class={classes.itemLabel}>
-          {binding.value.pipe(map((v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : '')))}
+          {derive(binding.value, (v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : ''))}
         </span>
         <button
           type="button"
@@ -1162,28 +1163,29 @@ function Collapsible(props: {
   open?: boolean;
   /** Its open state, when kept outside (the form's folds); else its own, from `open`. */
   state?: ObservableState<boolean>;
-  force?: Observable<boolean>;
+  force?: ReadonlyState<boolean>;
   /** Quiet words after the title (the preset the values match). */
-  meta?: Observable<string>;
+  meta?: ReadonlyState<string>;
   /** A control at the header's end (Presets). */
   action?: Child;
   /** Under the header, open or folded (the presets' list). */
   below?: () => Child;
   /** Opens it when this emits true (a preset picked: what it set shows). */
-  openWhen?: Observable<boolean>;
+  openWhen?: ReadonlyState<boolean>;
   children: () => Child;
 }) {
   const own = props.state ?? observableState(!!props.open);
-  if (props.openWhen) {
-    const sub = props.openWhen.subscribe((o) => {
-      if (o) own.set(true);
+  const openWhen = props.openWhen;
+  if (openWhen) {
+    // When it turns true (not again at a resume: a group closed since stays closed).
+    let was = openWhen.value;
+    effect(openWhen, (o) => {
+      if (o && !was) own.set(true);
+      was = o;
     });
-    onCleanup(() => sub.unsubscribe());
   }
   // Forced open while a filter is set (its matches are inside); the user's choice again once it clears.
-  const open = props.force
-    ? combineLatest([own.asReadonly, props.force]).pipe(map(([o, f]) => o || f))
-    : own.asReadonly;
+  const open = props.force ? derive([own.asReadonly, props.force], (o, f) => o || f) : own.asReadonly;
   return (
     <div class={classes.collapsible}>
       <div class={classes.collapsibleBar}>

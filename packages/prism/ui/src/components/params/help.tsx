@@ -10,10 +10,11 @@
 
 import type { Legend } from '@molstar/core/util/legend';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { colorListGradient } from './extra-controls.js';
@@ -29,23 +30,24 @@ export interface ParamHelp {
  * A param's help for its current value: its `help(value)` when it has one (a color theme: the chosen theme's
  * description and legend), else its own description and legend; undefined when it has none.
  */
-export function helpOf(param: PD.Any, value: Observable<any>): Observable<ParamHelp | undefined> | undefined {
+export function helpOf(param: PD.Any, value: ReadonlyState<any>): ReadonlyState<ParamHelp | undefined> | undefined {
   const has = (h: ParamHelp | undefined) => (h && (h.description || h.legend) ? h : undefined);
   if (param.help) {
     const help = param.help;
-    return value.pipe(
-      map((v) => {
+    return derive(
+      value,
+      (v) => {
         try {
           return has(help(v));
         } catch {
           return undefined;
         }
-      }),
-      distinctUntilChanged((a, b) => a?.description === b?.description && a?.legend === b?.legend),
+      },
+      (a, b) => a?.description === b?.description && a?.legend === b?.legend,
     );
   }
   const own = has({ description: param.description, legend: param.legend });
-  return own ? of(own) : undefined;
+  return own ? observableState<ParamHelp | undefined>(own).asReadonly : undefined;
 }
 
 /**
@@ -53,7 +55,7 @@ export function helpOf(param: PD.Any, value: Observable<any>): Observable<ParamH
  * help itself opens under the row (`HelpBlock`). Returns the label's content and the block. `id` goes on the label's
  * text (not the ?), for the row's control to be labelled by (`aria-labelledby`).
  */
-export function withHelp(label: string, help: Observable<ParamHelp | undefined> | undefined, id?: string) {
+export function withHelp(label: string, help: ReadonlyState<ParamHelp | undefined> | undefined, id?: string) {
   if (!help)
     return {
       head: (
@@ -64,7 +66,7 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
       block: null as Child,
     };
   const open = observableState(false);
-  const has = help.pipe(map((h) => !!h));
+  const has = derive(help, (h) => !!h);
   const head = (
     <>
       {/* With help, the text is underlined (dotted) and opens it too, as the ? does. */}
@@ -72,7 +74,7 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
         class={classes.text}
         id={id}
         data-tip-overflow=""
-        data-help={has.pipe(map((h) => (h ? '' : undefined)))}
+        data-help={derive(has, (h) => (h ? '' : undefined))}
         onClick={(e) => {
           if (!e.currentTarget.hasAttribute('data-help')) return;
           e.stopPropagation();
@@ -103,7 +105,7 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
   return { head, block: <HelpBlock help={help} open={open} /> };
 }
 
-function HelpBlock(props: { help: Observable<ParamHelp | undefined>; open: ObservableState<boolean> }) {
+function HelpBlock(props: { help: ReadonlyState<ParamHelp | undefined>; open: ObservableState<boolean> }) {
   return (
     <Show when={props.open} reveal>
       {() => (

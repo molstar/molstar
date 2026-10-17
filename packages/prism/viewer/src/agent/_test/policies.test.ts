@@ -56,6 +56,8 @@ describe('the agent policy', () => {
     rules.allow('example.org', 'session');
     expect(p.approves(net, { url: 'https://data.example.org/x.cif' })).toBe(true);
     expect(allowedAddress('https://evil-rcsb.org/x', rules)).toBe(false);
+    // AlphaFold DB (the model-archive extension's PAE fetch) is under ebi.ac.uk.
+    expect(allowedAddress('https://alphafold.ebi.ac.uk/api/prediction/P04637', rules)).toBe(true);
   });
 
   it('asks for an address it cannot read whole, and for a network operation that does not say what it reaches', () => {

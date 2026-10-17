@@ -285,7 +285,7 @@ describe('pointer events', () => {
   it('say what is under the pointer as a target', async () => {
     const v = await create();
     await v.api.load.files({ files: [cbs()] });
-    const r = await (await import('../../sources/targets.js')).createTargetResolver(v.plugin).resolve('A:30');
+    const r = await (await import('../../_test/harness.js')).targetsOf(v).resolve('A:30');
     if (!r.ok) throw new Error(r.message);
     const events: ViewerPointerEvent[] = [];
     v.events.hover.subscribe((e) => events.push(e));

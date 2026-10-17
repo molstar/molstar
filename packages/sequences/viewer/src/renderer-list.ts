@@ -14,6 +14,7 @@ import { ColorRenderer } from './renderers/color.js';
 import { CategoryColumn, FractionColumn, NumberColumn, TextColumn } from './renderers/columns.js';
 import { DotPlotRenderer } from './renderers/dot-plot.js';
 import { EmphasisRenderer } from './renderers/emphasis.js';
+import { FrameRenderer } from './renderers/frame.js';
 import { LettersRenderer } from './renderers/letters.js';
 import { LogoRenderer } from './renderers/logo.js';
 import { MapRenderer } from './renderers/map.js';
@@ -42,6 +43,7 @@ export const KernelRenderers: readonly LayerRenderer[] = [
   LogoRenderer,
   MatrixRenderer,
   DotPlotRenderer,
+  FrameRenderer,
   MapRenderer,
 ] as readonly LayerRenderer[];
 

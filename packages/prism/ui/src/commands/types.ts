@@ -70,7 +70,14 @@ export interface CommandDefinition<Ctx> {
   alias?: string | readonly string[];
   /** Shown in the menu, e.g. ['⌥', 'T']. */
   keys?: readonly string[];
+  /** Its default key; an app's and the person's keymap may replace it (`Keymap`, commands.md §6). */
   shortcut?: KeyChord;
+  /**
+   * Where its shortcut works (commands.md §6): `global` (the default: anywhere in the app) or a scope id (`canvas`,
+   * `panel:<tab id>`, …) that an element around the focus names with `data-msp-scope`. Inside its scope it wins over a
+   * global command on the same key.
+   */
+  scope?: string;
   /** Can it run now? A string says why not; the command stays listed, greyed. */
   when?(ctx: Ctx): true | string;
   /**
@@ -89,8 +96,16 @@ export interface CommandDefinition<Ctx> {
   presets?(ctx: Ctx): readonly CommandPreset[];
   /** Initial values, e.g. from the selection. */
   defaults?(ctx: Ctx): CommandValues;
-  /** What it would do, while the form is open (handed to the PreviewSink as it is). */
+  /**
+   * What it would do, handed to the PreviewSink as it is: while its form is open, and, for a command without params,
+   * while its row is highlighted in the command menu (commands.md §5).
+   */
   preview?(args: CommandArgs, ctx: Ctx): unknown;
+  /**
+   * How much it would do, in a few words ("412 residues"), shown on its highlighted row in the command menu: computed
+   * for that row only, and `signal` aborts when the highlight moves (commands.md §5). Commands without params only.
+   */
+  count?(args: CommandArgs, ctx: Ctx, signal: AbortSignal): string | undefined | Promise<string | undefined>;
   /** A last check across fields before running; a message blocks the run. */
   check?(args: CommandArgs, ctx: Ctx): string | undefined;
   /** Runs it. Once `signal` aborts (an explicit cancel), settle promptly: reject, or finish if the effect landed. */
@@ -113,6 +128,24 @@ export interface CommandGroup {
   parent?: string;
   /** Position among its siblings (lower first; registration order otherwise). */
   order?: number;
+  /**
+   * An argument set once for every command in the group (at any depth), shown in the command menu's header while
+   * browsing it: Select's mode (commands.md §5). A command without params gets it in its args; one with params whose
+   * params have its name starts its form from it.
+   */
+  shared?: SharedArgument;
+}
+
+/** A group's shared argument: one of a few named values. */
+export interface SharedArgument {
+  /** The arg's name (`mode`). */
+  name: string;
+  /** What it is called in the header ("Mode"). */
+  title: string;
+  /** Its values, [value, label]. */
+  options: readonly (readonly [value: string, label: string])[];
+  /** The value until the person picks another. */
+  default: string;
 }
 
 /** A ready start of a command: "Load structure… from AlphaFold DB". */
@@ -181,6 +214,18 @@ export type AssistResult =
 /** Reads words into a command's values. It proposes; nothing runs until confirmed. */
 export interface CommandAssistant<Ctx> {
   propose(request: AssistRequest<Ctx>, signal: AbortSignal): Promise<AssistResult>;
+}
+
+/**
+ * Keys by command id (commands.md §6): a chord replaces the command's own, `null` takes it away. What an app sets and what
+ * the person remaps.
+ */
+export type KeyBindings = Readonly<Record<string, KeyChord | null>>;
+
+/** Where the person's remapped keys are kept (the viewer: its preferences); a store that throws keeps nothing. */
+export interface KeymapStore {
+  load(): KeyBindings | undefined;
+  save(bindings: KeyBindings): void;
 }
 
 /** Recently used command ids, most recent first (e.g. kept in the browser). */

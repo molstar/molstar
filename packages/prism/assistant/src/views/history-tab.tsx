@@ -8,12 +8,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon, ScrollArea, For, Show, observableState, type StatusModel, LogView } from '@molstar/prism-ui';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
-import type { AgentModel, AgentTurn, CommandRun, HistoryItem } from '../model.js';
-import { isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.js';
+import {
+  Icon,
+  ScrollArea,
+  For,
+  Show,
+  observableState,
+  type NotificationsManager,
+  LogView,
+  type ReadonlyState,
+} from '@molstar/prism-ui';
+import type { AgentModel, AgentTurn, HistoryItem } from '../model.js';
+import { held, isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.js';
 import { classes } from './_generated/history-tab.module.css.js';
 
+import { derive } from '@molstar/prism-ui/reactive/state';
+import { bind } from '@molstar/prism-ui/dom/scope';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
 
 function ago(time: Date) {
@@ -28,20 +39,24 @@ function ago(time: Date) {
  * and an agent's grouped under its request, with the checkpoint before it (Undo turn); the status messages under
  * Messages.
  */
-export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
+export function HistoryTab(props: { agent: AgentModel; status: NotificationsManager }) {
   const { agent } = props;
   const view = observableState<'commands' | 'messages'>('commands');
   // By id, newest first: an item's record is replaced as its turn runs, and an item made anew would lose its fold.
-  const ids = agent.history.pipe(
-    map((h) => h.map(keyOf).reverse()),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  const ids = derive(
+    agent.history,
+    (h) => h.map(keyOf).reverse(),
+    (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
-  const live = (id: string) =>
-    agent.history.pipe(
-      map((h) => h.find((x) => keyOf(x) === id)),
-      filter((x): x is HistoryItem => !!x),
-      distinctUntilChanged(),
-    );
+  // The items by key, one map a change; an item is told only when its own record changes (a `find` an item, for each of
+  // its fields, on every publish was items² a frame while a turn streams).
+  const byKey = keyedState<string, HistoryItem>();
+  bind(agent.history, (h) => {
+    const m = new Map<string, HistoryItem>();
+    for (const x of h) m.set(keyOf(x), x);
+    byKey.replace(m);
+  });
+  const live = (id: string) => held(byKey.key(id), (x): x is HistoryItem => !!x);
   return (
     <div class={classes.tab}>
       <div class={classes.switch} role="tablist" aria-label="History">
@@ -50,17 +65,14 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
             type="button"
             role="tab"
             class={classes.switchButton}
-            aria-selected={view.asReadonly.pipe(map((x) => x === v))}
+            aria-selected={derive(view.asReadonly, (x) => x === v)}
             onClick={() => view.set(v)}
           >
             {v === 'commands' ? 'Commands' : 'Messages'}
           </button>
         ))}
       </div>
-      <Show
-        when={view.asReadonly.pipe(map((v) => v === 'commands'))}
-        fallback={() => <LogView status={props.status} />}
-      >
+      <Show when={derive(view.asReadonly, (v) => v === 'commands')} fallback={() => <LogView status={props.status} />}>
         {() => (
           <ScrollArea
             class={classes.list}
@@ -76,16 +88,16 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
               )}
             >
               {(id) => {
-                const item = agent.history.value.find((x) => keyOf(x) === id)!;
+                const item = byKey.get(id) ?? agent.history.value.find((x) => keyOf(x) === id)!;
                 return item.kind === 'run' ? (
                   <div class={classes.item}>
-                    <RunRow run={live(id).pipe(map((x) => (x as { kind: 'run'; run: CommandRun }).run))} />
+                    <RunRow run={derive(live(id), (x) => (x as Extract<HistoryItem, { kind: 'run' }>).run)} />
                     <span class={classes.when}>{ago(item.run.time)}</span>
                   </div>
                 ) : (
                   <TurnItem
                     agent={agent}
-                    turn={live(id).pipe(map((x) => (x as { kind: 'turn'; turn: AgentTurn }).turn))}
+                    turn={derive(live(id), (x) => (x as Extract<HistoryItem, { kind: 'turn' }>).turn)}
                     id={id}
                     time={item.turn.time}
                   />
@@ -100,58 +112,49 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
 }
 
 /** An agent's turn: who and what was asked, its answer, its commands (folded once done), and its checkpoint. */
-function TurnItem(props: { agent: AgentModel; turn: Observable<AgentTurn>; id: string; time: Date }) {
+function TurnItem(props: { agent: AgentModel; turn: ReadonlyState<AgentTurn>; id: string; time: Date }) {
   const { agent, turn, id } = props;
   const open = observableState(false);
-  const running = turn.pipe(map(isRunning), distinctUntilChanged());
-  const undone = turn.pipe(
-    map((t) => !!t.undone),
-    distinctUntilChanged(),
-  );
+  const running = derive(turn, isRunning);
+  const undone = derive(turn, (t) => !!t.undone);
   return (
-    <section
-      class={classes.turn}
-      data-undone={undone.pipe(map((u) => (u ? '' : undefined)))}
-      aria-label="Assistant turn"
-    >
+    <section class={classes.turn} data-undone={derive(undone, (u) => (u ? '' : undefined))} aria-label="Assistant turn">
       <div class={classes.turnHead}>
         <Icon name="sparkles" size={14} class={classes.spark} />
         <span class={classes.who}>
-          {turn.pipe(map((t) => (t.source.kind === 'agent' ? t.source.name : 'Assistant')))}
+          {derive(turn, (t) => (t.source.kind === 'agent' ? t.source.name : 'Assistant'))}
         </span>
         <span class={classes.when}>{ago(props.time)}</span>
       </div>
-      <p class={classes.prompt}>“{turn.pipe(map((t) => t.prompt))}”</p>
-      <Show when={turn.pipe(map((t) => (isRunning(t) ? '' : t.text)))}>
+      <p class={classes.prompt}>“{derive(turn, (t) => t.prompt)}”</p>
+      <Show when={derive(turn, (t) => (isRunning(t) ? '' : t.text))}>
         {(text) => <p class={classes.answer}>{text}</p>}
       </Show>
       <button type="button" class={classes.fold} aria-expanded={open.asReadonly} onClick={() => open.set(!open.value)}>
-        <span>{turn.pipe(map(turnSummary))}</span>
+        <span>{derive(turn, turnSummary)}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
       {/* Its commands: shown while it runs, folded once it is done. */}
-      <Show when={combineLatest([open.asReadonly, running]).pipe(map(([o, r]) => o || r))} reveal>
+      <Show when={derive([open.asReadonly, running], (o, r) => o || r)} reveal>
         {() => <RunList turn={turn} class={classes.runs} />}
       </Show>
       {/* Its checkpoint, held until the next action: Undo turn goes back to it; after that, it says why it cannot. */}
-      <Show when={turn.pipe(map((t) => !isRunning(t)))}>
+      <Show when={derive(turn, (t) => !isRunning(t))}>
         {() => (
           <div class={classes.checkpoint}>
             <Icon name="undo-2" size={12} class={classes.checkpointMark} />
             <span class={classes.checkpointText}>
-              {turn.pipe(
-                map((t) =>
-                  t.undone
-                    ? 'Undone: back to how it was before'
-                    : t.checkpoint
-                      ? 'Checkpoint before it'
-                      : t.runs.some((r) => !r.read)
-                        ? 'No longer undoable: something came after it'
-                        : 'Nothing to undo',
-                ),
+              {derive(turn, (t) =>
+                t.undone
+                  ? 'Undone: back to how it was before'
+                  : t.checkpoint
+                    ? 'Checkpoint before it'
+                    : t.runs.some((r) => !r.read)
+                      ? 'No longer undoable: something came after it'
+                      : 'Nothing to undo',
               )}
             </span>
-            <Show when={turn.pipe(map((t) => t.checkpoint && !t.undone))}>
+            <Show when={derive(turn, (t) => t.checkpoint && !t.undone)}>
               {() => <UndoTurn agent={agent} id={id} />}
             </Show>
           </div>

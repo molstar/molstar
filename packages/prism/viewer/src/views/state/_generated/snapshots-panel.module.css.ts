@@ -138,36 +138,42 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 }
 
 .msp-viewer-snapshots-panel-item {
-  min-width: 0;
-  display: grid;
-}
-
-.msp-viewer-snapshots-panel-row {
   align-items: center;
   gap: var(--msp-space-3);
   min-width: 0;
-  height: 28px;
-  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  height: max(28px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-1) 0 0;
   border-radius: var(--msp-radius-md);
-  cursor: default;
-  user-select: none;
   display: flex;
 
   &:hover {
     background: var(--msp-color-hover);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-
-  &[aria-selected="true"] {
+  &[data-current] {
     background: var(--msp-color-control);
 
     & .msp-viewer-snapshots-panel-name {
       color: var(--msp-color-accent);
     }
+  }
+}
+
+.msp-viewer-snapshots-panel-row {
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  cursor: default;
+  user-select: none;
+  flex: 1;
+  display: flex;
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 }
 
@@ -200,12 +206,12 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
     color: var(--msp-color-text);
   }
 
-  .msp-viewer-snapshots-panel-row:hover &, [data-dragging] & {
+  .msp-viewer-snapshots-panel-item:hover &, [data-dragging] & {
     opacity: 1;
   }
 }
 
-.msp-viewer-snapshots-panel-row:hover .msp-viewer-snapshots-panel-index, [data-dragging] .msp-viewer-snapshots-panel-index {
+.msp-viewer-snapshots-panel-item:hover .msp-viewer-snapshots-panel-index, [data-dragging] .msp-viewer-snapshots-panel-index {
   visibility: hidden;
 }
 
@@ -279,9 +285,9 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
 }
 
 .msp-viewer-snapshots-panel-action {
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-sm);
-  width: 22px;
-  height: 22px;
   color: var(--msp-color-text-muted);
   opacity: 0;
   place-items: center;
@@ -291,7 +297,7 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
     opacity: 1;
   }
 
-  .msp-viewer-snapshots-panel-row:hover &, .msp-viewer-snapshots-panel-row:focus-within &, &[aria-expanded="true"] {
+  .msp-viewer-snapshots-panel-item:hover &, .msp-viewer-snapshots-panel-item:focus-within &, &[aria-expanded="true"] {
     opacity: 1;
   }
 

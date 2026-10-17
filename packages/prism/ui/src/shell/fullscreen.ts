@@ -14,10 +14,15 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
  * expanding only fills the frame, so there fullscreen is what Expand should do; it needs the embedding page to allow
  * it (`<iframe allow="fullscreen">`), and without that it is not offered (molstar#1663). Leaving fullscreen by Escape
  * (or the browser's own controls) is followed.
+ *
+ * Several viewers on a page (viewer README decision 29): the state is that of this model's own element only. Another
+ * element going fullscreen (or leaving it) does not flip this one, and its button enters fullscreen even while another
+ * viewer is in it (the browser moves it), instead of leaving the other's. `fullscreenchange` is heard on the document
+ * (it bubbles from any element), but only recomputed against the own element.
  */
 export class FullscreenModel {
   readonly #active = observableState(false);
-  readonly #onChange = () => this.#active.set(document.fullscreenElement === this.target());
+  readonly #onChange = () => this.#active.set(this.#isOwn());
 
   /** Whether the page may go fullscreen at all (false in an iframe that does not allow it). */
   readonly available: boolean;
@@ -28,6 +33,15 @@ export class FullscreenModel {
     this.available = typeof document !== 'undefined' && !!document.fullscreenEnabled;
     this.embedded = typeof window !== 'undefined' && window.self !== window.top;
     if (typeof document !== 'undefined') document.addEventListener('fullscreenchange', this.#onChange);
+  }
+
+  /** Whether the own element is the fullscreen one: asked of its own root, so an element inside a shadow root counts. */
+  #isOwn(): boolean {
+    const element = this.target();
+    if (!element || typeof document === 'undefined') return false;
+    const root = element.getRootNode();
+    const current = (root as Partial<DocumentOrShadowRoot>).fullscreenElement;
+    return (current ?? document.fullscreenElement) === element;
   }
 
   /**
@@ -50,7 +64,7 @@ export class FullscreenModel {
   async toggle() {
     if (!this.available) return;
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
+      if (this.#isOwn()) await document.exitFullscreen();
       else await this.target()?.requestFullscreen();
     } catch (e) {
       console.error(e);

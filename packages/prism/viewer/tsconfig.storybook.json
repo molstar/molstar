@@ -5,7 +5,9 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": ".",
+    // The repository: the Mol* adapter's allocation guards (src/sequence/molstar/_test/*.{quick,heap}.ts) run on Seq*'s
+    // harness (packages/sequences/core/_test/model).
+    "rootDir": "../../..",
     "types": ["node", "webxr"],
     "jsxImportSource": "@molstar/prism-ui/dom",
     "lib": ["ES2023", "DOM", "DOM.Iterable"]

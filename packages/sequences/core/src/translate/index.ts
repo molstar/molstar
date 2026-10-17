@@ -6,8 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export { Coordinates, SeqSystemPrefix } from './coordinates.js';
 export { IndexKinds } from './indices.js';
 export { TranslateMaps } from './maps.js';
+export { SystemRegistry, type SystemRegistryOptions } from './registry.js';
 export {
   type IndexKind,
   type SystemDescriptor,

@@ -548,7 +548,7 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.chains',
     title: 'Superpose by chains',
     params: {
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       targets: TargetsParam('The polymer chain (or residues within it) to superpose'),
       ...SuperpositionOptions,
     },
@@ -582,7 +582,7 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.tm-align',
     title: 'Superpose by TM-align',
     params: {
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       targets: TargetsParam(
         'The polymer chain to superpose',
         ' Sequence-independent: for chains of low sequence identity.',
@@ -637,7 +637,7 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.ligands',
     title: 'Superpose by ligands',
     params: {
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       targets: TargetsParam(
         'The ligand (one residue) to superpose',
         ' Matched by atom names when the compound is the same, else by the maximum common connected subgraph.',
@@ -705,7 +705,7 @@ export class SuperposeApi extends ApiArea {
     id: 'superpose.atoms',
     title: 'Superpose by atoms',
     params: {
-      language: LanguageParam(),
+      language: LanguageParam(this.ctx.languages),
       targets: TargetsParam(
         'The atoms to superpose',
         ` The same number in each, paired in the order the structure holds them; at least ${MinAtoms}.`,

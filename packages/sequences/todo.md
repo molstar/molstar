@@ -19,26 +19,6 @@ next look.
 Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:model#pieces-and-layout-maps`) with the
 biology at application level, never in the core.
 
-**Coordinate systems as a primitive of their own** (David, 2026-10-15). The model is headless already: systems and maps
-(`CoordinateSystem`, `Coords`), mappings and composed paths (`Mappings`, `Paths`) in `@molstar/seq-core/model`, and the
-`Translator` in `@molstar/seq-core/translate`. What makes them usable by name stops at the viewer, though:
-
-- Naming a set's own systems by key (`seqstar:<ref>`) and building their descriptors happens in the viewer's
-  `SystemRegistry` (`viewer/src/systems.ts`), which runs on the viewer's `state` and the shown set.
-- The `Coordinates` type (runs by system key) and `coordinatesOf` live in `viewer/src/systems.ts` and
-  `viewer/src/projection.ts`.
-- A Mol\* structure registers its complex system through a viewer's `ctx.systems` (`molstar-poc/src/link.ts`, Prism's
-  `sequence/link.ts`).
-
-Move these into core, as a `@molstar/seq-core/systems` entry or into `/translate`: a registry over a `SeqSet` with no
-viewer, which reports changes through a plain callback; `Coordinates` and its conversions to and from loci and `Extents`
-go with it. The viewer's `ctx.systems` becomes that registry plus its reactive `version`, and the structure link
-attaches to the registry rather than to a viewer. Then a host can map between a structure, a sequence set, an
-alignment's columns and a transcript without drawing anything (an agent tool, MVS or SVS validation, a server, a
-headless test), and a viewer joins the same registry later. `seqspec:libraries#translate` and
-`seqspec:interaction#focus` move with it. _Trigger:_ a consumer of the mapping without a viewer, or the next change to
-`ctx.systems`.
-
 **Loci and coordinates on input events** (2026-10-14, from input as streams: `seqspec:interaction#streams`).
 `ctx.interaction`'s payloads carry refs and indices (`part`, `at`: layer, lane, block, index, row, item), not the hit's
 loci or its `Coordinates`; a consumer that wants them reads `hover.toLoci()` (the hover) or resolves the refs. To add
@@ -53,6 +33,26 @@ the text view, set a track's height, a values layer's encoding and the tracks' o
 part (add from the selection with a label and a color, list, delete, from the bookmark actions) colors its ranges by
 their `color` column (`field_color`), drawn in text as underlines or, with a height, in full. _Trigger:_ Prism's
 sequence panel beyond its first slice, or a figure workflow asking for it.
+
+**A row's own band in an alignment's text** (David, 2026-10-17, from rows in text: `seqspec:viewer#rows-in-text`). The
+hover and the selection over the rows drawn as text light columns over the line's bands, as on letters; a rows track in
+tracks lights the hovered row's band and draws a selection on rows as rectangles. In text: the hovered row's text row on
+the line (`hoverRow`'s band) and a selection's rows alone (the marks' runs per row, drawn on the rows' text rows).
+_Trigger:_ a figure read closely by hovering, or a selection on rows wanted visible in text.
+
+**A row drag in an alignment's text** (David, 2026-10-17). A drag in text selects positions (an alignment's columns), so
+a frame over chosen rows is made in the Tracks view (a rectangle over rows) or as data. In text: a drag starting on a
+row selecting that row's residues line by line, Alt for a rectangle over rows (as in tracks), so the Annotations panel's
+Frame and Box on a row take chosen rows there too. _Trigger:_ the alignment figure's frames made by hand in text.
+
+**Tracks between an alignment's rows in text** (David, 2026-10-17). Other tracks sit before or after the rows track,
+above or below the whole block; a track drawn under one row (a row's own secondary structure inside the block) is not
+designed. _Trigger:_ a figure that needs a per-row track inside the block (ESPript's own figures do not).
+
+**Gaps in the `espript` shading.** The theme's shares are of a column's residues (`rules`' `share`), so a column of one
+residue and seven gaps reads as identical (black); ESPript's identity counts the sequences. A measure of the column's
+gap share (or of its residues' count) would let a rule require most rows. _Trigger:_ a figure of a gappy alignment read
+as wrongly conserved.
 
 **An item coordinate system's own letters.** A letters track on a transcript's block, derived lazily from the source's
 streamed letters through its map (as the codon label reads them); until then a `letters` layer on an item block draws
@@ -251,7 +251,7 @@ its canvas: a limitation. The design: a `pointerType` int on `PointerInput`; wra
 `touch-action: pan-y`, so a touch drag scrolls the page or the box; a long press (about 450 ms within the slop) starts a
 selection drag, and a tap selects as a click. _Trigger:_ a touch host, or a reader on a tablet.
 
-**The Mol\* adapter** (moving to Mol\*'s repository):
+**The Mol\* adapter** (now the Prism viewer's, `packages/prism/viewer/src/sequence/molstar/`):
 
 - `molql` returning one group per chain, not one group (`seqspec:libraries#the-mol-adapter`);
 - the query result line names units by `label_asym_id`; chain naming is to be solved on the host's side;
@@ -324,6 +324,13 @@ Known, measured, unowned: whoever next touches the code takes one, and its commi
     come to ~51 kB minified (the streamed sources themselves, GMOD and tiles, are not in the default spec), but the
     context makes the manager always and ~30 viewer modules read it. Not worth the refactor for Prism's band (David
     decided its default is everything but streaming, 2026-10-16: it keeps the default until a trim pays).
+
+- **A frame layer's titles read every item's hull per line** (`renderers/frame.ts`, `draw`; found 2026-10-17): the outer
+  loop calls `runHull` on each item of the layer for every line drawn, O(items) a line, so a wrapped view of many lines
+  and thousands of titled frames reads lines × items hulls a frame. The search for the next title stops at the line's
+  end (2026-10-17); the outer loop could start at the line's first item, a binary search over the items' starts on a
+  forward block, once a cyclic block's origin (its shown order wraps) is handled. _Trigger:_ a document with thousands
+  of frames in the text, or the figure's quick case above its baseline.
 
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates

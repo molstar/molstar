@@ -7,6 +7,7 @@
  */
 
 import { type State, type StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
+import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { mergeParams } from './params.js';
@@ -566,13 +567,18 @@ export async function updateEach(
   what: string,
 ): Promise<ApiResult> {
   const changed: StateObjectCell[] = [];
+  // One build, one commit (`updateTransform`'s, all of them): a commit a cell walked the whole tree and synced the
+  // viewer once each (cells × the tree, with a selector over many structures).
+  const state = ctx.plugin.state.data;
+  const tree = state.build();
   for (const { cell } of refs) {
     const current = cell.transform.params as Record<string, unknown>;
     const next = mergeParams(current, patch);
     if (JSON.stringify(next) === JSON.stringify(current)) continue;
-    await ctx.plugin.state.updateTransform(ctx.plugin.state.data, cell.transform.ref, next, what);
+    tree.to(cell.transform.ref).update(next);
     changed.push(cell);
   }
+  if (changed.length) await PluginCommands.State.Update(ctx.plugin, { state, tree, options: { canUndo: what } });
   const name = (list: readonly StateObjectCell[]) =>
     list.length === 1 ? nodeLine(list[0]) : `${list.length} ${what.toLowerCase()}s`;
   if (!changed.length)

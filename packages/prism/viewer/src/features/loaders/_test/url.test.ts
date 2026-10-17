@@ -158,3 +158,21 @@ describe('runUrlLoads', () => {
     expect(r.result).toMatchObject({ ok: false, code: 'invalid' });
   });
 });
+
+describe('load.url: an address that does not answer', () => {
+  it('says the fetch failed, not a TypeError about a missing cell', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed');
+      }),
+    );
+    const v = await headlessViewer({ extensions: [LoadersFeature] });
+    const r = await v.api.load.url!({ url: 'https://nowhere.test/a.cif', format: 'mmcif' });
+    expect(r.ok).toBe(false);
+    const text = JSON.stringify(r);
+    expect(text).not.toContain("reading 'cell'");
+    expect(text.toLowerCase()).toMatch(/fetch|download|network|could not/);
+    expect(text).toContain('nowhere.test');
+  });
+});

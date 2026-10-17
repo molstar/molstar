@@ -12,7 +12,10 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'content': 'msp-virtual-list-content',
+  'enter': 'msp-virtual-list-enter',
+  'glide': 'msp-virtual-list-glide',
   'list': 'msp-virtual-list-list',
+  'row': 'msp-virtual-list-row',
   'window': 'msp-virtual-list-window',
 } as const;
 
@@ -23,14 +26,43 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
 
 .msp-virtual-list-content {
   contain: strict;
+  background-image: linear-gradient(to bottom,
+    transparent 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 62%,
+    transparent 62%);
+  background-size: calc(100% - 2 * var(--msp-space-6)) var(--msp-virtual-row, 26px);
+  background-repeat: repeat-y;
+  background-position: var(--msp-space-6) 0;
   width: 100%;
   position: relative;
 }
 
 .msp-virtual-list-window {
   will-change: transform;
+  background-color: var(--msp-surface, var(--msp-color-panel));
   position: absolute;
   inset: 0 0 auto;
+}
+
+.msp-virtual-list-row {
+  contain: layout style;
+  background-color: var(--msp-surface, var(--msp-color-panel));
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.msp-virtual-list-glide {
+  z-index: 1;
+  transition: transform var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.msp-virtual-list-enter {
+  animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.msp-virtual-list-list[data-edge] .msp-virtual-list-window, .msp-virtual-list-list[data-edge] .msp-virtual-list-row {
+  right: var(--msp-scroll-edge, var(--msp-space-2));
 }
 }
 `);

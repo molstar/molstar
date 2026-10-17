@@ -28,7 +28,7 @@ describe('the session record', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api });
     const person = v.api.as({ kind: 'person' });
-    expectOk(await person.styles.apply({ style: 'surface' }));
+    expectOk(await person.styles.apply({ style: 'spacefill' }));
     expectOk(await v.api.structure.list());
     expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'cartoon' }));
     await record.flush();
@@ -79,7 +79,7 @@ describe('the session record', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });
     const turn = record.beginTurn('t1', 'make it a surface');
-    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'spacefill' }));
     await record.flush();
     expect((await record.read(10)).items.find((i) => i.entry.kind === 'turn')?.open).toBe(true);
     await turn.settle({ reply: 'Done.', outcome: 'done' });
@@ -99,7 +99,7 @@ describe('the session record', () => {
   it('is kept on purpose: copied in order and listed in the index, and goes on there', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const record = await createSessionRecord({ api: v.api });
-    expectOk(await v.api.styles.apply({ style: 'surface' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     const rows = createMemoryRows<ThreadTable>();
     const index = await createRecordIndex(rows);
     await record.keep(rows, index, '1CBS');

@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domView } from '../../../dom/view.js';
 import { render } from '../../../dom/render.js';
 import { ShellModel, type ShellViewContext } from '../../../shell/shell.js';
-import { StatusModel } from '../../../shell/status.js';
+import { NotificationsManager } from '../../../managers/notifications.js';
 import { ShellView } from '../shell-view.js';
 
 // Expanded (`view.expand`, navigation.expanded): the canvas fills the viewer; the rail, the panels and the band are
@@ -49,7 +49,10 @@ function mount() {
   shell.show('structure');
   const container = document.createElement('div');
   document.body.append(container);
-  const dispose = render(() => <ShellView shell={shell} status={new StatusModel()} canvas={<canvas />} />, container);
+  const dispose = render(
+    () => <ShellView shell={shell} status={new NotificationsManager()} canvas={<canvas />} />,
+    container,
+  );
   const root = container.firstElementChild as HTMLElement;
   return {
     shell,

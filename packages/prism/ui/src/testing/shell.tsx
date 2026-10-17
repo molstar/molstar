@@ -21,7 +21,7 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
 import { ShellModel, type ShellTab } from '../shell/shell.js';
-import { StatusModel } from '../shell/status.js';
+import { NotificationsManager } from '../managers/notifications.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { CommandMenu, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
 import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
@@ -32,6 +32,7 @@ import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
 import { mockSettings } from './settings.js';
 
+import { derive } from '../reactive/state.js';
 // The mock frame (prism-ui's own stories): the shell and its view, the status column, the theme, fullscreen, the
 // command menu, Log, Settings and Help, around a mode that fills the canvas (`mockBlankMode`: an empty one). The viewer's
 // and the assistant's stories run the real viewer instead (`@molstar/prism-viewer/testing/real-viewer`).
@@ -39,7 +40,7 @@ import { mockSettings } from './settings.js';
 /** What the frame gives its mode. */
 export interface MockFrameContext {
   shell: ShellModel;
-  status: StatusModel;
+  status: NotificationsManager;
   loaded: boolean;
   /** The canvas background (a CSS color). */
   background?: string;
@@ -111,10 +112,12 @@ export interface ShellStoryProps {
   pinned?: boolean;
   /** A compact rail (`ShellOptions.compactRail`): the rail column hidden behind the canvas corner's button. */
   compact?: boolean;
+  /** The canvas toolbar is one button with a menu (`ShellOptions.toolbar`). */
+  toolbarCollapsed?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** Tabs of the story's own (a React panel), with the shell and the status column to work with. */
-  tabs?: (ctx: { shell: ShellModel; status: StatusModel }) => readonly ShellTab[];
+  tabs?: (ctx: { shell: ShellModel; status: NotificationsManager }) => readonly ShellTab[];
 }
 
 /** The mock frame running a mode (`mockBlankMode`). */
@@ -122,9 +125,10 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
   const { mode } = props;
   const shell = new ShellModel({
     compactRail: !!props.compact,
+    ...(props.toolbarCollapsed ? { toolbar: 'collapsed' as const } : {}),
     docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
   });
-  const status = new StatusModel();
+  const status = new NotificationsManager();
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
   const commandMenuGroup = observableState<string | undefined>(undefined);
@@ -134,6 +138,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
   };
   // The plugin root goes fullscreen (in the stories, the story page).
   const fullscreen = new FullscreenModel(() => document.documentElement);
+  onCleanup(() => fullscreen.dispose());
   // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
   const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
   theme.applyTo(document.documentElement);
@@ -179,12 +184,10 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
       priority: 100,
       icon: 'sun',
       title: 'Theme',
-      face: theme.theme.pipe(
-        map((t) => {
-          const current = UIThemes.find((u) => u.id === t)!;
-          return { icon: current.icon, title: `Theme: ${current.title}` };
-        }),
-      ),
+      face: derive(theme.theme, (t) => {
+        const current = UIThemes.find((u) => u.id === t)!;
+        return { icon: current.icon, title: `Theme: ${current.title}` };
+      }),
       run: () => theme.next(),
     },
     {

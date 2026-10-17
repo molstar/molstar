@@ -58,8 +58,13 @@ export interface ThemeScheme {
   readonly columns: boolean;
   readonly theme: ThemeRef;
   readonly dark?: ThemeRef;
-  /** What the legend lists. */
+  /**
+   * What the legend lists beside the theme's own (a table whose rules carry no labels), in `theme`'s colors; `dark`
+   * draws other colors, so its variant lists `darkLegend` instead, never this.
+   */
   readonly legend?: readonly { readonly label: string; readonly color: string }[];
+  /** What the legend lists beside the `dark` theme's own. */
+  readonly darkLegend?: readonly { readonly label: string; readonly color: string }[];
 }
 export type SchemeDef = LetterScheme | RampScheme | CategoricalScheme | ThemeScheme;
 
@@ -126,6 +131,14 @@ const SCHEMES: Readonly<Record<string, SchemeDef>> = {
     theme: { theme: 'percent_identity' },
     dark: { theme: 'rules', params: { rules: percentIdentityRules(['#8080ff', '#5555b5', '#383870']) } },
   },
+  espript: {
+    kind: 'theme',
+    alphabets: P,
+    columns: true,
+    theme: { theme: 'espript' },
+    // Its rules are labeled: the theme's own legend lists identical and similar in the colors drawn, on either skin.
+    dark: { theme: 'espript', params: { identical: '#f0f0f0', similar: '#6b6b6b' } },
+  },
   nucleotide: groups(NT, 'A #64f73f A; C #ffb340 C; G #eb413c G; TU #3c88ee T, U'),
   purine_pyrimidine: groups(NT, 'AGR #ff83fa purine; CTUY #40e0d0 pyrimidine'),
   nucleotide_cb: groups(NT, 'A #009e73 A; C #0072b2 C; G #f0e442 G; TU #d55e00 T, U'),
@@ -148,6 +161,7 @@ zappo | Zappo | no | residues by physicochemical property | Jalview's published 
 taylor | Taylor | no | each residue its own hue, similar residues near | Taylor (1997) Protein Eng. 10:743, as Jalview publishes it, via Nightingale (MIT)
 hydrophobicity | Hydrophobicity | no | Kyte–Doolittle: red most hydrophobic, blue most hydrophilic | Kyte & Doolittle (1982) J. Mol. Biol. 157:105; Jalview's colors via Nightingale (MIT)
 percent_identity | Percent identity | yes | the consensus residue where more than 80, 60, 40% of the column agree | Jalview's published thresholds and colors (jalview.org help, Percentage Identity); the dark variant ours
+espript | ESPript | yes | identical columns black, similar residues grey (ESPript's shading, by residue groups) | ESPript's black-and-white figures (Robert & Gouet 2014, Nucleic Acids Res. 42:W320), approximated by groups: ours
 nucleotide | Nucleotide | no | A, C, G and T or U each a color | Jalview's published colors (jalview.org help, Colour Schemes), via Nightingale (MIT)
 purine_pyrimidine | Purine/pyrimidine | no | purines and pyrimidines | Jalview's published colors (jalview.org help, Colour Schemes), via Nightingale (MIT)
 nucleotide_cb | Nucleotide, Okabe–Ito | yes | A, C, G and T or U from the Okabe–Ito colors | Okabe & Ito (2008), Color Universal Design; the assignment ours
@@ -233,10 +247,10 @@ export function darkRamp(kind: 'sequential' | 'diverging', colors: readonly Colo
   return [...colors.slice(0, h).reverse(), ...mid, ...colors.slice(colors.length - h).reverse()];
 }
 
-/** The scheme's variant for the skin, `dark` resolved: given, "same", or derived. */
+/** The scheme's variant for the skin, `dark` resolved: given, "same", or derived; a theme's legend follows it. */
 export function schemeVariant(def: SchemeDef, dark: boolean): SchemeDef {
   if (!dark || def.dark === 'same') return def;
-  if (def.kind === 'theme') return def.dark ? { ...def, theme: def.dark } : def;
+  if (def.kind === 'theme') return def.dark ? { ...def, theme: def.dark, legend: def.darkLegend } : def;
   if (def.kind === 'letters') return def.dark ? { ...def, ...def.dark } : def;
   if (def.kind === 'categorical') return def.dark ? { ...def, colors: def.dark as CategoricalScheme['colors'] } : def;
   return { ...def, colors: (def.dark as readonly ColorStop[] | undefined) ?? darkRamp(def.kind, def.colors) };

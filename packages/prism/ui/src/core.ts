@@ -13,6 +13,8 @@
 export * from './reactive/combine-behaviors.js';
 export * from './reactive/disposable-group.js';
 export * from './reactive/keyed-selector.js';
+export * from './reactive/keyed-state.js';
+export * from './reactive/work-queue.js';
 export * from './reactive/map-state.js';
 export * from './reactive/observable-state.js';
 export * from './reactive/readonly-state.js';
@@ -30,12 +32,15 @@ export {
   MinDockSizes,
   type StoredViewLayout,
   type ViewLayout,
+  type ViewLayoutSeed,
   ViewStateManager,
 } from './managers/view-state.js';
 
 export * from './shell/shell.js';
 export * from './shell/theme.js';
 
+export * from './commands/items.js';
+export * from './commands/keymap.js';
 export * from './commands/keys.js';
 export * from './commands/manager.js';
 export * from './commands/types.js';

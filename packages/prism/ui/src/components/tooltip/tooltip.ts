@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { observeResize, on } from '../../dom/scoped.js';
 import { classes } from './_generated/tooltip.module.css.js';
 
 /** Shown after the pointer rests this long; moving to a neighbour while one is shown switches at once. */
@@ -19,7 +20,7 @@ const ShowDelayMs = 350;
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
  * one is cut off, from a pointer over a part: a card beside the row, outside its panel (`role="tabpanel"`, or
  * `data-tip-edge`) and clear of its edge, at the row's text size (on its left, or its right where there is no room).
- * Returns the uninstall function.
+ * Called in a scope (its listeners are `on`'s: paused and released with it); returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
   const tip = document.createElement('div');
@@ -34,7 +35,7 @@ export function installTooltips(root: HTMLElement): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   // While one is shown: the anchor's size. A view closing or hiding takes its anchor out without a pointerout, and the
   // tip would stay; an anchor that is gone or has no size ends it (no listener per event, one observer on one element).
-  const watch = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => !usable(target) && hide());
+  const watch = observeResize(undefined, () => !usable(target) && hide());
 
   const place = (el: HTMLElement) => {
     const row = el.dataset.tipRow !== undefined;
@@ -138,26 +139,22 @@ export function installTooltips(root: HTMLElement): () => void {
     // contains check on the one anchor, only while a tip is pending or shown.
     if (target && (!target.isConnected || (byPointer && !target.contains(e.target as Node)))) hide();
   };
-  root.addEventListener('pointerover', onOver);
-  root.addEventListener('pointermove', onMove, { passive: true });
-  root.addEventListener('pointerout', onOut);
-  root.addEventListener('focusin', onFocus);
-  root.addEventListener('focusout', hide);
-  root.addEventListener('pointerdown', hide);
-  window.addEventListener('keydown', hide);
-  window.addEventListener('scroll', hide, true);
+  // Scoped (rendering.md §2.4): detached while the scope is paused, gone with it (or with the returned function).
+  const offs = [
+    on(root, 'pointerover', onOver),
+    on(root, 'pointermove', onMove, { passive: true }),
+    on(root, 'pointerout', onOut),
+    on(root, 'focusin', onFocus),
+    on(root, 'focusout', hide),
+    on(root, 'pointerdown', hide),
+    on(window, 'keydown', hide),
+    on(window, 'scroll', hide, { capture: true }),
+  ];
   return () => {
     hide();
     tip.remove();
     watch?.disconnect();
-    root.removeEventListener('pointerover', onOver);
-    root.removeEventListener('pointermove', onMove);
-    root.removeEventListener('pointerout', onOut);
-    root.removeEventListener('focusin', onFocus);
-    root.removeEventListener('focusout', hide);
-    root.removeEventListener('pointerdown', hide);
-    window.removeEventListener('keydown', hide);
-    window.removeEventListener('scroll', hide, true);
+    for (const off of offs) off();
   };
 }
 

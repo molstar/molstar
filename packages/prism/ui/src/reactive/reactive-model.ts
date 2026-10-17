@@ -13,6 +13,7 @@ import { createDisposableGroup, type DisposableGroup } from './disposable-group.
 export abstract class ReactiveModel {
   #permanentGroup = createDisposableGroup();
   #mountGroup: DisposableGroup | undefined;
+  #mountController: AbortController | undefined;
   #mounting = false;
   #mounted = false;
   #retired = false;
@@ -69,6 +70,8 @@ export abstract class ReactiveModel {
       } catch {
         // The mount hook failed first; cleanup remains best effort and must not hide that failure.
       }
+      this.#mountController?.abort();
+      this.#mountController = undefined;
       throw error;
     } finally {
       this.#mounting = false;
@@ -94,6 +97,8 @@ export abstract class ReactiveModel {
     this.#mounted = false;
     const mountGroup = this.#mountGroup;
     this.#mountGroup = undefined;
+    const controller = this.#mountController;
+    this.#mountController = undefined;
     let failed = false;
     let failure: unknown;
     try {
@@ -110,6 +115,7 @@ export abstract class ReactiveModel {
         failure = error;
       }
     }
+    controller?.abort();
     if (failed) {
       throw failure;
     }
@@ -152,6 +158,15 @@ export abstract class ReactiveModel {
     if (failed) {
       throw failure;
     }
+  }
+
+  /**
+   * Aborted when this mount ends (`unmount`, `retire`, a throwing `onMount`); a remount gets a fresh one. For work
+   * that outlives a call but not the mount: fetches, timers, async loops. Read outside a mount, it is already aborted.
+   */
+  protected get mountSignal(): AbortSignal {
+    if (!this.#mounted) return AbortSignal.abort();
+    return (this.#mountController ??= new AbortController()).signal;
   }
 
   protected registerDispose(dispose: () => void): () => void {

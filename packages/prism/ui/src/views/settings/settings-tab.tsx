@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm, paramsMatch } from '../../components/params/params-form.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
@@ -18,6 +17,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import type { SettingsGroup, SettingsModel } from '../../model/settings.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive } from '../../reactive/state.js';
 import { classes } from './_generated/settings-tab.module.css.js';
 
 /**
@@ -32,9 +32,9 @@ export function SettingsTab(props: {
   const { model } = props;
   const query = observableState('');
   const q = query.asReadonly;
-  const none = q.pipe(
-    map((text) => text.trim().length > 0 && !model.groups.some((g) => paramsMatch(g.form.params, text))),
-    distinctUntilChanged(),
+  const none = derive(
+    q,
+    (text) => text.trim().length > 0 && !model.groups.some((g) => paramsMatch(g.form.params, text)),
   );
   return (
     <div class={classes.tab}>
@@ -65,18 +65,9 @@ export function SettingsTab(props: {
 function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open: boolean }) {
   const { group, query } = props;
   const own = observableState(props.open);
-  const searching = query.pipe(
-    map((t) => t.trim().length > 0),
-    distinctUntilChanged(),
-  );
-  const open = combineLatest([own.asReadonly, searching]).pipe(
-    map(([o, s]) => o || s),
-    distinctUntilChanged(),
-  );
-  const hidden = query.pipe(
-    map((t) => !paramsMatch(group.form.params, t)),
-    distinctUntilChanged(),
-  );
+  const searching = derive(query, (t) => t.trim().length > 0);
+  const open = derive([own.asReadonly, searching], (o, s) => o || s);
+  const hidden = derive(query, (t) => !paramsMatch(group.form.params, t));
   return (
     <section class={classes.group} hidden={hidden} aria-label={group.title}>
       <div class={classes.header}>

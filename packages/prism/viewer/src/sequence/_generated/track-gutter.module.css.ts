@@ -12,6 +12,7 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
   'gutter': 'msp-viewer-track-gutter-gutter',
+  'hint': 'msp-viewer-track-gutter-hint',
   'icon': 'msp-viewer-track-gutter-icon',
 } as const;
 
@@ -62,6 +63,24 @@ defineStyles('viewer/sequence/track-gutter.module.css', `@layer msp.components {
     &[data-active] {
       opacity: 1;
     }
+  }
+}
+
+.msp-viewer-track-gutter-hint {
+  margin-left: var(--msp-space-2);
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  &:hover, &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
   }
 }
 }

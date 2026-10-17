@@ -106,7 +106,7 @@ allow the caller to choose timestamps that are reproducible across time zones.
 ## Remaining architecture and release work
 
 - [ ] Seq\*, the sequence viewer, ported from Stories Untold into `packages/sequences` ([spec](../../packages/sequences/_spec/README.md)):
-  workspace packages, the fast tier in the root Vitest run, Mol\*'s msgpack and zip, molstar-poc on v6, its Storybook
+  workspace packages, the fast tier in the root Vitest run, Mol\*'s msgpack and zip, the Mol\* adapter on v6 (folded into the Prism viewer, `sequence/molstar/`), its Storybook
   and lint rules; then Prism over it ([spec](../../packages/prism/viewer/_spec/sequence.md)).
 - [ ] Rendering-backend extraction and GL resource/pass/readback redesign (owner: Alex; separate workstream).
 - [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty

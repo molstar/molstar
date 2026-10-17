@@ -11,7 +11,7 @@ import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 import { Expression } from '@molstar/query-language/language/expression';
 import { expressionValidationIssues } from '@molstar/query-language/language/validation';
-import { defaultQueryLanguage, queryLanguage, queryLanguages } from './languages.js';
+import { pageQueryLanguages, type QueryLanguages } from './languages.js';
 import type { Failure, MolQLSelector, QueryLanguage } from './types.js';
 
 // Ported from Stories Untold's `any-molql` (compile.ts). Failures are values: `{ ok: false, message, hint }`.
@@ -32,14 +32,20 @@ export const LanguageName: Record<QueryLanguage, string> = {
 
 /**
  * A selection written as text in a query language this viewer reads (its spec's `languages`: PyMOL, VMD, Jmol,
- * MolScript) as MolQL, checked by Mol*'s query compiler. Errors are said in words the writer can act on.
+ * MolScript) as MolQL, checked by Mol*'s query compiler. Errors are said in words the writer can act on. `languages` is
+ * the viewer's set (the page-wide one when none is given).
  */
-export function compileQuery(text: string, language: QueryLanguage = defaultQueryLanguage()): Compiled {
+export function compileQuery(
+  text: string,
+  language?: QueryLanguage,
+  languages: QueryLanguages = pageQueryLanguages(),
+): Compiled {
+  language ??= languages.default;
   const source = text.trim();
   if (!source) return failure('The query is empty.', QueryHint);
-  const entry = queryLanguage(language);
+  const entry = languages.get(language);
   if (!entry) {
-    const known = queryLanguages();
+    const known = languages.list;
     return known.length
       ? failure(
           `This viewer does not read ${LanguageName[language]}.`,
