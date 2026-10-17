@@ -16,6 +16,8 @@ import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createDefaultPlugin } from '../../sources/create-plugin.js';
 import { createViewerCore, type ViewerCore } from '../../viewer.js';
 import { type MountedShell, mountShell } from '../shell.js';
+import { PrismField } from '@molstar/prism-ui/views/shell/prism-field';
+import { QuantumField } from '@molstar/prism-ui/views/shell/quantum-field';
 
 // The idle and interaction budget (`test:perf`; prism AGENTS.md: no Prism code keeps a loop running while idle, and
 // frame work joins the one frame tick, rendering.md §2.3). In the real shell with structures loaded: nothing changing,
@@ -116,9 +118,11 @@ beforeAll(async () => {
   expectOk(await core.api.load.files({ files: [cbs()] }));
   expectOk(await core.api.load.files({ files: [ensemble(5)] }));
   mounted.shell.show('structure');
+  // The sequence's chunk in (its first draw comes after its document, at its own pace).
+  await core.api.sequence?.runtime();
   // Settled: the loads' late work done (the sequence's first draw comes a while after, its chunk and its document in),
-  // until 1.5 s pass with no Prism frame asked for (at most 15 s).
-  for (let k = 0, quiet = 0; k < 30 && quiet < 3; k++) quiet = (await measure(() => wait(500))).raf > 0 ? 0 : quiet + 1;
+  // until 2 s pass with no Prism frame asked for (at most 15 s).
+  for (let k = 0, quiet = 0; k < 30 && quiet < 4; k++) quiet = (await measure(() => wait(500))).raf > 0 ? 0 : quiet + 1;
 }, 60_000);
 
 afterAll(async () => {
@@ -225,4 +229,38 @@ describe('frames and microtasks', () => {
     );
     expect(r.most).toBeGreaterThan(1);
   });
+});
+
+// The empty canvas's splash (David, 2026-10-17: its frame rate lowered at rest): a field steps and draws about 20 to
+// 24 times a second at rest (frames skipped in the one frame tick, ambient-pace.ts), and at full rate while the pointer
+// moves over it. jsdom's frames come at 60 a second; its canvas draws nothing, the steps are counted.
+describe('the splash fields at rest', () => {
+  for (const [name, make] of [
+    ['the light (prism-field)', (c: HTMLCanvasElement) => new PrismField(c)],
+    ['the wave (quantum-field)', (c: HTMLCanvasElement) => new QuantumField(c)],
+  ] as const) {
+    it(`${name}: about 20 steps a second at rest, full rate under the pointer`, async () => {
+      const canvas = document.createElement('canvas');
+      document.body.append(canvas);
+      const field = make(canvas);
+      field.start();
+      // Past its start's full-rate window.
+      await wait(1700);
+      let from = field.steps;
+      await wait(1000);
+      const rest = field.steps - from;
+      from = field.steps;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1000) {
+        field.pointerMove(10 + ((performance.now() - t0) % 100), 10, performance.now());
+        await nextFrame();
+      }
+      const moving = field.steps - from;
+      field.dispose();
+      canvas.remove();
+      expect(rest, 'steps a second at rest').toBeLessThanOrEqual(30);
+      expect(rest, 'steps a second at rest').toBeGreaterThanOrEqual(12);
+      expect(moving, 'steps a second under the pointer').toBeGreaterThanOrEqual(45);
+    }, 20_000);
+  }
 });

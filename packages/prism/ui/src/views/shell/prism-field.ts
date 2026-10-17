@@ -30,6 +30,7 @@ import { Fluid } from './fluid.js';
 import { Glass } from './glass.js';
 import { GlassFootprint } from './glass-footprint.js';
 import { cancelFrameCallback, requestFrameCallback } from '../../reactive/frame-state.js';
+import { AmbientPace } from './ambient-pace.js';
 
 export interface PrismFieldOptions {
   /** Specks emitted per second. */
@@ -236,6 +237,8 @@ export class PrismField {
   #time = 0;
   #last = 0;
   #frame = 0;
+  /** Full rate after input, about 24 steps a second at rest (ambient-pace.ts). */
+  readonly #ambient = new AmbientPace();
   #running = false;
   #visible = true;
   #colorsRead = Number.NEGATIVE_INFINITY;
@@ -320,6 +323,8 @@ export class PrismField {
 
   /** Reads the canvas's size (and the screen's pixel ratio) and the theme's colors. */
   resize(): void {
+    // A new size: full rate for a while (the field fills its new room smoothly).
+    this.#ambient.input();
     const w = this.#canvas.clientWidth;
     const h = this.#canvas.clientHeight;
     const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
@@ -445,6 +450,7 @@ export class PrismField {
   /** The pointer moved, at (x, y) in the canvas's CSS pixels; `now` in ms. */
   pointerMove(x: number, y: number, now: number): void {
     if (!this.#options.interactive || this.#still) return;
+    this.#ambient.input();
     if (this.#pointer && this.#moved) {
       const dt = Math.max(0.008, (now - this.#moved) / 1000);
       // Smoothed: a stroke, not a jitter.
@@ -477,6 +483,8 @@ export class PrismField {
   /** Runs while visible; nothing is drawn or scheduled while stopped or hidden. */
   start(): void {
     this.#running = true;
+    // Its start at full rate (the word gathers, the light comes in), then at rest's pace.
+    this.#ambient.input();
     if (this.#still) this.#drawStill();
     else this.#schedule();
   }
@@ -496,15 +504,27 @@ export class PrismField {
     this.stop();
   }
 
+  /** The pace's probe: its steps (the idle rate's guard). */
+  get steps(): number {
+    return this.#ambient.steps;
+  }
+
   #schedule(): void {
     if (this.#still || !this.#running || !this.#visible || this.#frame) return;
     this.#last = 0;
+    this.#ambient.reset();
     this.#frame = requestFrameCallback(this.#tick);
   }
 
   readonly #tick = (now: number) => {
     this.#frame = 0;
     if (!this.#running || !this.#visible) return;
+    // At rest, a step every few frames (the frame asked for each frame, the work only when due).
+    if (!this.#ambient.due()) {
+      this.#frame = requestFrameCallback(this.#tick);
+      return;
+    }
+    this.#ambient.stepped();
     // A long pause (a hidden tab) resumes where it was rather than catching up.
     const dt = this.#last ? Math.min(0.1, (now - this.#last) / 1000) : 1 / 60;
     this.#last = now;

@@ -41,7 +41,8 @@ it is done).
   a loop running while nothing changes (a loaded viewer at rest asks for no frame and queues no microtask), and frame
   work joins the page's one frame tick (`requestFrameCallback`, or `frame()` in a component), never its own
   `requestAnimationFrame`: one frame request a browser frame, whatever the input. Guarded by
-  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash is the exception, decided apart.
+  `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash is the exception: at rest it steps
+  about 20 times a second (full rate under the pointer), through the same tick.
 - **Bulk operations are one change** (David, 2026-10-17): an operation over many items (expand all, a select or a preset
   over many structures, an update of many cells, a load of many files) is one commit, one notification, one pass; never
   a copy of the whole collection, a scan of it (`find`, `includes`, `indexOf`) or a rebuild of an index per item: index

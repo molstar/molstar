@@ -166,9 +166,11 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - _*Mol*'s canvas loop runs while idle_*: one `requestAnimationFrame` a frame per viewer whatever happens (Several
   viewers: 3 a frame at rest); its tick draws only when something changed. Pausing it out of view is on the parent
   branch (`sources/canvas-presence.ts`); at rest in view, the decision is David's (the Canvas3D pause).
-- **The splash fields** run their simulation every frame while the empty canvas shows (Chromium, M4: the light field 0.5
-  ms a frame of script, the wave field 2.1): settle and stop after some seconds without input, or a lower rate, is
-  David's call.
+- **The splash fields at rest** (David, 2026-10-17: a lower rate): they step and draw about 20 to 24 times a second
+  without input, full rate under the pointer and 1.5 s after (`views/shell/ambient-pace.ts`; guarded in
+  `frames.quick.ts`). The light field at rest 36.4 → 13.8 ms a second; the wave field 141 → 93 to 102: its evolution
+  runs fixed substeps for the time that passed, so only its drawing is saved. Coarser substeps at rest (or slower light)
+  would save the rest and change how it looks: David's call.
 
 ## Quadratic paths still open (the 2026-10-17 scan)
 
