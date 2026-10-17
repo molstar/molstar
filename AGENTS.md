@@ -66,3 +66,6 @@ npx tsc -b                 # every project, by references
 - **Keep the docs true**: a change that moves what a package's `_spec/` (or a `.v6` design or plan) says updates it in
   the same commit; code comments cite the spec section they follow (`harness.md §6`, `api.md §2`). Specs are for agents:
   terse, a rule and its reason, no history; open items go to the package's TODO.
+- **Question the specs**: a spec records decisions, some made in passing by agents. Working in a package, re-read its
+  foundational choices and raise any that the code, measurements or the maintainers' intent contradict, or that have no
+  reason recorded; ask, don't silently follow or rewrite.
