@@ -39,7 +39,8 @@ import of the plugin.
   (`corner`, the default as in v5: at the canvas' bottom right, clear of the rail and a floating panel, above the
   toolbar; `cursor`: beside the pointer): where the canvas' hover label shows. `ui.xr` (`auto`; `always`, `never`;
   classic `ShowXR`): the toolbar's XR button, only where WebXR is, everywhere (where it is not, clicking says so in a
-  notification), or not at all. The XR params are the Canvas card's XR section.
+  notification), or not at all; never where the `canvas.xr` operation is not. The XR params are the Canvas card's XR
+  section.
 - Extension settings are the extension's own group (`ViewerExtension.settings`, reserved), not here.
 
 ### 2.3 `sequence`: the one sequence viewer
