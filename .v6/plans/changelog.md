@@ -728,3 +728,11 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: a fetched AlphaFold DB PAE lives under the structure's model, so deleting or reloading the structure
   removes it; "Fetch PAE" can be stopped, two clicks fetch once, it uses the PAE of the model file's own version (and
   says so when only another exists), and isoform entries (`AF-P04637-2-F1`) are recognised.
+- Prism: the Structure panel no longer shows an empty row under structures that are not a PDB entry's assembly (the
+  assembly symmetry's row asked for every structure); a row an extension adds once something is fetched (the PAE from
+  AlphaFold DB) appears under its structure at once: an extension row's `whenChanged` tells the tree to ask its `when`
+  again.
+- Prism: the hover label has the panels' corner radius, is cut at 16rem with a fade (`--msp-hover-label-height`), and
+  in the corner keeps clear of an open card.
+- Prism assistant: a viewer without a `persist.key` keeps its assistant choices under `prism-default`
+  (`prism-assistant@prism-default.`), apart from the Prism app's.

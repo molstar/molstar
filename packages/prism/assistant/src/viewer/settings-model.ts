@@ -55,17 +55,21 @@ export interface SettingsPrefs {
   set(key: string, value: string): void;
 }
 
-/** The viewer's default `persist.key`: its preferences keep the assistant's historical prefix. */
-const DefaultPersistKey = 'prism-viewer';
+/** The Prism app's `persist.key`: its preferences keep the assistant's historical prefix. */
+const AppPersistKey = 'prism-viewer';
+/** A viewer with no `persist.key` keeps its things under this one (viewer README decision 29), apart from the app's. */
+const NoPersistKey = 'prism-default';
 
 /**
  * The key prefix of one viewer's assistant preferences (the model chosen, own endpoints, allowed domains): per viewer, by
- * its `persist.key`, so viewers on a page keep their own choices (viewer README decision 29). The default key (the app's)
- * and no key keep the original `prism-assistant.`. The keys (secrets) are not here: they are the person's, shared by every
- * viewer in the browser (`createKeyStore`).
+ * its `persist.key`, so viewers on a page keep their own choices (viewer README decision 29). The app's key keeps the
+ * original `prism-assistant.`; no key is `prism-default` (`prism-assistant@prism-default.`), as its kept records are,
+ * so an embedded viewer without a key does not share the app's choices. The keys (secrets) are not here: they are the
+ * person's, shared by every viewer in the browser (`createKeyStore`).
  */
 export function assistantPrefsPrefix(persistKey?: string): string {
-  return !persistKey || persistKey === DefaultPersistKey ? 'prism-assistant.' : `prism-assistant@${persistKey}.`;
+  const key = persistKey || NoPersistKey;
+  return key === AppPersistKey ? 'prism-assistant.' : `prism-assistant@${key}.`;
 }
 
 export function localPrefs(prefix = 'prism-assistant.'): SettingsPrefs {

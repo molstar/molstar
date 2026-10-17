@@ -95,8 +95,9 @@ the truth for how.
   `prism-default-records`, never the app's `prism-viewer-records`, so an embedded viewer on the app's origin cannot
   list, open or forget the app's kept records; **viewers with no key on one origin share one kept-records list**, safe
   as the index is fenced per database, §1), and the assistant's preferences (model, own endpoints, allowed domains) are
-  `prism-assistant@<key>.*` (the default key: the original `prism-assistant.*`). **The assistant's keys are the person's
-  and are shared by every viewer in the browser** (`prism-assistant.key.*`, IndexedDB `prism-assistant-keys`).
+  `prism-assistant@<key>.*` (the app's key, `prism-viewer`: the original `prism-assistant.*`; no key: `prism-default`).
+  **The assistant's keys are the person's and are shared by every viewer in the browser** (`prism-assistant.key.*`,
+  IndexedDB `prism-assistant-keys`).
 - **Two stores**, never for data (`persist/stores.ts`, `webStore('local' | 'session', { prefix, version, budget })`):
   `persist.preferences` (localStorage, else sessionStorage, else nothing; ~64 KB: the theme, the layout, the person's
   keys) and `persist.restore` (sessionStorage, ~256 KB: this tab's light restore). A value of another version or over

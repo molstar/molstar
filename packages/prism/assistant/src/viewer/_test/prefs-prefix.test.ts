@@ -11,14 +11,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { assistantPrefsPrefix, localPrefs } from '../settings-model.js';
 
 // The assistant's choices (model, own endpoints, allowed domains) are kept per viewer, by its persist key; the app's
-// default key keeps the original prefix (viewer README decision 29).
+// key keeps the original prefix, no key is `prism-default` (viewer README decision 29).
 
 describe('the assistant preferences of several viewers on a page', () => {
   beforeEach(() => localStorage.clear());
 
-  it('keep the original prefix for the default key, and a prefix of their own for another', () => {
-    expect(assistantPrefsPrefix()).toBe('prism-assistant.');
+  it("keep the original prefix for the app's key, prism-default's for no key, and a prefix of their own for another", () => {
     expect(assistantPrefsPrefix('prism-viewer')).toBe('prism-assistant.');
+    // No key is `prism-default` (as the kept records are): not the app's choices.
+    expect(assistantPrefsPrefix()).toBe('prism-assistant@prism-default.');
+    expect(assistantPrefsPrefix('')).toBe('prism-assistant@prism-default.');
     expect(assistantPrefsPrefix('left')).toBe('prism-assistant@left.');
     expect(assistantPrefsPrefix('left')).not.toBe(assistantPrefsPrefix('right'));
   });

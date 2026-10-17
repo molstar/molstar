@@ -36,9 +36,9 @@ is the truth for how.
   http on localhost; an optional key; its models typed or fetched from its `/models`; it must allow CORS), one key each.
   The default model (`claude-sonnet-5-5` unless the host names one) is in effect while its provider has a key; the
   person's choice (provider, model) is kept in localStorage apart from the keys, per viewer
-  (`prism-assistant@<persist.key>.`, `assistantPrefsPrefix`; the default key keeps `prism-assistant.`: several viewers
-  on a page, viewer README decision 29), and the first provider with a key stands in while the chosen one has none. The
-  model applies from the next request.
+  (`prism-assistant@<persist.key>.`, `assistantPrefsPrefix`; the app's key, `prism-viewer`, keeps `prism-assistant.`, no
+  key is `prism-default`: several viewers on a page, viewer README decision 29), and the first provider with a key
+  stands in while the chosen one has none. The model applies from the next request.
 - **A host's own models** (`provided`; a function makes them when the assistant loads): listed first, keyed "from the
   server", in effect with no key of the person's (the stories' scripted model).
 - **Keys** are the person's, kept for the `KeyScope` they choose: `reload` (memory), `session` (sessionStorage),
