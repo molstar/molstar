@@ -11,13 +11,14 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
-import { flush, watch } from '../../../dom/scope.js';
+import { flush, flushFrame, watch } from '../../../dom/scope.js';
 import { TreeNavigation } from '../../../dom/tree-keys.js';
 import { setAttr, setText } from '../../../dom/writes.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { shownInOrder } from '../../../testing/virtual-list.js';
 import { RecycledList } from '../recycled-list.js';
 import type { VirtualListHandle } from '../virtual-list.js';
+import { MaxScreensAhead, rowsAhead } from '../window.js';
 
 // Recycled rows (view-models.md §3): a pool of slots, each made once, pointed at the items a moving window brings in;
 // a window that moves creates, removes and reorders no node; the keyboard and the focus follow the rows, not the
@@ -125,6 +126,39 @@ function mount(options: { count?: number; keyed?: boolean } = {}) {
     dispose,
   };
 }
+
+describe('the margin ahead of the scroll (window.ts)', () => {
+  it('grows with the speed, two frames of it, up to three screens', () => {
+    // 31 rows a screen of 26 px rows.
+    expect(rowsAhead(0, 26, 31, 16)).toBe(16);
+    expect(rowsAhead(260, 26, 31, 16)).toBe(20);
+    expect(rowsAhead(1200, 26, 31, 16)).toBe(MaxScreensAhead * 31);
+  });
+
+  it("a wheel's large steps land on rows made from the second step on", () => {
+    const t = mount();
+    const viewport = t.tree.closest('[data-axis]')!.querySelector<HTMLElement>(':scope > div')!;
+    let top = 0;
+    Object.defineProperty(viewport, 'scrollTop', { get: () => top, set: (v: number) => (top = v), configurable: true });
+    // jsdom lays nothing out: the list's screen is its default 800 px (31 rows).
+    const madeRows = () => new Set(t.shown().map((l) => Number(l!.slice(4))));
+    const step = (y: number) => {
+      // A wheel's: the compositor's scroll (a scroll alone, a thumb's drag, has no margin for speed).
+      viewport.dispatchEvent(new Event('wheel'));
+      top = y;
+      viewport.dispatchEvent(new Event('scroll'));
+      flushFrame();
+      flush();
+    };
+    // 1,200 px a frame (46 rows): the first step jumps; from the second, the next step's screen is made already.
+    step(1200);
+    step(2400);
+    const made = madeRows();
+    const next = Math.floor(3600 / 26);
+    for (let i = next; i < next + 31; i++) expect(made.has(i), `row ${i}`).toBe(true);
+    t.dispose();
+  });
+});
 
 describe('RecycledList', () => {
   it('points its slots at the rows a moved window shows, and makes, removes and moves no node', () => {

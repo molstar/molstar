@@ -17,6 +17,7 @@ import { derive } from '../../reactive/state.js';
 import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
+import { NativeMs, rowsAhead } from './window.js';
 
 /** What a `VirtualList` lets its owner do (its `ref`). */
 export interface VirtualListHandle {
@@ -78,6 +79,12 @@ export function VirtualList<T>(props: {
   const win = observableState({ first: 0, last: 0 });
   let items: readonly unknown[] = [];
   let lastTop = 0;
+  // When the wheel or a touch last moved it: the compositor scrolls those before the list hears (a thumb's drag and
+  // `scrollToIndex` set the position themselves, and need no margin for speed).
+  let nativeAt = Number.NEGATIVE_INFINITY;
+  const native = () => {
+    nativeAt = performance.now();
+  };
   let resting: ReturnType<typeof setTimeout> | undefined;
   const RestMs = 120;
   const place = (rest: boolean) => {
@@ -88,11 +95,14 @@ export function VirtualList<T>(props: {
     const screenLast = Math.min(n, Math.ceil((t + viewHeight(height.value)) / rh));
     const screen = screenLast - screenFirst;
     const down = t >= lastTop;
+    // Its speed (px since the last frame: the window is placed once a frame, the frame lane), when the compositor moves
+    // it.
+    const speed = performance.now() - nativeAt < NativeMs ? Math.abs(t - lastTop) : 0;
     lastTop = t;
     const { first: wf, last: wl } = win.value;
-    // Ahead of the scroll, at least half a screen stays made (a wheel's step or a flick is about that much in one frame);
-    // behind it, `overscan` rows.
-    const guardAhead = Math.max(overscan, Math.ceil(screen / 2));
+    // Ahead of the scroll, at least half a screen stays made (a wheel's step or a flick is about that much in one frame),
+    // more at speed (`rowsAhead`, window.ts); behind it, `overscan` rows.
+    const guardAhead = rowsAhead(speed, rh, screen, Math.max(overscan, Math.ceil(screen / 2)));
     const covered =
       wf <= Math.max(0, screenFirst - (down ? overscan : guardAhead)) &&
       wl >= Math.min(n, screenLast + (down ? guardAhead : overscan)) &&
@@ -104,11 +114,13 @@ export function VirtualList<T>(props: {
       last = screenLast + screen;
     } else if (covered) return;
     else if (screenLast <= wf || screenFirst >= wl) {
-      // What shows and two rows: a drag makes a window a frame, so it makes no more than it shows.
-      first = screenFirst - 2;
-      last = screenLast + 2;
+      // What shows and two rows (a drag makes a window a frame, so it makes little more than it shows); ahead, where the
+      // scroll will be at its speed (a wheel's large steps).
+      const fast = rowsAhead(speed, rh, screen, 2);
+      first = screenFirst - (down ? 2 : fast);
+      last = screenLast + (down ? fast : 2);
     } else {
-      const ahead = Math.max(overscan, screen);
+      const ahead = rowsAhead(speed, rh, screen, Math.max(overscan, screen));
       first = screenFirst - (down ? overscan : ahead);
       last = screenLast + (down ? ahead : overscan);
     }
@@ -158,6 +170,8 @@ export function VirtualList<T>(props: {
       if (y < t) t = y;
       else if (y + rh > t + view) t = y + rh - view;
       if (t !== top.value) {
+        // A jump, not a motion: no speed (the margin ahead stays what it is at rest).
+        lastTop = t;
         if (viewport) viewport.scrollTop = t;
         // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
         top.offer(t);
@@ -177,6 +191,8 @@ export function VirtualList<T>(props: {
         viewport = el;
         // Scoped (dom/scoped.ts): detached while hidden, gone with the list.
         on(el, 'scroll', measure, { passive: true });
+        on(el, 'wheel', native, { passive: true });
+        on(el, 'touchmove', native, { passive: true });
         observeResize(el, measure);
         queueMicrotask(measure);
       }}

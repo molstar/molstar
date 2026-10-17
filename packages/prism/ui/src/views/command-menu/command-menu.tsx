@@ -21,7 +21,7 @@ import { For, Show } from '../../dom/control-flow.js';
 import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
-import { bind, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
+import { bind, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
 import { setAttr, setText as writeText } from '../../dom/writes.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
@@ -220,6 +220,13 @@ export function CommandMenu(props: CommandMenuProps) {
 function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) {
   const { manager } = props;
   const text = observableState(props.initial ?? '');
+  // What the list is filtered by (rendering.md §2.3, the frame lane): the typed text, once a frame. Keys typed faster
+  // than frames (a held key, a fast typist, a paste in pieces) filter once, for the latest text; the input shows each.
+  const query = frameState(text.value);
+  // Before reading the rows (a key acting on them, a pick): the latest text filtered now.
+  const settle = () => {
+    if (query.latest !== query.value) flushFrame();
+  };
   const group = observableState<string | undefined>(props.group);
   const highlight = observableState(0);
   const message = observableState<string | undefined>(undefined);
@@ -231,7 +238,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
 
   // Keyed by the group browsed too: a row shows its path below it (made with the row).
   const keepSame = keepRows<Row>((r) => `${group.value ?? ''}|${rowKey(r)}`, sameRow);
-  const rows = combineLatest([text.asReadonly, group.asReadonly, manager.commands, manager.groups]).pipe(
+  const rows = combineLatest([query, group.asReadonly, manager.commands, manager.groups]).pipe(
     map(([t, g]) => {
       const out: Row[] = [];
       let n = 0;
@@ -319,7 +326,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     const keep = askItem(props, manager, text.value, props.onPropose).run();
     if (!keep && !manager.active.value) props.onClose();
   };
-  const unmatched = combineLatest([text.asReadonly, rows]).pipe(
+  const unmatched = combineLatest([query, rows]).pipe(
     map(([t, r]) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption')),
     distinctUntilChanged(),
   );
@@ -378,7 +385,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     distinctUntilChanged(),
   );
   // What a search found, said once the typing pauses (the list itself is not live).
-  const found = combineLatest([text.asReadonly, rows]).pipe(
+  const found = combineLatest([query, rows]).pipe(
     debounceTime(400),
     map(([t, r]) => {
       if (!t.trim()) return '';
@@ -391,6 +398,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
 
   const setText = (t: string) => {
     text.set(t);
+    query.offer(t);
+    settle();
     input.value = t;
     highlight.set(0);
     message.set(undefined);
@@ -400,6 +409,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     setText('');
   };
   const pick = (row: Pickable) => {
+    settle();
     if (row.kind === 'group') return enter(row.group.id);
     if (row.kind === 'item') {
       const keep = row.item.run();
@@ -438,10 +448,12 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
       value={text}
       onInput={(e) => {
         text.set(e.currentTarget.value);
+        query.offer(e.currentTarget.value);
         highlight.set(0);
         message.set(undefined);
       }}
       onKeyDown={(e) => {
+        settle();
         const n = picks().length;
         const empty = !e.currentTarget.value;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -543,7 +555,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
                 row={row}
                 path={relativePath(manager, row.match.command.group, group.value)}
                 inGroup={group.value !== undefined}
-                query={text.asReadonly}
+                query={query}
               />
             );
           }}
@@ -763,8 +775,8 @@ function ItemRow(props: OptionProps & { item: CommandMenuItem }) {
 }
 
 /**
- * A command's row: its DOM made once, one `watch` render for what changes while it shows: the highlight, the query's
- * marks in its title, and (highlighted) how much it would do in place of its path.
+ * A command's row: its DOM made once, a `watch` render for what changes while it shows: the highlight and
+ * (highlighted) how much it would do in place of its path; another for the query's marks in its title.
  */
 function CommandRow(
   props: OptionProps & {
@@ -804,26 +816,28 @@ function CommandRow(
     </div>
   ) as HTMLElement;
   let was = false;
-  let marked: string | undefined;
   const sources: WatchSource[] = [props.selected];
-  if (!tail) sources.push(query);
   // Highlighted, how much it would do (`count`, commands.md §5) in place of its path or category.
   if (c.count && !match.preset) sources.push(manager.browsing);
   watch(sources, () => {
     was = writeSelected(el, props.highlight.value === props.index, was);
-    const q = tail ? '' : query.value;
-    if (q !== marked) {
-      marked = q;
-      // The marks are a few text nodes and `mark`s, no bindings: written whole (no marks: the text alone).
-      const marks = highlight(title, q);
-      if (typeof marks === 'string') titleText.textContent = marks;
-      else titleText.replaceChildren(toNode(marks));
-    }
     if (c.count && !match.preset) {
       const b = manager.browsing.value;
       writeText(metaText, (b?.id === c.id ? b.count : undefined) ?? meta);
     }
   });
+  // The query's marks in its own watch: the query is a frame state (the frame lane), the highlight a key's (at once).
+  let marked: string | undefined;
+  const mark = (q: string) => {
+    if (q === marked) return;
+    marked = q;
+    // The marks are a few text nodes and `mark`s, no bindings: written whole (no marks: the text alone).
+    const marks = highlight(title, q);
+    if (typeof marks === 'string') titleText.textContent = marks;
+    else titleText.replaceChildren(toNode(marks));
+  };
+  if (tail) mark('');
+  else watch([query], () => mark(query.value));
   return el;
 }
 

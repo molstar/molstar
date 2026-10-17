@@ -270,12 +270,36 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   reads the DOM after a change sees the work done); `frame` runs in the frame's tick, after the frame states publish and
   before the renders; `idle` when the page is idle (`requestIdleCallback`, its deadline the budget).
 - **Which tool**: a value fed by input is a frame state (§2.3: the latest value, once a frame); work that changes ask
-  for is a queue's key; a question whose answer may come late is `latest`. The virtual lists need no budget (§1: a
-  jump's rows cost 1.7 to 2.4 ms in Chromium, a thumb drag 0.17 ms a frame).
+  for is a queue's key; a question whose answer may come late is `latest`. The virtual lists need no budget and no queue
+  of rows (§1: a jump's rows cost 1.7 to 2.4 ms in Chromium, a thumb drag 0.14 to 0.17 ms a frame): they place their
+  window once a frame and make what it needs then.
+- **The users**: the scene tree's flattening (a `task` queue, below); the command menu's filter (its query a frame
+  state: keys typed faster than frames filter once, for the latest text; a key acting on the rows, or a pick, runs the
+  frame first; a row's highlight renders at once, its title's marks in the frame); the canvas's hover label
+  (`sources/pointer.ts`, a frame state over Mol*'s labels). Already latest-wins, and left as they are: the command
+  menu's preview and count of the highlighted row (`CommandManager.browse`: an `AbortController` a highlight, after 80
+  ms), the Select group's counts among them, each command's targets resolved once. To move to `latest` as they are
+  touched: fetches (the loaders') and exports.
 - **The scene tree flattens once a burst** (`task` lane): each shown node's `isExpanded` and `children` asked for a
   flattening of every row, so expanding 1,000 components at once flattened 1,000 times (401 ms in jsdom; collapsing
   them, 393 ms); wanted once a task, 19.5 and 24 ms. Its first flattening is at the mount (the rows are there when it
   returns). Tests that change the scene and read the rows flush first, as for any watch.
+- **The margin ahead of the scroll grows with its speed** (`components/virtual-list/window.ts`): the compositor scrolls
+  a wheel or a flick before the list hears, so what it uncovers that was not made shows the skeleton for a frame. Ahead,
+  the rows where the scroll will be two frames on at its speed now, at least what it was (half a screen), at most three
+  screens; only a wheel's or a touch's speed counts (a thumb's drag and `scrollToIndex` set the position from script, in
+  the same frame as the rows). Real wheel steps in Chromium on the scene tree (1,000 components, a screen of 23 rows, 40
+  steps down and up), at the scroll event before the list moves (what the compositor scrolled onto):
+
+  | Wheel step | Scrolls onto a skeleton, before | after    | Rows a skeleton (mean), after | UI ms a frame | Slots at most |
+  | ---------- | ------------------------------- | -------- | ----------------------------- | ------------- | ------------- |
+  | 600 px     | 1 of 40                         | 1 of 40  | 0.4                           | 0.08          | 62 → 79       |
+  | 1,200 px   | 40 of 40 (22 rows each)         | 2 of 40  | 1.1                           | 0.15          | 62 → 104      |
+  | 2,400 px   | 40 of 40                        | 40 of 40 | 20 (past three screens)       | 0.21          | 62 → 104      |
+
+  After the frame's paint, no row place was empty in any run. A thumb's drag stays at 0.14 ms of UI a frame, no blank
+  frame. The first step of a fast wheel still lands past the window (the speed is not known yet).
+
 - **`latest(fn)`**: `fn(signal, ...args)`; each call aborts the one before it, and a call a newer one (or `abort()`)
   superseded resolves to undefined, so an old answer never lands after a newer one. The scoped one aborts its call in
   flight when its scope ends.

@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CommandManager } from '../../../commands/manager.js';
 import type { CommandArgs, CommandDefinition } from '../../../commands/types.js';
 import { render } from '../../../dom/render.js';
+import { flushFrame } from '../../../dom/scope.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { CommandMenu } from '../command-menu.js';
 
@@ -119,6 +120,8 @@ describe('browsing a group', () => {
     p.manager.keymap.remap('other', { key: 'j', alt: true });
     input(p).value = 'other';
     input(p).dispatchEvent(new Event('input'));
+    // The frame the input asks for: the list is filtered once a frame (rendering.md §2.3).
+    flushFrame();
     await tick();
     expect(p.container.querySelector('[role=option] kbd')?.textContent).toMatch(/J$/);
     p.dispose();

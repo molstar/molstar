@@ -23,6 +23,9 @@ it is done).
 - **Input in the frame lane** (David, 2026-10-17; [rendering.md §2.3](ui/_spec/rendering.md)): input-fed state (a scroll
   position, the hover label, a drag) is a `frameState`: `offer` at every event, published once a frame; a watch
   following one renders in the frame. Batch at the source, never per listener.
+- **Work is wanted, not done per change** (David, 2026-10-17; [rendering.md §2.7](ui/_spec/rendering.md)): a
+  recomputation many changes ask for (a tree's flattening) is a `workQueue` key, run once a burst in its lane; an answer
+  that may come late (a search, a count, a fetch) goes through `latest`, so an old one never lands after a newer.
 - **Scoped attachments** (David, 2026-10-17; [rendering.md §2.4](ui/_spec/rendering.md)): a component attaches
   listeners, observers, frames and timers only through `dom/scoped.ts` (`on`, `observeResize`, `observeIntersection`,
   `frame`, `timeout`): released with its scope, a listener detached while it is paused. Raw ones are held to a shrinking

@@ -18,7 +18,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import { CommandMenu } from '../../views/command-menu/command-menu.js';
 import { For } from '../control-flow.js';
 import { render } from '../render.js';
-import { flush } from '../scope.js';
+import { flush, flushFrame } from '../scope.js';
 
 export interface Case {
   step: (i: number) => void;
@@ -74,7 +74,8 @@ export function commandMenuTyping(): Case {
     step: (i) => {
       input.value = texts[i & 1];
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      flush();
+      // The frame the input asks for (the list is filtered once a frame).
+      flushFrame();
     },
     sink: () => box.querySelectorAll('[role=option]').length,
   };

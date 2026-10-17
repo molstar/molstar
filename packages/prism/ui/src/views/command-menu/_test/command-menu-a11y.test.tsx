@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { CommandManager } from '../../../commands/manager.js';
 import type { CommandDefinition } from '../../../commands/types.js';
 import { render } from '../../../dom/render.js';
+import { flushFrame } from '../../../dom/scope.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { CommandMenu } from '../command-menu.js';
 
@@ -59,6 +60,8 @@ function setup(extra = 0) {
   const type = (text: string) => {
     input.value = text;
     input.dispatchEvent(new Event('input', { bubbles: true }));
+    // The frame the input asks for: the list is filtered once a frame (rendering.md §2.3).
+    flushFrame();
   };
   const cleanup = () => {
     close();

@@ -12,7 +12,7 @@ import { getHeapSpaceStatistics } from 'node:v8';
 // (bytes a step against `perf-baseline.json`, its positive control built in) and the heap guards' scaling (n and 4n
 // steps, `leaking` for the control). Test code only: the harness is Seq*'s `_test/model` (packages/sequences/AGENTS.md).
 
-export { quickCase } from '../../../../sequences/core/_test/model/quick.js';
+export { allowance, measureBytesPerStep, quickCase } from '../../../../sequences/core/_test/model/quick.js';
 export {
   controlCaught,
   describeScaling,
