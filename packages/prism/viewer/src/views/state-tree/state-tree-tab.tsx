@@ -13,7 +13,8 @@ import { flattenTree, keepRows, MenuPopover, VirtualList, type VirtualListHandle
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { bind } from '@molstar/prism-ui/dom/scope';
+import { bind, watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setClass } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import { ScrollArea } from '@molstar/prism-ui';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
@@ -149,6 +150,11 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   );
 }
 
+/**
+ * A cell's row as view = f(state) (rendering.md §2): its record is fixed for the row (a changed cell is a new record,
+ * so a new row), and one `watch` render writes what the tree's states change: its place, open state, selection and
+ * its menu's.
+ */
 function Cell(props: {
   model: StateTreeModel;
   row: CellRow;
@@ -158,37 +164,19 @@ function Cell(props: {
   toggle: (ref: string) => void;
   open: (ref: string, block: string) => void;
 }) {
-  const { model, row, collapsed } = props;
+  const { model, row, collapsed, places } = props;
   const { node, depth } = row;
   const hasChildren = !!node.children?.length;
-  // A leaf has no `aria-expanded` (the pattern's end node).
-  const expanded = hasChildren
-    ? collapsed.pipe(
-        map((c) => !c.has(node.ref)),
-        distinctUntilChanged(),
-      )
-    : undefined;
-  const place = props.places.pipe(
-    map((p) => p.get(node.ref)),
-    distinctUntilChanged((a, b) => a?.posinset === b?.posinset && a?.setsize === b?.setsize),
-  );
-  const selected = model.selected.pipe(
-    map((s) => s === node.ref),
-    distinctUntilChanged(),
-  );
   const menuOpen = observableState(false);
-  let menuButton: HTMLElement | undefined;
+  let menuButton!: HTMLElement;
+  let line!: HTMLElement;
   const hidden = node.visible === false;
   // Named by its own label and description.
   const labelId = uniqueId('msp-tree-label');
-  return (
+  const el = (
     <div
       role="treeitem"
       aria-level={depth + 1}
-      aria-posinset={place.pipe(map((p) => p?.posinset))}
-      aria-setsize={place.pipe(map((p) => p?.setsize))}
-      aria-expanded={expanded}
-      aria-selected={selected}
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={tree.item}
@@ -197,15 +185,14 @@ function Cell(props: {
       <div
         data-tip-row=""
         data-tree-row=""
-        class={tree.row}
-        classList={{ [tree.hidden]: hidden, [tree.picked]: selected }}
+        class={hidden ? `${tree.row} ${tree.hidden}` : tree.row}
         style={{ '--msp-tree-depth': depth }}
+        ref={(e: HTMLElement) => (line = e)}
         onClick={() => model.select(node.ref)}
       >
         <button
           type="button"
-          class={tree.expander}
-          classList={{ [tree.leaf]: !hasChildren }}
+          class={hasChildren ? tree.expander : `${tree.expander} ${tree.leaf}`}
           data-tree-toggle=""
           tabIndex={-1}
           aria-label="Expand"
@@ -227,8 +214,7 @@ function Cell(props: {
           {node.visible !== undefined ? (
             <button
               type="button"
-              class={tree.action}
-              classList={{ [tree.keep]: hidden }}
+              class={hidden ? `${tree.action} ${tree.keep}` : tree.action}
               title={hidden ? 'Show' : 'Hide'}
               onClick={(e) => {
                 e.stopPropagation();
@@ -241,13 +227,9 @@ function Cell(props: {
           <button
             type="button"
             class={tree.action}
-            classList={{ [tree.keep]: menuOpen }}
             title="More"
             aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            ref={(el: HTMLElement) => {
-              menuButton = el;
-            }}
+            ref={(e: HTMLElement) => (menuButton = e)}
             onClick={(e) => {
               e.stopPropagation();
               menuOpen.set(!menuOpen.value);
@@ -262,10 +244,10 @@ function Cell(props: {
           <CellMenu
             model={model}
             node={node}
-            anchor={menuButton!}
+            anchor={menuButton}
             onClose={(refocus) => {
               menuOpen.set(false);
-              if (refocus) menuButton?.focus();
+              if (refocus) menuButton.focus();
             }}
             onPick={(block) => {
               menuOpen.set(false);
@@ -279,7 +261,21 @@ function Cell(props: {
         )}
       </Show>
     </div>
-  );
+  ) as HTMLElement;
+  watch([places, collapsed, model.selected, menuOpen], () => {
+    const p = places.value.get(node.ref);
+    setAttr(el, 'aria-posinset', p?.posinset);
+    setAttr(el, 'aria-setsize', p?.setsize);
+    // A leaf has no `aria-expanded` (the pattern's end node).
+    if (hasChildren) setAttr(el, 'aria-expanded', String(!collapsed.value.has(node.ref)));
+    const selected = model.selected.value === node.ref;
+    setAttr(el, 'aria-selected', String(selected));
+    setClass(line, tree.picked, selected);
+    const open = menuOpen.value;
+    setClass(menuButton, tree.keep, open);
+    setAttr(menuButton, 'aria-expanded', String(open));
+  });
+  return el;
 }
 
 /**
