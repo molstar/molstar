@@ -8,16 +8,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, of } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { CanvasMenuItem } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { on } from '@molstar/prism-ui/dom/scoped';
 import { deepActiveElement, focusFirstItem, menuKeys } from '@molstar/prism-ui/dom/focus';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive, State } from '@molstar/prism-ui/reactive/state';
 import { classes } from './_generated/mode-switch.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /** The picking level's menu (one per shadow root or page: the viewer's shell is in one): Select controls it. */
 const LevelMenuId = 'msp-pick-level';
 
@@ -53,6 +52,7 @@ export interface ModeSwitchProps {
  */
 export function ModeSwitch(props: ModeSwitchProps) {
   const selecting = derive(props.mode, (m) => m === 'select');
+  const interacting = derive(selecting, (s) => !s);
   // The picking level as a badge on Select: what a click picks, at a glance.
   const levels = props.granularities;
   const current =
@@ -64,7 +64,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
       <button
         type="button"
         class={classes.segment}
-        aria-pressed={selecting.pipe(map((s) => !s))}
+        aria-pressed={interacting}
         data-tip="Interact: drag to rotate, click to focus"
         data-tip-side="top"
         aria-label="Interact"
@@ -114,7 +114,7 @@ export function modeMenuRows(props: ModeSwitchProps): readonly CanvasMenuItem[] 
       icon: 'rotate-3d',
       group: 'mode',
       choice: true,
-      pressed: selecting.pipe(map((s) => !s)),
+      pressed: derive(selecting, (s) => !s),
       run: () => props.setMode('interact'),
     },
     {
@@ -134,7 +134,8 @@ export function modeMenuRows(props: ModeSwitchProps): readonly CanvasMenuItem[] 
       label: 'What a click selects',
       group: 'mode',
       run: () => {},
-      items: of(
+      // The levels are fixed: a state that never changes.
+      items: new State(
         granularities.map(
           (l): CanvasMenuItem => ({
             id: `level-${l.value}`,
@@ -181,8 +182,7 @@ export function PickLevel(props: ModeSwitchProps) {
     if ((menu && path.includes(menu)) || (select && path.includes(select))) return;
     active.blur();
   };
-  document.addEventListener('pointerdown', onDown, true);
-  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
+  on(document, 'pointerdown', onDown, { capture: true });
   return (
     <div class={classes.level} ref={(el) => (level = el)}>
       <div

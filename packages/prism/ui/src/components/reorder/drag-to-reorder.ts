@@ -118,14 +118,14 @@ export function reorderRows(list: HTMLElement, handle: string, moveTo: (id: stri
       }
       mark(r, index);
     },
-    end(r, how) {
+    end(r, _how, e) {
       r.self.removeAttribute('data-dragging');
       const from = r.items.indexOf(r.self);
       const to = r.target;
       mark(r, -1);
-      // Dropped above or below itself, it stays where it is.
-      if (how === 'up' && to >= 0 && to !== from && to !== from + 1)
-        moveTo(r.self.dataset.id!, to > from ? to - 1 : to);
+      // Ended by the pointer (released, or cancelled, as `dragToReorder` did), not by the scope. Dropped above or below
+      // itself, it stays where it is.
+      if (e && to >= 0 && to !== from && to !== from + 1) moveTo(r.self.dataset.id!, to > from ? to - 1 : to);
     },
   });
 }

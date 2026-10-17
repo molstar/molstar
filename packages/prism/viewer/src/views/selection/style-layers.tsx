@@ -12,11 +12,10 @@ import { ParamsForm, ScrollArea } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { map } from 'rxjs';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { StyleLayerItem, StyleLayersModel } from '../../model/style-layers.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * The style layers applied (under the Selection tab's style form; Mol*'s overpaint, transparency, emissive, material and
  * clipping layers, which v5 only lets go of in the state tree): a row each (the swatch or the kind, the atoms, the
@@ -26,7 +25,7 @@ export function StyleLayers(props: { model: StyleLayersModel }) {
   const { model } = props;
   const count = derive(model.items, (l) => l.length);
   return (
-    <Show when={count.pipe(map((n) => n > 0))}>
+    <Show when={derive(count, (n) => n > 0)}>
       {() => (
         <div class={classes.block}>
           <div class={classes.head}>

@@ -9,18 +9,6 @@
  */
 
 import {
-  combineLatest,
-  distinctUntilChanged,
-  map,
-  merge,
-  type Observable,
-  of,
-  shareReplay,
-  skip,
-  startWith,
-  type Subscription,
-} from 'rxjs';
-import {
   Button,
   colorToHex,
   keepRows,
@@ -43,6 +31,8 @@ import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js'
 import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { type KeyedSelector, keyedSelector } from '@molstar/prism-ui/reactive/keyed-selector';
 import { type KeyedState, keyedState } from '@molstar/prism-ui/reactive/keyed-state';
+import { listen } from '@molstar/prism-ui/reactive/listen';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 
 /**
@@ -52,8 +42,9 @@ import { classes } from './_generated/scene-tree.module.css.js';
 export { SceneRowSlot } from './scene-row-slot.js';
 import { SceneRowSlot } from './scene-row-slot.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
+/** No extensions' rows (no shell). */
+const NoSections: readonly ShellSection[] = [];
+
 /**
  * One line of the tree, flattened (viewer-spec.md §3, the scene tree): a node; Show all, for the rest of a long list;
  * Loading…, while a lazy node computes its rows; an extension's row under a node. All are rows of one height.
@@ -112,7 +103,7 @@ const sameRow = (a: Row, b: Row) =>
 export function SceneTree(props: {
   scene: SceneModel;
   shell?: ShellModel;
-  filter?: Observable<string>;
+  filter?: ReadonlyState<string>;
   /**
    * Node rows as recycled slots (`RecycledList`, the default) or keyed rows (`VirtualList`, false: the measurement's
    * baseline; rendering.md §1).
@@ -121,25 +112,23 @@ export function SceneTree(props: {
 }) {
   const { scene, shell } = props;
   // A search: the rows that match, with the rows they are in (opened); lazy contents are looked into to be searched.
-  const filter = (props.filter ?? of('')).pipe(
-    // No search until the first (a debounced filter emits late).
-    startWith(''),
-    map((t) => t.trim().toLowerCase()),
-    distinctUntilChanged(),
-  );
   // One walk of the scene per search (and per change of the scene while searching), the rows flattened from its result.
-  const sections: Observable<readonly ShellSection[]> = shell ? shell.sections(SceneRowSlot) : of([]);
-  const search: Observable<Search> = combineLatest([filter, scene.roots, sections]).pipe(
-    map(([text, roots, all]) => ({
+  const sections = shell ? shell.sections(SceneRowSlot) : undefined;
+  const searchNow = (): Search => {
+    const text = (props.filter?.value ?? '').trim().toLowerCase();
+    const roots = scene.roots.value;
+    const all = sections?.value ?? NoSections;
+    return {
       text,
       roots,
       sections: all,
       hits: text
         ? searchHits(roots, text, (node) => !!shell && all.some((r) => rowMatches(shell, r, node, text)))
         : undefined,
-    })),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+    };
+  };
+  // What shows where there are no rows: nothing loaded, or nothing that matches the search.
+  const emptyNote = observableState<string | undefined>(undefined);
 
   const rows = observableState<readonly Row[]>([]);
   // The rows' places and open states, by row key: a row listens to its own (view-models.md §3), so a reflow wakes only
@@ -152,7 +141,7 @@ export function SceneTree(props: {
   const wasOpen = new Set<SceneNode>();
   // A fixture without the scene's change stream (`SceneModel.changes`): the shown nodes' `isExpanded` and `children`
   // followed one by one, as before it.
-  const watched = new Map<SceneNode, Subscription>();
+  const watched = new Map<SceneNode, () => void>();
   let current: Search | undefined;
 
   /** What a flattening makes: rows, their places, the nodes it found open and the nodes it showed. */
@@ -228,9 +217,9 @@ export function SceneTree(props: {
     if (!scene.changes) {
       const seen = new Set<SceneNode>();
       for (const r of f.out) if (r.kind === 'node') seen.add(r.node);
-      for (const [n, sub] of watched) {
+      for (const [n, stop] of watched) {
         if (seen.has(n)) continue;
-        sub.unsubscribe();
+        stop();
         watched.delete(n);
       }
     }
@@ -315,22 +304,40 @@ export function SceneTree(props: {
   };
   const followNode = (node: SceneNode) => {
     if (watched.has(node)) return;
-    // Kept in `watched`: unsubscribed when the node leaves the shown rows, and all of them when the tree is hidden.
-    const sub = merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow);
-    watched.set(node, sub);
+    // Kept in `watched`: stopped when the node leaves the shown rows, and all of them when the tree is hidden.
+    const offExpanded = listen(node.isExpanded, reflow);
+    const offChildren = listen(node.children, reflow);
+    watched.set(node, () => {
+      offExpanded();
+      offChildren();
+    });
   };
-  // The first flattening now, with the mount (the rows are there when it returns, as a binding's first write is); the
+  // Each of what the search is made of followed by itself (the roots; the filter and the extensions' rows when there are
+  // any), a change searching again unless it comes out the same (the filter as typed, trimmed and in lower case). The
+  // first flattening now, with the mount (the rows are there when it returns, as a binding's first write is); the
   // changes after, once a burst.
   let mounted = false;
-  bind(search, (s) => {
+  const research = () => {
+    const s = searchNow();
+    if (current && s.text === current.text && s.roots === current.roots && s.sections === current.sections) return;
     current = s;
+    emptyNote.set(
+      s.roots.length === 0
+        ? 'Nothing loaded yet.'
+        : s.hits && !s.roots.some((r) => s.hits!.has(r))
+          ? 'Nothing matches.'
+          : undefined,
+    );
     if (mounted) reflow();
     else {
       mounted = true;
       full = false;
       flatten(s);
     }
-  });
+  };
+  effect(scene.roots, research);
+  if (props.filter) effect(props.filter, research);
+  if (sections) effect(sections, research);
   // The scene's structure, one listener (`SceneModel.changes`): the changed nodes' subtrees flattened again.
   if (scene.changes) {
     let version = scene.changes.value.version;
@@ -345,13 +352,14 @@ export function SceneTree(props: {
     });
   }
   // Hidden, nothing followed (prism AGENTS.md): the bindings pause themselves, the nodes' watches go; shown again, the
-  // search replays and the rows are flattened again.
+  // rows are flattened again.
   const unwatch = () => {
-    for (const sub of watched.values()) sub.unsubscribe();
+    for (const stop of watched.values()) stop();
     watched.clear();
   };
   onActive((active) => {
     if (!active) unwatch();
+    else if (mounted) reflow();
   });
   onCleanup(unwatch);
 
@@ -363,18 +371,16 @@ export function SceneTree(props: {
     scrollTo: (i) => list?.scrollToIndex(i),
     selected: () => scene.picked.value?.id,
   });
-  // A row picked from elsewhere (the inspector's list, the canvas) is brought into view once its rows are open: the
-  // frame after.
-  let frame = 0;
+  // A row picked from elsewhere (the inspector's list, the canvas) is brought into view once its rows are open: in the
+  // frame after (a frame lane's work, the last pick's; dropped with the scope).
+  const inView = workQueue({ lane: 'frame' });
   effect(scene.picked, (node) => {
     if (!node) return;
-    cancelFrameCallback(frame);
-    frame = requestFrameCallback(() => {
+    inView.want('pick', () => {
       const i = rows.value.findIndex((r) => r.kind === 'node' && r.node === node);
       if (i >= 0) list?.scrollToIndex(i);
     });
   });
-  onCleanup(() => cancelFrameCallback(frame));
   // The rows that are not a node's: Show all, Loading…, an extension's row (keyed, never recycled).
   const otherRow = (row: Row) => {
     switch (row.kind) {
@@ -410,17 +416,7 @@ export function SceneTree(props: {
   };
   return (
     <>
-      <Show when={derive(scene.roots, (r) => r.length === 0)}>
-        {() => <p class={classes.empty}>Nothing loaded yet.</p>}
-      </Show>
-      <Show
-        when={search.pipe(
-          map((s) => !!s.hits && s.roots.length > 0 && !s.roots.some((r) => s.hits!.has(r))),
-          distinctUntilChanged(),
-        )}
-      >
-        {() => <p class={classes.empty}>Nothing matches.</p>}
-      </Show>
+      <Show when={emptyNote.asReadonly}>{(note) => <p class={classes.empty}>{note}</p>}</Show>
       {(props.recycle ?? true) ? (
         <RecycledList
           items={rows.asReadonly}

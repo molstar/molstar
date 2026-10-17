@@ -10,13 +10,12 @@
 
 import { Icon, openContextMenu, type ReadonlyState } from '@molstar/prism-ui';
 import { EntryKind, type SectionLayout } from '@molstar/seq-viewer';
-import { getScope } from '@molstar/prism-ui/dom/scope';
+import { effect, frameState, getScope } from '@molstar/prism-ui/dom/scope';
 import { on } from '@molstar/prism-ui/dom/scoped';
 import { switchMap } from 'rxjs';
 import { type SequenceApiRunner, setTrackHidden, showAllTracks } from './commands.js';
 import type { SequenceViewer, TrackColoring } from './model.js';
 import { classes } from './_generated/track-gutter.module.css.js';
-import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 
 // The tracks' left gutter (sequence.md §8): a coloring icon per track row that has one (the action of the
 // track's menu: pLDDT, secondary structure, the default coloring), a Prism DOM overlay over Seq*'s surface. The rows'
@@ -135,6 +134,14 @@ export function mountTrackGutter(
     refresh();
   };
 
+  // A coloring run from an icon: the marker read again in the next frame too (a frame state of the runs, counted; its
+  // pending offer goes with the scope).
+  let runs = 0;
+  const ran = frameState(0);
+  effect(ran, (n) => {
+    if (n > 0) refresh();
+  });
+
   /** The rows again, on the layout's rebuild (a resize, tracks coming and going, the style): edge rate. */
   const rebuild = () => {
     const a = seq.graph.assembled.value;
@@ -166,7 +173,7 @@ export function mountTrackGutter(
             coloring.run();
             // The action is asynchronous (one Mol* state update): the marker follows when it has run.
             setTimeout(refresh, 0);
-            requestFrameCallback(() => refresh());
+            ran.offer(++runs);
           }}
         >
           <Icon name={icon} size={16} />

@@ -10,12 +10,12 @@
 
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { combineLatest, map, type Observable } from 'rxjs';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { QuickChoice, RepresentationQuickModel } from '../../model/representation-quick.js';
 import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/representation-quick.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 // A structure representation's quick settings (model/representation-quick.ts), above its whole form. Each setting is a
 // row: its name and the current value, then the choices drawn as what they are: the types as their icons in one segmented
 // strip, the color themes as tiles painted with their colors on this structure (one color: its own swatch). One color
@@ -23,8 +23,8 @@ import { derive } from '@molstar/prism-ui/reactive/state';
 
 export function RepresentationQuick(props: { model: RepresentationQuickModel }) {
   const { model } = props;
-  const labelOf = (list: Observable<readonly QuickChoice[]>, id: Observable<string>) =>
-    combineLatest([list, id]).pipe(map(([l, i]) => l.find((c) => c.id === i)?.label ?? i));
+  const labelOf = (list: ReadonlyState<readonly QuickChoice[]>, id: ReadonlyState<string>) =>
+    derive([list, id], (l, i) => l.find((c) => c.id === i)?.label ?? i);
   return (
     <section class={classes.quick} aria-label="Quick settings">
       <div class={classes.setting}>

@@ -8,14 +8,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable, of, Subject } from 'rxjs';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import type { Listenable } from '@molstar/prism-ui/reactive/listen';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive, State } from '@molstar/prism-ui/reactive/state';
 import { classes } from './_generated/scene-tree.module.css.js';
+
+/** A row without an eye: shown, always. */
+const Shown: ReadonlyState<boolean> = new State(true).asReadonly;
 
 /** The event a row sends when clicked: the tree's host (the Structure tab) shows it in its inspector. */
 export const SceneRowPickEvent = 'msp-scene-row-pick';
@@ -23,24 +28,24 @@ export const SceneRowPickEvent = 'msp-scene-row-pick';
 /** A picked row, as the inspector shows it: its label, line, eye and controls; `mark` shows it picked in the tree. */
 export interface SceneRowPick {
   readonly label: string;
-  readonly description?: Observable<string | undefined>;
-  readonly shown?: Observable<boolean>;
+  readonly description?: ReadonlyState<string | undefined>;
+  readonly shown?: ReadonlyState<boolean>;
   onToggle?(): void;
   readonly body?: () => Child;
   mark(on: boolean): void;
   /**
-   * Emits once the row is gone (its structure removed, its `when` false, a search leaving it out): what it controls may
+   * Tells once the row is gone (its structure removed, its `when` false, a search leaving it out): what it controls may
    * be gone too, so the inspector lets it go.
    */
-  readonly gone: Observable<void>;
+  readonly gone: Listenable;
 }
 
 export interface SceneRowProps {
   readonly label: string;
   /** The short second line ("C2 axes", "30 Å thick"). */
-  readonly description?: Observable<string | undefined>;
+  readonly description?: ReadonlyState<string | undefined>;
   /** Whether what the row stands for is shown (its eye); absent: the row has no eye. */
-  readonly shown?: Observable<boolean>;
+  readonly shown?: ReadonlyState<boolean>;
   /** The eye's click: show or hide it, through the API. */
   onToggle?(): void;
   /** The row's controls, under it while it is open (rendered on first open). */
@@ -60,19 +65,21 @@ export interface SceneRowProps {
  */
 export function SceneRow(props: SceneRowProps) {
   const open = observableState(false);
-  const shown = props.shown ?? of(true);
-  const hidden = shown.pipe(map((s) => !s));
-  let isHidden = false;
-  const sub = hidden.subscribe((h) => {
-    isHidden = h;
-  });
-  onCleanup(() => sub.unsubscribe());
+  const hidden = derive(props.shown ?? Shown, (s) => !s);
   const labelId = uniqueId('msp-tree-label');
   let rowEl: HTMLElement | undefined;
-  const gone = new Subject<void>();
+  // Told once, when the row goes; a listener added after that is not kept.
+  let goneListeners: Set<() => void> | undefined = new Set();
+  const gone: Listenable = {
+    listen(fn) {
+      goneListeners?.add(fn);
+      return () => void goneListeners?.delete(fn);
+    },
+  };
   onCleanup(() => {
-    gone.next();
-    gone.complete();
+    const told = goneListeners;
+    goneListeners = undefined;
+    if (told) for (const fn of told) fn();
   });
   // In the scene tree (its rows are of one height: virtualized), nothing opens under it.
   const inTree = () => !!rowEl?.parentElement?.closest('[data-scene-row]');
@@ -145,12 +152,12 @@ export function SceneRow(props: SceneRowProps) {
               type="button"
               class={classes.action}
               classList={{ [classes.keep]: hidden }}
-              title={hidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+              title={derive(hidden, (h) => (h ? 'Show' : 'Hide'))}
               onClick={(e) => {
                 e.stopPropagation();
                 props.onToggle?.();
                 // Turned on, a row with controls is picked: they are in the inspector at once.
-                if (isHidden && props.body) pick(true);
+                if (hidden.value && props.body) pick(true);
               }}
             >
               <Show when={hidden} fallback={() => <Icon name="eye" size={14} />}>

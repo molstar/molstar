@@ -12,9 +12,11 @@ import { Button, ColorPicker, colorToHex, Floating, PresetsButton, PresetsList }
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { effect, frameState } from '@molstar/prism-ui/dom/scope';
+import { drag, on } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable, shareReplay } from 'rxjs';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { VolumeLevelUnit } from '../../model/volume-levels.js';
 import {
   type TransferColors,
@@ -27,8 +29,6 @@ import {
 import { classes } from './_generated/volume-transfer.module.css.js';
 import { formatIn, histogramPath } from './volume-levels.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // A direct volume's transfer function (model/volume-transfer.ts): on one axis, the map's values as a histogram, the
 // opacity as a curve through its points (a log scale: opacities per step are small) with the area under it in the
 // colors the renderer paints there, and under it the color strip with the theme's stops. Points: drag, click to add,
@@ -90,25 +90,24 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   let paletteAnchor: HTMLElement | undefined;
   const gradientId = uniqueId('msp-tf');
   // Computed once per change of the colors for the many bindings below (the gradient's stops, the strip, the classes).
-  const samples = model.colors.pipe(map(samplesOf), shareReplay({ bufferSize: 1, refCount: true }));
+  const samples = derive(model.colors, samplesOf);
+  const uncolored = derive(samples, (s) => !s);
   const points = model.points;
   const stops = derive(model.colors, (c) => (c.kind === 'value' ? c.stops : []));
-  const indices = (o: Observable<readonly unknown[]>) =>
-    o.pipe(
-      map((l) => l.length),
-      distinctUntilChanged(),
-      map((n) => Array.from({ length: n }, (_, i) => i)),
+  /** The positions of a list, told only when its length changes. */
+  const indices = (o: ReadonlyState<readonly unknown[]>) =>
+    derive(
+      o,
+      (l) => Array.from({ length: l.length }, (_, i) => i),
+      (a, b) => a.length === b.length,
     );
-  const pointAt = (i: number) =>
-    points.pipe(
-      map((p) => p[i]),
-      filter((p): p is TransferPoint => !!p),
-    );
-  const stopAt = (i: number) =>
-    stops.pipe(
-      map((s) => s[i]),
-      filter((s): s is TransferStop => !!s),
-    );
+  /** The item at `i`: the last one there (one removed keeps its last until its row goes). */
+  const itemAt = <T,>(o: ReadonlyState<readonly T[]>, i: number): ReadonlyState<T> => {
+    let last = o.value[i];
+    return derive(o, (l) => (last = l[i] ?? last));
+  };
+  const pointAt = (i: number) => itemAt(points, i);
+  const stopAt = (i: number) => itemAt(stops, i);
   const curve = derive(points, (p) =>
     p.length ? p.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(4)} ${(1 - yOf(q.alpha)).toFixed(4)}`).join('') : '',
   );
@@ -118,11 +117,13 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       : '',
   );
 
-  // ---- Points: dragged on the plot, once a frame ----
+  // ---- Points: dragged on the plot, once a frame (the moves, counted, are a frame state: its value is only a tick) ----
   let rect: DOMRect | undefined;
   let dragging: { kind: 'point' | 'stop'; index: number } | undefined;
-  let frame = 0;
-  let pointer = { x: 0, y: 0 };
+  let pointerX = 0;
+  let pointerY = 0;
+  let moves = 0;
+  const moved = frameState(0);
   const at = (clientX: number, clientY: number) => ({
     x: clamp01((clientX - rect!.left) / (rect!.width || 1)),
     y: clamp01(1 - (clientY - rect!.top) / (rect!.height || 1)),
@@ -167,52 +168,54 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
     s[i] = { ...s[i], x: to };
     model.change({ stops: s });
   };
-  const flush = () => {
-    if (frame) cancelFrameCallback(frame);
-    frame = 0;
+  const step = () => {
     if (!dragging || !rect) return;
-    const p = at(pointer.x, pointer.y);
+    const p = at(pointerX, pointerY);
     if (dragging.kind === 'point') movePoint(dragging.index, p.x, p.y);
     else moveStop(dragging.index, p.x);
   };
-  const end = () => {
-    if (!dragging) return;
-    flush();
-    dragging = undefined;
-    rect = undefined;
-    model.settle();
-  };
-  // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
-  onCleanup(() => {
-    if (frame) cancelFrameCallback(frame);
-    frame = 0;
-    if (dragging) {
-      dragging = undefined;
-      rect = undefined;
-      model.settle();
-    }
-  });
-  const onMove = (e: PointerEvent) => {
-    if (!dragging) return;
-    pointer = { x: e.clientX, y: e.clientY };
-    if (!frame) frame = requestFrameCallback(flush);
-  };
-  const capture = (e: PointerEvent) => {
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    pointer = { x: e.clientX, y: e.clientY };
-  };
+  effect(moved, step);
+  /**
+   * A drag on the plot or the strip (`drag`, dom/scoped.ts: its listeners attached once, every way it ends ends it):
+   * `press` starts it (what is dragged), or lets the press be.
+   */
+  const dragOn = (el: HTMLElement, press: (e: PointerEvent) => typeof dragging) =>
+    drag(el, {
+      start: (e) => {
+        if (e.button !== 0) return undefined;
+        const d = press(e);
+        if (!d) return undefined;
+        dragging = d;
+        e.preventDefault();
+        pointerX = e.clientX;
+        pointerY = e.clientY;
+        return d;
+      },
+      move: (e) => {
+        pointerX = e.clientX;
+        pointerY = e.clientY;
+        moved.offer(++moves);
+      },
+      // Ended by the pointer: the last place now. Gone mid-drag (another row is picked, the node removed, the panel
+      // hidden): no more steps. Either way the step closes.
+      end: (_d, _how, e) => {
+        if (e) step();
+        dragging = undefined;
+        rect = undefined;
+        model.settle();
+      },
+    });
 
-  const onPlotDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const onPlotDown = (el: HTMLElement, e: PointerEvent): typeof dragging => {
+    rect = el.getBoundingClientRect();
     const hit = (e.target as HTMLElement).closest<HTMLElement>('[data-point]')?.dataset.point;
     let index: number;
     if (hit !== undefined) {
       index = Number(hit);
       if (pressedTwice('point', index)) {
         removePoint(index);
-        return;
+        rect = undefined;
+        return undefined;
       }
     } else {
       // A new point where it was clicked, then dragged from there.
@@ -224,8 +227,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       model.change({ points: list });
     }
     picked.set({ kind: 'point', index });
-    dragging = { kind: 'point', index };
-    capture(e);
+    return { kind: 'point', index };
   };
   // A double click removes a point or a stop: told on the second press (the pointer is captured on the first, so the
   // dblclick event lands on the plot, not on what was pressed).
@@ -276,22 +278,22 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   };
 
   // ---- Stops: dragged on the strip ----
-  const onStripDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
+  const onStripDown = (el: HTMLElement, e: PointerEvent): typeof dragging => {
     const colors = model.colors.value;
     if (colors.kind === 'uniform') {
       picked.set({ kind: 'uniform' });
-      return;
+      return undefined;
     }
-    if (colors.kind !== 'value') return;
-    rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (colors.kind !== 'value') return undefined;
+    rect = el.getBoundingClientRect();
     const hit = (e.target as HTMLElement).closest<HTMLElement>('[data-stop]')?.dataset.stop;
     let index: number;
     if (hit !== undefined) {
       index = Number(hit);
       if (pressedTwice('stop', index)) {
         removeStop(index);
-        return;
+        rect = undefined;
+        return undefined;
       }
     } else {
       const x = Math.min(colors.domain[1], Math.max(colors.domain[0], at(e.clientX, e.clientY).x));
@@ -302,8 +304,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       model.change({ stops: list });
     }
     picked.set({ kind: 'stop', index });
-    dragging = { kind: 'stop', index };
-    capture(e);
+    return { kind: 'stop', index };
   };
   const removeStop = (i: number) => {
     const colors = model.colors.value;
@@ -330,20 +331,19 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
     model.change({ stops: list });
   };
 
-  const strip = samples.pipe(
-    map((s) => (s ? `linear-gradient(90deg, ${s.map(([x, c]) => `${c} ${(x * 100).toFixed(2)}%`).join(', ')})` : '')),
+  const strip = derive(samples, (s) =>
+    s ? `linear-gradient(90deg, ${s.map(([x, c]) => `${c} ${(x * 100).toFixed(2)}%`).join(', ')})` : '',
   );
   const pickedPoint = derive([picked.asReadonly, points], (p, list) =>
     p?.kind === 'point' ? list[p.index] : undefined,
   );
-  const pickedStop = combineLatest([picked.asReadonly, stops]).pipe(
-    map(([p, list]) => (p?.kind === 'stop' ? list[p.index] : undefined)),
-  );
+  const pickedStop = derive([picked.asReadonly, stops], (p, list) => (p?.kind === 'stop' ? list[p.index] : undefined));
   const hasPeaks = derive(points, (p) => transferPeaks(p).length > 0);
   /** A picked stop's (or the one) color; its picker opens from the chevron. */
   const colorOpen = observableState(false);
-  const pickedColor = combineLatest([pickedStop, model.colors]).pipe(
-    map(([s, c]) => s?.color ?? (c.kind === 'uniform' ? c.color : 0x808080)),
+  const pickedColor = derive(
+    [pickedStop, model.colors],
+    (s, c) => s?.color ?? (c.kind === 'uniform' ? c.color : 0x808080),
   );
 
   return (
@@ -358,7 +358,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
           <button
             type="button"
             class={classes.iconTool}
-            disabled={hasPeaks.pipe(map((h) => !h))}
+            disabled={derive(hasPeaks, (h) => !h)}
             aria-label="Colors at peaks"
             aria-haspopup="listbox"
             aria-expanded={palettesOpen}
@@ -407,10 +407,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       <div
         class={classes.plot}
         title="Drag a point · click to add one · double-click to remove it"
-        onPointerDown={onPlotDown}
-        onPointerMove={onMove}
-        onPointerUp={end}
-        onPointerCancel={end}
+        ref={(el: HTMLElement) => dragOn(el, (e) => onPlotDown(el, e))}
       >
         <svg class={classes.svg} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
           <defs>
@@ -418,7 +415,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
               {Array.from({ length: Samples + 1 }, (_, i) => (
                 <stop
                   offset={String(i / Samples)}
-                  stop-color={samples.pipe(map((all) => all?.[i]?.[1] ?? 'transparent'))}
+                  stop-color={derive(samples, (all) => all?.[i]?.[1] ?? 'transparent')}
                 />
               ))}
             </linearGradient>
@@ -426,7 +423,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
           <path class={classes.bars} d={derive(model.histogram, histogramPath)} />
           <path
             class={classes.area}
-            classList={{ [classes.uncolored]: samples.pipe(map((s) => !s)) }}
+            classList={{ [classes.uncolored]: uncolored }}
             d={area}
             fill={`url(#${gradientId})`}
           />
@@ -438,7 +435,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
             return (
               <span
                 class={classes.track}
-                style={{ transform: point.pipe(map((p) => `translate(${p.x * 100}%, ${(1 - yOf(p.alpha)) * 100}%)`)) }}
+                style={{ transform: derive(point, (p) => `translate(${p.x * 100}%, ${(1 - yOf(p.alpha)) * 100}%)`) }}
               >
                 <span
                   class={classes.point}
@@ -446,8 +443,9 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
                   data-point={String(i)}
                   role="slider"
                   tabIndex={0}
-                  aria-label={combineLatest([point, model.unit]).pipe(
-                    map(([p, u]) => `Point at ${valueText(p.x, u)}, opacity ${alphaText(p.alpha)}`),
+                  aria-label={derive(
+                    [point, model.unit],
+                    (p, u) => `Point at ${valueText(p.x, u)}, opacity ${alphaText(p.alpha)}`,
                   )}
                   onFocus={() => picked.set({ kind: 'point', index: i })}
                   onKeyDown={onPointKey(i)}
@@ -459,7 +457,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
       </div>
       <div
         class={classes.strip}
-        classList={{ [classes.themed]: samples.pipe(map((s) => !s)) }}
+        classList={{ [classes.themed]: uncolored }}
         style={{ background: strip }}
         title={derive(model.colors, (c) =>
           c.kind === 'value'
@@ -468,24 +466,21 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
               ? 'One color: click to change it'
               : `Colored by ${c.label}`,
         )}
-        onPointerDown={onStripDown}
-        onPointerMove={onMove}
-        onPointerUp={end}
-        onPointerCancel={end}
+        ref={(el: HTMLElement) => dragOn(el, (e) => onStripDown(el, e))}
       >
         <For each={indices(stops)} key={(i) => i}>
           {(i) => {
             const stop = stopAt(i);
             return (
-              <span class={classes.stopTrack} style={{ transform: stop.pipe(map((s) => `translateX(${s.x * 100}%)`)) }}>
+              <span class={classes.stopTrack} style={{ transform: derive(stop, (s) => `translateX(${s.x * 100}%)`) }}>
                 <span
                   class={classes.stop}
                   classList={{ [classes.on]: derive(picked.asReadonly, (p) => p?.kind === 'stop' && p.index === i) }}
-                  style={{ '--msp-stop': stop.pipe(map((s) => colorToHex(s.color))) }}
+                  style={{ '--msp-stop': derive(stop, (s) => colorToHex(s.color)) }}
                   data-stop={String(i)}
                   role="button"
                   tabIndex={0}
-                  aria-label={combineLatest([stop, model.unit]).pipe(map(([s, u]) => `Color at ${valueText(s.x, u)}`))}
+                  aria-label={derive([stop, model.unit], (s, u) => `Color at ${valueText(s.x, u)}`)}
                   onKeyDown={(e) => {
                     if (e.key === 'Delete' || e.key === 'Backspace') removeStop(i);
                     if (e.key === 'Enter' || e.key === ' ') picked.set({ kind: 'stop', index: i });
@@ -507,8 +502,8 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
           <div class={classes.picked}>
             {kind === 'point' ? (
               <span class={classes.pickedText}>
-                {combineLatest([pickedPoint, model.unit]).pipe(
-                  map(([p, u]) => (p ? `${valueText(p.x, u)} · opacity ${alphaText(p.alpha)}` : '')),
+                {derive([pickedPoint, model.unit], (p, u) =>
+                  p ? `${valueText(p.x, u)} · opacity ${alphaText(p.alpha)}` : '',
                 )}
               </span>
             ) : (
@@ -518,11 +513,9 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
                 aria-expanded={colorOpen}
                 onClick={() => colorOpen.set(!colorOpen.value)}
               >
-                <span class={classes.swatch} style={{ background: pickedColor.pipe(map(colorToHex)) }} />
+                <span class={classes.swatch} style={{ background: derive(pickedColor, colorToHex) }} />
                 <span class={classes.pickedText}>
-                  {combineLatest([pickedStop, model.unit]).pipe(
-                    map(([s, u]) => (s ? `Color at ${valueText(s.x, u)}` : 'Color')),
-                  )}
+                  {derive([pickedStop, model.unit], (s, u) => (s ? `Color at ${valueText(s.x, u)}` : 'Color'))}
                 </span>
                 <Icon name="chevron-down" size={14} class={classes.chevron} />
               </button>
@@ -617,8 +610,7 @@ function PalettePicker(props: { model: VolumeTransferModel; onClose(): void }) {
     }
     props.onClose();
   };
-  document.addEventListener('pointerdown', onDown, true);
-  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
+  on(document, 'pointerdown', onDown, { capture: true });
   queueMicrotask(() => list.querySelector<HTMLElement>('button')?.focus());
   return list;
 }

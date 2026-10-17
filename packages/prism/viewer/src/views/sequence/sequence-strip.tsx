@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Observable } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ScrollArea } from '@molstar/prism-ui';
@@ -16,9 +15,9 @@ import { OptionList, type SelectOption } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import { classes } from './_generated/sequence-strip.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * One of the sequence view's choices (Mol*'s sequence controls): the structure, the mode (Chain, Polymers,
  * Everything), the entity and the chain (in Chain mode), the instance (an assembly's operators, when there are several).
@@ -33,7 +32,7 @@ export interface SequenceSelector {
   /** The button's text for a value, shorter than the option ("1TQN" for "1TQN | Crystal structure of …"). */
   display?: (value: string) => string;
   /** Shown only while true (entity and chain in Chain mode; the instance with several). */
-  visible?: Observable<boolean>;
+  visible?: ReadonlyState<boolean>;
   /** Set in the text color and bold (the structure); the others quieter. */
   strong?: boolean;
 }

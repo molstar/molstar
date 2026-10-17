@@ -10,9 +10,11 @@
 
 import { colorToHex } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { effect, frameState } from '@molstar/prism-ui/dom/scope';
+import { drag } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type {
   VolumeLevel,
   VolumeLevelHistogram,
@@ -22,8 +24,6 @@ import type {
 import { QuickColorRow, QuickRange } from '../common/quick-controls.js';
 import { classes } from './_generated/volume-levels.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // A map's levels (model/volume-levels.ts; v5's density controls, improved): the map's values as a histogram with a
 // marker per level, dragged (or stepped with the arrow keys) to set the iso value, the part of the map the surface
 // encloses tinted in its color; under it a row per level: its color (a click opens the picker and the opacity), its
@@ -75,71 +75,63 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
   const clamp = (v: number) => Math.min(stats.max, Math.max(stats.min, v));
   /** A value's place on the plot, 0 to 1. */
   const at = (v: number) => (clamp(v) - stats.min) / span;
-  const levelOf = (id: string): Observable<VolumeLevel> =>
-    model.levels.pipe(
-      map((ls) => ls.find((l) => l.id === id)),
-      filter((l): l is VolumeLevel => !!l),
-      distinctUntilChanged(),
-    );
+  /** A level by id, as a state: the last one found (one removed keeps its last until its rows go). */
+  const levelOf = (id: string): ReadonlyState<VolumeLevel> => {
+    let last = model.levels.value.find((l) => l.id === id) as VolumeLevel;
+    return derive(model.levels, (ls) => (last = ls.find((l) => l.id === id) ?? last));
+  };
   const ids = derive(
     model.levels,
     (ls) => ls.map((l) => l.id),
     (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),
   );
 
-  // Dragging on the plot: the marker under the pointer, else the nearest, follows it; once a frame.
+  // Dragging on the plot: the marker under the pointer, else the nearest, follows it; once a frame (the moves, counted,
+  // are a frame state: its value is only a tick). The drag's listeners are attached once (`drag`, dom/scoped.ts).
   let rect: DOMRect | undefined;
   let dragging: string | undefined;
-  let frame = 0;
   let pointerX = 0;
+  let moves = 0;
+  const moved = frameState(0);
   const valueAt = (clientX: number) =>
     clamp(stats.min + span * Math.min(1, Math.max(0, (clientX - rect!.left) / (rect!.width || 1))));
-  const flush = () => {
-    if (frame) cancelFrameCallback(frame);
-    frame = 0;
+  const step = () => {
     if (dragging) model.change(dragging, { value: valueAt(pointerX) });
   };
-  const end = () => {
-    if (!dragging) return;
-    flush();
-    dragging = undefined;
-    rect = undefined;
-    model.settle();
-  };
-  // Gone mid-drag (another row is picked, the node removed): no more frames, and the step closes.
-  onCleanup(() => {
-    if (frame) cancelFrameCallback(frame);
-    frame = 0;
-    if (dragging) {
-      dragging = undefined;
-      rect = undefined;
-      model.settle();
-    }
-  });
-  const onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    const el = e.currentTarget as HTMLElement;
-    rect = el.getBoundingClientRect();
-    const levels = model.levels.value;
-    const hit = (e.target as HTMLElement).closest<HTMLElement>('[data-level]')?.dataset.level;
-    const x = (e.clientX - rect.left) / (rect.width || 1);
-    const nearest = levels.reduce<VolumeLevel | undefined>(
-      (best, l) => (!best || Math.abs(at(l.value) - x) < Math.abs(at(best.value) - x) ? l : best),
-      undefined,
-    );
-    dragging = hit ?? nearest?.id;
-    if (!dragging) return;
-    e.preventDefault();
-    el.setPointerCapture(e.pointerId);
-    el.querySelector<HTMLElement>(`[data-level="${CSS.escape(dragging)}"]`)?.focus({ preventScroll: true });
-    pointerX = e.clientX;
-    flush();
-  };
-  const onPointerMove = (e: PointerEvent) => {
-    if (!dragging) return;
-    pointerX = e.clientX;
-    if (!frame) frame = requestFrameCallback(flush);
-  };
+  effect(moved, step);
+  const plotDrag = (el: HTMLElement) =>
+    drag(el, {
+      start: (e) => {
+        if (e.button !== 0) return undefined;
+        rect = el.getBoundingClientRect();
+        const levels = model.levels.value;
+        const hit = (e.target as HTMLElement).closest<HTMLElement>('[data-level]')?.dataset.level;
+        const x = (e.clientX - rect.left) / (rect.width || 1);
+        const nearest = levels.reduce<VolumeLevel | undefined>(
+          (best, l) => (!best || Math.abs(at(l.value) - x) < Math.abs(at(best.value) - x) ? l : best),
+          undefined,
+        );
+        dragging = hit ?? nearest?.id;
+        if (!dragging) return undefined;
+        e.preventDefault();
+        el.querySelector<HTMLElement>(`[data-level="${CSS.escape(dragging)}"]`)?.focus({ preventScroll: true });
+        pointerX = e.clientX;
+        step();
+        return dragging;
+      },
+      move: (e) => {
+        pointerX = e.clientX;
+        moved.offer(++moves);
+      },
+      // Ended by the pointer: the last place now. Gone mid-drag (another row is picked, the node removed, the panel
+      // hidden): no more steps. Either way the step closes.
+      end: (_id, _how, e) => {
+        if (e) step();
+        dragging = undefined;
+        rect = undefined;
+        model.settle();
+      },
+    });
   const onKey = (id: string) => (e: KeyboardEvent) => {
     const level = model.levels.value.find((l) => l.id === id);
     if (!level) return;
@@ -184,13 +176,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
           ))}
         </span>
       </header>
-      <div
-        class={classes.plot}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={end}
-        onPointerCancel={end}
-      >
+      <div class={classes.plot} ref={plotDrag}>
         <svg class={classes.bars} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
           <path d={derive(model.histogram, histogramPath)} />
         </svg>
@@ -198,35 +184,34 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
         <For each={ids} key={(id) => id}>
           {(id) => {
             const level = levelOf(id);
-            const color = level.pipe(map((l) => (l.color === undefined ? undefined : colorToHex(l.color))));
-            const x = level.pipe(map((l) => at(l.value)));
+            const color = derive(level, (l) => (l.color === undefined ? undefined : colorToHex(l.color)));
+            const x = derive(level, (l) => at(l.value));
+            const hidden = derive(level, (l) => l.hidden);
             // What the surface encloses: above the level, or below a negative one (Fo-Fc's −).
-            const inside = level.pipe(
-              map((l) => (l.value >= stats.mean ? at(l.value) * 100 : at(l.value) * 100 - 100)),
-            );
+            const inside = derive(level, (l) => (l.value >= stats.mean ? at(l.value) * 100 : at(l.value) * 100 - 100));
             return (
               <>
                 <span
                   class={classes.inside}
-                  classList={{ [classes.off]: level.pipe(map((l) => l.hidden)) }}
-                  style={{ transform: inside.pipe(map((p) => `translateX(${p}%)`)), '--msp-level': color }}
+                  classList={{ [classes.off]: hidden }}
+                  style={{ transform: derive(inside, (p) => `translateX(${p}%)`), '--msp-level': color }}
                   aria-hidden="true"
                 />
                 <span
                   class={classes.track}
-                  style={{ transform: x.pipe(map((p) => `translateX(${p * 100}%)`)), '--msp-level': color }}
+                  style={{ transform: derive(x, (p) => `translateX(${p * 100}%)`), '--msp-level': color }}
                 >
                   <span
                     class={classes.marker}
-                    classList={{ [classes.off]: level.pipe(map((l) => l.hidden)) }}
+                    classList={{ [classes.off]: hidden }}
                     data-level={id}
                     role="slider"
                     tabIndex={0}
-                    aria-label={level.pipe(map((l) => `${l.label} iso value`))}
+                    aria-label={derive(level, (l) => `${l.label} iso value`)}
                     aria-valuemin={sigmas(stats.min, stats)}
                     aria-valuemax={sigmas(stats.max, stats)}
-                    aria-valuenow={level.pipe(map((l) => sigmas(l.value, stats)))}
-                    aria-valuetext={level.pipe(map((l) => `${formatIn('sigma', l.value, stats)} σ`))}
+                    aria-valuenow={derive(level, (l) => sigmas(l.value, stats))}
+                    aria-valuetext={derive(level, (l) => `${formatIn('sigma', l.value, stats)} σ`)}
                     onKeyDown={onKey(id)}
                   />
                 </span>
@@ -247,41 +232,38 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
 }
 
 /** A level's row: its color (opening the picker and the opacity), its name, its value in the unit and the other. */
-function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observable<VolumeLevel> }) {
+function LevelRow(props: { model: VolumeLevelsModel; id: string; level: ReadonlyState<VolumeLevel> }) {
   const { model, id, level } = props;
   const { stats } = model;
   const open = observableState(false);
-  const both = combineLatest([level, model.unit]);
-  const color = level.pipe(map((l) => (l.color === undefined ? undefined : colorToHex(l.color))));
+  const color = derive(level, (l) => (l.color === undefined ? undefined : colorToHex(l.color)));
   return (
     <div class={classes.level}>
       <div class={classes.row}>
         <button
           type="button"
           class={classes.swatch}
-          classList={{ [classes.themed]: color.pipe(map((c) => c === undefined)) }}
+          classList={{ [classes.themed]: derive(color, (c) => c === undefined) }}
           style={{ '--msp-level': color }}
           aria-expanded={open}
-          title={color.pipe(map((c) => (c === undefined ? 'Colored by a theme: pick a color' : 'Color and opacity')))}
+          title={derive(color, (c) => (c === undefined ? 'Colored by a theme: pick a color' : 'Color and opacity'))}
           onClick={() => open.set(!open.value)}
         />
-        <span class={classes.name} classList={{ [classes.dim]: level.pipe(map((l) => l.hidden)) }}>
-          {level.pipe(map((l) => l.label))}
+        <span class={classes.name} classList={{ [classes.dim]: derive(level, (l) => l.hidden) }}>
+          {derive(level, (l) => l.label)}
         </span>
         {/* The other unit before the field: its width changes as the value does, and the field stays put. */}
         <span class={classes.other}>
-          {both.pipe(
-            map(([l, u]) =>
-              u === 'sigma' ? formatIn('absolute', l.value, stats) : `${formatIn('sigma', l.value, stats)} σ`,
-            ),
+          {derive([level, model.unit], (l, u) =>
+            u === 'sigma' ? formatIn('absolute', l.value, stats) : `${formatIn('sigma', l.value, stats)} σ`,
           )}
         </span>
         <input
           class={classes.value}
           inputMode="decimal"
           spellcheck={false}
-          aria-label={level.pipe(map((l) => `${l.label} iso value`))}
-          value={both.pipe(map(([l, u]) => formatIn(u, l.value, stats)))}
+          aria-label={derive(level, (l) => `${l.label} iso value`)}
+          value={derive([level, model.unit], (l, u) => formatIn(u, l.value, stats))}
           onChange={(e) => {
             const v = parseIn(model.unit.value, e.currentTarget.value, stats);
             if (v === undefined) return;
@@ -299,7 +281,7 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
           <div class={classes.editor}>
             <QuickColorRow
               label={`${model.levels.value.find((l) => l.id === id)?.label ?? 'Level'} color`}
-              value={level.pipe(map((l) => l.color))}
+              value={derive(level, (l) => l.color)}
               onPick={(c) => {
                 model.change(id, { color: c });
                 model.settle();
@@ -312,7 +294,7 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
               min={0}
               max={1}
               step={0.01}
-              value={level.pipe(map((l) => l.opacity))}
+              value={derive(level, (l) => l.opacity)}
               format={(v) => `${Math.round(v * 100)}%`}
               onInput={(v) => model.change(id, { opacity: v })}
               onCommit={() => model.settle()}

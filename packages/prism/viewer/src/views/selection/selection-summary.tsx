@@ -10,11 +10,10 @@
 
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { map } from 'rxjs';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { SelectionSummaryModel } from '../../model/selection.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /** At most this many structures are named; the rest are counted. */
 const MaxParts = 3;
 
@@ -96,10 +95,10 @@ export function SelectionSummary(props: { model: SelectionSummaryModel }) {
                 </div>
               )}
             </For>
-            <Show when={more.pipe(map((n) => n > 0))}>
+            <Show when={derive(more, (n) => n > 0)}>
               {() => (
                 <div class={classes.part}>
-                  <span class={classes.partLine}>{more.pipe(map((n) => `+${n} more structures`))}</span>
+                  <span class={classes.partLine}>{derive(more, (n) => `+${n} more structures`)}</span>
                 </div>
               )}
             </Show>

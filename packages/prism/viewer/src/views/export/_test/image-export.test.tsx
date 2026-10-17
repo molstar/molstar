@@ -10,12 +10,14 @@
  */
 
 import { render } from '@molstar/prism-ui';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { lostReleases, stubPointerCapture } from '@molstar/prism-ui/testing/gestures';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mockImageExport } from '../../../testing/image-export.js';
 import { ImageExport } from '../image-export.js';
 
 // The image export's crop box (v5's screenshot crop): dragged to move, by a handle to resize, set once per frame.
 
+beforeAll(stubPointerCapture);
 afterEach(() => {
   document.body.innerHTML = '';
   vi.unstubAllGlobals();
@@ -34,7 +36,9 @@ function setup() {
   // The preview is 200 × 100 px.
   crop.parentElement!.getBoundingClientRect = () => ({ width: 200, height: 100 }) as DOMRect;
   const pointer = (type: string, target: Element, x: number, y: number) =>
-    target.dispatchEvent(new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y }));
+    target.dispatchEvent(
+      new MouseEvent(type, { bubbles: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y }),
+    );
   const flush = () => {
     for (const cb of frames.splice(0)) cb(0);
   };
@@ -80,5 +84,21 @@ describe('the image crop', () => {
     expect(model.crop.value.x).toBeCloseTo(0.18);
     crop.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }));
     expect(model.crop.value.height).toBeCloseTo(0.81);
+  });
+
+  it('a drag that loses its release leaves no listener, and the next one moves the box', () => {
+    const { model, crop, flush } = setup();
+    const r = lostReleases({
+      target: () => crop,
+      from: { x: 100, y: 50 },
+      to: { x: 110, y: 50 },
+      reset: () => model.setCrop({ x: 0.17, y: 0.1, width: 0.66, height: 0.8 }),
+      worked: () => {
+        flush();
+        return model.crop.value.x > 0.2 && !crop.hasAttribute('data-dragging');
+      },
+    });
+    expect(r.grown).toBe(0);
+    expect(r.worked).toBe(true);
   });
 });

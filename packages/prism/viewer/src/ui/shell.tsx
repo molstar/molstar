@@ -67,8 +67,9 @@ import { frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
+import { createRoot, getScope, runInScope } from '@molstar/prism-ui/dom/scope';
+import { frame, on } from '@molstar/prism-ui/dom/scoped';
 import { derive } from '@molstar/prism-ui/reactive/state';
-import { requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
 // The viewer on a page (viewer-spec.md §6): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
 // 29); styles are adopted into its shadow root (library.md §3).
@@ -102,12 +103,15 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   root.className = 'msp-root';
   root.style.cssText = 'position: absolute; inset: 0';
   shadow.appendChild(root);
+  // The shell's own attachments (its keys, the first frame: rendering.md §2.4) in a root scope of their own, ended with
+  // the shell.
+  const attached = createRoot(() => getScope()!);
   // The shell's teardown, defined first: on a failure partway through, a step whose part was never made is passed
   // over (each one guarded), so what was made goes; `dispose` runs it whole.
   let teardown: (() => void) | undefined;
   try {
     const steps: (() => void)[] = [
-      () => document.removeEventListener('keydown', onKey),
+      () => attached.dispose(),
       () => {
         for (const u of unregister.reverse()) u();
       },
@@ -633,7 +637,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         openCommandMenu();
       } else if (!commandMenuOpen.value && managers.commands.handleKey(e, isMac())) e.preventDefault();
     };
-    document.addEventListener('keydown', onKey);
+    runInScope(attached, () => on(document, 'keydown', onKey));
 
     // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab, or
     // `homeWhenEmpty` opens Home while nothing is loaded (where to load from); not in the embedded layout, whose rail
@@ -723,7 +727,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
     // The next frame, or a moment later where there are no frames (a background tab): creation never waits on visibility.
     await new Promise<void>((resolve) => {
-      requestFrameCallback(() => resolve());
+      runInScope(attached, () => frame(() => resolve()));
       setTimeout(resolve, 50);
     });
     const mounted = await core.mountCanvas(canvasHost);

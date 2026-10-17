@@ -8,15 +8,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
 import { ActionFooter } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import { For } from '@molstar/prism-ui/dom/control-flow';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { SuperpositionModel } from '../../model/superposition.js';
 import { Superposed } from '../selection/superposed.js';
 import { classes } from './_generated/superpose.module.css.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 /**
  * Superposing structures (the Selection tab's Superpose section, after Mol*'s): the method and its options, what it
  * would superpose (one selection per structure, a click focuses one; or what to select), Superpose, and the
@@ -48,7 +47,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
         icon="superpose"
         label="Superpose"
         disabled={derive(model.ready, (r) => !r)}
-        info={model.blocked?.pipe(map((b) => b ?? ''))}
+        info={model.blocked ? derive(model.blocked, (b) => b ?? '') : undefined}
         onReset={() => model.form.reset()}
         onApply={() => model.superpose()}
       />

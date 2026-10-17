@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { debounceTime, distinctUntilChanged, filter, map, type Observable, of } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
@@ -16,9 +15,12 @@ import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
+import { derive } from '@molstar/prism-ui/reactive/state';
+import { effect, onCleanup } from '@molstar/prism-ui/dom/scope';
+import { on } from '@molstar/prism-ui/dom/scoped';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
@@ -30,7 +32,6 @@ import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 
-import { derive } from '@molstar/prism-ui/reactive/state';
 export interface StructureTabProps {
   shell: ShellModel;
   scene: SceneModel;
@@ -60,20 +61,29 @@ export function StructureTab(props: StructureTabProps) {
   // The tree's search: a field over the tree while open; closed, no filter.
   // An extension's row picked (its controls in the inspector); a node picked takes its place.
   const pickedRow = observableState<SceneRowPick | undefined>(undefined);
-  const picks = scene.picked.subscribe((n) => {
+  effect(scene.picked, (n) => {
     if (!n || !pickedRow.value) return;
     pickedRow.value.mark(false);
     pickedRow.set(undefined);
   });
   // The picked row gone from the tree: its inspector goes with it (what it controls may be gone).
-  let gone: { unsubscribe(): void } | undefined;
+  let gone: (() => void) | undefined;
   onCleanup(() => {
-    picks.unsubscribe();
-    gone?.unsubscribe();
+    gone?.();
     pickedRow.value?.mark(false);
   });
   const searchOpen = observableState(false);
   const search = observableState('');
+  // The tree searches what was typed once the typing pauses (120 ms): one timer, the last key's.
+  const filter = observableState('');
+  let typing: ReturnType<typeof setTimeout> | undefined;
+  effect(search.asReadonly, (text) => {
+    clearTimeout(typing);
+    // Back to what the tree searches (and at the mount): no timer.
+    if (text === filter.value) return;
+    typing = setTimeout(() => filter.set(text), 120);
+  });
+  onCleanup(() => clearTimeout(typing));
   const closeSearch = () => {
     search.set('');
     searchOpen.set(false);
@@ -163,17 +173,16 @@ export function StructureTab(props: StructureTabProps) {
             pick.mark(true);
             pickedRow.set(pick);
             // Its row or its structure gone: its inspector goes too. One watch at a time, the last cleaned up.
-            const watch = pick.gone.subscribe(() => {
+            const stop = pick.gone.listen(() => {
               if (pickedRow.value === pick) pickedRow.set(undefined);
             });
-            gone?.unsubscribe();
-            gone = { unsubscribe: () => watch.unsubscribe() };
+            gone?.();
+            gone = stop;
           };
-          el.addEventListener(SceneRowPickEvent, onPick);
-          onCleanup(() => el.removeEventListener(SceneRowPickEvent, onPick));
+          on(el, SceneRowPickEvent, onPick);
         }}
       >
-        <SceneTree scene={scene} shell={shell} filter={search.asReadonly.pipe(debounceTime(120))} />
+        <SceneTree scene={scene} shell={shell} filter={filter.asReadonly} />
       </div>
       <ScrollArea
         class={classes.inspector}
@@ -215,7 +224,7 @@ function RowInspector(props: { row: SceneRowPick }) {
         <span class={classes.inspectorTitle}>{row.label}</span>
         <span class={classes.inspectorKind}>{row.description ?? ''}</span>
         {row.shown && row.onToggle ? (
-          <VisibilityToggle hidden={row.shown.pipe(map((s) => !s))} feature onToggle={() => row.onToggle?.()} />
+          <VisibilityToggle hidden={derive(row.shown, (s) => !s)} feature onToggle={() => row.onToggle?.()} />
         ) : null}
       </header>
       {row.body ? row.body() : <p class={classes.nothing}>Nothing to set here.</p>}
@@ -282,7 +291,7 @@ function RenameTitle(props: { label: ReadonlyState<string>; onRename(label: stri
  * The inspector's eye at its header's end, as the tree row's: Show or Hide what is drawn, Turn on or off a feature
  * (the unit cell, the streaming, an extension's row); marked while hidden or off, so the way back is where it was.
  */
-function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean; onToggle(): void }) {
+function VisibilityToggle(props: { hidden: ReadonlyState<boolean>; feature: boolean; onToggle(): void }) {
   const [on, off] = props.feature ? ['Turn off', 'Turn on'] : ['Hide', 'Show'];
   return (
     <Button
@@ -294,12 +303,21 @@ function VisibilityToggle(props: { hidden: Observable<boolean>; feature: boolean
           {() => <Icon name="eye-off" size={14} />}
         </Show>
       }
-      title={props.hidden.pipe(map((h) => (h ? off : on)))}
+      title={derive(props.hidden, (h) => (h ? off : on))}
       pressed={props.hidden}
       onClick={() => props.onToggle()}
     />
   );
 }
+
+/** What of an inspection is built anew and followed (`Inspector`). */
+const Parts = [
+  'facts',
+  'contents',
+  'quick',
+  'levels',
+  'transfer',
+] as const satisfies readonly (keyof SceneInspection)[];
 
 /** Rows that stand for a feature (on or off), not for something drawn (shown or hidden). */
 const TurnsOn: ReadonlySet<string> = new Set(['extension', 'unit-cell']);
@@ -308,17 +326,23 @@ function Inspector(props: {
   shell: ShellModel;
   inspection: SceneInspection;
   /** The node's inspection built anew (`SceneModel.inspection`): its facts, contents, levels and transfer follow. */
-  updates?: Observable<SceneInspection | undefined>;
+  updates?: ReadonlyState<SceneInspection | undefined>;
   onPick(node: SceneNode): void;
 }) {
   const { node, form, slot } = props.inspection;
-  // What is built anew follows (the form, the header and the sections stay, a gesture on them going on).
-  const current = (props.updates ?? of(props.inspection)).pipe(filter((i): i is SceneInspection => i?.node === node));
-  const part = <K extends keyof SceneInspection>(key: K) =>
-    current.pipe(
-      map((i) => i[key]),
-      distinctUntilChanged(),
-    );
+  // What is built anew follows (the form, the header and the sections stay, a gesture on them going on): its parts by
+  // name, each told only when it changes (view-models.md §3); one built for another node (on its way out) is not taken.
+  const parts = keyedState<keyof SceneInspection, unknown>();
+  const take = (i: SceneInspection) => {
+    for (const k of Parts) parts.set(k, i[k]);
+  };
+  take(props.inspection);
+  if (props.updates)
+    effect(props.updates, (i) => {
+      if (i?.node === node) take(i);
+    });
+  const part = <K extends (typeof Parts)[number]>(key: K) =>
+    parts.key(key) as ReadonlyState<SceneInspection[K] | undefined>;
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
@@ -379,7 +403,7 @@ function Inspector(props: {
         (node.menu?.length ?? 0) > 0 || node.removable !== false ? (
           <NodeActions node={node} />
         ) : !props.inspection.facts?.length ? (
-          <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
+          <Show when={derive(sectionsFor(props.shell, slot, node), (has) => !has)}>
             {() => (
               <Show when={derive(node.isHidden, (h) => !h)}>
                 {() => <p class={classes.nothing}>Nothing to set here.</p>}
@@ -396,7 +420,7 @@ function Inspector(props: {
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
   const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
   return (
-    <Show when={reprs.pipe(map((r) => r.length > 0))}>
+    <Show when={derive(reprs, (r) => r.length > 0)}>
       {() => (
         <section class={classes.children} aria-label="Representations">
           <span class={classes.childrenTitle}>Representations</span>
