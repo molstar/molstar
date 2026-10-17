@@ -11,8 +11,11 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'code': 'msp-canvas-hover-label-code',
   'corner': 'msp-canvas-hover-label-corner',
+  'item': 'msp-canvas-hover-label-item',
   'label': 'msp-canvas-hover-label-label',
+  'link': 'msp-canvas-hover-label-link',
   'primary': 'msp-canvas-hover-label-primary',
   'secondary': 'msp-canvas-hover-label-secondary',
 } as const;
@@ -54,6 +57,21 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
 
 .msp-canvas-hover-label-secondary {
   color: var(--msp-color-text-muted);
+}
+
+.msp-canvas-hover-label-item {
+  text-indent: -1em;
+  padding-inline-start: 1em;
+}
+
+.msp-canvas-hover-label-link {
+  color: var(--msp-color-accent);
+  text-decoration: underline;
+}
+
+.msp-canvas-hover-label-code {
+  font-family: var(--msp-font-mono, ui-monospace, monospace);
+  font-size: .95em;
 }
 }
 `);

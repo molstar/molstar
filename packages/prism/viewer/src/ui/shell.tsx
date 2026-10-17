@@ -37,6 +37,7 @@ import {
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
+import type { HoverLine } from '@molstar/prism-ui/model/playback';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
@@ -258,10 +259,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
     const sequence = core.views.sequence;
     const seqLines = observableState<readonly string[]>([]);
-    const hoverLines = observableState<readonly string[]>([]);
-    const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLines.value);
+    const hoverLines = observableState<readonly HoverLine[]>([]);
+    const mergeHover = () => hoverLines.set(seqLines.value.length ? seqLines.value : sources.pointer.hoverLabel.value);
     const seqHoverSub = seqLines.asReadonly.subscribe(mergeHover);
-    const pointerHoverSub = sources.pointer.hoverLines.subscribe(mergeHover);
+    const pointerHoverSub = sources.pointer.hoverLabel.subscribe(mergeHover);
     unregister.push(() => {
       seqHoverSub.unsubscribe();
       pointerHoverSub.unsubscribe();

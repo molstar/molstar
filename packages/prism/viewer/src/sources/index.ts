@@ -6,4 +6,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { hoverLines } from './hover-lines.js';
+export { hoverLines, hoverRich } from './hover-lines.js';

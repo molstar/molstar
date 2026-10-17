@@ -49,3 +49,20 @@
 .secondary {
   color: var(--msp-color-text-muted);
 }
+
+/* A list item of a Markdown label: its marker hangs, the text wraps under itself. */
+.item {
+  padding-inline-start: 1em;
+  text-indent: -1em;
+}
+
+/* Link text of a Markdown label: shown as a link (the label takes no pointer, it is not followed). */
+.link {
+  color: var(--msp-color-accent);
+  text-decoration: underline;
+}
+
+.code {
+  font-family: var(--msp-font-mono, ui-monospace, monospace);
+  font-size: 0.95em;
+}

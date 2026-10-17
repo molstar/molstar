@@ -8,13 +8,48 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
-import { For } from '../../dom/control-flow.js';
 import { bind, onCleanup } from '../../dom/scope.js';
-import type { HoverLabelModel } from '../../model/playback.js';
+import type { HoverLabelModel, HoverLine, HoverRun } from '../../model/playback.js';
+import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/hover-label.module.css.js';
 
 const Offset = 14;
+
+/** A line as elements: plain text (the first is the title), or formatted runs. Text only (`textContent`), no markup. */
+function lineElement(line: HoverLine, index: number): HTMLElement {
+  const el = document.createElement('span');
+  if (typeof line === 'string') {
+    el.className = index === 0 ? classes.primary : classes.secondary;
+    el.textContent = line;
+    return el;
+  }
+  el.className =
+    line.role === 'title'
+      ? classes.primary
+      : line.role === 'item'
+        ? `${classes.secondary} ${classes.item}`
+        : classes.secondary;
+  for (const run of line.runs) el.append(runNode(run));
+  return el;
+}
+
+function runNode(run: HoverRun): Node {
+  let node: Node = document.createTextNode(run.text);
+  const wrap = (tag: string, className?: string) => {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    el.append(node);
+    node = el;
+  };
+  if (run.code) wrap('code', classes.code);
+  if (run.sub) wrap('sub');
+  if (run.sup) wrap('sup');
+  if (run.small) wrap('small');
+  if (run.italic) wrap('em');
+  if (run.bold) wrap('strong');
+  if (run.link) wrap('span', classes.link);
+  return node;
+}
 
 /**
  * The hover label next to the cursor. Its content comes from the model; its position follows the pointer over the
@@ -39,14 +74,29 @@ export function HoverLabel(props: {
 }) {
   const corner = (props.placement ?? 'corner') === 'corner';
   const label = (
-    <div class={corner ? `${classes.label} ${classes.corner}` : classes.label} hidden={true} role="tooltip">
-      <For each={props.model.lines}>
-        {(line, index) => (
-          <span class={index.pipe(map((i) => (i === 0 ? classes.primary : classes.secondary)))}>{line}</span>
-        )}
-      </For>
-    </div>
+    <div class={corner ? `${classes.label} ${classes.corner}` : classes.label} hidden={true} role="tooltip" />
   ) as HTMLElement;
+
+  // What shows: a new label at once; an empty one only if it is still empty a frame later, so a pointer moving fast from
+  // one atom to the next (Mol* empties the label between them) swaps the text in place instead of blinking it off.
+  const shown = observableState<readonly HoverLine[]>([]);
+  let hideFrame = 0;
+  bind(props.model.lines, (lines) => {
+    if (lines.length) {
+      if (hideFrame) cancelAnimationFrame(hideFrame);
+      hideFrame = 0;
+      shown.set(lines);
+    } else if (!hideFrame && shown.value.length) {
+      hideFrame = requestAnimationFrame(() => {
+        hideFrame = 0;
+        shown.set([]);
+      });
+    }
+  });
+  onCleanup(() => {
+    if (hideFrame) cancelAnimationFrame(hideFrame);
+    if (leaveFrame) cancelAnimationFrame(leaveFrame);
+  });
 
   let x = 0;
   let y = 0;
@@ -55,10 +105,22 @@ export function HoverLabel(props: {
   let hasContent = false;
   let frame = 0;
 
+  // Hiding waits a frame as emptying does: a fast move crossing a small element over the canvas (or leaving it for a
+  // moment) keeps the label rather than blinking it; a drag (rotating) hides it at once.
+  let leaveFrame = 0;
   const place = () => {
     frame = 0;
     const visible = inside && !dragging && hasContent;
-    if (label.hidden === visible) label.hidden = !visible;
+    if (visible || dragging || !hasContent) {
+      if (leaveFrame) cancelAnimationFrame(leaveFrame);
+      leaveFrame = 0;
+      if (label.hidden === visible) label.hidden = !visible;
+    } else if (!label.hidden && !leaveFrame) {
+      leaveFrame = requestAnimationFrame(() => {
+        leaveFrame = 0;
+        if (!(inside && !dragging && hasContent)) label.hidden = true;
+      });
+    }
     if (!visible || corner) return;
     const area = label.offsetParent as HTMLElement | null;
     if (!area) return;
@@ -76,7 +138,8 @@ export function HoverLabel(props: {
     if (!frame) frame = requestAnimationFrame(place);
   };
 
-  bind(props.model.lines, (lines) => {
+  bind(shown.asReadonly, (lines) => {
+    label.replaceChildren(...lines.map(lineElement));
     hasContent = lines.length > 0;
     schedule();
   });

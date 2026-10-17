@@ -12,6 +12,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '../../../dom/render.js';
+import type { HoverLine } from '../../../model/playback.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { classes } from '../_generated/hover-label.module.css.js';
 import { HoverLabel } from '../hover-label.js';
@@ -47,5 +48,36 @@ describe('hover label placement', () => {
       if (placement === 'corner') expect(label.style.transform).toBe('');
       document.body.innerHTML = '';
     }
+  });
+});
+
+describe('hover label content', () => {
+  it('renders runs as elements, never as markup', async () => {
+    const area = document.createElement('div');
+    document.body.append(area);
+    const lines = observableState<readonly HoverLine[]>([
+      { role: 'title', runs: [{ text: 'PHE', bold: true }, { text: ' <img src=x onerror=alert(1)>' }] },
+    ]);
+    render(() => <HoverLabel model={{ lines: lines.asReadonly }} area={() => area} />, area);
+    const label = area.querySelector<HTMLElement>('[role=tooltip]')!;
+    expect(label.querySelector('strong')?.textContent).toBe('PHE');
+    expect(label.querySelector('img')).toBeNull();
+    expect(label.textContent).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  it('keeps the last label a frame when it empties, and swaps in the next without hiding', async () => {
+    const area = document.createElement('div');
+    document.body.append(area);
+    const lines = observableState<readonly HoverLine[]>(['ALA 12']);
+    render(() => <HoverLabel model={{ lines: lines.asReadonly }} area={() => area} />, area);
+    const label = area.querySelector<HTMLElement>('[role=tooltip]')!;
+    lines.set([]);
+    expect(label.textContent).toBe('ALA 12');
+    // The next label within the same frame: swapped in place.
+    lines.set(['GLY 13']);
+    expect(label.textContent).toBe('GLY 13');
+    lines.set([]);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(label.textContent).toBe('');
   });
 });
