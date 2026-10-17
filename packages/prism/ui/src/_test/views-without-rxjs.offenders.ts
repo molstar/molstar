@@ -11,17 +11,6 @@
  * views-without-rxjs.test.ts): an entry only shrinks, and leaves at 0.
  */
 export const RxjsInViews: Record<string, number> = {
-  'packages/prism/ui/src/components/action-footer/action-footer.tsx': 2,
-  'packages/prism/ui/src/components/button/command-button.tsx': 4,
-  'packages/prism/ui/src/components/choices/choices.tsx': 2,
-  'packages/prism/ui/src/components/color/color-picker.tsx': 15,
-  'packages/prism/ui/src/components/params/extra-controls.tsx': 21,
-  'packages/prism/ui/src/components/params/field-binding.ts': 1,
-  'packages/prism/ui/src/components/params/help.tsx': 4,
-  'packages/prism/ui/src/components/params/params-form.tsx': 35,
-  'packages/prism/ui/src/components/params/presets.tsx': 2,
-  'packages/prism/ui/src/components/select/select.tsx': 3,
-  'packages/prism/ui/src/components/virtual-list/virtual-list.tsx': 5,
   'packages/prism/ui/src/views/canvas/playback.tsx': 2,
   'packages/prism/ui/src/views/command-menu/command-menu.tsx': 22,
   'packages/prism/ui/src/views/settings/settings-tab.tsx': 2,

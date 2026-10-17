@@ -11,6 +11,7 @@
 import { isInside, ownsKey } from '../../dom/events.js';
 import { menuKeys, rememberFocus } from '../../dom/focus.js';
 import { createRoot } from '../../dom/scope.js';
+import { on } from '../../dom/scoped.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/context-menu.module.css.js';
 
@@ -45,10 +46,7 @@ export function openContextMenu(
   const close = () => {
     if (closed) return;
     closed = true;
-    document.removeEventListener('pointerdown', outside, true);
-    document.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', close);
-    window.removeEventListener('scroll', close, true);
+    // Its listeners go with its scope.
     dispose();
     restore(menu);
     menu.remove();
@@ -89,6 +87,11 @@ export function openContextMenu(
         ))}
       </div>
     ) as HTMLElement;
+    // In the menu's own scope (dom/scoped.ts): removed when it closes.
+    on(document, 'pointerdown', outside, { capture: true });
+    on(document, 'keydown', onKey, { capture: true });
+    on(window, 'resize', close);
+    on(window, 'scroll', close, { capture: true });
   });
   root.append(menu);
   // Measured once, now: the flip at the window's edges.
@@ -97,10 +100,6 @@ export function openContextMenu(
   const x = at.x + w > window.innerWidth - 4 ? Math.max(4, at.x - w) : at.x;
   const y = at.y + h > window.innerHeight - 4 ? Math.max(4, at.y - h) : at.y;
   menu.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-  document.addEventListener('pointerdown', outside, true);
-  document.addEventListener('keydown', onKey, true);
-  window.addEventListener('resize', close);
-  window.addEventListener('scroll', close, true);
   (menu.querySelector('button:not(:disabled)') as HTMLElement | null)?.focus({ preventScroll: true });
   return close;
 }

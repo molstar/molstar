@@ -8,11 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { bind, flush, flushFrame, frameState, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
 import { observeResize, on } from '../../dom/scoped.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
@@ -37,7 +37,7 @@ export interface VirtualListHandle {
  * inspector), and a tree's extra lines (Show all, Loading…) are rows of their own.
  */
 export function VirtualList<T>(props: {
-  items: Observable<readonly T[]>;
+  items: ReadonlyState<readonly T[]>;
   key: (item: T) => unknown;
   /** A row's height (px) until the first rows lay out; measured from then on. */
   rowHeight: number;
@@ -139,28 +139,25 @@ export function VirtualList<T>(props: {
   onCleanup(() => {
     if (resting !== undefined) clearTimeout(resting);
   });
-  bind(combineLatest([props.items, height.asReadonly, rowHeight.asReadonly]), ([next]) => {
-    items = next;
-    place(true);
-  });
+  bind(
+    derive([props.items, height.asReadonly, rowHeight.asReadonly], (list, h, rh) => ({ list, h, rh })),
+    ({ list: next }) => {
+      items = next;
+      place(true);
+    },
+  );
   bind(top, scrolled);
-  const range = combineLatest([props.items, win.asReadonly, rowHeight.asReadonly]).pipe(
-    map(([list, w, rh]) => ({
-      items: list,
-      first: Math.min(w.first, list.length),
-      last: Math.min(w.last, list.length),
-      rh,
-    })),
-    distinctUntilChanged((a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh),
+  const range = derive(
+    [props.items, win.asReadonly, rowHeight.asReadonly],
+    (list, w, rh) => ({ items: list, first: Math.min(w.first, list.length), last: Math.min(w.last, list.length), rh }),
+    (a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh,
   );
   // How many rows the window holds now (the measure's divisor).
   let count = 0;
-  const shown = range.pipe(
-    map((r) => {
-      count = r.last - r.first;
-      return r.items.slice(r.first, r.last);
-    }),
-  );
+  const shown = derive(range, (r) => {
+    count = r.last - r.first;
+    return r.items.slice(r.first, r.last);
+  });
   props.ref?.({
     scrollToIndex(index) {
       const rh = rowHeight.value;
@@ -200,14 +197,14 @@ export function VirtualList<T>(props: {
       aria-label={props['aria-label']}
       ref={(el: HTMLElement) => props.contentRef?.(el)}
       style={{
-        height: combineLatest([props.items, rowHeight.asReadonly]).pipe(map(([items, rh]) => `${items.length * rh}px`)),
+        height: derive([props.items, rowHeight.asReadonly], (items, rh) => `${items.length * rh}px`),
         // The skeleton's row height (virtual-list.module.css): what the browser uncovers before the rows are made.
         '--msp-virtual-row': derive(rowHeight.asReadonly, (rh) => `${rh}px`),
       }}
     >
       <div
         class={classes.window}
-        style={{ transform: range.pipe(map((r) => `translateY(${r.first * r.rh}px)`)) }}
+        style={{ transform: derive(range, (r) => `translateY(${r.first * r.rh}px)`) }}
         ref={(el: HTMLElement) => {
           // The rows' height: the window's over its rows, from the observer's entry (after layout, nothing read).
           observeResize(el, (entries) => {

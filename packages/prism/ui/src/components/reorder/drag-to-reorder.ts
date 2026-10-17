@@ -6,12 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { drag } from '../../dom/scoped.js';
+
 /**
  * Drags a row of a list by its handle (call it on the handle's pointerdown): the list's rows are its children with
  * `data-id`; the one being moved gets `data-dragging`, the row it would land before `data-drop="before"` (the last one
  * `"after"`), for the list's own styles; release moves it there. The document follows the pointer (not the handle), so
  * a release anywhere, a cancelled pointer or the window losing focus always ends the drag and clears the marks.
  * Snapshots, measurement points.
+ *
+ * It attaches on the press: a component uses `reorderRows` (attached once, with its scope) instead.
  */
 export function dragToReorder(
   e: PointerEvent,
@@ -67,4 +71,61 @@ export function dragToReorder(
   doc.addEventListener('pointerup', onUp, true);
   doc.addEventListener('pointercancel', onUp, true);
   view?.addEventListener('blur', onUp);
+}
+
+interface Reorder {
+  readonly items: HTMLElement[];
+  readonly self: HTMLElement;
+  target: number;
+}
+
+/**
+ * `dragToReorder`'s gesture attached once (prism AGENTS.md, gestures; `drag`, dom/scoped.ts), in a component: a press
+ * on an element matching `handle` in one of `list`'s rows (its children with `data-id`) drags that row, with the same
+ * marks; a release moves it (`moveTo` with its id and the index it goes to). Its listeners are on the list, with the
+ * current scope; the pointer is captured, and every way the drag ends (a release lost, the capture lost, the scope
+ * paused or ended) clears the marks; only a release moves the row.
+ */
+export function reorderRows(list: HTMLElement, handle: string, moveTo: (id: string, index: number) => void): void {
+  const mark = (r: Reorder, index: number) => {
+    r.target = index;
+    const { items } = r;
+    for (let i = 0; i < items.length; i++) {
+      const el = items[i];
+      if (i === index) el.setAttribute('data-drop', 'before');
+      else if (index === items.length && i === items.length - 1) el.setAttribute('data-drop', 'after');
+      else el.removeAttribute('data-drop');
+    }
+  };
+  drag<Reorder>(list, {
+    start(e) {
+      if (e.button !== 0) return undefined;
+      const self = (e.target as Element).closest?.(handle)?.closest<HTMLElement>('[data-id]');
+      if (!self || self.parentElement !== list) return undefined;
+      e.preventDefault();
+      e.stopPropagation();
+      self.setAttribute('data-dragging', '');
+      return { items: [...list.querySelectorAll<HTMLElement>(':scope > [data-id]')], self, target: -1 };
+    },
+    move(e, r) {
+      let index = r.items.length;
+      for (let i = 0; i < r.items.length; i++) {
+        const b = r.items[i].getBoundingClientRect();
+        if (e.clientY < b.top + b.height / 2) {
+          index = i;
+          break;
+        }
+      }
+      mark(r, index);
+    },
+    end(r, how) {
+      r.self.removeAttribute('data-dragging');
+      const from = r.items.indexOf(r.self);
+      const to = r.target;
+      mark(r, -1);
+      // Dropped above or below itself, it stays where it is.
+      if (how === 'up' && to >= 0 && to !== from && to !== from + 1)
+        moveTo(r.self.dataset.id!, to > from ? to - 1 : to);
+    },
+  });
 }

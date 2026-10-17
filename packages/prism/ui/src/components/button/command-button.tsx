@@ -8,7 +8,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager } from '../../commands/manager.js';
 import type { CommandDefinition, CommandValues } from '../../commands/types.js';
@@ -41,14 +40,15 @@ export function CommandButton(
   return (
     <Show when={command}>
       {(c: CommandDefinition<any>) => {
-        const state = combineLatest([manager.context, manager.keymap.layers]).pipe(
-          map(() => {
+        const state = derive(
+          [manager.context, manager.keymap.layers],
+          () => {
             const blocked = manager.blocked(c);
             const chord = manager.shortcut(c);
             const title = c.title.replace(/…$/, '');
             return { blocked, tip: blocked ?? (chord ? `${title} (${formatChord(chord, isMac())})` : title) };
-          }),
-          distinctUntilChanged((a, b) => a.blocked === b.blocked && a.tip === b.tip),
+          },
+          (a, b) => a.blocked === b.blocked && a.tip === b.tip,
         );
         return (
           <Button
@@ -57,8 +57,8 @@ export function CommandButton(
             {...(props.block ? { block: true } : {})}
             {...(props.class ? { class: props.class } : {})}
             {...(c.icon ? { icon: <Icon name={c.icon} /> } : {})}
-            title={state.pipe(map((s) => s.tip))}
-            disabled={state.pipe(map((s) => !!s.blocked))}
+            title={derive(state, (s) => s.tip)}
+            disabled={derive(state, (s) => !!s.blocked)}
             onClick={() => {
               const r = manager.open(c.id, undefined, props.values);
               if (r.kind === 'blocked') props.onBlocked?.(r.reason);

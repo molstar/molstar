@@ -9,9 +9,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { render } from '../../../dom/render.js';
 import { observableState } from '../../../reactive/observable-state.js';
+import { lostReleases, stubPointerCapture } from '../../../testing/gestures.js';
 import { ColorPicker, colorToRgb, colorWeights, fieldColor, parseColor, shade } from '../color-picker.js';
 
 describe('parseColor', () => {
@@ -105,5 +106,50 @@ describe('ColorPicker', () => {
     expect(color.value).toBe(row[1]);
     expect(weights()).toEqual(row.map(colorToRgb));
     expect(selected()).toBe(colorToRgb(row[1]));
+  });
+
+  describe('drags (gestures attach once: `drag`, dom/scoped.ts)', () => {
+    beforeAll(stubPointerCapture);
+
+    // jsdom lays nothing out: each strip 100 px wide and tall at the origin.
+    const box = (el: Element) => {
+      el.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+    };
+    const mount = () => {
+      const color = observableState(0x0090ff);
+      const container = document.createElement('div');
+      document.body.append(container);
+      render(() => <ColorPicker value={color.asReadonly} onChange={(c) => color.set(c)} />, container);
+      const [field, greys] = container.querySelectorAll<HTMLElement>(':scope > div > [aria-hidden=true]');
+      box(field);
+      box(greys);
+      return { color, field, greys };
+    };
+
+    it('the smooth palette: no listener left by lost releases, and the next drag picks', () => {
+      const { color, field } = mount();
+      const r = lostReleases({
+        target: () => field,
+        from: { x: 10, y: 50 },
+        to: { x: 60, y: 30 },
+        reset: () => color.set(0),
+        worked: () => color.value === fieldColor(0.6, 0.3),
+      });
+      expect(r.grown).toBe(0);
+      expect(r.worked).toBe(true);
+    });
+
+    it('the greys: no listener left by lost releases, and the next drag picks', () => {
+      const { color, greys } = mount();
+      const r = lostReleases({
+        target: () => greys,
+        from: { x: 10, y: 50 },
+        to: { x: 99, y: 50 },
+        reset: () => color.set(0x123456),
+        worked: () => color.value === 0xffffff,
+      });
+      expect(r.grown).toBe(0);
+      expect(r.worked).toBe(true);
+    });
   });
 });

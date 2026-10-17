@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Observable } from 'rxjs';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 
-/** A field's value as a control sees it: a stream, the current value, and how to change it. */
+/** A field's value as a control sees it: a state of it, the current value, and how to change it. */
 export interface FieldBinding {
-  value: Observable<any>;
+  value: ReadonlyState<any>;
   get(): any;
   set(value: any): void;
 }

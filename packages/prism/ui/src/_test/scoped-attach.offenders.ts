@@ -12,11 +12,6 @@
  */
 export const RawAttach: Record<string, number> = {
   'extensions/model-archive/src/pae/plot.tsx': 1,
-  'packages/prism/ui/src/components/color/color-picker.tsx': 3,
-  'packages/prism/ui/src/components/context-menu/context-menu.tsx': 4,
-  'packages/prism/ui/src/components/icon/wordmark.tsx': 1,
-  'packages/prism/ui/src/components/params/extra-controls.tsx': 6,
-  'packages/prism/ui/src/components/select/select.tsx': 6,
   'packages/prism/ui/src/views/canvas/hover-label.tsx': 3,
   'packages/prism/ui/src/views/command-menu/command-menu.tsx': 1,
   'packages/prism/ui/src/views/shell/dock-view.tsx': 2,

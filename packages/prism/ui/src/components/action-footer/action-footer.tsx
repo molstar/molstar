@@ -8,9 +8,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, map, type Observable, of } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
-import type { MaybeReactive } from '../../dom/scope.js';
+import { effect, type MaybeReactive } from '../../dom/scope.js';
+import { observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
+import { derive, isState } from '../../reactive/state.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/action-footer.module.css.js';
 
@@ -19,9 +21,9 @@ export interface ActionFooterProps {
   icon: IconName;
   label: MaybeReactive<string>;
   /** Running: the action shows progress and is disabled. */
-  busy?: Observable<boolean>;
+  busy?: MaybeReactive<boolean>;
   /** Not possible yet (not enough selected): the action is disabled, no progress. */
-  disabled?: Observable<boolean>;
+  disabled?: MaybeReactive<boolean>;
   onApply(): void;
   /** Set defaults (the form's reset); without it, no reset button. */
   onReset?(): void;
@@ -38,8 +40,8 @@ export interface ActionFooterProps {
  * sides and bottom. No lines or fills; hovering darkens the text.
  */
 export function ActionFooter(props: ActionFooterProps) {
-  const busy = props.busy ?? of(false);
-  const disabled = combineLatest([busy, props.disabled ?? of(false)]).pipe(map(([b, d]) => b || d));
+  const busy = held(props.busy);
+  const disabled = derive([busy, held(props.disabled)], (b, d) => b || d);
   return (
     <div class={classes.footer}>
       {props.onReset ? (
@@ -67,4 +69,12 @@ export function ActionFooter(props: ActionFooterProps) {
       </button>
     </div>
   );
+}
+
+/** A flag as a state: a state as it is; a stream (or a plain value) held in one, with the current scope. */
+function held(source: MaybeReactive<boolean> | undefined): ReadonlyState<boolean> {
+  if (isState(source)) return source as ReadonlyState<boolean>;
+  const state = observableState(false);
+  effect(source ?? false, (v) => state.set(v));
+  return state.asReadonly;
 }
