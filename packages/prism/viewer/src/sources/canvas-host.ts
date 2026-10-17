@@ -25,12 +25,17 @@ export async function mountCanvas(
   host: HTMLElement,
   o: { pauseOutOfView?: 'auto' | 'always' | 'never' } = {},
 ): Promise<boolean> {
-  const ok = !!(await plugin.mountAsync(host));
+  const pauses = pausesOutOfView(o.pauseOutOfView ?? 'auto');
+  const mounting = plugin.mountAsync(host);
+  // The WebGL context is made in that call, before its promise settles: it joins the page's budget in the same task, so
+  // viewers mounted together never pass the browser's limit (README decision 29). Again after the await, in case it was not.
+  if (pauses) followCanvasPresence(plugin);
+  const ok = !!(await mounting);
   if (ok) {
     smoothResizes(plugin);
     longPress(plugin);
-    if (pausesOutOfView(o.pauseOutOfView ?? 'auto')) followCanvasPresence(plugin);
-  }
+    if (pauses) followCanvasPresence(plugin);
+  } else unfollowCanvasPresence(plugin);
   return ok;
 }
 

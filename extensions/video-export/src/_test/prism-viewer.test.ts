@@ -12,12 +12,21 @@ import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { LazyViewerExtension, ViewerExtension } from '@molstar/prism-viewer/spec';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cropOf, VideoExportExtension } from '../prism-viewer.js';
 import { LazyVideoExport, VideoCommands, VideoOperations } from '../prism-viewer-stub.js';
 
 // The video export in the Prism viewer on a headless viewer (parity.md §6): no canvas, so no frame is rendered (WebGL
 // and WebCodecs are the browser's); what is tested is the stub, the load, the checks before rendering and the refusals.
+
+// The canvas' hold, made to wait for a context that does not come back until its signal aborts.
+const hold = vi.hoisted(() => ({ calls: 0 }));
+vi.mock('@molstar/prism-viewer/sources/canvas-presence', () => ({
+  holdCanvas: (_plugin: unknown, o: { signal?: AbortSignal } = {}) => {
+    hold.calls++;
+    return new Promise((_resolve, reject) => o.signal?.addEventListener('abort', () => reject(o.signal!.reason)));
+  },
+}));
 
 const viewers: PrismViewer[] = [];
 afterEach(async () => {
@@ -89,6 +98,26 @@ describe('the video-export extension in the Prism viewer', () => {
     expect(spin.ok ? 'ok' : spin.code).toBe('unavailable');
     // Not a step: an export changes nothing the history keeps.
     expect(v.managers.history.steps.value.length).toBe(0);
+  });
+
+  it('can be stopped while it waits for the canvas', async () => {
+    const v = await viewer(VideoExportExtension, ['canvas', 'files', 'network']);
+    // A canvas whose context was released and does not come back.
+    const plugin = v.plugin as unknown as { canvas3d: unknown; helpers: { viewportScreenshot: unknown } };
+    plugin.canvas3d = {};
+    plugin.helpers.viewportScreenshot = {};
+    const running = v.api.video!.export({ animation: 'built-in.animate-camera-spin', duration: 1, fps: 24 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(hold.calls).toBe(1);
+    // A second export is refused while the first waits; Stop ends the wait.
+    const second = await v.api.video!.export({ animation: 'built-in.animate-camera-spin', duration: 1, fps: 24 });
+    expect(second.ok ? 'ok' : second.code).toBe('blocked');
+    const c = await v.api.video!.cancel();
+    expect(c.ok && !c.unchanged).toBe(true);
+    const r = await running;
+    expect(r.ok ? 'ok' : r.code).toBe('aborted');
+    plugin.canvas3d = undefined;
+    plugin.helpers.viewportScreenshot = undefined;
   });
 
   it('brings its commands and its skill', async () => {
