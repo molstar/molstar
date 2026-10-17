@@ -85,7 +85,7 @@ function mount(selected?: string) {
     () => (
       <VirtualList
         items={rows.asReadonly}
-        key={(r) => r.node.id}
+        itemKey={(r) => r.node.id}
         rowHeight={26}
         role="tree"
         aria-label="Tree"

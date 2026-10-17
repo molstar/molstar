@@ -19,8 +19,8 @@ import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
-import { effect, onCleanup } from '@molstar/prism-ui/dom/scope';
-import { on } from '@molstar/prism-ui/dom/scoped';
+import { effect, onActive, onCleanup, requireScope, runInScope } from '@molstar/prism-ui/dom/scope';
+import { on, timeout } from '@molstar/prism-ui/dom/scoped';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
@@ -74,16 +74,31 @@ export function StructureTab(props: StructureTabProps) {
   });
   const searchOpen = observableState(false);
   const search = observableState('');
-  // The tree searches what was typed once the typing pauses (120 ms): one timer, the last key's.
+  // The tree searches what was typed once the typing pauses (120 ms): one timer, the last key's, a scoped one (it ends
+  // with the tab). Paused (the tab hidden), no timer runs: what was typed is searched when the tab shows again.
   const filter = observableState('');
-  let typing: ReturnType<typeof setTimeout> | undefined;
+  const owner = requireScope('StructureTab');
+  let cancelTyping: (() => void) | undefined;
   effect(search.asReadonly, (text) => {
-    clearTimeout(typing);
+    cancelTyping?.();
+    cancelTyping = undefined;
     // Back to what the tree searches (and at the mount): no timer.
     if (text === filter.value) return;
-    typing = setTimeout(() => filter.set(text), 120);
+    cancelTyping = runInScope(owner, () =>
+      timeout(() => {
+        cancelTyping = undefined;
+        filter.set(text);
+      }, 120),
+    );
   });
-  onCleanup(() => clearTimeout(typing));
+  onActive((active) => {
+    if (active) {
+      if (search.value !== filter.value && !cancelTyping) filter.set(search.value);
+    } else {
+      cancelTyping?.();
+      cancelTyping = undefined;
+    }
+  });
   const closeSearch = () => {
     search.set('');
     searchOpen.set(false);

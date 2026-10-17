@@ -38,7 +38,11 @@ export interface VirtualListHandle {
  */
 export function VirtualList<T>(props: {
   items: ReadonlyState<readonly T[]>;
-  key: (item: T) => unknown;
+  /**
+   * An item's key: a row stays its item's while the key stays in the list. Not `key`: the JSX runtime keeps `key` for
+   * itself (the compiler passes it apart), so a component never gets it.
+   */
+  itemKey: (item: T) => unknown;
   /** A row's height (px) until the first rows lay out; measured from then on. */
   rowHeight: number;
   overscan?: number;
@@ -155,9 +159,8 @@ export function VirtualList<T>(props: {
     for (const el of grown) el.removeAttribute('data-reveal');
     grown.length = 0;
   }
-  // Compared where the rows are cut (`range`, read before the rows are made), with the rows last cut. A row's key as
-  // `For` keys it: `key` when the component gets it (the JSX runtime keeps a `key` attribute for itself), else the item.
-  const keyOf = (item: T): unknown => (typeof props.key === 'function' ? props.key(item) : item);
+  // Compared where the rows are cut (`range`, read before the rows are made), with the rows last cut.
+  const keyOf = (item: T): unknown => props.itemKey(item);
   let laid: readonly T[] = [];
   const noteRun = (list: readonly T[]) => {
     if (!props.reveal || list === laid) return;
@@ -188,12 +191,7 @@ export function VirtualList<T>(props: {
     },
     (a, b) => a.items === b.items && a.first === b.first && a.last === b.last && a.rh === b.rh,
   );
-  // How many rows the window holds now (the measure's divisor).
-  let count = 0;
-  const shown = derive(range, (r) => {
-    count = r.last - r.first;
-    return r.items.slice(r.first, r.last);
-  });
+  const shown = derive(range, (r) => r.items.slice(r.first, r.last));
   props.ref?.({
     scrollToIndex(index) {
       const rh = rowHeight.value;
@@ -242,16 +240,18 @@ export function VirtualList<T>(props: {
         class={classes.window}
         style={{ transform: derive(range, (r) => `translateY(${r.first * r.rh}px)`) }}
         ref={(el: HTMLElement) => {
-          // The rows' height: the window's over its rows, from the observer's entry (after layout, nothing read).
+          // The rows' height: the window's over the rows made (not the rows planned: `For` time-slices new rows, and
+          // a window with fewer than planned would read short), from the observer's entry (after layout, nothing read).
           observeResize(el, (entries) => {
             const h = entries[entries.length - 1].contentRect.height;
+            const count = el.childElementCount;
             if (count <= 0 || h <= 0 || revealEnd !== undefined) return;
             const rh = h / count;
             if (Math.abs(rh - rowHeight.value) > 0.5) rowHeight.set(rh);
           });
         }}
       >
-        <For each={shown} key={props.key}>
+        <For each={shown} by={props.itemKey}>
           {(item) => {
             const row = props.children(item);
             if (entering.size && row instanceof Element && entering.has(keyOf(item))) {

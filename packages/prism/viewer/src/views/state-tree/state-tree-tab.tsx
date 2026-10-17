@@ -133,7 +133,8 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
         if (was) places.set(ref, { ...was, expanded: !collapsed.has(ref) });
       }
       for (const r of made) places.set(r.node.ref, placeOf(r));
-      rows.set(next);
+      // Through the keeper, as a full flattening: a cell the same as before is its row again (its menu stays open).
+      rows.set(keep(next));
     });
   };
   const toggle = (ref: string) => {
@@ -166,7 +167,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
         </Show>
         <VirtualList
           items={rows.asReadonly}
-          key={(r) => r.node.ref}
+          itemKey={(r) => r.node.ref}
           rowHeight={26}
           class={`${tree.tree} ${classes.tree}`}
           edge

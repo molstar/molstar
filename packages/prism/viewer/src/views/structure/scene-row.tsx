@@ -34,10 +34,20 @@ export interface SceneRowPick {
   readonly body?: () => Child;
   mark(on: boolean): void;
   /**
-   * Tells once the row is gone (its structure removed, its `when` false, a search leaving it out): what it controls may
-   * be gone too, so the inspector lets it go.
+   * Tells once the row is gone (its structure removed, its `when` false, a search leaving it out; not when it only
+   * scrolls out of the tree's window): what it controls may be gone too, so the inspector lets it go.
    */
   readonly gone: Listenable;
+}
+
+/**
+ * The element an extension's row is mounted in, in the scene tree (`data-scene-row`): the tree tells when the row is gone
+ * (its key left the rows), because the row's own scope also ends when it only scrolls out of the window.
+ */
+export interface SceneRowHost extends HTMLElement {
+  sceneRowGone?(fn: () => void): () => void;
+  /** Told by a row when its item is made (the host writes the tree's ARIA on it). */
+  sceneRowSettle?(): void;
 }
 
 export interface SceneRowProps {
@@ -91,6 +101,7 @@ export function SceneRow(props: SceneRowProps) {
       props.onOpen();
       return;
     }
+    const host = rowEl?.closest<SceneRowHost>('[data-scene-row]');
     const detail: SceneRowPick = {
       label: props.label,
       ...(props.description ? { description: props.description } : {}),
@@ -98,7 +109,7 @@ export function SceneRow(props: SceneRowProps) {
       ...(props.onToggle ? { onToggle: () => props.onToggle?.() } : {}),
       ...(props.body ? { body: props.body } : {}),
       mark: (on) => rowEl?.classList.toggle(classes.picked, on),
-      gone,
+      gone: host?.sceneRowGone ? { listen: (fn) => host.sceneRowGone!(fn) } : gone,
     };
     const event = new CustomEvent(SceneRowPickEvent, { bubbles: true, composed: true, cancelable: true, detail });
     if (rowEl?.dispatchEvent(event) !== false && !inTree()) {
@@ -114,6 +125,10 @@ export function SceneRow(props: SceneRowProps) {
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={classes.item}
+      ref={(el: HTMLElement) =>
+        // In its host by then (a view may render a row after the host's mount): the host writes its tree ARIA on it.
+        queueMicrotask(() => el.closest<SceneRowHost>('[data-scene-row]')?.sceneRowSettle?.())
+      }
     >
       <div
         data-tip-row=""
