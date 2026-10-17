@@ -15,7 +15,8 @@ import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'r
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { uniqueId } from '../../dom/focus.js';
-import { onCleanup } from '../../dom/scope.js';
+import { onCleanup, watch } from '../../dom/scope.js';
+import { setAttr, setStyle, setText } from '../../dom/writes.js';
 import { type ParamSection, ParamsFormModel, paramSections } from '../../forms/params-form.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { Floating, OptionList, SelectButton } from '../select/select.js';
@@ -320,9 +321,9 @@ function ColorRow(props: {
 }) {
   const { binding, labelId } = props;
   const open = observableState(false);
-  const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
-  const channels = binding.value.pipe(map((v: number) => colorToRgb(v)));
-  return (
+  let swatch!: HTMLElement;
+  const channels = document.createTextNode('');
+  const content = (
     <>
       <div class={classes.row}>
         <span class={classes.label}>{props.head ?? <span id={labelId}>{props.label}</span>}</span>
@@ -334,7 +335,7 @@ function ColorRow(props: {
             aria-expanded={open}
             onClick={() => open.set(!open.value)}
           >
-            <span class={classes.swatch} style={{ background: hex }} />
+            <span class={classes.swatch} ref={(el: HTMLElement) => (swatch = el)} />
             <span class={classes.channels} id={`${labelId}-value`} data-tip-overflow="">
               {channels}
             </span>
@@ -346,6 +347,12 @@ function ColorRow(props: {
       </Show>
     </>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as number;
+    setStyle(swatch, 'background', colorToHex(v));
+    setText(channels, colorToRgb(v));
+  });
+  return content;
 }
 
 /**
@@ -439,26 +446,8 @@ function control(param: PD.Any, binding: FieldBinding, labelId: string, label: s
       return <NumberControl param={param} binding={binding} labelId={labelId} />;
     case 'text':
       // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
-      if (param.multiline) {
-        return (
-          <textarea
-            class={classes.textarea}
-            rows={3}
-            aria-labelledby={labelId}
-            value={binding.value}
-            placeholder={param.placeholder}
-            onChange={(e) => binding.set(e.currentTarget.value)}
-          />
-        );
-      }
       return (
-        <input
-          class={classes.input}
-          aria-labelledby={labelId}
-          value={binding.value}
-          placeholder={param.placeholder}
-          onChange={(e) => binding.set(e.currentTarget.value)}
-        />
+        <TextControl binding={binding} labelId={labelId} placeholder={param.placeholder} multiline={param.multiline} />
       );
     case 'file':
     case 'file-list':
@@ -474,72 +463,114 @@ function control(param: PD.Any, binding: FieldBinding, labelId: string, label: s
   }
 }
 
+/**
+ * A field's control as view = f(state) (rendering.md §2): its DOM made once, one `watch` on the field's stream whose
+ * render reads the current value (`binding.get()`) and writes what differs.
+ */
+function TextControl(props: { binding: FieldBinding; labelId?: string; placeholder?: string; multiline?: boolean }) {
+  const { binding } = props;
+  // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
+  const el = (
+    props.multiline ? (
+      <textarea
+        class={classes.textarea}
+        rows={3}
+        aria-labelledby={props.labelId}
+        placeholder={props.placeholder}
+        onChange={(e) => binding.set(e.currentTarget.value)}
+      />
+    ) : (
+      <input
+        class={classes.input}
+        aria-labelledby={props.labelId}
+        placeholder={props.placeholder}
+        onChange={(e) => binding.set(e.currentTarget.value)}
+      />
+    )
+  ) as HTMLInputElement | HTMLTextAreaElement;
+  watch([binding.value], () => setValue(el, binding.get()));
+  return el;
+}
+
+/** An input's value ('' for none), written only when it differs (a write moves the caret). */
+function setValue(el: HTMLInputElement | HTMLTextAreaElement, value: unknown) {
+  const v = value === null || value === undefined ? '' : String(value);
+  if (el.value !== v) el.value = v;
+}
+
 function Toggle(props: { binding: FieldBinding; labelId?: string }) {
   const { binding } = props;
-  return (
+  const el = (
     <button
       type="button"
       role="switch"
       class={classes.switch}
       aria-labelledby={props.labelId}
-      aria-checked={binding.value.pipe(map((v) => !!v))}
       onClick={() => binding.set(!binding.get())}
     >
       <span class={classes.knob} />
     </button>
-  );
+  ) as HTMLElement;
+  watch([binding.value], () => setAttr(el, 'aria-checked', String(!!binding.get())));
+  return el;
 }
 
 function NumberControl(props: { param: PD.Numeric; binding: FieldBinding; labelId?: string }) {
   const { param, binding, labelId } = props;
-  const text = binding.value.pipe(map((v: number) => format(v, param.step)));
   if (param.min === undefined || param.max === undefined) {
-    return (
-      // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
-      // number reads "0.5"; a comma typed is read as the decimal point.
+    // Text, not a native number field: that one shows decimals in the browser's locale ("0,5") while every other
+    // number reads "0.5"; a comma typed is read as the decimal point.
+    const input = (
       <input
         class={classes.input}
         type="text"
         inputMode="decimal"
         aria-labelledby={labelId}
-        value={text}
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
           if (Number.isFinite(v)) binding.set(v);
           else e.currentTarget.value = format(binding.get() as number, param.step);
         }}
       />
-    );
+    ) as HTMLInputElement;
+    watch([binding.value], () => setValue(input, format(binding.get() as number, param.step)));
+    return input;
   }
-  return (
+  const min = param.min;
+  const max = param.max;
+  let range!: HTMLInputElement;
+  let number!: HTMLInputElement;
+  const el = (
     <div class={classes.slider}>
       <input
         class={classes.range}
         type="range"
         aria-labelledby={labelId}
-        min={String(param.min)}
-        max={String(param.max)}
-        step={String(param.step ?? (param.max - param.min) / 100)}
-        value={binding.value.pipe(map(String))}
-        style={{
-          // The filled part of the track, for the quiet styling (no native accent fill).
-          '--msp-progress': binding.value.pipe(
-            map((v: number) => `${(100 * (v - param.min!)) / (param.max! - param.min! || 1)}%`),
-          ),
-        }}
+        min={String(min)}
+        max={String(max)}
+        step={String(param.step ?? (max - min) / 100)}
+        ref={(e: HTMLInputElement) => (range = e)}
         onInput={(e) => binding.set(Number(e.currentTarget.value))}
       />
       <input
         class={classes.number}
         aria-labelledby={labelId}
-        value={text}
+        ref={(e: HTMLInputElement) => (number = e)}
         onChange={(e) => {
           const v = parseNumber(e.currentTarget.value);
-          if (Number.isFinite(v)) binding.set(Math.min(param.max!, Math.max(param.min!, v)));
+          if (Number.isFinite(v)) binding.set(Math.min(max, Math.max(min, v)));
         }}
       />
     </div>
   );
+  watch([binding.value], () => {
+    const v = binding.get() as number;
+    setValue(range, v);
+    // The filled part of the track, for the quiet styling (no native accent fill).
+    setStyle(range, '--msp-progress', `${(100 * (v - min)) / (max - min || 1)}%`);
+    setValue(number, format(v, param.step));
+  });
+  return el;
 }
 
 function format(v: number, step?: number) {

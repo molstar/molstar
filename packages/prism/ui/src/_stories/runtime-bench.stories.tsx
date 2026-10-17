@@ -20,6 +20,9 @@ import { story } from '../testing/story-root.js';
 import { CommandManager } from '../commands/manager.js';
 import type { CommandDefinition } from '../commands/types.js';
 import { CommandMenu } from '../views/command-menu/command-menu.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ParamsForm } from '../components/params/params-form.js';
+import { ParamsFormModel } from '../forms/params-form.js';
 
 const meta: Meta = { title: 'Internals/Runtime performance' };
 export default meta;
@@ -436,5 +439,84 @@ let menu: { host: HTMLElement; dispose(): void } | undefined;
   close() {
     menu?.dispose();
     menu = undefined;
+  },
+};
+
+// --- The params form's fields --------------------------------------------------------------------
+
+/**
+ * Probes for a driver (`window.__mspForm`): a flat form of `n` fields (sliders, numbers, switches, texts, colors in
+ * turn), outside Storybook's root. `open` times the first render; `setAll` sets every field in one batch (a preset);
+ * `setOne` one field, `count` times (a slider dragged).
+ */
+let form: { model: ParamsFormModel<PD.Params>; host: HTMLElement; dispose(): void } | undefined;
+(window as any).__mspForm = {
+  open(n = 200) {
+    form?.dispose();
+    const params: PD.Params = {};
+    for (let i = 0; i < n; i++) {
+      const k = i % 5;
+      params[`f${i}`] =
+        k === 0
+          ? PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 })
+          : k === 1
+            ? PD.Numeric(3)
+            : k === 2
+              ? PD.Boolean(true)
+              : k === 3
+                ? PD.Text(`text ${i}`)
+                : PD.Color(0x2e86c1 as any);
+    }
+    const model = new ParamsFormModel(params);
+    const host = document.createElement('div');
+    host.className = 'msp-root';
+    host.style.cssText = 'position: fixed; right: 16px; top: 16px; width: 360px; height: 600px; overflow: auto;';
+    document.body.append(host);
+    const t0 = performance.now();
+    const dispose = render(() => <ParamsForm form={model} />, host);
+    flush();
+    const ms = performance.now() - t0;
+    form = {
+      model,
+      host,
+      dispose: () => {
+        dispose();
+        host.remove();
+      },
+    };
+    return { ms: +ms.toFixed(2), fields: n };
+  },
+  setAll(round = 1) {
+    const m = form!.model;
+    const values: Record<string, unknown> = {};
+    for (const [k, p] of Object.entries(m.params)) {
+      values[k] =
+        p.type === 'number'
+          ? (p.max ?? 10) * ((round % 9) / 10)
+          : p.type === 'boolean'
+            ? round % 2 === 0
+            : p.type === 'text'
+              ? `text ${k} ${round}`
+              : p.type === 'color'
+                ? 0x100000 * (round % 15)
+                : m.values.value[k];
+    }
+    const t0 = performance.now();
+    m.load(values as any);
+    flush();
+    return +(performance.now() - t0).toFixed(2);
+  },
+  setOne(count = 100) {
+    const m = form!.model;
+    const t0 = performance.now();
+    for (let i = 0; i < count; i++) {
+      m.set('f0', (i % 100) / 100);
+      flush();
+    }
+    return +((performance.now() - t0) / count).toFixed(3);
+  },
+  close() {
+    form?.dispose();
+    form = undefined;
   },
 };
