@@ -74,6 +74,44 @@ function runTaskLaneQueued() {
   else runWork('task');
 }
 
+// The task lane yields (rendering.md §2.7): it runs in microtasks, so work that keeps wanting work there (a run that
+// wants itself, two queues wanting each other, a budget's carry-over) would never let a timer, an event or a frame in.
+// A queue's run whose work was wanted during a task-lane run is a link of its chain; past `MaxChain` links, and for a
+// budget's carry-over at once, the queue waits for a macrotask (`deferred`), and the lane's other queues go on.
+const MaxChain = 100;
+let taskRunning = false;
+/** Task-lane queues waiting for a macrotask (still marked enlisted: a want adds nothing). */
+let deferred: WorkQueue[] = [];
+let deferScheduled = false;
+
+function defer(q: WorkQueue) {
+  deferred.push(q);
+  if (deferScheduled) return;
+  deferScheduled = true;
+  setTimeout(resumeDeferred, 0);
+}
+
+function resumeDeferred() {
+  deferScheduled = false;
+  const list = deferred;
+  deferred = [];
+  for (const q of list) enlist(q);
+}
+
+/**
+ * Sends the task lane's waiting work to a macrotask (the runtime's flush, when its renders kept marking: work that
+ * feeds them must not start the loop again in the next microtask).
+ */
+export function deferTaskWork(): void {
+  const list = waiting.task;
+  const n = waitingCount.task;
+  waitingCount.task = 0;
+  for (let i = 0; i < n; i++) {
+    defer(list[i]!);
+    list[i] = undefined;
+  }
+}
+
 function runIdleLane(deadline?: { timeRemaining(): number }) {
   idleScheduled = false;
   runWork('idle', deadline ? deadline.timeRemaining() : undefined);
@@ -91,16 +129,21 @@ export function hasWork(lane: WorkLane): boolean {
 export function runWork(lane: WorkLane, limitMs?: number): void {
   const n = waitingCount[lane];
   if (n === 0) return;
+  if (lane === 'task') taskRunning = true;
   // This run's queues; a queue wanting work while they run enlists again, for the next.
   const list = waiting[lane];
   waiting[lane] = spare[lane];
   spare[lane] = list;
   waitingCount[lane] = 0;
   const end = limitMs === undefined ? Number.POSITIVE_INFINITY : now() + limitMs;
-  for (let i = 0; i < n; i++) {
-    const q = list[i]!;
-    list[i] = undefined;
-    q.runNow(end);
+  try {
+    for (let i = 0; i < n; i++) {
+      const q = list[i]!;
+      list[i] = undefined;
+      q.runNow(end);
+    }
+  } finally {
+    if (lane === 'task') taskRunning = false;
   }
 }
 const spare: Record<WorkLane, (WorkQueue | undefined)[]> = { task: [], frame: [], idle: [] };
@@ -126,12 +169,15 @@ export class WorkQueue {
   #disposed = false;
   #running = false;
   #ranked = 0;
+  /** Task lane: enlisted by a task-lane run, and the runs in a row that were (`MaxChain`). */
+  #fromRun = false;
+  #chain = 0;
   /** Ranks a wanted entry into this run's order (made once: `forEach` with it allocates nothing, `for…of` an iterator). */
   readonly #rank = (e: Entry) => {
     if (!e.wanted) return;
     const order = this.#order;
     const p = e.priority;
-    e.rank = p === undefined ? 0 : typeof p === 'number' ? p : p();
+    e.rank = p === undefined ? 0 : typeof p === 'number' ? p : rankOf(p);
     let j = this.#ranked++;
     while (j > 0 && order[j - 1]!.rank < e.rank) {
       order[j] = order[j - 1];
@@ -202,9 +248,21 @@ export class WorkQueue {
 
   /** @internal The lane's run: until `end` (the lane's limit), or the queue's budget. */
   runNow(end: number, all = false): void {
+    if (this.lane === 'task' && !all) {
+      this.#chain = this.#fromRun ? this.#chain + 1 : 0;
+      this.#fromRun = false;
+      if (this.#chain >= MaxChain) {
+        // Still enlisted: it waits for a macrotask.
+        this.#chain = 0;
+        console.error('workQueue: task-lane work kept wanting work; the rest runs after a macrotask');
+        defer(this);
+        return;
+      }
+    }
     this.#enlisted = false;
     if (this.#disposed || this.#running || (!this.#active && !all) || this.#wanted === 0) return;
     this.#running = true;
+    let carried = false;
     try {
       const stop = all
         ? Number.POSITIVE_INFINITY
@@ -221,26 +279,39 @@ export class WorkQueue {
         // Cancelled while this run ran: skip. (Wanted again: it runs what was wanted last.)
         if (!e.wanted) continue;
         // At least one a run, however long it takes.
-        if (i > 0 && stop !== Number.POSITIVE_INFINITY && now() >= stop) break;
+        if (i > 0 && stop !== Number.POSITIVE_INFINITY && now() >= stop) {
+          carried = true;
+          break;
+        }
         const run = e.run;
         const still = e.stillWanted;
         this.#release(e);
-        if (still && !still()) continue;
-        run();
+        // One failing piece of work is logged; the rest of the run, and the lane's other queues, go on.
+        try {
+          if (still && !still()) continue;
+          run();
+        } catch (err) {
+          console.error(err);
+        }
       }
       for (let k = 0; k < n; k++) order[k] = undefined;
       if (this.#entries.size > KeepIdle + this.#wanted) this.#entries.forEach(this.#dropIdle);
     } finally {
       this.#running = false;
     }
-    // Carried over (the budget spent) or wanted while running: the lane's next run.
-    this.#enlist();
+    // Carried over (the budget spent) or wanted while running: the lane's next run; a budget's carry-over in the task
+    // lane after a macrotask (a budget is there to yield).
+    this.#enlist(carried && this.lane === 'task');
   }
 
-  #enlist() {
+  #enlist(yieldFirst = false) {
     if (this.#enlisted || this.#running || !this.#active || this.#disposed || this.#wanted === 0) return;
     this.#enlisted = true;
-    enlist(this);
+    if (yieldFirst) defer(this);
+    else {
+      this.#fromRun = taskRunning && this.lane === 'task';
+      enlist(this);
+    }
   }
 
   #release(e: Entry) {
@@ -253,6 +324,16 @@ export class WorkQueue {
 }
 
 const noop = () => {};
+
+/** A priority function's answer; one that throws is logged and ranks 0. */
+function rankOf(p: () => number): number {
+  try {
+    return p();
+  } catch (err) {
+    console.error(err);
+    return 0;
+  }
+}
 
 /** A queue of work by key, in `lane` (`WorkQueue`); `dom/scope.ts`'s `workQueue` also pauses and ends it with its scope. */
 export function createWorkQueue(options?: { lane?: WorkLane; budgetMs?: number }): WorkQueue {

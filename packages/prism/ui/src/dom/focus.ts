@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { on } from './scoped.js';
+
 // The keyboard's focus around what opens and closes (accessibility.md): a dialog keeps Tab inside it and gives the
 // focus back to what opened it; a menu moves between its items by the arrows (WAI-ARIA's menu pattern); a tab list is
 // one Tab stop whose tabs the arrows move between (the tabs pattern, manual activation). Across shadow roots: a
@@ -124,7 +126,8 @@ export function menuKeys(e: KeyboardEvent): void {
 /**
  * A tab list as one Tab stop (roving `tabindex`: the focused tab, else the selected one, else the first) whose tabs the
  * arrows move between (both axes; Home, End); Enter or Space activates the focused tab (it is a button). Bind as
- * `ref={(el) => onCleanup(rovingTabs(el))}`; it follows tabs added, removed and selected.
+ * `ref={(el) => onCleanup(rovingTabs(el))}`, in a scope (its listeners are `on`'s); it follows tabs added, removed and
+ * selected.
  */
 export function rovingTabs(list: HTMLElement): () => void {
   const tabs = () => [...list.querySelectorAll<HTMLElement>('[role="tab"]')].filter((t) => !t.closest('[hidden]'));
@@ -165,14 +168,15 @@ export function rovingTabs(list: HTMLElement): () => void {
     e.preventDefault();
     next.focus();
   };
-  list.addEventListener('keydown', onKey);
-  list.addEventListener('focusin', settle);
+  // Scoped (rendering.md §2.4): detached while the list's scope is paused, gone with it (or with the returned function).
+  const offKey = on(list, 'keydown', onKey);
+  const offFocus = on(list, 'focusin', settle);
   const observer = new MutationObserver(settle);
   observer.observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-selected'] });
   settle();
   return () => {
-    list.removeEventListener('keydown', onKey);
-    list.removeEventListener('focusin', settle);
+    offKey();
+    offFocus();
     observer.disconnect();
   };
 }

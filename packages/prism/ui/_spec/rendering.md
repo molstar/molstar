@@ -132,10 +132,14 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 
 `reactive/state.ts`; a state is "the latest value plus listeners", and views do no rxjs on it.
 
-- **`State<T>`** (what `observableState` returns; its call sites keep their API): `value`, `set` (compared with the
-  latest value; a set while its listeners are told is queued and told after, so each listener sees the values in order;
-  in a `batch`, held and told once at its end), `listen(fn) → unlisten` (a plain array), a record's `update`,
-  `asReadonly` (a view without `set`, made on first use).
+- **`State<T>`** (what `observableState` returns; its call sites keep their API): `value` (the latest set, also while an
+  earlier set is still being told: a listener's `set(value + 1)` or a record's `update` builds on it), `set` (compared
+  with the latest value; in a `batch`, held and told once at its end), `listen(fn) → unlisten` (a plain array), a
+  record's `update`, `asReadonly` (a view without `set`, made on first use).
+- **Re-entrancy**: a value told while a state, a derived value or a key (`keyedState`, `keyedSelector`) is telling its
+  listeners (a listener sets it again) is queued and told after (`Listened.tell`), so every listener gets the values in
+  order and ends on the latest; told at once, nested, a listener after the setter would end on the older value. A
+  subscriber (`asObservable`) set to the state while it gets the current value gets the new one after.
 - **`derive(source | sources, fn, same = Object.is)`**: lazy and hot. Unlistened, `value` computes from the sources'
   current values and nothing is held; listened, it follows its sources by `listen`, keeps the value and tells only when
   it differs; shared by every binding that uses it. It replaces `x.pipe(map(f), distinctUntilChanged())` and
@@ -145,9 +149,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   the plugin's events (`plugin.events`, cell updates, the viewer's `sources/`) keeps rxjs inside, and exposes states.
   The other way, a state is an `Observable` when subscribed (`asObservable`: one listener per subscriber), for the code
   that still pipes it.
-- **Views receive states and derived values.** `bind` writes `value` and listens; pausing a scope unlistens, resuming
-  reads `value` again. An `Observable` given to JSX still works through the old path (a subscription that replays): the
-  exception, for a stream with no state behind it.
+- **Views receive states and derived values.** `bind` listens, then writes `value` (a set made by that write is written
+  after it, not missed); pausing a scope unlistens, resuming does the same again. An `Observable` given to JSX still
+  works through the old path (a subscription that replays): the exception, for a stream with no state behind it.
 
 ### 2.3 Updates: `watch`
 
@@ -173,7 +177,7 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **Sources are explicit**: states and derived values (their `listen`), writable states, anything with `listen`
   (`keyedSelector(...).key(k)`: told only when that key becomes or stops being the current one, so a highlight's move
   renders two rows, not all), or, as the exception, a stream (subscribed; what it emits while subscribing is not a
-  change).
+  change, nor is a key's first answer over a stream that replays).
 - **Errors**: a render that throws is logged; the others in the flush render and the watch goes on.
 - **Two lanes.** The microtask lane is for logic and model state: what a task changes renders once, at its end. The
   frame lane is for input: a trackpad sends wheel and pointer events at 120 Hz or more, several a frame, so input-fed
@@ -189,11 +193,13 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **One frame request a page** (`reactive/frame-state.ts`): what a component would ask `requestAnimationFrame` for (a
   label's placement, a canvas's draw, a drag's step, the splash's simulation, Seq*'s frames) is a frame callback
   (`requestFrameCallback`, `cancelFrameCallback`; `frame(fn)` in a component, released with its scope, run after its
-  resume when it is paused), run in the frame's tick before the frame states publish. A hover sweep in the viewer asked
-  for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame lane's), now 1 (the in-app
-  browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded viewer at rest asks for none
-  and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop left running, a frame per
-  event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or not (TODO).
+  resume when it is paused), run in the frame's tick before the frame states publish. A cancel reaches a callback of the
+  frame running now too (one callback cancelling another, a `frames().cancel()`), so a cancelled one never runs. A hover
+  sweep in the viewer asked for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame
+  lane's), now 1 (the in-app browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded
+  viewer at rest asks for none and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop
+  left running, a frame per event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or
+  not (TODO).
 - **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
   (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
   decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after
@@ -223,15 +229,23 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   scope, and the frame lane skips disposed and paused watches. Released by construction, not by memory: a raw
   `addEventListener`, `new ResizeObserver`/`IntersectionObserver`, `setInterval`, `requestAnimationFrame` or a frame
   callback by hand in a component file fails (`ui/src/_test/scoped-attach.test.ts`, strict since every view moved to the
-  helpers: 93 in 30 files at the start). A listener added in an event handler (no scope there) is attached once instead,
-  scoped, and acts while a drag is on; a frame asked for from a handler or a binding is `frames(fn)`'s `request()` (made
-  with the scope: once a frame, put off while paused, cancelled at the end).
+  helpers: 93 in 30 files at the start): every `.tsx`, and the `.ts` view code (`components/`, `views/`, and helpers a
+  view calls in its scope: the tooltips, `TreeNavigation`, `rovingTabs`), a `.ts` that attaches for a reason listed in
+  the test with it (a press-attached `dragToReorder` for code with no scope, a splash simulation's loop). A listener
+  added in an event handler (no scope there) is attached once instead, scoped, and acts while a drag is on; a frame
+  asked for from a handler or a binding is `frames(fn)`'s `request()` (made with the scope: once a frame, put off while
+  paused, cancelled at the end).
 - **Gestures** (`drag(target, { start, move, end })`, `dom/scoped.ts`): the press, the moves and every end are listeners
   attached once with the scope, acting while a drag is on; the pointer is captured at the press. A drag ends on
   `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
   press, and the scope's pause and end, so a release lost to a window switch or a native dialog leaves no listener and
-  no drag on. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release twenty
-  times and counts the listeners on every target (`testing/gestures.ts`).
+  no drag on. **Only a release commits** (David, 2026-10-17): `end`'s `how` is `up` for the drag's own pointer let go
+  and `cancel` for every other end, and what a drag decides on its release (a row's move, a seek) happens on `up` only;
+  a cancel leaves things as they were (what a drag applied live as it moved, a crop or a level, stays). **It follows the
+  pointer that started it**: another pointer's moves, release and cancel are not its own, and its press starts nothing
+  while the first still holds the capture (a second finger); a press after the first pointer ended unseen (its capture
+  gone) starts anew. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release
+  twenty times and counts the listeners on every target (`testing/gestures.ts`).
 - **Views leave nothing behind** (`ui/src/dom/_test/leaks.heap.tsx`, `test:heap`): a keyed list with rows, a recycled
   list, the command menu, the mock shell with a tab shown and a context menu, mounted and disposed again and again, keep
   no heap outside code (n and 4n cycles, a frame between them) and leave no listener on the window, the document or its
@@ -284,6 +298,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   Paused with its scope (what waited runs on resume), dropped when it ends; `flush()` on the queue runs all of it now.
   Nothing is allocated a want of a known key or a run (`primitives.quick.ts`, `primitives.heap.ts`: `workWant`,
   `workFrameRun`, 0 B a step): each key keeps its entry, as a map's deletes and sets allocate when it rehashes.
+- **Errors and loops**: a piece of work that throws (or its `priority`, `stillWanted`) is logged, and the rest of the
+  run and the lane's other queues go on, as a failing render does: one failure must not leave the others enlisted and
+  never run. The task lane runs in microtasks, which let no timer, event or frame in, so it yields: a queue's run wanted
+  by a task-lane run 100 times in a row (work wanting itself, two queues wanting each other), a task-lane budget's
+  carry-over (at once: a budget is there to yield), and the work left when `flush()` drops watches that kept marking,
+  wait for a macrotask; the lane's other queues go on.
 - **Lanes**: `task` runs in the runtime's microtask flush before the watches it feeds (`flush()` runs it: code that
   reads the DOM after a change sees the work done); `frame` runs in the frame's tick, after the frame states publish and
   before the renders; `idle` when the page is idle (`requestIdleCallback`, its deadline the budget).

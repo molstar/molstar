@@ -123,6 +123,127 @@ describe('workQueue', () => {
   });
 });
 
+describe('workQueue errors and loops (rendering.md §2.7)', () => {
+  it('a run that throws is logged; the other queues of the lane, and its own other work, run, now and later', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const a = createWorkQueue({ lane: 'frame' });
+      const b = createWorkQueue({ lane: 'frame' });
+      const ran: string[] = [];
+      a.want('x', () => {
+        throw new Error('boom');
+      });
+      a.want('y', () => ran.push('a.y'));
+      b.want('k', () => ran.push('b'));
+      flushFrame();
+      expect(ran).toEqual(['a.y', 'b']);
+      expect(error).toHaveBeenCalledTimes(1);
+      // Neither is left marked as enlisted: both run when wanted again.
+      a.want('x', () => ran.push('a.x'));
+      b.want('k', () => ran.push('b again'));
+      flushFrame();
+      expect(ran).toEqual(['a.y', 'b', 'a.x', 'b again']);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('in the task lane, a throwing run does not escape flush() nor stall the queue after it', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const a = createWorkQueue({ lane: 'task' });
+      const b = createWorkQueue({ lane: 'task' });
+      let n = 0;
+      a.want('x', () => {
+        throw new Error('boom');
+      });
+      b.want('k', () => n++);
+      expect(() => flush()).not.toThrow();
+      expect(n).toBe(1);
+      b.want('k', () => n++);
+      flush();
+      expect(n).toBe(2);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('a task-lane queue that keeps wanting itself yields to a macrotask (a timer fires), without stalling the others', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const q = createWorkQueue({ lane: 'task' });
+    let runs = 0;
+    let stop = false;
+    const again = () => {
+      runs++;
+      if (!stop) q.want('self', again);
+    };
+    try {
+      q.want('self', again);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      // The timer fired: the loop yielded, after a bounded number of runs a turn.
+      expect(runs).toBeGreaterThan(0);
+      expect(runs).toBeLessThan(10_000);
+      // Another queue's work still runs in the task lane, at once.
+      const other = createWorkQueue({ lane: 'task' });
+      let ran = 0;
+      other.want('k', () => ran++);
+      flush();
+      expect(ran).toBe(1);
+    } finally {
+      stop = true;
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      error.mockRestore();
+    }
+  });
+
+  it('a render that wants work that marks it again yields to a macrotask after the flush gives up', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const q = createWorkQueue({ lane: 'task' });
+    const s = observableState(0);
+    let stop = false;
+    const dispose = createRoot((d) => {
+      watch([s.asReadonly], () => {
+        if (!stop) q.want('k', () => s.set(s.value + 1));
+      });
+      return d;
+    });
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      expect(s.value).toBeGreaterThan(0);
+      expect(s.value).toBeLessThan(10_000);
+    } finally {
+      stop = true;
+      dispose();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      error.mockRestore();
+    }
+  });
+
+  it('a task-lane budget carries the rest over a macrotask', async () => {
+    const q = createWorkQueue({ lane: 'task', budgetMs: 1 });
+    const ran: number[] = [];
+    const spin = () => {
+      const t = performance.now();
+      while (performance.now() - t < 2) {}
+    };
+    for (let i = 0; i < 3; i++)
+      q.want(i, () => {
+        spin();
+        ran.push(i);
+      });
+    flush();
+    expect(ran).toEqual([0]);
+    // Not in the same task's microtasks.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ran).toEqual([0]);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(ran.length).toBeGreaterThan(1);
+    q.flush();
+    expect(ran).toEqual([0, 1, 2]);
+  });
+});
+
 describe('latest', () => {
   it('a newer call aborts the one before: the stale answer resolves to undefined', async () => {
     const seen: AbortSignal[] = [];

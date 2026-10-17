@@ -8,6 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRoot } from '../../../dom/scope.js';
 import { installTooltips } from '../tooltip.js';
 
 // A tip whose anchor goes (a panel closed under a resting pointer) must not stay on screen.
@@ -20,7 +21,14 @@ describe('tooltips', () => {
     root = document.createElement('div');
     document.body.append(root);
     root.innerHTML = '<div id="panel"><button id="a" data-tip="Reset">x</button></div>';
-    uninstall = installTooltips(root);
+    // In a scope, as the shell installs them (its listeners are scoped).
+    uninstall = createRoot((dispose) => {
+      const off = installTooltips(root);
+      return () => {
+        off();
+        dispose();
+      };
+    });
   });
   afterEach(() => {
     uninstall();

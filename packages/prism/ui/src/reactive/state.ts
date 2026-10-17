@@ -61,6 +61,8 @@ export abstract class Listened<T> extends Observable<T> {
   #listeners: Slot<T>[] | undefined;
   #holes = 0;
   #telling = 0;
+  /** Values told while the listeners are told (a listener's set): told after, in order (made on first need). */
+  #queued: T[] | undefined;
 
   abstract get value(): T;
 
@@ -111,22 +113,38 @@ export abstract class Listened<T> extends Observable<T> {
   /** After the last listener went. */
   protected onLast(): void {}
 
+  /**
+   * Tells every listener `value`. One told while the listeners are being told (a listener sets the state, a key set
+   * again, a derived value recomputed) is queued and told after, so every listener gets the values in the order told and
+   * ends on the latest (rendering.md §2.2).
+   */
   protected tell(value: T): void {
     const list = this.#listeners;
     if (!list || list.length === this.#holes) return;
+    if (this.#telling > 0) {
+      (this.#queued ??= []).push(value);
+      return;
+    }
     // The probe: the outermost state told is what the rest follows from.
     if (ReactiveProbe.on && ReactiveProbe.source === undefined) {
       ReactiveProbe.source = this;
       const before = ReactiveCounts.listener;
       try {
-        this.#tellAll(list, value);
+        this.#deliver(list, value);
       } finally {
         ReactiveProbe.source = undefined;
         ReactiveProbe.told?.(this, ReactiveCounts.listener - before);
       }
       return;
     }
+    this.#deliver(list, value);
+  }
+
+  #deliver(list: Slot<T>[], value: T): void {
     this.#tellAll(list, value);
+    const q = this.#queued;
+    if (!q) return;
+    while (q.length > 0) this.#tellAll(list, q.shift() as T);
   }
 
   #tellAll(list: Slot<T>[], value: T): void {
@@ -150,9 +168,26 @@ export abstract class Listened<T> extends Observable<T> {
 
   /** The rxjs boundary: a subscriber gets the current value, then each new one (one listener per subscriber). */
   protected _subscribe(subscriber: Subscriber<T>) {
-    subscriber.next(this.value);
-    return this.listen((v) => subscriber.next(v));
+    return replayThenListen(this, subscriber);
   }
+}
+
+/**
+ * A subscriber gets the current value, then each new one; one set while the current value is given (the subscriber
+ * sets the state) is given after it, not missed.
+ */
+function replayThenListen<T>(state: ReadonlyState<T> & Pick<Listened<T>, 'listen'>, subscriber: Subscriber<T>) {
+  let replaying = true;
+  let missed = false;
+  const stop = state.listen((v) => {
+    if (replaying) missed = true;
+    else subscriber.next(v);
+  });
+  const v = state.value;
+  subscriber.next(v);
+  replaying = false;
+  if (missed && !Object.is(state.value, v)) subscriber.next(state.value);
+  return stop;
 }
 
 // --- Batching ------------------------------------------------------------------------------------
@@ -186,15 +221,13 @@ export function batch<T>(fn: () => T): T {
 // --- State ---------------------------------------------------------------------------------------
 
 /**
- * A writable state. `set` compares with the latest value (`compare`), and a set while the state's listeners are told
- * is queued and told after, so every listener gets the values in the order they were set and ends on the latest; in a
- * `batch`, it is held and told once when the batch ends.
+ * A writable state. `set` compares with the latest value (`compare`), and `value` is always the latest set; a set while
+ * the state's listeners are told is told after (`Listened.tell`), so every listener gets the values in the order they
+ * were set and ends on the latest; in a `batch`, it is held and told once when the batch ends.
  */
 export class State<T> extends Listened<T> implements ReadonlyState<T> {
   #value: T;
   readonly #compare: (a: T, b: T) => boolean;
-  #queued: T[] | undefined;
-  #delivering = false;
   #held: { value: T } | undefined;
 
   constructor(initial: T, compare: (a: T, b: T) => boolean = Object.is) {
@@ -204,6 +237,7 @@ export class State<T> extends Listened<T> implements ReadonlyState<T> {
     if (ReactiveProbe.on) ReactiveProbe.created?.(this, 'state');
   }
 
+  /** The latest value set (in a batch, the one held), also while a set before it is still being told. */
   get value(): T {
     return this.#held ? this.#held.value : this.#value;
   }
@@ -215,12 +249,6 @@ export class State<T> extends Listened<T> implements ReadonlyState<T> {
     return (this.#view ??= new View(this));
   }
 
-  #latest(): T {
-    if (this.#held) return this.#held.value;
-    const q = this.#queued;
-    return q && q.length > 0 ? q[q.length - 1] : this.#value;
-  }
-
   readonly #deliverHeld = () => {
     const h = this.#held;
     this.#held = undefined;
@@ -230,31 +258,15 @@ export class State<T> extends Listened<T> implements ReadonlyState<T> {
   set(value: T): void {
     if (batchDepth > 0) {
       if (this.#held) this.#held.value = value;
-      else if (!this.#compare(this.#latest(), value)) {
+      else if (!this.#compare(this.#value, value)) {
         this.#held = { value };
         batched.set(this, this.#deliverHeld);
       }
       return;
     }
-    if (this.#compare(this.#latest(), value)) return;
-    if (this.#delivering) {
-      (this.#queued ??= []).push(value);
-      return;
-    }
-    this.#delivering = true;
-    try {
-      this.#value = value;
-      this.tell(value);
-      const q = this.#queued;
-      while (q && q.length > 0) {
-        const next = q.shift() as T;
-        this.#value = next;
-        this.tell(next);
-      }
-    } finally {
-      this.#delivering = false;
-      if (this.#queued) this.#queued.length = 0;
-    }
+    if (this.#compare(this.#value, value)) return;
+    this.#value = value;
+    this.tell(value);
   }
 }
 
@@ -288,8 +300,7 @@ class View<T> extends Observable<T> implements ReadonlyState<T> {
     return this.#state.listen(fn);
   }
   protected _subscribe(subscriber: Subscriber<T>) {
-    subscriber.next(this.#state.value);
-    return this.#state.listen((v) => subscriber.next(v));
+    return replayThenListen(this, subscriber);
   }
 }
 

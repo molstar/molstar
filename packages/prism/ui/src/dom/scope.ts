@@ -9,7 +9,7 @@
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
 import { type Listenable, listen } from '../reactive/listen.js';
 import { FrameLane, FrameState, flushFrame, requestFrame } from '../reactive/frame-state.js';
-import { hasWork, runWork, TaskLane } from '../reactive/work-queue.js';
+import { deferTaskWork, hasWork, runWork, TaskLane } from '../reactive/work-queue.js';
 import { ReactiveCounts, ReactiveProbe } from '../reactive/state.js';
 import type { ObservableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -61,9 +61,14 @@ class Binding<T> extends Live {
   #start() {
     const source = this.stream as Observable<T> & Partial<ReadonlyState<T>>;
     if (typeof source.listen === 'function') {
-      // `fn` may stop the binding meanwhile.
-      this.fn(source.value as T);
-      if (this.#live) this.#stop = source.listen(this.fn);
+      // Listened first (as a watch starts), so a set made by the first write is not missed; one made before the write
+      // ran (nested) is written again after it, so the last write is the latest value. `fn` may stop the binding.
+      this.#stop = source.listen(this.fn);
+      const v = source.value as T;
+      this.fn(v);
+      if (!this.#live) return;
+      const now = source.value as T;
+      if (!Object.is(now, v)) this.fn(now);
       return;
     }
     // The stream replays its current value on subscribe (a state does), and `fn` may stop the binding meanwhile.
@@ -231,7 +236,8 @@ export function flush(): void {
           dirty[i] = undefined;
         }
         dirtyCount = 0;
-        // Work that keeps wanting itself waits for the next flush.
+        // The work that fed them waits for a macrotask, or the next microtask would start the loop again.
+        deferTaskWork();
         break;
       }
       // The task lane's work first (reactive/work-queue.ts): what it computes is what the watches render.

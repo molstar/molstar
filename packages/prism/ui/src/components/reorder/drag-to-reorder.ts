@@ -12,7 +12,8 @@ import { drag } from '../../dom/scoped.js';
  * Drags a row of a list by its handle (call it on the handle's pointerdown): the list's rows are its children with
  * `data-id`; the one being moved gets `data-dragging`, the row it would land before `data-drop="before"` (the last one
  * `"after"`), for the list's own styles; release moves it there. The document follows the pointer (not the handle), so
- * a release anywhere, a cancelled pointer or the window losing focus always ends the drag and clears the marks.
+ * a release anywhere, a cancelled pointer or the window losing focus always ends the drag and clears the marks; only
+ * the release moves the row.
  * Snapshots, measurement points.
  *
  * It attaches on the press: a component uses `reorderRows` (attached once, with its scope) instead.
@@ -53,24 +54,26 @@ export function dragToReorder(
   const doc = list.ownerDocument;
   const view = doc.defaultView;
   let done = false;
-  const onUp = () => {
+  const end = (released: boolean) => {
     if (done) return;
     done = true;
     doc.removeEventListener('pointermove', onMove, true);
     doc.removeEventListener('pointerup', onUp, true);
-    doc.removeEventListener('pointercancel', onUp, true);
-    view?.removeEventListener('blur', onUp);
+    doc.removeEventListener('pointercancel', onCancel, true);
+    view?.removeEventListener('blur', onCancel);
     self?.removeAttribute('data-dragging');
     const from = items.indexOf(self as HTMLElement);
     const to = target;
     mark(-1);
-    // Dropping above or below itself leaves it where it is.
-    if (to >= 0 && to !== from && to !== from + 1) moveTo(to > from ? to - 1 : to);
+    // Only a release moves it (a cancel leaves it); dropped above or below itself, it stays where it is.
+    if (released && to >= 0 && to !== from && to !== from + 1) moveTo(to > from ? to - 1 : to);
   };
+  const onUp = () => end(true);
+  const onCancel = () => end(false);
   doc.addEventListener('pointermove', onMove, true);
   doc.addEventListener('pointerup', onUp, true);
-  doc.addEventListener('pointercancel', onUp, true);
-  view?.addEventListener('blur', onUp);
+  doc.addEventListener('pointercancel', onCancel, true);
+  view?.addEventListener('blur', onCancel);
 }
 
 interface Reorder {
@@ -118,14 +121,14 @@ export function reorderRows(list: HTMLElement, handle: string, moveTo: (id: stri
       }
       mark(r, index);
     },
-    end(r, _how, e) {
+    end(r, how) {
       r.self.removeAttribute('data-dragging');
       const from = r.items.indexOf(r.self);
       const to = r.target;
       mark(r, -1);
-      // Ended by the pointer (released, or cancelled, as `dragToReorder` did), not by the scope. Dropped above or below
-      // itself, it stays where it is.
-      if (e && to >= 0 && to !== from && to !== from + 1) moveTo(r.self.dataset.id!, to > from ? to - 1 : to);
+      // Released: a cancel never moves it (rendering.md §2.4). Dropped above or below itself, it stays where it is.
+      if (how === 'up' && to >= 0 && to !== from && to !== from + 1)
+        moveTo(r.self.dataset.id!, to > from ? to - 1 : to);
     },
   });
 }

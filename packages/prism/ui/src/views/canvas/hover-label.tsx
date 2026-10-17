@@ -83,8 +83,9 @@ export function HoverLabel(props: {
   ) as HTMLElement;
 
   // What shows: a new label at once; an empty one only if it is still empty a frame later, so a pointer moving fast from
-  // one atom to the next (Mol* empties the label between them) swaps the text in place instead of blinking it off.
-  // Frames on the page's one tick (`frames`: asked for from bindings and listeners, cancelled with the scope).
+  // one atom to the next (Mol* empties the label between them) swaps the text in place instead of blinking it off. The
+  // hide happens in that frame (one frame of debounce, not one plus a placement's). Frames on the page's one tick
+  // (`frames`: asked for from bindings and listeners, cancelled with the scope).
   const shown = observableState<readonly HoverLine[]>([]);
   const hiding = frames(() => shown.set([]));
   bind(props.model.lines, (lines) => {
@@ -100,9 +101,11 @@ export function HoverLabel(props: {
   let dragging = false;
   let hasContent = false;
 
-  // Hiding waits a frame as emptying does: a fast move crossing a small element over the canvas (or leaving it for a
-  // moment) keeps the label rather than blinking it; a drag (rotating) hides it at once. Hidden is the `out` class: it
-  // appears at once and fades out (CSS, `--msp-motion-fast`), holding its last text while it fades.
+  // Shown or hidden as the pointer and the content say, at once (no layout read): it appears at once (beside the
+  // pointer, in the frame that places it), a drag (rotating) or no content hides it at once, and the pointer leaving
+  // waits a frame as emptying does (`leaving`: a fast move crossing a small element over the canvas, or out and back,
+  // keeps it), then hides in that frame. Hidden is the `out` class: it fades out (CSS, `--msp-motion-fast`), holding its
+  // last text while it fades.
   let isShown = false;
   const show = (on: boolean) => {
     if (isShown === on) return;
@@ -112,37 +115,44 @@ export function HoverLabel(props: {
     if (on) label.removeAttribute('aria-hidden');
     else label.setAttribute('aria-hidden', 'true');
   };
-  const place = () => {
-    const visible = inside && !dragging && hasContent;
-    if (visible || dragging || !hasContent) {
+  const visible = () => inside && !dragging && hasContent;
+  const update = () => {
+    if (visible()) {
       leaving.cancel();
-      show(visible);
+      if (corner) show(true);
+      else placing.request();
+    } else if (dragging || !hasContent) {
+      leaving.cancel();
+      show(false);
     } else if (isShown) leaving.request();
-    if (!visible || corner) return;
+  };
+  // Beside the pointer: placed once a frame (a layout read, then one transform write), and shown with its place.
+  const place = () => {
+    if (!visible()) return;
     const area = label.offsetParent as HTMLElement | null;
-    if (!area) return;
-    // The pointer in the layer the label is placed in (the canvas may sit elsewhere in it).
-    const rect = area.getBoundingClientRect();
-    const px = x - rect.left;
-    const py = y - rect.top;
-    const w = label.offsetWidth;
-    const h = label.offsetHeight;
-    const left = px + Offset + w > area.clientWidth ? px - Offset - w : px + Offset;
-    const top = py + Offset + h > area.clientHeight ? py - Offset - h : py + Offset;
-    label.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, top)}px)`;
+    if (area) {
+      // The pointer in the layer the label is placed in (the canvas may sit elsewhere in it).
+      const rect = area.getBoundingClientRect();
+      const px = x - rect.left;
+      const py = y - rect.top;
+      const w = label.offsetWidth;
+      const h = label.offsetHeight;
+      const left = px + Offset + w > area.clientWidth ? px - Offset - w : px + Offset;
+      const top = py + Offset + h > area.clientHeight ? py - Offset - h : py + Offset;
+      label.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, top)}px)`;
+    }
+    show(true);
   };
   const leaving = frames(() => {
-    if (!(inside && !dragging && hasContent)) show(false);
+    if (!visible()) show(false);
   });
-  // Placed once a frame, asked for from the listeners and the lines' binding.
   const placing = frames(place);
-  const schedule = () => placing.request();
 
   bind(shown.asReadonly, (lines) => {
     // Emptied, the last text stays for the fade out.
     if (lines.length) label.replaceChildren(...lines.map(lineElement));
     hasContent = lines.length > 0;
-    schedule();
+    update();
   });
 
   // The pointer is tracked on the canvas area (the element the label is positioned in), found once it is in the page:
@@ -159,11 +169,11 @@ export function HoverLabel(props: {
         y = e.clientY;
         inside = !over || over(e.target as Element);
         dragging = e.buttons !== 0;
-        schedule();
+        update();
       });
       on(area, 'pointerleave', () => {
         inside = false;
-        schedule();
+        update();
       });
     });
   });

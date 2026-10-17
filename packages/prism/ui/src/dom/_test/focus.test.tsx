@@ -68,8 +68,10 @@ describe('menuKeys', () => {
 
 describe('rovingTabs', () => {
   it('makes a tab list one Tab stop (the selected tab) and moves between tabs by the arrows', async () => {
+    let stop!: () => void;
+    // Bound in its scope, as views do (its listeners are scoped).
     const { container, done } = mount(() => (
-      <div role="tablist">
+      <div role="tablist" ref={(el: HTMLElement) => (stop = rovingTabs(el))}>
         <button type="button" role="tab" aria-selected="false">
           Home
         </button>
@@ -82,7 +84,6 @@ describe('rovingTabs', () => {
       </div>
     ));
     const list = container.querySelector<HTMLElement>('[role=tablist]')!;
-    const stop = rovingTabs(list);
     const tabs = [...list.querySelectorAll<HTMLElement>('[role=tab]')];
     expect(tabs.map((t) => t.tabIndex)).toEqual([-1, 0, -1]);
     tabs[1].focus();

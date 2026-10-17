@@ -7,6 +7,7 @@
  */
 
 import { flush, onCleanup } from './scope.js';
+import { on } from './scoped.js';
 
 // The keyboard of an ARIA tree (accessibility.md, WAI-ARIA's tree pattern), over the tree's rows as a list (a
 // virtualized tree has only the rows on screen in the DOM): Down and Up move, Right opens (open: enters), Left closes
@@ -55,12 +56,11 @@ export class TreeNavigation<R> {
   /** Ref for the tree element (`role="tree"`). */
   readonly tree = (el: HTMLElement): void => {
     this.#tree = el;
-    el.addEventListener('keydown', this.#onKey);
-    el.addEventListener('focusin', this.#onFocusIn);
+    // Scoped (rendering.md §2.4): detached while the tree's scope is paused, gone with it.
+    on(el, 'keydown', this.#onKey);
+    on(el, 'focusin', this.#onFocusIn);
     this.#sync();
     onCleanup(() => {
-      el.removeEventListener('keydown', this.#onKey);
-      el.removeEventListener('focusin', this.#onFocusIn);
       this.#tree = undefined;
     });
   };

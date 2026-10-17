@@ -77,13 +77,21 @@ export function frame(fn: (time: number) => void): () => void {
   const scope = requireScope('frame');
   let done = false;
   let id = 0;
+  let waiting = false;
+  let hooked = false;
   const run = (time: number) => {
     if (done || scope.disposed) return;
     if (!scope.active) {
-      // Paused: wait for the resume (the hook added only now, in this rare case).
-      scope.onActive((active) => {
-        if (active && !done) id = requestFrameCallback(run);
-      });
+      // Paused: wait for the resume (the hook added once, only in this rare case).
+      waiting = true;
+      if (!hooked) {
+        hooked = true;
+        scope.onActive((active) => {
+          if (!active || !waiting || done) return;
+          waiting = false;
+          id = requestFrameCallback(run);
+        });
+      }
       return;
     }
     done = true;
@@ -132,16 +140,22 @@ export interface DragHandlers<S> {
   start(e: PointerEvent): S | undefined;
   /** The pointer moved while the drag is on. */
   move?(e: PointerEvent, state: S): void;
-  /** It ended: released (`up`), or cancelled (the release lost, capture lost, the scope paused or ended). */
+  /**
+   * It ended: released (`up`: the drag's own pointer let go, the one way to commit what a drag decides on its release, a
+   * row's move, a seek), or cancelled (`pointercancel`, the capture lost, a move with no button, a new press after a lost
+   * release, the scope paused or ended; `e` is the event, undefined for the scope): leave things as they were.
+   */
   end?(state: S, how: 'up' | 'cancel', e: PointerEvent | undefined): void;
 }
 
 /**
  * A pointer drag on `target` (prism AGENTS.md, gestures; the scroll area's shape): its listeners attached once, with
  * the current scope (`on`: detached while it is paused, gone when it ends), acting only while a drag is on; the
- * pointer captured on the press, so the moves come to the target wherever the pointer goes. Every way a drag can end
- * ends it: a release, a cancel, the capture lost, a move with no button held (a release that never came), the scope
- * paused or ended. A press never attaches anything, so a lost release leaves nothing behind.
+ * pointer captured on the press, so the moves come to the target wherever the pointer goes. It follows only the
+ * pointer that started it (rendering.md §2.4): another finger's moves and releases are not its own, and its press
+ * starts nothing while the first pointer still holds the capture. Every way a drag can end ends it: a release (`up`),
+ * and as a cancel, `pointercancel`, the capture lost, a move with no button held (a release that never came), a new
+ * press, the scope paused or ended. A press never attaches anything, so a lost release leaves nothing behind.
  */
 export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly active: boolean; cancel(): void } {
   const scope = requireScope('drag');
@@ -163,8 +177,12 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
     handlers.end?.(s, how, e);
   };
   on<PointerEvent>(target, 'pointerdown', (e) => {
-    // A press while one is on (its release lost): that one ends first.
-    if (state !== undefined) finish('cancel', e);
+    if (state !== undefined) {
+      // Another finger while the first one holds the drag: not this drag's.
+      if (e.pointerId !== pointer && (target as HTMLElement).hasPointerCapture?.(pointer)) return;
+      // A press while one is on (its release lost): that one ends first.
+      finish('cancel', e);
+    }
     const s = handlers.start(e);
     if (s === undefined) return;
     state = s;
@@ -176,14 +194,20 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
     }
   });
   on<PointerEvent>(target, 'pointermove', (e) => {
-    if (state === undefined) return;
+    if (state === undefined || e.pointerId !== pointer) return;
     // No button held: the release went missing; end here.
     if (e.buttons === 0 && e.pointerType !== 'touch') return finish('cancel', e);
     handlers.move?.(e, state);
   });
-  on<PointerEvent>(target, 'pointerup', (e) => finish('up', e));
-  on<PointerEvent>(target, 'pointercancel', (e) => finish('cancel', e));
-  on<PointerEvent>(target, 'lostpointercapture', (e) => finish('cancel', e));
+  on<PointerEvent>(target, 'pointerup', (e) => {
+    if (e.pointerId === pointer) finish('up', e);
+  });
+  on<PointerEvent>(target, 'pointercancel', (e) => {
+    if (e.pointerId === pointer) finish('cancel', e);
+  });
+  on<PointerEvent>(target, 'lostpointercapture', (e) => {
+    if (e.pointerId === pointer) finish('cancel', e);
+  });
   scope.onActive((active) => {
     if (!active) finish('cancel');
   });
