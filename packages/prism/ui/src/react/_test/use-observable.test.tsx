@@ -110,10 +110,11 @@ describe('useObservable', () => {
     const source = new BehaviorSubject({ count: 1 });
     const selections: Array<{ label: string }> = [];
     function Raw() {
-      return <span>{useObservable(source).count}</span>;
+      return <span>{useObservable(source)!.count}</span>;
     }
     function Selected() {
-      const selection = useObservableProp(source, (value) => ({ label: String(value.count) }));
+      // A BehaviorSubject always has a value: the selection is defined.
+      const selection = useObservableProp(source, (value) => ({ label: String(value.count) }))!;
       selections.push(selection);
       return <span>{selection.label}</span>;
     }
@@ -195,7 +196,7 @@ describe('useObservableProp', () => {
     let renders = 0;
     function Probe() {
       renders += 1;
-      const selection = useObservableProp(source, selector, { compare: () => false });
+      const selection = useObservableProp(source, selector, { compare: () => false })!;
       return <span>{selection.value}</span>;
     }
     await act(async () => root.render(<Probe />));
@@ -238,7 +239,7 @@ describe('useObservableProp', () => {
     function Probe() {
       const selection = useObservableProp(source, (value) => ({ label: value.label }), {
         compare: (left, right) => left.label === right.label,
-      });
+      })!;
       selections.push(selection);
       return <span>{selection.label}</span>;
     }

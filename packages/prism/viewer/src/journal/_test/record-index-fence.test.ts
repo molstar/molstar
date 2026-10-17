@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createMemoryRows, type ThreadRows } from '@molstar/ai';
+import { createMemoryRows, type ThreadRows, type ThreadTable } from '@molstar/ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRecordIndex, createSessionRecord, IndexFoldAt, type RecordRows } from '../record.js';
 import { fakeApi } from './runs.js';
@@ -88,7 +88,7 @@ afterEach(() => {
 
 describe('the kept records index, fenced per database', () => {
   it('another index on the database lists everything while a fold rewrites the thread', async () => {
-    const base = createMemoryRows();
+    const base = createMemoryRows<ThreadTable>();
     const one = handle(base);
     const index = await longIndex(one.rows);
     const other = await createRecordIndex(handle(base).rows);
@@ -109,7 +109,7 @@ describe('the kept records index, fenced per database', () => {
   });
 
   it('a forget from another index during a fold is neither lost nor undone by it', async () => {
-    const base = createMemoryRows();
+    const base = createMemoryRows<ThreadTable>();
     const one = handle(base);
     const index = await longIndex(one.rows);
     const other = await createRecordIndex(handle(base).rows);
@@ -126,7 +126,7 @@ describe('the kept records index, fenced per database', () => {
   });
 
   it('a page closed mid-fold leaves the index whole: the next use finishes the fold', async () => {
-    const base = createMemoryRows();
+    const base = createMemoryRows<ThreadTable>();
     const one = handle(base);
     const index = await longIndex(one.rows);
     one.crash();
@@ -156,7 +156,7 @@ describe('the kept records index, fenced per database', () => {
         },
       },
     });
-    const index = await createRecordIndex(handle(createMemoryRows(), 'prism-default-records').rows);
+    const index = await createRecordIndex(handle(createMemoryRows<ThreadTable>(), 'prism-default-records').rows);
     await index.touch('a', 'A', 1);
     await index.list();
     expect(names.length).toBeGreaterThanOrEqual(3);
@@ -164,7 +164,7 @@ describe('the kept records index, fenced per database', () => {
   });
 
   it("lets go of the kept rows only after its index's fold is done", async () => {
-    const base = createMemoryRows();
+    const base = createMemoryRows<ThreadTable>();
     const one = handle(base);
     const index = await createRecordIndex(one.rows);
     for (let i = 0; i < IndexFoldAt; i++) await index.touch('old', 'Old', i + 1);
