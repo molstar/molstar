@@ -285,13 +285,24 @@
   }
 
   & .rail {
-    /* Above the panel beside it: its hairline is the line between them, and what fills the panel to its edge (a tree's
-       rows) does not cover it. */
     position: relative;
-    z-index: 1;
     border-radius: 0;
     background: var(--msp-glass-panel-bg);
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    /* Not the frame's ring (canvas.module.css): its one line is the hairline below. */
+    box-shadow: none;
+
+    /* Its hairline, the line between it and the panel or the canvas: inside its own left edge, above its buttons (a
+       selected one's background does not cover it). Outside the rail it would lie over the panel's last pixel and make
+       the panel's right margin a pixel narrower than its left. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 1;
+      width: 1px;
+      background: var(--msp-glass-edge);
+      pointer-events: none;
+    }
   }
 
   /* A compact rail lies over the canvas' edge and stops above the corner row (the toolbar and its toggle stay clear),
@@ -327,7 +338,7 @@
     margin: 0;
     border-radius: 0;
     /* Nothing under it (the canvas ends at it): opaque, no glass, its rows the same color. The hairline on the left is
-       its own, the canvas's side; the one on the right is the rail's (above it). */
+       its own, the canvas's side; the one on the right is the rail's (inside the rail). */
     background: var(--msp-color-panel);
     --msp-surface: var(--msp-color-panel);
     backdrop-filter: none;

@@ -294,11 +294,20 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-rail {
-    z-index: 1;
     background: var(--msp-glass-panel-bg);
-    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    box-shadow: none;
     border-radius: 0;
     position: relative;
+
+    &:before {
+      content: "";
+      z-index: 1;
+      background: var(--msp-glass-edge);
+      pointer-events: none;
+      width: 1px;
+      position: absolute;
+      inset: 0 auto 0 0;
+    }
   }
 
   &[data-rail-overlay] {
