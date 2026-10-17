@@ -95,6 +95,30 @@ export interface KeyEventLike {
   defaultPrevented?: boolean;
 }
 
+/**
+ * Commands made when they are wanted, not at every change of what they are made from (commands.md §4; AGENTS.md, work
+ * is wanted): the Select group's per-structure commands. `make` runs on the first read after `stale()` (`get`, `query`,
+ * `children`, `groupPath`), or at once while the menu is open (`want`).
+ */
+export interface LazyCommands<Ctx> {
+  /** The commands and groups now; `undefined` keeps what was made last (nothing they list changed). */
+  make(): { commands: readonly CommandDefinition<Ctx>[]; groups: readonly CommandGroup[] } | undefined;
+}
+
+export interface LazyRegistration {
+  /** What the commands are made from changed: made again when next wanted. */
+  stale(): void;
+  /** Takes them away. */
+  dispose(): void;
+}
+
+interface Lazy<Ctx> {
+  readonly source: LazyCommands<Ctx>;
+  stale: boolean;
+  drop?: () => void;
+  dropGroups?: () => void;
+}
+
 /** The run in flight. */
 export interface CommandRun<Ctx> {
   command: CommandDefinition<Ctx>;
@@ -137,6 +161,10 @@ export class CommandManager<Ctx> {
   #browsePreview = false;
   /** Which key runs which command: the commands' own, the app's, the person's (commands.md §6). */
   readonly keymap: Keymap;
+  readonly #lazy = new Set<Lazy<Ctx>>();
+  /** Holders of `want` (the open menu): stale lazy commands are made in a microtask, not by the reads. */
+  #wanted = 0;
+  #making = false;
 
   constructor(options: CommandManagerOptions<Ctx>) {
     this.#options = options;
@@ -206,6 +234,78 @@ export class CommandManager<Ctx> {
     };
   }
 
+  /**
+   * Adds commands made when wanted (`LazyCommands`): stale from the start, made by the first read that needs them. Keys
+   * are not a read (`handleKey` runs at every keystroke): a lazy command is reached by the menu, `get` or `open`.
+   */
+  registerLazy(source: LazyCommands<Ctx>): LazyRegistration {
+    const lazy: Lazy<Ctx> = { source, stale: true };
+    this.#lazy.add(lazy);
+    if (this.#wanted) this.#makeSoon();
+    return {
+      stale: () => {
+        if (!this.#lazy.has(lazy)) return;
+        lazy.stale = true;
+        if (this.#wanted) this.#makeSoon();
+      },
+      dispose: () => {
+        if (!this.#lazy.delete(lazy)) return;
+        lazy.drop?.();
+        lazy.dropGroups?.();
+      },
+    };
+  }
+
+  /**
+   * The command lists are wanted while the returned release is not called (the command menu while open): stale lazy
+   * commands are made now, and again in a microtask after each change, so the menu's rows follow them.
+   */
+  want(): () => void {
+    this.#wanted++;
+    this.#make();
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.#wanted--;
+    };
+  }
+
+  #soon = false;
+  #makeSoon(): void {
+    if (this.#soon) return;
+    this.#soon = true;
+    queueMicrotask(() => {
+      this.#soon = false;
+      this.#make();
+    });
+  }
+
+  /** Makes the stale lazy commands (a read that needs them; the menu's want). */
+  #make(): void {
+    if (this.#making || !this.#lazy.size) return;
+    this.#making = true;
+    try {
+      for (const lazy of this.#lazy) {
+        if (!lazy.stale) continue;
+        lazy.stale = false;
+        const made = lazy.source.make();
+        if (!made) continue;
+        lazy.drop?.();
+        lazy.dropGroups?.();
+        lazy.dropGroups = this.registerGroups(made.groups);
+        lazy.drop = this.register(made.commands);
+      }
+    } finally {
+      this.#making = false;
+    }
+  }
+
+  /** Before a read of the lists: while the menu holds them its microtask makes them, so a read inside its render does not. */
+  #fresh(): void {
+    if (!this.#wanted) this.#make();
+  }
+
   /** The command tree's groups, for browsing. */
   get groups(): ReadonlyState<readonly CommandGroup[]> {
     return this.#groups.asReadonly;
@@ -230,6 +330,7 @@ export class CommandManager<Ctx> {
 
   /** A group's path from the top level to it (itself last); empty for none or an unknown id. */
   groupPath(id: string | undefined): CommandGroup[] {
+    this.#fresh();
     const byId = this.#groupsById();
     const path: CommandGroup[] = [];
     const seen = new Set<CommandGroup>();
@@ -256,6 +357,7 @@ export class CommandManager<Ctx> {
 
   /** What a group holds (or the top level, for none): its subgroups and its commands, in order. */
   children(id: string | undefined): { groups: CommandGroup[]; commands: CommandMatch<Ctx>[] } {
+    this.#fresh();
     const known = new Set(this.#groups.asReadonly.value.map((g) => g.id));
     const byOrder = (a: CommandGroup, b: CommandGroup) => (a.order ?? 0) - (b.order ?? 0);
     const groups = this.#groups.asReadonly.value
@@ -273,6 +375,7 @@ export class CommandManager<Ctx> {
   }
 
   get(id: string): CommandDefinition<Ctx> | undefined {
+    this.#fresh();
     const all = this.#commands.asReadonly.value;
     if (this.#commandIndex?.of !== all) {
       const byId = new Map<string, CommandDefinition<Ctx>>();
@@ -408,6 +511,7 @@ export class CommandManager<Ctx> {
 
   /** What the typed text (after "/") matches. */
   query(text: string): CommandQuery<Ctx> {
+    this.#fresh();
     const all = this.#commands.asReadonly.value;
     const q = text.trim();
     const lower = text.toLowerCase().trimStart().replace(/\s+/g, ' ');

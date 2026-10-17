@@ -158,10 +158,7 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:
 
-- **The select commands rebuild their queries over every structure at each change of the structure list**
-  (`viewer/src/commands/select.ts` → `sources/select-queries.ts` `structureQueries`): N loads are N² (about 142 ms of
-  the 333 ms of hierarchy-listener time over 64 loads). Build per structure, keyed by its cell.
-- _*Mol*'s particle hierarchy_* (`managers.particles.hierarchy.current`, `packages/plugin`) is rebuilt over the whole
+- **Mol\*'s particle hierarchy** (`managers.particles.hierarchy.current`, `packages/plugin`) is rebuilt over the whole
   state tree on its first read after a change (about 82 ms over 64 loads).
 - **`representation.set` across many components** (an `api.group` of one call per component) is one commit per
   component; only the updates inside one call are batched.

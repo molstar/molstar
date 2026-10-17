@@ -162,6 +162,9 @@ const RowPx = 28;
 
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
+  // Open, the menu wants every command: lazy ones (the Select group's per structure) are made now and follow changes
+  // while it is open (commands.md §4, `registerLazy`).
+  onCleanup(manager.want());
   // The words a sentence was proposed from by the assistant (shown over it), until it closes.
   const proposed = observableState<string | undefined>(undefined);
   effect(manager.active, (a) => {

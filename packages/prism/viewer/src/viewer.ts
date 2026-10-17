@@ -318,7 +318,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       : undefined;
     if (sequence) disposers.push(() => sequence.dispose());
     disposers.push(registerCommands(coreCommands(person)));
-    // The Select group: a command per selection query, made again as the structures change (commands/select.ts).
+    // The Select group: a command per selection query, made when wanted after the structures change (commands/select.ts).
     disposers.push(
       watchSelectCommands({
         queries: selectQuerySource(plugin),
@@ -326,7 +326,13 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         targets,
         structures: sources.structures,
         data: () => loadedStructureData(plugin),
-        register: registerCommands,
+        registerLazy: (source) =>
+          managers.commands.registerLazy({
+            make: () => {
+              const made = source.make();
+              return made && { commands: overrides.commands(made.commands), groups: made.groups };
+            },
+          }),
         registerGroups: (groups) => managers.commands.registerGroups(groups),
       }),
     );
