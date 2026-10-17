@@ -19,8 +19,8 @@ import { type CanvasMenuItem, ShellModel } from '../../../shell/shell.js';
 import { expectNoAxeViolations } from '../../../testing/axe.js';
 import { CanvasStack } from '../canvas-chrome.js';
 
-// The collapsible canvas toolbar (shell.md §2): a chevron at the bar's edge folds it into one button whose menu lists
-// the same tools, with the chevron that opens the bar again as its first row; the state is the layout's.
+// The compact canvas toolbar (shell.md §2): `ShellOptions.toolbar` ('auto' by default: compact mode, 'expanded',
+// 'collapsed') makes it one button whose menu lists the same tools; the host's, with no control for the person.
 
 beforeEach(() => {
   vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }) as MediaQueryList);
@@ -40,7 +40,8 @@ afterEach(() => {
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-function setup(options: ConstructorParameters<typeof ShellModel>[0] = {}) {
+/** A shell with the toolbar collapsed (the default here) or not. */
+function setup(options: ConstructorParameters<typeof ShellModel>[0] = { toolbar: 'collapsed' }) {
   const shell = new ShellModel(options);
   const ran: string[] = [];
   const shown = new BehaviorSubject(true);
@@ -140,7 +141,6 @@ function setup(options: ConstructorParameters<typeof ShellModel>[0] = {}) {
     dispose,
     q,
     qa,
-    chevron: () => q<HTMLButtonElement>('[data-stack-toggle]')!,
     folded: () => q<HTMLButtonElement>('[data-stack-collapsed]'),
     menu: () => q('[role=menu]'),
     menus: () => qa('[role=menu]'),
@@ -150,36 +150,30 @@ function setup(options: ConstructorParameters<typeof ShellModel>[0] = {}) {
   };
 }
 
-describe('the collapsible canvas toolbar', () => {
-  it('has a chevron button, named and expanded, that folds the bar into one button', () => {
+describe('the compact canvas toolbar', () => {
+  it('is one named button with a menu, and the bar hidden; it has no chevron and no way back', () => {
     const t = setup();
-    const chevron = t.chevron();
-    expect(chevron.getAttribute('aria-label')).toBe('Collapse toolbar');
-    expect(chevron.getAttribute('aria-expanded')).toBe('true');
-    expect(chevron.tabIndex).toBe(0);
-    expect(t.folded()).toBeNull();
-
-    chevron.click();
-    expect(t.shell.toolbarCollapsed.value).toBe(true);
-    expect(t.shell.viewState.layout.value.toolbar).toBe('collapsed');
     const folded = t.folded()!;
     expect(folded.getAttribute('aria-label')).toBe('Toolbar');
     expect(folded.getAttribute('aria-haspopup')).toBe('menu');
     expect(folded.getAttribute('aria-expanded')).toBe('false');
-    // The bar stays, hidden and inert: neither seen, tabbed to nor read.
-    const bar = chevron.closest('[hidden]')!;
-    expect(bar).not.toBeNull();
-    expect(bar.hasAttribute('inert')).toBe(true);
-    expect(bar.querySelector('button[aria-label="Reset camera"]')).not.toBeNull();
+    expect(t.shell.toolbarCollapsed.value).toBe(true);
+    // The bar is there, hidden and inert: neither seen, tabbed to nor read.
+    expect(t.q('[hidden]')).not.toBeNull();
+    expect(t.q('[hidden]')!.hasAttribute('inert')).toBe(true);
+    expect(t.q('[data-stack-toggle]')).toBeNull();
+    expect(t.q('button[aria-label="Collapse toolbar"]')).toBeNull();
+    folded.click();
+    expect(t.rows()).not.toContain('Expand toolbar');
     t.dispose();
   });
 
-  it('lists the bar’s tools in the menu of the folded button, a checkable row for a toggle, a submenu for a menu', () => {
-    const t = setup();
-    // What the bar shows, by name (the xr item is visible).
-    const barTools = t.qa('button[aria-label]').map((b) => b.getAttribute('aria-label'));
-    expect(barTools).toEqual([
-      'Collapse toolbar',
+  it('is the full bar when expanded, with no chevron and no folded button', () => {
+    const t = setup({ toolbar: 'expanded' });
+    expect(t.shell.toolbarCollapsed.value).toBe(false);
+    expect(t.folded()).toBeNull();
+    expect(t.q('[data-stack-toggle]')).toBeNull();
+    expect(t.qa('button[aria-label]').map((b) => b.getAttribute('aria-label'))).toEqual([
       'Interact',
       'Select',
       'Reset camera',
@@ -188,12 +182,15 @@ describe('the collapsible canvas toolbar', () => {
       'Export',
       'XR',
     ]);
-    t.chevron().click();
+    t.dispose();
+  });
+
+  it('lists the tools in the menu, a checkable row for a toggle, a submenu for a menu', () => {
+    const t = setup();
     t.folded()!.click();
     const menu = t.menu()!;
     expect(menu.getAttribute('aria-label')).toBe('Toolbar');
     expect(t.rows(menu)).toEqual([
-      'Expand toolbar',
       'Interact',
       'Select',
       'What a click selects',
@@ -214,14 +211,11 @@ describe('the collapsible canvas toolbar', () => {
     expect(row('Reset camera').getAttribute('aria-haspopup')).toBe('menu');
     expect(row('Reset camera').getAttribute('role')).toBe('menuitem');
     expect(t.rows(menu)).not.toContain('Theme');
-    // The expand row is the way back, and says the bar is folded.
-    expect(row('Expand toolbar').getAttribute('aria-expanded')).toBe('false');
     t.dispose();
   });
 
   it('opens a tool’s own menu as a submenu: its action first, unless the menu has it already', () => {
     const t = setup();
-    t.chevron().click();
     t.folded()!.click();
     const rows = () => [...t.menu()!.querySelectorAll<HTMLElement>('[role^=menuitem]')];
     const open = (label: string) =>
@@ -251,7 +245,6 @@ describe('the collapsible canvas toolbar', () => {
 
   it('runs a toggle from its row, follows its state, and an overlay’s opens the card', () => {
     const t = setup();
-    t.chevron().click();
     t.folded()!.click();
     const row = (label: string) =>
       [...t.menu()!.querySelectorAll<HTMLElement>('[role^=menuitem]')].find((r) => r.textContent === label)!;
@@ -269,7 +262,6 @@ describe('the collapsible canvas toolbar', () => {
 
   it('follows which tools show', () => {
     const t = setup();
-    t.chevron().click();
     t.folded()!.click();
     expect(t.rows()).toContain('XR');
     t.shown.next(false);
@@ -279,31 +271,8 @@ describe('the collapsible canvas toolbar', () => {
     t.dispose();
   });
 
-  it('opens the bar again from the first row of the menu, the focus on the chevron', async () => {
-    const t = setup();
-    t.chevron().focus();
-    t.chevron().click();
-    await tick();
-    // The focus followed to the folded button.
-    expect(document.activeElement).toBe(t.folded());
-    t.folded()!.click();
-    t.menu()!.querySelector<HTMLElement>('[role=menuitem]')!.click();
-    await tick();
-    expect(t.shell.toolbarCollapsed.value).toBe(false);
-    expect(t.shell.viewState.layout.value.toolbar).toBe('expanded');
-    expect(t.folded()).toBeNull();
-    expect(t.menus()).toHaveLength(0);
-    expect(t.chevron().closest('[hidden]')).toBeNull();
-    expect(t.chevron().closest('[inert]')).toBeNull();
-    expect(document.activeElement).toBe(t.chevron());
-    t.dispose();
-  });
-
   it('is operated from the keyboard: ↓ opens it at its first row, the arrows move, Escape closes it', async () => {
     const t = setup();
-    t.chevron().focus();
-    t.chevron().click();
-    await tick();
     const folded = t.folded()!;
     folded.focus();
     folded.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
@@ -311,7 +280,7 @@ describe('the collapsible canvas toolbar', () => {
     const menu = t.menu()!;
     const items = [...menu.querySelectorAll<HTMLElement>('[role^=menuitem]')];
     expect(document.activeElement).toBe(items[0]);
-    expect(items[0].textContent).toBe('Expand toolbar');
+    expect(items[0].textContent).toBe('Interact');
     const key = (k: string) =>
       (document.activeElement as HTMLElement).dispatchEvent(
         new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }),
@@ -337,34 +306,10 @@ describe('the collapsible canvas toolbar', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(t.menus()).toHaveLength(0);
     expect(document.activeElement).toBe(folded);
-    // Enter on the expand row opens the bar again.
-    folded.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
-    await tick();
-    const first = t.menu()!.querySelector<HTMLElement>('[role=menuitem]')!;
-    first.focus();
-    first.click();
-    await tick();
-    expect(document.activeElement).toBe(t.chevron());
     t.dispose();
   });
 
-  it('starts in the state the layout has, with no motion for it, and moves when it changes', () => {
-    const t = setup({ toolbar: 'collapsed' });
-    expect(t.folded()).not.toBeNull();
-    const frame = () => t.q('[data-stack-collapsed]')!.parentElement!;
-    expect(frame().hasAttribute('data-moved')).toBe(false);
-    expect(t.chevron().closest('[hidden]')).not.toBeNull();
-    t.shell.toggleToolbar();
-    expect(t.folded()).toBeNull();
-    // The bar coming back is a change: it moves in.
-    const bar = t.chevron().closest('[data-moved]');
-    expect(bar).not.toBeNull();
-    t.shell.toggleToolbar();
-    expect(frame().hasAttribute('data-moved')).toBe(true);
-    t.dispose();
-  });
-
-  it('shows no folded button where there is nothing in the stack', () => {
+  it('shows no button where there is nothing in the stack', () => {
     const shell = new ShellModel({ toolbar: 'collapsed' });
     const host = document.createElement('div');
     document.body.append(host);
@@ -374,14 +319,73 @@ describe('the collapsible canvas toolbar', () => {
     expect(host.querySelector('[data-stack-collapsed]')).not.toBeNull();
   });
 
-  it('has no accessibility violations, folded, expanded, and with the menu open', async () => {
+  it('has no accessibility violations, closed and with the menu open', async () => {
     const t = setup();
-    await expectNoAxeViolations(t.host);
-    t.chevron().click();
     await expectNoAxeViolations(t.host);
     t.folded()!.click();
     await expectNoAxeViolations(t.host);
     t.dispose();
+  });
+});
+
+describe('the toolbar option', () => {
+  const widths = (shell: ShellModel, w: number) => shell.setWidth(w);
+
+  it('auto (the default) is the bar in the desktop mode and the button in the compact one', () => {
+    const desktop = new ShellModel({ compactWidth: 600 });
+    widths(desktop, 1000);
+    expect(desktop.mode.value).toBe('desktop');
+    expect(desktop.toolbarCollapsed.value).toBe(false);
+    const compact = new ShellModel({ toolbar: 'auto', compactWidth: 600 });
+    widths(compact, 400);
+    expect(compact.mode.value).toBe('compact');
+    expect(compact.toolbarCollapsed.value).toBe(true);
+    // An embedded layout is compact below the width too, and the bar above it.
+    const embedded = new ShellModel({ mode: 'embedded', compactWidth: 600 });
+    widths(embedded, 1000);
+    expect(embedded.toolbarCollapsed.value).toBe(false);
+    widths(embedded, 400);
+    expect(embedded.toolbarCollapsed.value).toBe(true);
+  });
+
+  it('auto follows the mode live as the shell resizes across compactWidth', () => {
+    const t = setup({ compactWidth: 600 });
+    t.shell.setWidth(1000);
+    expect(t.folded()).toBeNull();
+    expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).toBeNull();
+    t.shell.setWidth(400);
+    expect(t.folded()).not.toBeNull();
+    expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).not.toBeNull();
+    t.shell.setWidth(900);
+    expect(t.folded()).toBeNull();
+    expect(t.q('button[aria-label="Reset camera"]')!.closest('[hidden]')).toBeNull();
+    t.dispose();
+  });
+
+  it('expanded and collapsed force one or the other, whatever the mode', () => {
+    for (const width of [1000, 400]) {
+      const expanded = new ShellModel({ toolbar: 'expanded', compactWidth: 600 });
+      expanded.setWidth(width);
+      expect(expanded.toolbarCollapsed.value).toBe(false);
+      const collapsed = new ShellModel({ toolbar: 'collapsed', compactWidth: 600 });
+      collapsed.setWidth(width);
+      expect(collapsed.toolbarCollapsed.value).toBe(true);
+    }
+  });
+
+  it('is not part of the layout: nothing kept, Reset layout leaves it, an old layout’s value is ignored', () => {
+    const shell = new ShellModel({ toolbar: 'collapsed' });
+    const kept = JSON.parse(JSON.stringify(shell.viewState.save()));
+    expect(kept.layout.toolbar).toBeUndefined();
+    expect(shell.viewState.layout.value).not.toHaveProperty('toolbar');
+    shell.resetLayout();
+    expect(shell.toolbarCollapsed.value).toBe(true);
+    const viewState = new ViewStateManager();
+    expect(viewState.restore({ ...kept, layout: { ...kept.layout, toolbar: 'collapsed' } })).toBe(true);
+    expect(viewState.restore({ ...kept, layout: { ...kept.layout, toolbar: 'hidden' } })).toBe(true);
+    expect(viewState.layout.value).not.toHaveProperty('toolbar');
+    const other = new ShellModel({ viewState, navigation: new NavigationManager() });
+    expect(other.toolbarCollapsed.value).toBe(false);
   });
 });
 
@@ -397,21 +401,22 @@ describe('menus in a short canvas', () => {
       if (this.matches('[role^=menuitem]')) return at(80, 100);
       return at(0);
     });
+    const mountIn = (t: ReturnType<typeof setup>) => {
+      const viewport = document.createElement('main');
+      viewport.setAttribute('data-msp-viewport', '');
+      t.host.parentElement!.append(viewport);
+      viewport.append(t.host);
+    };
     const t = setup();
-    const viewport = document.createElement('main');
-    viewport.setAttribute('data-msp-viewport', '');
-    t.host.parentElement!.append(viewport);
-    viewport.append(t.host);
+    mountIn(t);
     const menuEl = () => t.q('[role=menu][aria-label=Toolbar]')!;
 
-    // The collapsed toolbar's menu: the first row stays, the rows scroll.
-    t.chevron().click();
+    // The compact toolbar's menu: its rows scroll.
     t.folded()!.click();
     expect(menuEl().style.getPropertyValue('--msp-menu-room')).toBe('112px');
     const scroller = menuEl().querySelector('[class*="scroll-area"]');
     expect(scroller).not.toBeNull();
     expect(scroller!.querySelectorAll('[role^=menuitem]').length).toBeGreaterThan(5);
-    expect(scroller!.contains(menuEl().querySelector('[role=menuitem]'))).toBe(false);
     // A submenu has the room above its row.
     const sub = [...menuEl().querySelectorAll<HTMLElement>('[role^=menuitem]')].find(
       (r) => r.textContent === 'Reset camera',
@@ -427,54 +432,17 @@ describe('menus in a short canvas', () => {
     );
     expect(document.activeElement?.textContent).toBe('Orient axes');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-
-    // A tool's menu in the bar is bounded the same way.
-    t.shell.setToolbarCollapsed(false);
-    t.q<HTMLElement>('button[aria-label="Reset camera"]')!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-    );
-    expect((t.menu() as HTMLElement).style.getPropertyValue('--msp-menu-room')).toBe('112px');
-    expect(t.menu()!.querySelector('[class*="scroll-area"]')).not.toBeNull();
     t.dispose();
+
+    // A tool's menu in the full bar is bounded the same way.
+    const bar = setup({ toolbar: 'expanded' });
+    mountIn(bar);
+    bar
+      .q<HTMLElement>('button[aria-label="Reset camera"]')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    expect((bar.menu() as HTMLElement).style.getPropertyValue('--msp-menu-room')).toBe('112px');
+    expect(bar.menu()!.querySelector('[class*="scroll-area"]')).not.toBeNull();
+    bar.dispose();
     vi.restoreAllMocks();
-  });
-});
-
-describe('the toolbar in the layout', () => {
-  it('is saved and restored with the layout, and read as expanded from one that predates it', () => {
-    const a = new ShellModel();
-    a.setToolbarCollapsed(true);
-    const kept = JSON.parse(JSON.stringify(a.viewState.save()));
-    expect(kept.layout.toolbar).toBe('collapsed');
-
-    const viewState = new ViewStateManager();
-    const b = new ShellModel({ viewState, navigation: new NavigationManager() });
-    expect(b.toolbarCollapsed.value).toBe(false);
-    expect(viewState.restore(kept)).toBe(true);
-    expect(b.toolbarCollapsed.value).toBe(true);
-
-    // A layout kept before the field existed: the starting state (expanded unless the app seeds otherwise).
-    delete kept.layout.toolbar;
-    const c = new ViewStateManager();
-    expect(c.restore(kept)).toBe(true);
-    expect(c.layout.value.toolbar).toBe('expanded');
-    const seeded = new ViewStateManager({ toolbar: 'collapsed' });
-    expect(seeded.restore(kept)).toBe(true);
-    expect(seeded.layout.value.toolbar).toBe('collapsed');
-    // Another value is not a layout.
-    expect(c.restore({ version: 1, layout: { docks: {}, toolbar: 'hidden' } })).toBe(false);
-  });
-
-  it('starts as the app says and Reset layout goes back to it', () => {
-    const shell = new ShellModel({ toolbar: 'collapsed' });
-    expect(shell.toolbarCollapsed.value).toBe(true);
-    shell.toggleToolbar();
-    expect(shell.toolbarCollapsed.value).toBe(false);
-    shell.resetLayout();
-    expect(shell.toolbarCollapsed.value).toBe(true);
-    const other = new ShellModel();
-    other.setToolbarCollapsed(true);
-    other.resetLayout();
-    expect(other.toolbarCollapsed.value).toBe(false);
   });
 });

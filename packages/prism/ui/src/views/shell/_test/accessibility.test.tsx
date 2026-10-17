@@ -61,7 +61,7 @@ describe('the shell has no accessibility violations (axe)', () => {
     t.done();
   });
 
-  it('the canvas toolbar folded into one button, and its menu open', async () => {
+  it('the compact canvas toolbar (one button), and its menu open', async () => {
     const t = mount({ noPanel: true, toolbarCollapsed: true });
     await frame();
     const folded = t.container.querySelector<HTMLButtonElement>('[data-stack-collapsed]');

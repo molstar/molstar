@@ -153,8 +153,7 @@
 /* The canvas toolbar (the stack): in the canvas' bottom-right corner, one row. A frame, and beside it what opens from it
    (the picking level), outside the frame's clipping; its menus open upward. Denser than the rail: it sits on the canvas. */
 /* Nothing to show in the stack (an empty canvas: no mode buttons, every tool hidden): no empty frame either. */
-/* The collapse chevron is not a tool: with nothing else in the stack there is nothing to collapse either. */
-.stack:not(:has(button:not([data-stack-toggle]))) {
+.stack:not(:has(button)) {
   display: none;
 }
 
@@ -176,59 +175,6 @@
     opacity: 0;
     pointer-events: none;
   }
-}
-
-/* The bar (the frame of tools, the collapse chevron, what opens beside it) and the collapsed toolbar's frame, which take
-   the stack's place for each other: the one coming in grows from the corner they share and fades in (transform and
-   opacity only; not on the state the stack starts in, `data-moved`; no motion under reduced motion, reset.css). */
-.bar[data-moved],
-.folded[data-moved] {
-  transform-origin: right bottom;
-  animation: stack-in var(--msp-motion-base) var(--msp-ease);
-}
-
-@keyframes stack-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-}
-
-/* The chevron beside the bar's leading edge: only a »; no chip, no edge, no background; low contrast, a little more
-   once the pointer is on the bar and again on itself or with the focus (whose ring marks it). Shown while the pointer or
-   the focus is on the bar (always, dimly, where there is no hover: touch); it stays a tab stop whatever. */
-.stackToggle {
-  position: absolute;
-  top: 0;
-  right: 100%;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 100%;
-  /* The canvas' own buttons in compact mode: 38px tall; the width follows the touch target a size down. */
-  min-width: max(20px, min(var(--msp-touch-target, 0px), 28px));
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-subtle);
-  opacity: 0;
-  transition: opacity var(--msp-motion-fast) var(--msp-ease);
-
-  &:hover {
-    color: var(--msp-color-text-muted);
-  }
-
-  @media (hover: none) {
-    opacity: 0.5;
-  }
-}
-
-.stack:hover .stackToggle {
-  opacity: 0.45;
-}
-
-.stack:focus-within .stackToggle,
-.stackToggle:hover,
-.stackToggle:focus-visible {
-  opacity: 0.9;
 }
 
 /* The compact rail's toggle: centered in the rail's column (44px, at the right edge), at the corner row's bottom, where
@@ -387,15 +333,6 @@
 
 .toolMenuScrollContent {
   display: grid;
-}
-
-/* The way back in the collapsed toolbar's menu: quiet, as the chevron. */
-.toolMenuExpand {
-  color: var(--msp-color-text-subtle);
-
-  & .toolMenuLabel {
-    color: inherit;
-  }
 }
 
 .toolMenuRow {

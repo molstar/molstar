@@ -756,9 +756,6 @@ through the indices of the model instead of a MolScript query on every atom for 
   it (`defaultViewLayout()` has it). A kept layout without it restores with none hidden.
 - The `embedded` mode is a layout of its own (shell.md §3): the compact rail, a floating right panel, nothing pinned,
   and compact below `compactWidth` (it was the desktop layout under another name).
-- `ViewLayout` has `toolbar` (`'expanded' | 'collapsed'`, the canvas toolbar's state, `ShellModel.toolbarCollapsed`); a
-  `ViewLayout` built by hand needs it (`defaultViewLayout()` has it). A kept layout without it restores with the
-  starting state (`expanded` unless the app seeds `collapsed`); one with another value is dropped.
 
 ## Seq\*: the system registry in core
 

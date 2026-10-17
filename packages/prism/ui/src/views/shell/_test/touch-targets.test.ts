@@ -20,7 +20,7 @@ const rule = (css: string, name: string) => new RegExp(`(?:^|\\n)\\.${name}\\s*\
 
 const Targets: [file: string, classes: string[]][] = [
   ['views/shell/dock.module.css', ['tab']],
-  ['views/shell/canvas.module.css', ['tool', 'pill', 'pillButton', 'railMenuButton', 'stackToggle']],
+  ['views/shell/canvas.module.css', ['tool', 'pill', 'pillButton', 'railMenuButton']],
   ['components/button/button.module.css', ['small', 'tiny']],
 ];
 

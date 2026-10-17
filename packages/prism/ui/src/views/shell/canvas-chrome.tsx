@@ -333,10 +333,9 @@ function collapsedRows(
   );
 }
 
-/** What the collapsed toolbar's menu is made of (`ToolMenus.show`): its rows, and how it opens the bar again. */
+/** What the collapsed toolbar's menu is made of (`ToolMenus.show`): its rows. */
 interface StackPopup {
   readonly rows: Observable<readonly CanvasMenuItem[]>;
-  expand(): void;
 }
 
 /** The collapsed toolbar's one button, as a toolbar item (its menu is `StackPopup`'s). */
@@ -347,10 +346,10 @@ const CollapsedItem: CanvasToolbarItem = { id: 'toolbar', place: 'canvas', icon:
  * (`lead`) and then the toolbar items placed on the canvas (camera, lighting, XR, expand, sequence); `aside` is what
  * opens beside it (the picking level).
  *
- * It collapses (`ShellModel.toolbarCollapsed`, shell.md §2): a chevron at its leading edge, shown while the pointer or
- * the focus is on the bar, folds it into one button whose menu lists the same tools (`leadMenu`: the rows of what
- * `lead` holds; the items' own menus as submenus), with the chevron that opens the bar again as its first row. The
- * bar stays mounted while folded, hidden, inert and paused (`activity`).
+ * Compact (`ShellModel.toolbarCollapsed` from `ShellOptions.toolbar`, shell.md §2) it is one button whose menu lists the
+ * same tools (`leadMenu`: the rows of what `lead` holds; the items' own menus as submenus). The person has no control
+ * to switch; the host's option and, under `auto`, the shell's mode decide. The bar stays mounted while it is folded,
+ * hidden, inert and paused (`activity`).
  */
 export function CanvasStack(props: {
   shell: ShellModel;
@@ -366,47 +365,12 @@ export function CanvasStack(props: {
 }) {
   const { shell } = props;
   const menus = new ToolMenus();
-  const collapsed = shell.toolbarCollapsed;
-  const expanded = collapsed.pipe(map((c) => !c));
   let stack: HTMLElement | undefined;
-  let chevron: HTMLElement | undefined;
   let folded: HTMLElement | undefined;
-  // Motion only for a change the person makes, not for the state the stack starts in.
-  let moved = false;
-  let starting = true;
-  const stopMoved = collapsed.subscribe(() => {
-    if (!starting) moved = true;
-  });
-  starting = false;
-  const popup: StackPopup = {
-    rows: collapsedRows(shell, props.leadMenu, () => folded ?? stack!),
-    expand: () => fold(false),
-  };
-  // Folding or unfolding: the focus follows the control it was on (it is replaced by the other state's).
-  const fold = (collapse: boolean) => {
-    const active = deepActiveElement();
-    const hadFocus = !!active && !!stack?.contains(active);
-    menus.hide();
-    shell.setToolbarCollapsed(collapse);
-    if (hadFocus) queueMicrotask(() => (collapse ? folded : chevron)?.focus({ preventScroll: true }));
-  };
-  const bar = activity(expanded, () => (
+  const popup: StackPopup = { rows: collapsedRows(shell, props.leadMenu, () => folded ?? stack!) };
+  const collapsed = shell.toolbarCollapsed;
+  const bar = activity(collapsed.pipe(map((c) => !c)), () => (
     <div class={classes.bar}>
-      <button
-        type="button"
-        class={classes.stackToggle}
-        data-stack-toggle=""
-        data-tip="Collapse toolbar"
-        data-tip-side="top"
-        aria-label="Collapse toolbar"
-        aria-expanded={expanded}
-        ref={(el) => {
-          chevron = el;
-        }}
-        onClick={() => fold(true)}
-      >
-        <Icon name="chevrons-right" size={14} />
-      </button>
       <div class={classes.frame}>
         <ScrollArea axis="x" contentClass={classes.stackTools}>
           {props.lead}
@@ -427,7 +391,7 @@ export function CanvasStack(props: {
         {() => (
           <Show when={hasTools}>
             {() => (
-              <div class={`${classes.frame} ${classes.folded}`} data-moved={moved ? '' : undefined}>
+              <div class={`${classes.frame} ${classes.folded}`}>
                 <CollapsedButton
                   menus={menus}
                   popup={popup}
@@ -444,17 +408,13 @@ export function CanvasStack(props: {
     </div>
   ) as HTMLElement;
   stack = root;
-  // Folded: hidden and inert (its buttons are neither seen, tabbed to nor read); the menu of a button that went closes.
+  // Folded: the bar is hidden and inert (its buttons are neither seen, tabbed to nor read); a menu that went closes.
   bind(collapsed, (c) => {
-    bar.toggleAttribute('data-moved', moved);
     bar.toggleAttribute('hidden', c);
     menus.hide();
   });
   menus.stack = root;
-  onCleanup(() => {
-    stopMoved.unsubscribe();
-    menus.dispose();
-  });
+  onCleanup(() => menus.dispose());
   return root;
 }
 
@@ -644,23 +604,6 @@ function ToolMenu(props: { menus: ToolMenus }) {
             <div class={classes.toolMenuCard} onKeyDown={menuKeys}>
               {open.popup ? (
                 <>
-                  {/* The bar's way back: the first row, with a hairline under it. */}
-                  <button
-                    type="button"
-                    role="menuitem"
-                    class={`${classes.toolMenuRow} ${classes.toolMenuExpand}`}
-                    aria-expanded="false"
-                    onPointerEnter={() => onSubmenu(undefined)}
-                    onClick={() => {
-                      menus.hide();
-                      open.popup!.expand();
-                    }}
-                  >
-                    <Icon name="chevrons-left" size={16} />
-                    <span class={classes.toolMenuLabel}>Expand toolbar</span>
-                    <span />
-                  </button>
-                  <div class={classes.toolMenuDivider} role="separator" />
                   {/* The rows scroll where the canvas is too short for them (an embedded viewer); the first row stays. */}
                   <Show when={open.popup.rows}>
                     {(rows) => (

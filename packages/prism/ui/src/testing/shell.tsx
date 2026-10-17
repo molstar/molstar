@@ -111,7 +111,7 @@ export interface ShellStoryProps {
   pinned?: boolean;
   /** A compact rail (`ShellOptions.compactRail`): the rail column hidden behind the canvas corner's button. */
   compact?: boolean;
-  /** The canvas toolbar starts folded into one button (`ShellOptions.toolbar`). */
+  /** The canvas toolbar is one button with a menu (`ShellOptions.toolbar`). */
   toolbarCollapsed?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
@@ -274,21 +274,6 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode }) {
       run: () => {
         shell.toggleRail();
         return { message: '' };
-      },
-    },
-  ]);
-
-  // The canvas toolbar folded into one button, or opened again (also the chevron at the bar's edge).
-  parts.commands.register([
-    {
-      id: 'view.toolbar.toggle',
-      title: 'Collapse or expand toolbar',
-      alias: ['collapse toolbar', 'expand toolbar', 'toolbar', 'tools'],
-      category: 'View',
-      icon: 'chevron-right',
-      run: () => {
-        shell.toggleToolbar();
-        return { message: shell.toolbarCollapsed.value ? 'The toolbar is collapsed.' : 'The toolbar is expanded.' };
       },
     },
   ]);

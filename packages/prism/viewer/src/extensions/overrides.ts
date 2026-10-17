@@ -25,7 +25,6 @@ export const ShellCommandIds: readonly string[] = [
   'help.show',
   'view.theme',
   'view.reset-layout',
-  'view.toolbar.toggle',
   'view.show-tabs',
   'sequence.none',
   'sequence.text',

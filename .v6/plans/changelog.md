@@ -495,14 +495,13 @@ the [API change ledger](breaking-v6-changes.md).
 - Stories: Text view › Alignment figure (the core's globins as an ESPript-like figure, with the panel's Frame, Box on a
   row and Markers places); Publication tracks gains a Frame and Markers.
 
-## Prism: a collapsible canvas toolbar, bounded menus
+## Prism: a compact canvas toolbar, bounded menus
 
-- prism-ui: a quiet `»` beside the canvas toolbar's leading edge (shown while the bar is hovered or focused; a real
-  button, "Collapse toolbar", `aria-expanded`) folds the bar into one button. Its menu lists the tools: toggles as
-  checkable rows, the mode choices, each tool's own menu as a submenu, and "Expand toolbar" as its first row. The state is
-  part of the kept layout (`ViewLayout.toolbar`), reset by Reset layout, and set at start by `ui.layout.toolbar`
-  (`ShellOptions.toolbar`); a kept layout from before it starts as the spec says. Command `view.toolbar.toggle`;
-  `ShellModel.toolbarCollapsed`, `setToolbarCollapsed`, `toggleToolbar`; `ShellView`'s `canvasLeadMenu` gives the menu the
-  rows of the app's own lead buttons (the viewer's Interact, Select and picking level).
+- prism-ui: the canvas toolbar can be one button whose menu lists the tools (toggles as checkable rows, the mode
+  choices, each tool's own menu as a submenu). It is the host's choice, set at creation by `ui.layout.toolbar`
+  (`ShellOptions.toolbar`): `auto` (the default: the button in the compact mode, the bar otherwise, following the mode as
+  the shell resizes), `expanded` or `collapsed`. The person has no control for it, and it is not part of the kept
+  layout. `ShellModel.toolbarCollapsed` (read-only); `ShellView`'s `canvasLeadMenu` gives the menu the rows of the app's
+  own lead buttons (the viewer's Interact, Select and picking level).
 - prism-ui: the canvas toolbar's menus and submenus are as tall as the room between the canvas's top and their button and
   scroll inside it, instead of running off the top of a short viewer.

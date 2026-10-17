@@ -19,7 +19,7 @@ import type { ViewerCommandContext } from '../api/managers.js';
 import type { PrismStore, PrismViewerSpec } from '../spec.js';
 
 // The layout kept in the preferences (journal.md §6, shell.md §3): the shell's layout (`viewState.save()`: docks, sizes,
-// float, pin, the canvas toolbar collapsed or not, hidden tabs) and what is open in the docks (`navigation.save()`, without the card and the page: they are
+// float, pin, hidden tabs) and what is open in the docks (`navigation.save()`, without the card and the page: they are
 // summoned, not kept), restored at start and written a moment after each change. The host's parts of the layout (the
 // mode, the compact rail, the buttons) stay the spec's: a kept layout never overrides what the host asked for.
 
@@ -135,10 +135,7 @@ export function keepLayout(
   };
 }
 
-/**
- * The layout's commands: reset it, show the hidden tabs, collapse or expand the canvas toolbar (shell.md §2, §3). The
- * toolbar's is a toggle with one title for both ways (the command menu lists it once): the result says which it did.
- */
+/** The layout's commands: reset it, show the hidden tabs (shell.md §3). */
 export function layoutCommands(shell: ShellModel): CommandDefinition<ViewerCommandContext>[] {
   return [
     {
@@ -150,17 +147,6 @@ export function layoutCommands(shell: ShellModel): CommandDefinition<ViewerComma
       run: () => {
         shell.resetLayout();
         return { message: 'The layout is back to its defaults.' };
-      },
-    },
-    {
-      id: 'view.toolbar.toggle',
-      title: 'Collapse or expand toolbar',
-      alias: ['collapse toolbar', 'expand toolbar', 'toolbar', 'hide toolbar', 'show toolbar', 'tools'],
-      category: 'View',
-      icon: 'chevron-right',
-      run: () => {
-        shell.toggleToolbar();
-        return { message: shell.toolbarCollapsed.value ? 'The toolbar is collapsed.' : 'The toolbar is expanded.' };
       },
     },
     {

@@ -76,12 +76,13 @@ by parts and `overrides` (§4), one way to hide anything. Ignored headless.
   (not even Home with `homeWhenEmpty`).
 - **The kept layout**: with `persist.preferences`, the layout the person leaves is restored at start (§2.6); the spec's
   `ui.layout` is what Reset layout (`view.reset-layout`) goes back to. It holds the docks, their tabs, sizes, float and
-  pin, the hidden tabs and the canvas toolbar's state (`toolbar: 'expanded' | 'collapsed'`); the mode, the compact rail
-  and the buttons stay the spec's (`restoreLayout`). A kept layout without `toolbar` starts as the spec says.
-- **The canvas toolbar** collapses into one button whose menu lists its tools (ui [shell.md](../../ui/_spec/shell.md)
-  §2): `ui.layout.toolbar` is the starting state and what Reset layout returns to; the command `view.toolbar.toggle`
-  ("Collapse or expand toolbar") toggles it. The viewer gives the menu the mode choices (`modeMenuRows`: Interact and
-  Select, the picking level as a submenu) through the shell's `canvasLeadMenu`.
+  pin and the hidden tabs; the mode, the compact rail and the buttons stay the spec's (`restoreLayout`).
+- **The canvas toolbar** (`ui.layout.toolbar`: `'auto' | 'expanded' | 'collapsed'`, default `auto`) is the host's
+  choice, not the person's: no control, no command, not kept. `collapsed` is one button whose menu lists the tools (ui
+  [shell.md](../../ui/_spec/shell.md) §2), `expanded` the full bar, `auto` the button in the compact mode (below
+  `compactWidth`, an embedded layout too) and the bar otherwise, following the mode as the viewer resizes. The viewer
+  gives the menu the mode choices (`modeMenuRows`: Interact and Select, the picking level as a submenu) through the
+  shell's `canvasLeadMenu`.
 
 ### 2.6 `persist`
 

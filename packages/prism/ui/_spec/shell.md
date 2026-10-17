@@ -92,21 +92,18 @@ buttons) is the app's. The code is the truth for how.
   (`ToolMenus.roomAbove`): as tall as the room from the canvas's top (`[data-msp-viewport]`) to the stack, or to the row
   of a submenu, less a margin, measured once when they open, and their rows scroll inside (`ScrollArea`, the card's
   `--msp-menu-room`); the arrows keep working (focus scrolls its row into view).
-- **Collapsible toolbar** (`ViewLayout.toolbar`: `expanded` | `collapsed`; `ShellOptions.toolbar`, the viewer's
-  `ui.layout.toolbar`, `ShellModel.toolbarCollapsed`, `setToolbarCollapsed`, `toggleToolbar`; the viewer's command
-  `view.toolbar.toggle`). A quiet `»` button (`aria-label` "Collapse toolbar", `aria-expanded`, the first Tab stop of
-  the stack) sits beside the bar's leading edge: no chip or edge, low contrast, shown while the pointer or the focus is
-  on the bar (always, dimly, where there is no hover), a little brighter on itself or with the focus ring. Collapsed,
-  the bar is hidden, inert and paused (`activity`, as hidden UI is) and one button (`aria-haspopup="menu"`, "Toolbar")
-  takes its place; it opens a menu as a tool with a menu does (hover, a click, ↓ or ↑ from the keyboard, a tap) whose
-  rows are the bar's: first "Expand toolbar" (a quiet `«`, `aria-expanded="false"`) and a hairline, then the app's
-  `leadMenu` rows (the viewer's Interact and Select as a choice, the picking level as a submenu), then each canvas item
-  that shows, in the bar's order and sections: a toggle or an overlay's button a checkable row, an action a row, an item
-  with a menu a submenu (its own action first, unless a row of the menu is that action: Expand). The rows follow the
-  items and their `visible`; with none, no button (the stack is gone, as the bar is). Focus follows the control it was
-  on when the state changes. **Any mode**: compact and embedded may collapse too (a narrow bar is what it is for); an
-  embedded viewer keeps no layout, so its host seeds `ui.layout.toolbar`. A new state moves in (scale from the shared
-  corner and opacity, `--msp-motion-base`, none on the state the stack starts in, none under reduced motion).
+- **Compact toolbar** (`ShellOptions.toolbar`, the viewer's `ui.layout.toolbar`: `auto` | `expanded` | `collapsed`;
+  `ShellModel.toolbarCollapsed`, read-only). The host's choice: the person has no control to switch it (no chevron, no
+  "Expand" row, no command, no setter) and it is not part of `ViewLayout` or the kept layout (a stored layout that
+  carries a `toolbar` ignores it). `expanded` and `collapsed` force the bar or the button; `auto`, the default, is the
+  button where the shell's mode is `compact` (below `compactWidth`, an embedded layout too) and the bar otherwise, and
+  follows the mode live as the shell resizes. Collapsed, the bar is hidden, inert and paused (`activity`, as hidden UI
+  is) and one button (`aria-haspopup="menu"`, "Toolbar") takes its place; it opens a menu as a tool with a menu does
+  (hover, a click, ↓ or ↑ from the keyboard, a tap) whose rows are the bar's: the app's `leadMenu` rows (the viewer's
+  Interact and Select as a choice, the picking level as a submenu), then each canvas item that shows, in the bar's order
+  and sections: a toggle or an overlay's button a checkable row, an action a row, an item with a menu a submenu (its own
+  action first, unless a row of the menu is that action: Expand). The rows follow the items and their `visible`; with
+  none, no button (the stack is gone, as the bar is). The menus are bounded and scroll, as every toolbar menu.
 - **Expand by context** (`FullscreenModel`, `shell/fullscreen.ts`): on a page Expand fills it (fixed position, no
   `<body>` change) with Fullscreen in its menu; in an iframe that allows it the button is Fullscreen; one that forbids
   it greys Fullscreen with why.
@@ -140,17 +137,15 @@ buttons) is the app's. The code is the truth for how.
 `expanded`.
 
 - **Two managers hold its state**, given or made: `viewState` (`ViewStateManager`: the layout, serializable: docks'
-  tabs, sizes, float, pin, mode, compact rail, the toolbar's state, buttons) and `navigation` (`NavigationManager`: what
-  is open: each dock's tab and collapse, the card, the page, a tab's section, `expanded`). An app keeps and restores the
-  layout through `viewState.save()`/`restore()` (the shell has no layout getter of its own): versioned
-  (`StoredViewLayout`, another version is dropped), validated, sizes clamped, tab ids that are not registered kept (a
-  tab that registers later lands where it was left). The viewer keeps it in its preferences
-  ([journal.md](../../viewer/_spec/journal.md) §6).
+  tabs, sizes, float, pin, mode, compact rail, buttons) and `navigation` (`NavigationManager`: what is open: each dock's
+  tab and collapse, the card, the page, a tab's section, `expanded`). An app keeps and restores the layout through
+  `viewState.save()`/`restore()` (the shell has no layout getter of its own): versioned (`StoredViewLayout`, another
+  version is dropped), validated, sizes clamped, tab ids that are not registered kept (a tab that registers later lands
+  where it was left). The viewer keeps it in its preferences ([journal.md](../../viewer/_spec/journal.md) §6).
 - **Reset** (`resetLayout`; the viewer's `view.reset-layout`, a tab's menu): `viewState.reset()` goes back to the layout
   the manager started with (`defaultViewLayout()` and the app's seed, the viewer's `ui.layout`), then each registered
-  tab the seed does not place goes back to its own dock by its order (the toolbar to the seed's, `expanded` by default).
-  A kept layout from before the toolbar's state existed restores with the starting state. Hidden tabs show again; each
-  dock keeps its open tab where that tab still is.
+  tab the seed does not place goes back to its own dock by its order. Hidden tabs show again; each dock keeps its open
+  tab where that tab still is.
 - **Hidden tabs** (`hideTab`, `showTab`, `showAllTabs`; `ViewLayout.hiddenTabs`): a tab out of view without
   unregistering it, for a person who never uses it. It keeps its dock and place, so it comes back there; its open panel
   closes. Part of the layout, so a kept layout keeps it hidden. `show(tab)` (a command, a link, `view.open`) brings it

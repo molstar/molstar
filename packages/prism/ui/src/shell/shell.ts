@@ -16,7 +16,6 @@ import {
   DockIds,
   type DockLayout,
   type ShellMode,
-  type ToolbarState,
   type ViewLayout,
   ViewStateManager,
 } from '../managers/view-state.js';
@@ -138,10 +137,12 @@ export interface ShellOptions {
    */
   compactRail?: boolean;
   /**
-   * The canvas toolbar's starting state (`ViewLayout.toolbar`): `collapsed` shows one button whose menu lists the tools.
-   * The person's choice is part of the kept layout; Reset layout goes back to this.
+   * The canvas toolbar (`ShellModel.toolbarCollapsed`, shell.md §2): `collapsed` is one button whose menu lists the
+   * tools, `expanded` the full bar; `auto` (the default) is the button in the compact mode (below `compactWidth`, an
+   * embedded layout too) and the bar otherwise, following the mode as the shell resizes. The host's choice: the person
+   * has no control for it and it is not part of the kept layout.
    */
-  toolbar?: ToolbarState;
+  toolbar?: 'auto' | 'expanded' | 'collapsed';
 }
 
 /**
@@ -329,7 +330,6 @@ export class ShellModel extends ReactiveModel {
     compare: Object.is,
   });
   readonly #compactRail = observableState(false);
-  readonly #toolbarCollapsed = observableState(false);
   readonly #railOpen = observableState(false);
   readonly #hiddenTabs = observableState<readonly ShellTab[]>([]);
   /** Every registered item, and the shown ones (`buttons` applied). */
@@ -338,10 +338,13 @@ export class ShellModel extends ReactiveModel {
   readonly #sections = observableState<readonly ShellSection[]>([]);
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
   readonly #compactWidth: number;
+  readonly #toolbarOption: 'auto' | 'expanded' | 'collapsed';
+  readonly #toolbarCollapsed = observableState(false);
 
   constructor(options: ShellOptions = {}) {
     super();
     this.#compactWidth = options.compactWidth ?? 720;
+    this.#toolbarOption = options.toolbar ?? 'auto';
     this.#viewState = options.viewState ?? new ViewStateManager(layoutOptions(options));
     this.#navigation = options.navigation ?? new NavigationManager(navigationOptions(options));
     this.#docks = {} as Record<DockId, DockModel>;
@@ -375,17 +378,9 @@ export class ShellModel extends ReactiveModel {
     return this.#railShown.asReadonly;
   }
 
-  /** The canvas toolbar is collapsed into one button with a menu (`ViewLayout.toolbar`, shell.md §2). */
+  /** The canvas toolbar is one button with a menu (`ShellOptions.toolbar`, shell.md §2); follows the mode under `auto`. */
   get toolbarCollapsed(): ReadonlyState<boolean> {
     return this.#toolbarCollapsed.asReadonly;
-  }
-
-  setToolbarCollapsed(collapsed: boolean): void {
-    this.#viewState.setToolbar(collapsed ? 'collapsed' : 'expanded');
-  }
-
-  toggleToolbar(): void {
-    this.setToolbarCollapsed(!this.#toolbarCollapsed.value);
   }
 
   setCompactRail(compact: boolean): void {
@@ -758,7 +753,6 @@ export class ShellModel extends ReactiveModel {
     // Embedded, the rail is always the compact one (shell.md §3).
     const compactRail = layout.compactRail || this.#effectiveMode.value === 'embedded';
     this.#compactRail.set(compactRail);
-    this.#toolbarCollapsed.set(layout.toolbar === 'collapsed');
     this.#railOpen.set(nav.railOpen);
     this.#railShown.set(!compactRail || nav.railOpen);
     this.#tabFocus.set(nav.focus);
@@ -797,6 +791,8 @@ export class ShellModel extends ReactiveModel {
     const narrow = width > 0 && width < this.#compactWidth;
     const next: ShellMode =
       mode === 'auto' ? (narrow ? 'compact' : 'desktop') : mode === 'embedded' && narrow ? 'compact' : mode;
+    const option = this.#toolbarOption;
+    this.#toolbarCollapsed.set(option === 'auto' ? next === 'compact' : option === 'collapsed');
     if (this.#effectiveMode.value === next) return false;
     this.#effectiveMode.set(next);
     return true;
@@ -816,7 +812,6 @@ function layoutOptions(options: ShellOptions): ConstructorParameters<typeof View
     docks,
     ...(options.mode ? { mode: options.mode } : {}),
     compactRail: !!options.compactRail,
-    ...(options.toolbar ? { toolbar: options.toolbar } : {}),
     buttons: options.buttons ?? {},
   };
 }

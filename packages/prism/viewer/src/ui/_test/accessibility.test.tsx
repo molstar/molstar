@@ -15,6 +15,7 @@ import { mapFile } from '../../api/_test/volume-fixtures.js';
 import { cbs, expectOk } from '../../_test/harness.js';
 import type { SceneNode } from '../../model/scene.js';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
+import type { PrismViewerSpec } from '../../spec.js';
 import { createDefaultPlugin } from '../../sources/create-plugin.js';
 import { createViewerCore, type ViewerCore } from '../../viewer.js';
 import { type MountedShell, mountShell } from '../shell.js';
@@ -40,9 +41,11 @@ interface Page {
 }
 
 /** The page's shell over a core, the files loaded into it. */
-async function open(...files: File[]): Promise<Page> {
+const open = (...files: File[]) => openWith(DefaultPrismViewerSpec(), ...files);
+
+async function openWith(spec: PrismViewerSpec, ...files: File[]): Promise<Page> {
   const core = await createViewerCore({
-    spec: DefaultPrismViewerSpec(),
+    spec,
     createPlugin: createDefaultPlugin,
     modules: ['files', 'page'],
   });
@@ -201,23 +204,6 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
 
-  it('the canvas toolbar folded into one button, its menu open with the mode choices and a submenu', async () => {
-    mounted.shell.setToolbarCollapsed(true);
-    await wait(100);
-    const folded = mounted.root.querySelector<HTMLElement>('[data-stack-collapsed]');
-    expect(folded).not.toBeNull();
-    await check();
-    folded!.click();
-    await wait(100);
-    const menu = mounted.root.querySelector('[role=menu][aria-label=Toolbar]');
-    expect(menu?.textContent).toContain('Expand toolbar');
-    expect(menu?.textContent).toContain('Interact');
-    expect(menu?.textContent).toContain('What a click selects');
-    await check();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    mounted.shell.setToolbarCollapsed(false);
-  });
-
   it('a compact shell', async () => {
     mounted.shell.setMode('compact');
     mounted.shell.show('home');
@@ -274,4 +260,28 @@ describe('the empty viewer shell (axe)', () => {
       await page.check();
     });
   }
+});
+
+describe('the viewer shell with the compact canvas toolbar (axe)', () => {
+  let page: Page;
+  beforeAll(async () => {
+    page = await openWith({ ...DefaultPrismViewerSpec(), ui: { layout: { toolbar: 'collapsed' } } }, cbs());
+  });
+  afterAll(() => page.dispose());
+
+  it('is one button, its menu open with the mode choices and a submenu', async () => {
+    const root = page.mounted.root;
+    const button = root.querySelector<HTMLElement>('[data-stack-collapsed]');
+    expect(button).not.toBeNull();
+    expect(root.querySelector('[data-stack-toggle]')).toBeNull();
+    await page.check();
+    button!.click();
+    await wait(100);
+    const menu = root.querySelector('[role=menu][aria-label=Toolbar]');
+    expect(menu?.textContent).not.toContain('Expand toolbar');
+    expect(menu?.textContent).toContain('Interact');
+    expect(menu?.textContent).toContain('What a click selects');
+    await page.check();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  });
 });

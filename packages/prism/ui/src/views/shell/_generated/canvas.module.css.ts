@@ -12,7 +12,6 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'announce': 'msp-shell-canvas-announce',
-  'bar': 'msp-shell-canvas-bar',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -40,7 +39,6 @@ export const classes = {
   'corner': 'msp-shell-canvas-corner',
   'countdown': 'msp-shell-canvas-countdown',
   'face': 'msp-shell-canvas-face',
-  'folded': 'msp-shell-canvas-folded',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
   'menuMark': 'msp-shell-canvas-menuMark',
@@ -59,8 +57,6 @@ export const classes = {
   'sections': 'msp-shell-canvas-sections',
   'spin': 'msp-shell-canvas-spin',
   'stack': 'msp-shell-canvas-stack',
-  'stack-in': 'msp-shell-canvas-stack-in',
-  'stackToggle': 'msp-shell-canvas-stackToggle',
   'stackTools': 'msp-shell-canvas-stackTools',
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
@@ -71,7 +67,6 @@ export const classes = {
   'toolMenuCheck': 'msp-shell-canvas-toolMenuCheck',
   'toolMenuChevron': 'msp-shell-canvas-toolMenuChevron',
   'toolMenuDivider': 'msp-shell-canvas-toolMenuDivider',
-  'toolMenuExpand': 'msp-shell-canvas-toolMenuExpand',
   'toolMenuHeading': 'msp-shell-canvas-toolMenuHeading',
   'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
   'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
@@ -198,7 +193,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-shell-canvas-stack:not(:has(button:not([data-stack-toggle]))) {
+.msp-shell-canvas-stack:not(:has(button)) {
   display: none;
 }
 
@@ -215,49 +210,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     opacity: 0;
     pointer-events: none;
   }
-}
-
-.msp-shell-canvas-bar[data-moved], .msp-shell-canvas-folded[data-moved] {
-  transform-origin: 100% 100%;
-  animation: msp-shell-canvas-stack-in var(--msp-motion-base) var(--msp-ease);
-}
-
-@keyframes msp-shell-canvas-stack-in {
-  from {
-    opacity: 0;
-    transform: scale(.9);
-  }
-}
-
-.msp-shell-canvas-stackToggle {
-  width: 20px;
-  height: 100%;
-  min-width: max(20px, min(var(--msp-touch-target, 0px), 28px));
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-subtle);
-  opacity: 0;
-  transition: opacity var(--msp-motion-fast) var(--msp-ease);
-  place-items: center;
-  display: grid;
-  position: absolute;
-  top: 0;
-  right: 100%;
-
-  &:hover {
-    color: var(--msp-color-text-muted);
-  }
-
-  @media (hover: none) {
-    opacity: .5;
-  }
-}
-
-.msp-shell-canvas-stack:hover .msp-shell-canvas-stackToggle {
-  opacity: .45;
-}
-
-.msp-shell-canvas-stack:focus-within .msp-shell-canvas-stackToggle, .msp-shell-canvas-stackToggle:hover, .msp-shell-canvas-stackToggle:focus-visible {
-  opacity: .9;
 }
 
 .msp-shell-canvas-railToggle {
@@ -393,14 +345,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-toolMenuScrollContent {
   display: grid;
-}
-
-.msp-shell-canvas-toolMenuExpand {
-  color: var(--msp-color-text-subtle);
-
-  & .msp-shell-canvas-toolMenuLabel {
-    color: inherit;
-  }
 }
 
 .msp-shell-canvas-toolMenuRow {
