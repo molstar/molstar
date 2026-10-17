@@ -6,7 +6,7 @@
  */
 
 import { PluginCommands } from '@molstar/plugin/commands';
-import { StateObject, StateSelection, StateTransformer } from '@molstar/core/state';
+import { type State, StateObject, StateSelection, StateTransformer } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginStateAnimation } from './model.js';
 
@@ -59,6 +59,8 @@ export const TrajectoryAnimationParams = {
       { isFlat: true },
     ),
   }),
+  /** The refs of the frame-holding cells (`transformer`'s) to step; empty: all of them. */
+  refs: PD.Optional(PD.Value<string[]>([], { isHidden: true })),
 };
 export type TrajectoryAnimationParams = PD.ValuesFor<typeof TrajectoryAnimationParams>;
 
@@ -92,6 +94,11 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
   options: TrajectoryAnimationOptions<A, TTraj>,
 ) {
   const { transformer, trajectoryType, noTrajectoryReason, getFrameCount, getFrameIndex, setFrameIndex } = options;
+  // The cells to step: `refs` when given (one trajectory of several), else every one.
+  const cellsOf = (state: State, refs: readonly string[] | undefined) => {
+    const all = state.select(StateSelection.Generators.ofTransformer(transformer));
+    return refs?.length ? all.filter((c) => refs.includes(c.transform.ref)) : all;
+  };
 
   return PluginStateAnimation.create<TrajectoryAnimationParams, TrajectoryAnimationState>({
     name: options.name,
@@ -100,7 +107,7 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
     params: () => TrajectoryAnimationParams,
     canApply(ctx) {
       const state = ctx.state.data;
-      const cells = state.select(StateSelection.Generators.ofTransformer(transformer));
+      const cells = cellsOf(state, undefined);
       for (const c of cells) {
         const parent = StateSelection.findAncestorOfType(state.tree, state.cells, c.transform.ref, trajectoryType);
         if (parent && parent.obj && getFrameCount(parent.obj.data) > 1) return { canApply: true };
@@ -112,7 +119,7 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
         return { kind: 'fixed', durationMs: p.duration.params.durationInS * 1000 };
       } else if (p.duration.name === 'computed') {
         const state = ctx.state.data;
-        const cells = state.select(StateSelection.Generators.ofTransformer(transformer));
+        const cells = cellsOf(state, p.refs);
 
         let maxDuration = 0;
         for (const c of cells) {
@@ -139,7 +146,7 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
       }
 
       const state = ctx.plugin.state.data;
-      const cells = state.select(StateSelection.Generators.ofTransformer(transformer));
+      const cells = cellsOf(state, ctx.params.refs);
 
       if (cells.length === 0) {
         // nothing more to do here
