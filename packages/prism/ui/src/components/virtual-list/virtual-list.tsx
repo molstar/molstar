@@ -82,8 +82,13 @@ export function VirtualList<T>(props: {
     const down = t >= lastTop;
     lastTop = t;
     const { first: wf, last: wl } = win.value;
-    const guard = Math.min(4, overscan);
-    const covered = wf <= Math.max(0, screenFirst - guard) && wl >= Math.min(n, screenLast + guard) && wl <= n;
+    // Ahead of the scroll, at least half a screen stays made (a wheel's step or a flick is about that much in one frame);
+    // behind it, `overscan` rows.
+    const guardAhead = Math.max(overscan, Math.ceil(screen / 2));
+    const covered =
+      wf <= Math.max(0, screenFirst - (down ? overscan : guardAhead)) &&
+      wl >= Math.min(n, screenLast + (down ? guardAhead : overscan)) &&
+      wl <= n;
     let first: number;
     let last: number;
     if (rest) {
@@ -91,8 +96,9 @@ export function VirtualList<T>(props: {
       last = screenLast + screen;
     } else if (covered) return;
     else if (screenLast <= wf || screenFirst >= wl) {
-      first = screenFirst - overscan;
-      last = screenLast + overscan;
+      // What shows and two rows: a drag makes a window a frame, so it makes no more than it shows.
+      first = screenFirst - 2;
+      last = screenLast + 2;
     } else {
       const ahead = Math.max(overscan, screen);
       first = screenFirst - (down ? overscan : ahead);
