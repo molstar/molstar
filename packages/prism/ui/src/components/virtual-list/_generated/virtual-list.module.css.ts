@@ -45,6 +45,7 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
 
 .msp-virtual-list-row {
   contain: layout style;
+  background-color: var(--msp-surface, var(--msp-color-panel));
   position: absolute;
   inset: 0 0 auto;
 }

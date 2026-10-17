@@ -415,6 +415,8 @@ export function RecycledList<T>(props: {
       }}
       style={{
         height: derive([props.items, rowHeight.asReadonly], (items, rh) => `${items.length * rh}px`),
+        // The skeleton's row height (virtual-list.module.css, `.content`).
+        '--msp-virtual-row': derive(rowHeight.asReadonly, (rh) => `${rh}px`),
       }}
     />
   );

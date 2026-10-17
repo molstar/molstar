@@ -40,9 +40,11 @@
 }
 
 /* A row of a `RecycledList`: placed by its own transform (its index × the row height); a recycled one is moved, never
-   made again. */
+   made again. Opaque like `.window`: the content's skeleton shows only at a place no slot has reached yet (a fast scroll
+   uncovering more than a task's slice makes), the same bars as the keyed list's. */
 .row {
   position: absolute;
   inset: 0 0 auto;
   contain: layout style;
+  background-color: var(--msp-surface, var(--msp-color-panel));
 }
