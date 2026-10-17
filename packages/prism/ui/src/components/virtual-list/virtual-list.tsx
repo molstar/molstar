@@ -11,7 +11,7 @@
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { bind, onCleanup } from '../../dom/scope.js';
+import { bind, flush, onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/virtual-list.module.css.js';
@@ -56,8 +56,12 @@ export function VirtualList<T>(props: {
   let viewport: HTMLElement | undefined;
   const measure = () => {
     if (!viewport) return;
-    top.set(viewport.scrollTop);
-    if (viewport.clientHeight !== height.value) height.set(viewport.clientHeight);
+    // Both read before either is set: setting `top` makes rows, and a read after that would lay them out here, in the
+    // scroll event (measured: 1.7 of a jump's 4.4 ms), rather than once at the frame.
+    const t = viewport.scrollTop;
+    const h = viewport.clientHeight;
+    top.set(t);
+    if (h !== height.value) height.set(h);
   };
   // Before the first measure (no height yet), a screenful.
   const viewHeight = (h: number) => h || 800;
@@ -149,10 +153,13 @@ export function VirtualList<T>(props: {
       let t = top.value;
       if (y < t) t = y;
       else if (y + rh > t + view) t = y + rh - view;
-      if (t === top.value) return;
-      if (viewport) viewport.scrollTop = t;
-      // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
-      top.set(t);
+      if (t !== top.value) {
+        if (viewport) viewport.scrollTop = t;
+        // Now, not at the scroll event: the row is in the DOM when this returns (a tree's keyboard focuses it next).
+        top.set(t);
+      }
+      // And rendered (`watch`es render in a microtask).
+      flush();
     },
   });
   return (

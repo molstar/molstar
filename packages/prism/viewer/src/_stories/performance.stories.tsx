@@ -12,6 +12,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '@molstar/prism-ui/dom/control-flow';
 import { render } from '@molstar/prism-ui/dom/render';
+import { flush } from '@molstar/prism-ui/dom/scope';
 import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { flattenTree, VirtualList } from '@molstar/prism-ui';
@@ -643,4 +644,207 @@ export const Interactive: StoryObj = {
     layout: Math.round(tLayout - tScript),
     frames: Math.round(total - tLayout),
   };
+};
+
+// --- Rows made -----------------------------------------------------------------------------------
+
+/**
+ * What a row costs to make, for the trees that make rows as they scroll: both real trees fully open (the scene tree's
+ * 1,000 components and 3,000 representations, the state tree's 5,025 cells), mounted outside Storybook's root (its
+ * highlight addon re-scans the page's styles on every row added or removed there, ~13 ms) with a11y off. Probes for
+ * a driver (`__mspRows`; Playwright adds garbage collection and the heap, CDP): `jump` sets the scroll far away and
+ * dispatches its event, so the rows made are timed in the same task (script, then layout); `steps` scrolls a row at a
+ * time; `mount` leaves a tall tree mounted (a window of ~900 rows) for the heap.
+ */
+type TreeKind = 'scene' | 'state';
+
+function mountTree(kind: TreeKind, height = 600) {
+  const host = document.createElement('div');
+  host.className = 'msp-root';
+  host.style.cssText = `position: fixed; left: 16px; top: 16px; width: 320px; height: ${height}px; contain: strict;`;
+  document.body.append(host);
+  const box = document.createElement('div');
+  box.style.cssText = `height: ${height}px; width: 320px; display: flex; flex-direction: column;`;
+  host.append(box);
+  let dispose: () => void;
+  if (kind === 'scene') {
+    const fixture = makeScene(1000, 3);
+    for (const c of fixture.components) c.expanded.set(true);
+    dispose = render(() => <SceneTree scene={fixture.scene} />, box);
+  } else {
+    const roots = observableState<readonly StateTreeNode[]>(makeTree());
+    dispose = render(() => <StateTreeTab model={treeModel(roots)} />, box);
+  }
+  const viewport = () => box.querySelector<HTMLElement>('[data-axis] > div')!;
+  const rows = () => box.querySelectorAll('[role=treeitem]');
+  return {
+    host,
+    viewport,
+    rows,
+    dispose: () => {
+      dispose();
+      host.remove();
+    },
+  };
+}
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const round = (x: number, d = 3) => +x.toFixed(d);
+const pct = (xs: number[], p: number) => {
+  const s = xs.slice().sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.floor(s.length * p))] ?? 0;
+};
+
+async function settle(t: ReturnType<typeof mountTree>) {
+  for (let n = 0; n < 300 && t.rows().length < 10; n++) await frame();
+  // The window grows once the scrolling rests (VirtualList, 120 ms).
+  await wait(200);
+  await frame();
+}
+
+/** Far jumps (a scrollbar's drag): each makes a window of new rows in the scroll event's task. */
+async function jumps(kind: TreeKind, count = 40) {
+  const t = mountTree(kind);
+  await settle(t);
+  const vp = t.viewport();
+  const span = vp.scrollHeight - vp.clientHeight;
+  const script: number[] = [];
+  const layout: number[] = [];
+  let made = 0;
+  for (let k = 0; k < count; k++) {
+    const before = new Set(t.rows());
+    // Spread over the list, never near the last one.
+    const y = Math.round((((k * 37) % 97) / 97) * span);
+    const t0 = performance.now();
+    vp.scrollTop = y;
+    vp.dispatchEvent(new Event('scroll'));
+    flush();
+    const t1 = performance.now();
+    // A row's place: the window's layout (the host is contained, its own size needs none).
+    const all = t.rows();
+    void (all[all.length - 1] as HTMLElement | undefined)?.offsetTop;
+    const t2 = performance.now();
+    let n = 0;
+    for (const r of t.rows()) if (!before.has(r)) n++;
+    made += n;
+    if (k > 1) {
+      script.push(t1 - t0);
+      layout.push(t2 - t1);
+    }
+    await frame();
+  }
+  t.dispose();
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  const rowsPerJump = made / count;
+  return {
+    kind,
+    jumps: count,
+    rowsPerJump: round(rowsPerJump, 1),
+    scriptPerJump: round(sum(script) / script.length, 2),
+    layoutPerJump: round(sum(layout) / layout.length, 2),
+    scriptPerRow: round(sum(script) / script.length / rowsPerJump),
+    p95Script: round(pct(script, 0.95), 2),
+  };
+}
+
+/** Small steps (a wheel's notch, the keyboard): a row at a time, `count` of them. */
+async function steps(kind: TreeKind, count = 300, by = 26) {
+  const t = mountTree(kind);
+  await settle(t);
+  const vp = t.viewport();
+  vp.scrollTop = Math.round((vp.scrollHeight - vp.clientHeight) / 3);
+  vp.dispatchEvent(new Event('scroll'));
+  await wait(200);
+  await frame();
+  const times: number[] = [];
+  for (let k = 0; k < count; k++) {
+    const t0 = performance.now();
+    vp.scrollTop += by;
+    vp.dispatchEvent(new Event('scroll'));
+    flush();
+    void (vp.querySelector('[role=treeitem]') as HTMLElement | null)?.offsetTop;
+    times.push(performance.now() - t0);
+    if (k % 10 === 9) await frame();
+  }
+  t.dispose();
+  return {
+    kind,
+    steps: count,
+    meanMs: round(times.reduce((a, b) => a + b, 0) / count, 3),
+    p95Ms: round(pct(times, 0.95), 2),
+    maxMs: round(Math.max(...times), 2),
+  };
+}
+
+let mounted: ReturnType<typeof mountTree> | undefined;
+
+(window as any).__mspRows = {
+  jumps,
+  steps,
+  /** Mounts a tall tree (`height` px) and leaves it; returns the rows in the DOM once settled. */
+  async mount(kind: TreeKind, height = 8000) {
+    mounted?.dispose();
+    mounted = mountTree(kind, height);
+    await settle(mounted);
+    return mounted.rows().length;
+  },
+  unmount() {
+    mounted?.dispose();
+    mounted = undefined;
+  },
+  /** Mounts the normal tree for a wheel test by a driver: the viewport's center in page coordinates. */
+  async wheelTarget(kind: TreeKind) {
+    mounted?.dispose();
+    mounted = mountTree(kind);
+    await settle(mounted);
+    const r = mounted.viewport().getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  },
+  /** Starts recording frames (rAF intervals and long animation frames); `stop` returns them. */
+  record() {
+    const intervals: number[] = [];
+    const loaf: number[] = [];
+    let last = performance.now();
+    let on = true;
+    const tick = (now: number) => {
+      intervals.push(now - last);
+      last = now;
+      if (on) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const observer = PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
+      ? new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) loaf.push(e.duration);
+        })
+      : undefined;
+    observer?.observe({ type: 'long-animation-frame' });
+    return () => {
+      on = false;
+      observer?.disconnect();
+      return {
+        frames: intervals.length,
+        over20ms: intervals.filter((x) => x > 20).length,
+        maxFrame: round(Math.max(...intervals), 1),
+        longFrames: loaf.length,
+        longFramesMs: round(
+          loaf.reduce((a, b) => a + b, 0),
+          1,
+        ),
+        rowsInDom: mounted?.rows().length,
+      };
+    };
+  },
+};
+
+/** The probes above (`window.__mspRows`); the story itself is a note. Run them from a driver or the console. */
+export const RowsMade: StoryObj = {
+  name: 'Rows made',
+  parameters: noA11y,
+  render: () =>
+    story(() => (
+      <p style="padding: var(--msp-space-5); color: var(--msp-color-text);">
+        Probes: <code>await __mspRows.jumps('scene')</code>, <code>__mspRows.steps('state')</code>,{' '}
+        <code>__mspRows.mount('scene')</code>. They mount outside Storybook's root.
+      </p>
+    )),
 };

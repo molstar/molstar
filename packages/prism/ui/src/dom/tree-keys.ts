@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { onCleanup } from './scope.js';
+import { flush, onCleanup } from './scope.js';
 
 // The keyboard of an ARIA tree (accessibility.md, WAI-ARIA's tree pattern), over the tree's rows as a list (a
 // virtualized tree has only the rows on screen in the DOM): Down and Up move, Right opens (open: enters), Left closes
@@ -173,6 +173,8 @@ export class TreeNavigation<R> {
   };
 
   readonly #onKey = (e: KeyboardEvent): void => {
+    // The rows' DOM as their state is now (a row's `aria-expanded` is read below; `watch` renders in a microtask).
+    flush();
     const tree = e.currentTarget as HTMLElement;
     const rows = this.#o.rows();
     if (e.target === tree) {

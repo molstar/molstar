@@ -12,6 +12,8 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map, type Observable } from 'rxjs';
 import { For, timeSlicing } from '../dom/control-flow.js';
 import { render } from '../dom/render.js';
+import { flush, watch } from '../dom/scope.js';
+import { setClass, setText } from '../dom/writes.js';
 import { keyedSelector } from '../reactive/keyed-selector.js';
 import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
@@ -85,6 +87,37 @@ function Row(props: {
   );
 }
 
+/**
+ * The row as view = f(state) (rendering.md §2): its DOM made once, one `watch` render that writes what differs. The
+ * selection is read whole (every row renders when it changes, and writes only if its own flag flipped).
+ */
+function WatchRow(props: {
+  row: RowData;
+  selected: ObservableState<number | undefined>;
+  select(id: number): void;
+  remove(id: number): void;
+}) {
+  const { row, selected } = props;
+  const label = document.createTextNode('');
+  const tr = (
+    <tr>
+      <td class="col-md-1">{row.id}</td>
+      <td class="col-md-4">
+        <a onClick={() => props.select(row.id)}>{label}</a>
+      </td>
+      <td class="col-md-1">
+        <a onClick={() => props.remove(row.id)}>×</a>
+      </td>
+      <td class="col-md-6" />
+    </tr>
+  ) as HTMLElement;
+  watch([row.label, selected], () => {
+    setText(label, row.label.value);
+    setClass(tr, 'danger', selected.value === row.id);
+  });
+  return tr;
+}
+
 interface Bench {
   rows: ObservableState<readonly RowData[]>;
   selected: ObservableState<number | undefined>;
@@ -108,6 +141,13 @@ function mountBench(host: HTMLElement): Bench {
             {(row) =>
               (window as any).__mspStaticRows ? (
                 <StaticRow row={row} />
+              ) : (window as any).__mspWatchRows ? (
+                <WatchRow
+                  row={row}
+                  selected={selected}
+                  select={(id) => selected.set(id)}
+                  remove={(id) => rows.set(rows.value.filter((r) => r.id !== id))}
+                />
               ) : (
                 <Row
                   row={row}
@@ -223,10 +263,13 @@ async function runBench(host: HTMLElement, only?: string): Promise<Result[]> {
       for (let i = 0; i <= Runs; i++) {
         const b = mountBench(host);
         op.setup(b);
+        flush();
         void host.offsetHeight;
         await frame();
         const t0 = performance.now();
         op.run(b);
+        // Watched rows render in a microtask: in the operation's time.
+        flush();
         const t1 = performance.now();
         void host.offsetHeight;
         await frame();

@@ -24,11 +24,13 @@ import { Button, colorToHex, keepRows, MenuPopover, VirtualList, type VirtualLis
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { bind, onActive, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
+import { bind, onActive, onCleanup, requireScope, type WatchSource, watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setClass, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/scene-tree.module.css.js';
 
 /**
@@ -151,7 +153,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
         }
         const { node, depth } = row;
         seen.add(node);
-        watch(node);
+        followNode(node);
         const extensions = extensionRows(node);
         let children = node.children.value;
         // A node with an extension's row can be opened before it has children.
@@ -223,7 +225,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
       building = false;
     }
   };
-  const watch = (node: SceneNode) => {
+  const followNode = (node: SceneNode) => {
     if (watched.has(node)) return;
     // Kept in `watched`: unsubscribed when the node leaves the shown rows, and all of them when the tree is hidden.
     const sub = merge(node.isExpanded.pipe(skip(1)), node.children.pipe(skip(1))).subscribe(reflow);
@@ -264,14 +266,6 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     });
   });
   onCleanup(() => cancelAnimationFrame(frame));
-  const stateOf = (key: string) =>
-    states.asReadonly.pipe(
-      map((m) => m.get(key)),
-      distinctUntilChanged(
-        (a, b) => a?.posinset === b?.posinset && a?.setsize === b?.setsize && a?.expanded === b?.expanded,
-      ),
-      shareReplay({ bufferSize: 1, refCount: true }),
-    );
   return (
     <>
       <Show
@@ -304,15 +298,14 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
         }}
       >
         {(row) => {
-          const state = stateOf(row.key);
           switch (row.kind) {
             case 'node':
-              return <TreeItem scene={scene} node={row.node} depth={row.depth} state={state} nav={nav} />;
+              return <TreeItem scene={scene} node={row.node} depth={row.depth} states={states.asReadonly} nav={nav} />;
             case 'more':
               return (
                 <MoreRow
                   row={row}
-                  state={state}
+                  states={states.asReadonly}
                   nav={nav}
                   onShowAll={() => {
                     showAll.add(row.node);
@@ -321,22 +314,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
                 />
               );
             case 'loading':
-              return (
-                <div
-                  role="treeitem"
-                  aria-level={row.depth + 1}
-                  aria-posinset={state.pipe(map((s) => s?.posinset))}
-                  aria-setsize={state.pipe(map((s) => s?.setsize))}
-                  aria-busy="true"
-                  tabIndex={-1}
-                  class={classes.item}
-                  ref={nav.row(row.key)}
-                >
-                  <div class={classes.loading} style={{ '--msp-tree-depth': row.depth }}>
-                    Loading…
-                  </div>
-                </div>
-              );
+              return <LoadingRow row={row} states={states.asReadonly} nav={nav} />;
             case 'row':
               return (
                 <ExtensionRow
@@ -344,7 +322,7 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
                   shell={shell!}
                   node={row.node}
                   depth={row.depth}
-                  state={state}
+                  states={states.asReadonly}
                   register={nav.row(row.key)}
                 />
               );
@@ -389,36 +367,48 @@ function searchHits(
   return hits;
 }
 
-type RowStateStream = Observable<RowState | undefined>;
+/** The rows' places and open states, by key: a row reads its own (`states.value.get(key)`) when it renders. */
+type RowStates = ReadonlyState<ReadonlyMap<string, RowState>>;
 
+/** A row's place among its siblings (and its open state, if it opens), written by its render. */
+function writePlace(el: Element, s: RowState | undefined) {
+  setAttr(el, 'aria-posinset', s?.posinset);
+  setAttr(el, 'aria-setsize', s?.setsize);
+}
+
+/**
+ * A node's row as view = f(state) (rendering.md §2): its DOM made once, with refs to the parts that change, and one
+ * `watch` render that writes what differs from the node's and the tree's current values: label, description, swatch,
+ * hidden, picked, its place and open state, its menu's. What is fixed for the row (its node, depth, icon, whether it has
+ * a swatch or a menu) is built in; a row whose node or depth changes is made anew (`For` by item).
+ */
 function TreeItem(props: {
   scene: SceneModel;
   node: SceneNode;
   depth: number;
-  state: RowStateStream;
+  states: RowStates;
   nav: TreeNavigation<Row>;
 }) {
-  const { scene, node, depth, state } = props;
-  const expanded = state.pipe(
-    map((s) => s?.expanded),
-    distinctUntilChanged(),
-  );
+  const { scene, node, depth, states } = props;
   const menuOpen = observableState(false);
-  let menuButton: HTMLElement | undefined;
-  const picked = scene.picked.pipe(
-    map((p) => p === node),
-    distinctUntilChanged(),
-  );
+  const menu = hasMenu(node);
   // Named by its own label and description.
   const labelId = uniqueId('msp-tree-label');
-  return (
+  const label = document.createTextNode('');
+  const description = document.createTextNode('');
+  let line!: HTMLElement;
+  let expander!: HTMLElement;
+  let eyeButton!: HTMLElement;
+  let swatch: HTMLElement | undefined;
+  let menuButton: HTMLElement | undefined;
+  // The eye: one icon shown, the other made the first time it is needed (most rows are never hidden).
+  const eye = Icon({ name: 'eye', size: 14 });
+  let eyeOff: SVGSVGElement | undefined;
+  let eyeShown: SVGSVGElement = eye;
+  const el = (
     <div
       role="treeitem"
       aria-level={depth + 1}
-      aria-posinset={state.pipe(map((s) => s?.posinset))}
-      aria-setsize={state.pipe(map((s) => s?.setsize))}
-      aria-expanded={expanded}
-      aria-selected={picked}
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={classes.item}
@@ -429,8 +419,8 @@ function TreeItem(props: {
         data-tree-row=""
         data-node-id={node.id}
         class={classes.row}
-        classList={{ [classes.hidden]: node.isHidden, [classes.picked]: picked }}
         style={{ '--msp-tree-depth': depth }}
+        ref={(e: HTMLElement) => (line = e)}
         onClick={() => scene.pick(node)}
         onPointerEnter={() => node.highlight(true)}
         onPointerLeave={() => node.highlight(false)}
@@ -438,10 +428,10 @@ function TreeItem(props: {
         <button
           type="button"
           class={classes.expander}
-          classList={{ [classes.leaf]: expanded.pipe(map((e) => e === undefined)) }}
           data-tree-toggle=""
           tabIndex={-1}
           aria-label="Expand"
+          ref={(e: HTMLElement) => (expander = e)}
           onClick={(e) => {
             e.stopPropagation();
             node.toggleExpanded();
@@ -453,42 +443,31 @@ function TreeItem(props: {
             row belongs and its label and description say what it is. */}
         {depth === 0 ? <Icon name={node.icon} size={15} class={classes.kind} /> : null}
         <span class={classes.label} id={labelId} data-tip-part="">
-          {node.label}
+          {label}
         </span>
-        {node.swatch ? (
-          <span
-            class={classes.swatch}
-            style={{ background: node.swatch.pipe(map((c) => (c === undefined ? '' : colorToHex(c)))) }}
-            aria-hidden="true"
-          />
-        ) : null}
+        {node.swatch ? <span class={classes.swatch} aria-hidden="true" ref={(e: HTMLElement) => (swatch = e)} /> : null}
         <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
-          {node.description}
+          {description}
         </span>
         <span class={classes.actions}>
           <button
             type="button"
             class={classes.action}
-            classList={{ [classes.keep]: node.isHidden }}
-            title={node.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+            ref={(e: HTMLElement) => (eyeButton = e)}
             onClick={(e) => {
               e.stopPropagation();
               node.toggleVisibility();
             }}
           >
-            <Show when={node.isHidden} fallback={() => <Icon name="eye" size={14} />}>
-              {() => <Icon name="eye-off" size={14} />}
-            </Show>
+            {eye}
           </button>
-          {hasMenu(node) ? (
+          {menu ? (
             <button
               type="button"
               class={classes.action}
-              classList={{ [classes.keep]: menuOpen }}
               title="More"
               aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              ref={(el: HTMLElement) => (menuButton = el)}
+              ref={(e: HTMLElement) => (menuButton = e)}
               onClick={(e) => {
                 e.stopPropagation();
                 menuOpen.set(!menuOpen.value);
@@ -515,27 +494,73 @@ function TreeItem(props: {
         )}
       </Show>
     </div>
-  );
+  ) as HTMLElement;
+  const sources: WatchSource[] = [node.label, node.description, node.isHidden, scene.picked, states];
+  if (node.swatch) sources.push(node.swatch);
+  if (menu) sources.push(menuOpen);
+  watch(sources, () => {
+    setText(label, node.label.value);
+    setText(description, node.description.value ?? '');
+    if (swatch) {
+      const c = node.swatch!.value;
+      setStyle(swatch, 'background', c === undefined ? '' : colorToHex(c));
+    }
+    const hidden = node.isHidden.value;
+    setClass(line, classes.hidden, hidden);
+    setClass(eyeButton, classes.keep, hidden);
+    setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+    const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
+    if (icon !== eyeShown) {
+      eyeShown.replaceWith(icon);
+      eyeShown = icon;
+    }
+    const picked = scene.picked.value === node;
+    setAttr(el, 'aria-selected', String(picked));
+    setClass(line, classes.picked, picked);
+    const s = states.value.get(node.id);
+    writePlace(el, s);
+    setAttr(el, 'aria-expanded', s?.expanded === undefined ? undefined : String(s.expanded));
+    setClass(expander, classes.leaf, s?.expanded === undefined);
+    if (menuButton) {
+      const open = menuOpen.value;
+      setClass(menuButton, classes.keep, open);
+      setAttr(menuButton, 'aria-expanded', String(open));
+    }
+  });
+  return el;
+}
+
+/** Loading…: a quiet row while a lazy node computes its rows. */
+function LoadingRow(props: { row: Extract<Row, { kind: 'loading' }>; states: RowStates; nav: TreeNavigation<Row> }) {
+  const { row, states } = props;
+  const el = (
+    <div
+      role="treeitem"
+      aria-level={row.depth + 1}
+      aria-busy="true"
+      tabIndex={-1}
+      class={classes.item}
+      ref={props.nav.row(row.key)}
+    >
+      <div class={classes.loading} style={{ '--msp-tree-depth': row.depth }}>
+        Loading…
+      </div>
+    </div>
+  ) as HTMLElement;
+  watch([states], () => writePlace(el, states.value.get(row.key)));
+  return el;
 }
 
 /** Show all: a quiet row where the rest of a long list would be, at the children's depth. */
 function MoreRow(props: {
   row: Extract<Row, { kind: 'more' }>;
-  state: RowStateStream;
+  states: RowStates;
   nav: TreeNavigation<Row>;
   onShowAll: () => void;
 }) {
-  const { row, state } = props;
-  return (
-    <div
-      role="treeitem"
-      aria-level={row.depth + 1}
-      aria-posinset={state.pipe(map((s) => s?.posinset))}
-      aria-setsize={state.pipe(map((s) => s?.setsize))}
-      tabIndex={-1}
-      class={classes.item}
-      ref={props.nav.row(row.key)}
-    >
+  const { row, states } = props;
+  const el = (
+    <div role="treeitem" aria-level={row.depth + 1} tabIndex={-1} class={classes.item} ref={props.nav.row(row.key)}>
       <button
         type="button"
         class={classes.more}
@@ -548,7 +573,9 @@ function MoreRow(props: {
         <span class={classes.moreCount}>{`${row.total - PageSize} more`}</span>
       </button>
     </div>
-  );
+  ) as HTMLElement;
+  watch([states], () => writePlace(el, states.value.get(row.key)));
+  return el;
 }
 
 /**
@@ -561,7 +588,7 @@ function ExtensionRow(props: {
   shell: ShellModel;
   node: SceneNode;
   depth: number;
-  state: RowStateStream;
+  states: RowStates;
   register: (el: HTMLElement) => void;
 }) {
   const host = (
@@ -577,11 +604,11 @@ function ExtensionRow(props: {
   // Nothing opens under it here: not expandable.
   item()?.removeAttribute('aria-expanded');
   item()?.setAttribute('aria-level', String(props.depth + 1));
-  bind(props.state, (s) => {
+  const key = `${props.node.id}::row:${props.section.id}`;
+  watch([props.states], () => {
     const el = item();
-    if (!el || !s) return;
-    el.setAttribute('aria-posinset', String(s.posinset));
-    el.setAttribute('aria-setsize', String(s.setsize));
+    const s = props.states.value.get(key);
+    if (el && s) writePlace(el, s);
   });
   props.register(host);
   return host;

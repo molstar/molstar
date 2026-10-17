@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+/** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -12,6 +13,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mapState } from '../../reactive/map-state.js';
 import { batch, observableState } from '../../reactive/observable-state.js';
+import { render } from '../render.js';
 import { createRoot, flush, getScope, runInScope, Scope, watch } from '../scope.js';
 import { setAttr, setClass, setShown, setStyle, setText } from '../writes.js';
 
@@ -236,6 +238,28 @@ describe('watch', () => {
     flush();
     expect(subject.observed).toBe(false);
     expect(seen).toHaveLength(3);
+  });
+
+  it("a delegated event's handlers end with a flush: a click's change is rendered when it returns", () => {
+    const count = observableState(0);
+    const container = document.createElement('div');
+    document.body.append(container);
+    const text = document.createTextNode('');
+    const dispose = render(() => {
+      const button = (
+        <button type="button" onClick={() => count.set(count.value + 1)}>
+          {text}
+        </button>
+      ) as HTMLButtonElement;
+      watch([count], () => setText(text, String(count.value)));
+      return button;
+    }, container);
+    const button = container.querySelector('button')!;
+    expect(text.data).toBe('0');
+    button.click();
+    expect(text.data).toBe('1');
+    dispose();
+    container.remove();
   });
 
   it('throws outside a scope', () => {
