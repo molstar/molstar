@@ -9,11 +9,12 @@
  */
 
 import { Icon } from '../../components/icon/icon.js';
+import { watch } from '../../dom/scope.js';
 import { on } from '../../dom/scoped.js';
+import { setAttr } from '../../dom/writes.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/file-drop.module.css.js';
 
-import { derive } from '../../reactive/state.js';
 /**
  * Files dragged anywhere over the plugin: the whole plugin becomes the drop target (Mol*'s drag overlay; the spec turns
  * it off, `components.disableDragOverlay`). Shown only for drags that carry files; dropped files go to `onDrop` (the
@@ -37,10 +38,9 @@ export function FileDropOverlay(props: {
     e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
   };
-  return (
+  const overlay = (
     <div
       class={classes.overlay}
-      hidden={derive(shown.asReadonly, (s) => !s)}
       onDragEnter={over}
       onDragOver={over}
       onDragLeave={() => shown.set(false)}
@@ -57,7 +57,9 @@ export function FileDropOverlay(props: {
         {props.formats?.length ? <span class={classes.hint}>{props.formats.join(', ')}</span> : null}
       </div>
     </div>
-  );
+  ) as HTMLElement;
+  watch([shown], () => setAttr(overlay, 'hidden', !shown.value));
+  return overlay;
 }
 
 function hasFiles(e: DragEvent): boolean {

@@ -15,7 +15,8 @@ import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { activity, For, Show } from '../../dom/control-flow.js';
 import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { deepActiveElement, focusFirstItem, menuKeys, rememberFocus, rovingTabs, uniqueId } from '../../dom/focus.js';
-import { effect, frameState, onCleanup } from '../../dom/scope.js';
+import { effect, frameState, onCleanup, watch } from '../../dom/scope.js';
+import { setAttr, setClass, setStyle, setText } from '../../dom/writes.js';
 import { drag, on } from '../../dom/scoped.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { type KeyedSelector, keyedSelector } from '../../reactive/keyed-selector.js';
@@ -25,7 +26,7 @@ import { derive } from '../../reactive/state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
-import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
+import { faceOf, ItemIcon, staticTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout, RailSteps, railStep } from './rail.js';
 import { ViewHost } from './view-host.js';
 
@@ -96,45 +97,61 @@ export function DockView(props: {
   let pinned: HTMLElement | undefined;
   return (
     <Show when={hasTabs}>
-      {() => (
-        <div
-          class={`${classes.dock} ${classes[dock.id]}`}
-          classList={{ [classes.compact]: compact }}
-          style={{ '--msp-dock-size': dockFacets(shell, dock).sizePx }}
-          ref={(el) => {
-            pinned = el;
-          }}
-        >
-          <Show
-            when={dock.active}
-            reveal
-            // One tab's panel replacing another's: a view transition in the dock (motion.ts `swapIn`).
-            swap={() => pinned}
-            fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
+      {() => {
+        const sizePx = dockFacets(shell, dock).sizePx;
+        const root = (
+          <div
+            class={`${classes.dock} ${classes[dock.id]}`}
+            ref={(el) => {
+              pinned = el;
+            }}
           >
-            {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
-          </Show>
-          <Show when={showStrip}>
-            {() => (
-              <div class={classes.strip}>
-                {/* The tab list holds tabs only; what ends the strip (the compact bar's menu buttons) is beside it. */}
-                <div
-                  role="tablist"
-                  aria-label="Panels"
-                  aria-orientation={derive(compact, (c) => (c || horizontal ? 'horizontal' : 'vertical'))}
-                  style="display: contents"
-                  ref={(el) => onCleanup(rovingTabs(el))}
-                >
-                  <For each={compactTabs}>
-                    {(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}
-                  </For>
-                </div>
-                {props.stripEnd}
-              </div>
-            )}
-          </Show>
-        </div>
-      )}
+            <Show
+              when={dock.active}
+              reveal
+              // One tab's panel replacing another's: a view transition in the dock (motion.ts `swapIn`).
+              swap={() => pinned}
+              fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
+            >
+              {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
+            </Show>
+            <Show when={showStrip}>
+              {() => {
+                let tablist!: HTMLElement;
+                const strip = (
+                  <div class={classes.strip}>
+                    {/* The tab list holds tabs only; what ends the strip (the compact bar's menu buttons) is beside it. */}
+                    <div
+                      role="tablist"
+                      aria-label="Panels"
+                      style="display: contents"
+                      ref={(el) => {
+                        tablist = el;
+                        onCleanup(rovingTabs(el));
+                      }}
+                    >
+                      <For each={compactTabs}>
+                        {(tab) => <TabButton shell={shell} dock={dock} tab={tab} panel={panelId} />}
+                      </For>
+                    </div>
+                    {props.stripEnd}
+                  </div>
+                );
+                watch([compact], () =>
+                  setAttr(tablist, 'aria-orientation', compact.value || horizontal ? 'horizontal' : 'vertical'),
+                );
+                return strip;
+              }}
+            </Show>
+          </div>
+        ) as HTMLElement;
+        // The dock as a function of its size and the compact layout.
+        watch([sizePx, compact], () => {
+          setClass(root, classes.compact, compact.value);
+          setStyle(root, '--msp-dock-size', sizePx.value);
+        });
+        return root;
+      }}
     </Show>
   );
 }
@@ -154,7 +171,7 @@ export function FloatingDock(props: {
   railFoot?: (rail: RailLayout) => Child;
 }) {
   const { shell, dock } = props;
-  const size = { '--msp-dock-size': dockFacets(shell, dock).sizePx };
+  const sizePx = dockFacets(shell, dock).sizePx;
   // What does not fit the rail's height, even at its smallest size, is under More (rail.ts).
   const rail = new RailLayout(shell, dock);
   // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the command menu).
@@ -173,26 +190,25 @@ export function FloatingDock(props: {
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
     // canvas toolbar button (Sequence) brings it back.
-    return (
-      <div
-        class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
-        classList={{ [classes.band]: derive(dock.active, (tab) => tab?.frame === 'none') }}
-        style={size}
-      >
+    const band = derive(dock.active, (tab) => tab?.frame === 'none');
+    const card = (
+      <div class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}>
         <Show when={dock.active} reveal="fade">
           {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
         </Show>
       </div>
-    );
+    ) as HTMLElement;
+    watch([band, sizePx], () => {
+      setClass(card, classes.band, band.value);
+      setStyle(card, '--msp-dock-size', sizePx.value);
+    });
+    return card;
   }
   // A rail button's height at the rail's step (rail.ts; the CSS steps the buttons themselves): the panel's header takes
   // it, so the content starts where the rail's first button ends. Before the rail is measured, the normal step.
   const railHead = derive(rail.height.asReadonly, (h) => `${(h > 0 ? railStep(h) : RailSteps[0]).button}px`);
   const root = (
-    <div
-      class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}
-      style={{ ...size, '--msp-rail-head': railHead }}
-    >
+    <div class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}>
       <div
         class={`${classes.rail} ${canvasClasses.frame}`}
         ref={(el) => {
@@ -252,6 +268,10 @@ export function FloatingDock(props: {
       <RailMoreMenu shell={shell} dock={dock} rail={rail} />
     </div>
   ) as HTMLElement;
+  watch([sizePx, railHead], () => {
+    setStyle(root, '--msp-dock-size', sizePx.value);
+    setStyle(root, '--msp-rail-head', railHead.value);
+  });
   return root;
 }
 
@@ -270,31 +290,36 @@ function activateTab(shell: ShellModel, dock: DockModel, tab: ShellTab) {
 function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout; root: () => HTMLElement }) {
   const { rail } = props;
   const menu = rail.menu;
+  // Whether its menu is open, a gate: More follows that, not which row opened it.
+  const opened = derive(menu.asReadonly, (m) => !!m);
   return (
     <Show when={derive(rail.overflow, (o) => o.length > 0)}>
       {() => {
         // Gone (the rail grew): the menu is closed, it does not come back open.
         onCleanup(() => menu.set(undefined));
+        const button = (
+          <button
+            type="button"
+            class={classes.tab}
+            data-tip="More"
+            data-tip-side="left"
+            aria-label="More"
+            aria-haspopup="menu"
+            onClick={(e) => rail.toggleMenu(e.currentTarget)}
+            onKeyDown={(e) => {
+              // ↑ or ↓ opens it too (the menu button pattern); it opens at its first item.
+              if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || menu.value) return;
+              e.preventDefault();
+              e.currentTarget.click();
+            }}
+          >
+            <Icon name="ellipsis" size={20} />
+          </button>
+        ) as HTMLElement;
+        watch([opened], () => setAttr(button, 'aria-expanded', String(opened.value)));
         return (
           <nav class={classes.strip} aria-label="More buttons">
-            <button
-              type="button"
-              class={classes.tab}
-              data-tip="More"
-              data-tip-side="left"
-              aria-label="More"
-              aria-haspopup="menu"
-              aria-expanded={derive(menu.asReadonly, (m) => !!m)}
-              onClick={(e) => rail.toggleMenu(e.currentTarget)}
-              onKeyDown={(e) => {
-                // ↑ or ↓ opens it too (the menu button pattern); it opens at its first item.
-                if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || menu.value) return;
-                e.preventDefault();
-                e.currentTarget.click();
-              }}
-            >
-              <Icon name="ellipsis" size={20} />
-            </button>
+            {button}
           </nav>
         );
       }}
@@ -340,49 +365,59 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
         const restore = rememberFocus(() => m.anchor as HTMLElement);
         let list: HTMLElement | undefined;
         onCleanup(() => restore(list));
+        // The title of the item whose menu it shows (the theme's: its face's).
+        const face = m.item ? faceOf(m.item) : undefined;
+        const card = (
+          <div
+            class={canvasClasses.toolMenuCard}
+            role="menu"
+            aria-label={m.item ? staticTitle(m.item) : 'More'}
+            onKeyDown={menuKeys}
+            ref={(el) => {
+              list = el;
+              queueMicrotask(() => focusFirstItem(el));
+            }}
+          >
+            <ScrollArea class={classes.railMenuScroll} contentClass={classes.railMenuRows}>
+              {m.item ? (
+                <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
+              ) : (
+                <For each={rail.overflow} key={(e) => e.id}>
+                  {(entry) => <OverflowRow entry={entry} onRun={() => run(entry, m.anchor)} />}
+                </For>
+              )}
+            </ScrollArea>
+          </div>
+        ) as HTMLElement;
+        if (face) watch([face], () => setAttr(card, 'aria-label', face.value.title));
         return (
           <div class={classes.railMenu} style={{ bottom: `${m.bottom}px` }}>
-            <div
-              class={canvasClasses.toolMenuCard}
-              role="menu"
-              aria-label={m.item ? itemTitle(m.item) : 'More'}
-              onKeyDown={menuKeys}
-              ref={(el) => {
-                list = el;
-                queueMicrotask(() => focusFirstItem(el));
-              }}
-            >
-              <ScrollArea class={classes.railMenuScroll} contentClass={classes.railMenuRows}>
-                {m.item ? (
-                  <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
-                ) : (
-                  <For each={rail.overflow} key={(e) => e.id}>
-                    {(entry) => (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        class={canvasClasses.toolMenuRow}
-                        onClick={(e) => run(entry, m.anchor)}
-                      >
-                        {entry.tab ? (
-                          <Icon name={entry.tab.icon} size={16} />
-                        ) : (
-                          <ItemIcon item={entry.item!} size={16} />
-                        )}
-                        <span class={canvasClasses.toolMenuLabel}>
-                          {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
-                        </span>
-                        <span />
-                      </button>
-                    )}
-                  </For>
-                )}
-              </ScrollArea>
-            </div>
+            {card}
           </div>
         );
       }}
     </Show>
+  );
+}
+
+/** A button left out of the rail, as a row of the More menu: its icon and title (a theme button's follow its face). */
+function OverflowRow(props: { entry: RailEntry; onRun(): void }) {
+  const { entry } = props;
+  const face = entry.item ? faceOf(entry.item) : undefined;
+  const label = document.createTextNode(
+    entry.tab ? entry.tab.title : face ? face.value.title : staticTitle(entry.item!),
+  );
+  if (face) watch([face], () => setText(label, face.value.title));
+  return (
+    <button type="button" role="menuitem" class={canvasClasses.toolMenuRow} onClick={() => props.onRun()}>
+      {entry.tab ? (
+        <Icon name={entry.tab.icon} size={16} />
+      ) : (
+        <ItemIcon item={entry.item!} size={16} {...(face ? { face } : {})} />
+      )}
+      <span class={canvasClasses.toolMenuLabel}>{label}</span>
+      <span />
+    </button>
   );
 }
 
@@ -433,7 +468,7 @@ function openTabMenu(shell: ShellModel, tab: ShellTab, button: HTMLElement, at?:
 function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; panel: string }) {
   const { shell, dock, tab } = props;
   const selected = dockFacets(shell, dock).selected.key(tab.id);
-  return (
+  const button = (
     <button
       type="button"
       role="tab"
@@ -441,7 +476,6 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; p
       data-tip={tab.title}
       data-tip-side="left"
       aria-label={tab.title}
-      aria-selected={selected}
       aria-controls={props.panel}
       data-tab={tab.id}
       onClick={() => activateTab(shell, dock, tab)}
@@ -457,7 +491,10 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; p
     >
       <Icon name={tab.icon} size={20} />
     </button>
-  );
+  ) as HTMLElement;
+  // Selected: its own key of the open tab (a switch wakes the two tabs it concerns).
+  watch([selected], () => setAttr(button, 'aria-selected', String(selected.value)));
+  return button;
 }
 
 /**
@@ -595,7 +632,8 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
     if (size >= 0) shell.setSize(dock.id, size);
   });
   let press: { readonly active: boolean } | undefined;
-  return (
+  const size = dockFacets(shell, dock).size;
+  const splitter = (
     <div
       class={classes.splitter}
       role="separator"
@@ -603,7 +641,6 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       // From the keyboard too (WAI-ARIA's window splitter): ← and → resize by 16 px (64 with Shift).
       tabIndex={0}
       aria-label="Panel width"
-      aria-valuenow={derive(dockFacets(shell, dock).size, Math.round)}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
         e.preventDefault();
@@ -633,5 +670,7 @@ function Splitter(props: { shell: ShellModel; dock: DockModel }) {
       }}
       onDblClick={() => shell.setSize(dock.id, dock.id === 'left' ? 300 : 340)}
     />
-  );
+  ) as HTMLElement;
+  watch([size], () => setAttr(splitter, 'aria-valuenow', Math.round(size.value)));
+  return splitter;
 }

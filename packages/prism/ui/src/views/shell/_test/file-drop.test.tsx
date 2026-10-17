@@ -11,6 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { render } from '../../../dom/render.js';
+import { flush } from '../../../dom/scope.js';
 import { FileDropOverlay } from '../file-drop.js';
 
 /** A drag event carrying `types` and `files` (jsdom has no DataTransfer). */
@@ -30,17 +31,22 @@ describe('FileDropOverlay', () => {
     expect(overlay.hidden).toBe(true);
 
     root.dispatchEvent(drag('dragenter', []));
+    flush();
     expect(overlay.hidden).toBe(true);
 
     const file = new File(['data_1TQN'], '1tqn.cif');
     root.dispatchEvent(drag('dragenter', [file]));
+    flush();
     expect(overlay.hidden).toBe(false);
     overlay.dispatchEvent(drag('dragleave', [file]));
+    flush();
     expect(overlay.hidden).toBe(true);
 
     root.dispatchEvent(drag('dragenter', [file]));
+    flush();
     const drop = drag('drop', [file]);
     overlay.dispatchEvent(drop);
+    flush();
     expect(drop.defaultPrevented).toBe(true);
     expect(overlay.hidden).toBe(true);
     expect(dropped).toEqual([[file]]);

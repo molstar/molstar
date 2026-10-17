@@ -16,6 +16,8 @@ import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { Select } from '../../components/select/select.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { watch } from '../../dom/scope.js';
+import { setText } from '../../dom/writes.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { type KeyedValue, keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -85,6 +87,8 @@ export function HelpPanel(props: {
       `${c.title}: ${formatChord(chord)}${others.length ? `, also used by ${others.map((o) => o.title).join(' and ')}` : ''}.`,
     );
   };
+  const saidText = document.createTextNode('');
+  watch([said.asReadonly], () => setText(saidText, said.value));
   return (
     <ScrollArea edge class={classes.help} contentClass={classes.content} aria-label="Help">
       {props.intro?.()}
@@ -162,7 +166,7 @@ export function HelpPanel(props: {
           )}
         </Show>
         <span class={classes.srOnly} role="status" aria-live="polite">
-          {said.asReadonly}
+          {saidText}
         </span>
       </section>
     </ScrollArea>

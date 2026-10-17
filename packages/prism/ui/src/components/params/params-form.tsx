@@ -14,7 +14,7 @@ import { camelCaseToWords } from '@molstar/core/util/string';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { uniqueId } from '../../dom/focus.js';
-import { effect, frameState, watch } from '../../dom/scope.js';
+import { effect, frameState, type WatchSource, watch } from '../../dom/scope.js';
 import { setAttr, setStyle, setText } from '../../dom/writes.js';
 import { type ParamSection, ParamsFormModel, paramSections } from '../../forms/params-form.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
@@ -105,19 +105,22 @@ function ParamControls(props: {
     if (!visibles.has(name)) visibles.set(name, props.visible(name));
     return visibles.get(name);
   };
-  const shown = (name: string): ReadonlyState<boolean> | undefined => {
-    const v = visible(name);
-    if (!filter) return v;
-    return v
-      ? derive([v, filter], (a, q) => a && matches(name, params[name], q))
-      : derive(filter, (q) => matches(name, params[name], q));
-  };
-  // Hidden while none of its rows shows (all hidden by their hideIf, none matching a search); undefined: always shown
-  // (a row that always shows among them).
-  const hiddenWhenEmpty = (names: string[]) => {
-    const states = names.map(shown);
-    if (states.some((x) => !x)) return undefined;
-    return derive(states as ReadonlyState<boolean>[], (...vs) => !vs.some(Boolean));
+  // A section is hidden while none of its rows shows (all hidden by their hideIf, none matching a search): one watch of
+  // their hideIfs and the search, reading values in its render. Always shown (no watch) when a row among them is, with
+  // no search to hide it.
+  const hiddenWhenEmpty = (el: HTMLElement, names: string[]) => {
+    if (!filter && names.some((n) => !visible(n))) return el;
+    const sources: WatchSource[] = [];
+    for (const n of names) {
+      const v = visible(n);
+      if (v) sources.push(v);
+    }
+    if (filter) sources.push(filter);
+    watch(sources, () => {
+      const q = filter?.value ?? '';
+      setAttr(el, 'hidden', !names.some((n) => visible(n)?.value !== false && matches(n, params[n], q)));
+    });
+    return el;
   };
   const row = (name: string) => (
     <ParamRow
@@ -133,15 +136,20 @@ function ParamControls(props: {
     list.flatMap((s) =>
       s.category
         ? [
-            <div hidden={hiddenWhenEmpty(s.names)}>
-              <Collapsible
-                title={s.category}
-                state={place.form.fold(`${place.path}#${key}${s.category}`)}
-                force={force}
-              >
-                {() => s.names.map(row)}
-              </Collapsible>
-            </div>,
+            hiddenWhenEmpty(
+              (
+                <div>
+                  <Collapsible
+                    title={s.category}
+                    state={place.form.fold(`${place.path}#${key}${s.category}`)}
+                    force={force}
+                  >
+                    {() => s.names.map(row)}
+                  </Collapsible>
+                </div>
+              ) as HTMLElement,
+              s.names,
+            ),
           ]
         : s.names.map(row),
     );
@@ -149,11 +157,16 @@ function ParamControls(props: {
   return (
     <>
       {sections(essentials, '')}
-      <div hidden={hiddenWhenEmpty(advanced.flatMap((s) => s.names))}>
-        <Collapsible title="Advanced" state={place.form.fold(`${place.path}#advanced`)} force={force}>
-          {() => sections(advanced, 'advanced/')}
-        </Collapsible>
-      </div>
+      {hiddenWhenEmpty(
+        (
+          <div>
+            <Collapsible title="Advanced" state={place.form.fold(`${place.path}#advanced`)} force={force}>
+              {() => sections(advanced, 'advanced/')}
+            </Collapsible>
+          </div>
+        ) as HTMLElement,
+        advanced.flatMap((s) => s.names),
+      )}
     </>
   );
 }
@@ -205,38 +218,37 @@ function ParamRow(props: {
   const { name, param, binding, filter, place } = props;
   const label = labelOf(name, param);
   const visible = props.visible;
-  const shown = filter
-    ? visible
-      ? derive([visible, filter], (v, q) => v && matches(name, param, q))
-      : derive(filter, (q) => matches(name, param, q))
-    : visible;
-  const hidden = shown && derive(shown, (v) => !v);
+  // Hidden by its hideIf and the search: one watch of both, reading their values (no watch when neither applies).
+  const sources: WatchSource[] = [];
+  if (visible) sources.push(visible);
+  if (filter) sources.push(filter);
+  const wrapper = (...children: Child[]) => {
+    const el = (<div>{children}</div>) as HTMLElement;
+    if (sources.length)
+      watch(sources, () =>
+        setAttr(el, 'hidden', !((visible?.value ?? true) && matches(name, param, filter?.value ?? ''))),
+      );
+    return el;
+  };
   // A group or a choice whose own name matches shows all of its rows.
   const inner = filter && derive(filter, (q) => (label.toLowerCase().includes(q) ? '' : q));
   if (param.type === 'group') {
-    return (
-      <div hidden={hidden}>
-        <GroupControl
-          label={label}
-          param={param}
-          binding={binding}
-          filter={inner}
-          force={searching(filter)}
-          place={place}
-        />
-      </div>
+    return wrapper(
+      <GroupControl
+        label={label}
+        param={param}
+        binding={binding}
+        filter={inner}
+        force={searching(filter)}
+        place={place}
+      />,
     );
   }
   // Its help (a description, a legend; for a theme choice, the chosen theme's): a ? by the label, opening under the row.
   // The label's text has an id: the row's control is labelled by it (accessibility.md: every field has a name).
   const labelId = uniqueId('msp-field');
   const { head, block } = withHelp(label, helpOf(param, binding.value), labelId);
-  const wrap = (row: Child) => (
-    <div hidden={hidden}>
-      {row}
-      {block}
-    </div>
-  );
+  const wrap = (row: Child) => wrapper(row, block);
   if (param.type === 'mapped') {
     return wrap(
       isOnOff(param) ? (
@@ -318,6 +330,7 @@ function ColorRow(props: {
   const { binding, labelId } = props;
   const open = observableState(false);
   let swatch!: HTMLElement;
+  let toggle!: HTMLElement;
   const channels = document.createTextNode('');
   const content = (
     <>
@@ -328,7 +341,7 @@ function ColorRow(props: {
             type="button"
             class={classes.color}
             aria-labelledby={`${labelId} ${labelId}-value`}
-            aria-expanded={open}
+            ref={(el: HTMLElement) => (toggle = el)}
             onClick={() => open.set(!open.value)}
           >
             <span class={classes.swatch} ref={(el: HTMLElement) => (swatch = el)} />
@@ -343,10 +356,11 @@ function ColorRow(props: {
       </Show>
     </>
   );
-  watch([binding.value], () => {
+  watch([binding.value, open], () => {
     const v = binding.get() as number;
     setStyle(swatch, 'background', colorToHex(v));
     setText(channels, colorToRgb(v));
+    setAttr(toggle, 'aria-expanded', String(open.value));
   });
   return content;
 }
@@ -378,8 +392,11 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
   const names = derive(binding.value, (v: Asset.File | Asset.File[] | null) =>
     (v ? (Array.isArray(v) ? v : [v]) : []).map((f) => f.name),
   );
-  return (
-    <div class={classes.file} data-dragging={derive(dragging.asReadonly, (d) => (d ? '' : undefined))}>
+  let root!: HTMLElement;
+  let nameField!: HTMLElement;
+  const namesText = document.createTextNode('');
+  const content = (
+    <div class={classes.file} ref={(el: HTMLElement) => (root = el)}>
       <button
         type="button"
         class={classes.filePick}
@@ -400,17 +417,9 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
         <span
           class={classes.fileNames}
           id={labelId ? `${labelId}-value` : undefined}
-          data-empty={derive(names, (n) => (n.length ? undefined : ''))}
+          ref={(el: HTMLElement) => (nameField = el)}
         >
-          {derive(names, (n) =>
-            n.length === 0
-              ? multiple
-                ? 'Select files…'
-                : 'Select a file…'
-              : n.length === 1
-                ? n[0]
-                : `${n.length} files · ${n.join(', ')}`,
-          )}
+          {namesText}
         </span>
       </button>
       <Show when={derive(names, (n) => n.length > 0)}>
@@ -429,6 +438,22 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
       {input}
     </div>
   );
+  watch([names, dragging], () => {
+    const n = names.value;
+    setAttr(root, 'data-dragging', dragging.value);
+    setAttr(nameField, 'data-empty', n.length === 0);
+    setText(
+      namesText,
+      n.length === 0
+        ? multiple
+          ? 'Select files…'
+          : 'Select a file…'
+        : n.length === 1
+          ? n[0]
+          : `${n.length} files · ${n.join(', ')}`,
+    );
+  });
+  return content;
 }
 
 /** A plain row's control, labelled by the row's label (`labelId`; `label` its text, for the parts of a compound one). */
@@ -610,17 +635,15 @@ function SelectRow(props: {
   // Mol*'s option categories are the list's groups.
   const indexed = options.map(([, label, group], i) => [String(i), label, group] as const);
   let control: HTMLElement | undefined;
-  return (
+  // The button's text: a node of the row's own, written by the row's watch. SelectButton's label is typed a string or a
+  // stream, and renders a node as it is (TODO: type it `Child`).
+  const labelText = document.createTextNode('');
+  const content = (
     <>
       <div class={classes.row}>
         <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control} ref={(el: HTMLElement) => (control = el)}>
-          <SelectButton
-            size="sm"
-            open={open}
-            aria-label={props.label}
-            label={derive(index, (i) => indexed[Number(i)]?.[1] ?? '')}
-          />
+          <SelectButton size="sm" open={open} aria-label={props.label} label={labelText as unknown as string} />
           {props.after}
         </div>
       </div>
@@ -645,6 +668,8 @@ function SelectRow(props: {
       </Show>
     </>
   );
+  watch([index], () => setText(labelText, indexed[Number(index.value)]?.[1] ?? ''));
+  return content;
 }
 
 function GroupControl(props: {
@@ -736,7 +761,8 @@ function PresetsRow(props: {
 }) {
   const open = observableState(false);
   let control: HTMLElement | undefined;
-  return (
+  const labelText = document.createTextNode('');
+  const content = (
     <>
       <div class={classes.row}>
         <span class={classes.label}>Presets</span>
@@ -745,7 +771,7 @@ function PresetsRow(props: {
             size="sm"
             open={open}
             aria-label={`${props.label} presets`}
-            label={derive(props.current, (i) => (i === undefined ? 'Custom' : props.presets[i][1]))}
+            label={labelText as unknown as string}
           />
         </div>
       </div>
@@ -758,6 +784,11 @@ function PresetsRow(props: {
       />
     </>
   );
+  watch([props.current], () => {
+    const i = props.current.value;
+    setText(labelText, i === undefined ? 'Custom' : props.presets[i][1]);
+  });
+  return content;
 }
 
 /** Mol*'s on/off pattern (occlusion, shadows, outline): a mapped param whose choices are exactly 'on' and 'off'. */
@@ -807,16 +838,11 @@ function OnOffControl(props: {
           {hasSettings ? (
             <Show when={on}>
               {() => (
-                <button
-                  type="button"
-                  class={classes.settings}
-                  title={`${props.label} settings`}
-                  aria-label={`${props.label} settings`}
-                  aria-expanded={open}
+                <ExpandButton
+                  open={open.asReadonly}
+                  label={`${props.label} settings`}
                   onClick={() => open.set(!open.value)}
-                >
-                  <Icon name="sliders-horizontal" size={14} />
-                </button>
+                />
               )}
             </Show>
           ) : null}
@@ -878,16 +904,12 @@ function MappedControl(props: {
   const toggle = (
     <Show when={hasToggle}>
       {() => (
-        <button
-          type="button"
-          class={`${classes.settings} ${classes.afterSelect}`}
-          title={`${props.label} settings`}
-          aria-label={`${props.label} settings`}
-          aria-expanded={shown}
+        <ExpandButton
+          open={shown}
+          label={`${props.label} settings`}
+          extraClass={classes.afterSelect}
           onClick={() => open.set(!open.value)}
-        >
-          <Icon name="sliders-horizontal" size={14} />
-        </button>
+        />
       )}
     </Show>
   );
@@ -1014,7 +1036,8 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
   });
   const expression = part('expression');
   const expressionId = uniqueId('msp-field');
-  return (
+  let area!: HTMLTextAreaElement;
+  const content = (
     <div class={classes.mapped}>
       <SelectRow label={props.label} head={props.head} options={ScriptLanguages} binding={part('language')} />
       <div class={classes.nested}>
@@ -1028,7 +1051,7 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
               aria-labelledby={expressionId}
               rows={3}
               spellcheck={false}
-              value={expression.value}
+              ref={(el: HTMLTextAreaElement) => (area = el)}
               onChange={(e) => expression.set(e.currentTarget.value)}
             />
           </div>
@@ -1036,6 +1059,8 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
       </div>
     </div>
   );
+  watch([expression.value], () => setValue(area, expression.get()));
+  return content;
 }
 
 /**
@@ -1052,12 +1077,13 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
     list[i] = item;
     binding.set(list);
   };
-  return (
+  const count = document.createTextNode('');
+  const content = (
     <>
       <div class={classes.row}>
         <span class={classes.label}>{props.head}</span>
         <div class={classes.control}>
-          <span class={classes.count}>{derive(items, (l) => (l.length === 1 ? '1 item' : `${l.length} items`))}</span>
+          <span class={classes.count}>{count}</span>
         </div>
       </div>
       {/* The items in one quiet list under the row; Add ends it. */}
@@ -1088,6 +1114,11 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
       </div>
     </>
   );
+  watch([items], () => {
+    const n = items.value.length;
+    setText(count, n === 1 ? '1 item' : `${n} items`);
+  });
+  return content;
 }
 
 function ObjectListItem(props: {
@@ -1098,19 +1129,20 @@ function ObjectListItem(props: {
 }) {
   const { param, binding, index } = props;
   const open = observableState(false);
-  return (
-    <div class={classes.item} data-open={derive(open.asReadonly, (o) => (o ? '' : undefined))}>
+  let root!: HTMLElement;
+  let edit!: HTMLElement;
+  const labelText = document.createTextNode('');
+  const content = (
+    <div class={classes.item} ref={(el: HTMLElement) => (root = el)}>
       {/* A click anywhere on the row opens or closes the item's params (the sliders say so; remove does not). */}
       <div class={classes.itemRow} onClick={() => open.set(!open.value)}>
-        <span class={classes.itemLabel}>
-          {derive(binding.value, (v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : ''))}
-        </span>
+        <span class={classes.itemLabel}>{labelText}</span>
         <button
           type="button"
           class={classes.settings}
           title="Edit"
           aria-label="Edit"
-          aria-expanded={open}
+          ref={(el: HTMLElement) => (edit = el)}
           onClick={(e) => {
             e.stopPropagation();
             open.set(!open.value);
@@ -1146,6 +1178,33 @@ function ObjectListItem(props: {
       </Show>
     </div>
   );
+  // The item's label only: a change of another item in the list wakes this watch no further.
+  const label = derive(binding.value, (v: unknown[] | undefined) =>
+    v?.[index] !== undefined ? param.getLabel(v[index]) : '',
+  );
+  watch([label, open], () => {
+    setText(labelText, label.value);
+    setAttr(root, 'data-open', open.value);
+    setAttr(edit, 'aria-expanded', String(open.value));
+  });
+  return content;
+}
+
+/** The sliders button that opens a choice's or a switch's settings: `aria-expanded` follows `open`. */
+function ExpandButton(props: { open: ReadonlyState<boolean>; label: string; extraClass?: string; onClick(): void }) {
+  const el = (
+    <button
+      type="button"
+      class={props.extraClass ? `${classes.settings} ${props.extraClass}` : classes.settings}
+      title={props.label}
+      aria-label={props.label}
+      onClick={props.onClick}
+    >
+      <Icon name="sliders-horizontal" size={14} />
+    </button>
+  ) as HTMLElement;
+  watch([props.open], () => setAttr(el, 'aria-expanded', String(props.open.value)));
+  return el;
 }
 
 function defaults(param: PD.Any): any {
@@ -1186,19 +1245,22 @@ function Collapsible(props: {
   }
   // Forced open while a filter is set (its matches are inside); the user's choice again once it clears.
   const open = props.force ? derive([own.asReadonly, props.force], (o, f) => o || f) : own.asReadonly;
-  return (
+  const meta = props.meta;
+  let header!: HTMLElement;
+  const metaText = document.createTextNode('');
+  const content = (
     <div class={classes.collapsible}>
       <div class={classes.collapsibleBar}>
         <button
           type="button"
           class={classes.collapsibleHeader}
-          aria-expanded={open}
+          ref={(el: HTMLElement) => (header = el)}
           onClick={() => own.set(!own.value)}
         >
           {/* The name first, aligned with the labels; the chevron after it. */}
           {props.title}
           <Icon name="chevron-right" size={12} class={classes.chevron} />
-          {props.meta ? <span class={classes.collapsibleMeta}>{props.meta}</span> : null}
+          {meta ? <span class={classes.collapsibleMeta}>{metaText}</span> : null}
         </button>
         {props.action}
       </div>
@@ -1208,4 +1270,9 @@ function Collapsible(props: {
       </Show>
     </div>
   );
+  watch(meta ? [open, meta] : [open], () => {
+    setAttr(header, 'aria-expanded', String(open.value));
+    if (meta) setText(metaText, meta.value);
+  });
+  return content;
 }

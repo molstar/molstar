@@ -10,6 +10,8 @@
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Show } from '../../dom/control-flow.js';
+import { watch } from '../../dom/scope.js';
+import { setAttr } from '../../dom/writes.js';
 import type { ObservableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
@@ -23,7 +25,7 @@ import { classes } from './_generated/params-form.module.css.js';
  */
 export function PresetsButton(props: { open: ObservableState<boolean>; label: string }) {
   const { open } = props;
-  return (
+  const el = (
     <button
       type="button"
       class={classes.presets}
@@ -31,7 +33,6 @@ export function PresetsButton(props: { open: ObservableState<boolean>; label: st
       aria-label={`${props.label} presets`}
       // The list's opener: a press on it toggles the list (it is not a press outside that closes it first).
       aria-haspopup="listbox"
-      aria-expanded={open}
       onClick={(e) => {
         // In a group's header: the click is the presets', not the header's (it would fold the group).
         e.stopPropagation();
@@ -41,7 +42,9 @@ export function PresetsButton(props: { open: ObservableState<boolean>; label: st
       <Icon name="swatch-book" size={12} />
       Presets
     </button>
-  );
+  ) as HTMLElement;
+  watch([open], () => setAttr(el, 'aria-expanded', String(open.value)));
+  return el;
 }
 
 /** Where each presets list opens from: its button (`PresetsButton`), by the state they share. */

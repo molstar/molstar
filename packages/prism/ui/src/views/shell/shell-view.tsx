@@ -11,8 +11,9 @@
 import { activity, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { eventTarget, isEditable, ownsKey } from '../../dom/events.js';
-import { bind, type MaybeReactive, onCleanup } from '../../dom/scope.js';
+import { type MaybeReactive, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
 import { observeResize, on } from '../../dom/scoped.js';
+import { setAttr, setStyle } from '../../dom/writes.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive } from '../../reactive/state.js';
@@ -173,8 +174,11 @@ export function ShellView(props: ShellViewProps) {
     </div>
   ) as HTMLElement;
   const canvasShown = (shown: boolean) => canvasBox.toggleAttribute('data-quiet', !shown);
+  let viewport!: HTMLElement;
+  let canvasLayer!: HTMLElement;
+  let chromeLayer!: HTMLElement;
   const root = (
-    <div class={classes.shell} data-mode={shell.mode} data-expanded={derive(expanded, (e) => (e ? '' : undefined))}>
+    <div class={classes.shell}>
       <Show when={derive([floatingTop, expanded], (f, e) => !f && !e)}>
         {() => <DockView shell={shell} dock={top} />}
       </Show>
@@ -183,39 +187,21 @@ export function ShellView(props: ShellViewProps) {
         class={classes.viewport}
         // The canvas and what floats over it (the sequence band, cards): the hover label follows the pointer here.
         data-msp-viewport=""
+        // What never changes; what follows the layout is written by the shell's watches below.
         style={{
           '--msp-canvas-edge': `${Edge}px`,
-          '--msp-canvas-right-inset': rightInset,
-          // Where the bottom-right corner (the toolbar and the selection) ends: it does not move with a floating panel,
-          // which stops above it (`--msp-corner-room`); pinned, the canvas itself ends at the panel.
-          '--msp-canvas-corner-inset': cornerInset,
           '--msp-corner-room': `${CornerRoom}px`,
-          '--msp-canvas-top-inset': topInset,
-          // Where the canvas and a band end, px from the right: the rail (and a pinned panel). Anchored to the viewport's
-          // right edge.
-          '--msp-canvas-end': derive(canvasEnd, (px) => `${px}px`),
           '--msp-band-fade': `${BandFadePx}px`,
           '--msp-band-dissolve': `${BandDissolvePx}px`,
-          // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
-          '--msp-canvas-rail-inset': railInset,
-          '--msp-right-panel-width': rightPanelWidth,
-          // Where cards beside the rail end (the floating panel's right edge).
-          '--msp-canvas-panel-right': railInset,
-          // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
-          '--msp-canvas-pinned': derive(pinnedWidth, (px) => `${px}px`),
-          // The canvas's own color under it: a canvas fading in (`reveal`) shows the structure coming, not the shell.
-          background: props.ink ? derive(props.ink, (i) => i.color) : undefined,
         }}
+        ref={(el) => (viewport = el)}
       >
         {canvasBox}
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}
-          data-msp-theme={props.ink ? derive(props.ink, (i) => i.theme) : 'light'}
-          style={{
-            // Every derived shade (glass, controls, hover, muted text) follows from the base color.
-            '--msp-color-bg': props.ink ? derive(props.ink, (i) => i.color) : undefined,
-          }}
+          data-msp-theme={props.ink ? undefined : 'light'}
+          ref={(el) => (canvasLayer = el)}
         >
           <Show when={derive([floatingTop, expanded], (f, e) => f && !e)}>
             {() => <FloatingDock shell={shell} dock={top} />}
@@ -254,12 +240,7 @@ export function ShellView(props: ShellViewProps) {
           </div>
         </div>
         {/* The application's own chrome over the canvas (the rail, the panel, the cards): the UI theme. */}
-        <div
-          class={classes.layer}
-          data-right-panel={rightPanelOpen}
-          data-pinned={derive(pinned, (p) => (p ? '' : undefined))}
-          data-overlay={derive(shell.overlay, (o) => (o ? 'open' : undefined))}
-        >
+        <div class={classes.layer} ref={(el) => (chromeLayer = el)}>
           <OverlayHost shell={shell} />
           {/* Over the canvas, beside the rail and the open panel (they stay, and the page makes room for them). */}
           <PageHost shell={shell} />
@@ -303,8 +284,10 @@ export function ShellView(props: ShellViewProps) {
                       )}
                     />
                   )) as HTMLElement;
-                  bind(shell.railShown, (shown) => dock.toggleAttribute('data-rail-hidden', !shown));
-                  bind(shell.compactRail, (c) => dock.toggleAttribute('data-rail-overlay', c));
+                  watch([shell.railShown, shell.compactRail], () => {
+                    setAttr(dock, 'data-rail-hidden', !shell.railShown.value);
+                    setAttr(dock, 'data-rail-overlay', shell.compactRail.value);
+                  });
                   return dock;
                 }}
               </Show>
@@ -326,6 +309,46 @@ export function ShellView(props: ShellViewProps) {
       <BusyOverlay status={status} />
     </div>
   ) as HTMLElement;
+  // The frame as a function of the layout (each source a gate over the dock and shell states, above): what floats takes
+  // its insets from these; one watch for the viewport's variables, others for the attributes of the layers.
+  watch([shell.mode, expanded], () => {
+    setAttr(root, 'data-mode', shell.mode.value);
+    setAttr(root, 'data-expanded', expanded.value);
+  });
+  const insets: WatchSource[] = [rightInset, cornerInset, topInset, canvasEnd, railInset, rightPanelWidth, pinnedWidth];
+  if (props.ink) insets.push(props.ink);
+  watch(insets, () => {
+    setStyle(viewport, '--msp-canvas-right-inset', rightInset.value);
+    // Where the bottom-right corner (the toolbar and the selection) ends: it does not move with a floating panel, which
+    // stops above it (`--msp-corner-room`); pinned, the canvas itself ends at the panel.
+    setStyle(viewport, '--msp-canvas-corner-inset', cornerInset.value);
+    setStyle(viewport, '--msp-canvas-top-inset', topInset.value);
+    // Where the canvas and a band end, px from the right: the rail (and a pinned panel). Anchored to the viewport's
+    // right edge.
+    setStyle(viewport, '--msp-canvas-end', `${canvasEnd.value}px`);
+    // Clear of the rail only (what sits beside it whatever the panel does: the compact stack); where cards beside the
+    // rail end (the floating panel's right edge).
+    setStyle(viewport, '--msp-canvas-rail-inset', railInset.value);
+    setStyle(viewport, '--msp-canvas-panel-right', railInset.value);
+    setStyle(viewport, '--msp-right-panel-width', rightPanelWidth.value);
+    // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
+    setStyle(viewport, '--msp-canvas-pinned', `${pinnedWidth.value}px`);
+    // The canvas's own color under it: a canvas fading in (`reveal`) shows the structure coming, not the shell.
+    setStyle(viewport, 'background', props.ink?.value.color);
+  });
+  if (props.ink) {
+    const ink = props.ink;
+    watch([ink], () => {
+      setAttr(canvasLayer, 'data-msp-theme', ink.value.theme);
+      // Every derived shade (glass, controls, hover, muted text) follows from the base color.
+      setStyle(canvasLayer, '--msp-color-bg', ink.value.color);
+    });
+  }
+  watch([rightPanelOpen, pinned, shell.overlay], () => {
+    setAttr(chromeLayer, 'data-right-panel', rightPanelOpen.value);
+    setAttr(chromeLayer, 'data-pinned', pinned.value);
+    setAttr(chromeLayer, 'data-overlay', shell.overlay.value ? 'open' : null);
+  });
   if (props.onDropFiles) {
     root.appendChild(
       (<FileDropOverlay target={root} onDrop={props.onDropFiles} formats={props.dropFormats} />) as Node,

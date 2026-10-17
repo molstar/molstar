@@ -1,7 +1,7 @@
 {
   "prism/ui/managers/navigation.ts": {
     "noDom": 0,
-    "sameDerives": 34
+    "sameDerives": 29
   },
   "prism/ui/managers/notifications.ts": {
     "noDom": 0,
@@ -29,6 +29,6 @@
   },
   "prism/viewer/sources/watched.ts": {
     "noDom": 7,
-    "sameDerives": 14
+    "sameDerives": 7
   }
 }
