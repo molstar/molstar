@@ -12,6 +12,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { For } from '@molstar/prism-ui/dom/control-flow';
 import { render } from '@molstar/prism-ui/dom/render';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { flattenTree, VirtualList } from '@molstar/prism-ui';
@@ -532,11 +533,14 @@ export const SceneTreeBenchmark: StoryObj = {
 
 /**
  * Both real trees at their largest, to use by hand: scroll, and the keyboard (Up/Down, Home/End, Left/Right to close
- * and open, Enter to select). The readout counts the rows in the DOM against the rows of the tree. Storybook's
- * accessibility checks stay on: a window of rows is all they see.
+ * and open, Enter to select). The readout counts the rows in the DOM against the rows of the tree. Mounted outside
+ * Storybook's root and with its accessibility checks off: its addons watch every DOM change under the root (axe runs
+ * again, the highlight addon re-scans styles, ~13 ms a time), so a scrollbar drag, which changes rows every frame, would
+ * time them, and more the longer it goes.
  */
 export const Interactive: StoryObj = {
   name: 'Virtualized trees (interactive)',
+  parameters: noA11y,
   render: () =>
     story(() => {
       const fixture = makeScene(1000, 3);
@@ -593,23 +597,43 @@ export const Interactive: StoryObj = {
         render(view, el);
         return el;
       };
-      return (
-        <div
-          class="msp-root"
-          style="display: flex; gap: var(--msp-space-5); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);"
-        >
-          {panel(
-            `Scene tree: ${fixture.components.length} components, ${fixture.representations} representations`,
-            mount(() => <SceneTree scene={fixture.scene} />),
-          )}
-          {panel(
-            `State tree: ${cells} cells`,
-            mount(() => <StateTreeTab model={model} />),
-          )}
-        </div>
-      );
+      const content = () => interactivePanels(fixture, model, cells, panel, mount);
+      const host = document.createElement('div');
+      host.className = 'msp-root';
+      host.style.cssText = 'position: fixed; inset: 0; overflow: auto; background: var(--msp-color-bg);';
+      document.body.append(host);
+      const dispose = render(() => content(), host);
+      onCleanup(() => {
+        dispose();
+        host.remove();
+      });
+      return <p>The trees are mounted outside Storybook's root (its addons watch every change there).</p>;
     }),
 };
+
+function interactivePanels(
+  fixture: ReturnType<typeof makeScene>,
+  model: ReturnType<typeof treeModel>,
+  cells: number,
+  panel: (title: string, body: () => HTMLElement) => HTMLElement,
+  mount: (view: () => Node) => () => HTMLElement,
+) {
+  return (
+    <div
+      class="msp-root"
+      style="display: flex; gap: var(--msp-space-5); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);"
+    >
+      {panel(
+        `Scene tree: ${fixture.components.length} components, ${fixture.representations} representations`,
+        mount(() => <SceneTree scene={fixture.scene} />),
+      )}
+      {panel(
+        `State tree: ${cells} cells`,
+        mount(() => <StateTreeTab model={model} />),
+      )}
+    </div>
+  );
+}
 
 /**
  * Probes for profiling from the console: render the real tab at `structures` × 201 cells, optionally with the fades
