@@ -52,6 +52,14 @@ Sources turn an engine's APIs (the plugin's managers and events) into `ReadonlyS
 - **One change, one emission**: code that sets several states for one change wraps it in `batch`, so each emits once
   with its final value (views render once per task anyway: `watch`, [rendering.md](rendering.md) §2.3); long lists mark
   the current item with `keyedSelector` (a row watches `key(its key)`), so a pick renders the two rows concerned.
+- **A row never listens to a whole shared value it cares about one key of.** The current item of a list (the picked
+  node, the selected cell, the highlighted option, the current model) is a `keyedSelector(state)`, made once per list; a
+  row follows `key(its key)`, told only when it becomes or stops being current. Values per row (a tree's places and open
+  states) are a `keyedState`; the flattening `replace`s the map and only the rows whose value changed are told. Measured
+  on the scene tree with 48 rows mounted: a pick went from 97 listener calls and renders (82 on untouched rows) to 6
+  (none), a reflow below the window from 101 (91) to 5 (none, no render)
+  (`views/structure/_test/scene-tree-keyed.test.tsx`; rendering.md §1). Small fixed option groups (a theme's three
+  choices) may read the shared value whole.
 - **After the transaction**: sources update when the engine's transaction ends, not on intermediate trees.
 - **Long lists stay cheap**: a list that can grow past a screenful of rows is virtualized (`components/virtual-list`):
   only the window is in the DOM. Rows are of one height, measured (compact mode's taller rows need nothing); what would

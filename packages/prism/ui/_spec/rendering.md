@@ -20,11 +20,10 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   Trees › Rows made, Chromium, 1,000 components open, far jumps of 27 rows; JS heap per row made after GC; script with
   the scroll's layout at the frame):
 
-  | scene-tree row                               | heap per row | script per row made | a row step |
-  | -------------------------------------------- | ------------ | ------------------- | ---------- |
-  | rxjs pipes per attribute (the JSX before)    | 14.7 KB      | 0.076 ms            | 0.32 ms    |
-  | the same JSX, `derive` in place of the pipes | 8.8 KB       | 0.071 ms            | 0.29 ms    |
-  | one `watch` render                           | 3.4 KB       | 0.058 ms            | 0.30 ms    |
+  | scene-tree row | heap per row | script per row made | a row step | | -------------------------------------------- |
+  ------------ | ------------------- | ---------- | --- | | rxjs pipes per attribute (the JSX before) | 14.7 KB | 0.076
+  ms | 0.32 ms | | the same JSX, `derive` in place of the pipes | 8.8 KB | 0.071 ms | 0.29 ms | | one `watch` render |
+  3.4 KB | 0.058 ms | 0.30 ms |
 
   (On the rxjs base before it, the pipe row was 16.1 KB.) Converted to `watch`, other views gained alike: a state tree
   cell 8.7 → 3.4 KB, a command menu row 2.2 → 1.2 KB (a keystroke 1.34 → 1.23 ms), a params form field 3.3 → 2.4 KB (a
@@ -38,23 +37,25 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   between); calls are listener calls, derived recomputes and `watch` renders per update (a burst: per burst), in
   brackets those on rows the update does not change (from 48 rows against 12):
 
-  | case (per update)                     | rxjs pipes             | `derive` JSX            | `watch`, DOM compares    | `watch` (JS compares)   |
-  | ------------------------------------- | ---------------------- | ----------------------- | ------------------------ | ----------------------- |
-  | a row's label                         | 0.6 µs, 85 B, 1        | 0.6 µs, 85 B, 1         | 3.0 µs, 229 B, 2         | 1.0 µs, 189 B, 2        |
-  | a row's hidden (class, title, icon)   | 3.6 µs, 466 B, 4       | 3.3 µs, 466 B, 6        | 1.9 µs, 183 B, 2         | 1.1 µs, 142 B, 2        |
-  | a row's swatch (a style)              | 0.4 µs, 71 B, 1        | 0.4 µs, 71 B, 3         | 1.2 µs, 199 B, 2         | 0.8 µs, 199 B, 2        |
-  | the pick moves between two rows       | 4.9 µs, 937 B, 97 (82) | 2.1 µs, 933 B, 101 (92) | 59 µs, 5.2 KB, 97 (82)   | 4.9 µs, 3.3 KB, 97 (82) |
-  | a reflow far below (places map anew)  | 86 µs, 275 B, 53 (45)  | 82 µs, 322 B, 101 (91)  | 130 µs, 4.3 KB, 101 (91) | 87 µs, 2.9 KB, 101 (91) |
-  | 100 label sets in one task (10 rows)  | 25 µs, 6.3 KB, 100     | 26 µs, 6.3 KB, 100      | 18.5 µs, 3.0 KB, 110     | 7.2 µs, 2.8 KB, 110     |
-  | 100 sets, each in its own task, a set | 14 µs, 1               | 16 µs, 1                | 38 µs, 2                 | 19 µs, 2                |
+  | case (per update)                     | rxjs pipes             | `derive` JSX            | `watch`, DOM compares    | `watch` (JS compares)   | `watch`, keyed (now)  |
+  | ------------------------------------- | ---------------------- | ----------------------- | ------------------------ | ----------------------- | --------------------- |
+  | a row's label                         | 0.6 µs, 85 B, 1        | 0.6 µs, 85 B, 1         | 3.0 µs, 229 B, 2         | 1.0 µs, 189 B, 2        | 1.1 µs, 189 B, 2      |
+  | a row's hidden (class, title, icon)   | 3.6 µs, 466 B, 4       | 3.3 µs, 466 B, 6        | 1.9 µs, 183 B, 2         | 1.1 µs, 142 B, 2        | 1.2 µs, 142 B, 2      |
+  | a row's swatch (a style)              | 0.4 µs, 71 B, 1        | 0.4 µs, 71 B, 3         | 1.2 µs, 199 B, 2         | 0.8 µs, 199 B, 2        | 0.9 µs, 199 B, 2      |
+  | the pick moves between two rows       | 4.9 µs, 937 B, 97 (82) | 2.1 µs, 933 B, 101 (92) | 59 µs, 5.2 KB, 97 (82)   | 4.9 µs, 3.3 KB, 97 (82) | 2.1 µs, 1.0 KB, 6 (0) |
+  | a reflow far below (places map anew)  | 86 µs, 275 B, 53 (45)  | 82 µs, 322 B, 101 (91)  | 130 µs, 4.3 KB, 101 (91) | 87 µs, 2.9 KB, 101 (91) | 82 µs, 335 B, 5 (0)   |
+  | 100 label sets in one task (10 rows)  | 25 µs, 6.3 KB, 100     | 26 µs, 6.3 KB, 100      | 18.5 µs, 3.0 KB, 110     | 7.2 µs, 2.8 KB, 110     | 8.1 µs, 2.8 KB, 110   |
+  | 100 sets, each in its own task, a set | 14 µs, 1               | 16 µs, 1                | 38 µs, 2                 | 19 µs, 2                | 20 µs, 2              |
 
   With bindings the DOM is right when `set` returns; with `watch` a read right after `set` sees the old DOM until the
   microtask (or `flush()`), and `set` itself costs 0.1–1.3 µs (marking). A row's own change costs about the same either
   way (1 µs). A state every row reads (the pick) runs every row: two cold rxjs chains a row, a `derive` per row, or a
   render per row; a `watch` render that compares its sources' values with what it last wrote, in JS, costs what the
-  chains do (4.9 µs); one that compares with the DOM (`getAttribute`, `classList`) costs twelve times that. A burst in
-  one task is one render a row (7 µs against 25). A set alone in its task pays the microtask and the flush (19 µs
-  against 14–16). The reflow's 80 µs is the tree's flattening, not its rows.
+  chains do (4.9 µs); one that compares with the DOM (`getAttribute`, `classList`) costs twelve times that. Keyed (the
+  last column: a row follows `keyedSelector(picked).key(node)` and `keyedState` places, view-models.md §3), the rows an
+  update does not change do nothing: a pick is 6 calls (2 renders) and 2.1 µs, a reflow below the window 5 calls and no
+  render. A burst in one task is one render a row (7 µs against 25). A set alone in its task pays the microtask and the
+  flush (19 µs against 14–16). The reflow's 80 µs is the tree's flattening, not its rows.
 
 - **While a structure animates, the UI is 2–6% of the main thread's work** (0.01–0.02 of 0.4–0.5 ms a frame; the table
   and the hidden-UI checks are in [styling.md](styling.md) §5).
