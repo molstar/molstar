@@ -680,3 +680,27 @@ the [API change ledger](breaking-v6-changes.md).
   sequence's own short label shows only for what has no counterpart in the structure.
 - `@molstar/core/util/markdown`: a small Markdown tokenizer (`parseMarkdown`, `parseMarkdownInline`, a typed tree, HTML
   dropped; `isSafeMarkdownHref` for renderers that follow links).
+
+## Prism and Seq\*: fixes from the review of this batch
+
+- `@molstar/core/util/markdown`: parsing is linear in its input, including hostile input (headings, lists, inline
+  marks); strong, emphasis and links nest at most 8 deep. `isSafeMarkdownHref` reads the scheme as a browser does
+  (`\x01javascript:` and `java\tscript:` are rejected). Link destinations keep balanced parentheses and decode entities
+  and escapes; `&constructor;` and other names an object inherits stay text (also in Prism's hover labels).
+- Prism: a work run that throws no longer stops other work queues; task-lane work that keeps wanting work, or a
+  task-lane budget's carry-over, yields to the page instead of hanging it.
+- Prism: a state's `value` is the latest set, also while listeners are being told; every listener of a state, derived
+  value or keyed value ends on the latest value.
+- Prism: drags follow only the pointer that started them; a cancelled drag never moves a row.
+- Prism: the hover label hides one frame after it empties or the pointer leaves (it was two), and shows at once in the
+  corner.
+- Prism: exporting, copying or previewing an image, or taking a snapshot's thumbnail, from a viewer scrolled out of view
+  renders its current scene (it was missing recent changes, or blank on a released context).
+- Prism: many viewers mounted at once never pass the browser's WebGL context limit; past the page's maximum, the last
+  ones in view wait for a free context. Stop cancels a video export that is still waiting for its canvas.
+- Prism: synced cameras no longer shrink a larger scene's clipping and fog to a smaller viewer's. The XR button no
+  longer shows under `ui.xr: 'always'` where XR is unavailable.
+- Seq\*: a color scheme's legend on a dark skin lists the colors drawn (ESPript listed its light colors as well); the
+  secondary-structure hover outline sits on the shapes when labels are shown; a sequence band shown again after being
+  hidden resumes its loading shimmer or fade; a unit's coordinate-system descriptor lists a numbering added to its
+  molecule.
