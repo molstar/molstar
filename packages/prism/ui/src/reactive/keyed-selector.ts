@@ -97,6 +97,8 @@ const tellFlag = (f: { changed(): void }) => f.changed();
 
 class KeyFlag<K> extends Listened<boolean> implements KeyedValue<boolean> {
   #last = false;
+  /** While it starts following: a stream's replay of its current value is not a change (listen.ts). */
+  #attaching = false;
   constructor(
     readonly selector: KeyedSelector<K>,
     readonly k: K,
@@ -110,10 +112,15 @@ class KeyFlag<K> extends Listened<boolean> implements KeyedValue<boolean> {
     const v = this.value;
     if (v === this.#last) return;
     this.#last = v;
-    this.tell(v);
+    if (!this.#attaching) this.tell(v);
   }
   protected override onFirst() {
-    this.selector.attach(this);
+    this.#attaching = true;
+    try {
+      this.selector.attach(this);
+    } finally {
+      this.#attaching = false;
+    }
     this.#last = this.value;
   }
   protected override onLast() {

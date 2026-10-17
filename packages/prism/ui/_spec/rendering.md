@@ -132,10 +132,14 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 
 `reactive/state.ts`; a state is "the latest value plus listeners", and views do no rxjs on it.
 
-- **`State<T>`** (what `observableState` returns; its call sites keep their API): `value`, `set` (compared with the
-  latest value; a set while its listeners are told is queued and told after, so each listener sees the values in order;
-  in a `batch`, held and told once at its end), `listen(fn) → unlisten` (a plain array), a record's `update`,
-  `asReadonly` (a view without `set`, made on first use).
+- **`State<T>`** (what `observableState` returns; its call sites keep their API): `value` (the latest set, also while an
+  earlier set is still being told: a listener's `set(value + 1)` or a record's `update` builds on it), `set` (compared
+  with the latest value; in a `batch`, held and told once at its end), `listen(fn) → unlisten` (a plain array), a
+  record's `update`, `asReadonly` (a view without `set`, made on first use).
+- **Re-entrancy**: a value told while a state, a derived value or a key (`keyedState`, `keyedSelector`) is telling its
+  listeners (a listener sets it again) is queued and told after (`Listened.tell`), so every listener gets the values in
+  order and ends on the latest; told at once, nested, a listener after the setter would end on the older value. A
+  subscriber (`asObservable`) set to the state while it gets the current value gets the new one after.
 - **`derive(source | sources, fn, same = Object.is)`**: lazy and hot. Unlistened, `value` computes from the sources'
   current values and nothing is held; listened, it follows its sources by `listen`, keeps the value and tells only when
   it differs; shared by every binding that uses it. It replaces `x.pipe(map(f), distinctUntilChanged())` and
@@ -145,9 +149,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   the plugin's events (`plugin.events`, cell updates, the viewer's `sources/`) keeps rxjs inside, and exposes states.
   The other way, a state is an `Observable` when subscribed (`asObservable`: one listener per subscriber), for the code
   that still pipes it.
-- **Views receive states and derived values.** `bind` writes `value` and listens; pausing a scope unlistens, resuming
-  reads `value` again. An `Observable` given to JSX still works through the old path (a subscription that replays): the
-  exception, for a stream with no state behind it.
+- **Views receive states and derived values.** `bind` listens, then writes `value` (a set made by that write is written
+  after it, not missed); pausing a scope unlistens, resuming does the same again. An `Observable` given to JSX still
+  works through the old path (a subscription that replays): the exception, for a stream with no state behind it.
 
 ### 2.3 Updates: `watch`
 
@@ -173,7 +177,7 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **Sources are explicit**: states and derived values (their `listen`), writable states, anything with `listen`
   (`keyedSelector(...).key(k)`: told only when that key becomes or stops being the current one, so a highlight's move
   renders two rows, not all), or, as the exception, a stream (subscribed; what it emits while subscribing is not a
-  change).
+  change, nor is a key's first answer over a stream that replays).
 - **Errors**: a render that throws is logged; the others in the flush render and the watch goes on.
 - **Two lanes.** The microtask lane is for logic and model state: what a task changes renders once, at its end. The
   frame lane is for input: a trackpad sends wheel and pointer events at 120 Hz or more, several a frame, so input-fed
@@ -284,6 +288,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   Paused with its scope (what waited runs on resume), dropped when it ends; `flush()` on the queue runs all of it now.
   Nothing is allocated a want of a known key or a run (`primitives.quick.ts`, `primitives.heap.ts`: `workWant`,
   `workFrameRun`, 0 B a step): each key keeps its entry, as a map's deletes and sets allocate when it rehashes.
+- **Errors and loops**: a piece of work that throws (or its `priority`, `stillWanted`) is logged, and the rest of the
+  run and the lane's other queues go on, as a failing render does: one failure must not leave the others enlisted and
+  never run. The task lane runs in microtasks, which let no timer, event or frame in, so it yields: a queue's run wanted
+  by a task-lane run 100 times in a row (work wanting itself, two queues wanting each other), a task-lane budget's
+  carry-over (at once: a budget is there to yield), and the work left when `flush()` drops watches that kept marking,
+  wait for a macrotask; the lane's other queues go on.
 - **Lanes**: `task` runs in the runtime's microtask flush before the watches it feeds (`flush()` runs it: code that
   reads the DOM after a change sees the work done); `frame` runs in the frame's tick, after the frame states publish and
   before the renders; `idle` when the page is idle (`requestIdleCallback`, its deadline the budget).
