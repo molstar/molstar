@@ -58,6 +58,65 @@ describe('drag (dom/scoped.ts)', () => {
     ]);
   });
 
+  it('follows only the pointer that started it: a second finger neither moves, ends nor restarts it', () => {
+    const log: string[] = [];
+    const box = document.createElement('div');
+    document.body.append(box);
+    let el!: HTMLElement;
+    const dispose = render(() => {
+      el = document.createElement('div');
+      drag(el, {
+        start: (e) => {
+          log.push(`start:${e.pointerId}`);
+          return {};
+        },
+        move: (e) => log.push(`move:${e.pointerId}`),
+        end: (_s, how, e) => log.push(`${how}:${e?.pointerId ?? 'scope'}`),
+      });
+      return el;
+    }, box);
+    const send = (type: string, pointerId: number, buttons = 1) =>
+      el.dispatchEvent(new PointerEvent(type, { bubbles: true, buttons, pointerId, pointerType: 'touch' }));
+    send('pointerdown', 1);
+    send('pointerdown', 2);
+    send('pointermove', 2);
+    send('pointermove', 1);
+    send('pointerup', 2, 0);
+    send('pointercancel', 2, 0);
+    send('lostpointercapture', 2, 0);
+    send('pointerup', 1, 0);
+    dispose();
+    expect(log).toEqual(['start:1', 'move:1', 'up:1']);
+  });
+
+  it('a press by another pointer after the first one ended unseen (its capture gone) starts anew', () => {
+    const log: string[] = [];
+    const box = document.createElement('div');
+    document.body.append(box);
+    let el!: HTMLElement;
+    const dispose = render(() => {
+      el = document.createElement('div');
+      drag(el, {
+        start: (e) => {
+          log.push(`start:${e.pointerId}`);
+          return {};
+        },
+        end: (_s, how, e) => log.push(`${how}:${e?.pointerId ?? 'scope'}`),
+      });
+      return el;
+    }, box);
+    el.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1, pointerType: 'touch' }),
+    );
+    // The first touch ended without telling the element: its capture went with it.
+    el.releasePointerCapture(1);
+    el.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 2, pointerType: 'touch' }),
+    );
+    dispose();
+    expect(log).toEqual(['start:1', 'cancel:2', 'start:2', 'cancel:scope']);
+  });
+
   it('a scroll area’s thumb: no listener left by lost releases, and the next drag scrolls', () => {
     const box = document.createElement('div');
     document.body.append(box);

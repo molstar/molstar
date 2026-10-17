@@ -193,11 +193,13 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **One frame request a page** (`reactive/frame-state.ts`): what a component would ask `requestAnimationFrame` for (a
   label's placement, a canvas's draw, a drag's step, the splash's simulation, Seq*'s frames) is a frame callback
   (`requestFrameCallback`, `cancelFrameCallback`; `frame(fn)` in a component, released with its scope, run after its
-  resume when it is paused), run in the frame's tick before the frame states publish. A hover sweep in the viewer asked
-  for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame lane's), now 1 (the in-app
-  browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded viewer at rest asks for none
-  and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop left running, a frame per
-  event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or not (TODO).
+  resume when it is paused), run in the frame's tick before the frame states publish. A cancel reaches a callback of the
+  frame running now too (one callback cancelling another, a `frames().cancel()`), so a cancelled one never runs. A hover
+  sweep in the viewer asked for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame
+  lane's), now 1 (the in-app browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded
+  viewer at rest asks for none and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop
+  left running, a frame per event). Mol*'s own canvas loop is not Prism's: it asks for one a frame per viewer, idle or
+  not (TODO).
 - **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
   (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
   decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after
@@ -234,8 +236,13 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   attached once with the scope, acting while a drag is on; the pointer is captured at the press. A drag ends on
   `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
   press, and the scope's pause and end, so a release lost to a window switch or a native dialog leaves no listener and
-  no drag on. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release twenty
-  times and counts the listeners on every target (`testing/gestures.ts`).
+  no drag on. **Only a release commits** (David, 2026-10-17): `end`'s `how` is `up` for the drag's own pointer let go
+  and `cancel` for every other end, and what a drag decides on its release (a row's move, a seek) happens on `up` only;
+  a cancel leaves things as they were (what a drag applied live as it moved, a crop or a level, stays). **It follows the
+  pointer that started it**: another pointer's moves, release and cancel are not its own, and its press starts nothing
+  while the first still holds the capture (a second finger); a press after the first pointer ended unseen (its capture
+  gone) starts anew. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release
+  twenty times and counts the listeners on every target (`testing/gestures.ts`).
 - **Views leave nothing behind** (`ui/src/dom/_test/leaks.heap.tsx`, `test:heap`): a keyed list with rows, a recycled
   list, the command menu, the mock shell with a tab shown and a context menu, mounted and disposed again and again, keep
   no heap outside code (n and 4n cycles, a frame between them) and leave no listener on the window, the document or its

@@ -70,7 +70,7 @@ export function pendingFrameCallbacks(): number {
   return n;
 }
 
-/** Drops a frame callback not yet run. */
+/** Drops a frame callback not yet run, also one of the frame running now (cancelled by a callback before it). */
 export function cancelFrameCallback(id: number): void {
   for (let i = 0; i < callbackCount; i++)
     if (callbackIds[i] === id) {
@@ -80,7 +80,19 @@ export function cancelFrameCallback(id: number): void {
       while (callbackCount > 0 && callbacks[callbackCount - 1] === undefined) callbackCount--;
       return;
     }
+  const list = runningCallbacks;
+  if (!list) return;
+  for (let i = runningAt + 1; i < runningCount; i++)
+    if (spareIds[i] === id) {
+      list[i] = undefined;
+      return;
+    }
 }
+
+/** The frame's callbacks while they run (their ids are `spareIds`), and the one running: a cancel reaches the rest. */
+let runningCallbacks: (((time: number) => void) | undefined)[] | undefined;
+let runningCount = 0;
+let runningAt = 0;
 
 function runCallbacks(time: number): void {
   const list = callbacks;
@@ -92,7 +104,10 @@ function runCallbacks(time: number): void {
   callbackCount = 0;
   spareCallbacks = list;
   spareIds = ids;
+  runningCallbacks = list;
+  runningCount = n;
   for (let i = 0; i < n; i++) {
+    runningAt = i;
     const fn = list[i];
     list[i] = undefined;
     if (!fn) continue;
@@ -103,6 +118,8 @@ function runCallbacks(time: number): void {
       console.error(e);
     }
   }
+  runningCallbacks = undefined;
+  runningCount = 0;
 }
 
 function frameTick(time: number): void {
