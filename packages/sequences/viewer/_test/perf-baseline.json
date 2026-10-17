@@ -126,6 +126,8 @@
   "hover: t.matrix": 0,
   "hover: t.points": 0,
   "hover: t.ranges": 0,
+  "hover: t.secondary": 0,
+  "hover: t.secondary, labeled": 0,
   "hover: t.variants": 0,
   "ideogram: strip and window": 0,
   "input: drag, dragPan": 0,

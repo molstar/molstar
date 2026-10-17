@@ -10,7 +10,8 @@
 // the side a line break cuts, the title on the line the item starts, on the rows its item targets) and in tracks (over
 // the rows' entries, following a row zoom, open where the view cuts); hit as their item on their title's band.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { Axis } from '../src/axis.js';
 import { Dirty } from '../src/draw/index.js';
 import { Hit, HoverKind, type RenderProps } from '../src/index.js';
 import { recording } from './composer-fixtures.js';
@@ -209,5 +210,52 @@ describe('frames in tracks', () => {
     t.vp?.setView(cell, 10 * cell, 'api');
     const v2 = verticals();
     expect(v2.length).toBe(1);
+  });
+});
+
+describe("the titles' cost", () => {
+  it('a title looks for the next one within its line only, not through every later item of the block', async () => {
+    // 40 titles at the first line's start (none bounds another: they share its first column), 2,000 items past it.
+    const at0 = Array.from({ length: 40 }, (_, i) => ({
+      target: 'globins',
+      start: 0,
+      stop: 5,
+      id: `a${i}`,
+      label: 'A',
+    }));
+    const later = Array.from({ length: 2000 }, (_, i) => ({
+      target: 'globins',
+      start: 100 + (i % 40),
+      stop: 104 + (i % 40),
+      id: `b${i}`,
+      label: 'B',
+    }));
+    const calls = async (labels: boolean) => {
+      const doc = figureDoc({ frames: [...at0, ...later] as FrameRow[] });
+      type N = { kind: string; params?: Record<string, unknown>; children?: N[] };
+      const walk = (n: N): void => {
+        if (n.kind === 'layer' && n.params?.type === 'frame') n.params.labels = labels;
+        for (const c of n.children ?? []) walk(c);
+      };
+      walk(doc.root as N);
+      const probe = await lit(figureDoc(), { width: 1100, height: 1400 });
+      const cell = probe.ctx.layout.axis(probe.section)?.axis?.fixedCell ?? 0;
+      probe.ctx.dispose();
+      const t = await lit(doc, { width: 1100, height: 1400, render: sixtyColumns(cell) });
+      const spy = vi.spyOn(Axis.prototype, 'runToShown');
+      try {
+        // The first frame draws the titles (a later one with nothing changed reuses the entries).
+        t.frame(recording(), Dirty.all);
+        return spy.mock.calls.length;
+      } finally {
+        spy.mockRestore();
+        t.ctx.dispose();
+      }
+    };
+    // The titles' own calls: a hull per item and line (the outer loop), and per title the items of its line.
+    const titles = (await calls(true)) - (await calls(false));
+    expect(titles).toBeGreaterThan(0);
+    // About 4,000; was about 34,000 (on the first line, each of the 40 titles scanned every later item of the block).
+    expect(titles).toBeLessThan(10_000);
   });
 });

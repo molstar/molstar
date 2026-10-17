@@ -8,7 +8,8 @@
 
 // A paused surface (`setActive(false)`; seqspec:viewer#the-render-backend), in Chromium: an embedding host hides it, and
 // it asks for no frame while pans, hovers and resizes reach it; the flags wait. Resumed, one frame draws all that waited,
-// at the size it was given while paused. The positive control: the same steps on an active surface ask for frames.
+// at the size it was given while paused, and an animation running when paused runs on. The positive control: the same
+// steps on an active surface ask for frames.
 
 import { afterEach, expect, it } from 'vitest';
 import { canvasesOf, pixelsOf } from './open.js';
@@ -86,4 +87,23 @@ it('a resize while paused is recorded, not drawn; the resume draws at the new si
   const [main] = canvasesOf({ surface: s.surface } as never);
   // The fixture's DPR is 2.
   expect([main.width, main.height]).toEqual([1000, 600]);
+});
+
+it('an animation running when paused (a shimmer, a fade) runs on when resumed', async () => {
+  t = await surfaceFrames('pan');
+  const s = t;
+  // The composer animating after each of its frames, as a skeleton's shimmer sets it.
+  const composer = s.surface.composer;
+  const draw = composer.frame.bind(composer);
+  composer.frame = ((be: never, flags: number) => {
+    draw(be, flags);
+    composer.animating = true;
+  }) as never;
+  s.surface.renderNow();
+  s.surface.setActive(false);
+  const asked = s.scheduler.requested;
+  s.surface.setActive(true);
+  s.scheduler.flush();
+  // The resume's frame asks for the animation's next (the fixture's clock stands still: polled, not yet due).
+  expect(s.scheduler.requested - asked).toBeGreaterThanOrEqual(2);
 });

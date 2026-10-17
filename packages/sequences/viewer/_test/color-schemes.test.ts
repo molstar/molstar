@@ -184,6 +184,25 @@ describe('the override', () => {
     t.ctx.dispose();
   });
 
+  it("ESPript's legend lists the colors drawn on either skin, once each", async () => {
+    const t = await opened(case3());
+    const { ref } = color(t.ctx, 'Members');
+    t.ctx.actions.run('layer.colorScheme', { layer: ref, scheme: 'espript' });
+    await settle(t.ctx);
+    // Deduped on label and color, as the legend lists them (`legend.ts`): one item per rule.
+    const items = () => {
+      const out: string[] = [];
+      const sink = { item: (label: string, c: number) => out.includes(`${label} ${c}`) || out.push(`${label} ${c}`) };
+      color(t.ctx, 'Members').theme.legend?.(sink as never);
+      return out;
+    };
+    expect(items()).toEqual([`identical ${0x000000}`, `similar ${0xbdbdbd}`]);
+    t.ctx.setSkin({ ...t.ctx.skin.value, dark: true });
+    await settle(t.ctx);
+    expect(items()).toEqual([`identical ${0xf0f0f0}`, `similar ${0x6b6b6b}`]);
+    t.ctx.dispose();
+  });
+
   it("a scheme's labeled groups are its legend", async () => {
     const d = await opened(dna(), { renderers: [...KernelRenderers] });
     const { ref } = color(d.ctx, 'DNA');

@@ -17,17 +17,25 @@ import { COPY_BACK, recording } from './composer-fixtures.js';
 import { hoverDoc } from './hover-fixtures.js';
 import { lit } from './overlay-fixtures.js';
 
-/** Per track: the zoom (CSS px a position; 0: the fit), the positions swept and the CSS px below the entry's top. */
-const SWEEPS = {
+/**
+ * Per case: the zoom (CSS px a position; 0: the fit), the positions swept and the CSS px below the entry's top (`dy`, or
+ * `of`: shares of the entry's height); `labels`: the secondary structure labeled, its shapes in the band's lower part.
+ */
+const SWEEPS: Record<
+  string,
+  { cell: number; at: number[]; dy?: number[]; of?: number[]; track?: string; labels?: boolean }
+> = {
   't.ranges': { cell: 0, at: [12, 42, 18, 65, 35, 75], dy: [6, 6, 15, 6, 15, 6] },
   't.points': { cell: 0, at: [12, 50, 70], dy: [11] },
   't.variants': { cell: 0, at: [12, 50], dy: [8] },
   't.matrix': { cell: 12, at: [3, 4, 5, 6, 7, 8, 9], dy: [4, 20, 36] },
-} as const;
-
-export async function hoverSweep(track: keyof typeof SWEEPS) {
-  const s = SWEEPS[track];
-  const t = await lit(hoverDoc(100), { width: 1000, height: 600, dpr: 2 });
+  't.secondary': { cell: 0, at: [8, 28, 60], of: [0.5] },
+  't.secondary, labeled': { cell: 0, at: [8, 28, 60], of: [0.75], track: 't.secondary', labels: true },
+};
+export async function hoverSweep(name: string) {
+  const s = SWEEPS[name];
+  const track = s.track ?? name;
+  const t = await lit(hoverDoc(100, { labels: s.labels }), { width: 1000, height: 600, dpr: 2 });
   // The overlay alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
   t.ctx.behaviors.get('hoverLabel')?.remove();
   if (s.cell > 0) t.vp?.setView(s.cell, 0, 'api');
@@ -40,13 +48,14 @@ export async function hoverSweep(track: keyof typeof SWEEPS) {
   while (l.entryTrack[e] !== k) e++;
   const top = (e < l.pinnedCount ? 0 : l.scrolledTop) + l.entryTop[e];
   const xs = s.at.map((i) => t.xOf(t.section, 0, i));
+  const dy = s.dy ?? (s.of ?? []).map((f) => Math.round(l.entryHeight[e] * f));
   const p = Inputs.pointer();
   p.section = t.ctx.layout.sectionIndex(t.section);
   p.type = PointerType.move;
   let drawn = 0;
   const frame = (i: number) => {
     p.x = xs[i % xs.length];
-    p.y = top + s.dy[i % s.dy.length];
+    p.y = top + dy[i % dy.length];
     t.ctx.input.pointer(p);
     t.frame(be, Dirty.overlay);
     let lit = be.glyphItems.n + be.pathItems.n;

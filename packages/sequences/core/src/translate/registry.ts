@@ -30,10 +30,14 @@ import {
 import { Coordinates, SeqSystemPrefix as PREFIX } from './coordinates.js';
 import { type SystemDescriptor, Translator } from './translator.js';
 
-/** An own system's descriptor, valid while `owner` (the table or entity it reads) is the set's. */
+/**
+ * An own system's descriptor, valid while `owner` (the table or entity it reads) and `molecule` (a unit's molecule,
+ * whose numberings it lists; replaced by an upsert that leaves the units' table shared) are the set's.
+ */
 interface Own {
   readonly set: SeqSet;
   readonly owner: unknown;
+  readonly molecule: unknown;
   readonly system: CoordinateSystem;
   readonly descriptor: SystemDescriptor;
 }
@@ -206,11 +210,18 @@ export class SystemRegistry extends Translator {
             ? set.complexes[id]
             : set.alignments[id];
     if (kind < 0 || !owner) return null;
-    if (hit?.owner === owner) {
+    const molecule = t.kind === KeyKind.unit ? set.molecules[set.units.molecule[id]] : null;
+    if (hit?.owner === owner && hit.molecule === molecule) {
       this.#own.set(key, { ...hit, set });
       return this.#own.get(key) ?? null;
     }
-    const own = { set, owner, system: { kind, id, row: t.row }, descriptor: describe(set, key, kind, id, t.row) };
+    const own = {
+      set,
+      owner,
+      molecule,
+      system: { kind, id, row: t.row },
+      descriptor: describe(set, key, kind, id, t.row),
+    };
     this.built++;
     this.#own.set(key, own);
     return own;
