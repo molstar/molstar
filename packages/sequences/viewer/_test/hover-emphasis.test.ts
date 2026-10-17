@@ -102,8 +102,9 @@ async function hoverAt(
   from = 0,
   n = 100,
   lineColor?: unknown,
+  labels?: boolean,
 ) {
-  const t = await lit(hoverDoc(n, { style, lineColor }), { width: 1000, height: 600, dpr: 2 });
+  const t = await lit(hoverDoc(n, { style, lineColor, labels }), { width: 1000, height: 600, dpr: 2 });
   t.ctx.behaviors.get('hoverLabel')?.remove();
   if (skin === 'dark') t.ctx.setSkin(DarkSkin);
   if (cell) t.vp?.setView(cell, from * cell, 'api');
@@ -195,6 +196,18 @@ describe.each(['light', 'dark'] as const)('per renderer, %s', (skin) => {
     const arrow = strand.main.filter((m) => m[5] === BoxKind.shape && within(strand.added[0], m, 0.01));
     expect(arrow.length).toBe(1);
     expect(within(strand.added[1], arrow[0])).toBe(true);
+  });
+
+  it('secondary with labels: the outline on the shapes in the lower band, as drawn under the labels', async () => {
+    const t = await hoverAt(skin, undefined, undefined, 0, 100, undefined, true);
+    expect(entryHeight(t, 't.secondary')).toBeGreaterThanOrEqual(14);
+    const helix = hovered(t, 't.secondary', 8, entryHeight(t, 't.secondary') * 0.75);
+    expect(helix.added.map((b) => b[5])).toEqual([BoxKind.outline]);
+    inside(helix.added, helix.main, skinOf(skin));
+    const strand = hovered(t, 't.secondary', 28, entryHeight(t, 't.secondary') * 0.75);
+    expect(strand.added.map((b) => b[5])).toEqual([BoxKind.shape, BoxKind.shape]);
+    const arrow = strand.main.filter((m) => m[5] === BoxKind.shape && within(strand.added[0], m, 0.01));
+    expect(arrow.length).toBe(1);
   });
 
   it("values: the hovered position's bar outlined inside it; a line's point ringed only inside its column", async () => {

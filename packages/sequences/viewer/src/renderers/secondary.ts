@@ -182,13 +182,12 @@ function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
   if (v.geometry === AxisGeometry.wrapped && !v.trackForm) drawLineLanes(v, f, rects);
   else if (ax) {
     const dpr = v.dpr;
-    // With labels, the shapes in the band's lower 55%, the labels over them (seqspec:format#layer-types).
-    const labels = labeled && !tiny && v.height >= 14;
+    const labels = shapeBand(v, labeled, tiny);
+    const cy = band[0];
+    const h = band[1];
     const top = v.top;
     const height = v.height;
     if (labels) {
-      v.top = top + height * 0.45;
-      v.height = height * 0.55;
       names.style(
         v.text.font('ui', Math.max(7, Math.min(11, Math.floor(height * 0.4)))),
         TextAlign.center,
@@ -197,10 +196,6 @@ function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
       names.begin(INK);
       fitArgs[1] = v.text.label('…', names.font).width;
     }
-    const cy = centerY(v);
-    const h = halfHeight(v);
-    v.top = top;
-    v.height = height;
     const labelY = Math.round((top + height * 0.45) * dpr) | 0;
     const thickness = sizeTheme(v, 0, 1);
     // The coil line across each block's view, under the features.
@@ -306,6 +301,25 @@ function headAt(v: DrawView, f: Features, k: number, b: number, x0: number, x1: 
 /** The coil line and a shape's half height (device px). */
 const centerY = (v: DrawView) => Math.round((v.top + v.height / 2) * v.dpr) | 0;
 const halfHeight = (v: DrawView) => Math.max(1, Math.round(Math.max(1, v.height * 0.31) * v.dpr)) | 0;
+const band = new Int32Array(2);
+/**
+ * The shapes' coil line and half height (device px) into `band`, the draw's and the hover outline's: with labels, the
+ * shapes in the band's lower 55%, the labels over them (seqspec:format#layer-types). Whether the labels show.
+ */
+function shapeBand(v: DrawView, labeled: boolean, tiny: boolean): boolean {
+  const labels = labeled && !tiny && v.height >= 14;
+  const top = v.top;
+  const height = v.height;
+  if (labels) {
+    v.top = top + height * 0.45;
+    v.height = height * 0.55;
+  }
+  band[0] = centerY(v);
+  band[1] = halfHeight(v);
+  v.top = top;
+  v.height = height;
+  return labels;
+}
 /** The thickness channel: half height `h` (device px) at a share of the shape's (a size theme's int; < 0: whole). */
 const thick = (h: number, size: number) => (size < 0 ? h : Math.max(1, (h * Math.min(size, 256) + 128) >> 8));
 
@@ -314,7 +328,7 @@ const hovered = new Int32Array(2);
  * The hovered element inside its own pixels: a helix's or a bar's box outlined inside; a strand's arrow in the hover
  * ink with the arrow `hoverWidth` smaller in its fill over it; a turn's thin arch in the ink; wrapped, its underline.
  */
-function overlay(v: DrawView, f: Features) {
+function overlay(v: DrawView, f: Features, labeled: boolean) {
   if (!hoverEmphasis(v) || !v.axis) return;
   if (v.geometry === AxisGeometry.wrapped && !v.trackForm) {
     outlineLineLanes(v, f);
@@ -325,8 +339,9 @@ function overlay(v: DrawView, f: Features) {
   const tiny = v.height < (SecondaryRenderer.minHeight ?? 0);
   const dpr = v.dpr;
   const d = hoverWidth(dpr);
-  const cy = centerY(v);
-  const h0 = halfHeight(v);
+  shapeBand(v, labeled, tiny);
+  const cy = band[0];
+  const h0 = band[1];
   const thickness = sizeTheme(v, 0, 1);
   rects.reset();
   shapes.reset();
@@ -361,7 +376,7 @@ export const SecondaryRenderer = kernelEntry<Features>('secondary', 18, {
   geometries: ['linear', 'wrapped'],
   draw: (v, f, p) => draw(v, f, false, (p as { labels?: boolean }).labels === true),
   tiny: (v, f) => draw(v, f, true, false),
-  overlay: (v, f) => overlay(v, f),
+  overlay: (v, f, p) => overlay(v, f, (p as { labels?: boolean }).labels === true),
   // Wrapped, its underlines on the line's lanes; linear, the position's item (hit.ts's lookup).
   hit: (v, f, _p, out) => hitLineLanes(v, f, out),
   sized: ['thickness'],

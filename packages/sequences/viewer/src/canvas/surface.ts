@@ -50,9 +50,10 @@ export interface Surface {
   /** Draws what is pending now, synchronously (tests, benchmarks, hidden pages). */
   renderNow(): void;
   /**
-   * Whether the surface draws (true by default): an embedding host pauses one it hides (seqspec:viewer#the-render-
-   * backend). Inactive, it schedules no frame, `invalidate` only gathers its flags and a resize records the size;
-   * active again, one frame draws all that waited, sizing first.
+   * Whether the surface draws (true by default): an embedding host pauses one it hides
+   * (seqspec:viewer#the-render-backend). Inactive, it schedules no frame, `invalidate` only gathers its flags and a
+   * resize records the size; active again, one frame draws all that waited, sizing first, and an animation running when
+   * paused (a skeleton's shimmer, a region's fade) runs on.
    */
   setActive(active: boolean): void;
   dispose(): void;
@@ -254,8 +255,14 @@ export class SectionSurface implements Surface {
       this.frameId = this.animId = -1;
       return;
     }
-    // One frame for all that waited; it sizes the canvases from the layout first (`frame`).
-    this.invalidate(0);
+    this.resume();
+  }
+  /**
+   * One frame for all that waited; it sizes the canvases from the layout first (`frame`). A skeleton shimmering or a
+   * region fading in when paused (its polling frame cancelled, or let lapse) draws its overlay again, and so runs on.
+   */
+  private resume() {
+    this.invalidate(this.composer.animating ? Dirty.overlay : 0);
   }
   renderNow(): void {
     if (this.frameId >= 0) this.ctx.scheduler.cancelFrame(this.frameId);
@@ -325,7 +332,7 @@ export class SectionSurface implements Surface {
    */
   private readonly onStreams = () => this.invalidate(Dirty.all);
   private readonly onActive = (on: boolean) => {
-    if (on) this.invalidate(0);
+    if (on) this.resume();
   };
   /** The overlay only when the rail's or the navigator row's hot state changes (the composer's `navOf` test). */
   private readonly onPointer = () => {
