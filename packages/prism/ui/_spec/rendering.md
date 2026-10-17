@@ -82,11 +82,14 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   | a 2 s wheel scroll: UI script + native   | 21–24 + 6–7 ms                                              | 18–20 + 1 ms                    |
   | a real wheel (60 + 30 steps)             | no long animation frame; one 33 ms frame in one of two runs | the same                        |
 
-  The costs, and how they are met: the DOM order is not the screen order (a row's place is its `aria-posinset`,
-  `aria-setsize` and `aria-level`; the keyboard moves by the rows' model, `TreeNavigation`); a re-pointed slot closes
-  its menu, moves the hover highlight to the node it shows now and its keyboard registration (`TreeNavigation.slot`),
-  and a focus in it goes to the tree as when a row leaves the DOM; a put-away slot is hidden and follows nothing. Tests:
-  `components/virtual-list/_test/recycled-list.test.tsx`, the scene tree's.
+  The costs, and how they are met: while scrolling, the DOM order is not the screen order; **at rest** (the margin's
+  rest signal, 120 ms after the last scroll) one pass moves the slots' nodes into screen order, so a screen reader
+  browsing a still list reads its rows in order (a focused row gets its focus back; measured after far jumps: 0.73–0.95
+  ms median, 1.7 ms at most, about 69 nodes moved, once a rest; `__mspRows.settleCost`). Otherwise (a row's place is its
+  `aria-posinset`, `aria-setsize` and `aria-level`; the keyboard moves by the rows' model, `TreeNavigation`); a
+  re-pointed slot closes its menu, moves the hover highlight to the node it shows now and its keyboard registration
+  (`TreeNavigation.slot`), and a focus in it goes to the tree as when a row leaves the DOM; a put-away slot is hidden
+  and follows nothing. Tests: `components/virtual-list/_test/recycled-list.test.tsx`, the scene tree's.
 
 - **Hand-rolled, not `@preact/signals-core`**: backing `State` and `derive` with signals measured the same time and more
   memory (the `watch` row 3.7 vs 3.4 KB, the `derive` row 9.5 vs 8.8 KB: an effect per listener), needed this batch's

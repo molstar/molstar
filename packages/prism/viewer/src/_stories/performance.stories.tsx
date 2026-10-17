@@ -16,7 +16,7 @@ import { flush, flushFrame } from '@molstar/prism-ui/dom/scope';
 import { ReactiveCounts } from '@molstar/prism-ui/reactive/state';
 import type { StateTreeModel, StateTreeNode } from '../model/state-tree.js';
 import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { flattenTree, VirtualList } from '@molstar/prism-ui';
+import { flattenTree, RecycledListStats, VirtualList } from '@molstar/prism-ui';
 import { StateTreeTab } from '../views/state-tree/state-tree-tab.js';
 import { SceneTree } from '../views/structure/scene-tree.js';
 import { makeScene } from './performance-fixtures.js';
@@ -956,7 +956,36 @@ function updateHeap(name: Exclude<UpdateCase, 'burstTasks'>, n: number, labels: 
 /** Labels made ahead, so a heap reading counts the update, not the strings. */
 let heapLabels: string[] = [];
 
+/** The rest's reorder pass (RecycledList): after each of `count` far jumps, rested, its ms and the nodes it moved. */
+async function settleCost(count = 20) {
+  const t = mountTree('scene');
+  await settle(t);
+  const vp = t.viewport();
+  const span = vp.scrollHeight - vp.clientHeight;
+  const ms: number[] = [];
+  const moved: number[] = [];
+  for (let k = 0; k < count; k++) {
+    const before = { ...RecycledListStats };
+    vp.scrollTop = Math.round((((k * 37) % 97) / 97) * span);
+    vp.dispatchEvent(new Event('scroll'));
+    await wait(200);
+    if (RecycledListStats.settles > before.settles) {
+      ms.push(RecycledListStats.lastMs);
+      moved.push(RecycledListStats.moved - before.moved);
+    }
+  }
+  t.dispose();
+  return {
+    passes: ms.length,
+    medianMs: round(pct(ms, 0.5), 3),
+    maxMs: round(Math.max(...ms), 3),
+    medianMoved: pct(moved, 0.5),
+    rows: t.rows().length,
+  };
+}
+
 (window as any).__mspRows = {
+  settleCost,
   /** Makes `n` distinct labels ahead of `updateHeap`. */
   heapLabels(n: number) {
     const base = Math.floor(Math.random() * 1e9);

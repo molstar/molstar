@@ -40,6 +40,9 @@ export interface VirtualSlot<T> {
   show(item: T | undefined): void;
 }
 
+/** The rest's reorder passes, for the benches (rendering.md §1): how many, the nodes moved, the last one's ms. */
+export const RecycledListStats = { settles: 0, moved: 0, lastMs: 0 };
+
 /** A row in the window: a slot showing its item, or a keyed row rendered for it. */
 interface Entry<T> {
   key: unknown;
@@ -172,6 +175,7 @@ export function RecycledList<T>(props: {
     resting = setTimeout(() => {
       resting = undefined;
       place(true);
+      settleOrder();
     }, RestMs);
   };
   onCleanup(() => {
@@ -336,6 +340,37 @@ export function RecycledList<T>(props: {
     for (const entry of entries.values()) if (!entry.slot) entry.scope!.dispose();
     entries.clear();
   });
+  // At rest, the slots' nodes into screen order, in one pass (David, 2026-10-17): a screen reader browsing the list
+  // reads its rows in order whenever it is still. Never while scrolling (the rest signal, as the margin's). A row
+  // moved with the focus in it gets it back (moving a node drops its focus).
+  const settleOrder = () => {
+    if (!content) return;
+    const t0 = performance.now();
+    const list = [...entries.values()].sort((a, b) => a.y - b.y);
+    const shown = new Set<Node>();
+    for (const e of list) shown.add(e.el);
+    const root = content.getRootNode() as Document | ShadowRoot;
+    const focused = root.activeElement as HTMLElement | null;
+    let refocus: HTMLElement | undefined;
+    let ref: ChildNode | null = content.firstChild;
+    let moved = 0;
+    for (const e of list) {
+      // Past what is not a shown row (a spare slot, put away): it stays where it is.
+      while (ref && !shown.has(ref)) ref = ref.nextSibling;
+      if (e.el === ref) {
+        ref = ref.nextSibling;
+        continue;
+      }
+      if (focused && !refocus && e.el.contains(focused)) refocus = focused;
+      content.insertBefore(e.el, ref);
+      moved++;
+    }
+    refocus?.focus({ preventScroll: true });
+    RecycledListStats.settles++;
+    RecycledListStats.moved += moved;
+    RecycledListStats.lastMs = performance.now() - t0;
+  };
+
   props.ref?.({
     scrollToIndex(index) {
       const rh = rowHeight.value;

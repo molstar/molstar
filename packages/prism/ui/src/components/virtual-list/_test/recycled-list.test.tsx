@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
 import { flush, watch } from '../../../dom/scope.js';
 import { TreeNavigation } from '../../../dom/tree-keys.js';
@@ -214,5 +214,30 @@ describe('RecycledList', () => {
     t.key('ArrowDown');
     expect(t.focused()).toBe('r1');
     t.dispose();
+  });
+
+  it('at rest, the rows are in the DOM in screen order; a focused row keeps its focus', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = mount({ count: 2000 });
+      const domOrder = () =>
+        [...t.tree.querySelectorAll<HTMLElement>('[role=treeitem]')]
+          .filter((el) => !el.closest('[hidden]'))
+          .map((el) => el.textContent);
+      // Jumps away and back re-point slots out of order.
+      for (const i of [900, 40, 1500, 300]) t.list().scrollToIndex(i);
+      expect(domOrder()).not.toEqual(t.shown());
+      // A shown row, not the first in the DOM (the pass moves rows before it).
+      const rows = [...t.tree.querySelectorAll<HTMLElement>('[role=treeitem]')].filter((el) => !el.closest('[hidden]'));
+      const row = rows[rows.length - 1];
+      row.focus();
+      expect(document.activeElement).toBe(row);
+      vi.advanceTimersByTime(200);
+      expect(domOrder()).toEqual(t.shown());
+      expect(document.activeElement).toBe(row);
+      t.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
