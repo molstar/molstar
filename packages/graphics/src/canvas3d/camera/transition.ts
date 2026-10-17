@@ -88,6 +88,11 @@ class CameraTransitionManager {
     this.update();
   }
 
+  /** Ends a transition under way at its target (a cut: what `apply` with no duration does when none is under way). */
+  complete() {
+    if (this.inTransition) this.finish(this._target);
+  }
+
   private finish(to: Partial<Camera.Snapshot>) {
     Camera.copySnapshot(this.camera.state, to);
     this.inTransition = false;

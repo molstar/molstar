@@ -518,6 +518,11 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
         const ok = await mountCanvas(plugin, el, { pauseOutOfView: options.ui.pauseOutOfView });
+        // Disposed while it mounted: the disposers have run, so the canvas is let go here.
+        if (disposed) {
+          if (ok) unmountCanvas(plugin);
+          return false;
+        }
         if (ok) disposers.push(() => unmountCanvas(plugin));
         else modules.delete('canvas');
         return ok;

@@ -461,11 +461,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             place: 'canvas',
             group: 'rendering',
             // `options.ui.xr` (viewer-spec.md §2.2): auto, only where WebXR is; always, with a note where it is not.
+            // Either way only while `canvas.xr` is there to run.
             visible: combineLatest([stackData, xr.state]).pipe(
               map(([data, x]) => {
                 const mode = core.options.ui.xr;
-                if (!data || mode === 'never') return false;
-                return mode === 'always' ? true : x.supported && person.describe('canvas.xr') !== undefined;
+                if (!data || mode === 'never' || person.describe('canvas.xr') === undefined) return false;
+                return mode === 'always' || x.supported;
               }),
               distinctUntilChanged(),
             ),

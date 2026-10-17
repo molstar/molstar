@@ -197,11 +197,14 @@ async function capture(ctx: ApiContext, options: Record<string, unknown>, showFo
   let image: Awaited<ReturnType<typeof PluginStateSnapshotManager.getCanvasImageAsset>> | undefined;
   if (wantsImage) {
     // The thumbnail is rendered on purpose: the canvas is held while it is (README decision 29).
-    const unhold = await holdCanvas(plugin);
-    try {
-      image = await PluginStateSnapshotManager.getCanvasImageAsset(plugin, `${snapshot.id}-image.png`);
-    } finally {
-      unhold();
+    // A context the browser will not give back leaves the snapshot without its thumbnail.
+    const unhold = await holdCanvas(plugin, { signal: ctx.signal }).catch(() => undefined);
+    if (unhold) {
+      try {
+        image = await PluginStateSnapshotManager.getCanvasImageAsset(plugin, `${snapshot.id}-image.png`);
+      } finally {
+        unhold();
+      }
     }
   }
   return { snapshot, image };

@@ -23,7 +23,10 @@ export interface CameraSnapshot {
   readonly position: readonly [number, number, number];
   readonly target: readonly [number, number, number];
   readonly up: readonly [number, number, number];
-  /** The radius around the target that is in focus: the clipping and fog follow it (a camera clamps it to its scene's). */
+  /**
+   * The radius around the target that is in focus: the clipping and fog follow it. A camera clamps it to its scene's;
+   * a viewer set silently to a larger one does not announce its clamp.
+   */
   readonly radius: number;
 }
 
@@ -120,7 +123,11 @@ export function createViewerCamera(plugin: PluginContext): { readonly camera: Vi
         },
         0,
       );
-      if (options?.silent) last = snapshot;
+      // A cut: a transition under way would otherwise go on to this view over its frames, each one announced.
+      canvas.camera.transition.complete();
+      // What the camera took, not what it was given: it clamps the radius to its scene's, and a clamp announced back
+      // would shrink the clipping and fog of the viewer it follows.
+      if (options?.silent) last = read();
       // The canvas draws when asked: the cut shows on the next frame.
       canvas.requestDraw();
       return true;

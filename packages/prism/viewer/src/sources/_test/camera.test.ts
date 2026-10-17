@@ -29,13 +29,13 @@ async function viewer() {
 }
 
 /** A canvas with a real camera; `frame()` is the draw loop's `camera.update()`; `draws` counts redraw requests. */
-function mount(v: PrismViewer) {
+function mount(v: PrismViewer, radiusMax = 100) {
   const camera = new Camera({
     position: Vec3.create(0, 0, 100),
     target: Vec3.create(0, 0, 0),
     up: Vec3.create(0, 1, 0),
-    radius: 50,
-    radiusMax: 100,
+    radius: Math.min(50, radiusMax),
+    radiusMax,
   });
   const canvas = { camera, draws: 0, requestDraw: () => void canvas.draws++, dispose() {} };
   Object.defineProperty(v.plugin, 'canvas3d', { value: canvas, configurable: true });
@@ -100,6 +100,23 @@ describe('the viewer camera', () => {
     expect(seen.map((s) => s.target[0])).toEqual([3, 9]);
   });
 
+  it('ends a transition under way when set, so its frames are not announced', async () => {
+    const v = await viewer();
+    const m = mount(v);
+    const seen: CameraSnapshot[] = [];
+    v.camera.changed.subscribe((s) => seen.push(s));
+    m.camera.setState({ target: Vec3.create(20, 0, 0), position: Vec3.create(20, 0, 100) }, 1000);
+    m.camera.transition.tick(100);
+    expect(m.camera.transition.inTransition).toBe(true);
+    v.camera.set(at(5), { silent: true });
+    expect(m.camera.transition.inTransition).toBe(false);
+    expect(m.camera.state.target[0]).toBe(5);
+    m.camera.transition.tick(200);
+    m.frame();
+    expect(m.camera.state.target[0]).toBe(5);
+    expect(seen).toHaveLength(0);
+  });
+
   it('compares views by what the eye sees', () => {
     expect(sameView(at(1), at(1))).toBe(true);
     expect(sameView(at(1), { ...at(1), position: [1 + 1e-9, 0, 100] })).toBe(true);
@@ -137,5 +154,25 @@ describe('syncCameras', () => {
     Vec3.set(mb.camera.state.target, 20, 0, 0);
     mb.frame();
     expect([ma, mb, mc].map((m) => m.camera.state.target[0])).toEqual([11, 20, 11]);
+  });
+
+  it("keeps a follower's clamp from shrinking the leader's radius", async () => {
+    const [a, b] = [await viewer(), await viewer()];
+    // b's scene is smaller: its camera clamps the radius to 30.
+    const [ma, mb] = [mount(a), mount(b, 30)];
+    const heard = { a: 0, b: 0 };
+    a.camera.changed.subscribe(() => heard.a++);
+    b.camera.changed.subscribe(() => heard.b++);
+    const unlink = syncCameras([a, b]);
+    Vec3.set(ma.camera.state.position, 4, 0, 100);
+    Vec3.set(ma.camera.state.target, 4, 0, 0);
+    ma.frame();
+    mb.frame();
+    ma.frame();
+    expect(mb.camera.state.target[0]).toBe(4);
+    expect(mb.camera.state.radius).toBe(30);
+    expect(ma.camera.state.radius).toBe(50);
+    expect(heard).toEqual({ a: 1, b: 0 });
+    unlink();
   });
 });

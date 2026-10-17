@@ -260,18 +260,33 @@ export class VideoApi extends ApiArea {
     if (!plugin.canvas3d || !helper) return noCanvas();
     if (ctx.signal.aborted) return ApiResult.fail('aborted', 'Stopped before it started.', 'Nothing was rendered.');
 
-    // Rendered on purpose: the canvas is held for the whole export (its context restored if it was released; its loop
-    // left to the encoder, not paused or started by the canvas' presence: Prism's README decision 29).
-    const unhold = await holdCanvas(plugin);
-    const restore = configure(helper, v);
+    // Stop is wired first: it also ends the wait for the canvas below.
+    const stopping = new AbortController();
     let aborted = false;
     const stop = () => {
       aborted = true;
+      stopping.abort(new Error('The video export was cancelled.'));
       if (task) plugin.managers.task.requestAbort(task.id, 'Cancelled');
     };
     let task: Task<{ data: Uint8Array<ArrayBuffer>; mimeType: string; extension: string }> | undefined;
     this.#cancel = stop;
     ctx.signal.addEventListener('abort', stop);
+    // Rendered on purpose: the canvas is held for the whole export (its context restored if it was released; its loop
+    // left to the encoder, not paused or started by the canvas' presence: Prism's README decision 29).
+    let unhold: () => void;
+    try {
+      unhold = await holdCanvas(plugin, { signal: stopping.signal });
+    } catch (e) {
+      ctx.signal.removeEventListener('abort', stop);
+      this.#cancel = undefined;
+      if (aborted) return ApiResult.fail('aborted', 'The video export was cancelled.', 'Nothing was saved.');
+      return ApiResult.fail(
+        'unavailable',
+        `The canvas has no WebGL context: ${messageOf(e)}`,
+        'Try again in a moment.',
+      );
+    }
+    const restore = configure(helper, v);
     try {
       const [{ encodeVideoAnimation }, { MediabunnyBackend }] = await Promise.all([
         import('./encoder.js'),
