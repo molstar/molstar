@@ -32,6 +32,16 @@
   box-shadow: var(--msp-glass-shadow);
 }
 
+/* In the corner (`placement: 'corner'`): at the canvas' bottom right, clear of the rail and an open floating panel
+   (`--msp-canvas-right-inset`), above the toolbar's row (`--msp-corner-room`); it does not follow the pointer. */
+.corner {
+  top: auto;
+  left: auto;
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, var(--msp-space-3)));
+  bottom: calc(var(--msp-canvas-edge, var(--msp-space-3)) + var(--msp-corner-room, 0px));
+  will-change: auto;
+}
+
 .primary {
   font-weight: 600;
 }

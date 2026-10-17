@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'corner': 'msp-canvas-hover-label-corner',
   'label': 'msp-canvas-hover-label-label',
   'primary': 'msp-canvas-hover-label-primary',
   'secondary': 'msp-canvas-hover-label-secondary',
@@ -37,6 +38,14 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
 
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
+}
+
+.msp-canvas-hover-label-corner {
+  top: auto;
+  left: auto;
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, var(--msp-space-3)));
+  bottom: calc(var(--msp-canvas-edge, var(--msp-space-3)) + var(--msp-corner-room, 0px));
+  will-change: auto;
 }
 
 .msp-canvas-hover-label-primary {

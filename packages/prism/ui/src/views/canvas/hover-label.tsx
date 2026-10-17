@@ -31,9 +31,15 @@ export function HoverLabel(props: {
    * (a panel floating over it, whose rows highlight atoms and have their own tooltips) there is none. Default: all.
    */
   over?: (target: Element) => boolean;
+  /**
+   * Where it shows: `corner` (the default), at the area's bottom right, above the corner row (the toolbar: the area's
+   * `--msp-corner-room`), where it stays put and covers nothing near the pointer; `cursor`, beside the pointer.
+   */
+  placement?: 'corner' | 'cursor';
 }) {
+  const corner = (props.placement ?? 'corner') === 'corner';
   const label = (
-    <div class={classes.label} hidden={true} role="tooltip">
+    <div class={corner ? `${classes.label} ${classes.corner}` : classes.label} hidden={true} role="tooltip">
       <For each={props.model.lines}>
         {(line, index) => (
           <span class={index.pipe(map((i) => (i === 0 ? classes.primary : classes.secondary)))}>{line}</span>
@@ -53,7 +59,7 @@ export function HoverLabel(props: {
     frame = 0;
     const visible = inside && !dragging && hasContent;
     if (label.hidden === visible) label.hidden = !visible;
-    if (!visible) return;
+    if (!visible || corner) return;
     const area = label.offsetParent as HTMLElement | null;
     if (!area) return;
     // The pointer in the layer the label is placed in (the canvas may sit elsewhere in it).

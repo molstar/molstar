@@ -517,3 +517,9 @@ the [API change ledger](breaking-v6-changes.md).
 - Exports and snapshot thumbnails hold the canvas while they render (a released context comes back first; the loop is
   the export's). `options.ui.pauseOutOfView` (`auto`, `always`, `never`): `auto` pauses except in an automated browser
   (Playwright, Puppeteer, capture services), which renders on purpose.
+
+## Prism: the hover label in the corner
+
+- The canvas' hover label shows at the canvas' bottom right by default, as in v5: it stays put, clear of the rail and a
+  floating panel, above the toolbar. `options.ui.hoverLabel: 'cursor'` puts it beside the pointer (the story Viewer ›
+  Shell › Hover label at the cursor).

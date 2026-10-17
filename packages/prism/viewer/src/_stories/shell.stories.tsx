@@ -34,6 +34,18 @@ export const Loaded: StoryObj = {
 };
 
 /** The command menu open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
+/** The hover label beside the pointer (`options.ui.hoverLabel: 'cursor'`); the default is the canvas' bottom right. */
+export const HoverLabelAtCursor: StoryObj = {
+  name: 'Hover label at the cursor',
+  render: () =>
+    story(() => (
+      <RealViewerStory
+        load={[ExampleFiles.cbs]}
+        spec={(base) => ({ ...base, options: { ...base.options, ui: { ...base.options?.ui, hoverLabel: 'cursor' } } })}
+      />
+    )),
+};
+
 export const CommandMenuOpen: StoryObj = {
   render: () => story(() => <RealViewerStory load={[ExampleFiles.cbs]} setup={(v) => click(v, 'Command menu')} />),
 };
