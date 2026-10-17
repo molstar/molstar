@@ -43,6 +43,12 @@ it is done).
   `requestAnimationFrame`: one frame request a browser frame, whatever the input. Guarded by
   `viewer/src/ui/_test/frames.quick.ts` (`test:perf`). The empty canvas's splash is the exception: at rest it steps
   about 20 times a second (full rate under the pointer), through the same tick.
+- **Gestures attach once, and every end path releases** (David, 2026-10-17; [rendering.md §2.4](ui/_spec/rendering.md)):
+  a drag, a slider, a splitter, a scrubber is `drag()` (`dom/scoped.ts`): its listeners attached once with the scope,
+  the pointer captured, ended by a release, a cancel, the capture lost, a move with no button, the scope paused or
+  ended. Never attach on the press and detach on the release (a lost release leaks them). Each gesture has a test that
+  loses its release N times (`testing/gestures.ts`, `lostReleases`). No `MutationObserver` over the UI
+  (`no-mutation-observers.test.ts`).
 - **Bulk operations are one change** (David, 2026-10-17): an operation over many items (expand all, a select or a preset
   over many structures, an update of many cells, a load of many files) is one commit, one notification, one pass; never
   a copy of the whole collection, a scan of it (`find`, `includes`, `indexOf`) or a rebuild of an index per item: index

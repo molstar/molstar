@@ -225,6 +225,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   component file is held to a shrinking list (`ui/src/_test/scoped-attach.test.ts`: 93 in 30 files before the helpers,
   60 in 22 after the lists, the scroll area, the shell's views and the sequence band moved to them). A listener added in
   an event handler (no scope there) is attached once instead, scoped, and acts while a drag is on.
+- **Gestures** (`drag(target, { start, move, end })`, `dom/scoped.ts`): the press, the moves and every end are listeners
+  attached once with the scope, acting while a drag is on; the pointer is captured at the press. A drag ends on
+  `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
+  press, and the scope's pause and end, so a release lost to a window switch or a native dialog leaves no listener and
+  no drag on. The scroll area's thumb is the first; each gesture's test presses, moves and loses its release twenty
+  times and counts the listeners on every target (`testing/gestures.ts`).
 - **Views leave nothing behind** (`ui/src/dom/_test/leaks.heap.tsx`, `test:heap`): a keyed list with rows, a recycled
   list, the command menu, the mock shell with a tab shown and a context menu, mounted and disposed again and again, keep
   no heap outside code (n and 4n cycles, a frame between them) and leave no listener on the window, the document or its

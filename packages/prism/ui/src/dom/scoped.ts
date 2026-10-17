@@ -125,3 +125,73 @@ export function latest<A extends unknown[], R>(fn: (signal: AbortSignal, ...args
   requireScope('latest').onCleanup(() => l.abort());
   return l;
 }
+
+/** A drag's handlers (`drag`). */
+export interface DragHandlers<S> {
+  /** A press on the target: the drag's state to start one, undefined to let it be. */
+  start(e: PointerEvent): S | undefined;
+  /** The pointer moved while the drag is on. */
+  move?(e: PointerEvent, state: S): void;
+  /** It ended: released (`up`), or cancelled (the release lost, capture lost, the scope paused or ended). */
+  end?(state: S, how: 'up' | 'cancel', e: PointerEvent | undefined): void;
+}
+
+/**
+ * A pointer drag on `target` (prism AGENTS.md, gestures; the scroll area's shape): its listeners attached once, with
+ * the current scope (`on`: detached while it is paused, gone when it ends), acting only while a drag is on; the
+ * pointer captured on the press, so the moves come to the target wherever the pointer goes. Every way a drag can end
+ * ends it: a release, a cancel, the capture lost, a move with no button held (a release that never came), the scope
+ * paused or ended. A press never attaches anything, so a lost release leaves nothing behind.
+ */
+export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly active: boolean; cancel(): void } {
+  const scope = requireScope('drag');
+  let state: S | undefined;
+  let pointer = -1;
+  const finish = (how: 'up' | 'cancel', e?: PointerEvent) => {
+    if (state === undefined) return;
+    const s = state;
+    state = undefined;
+    if (pointer >= 0 && 'releasePointerCapture' in target) {
+      try {
+        if ((target as HTMLElement).hasPointerCapture?.(pointer))
+          (target as HTMLElement).releasePointerCapture(pointer);
+      } catch {
+        // Gone already.
+      }
+    }
+    pointer = -1;
+    handlers.end?.(s, how, e);
+  };
+  on<PointerEvent>(target, 'pointerdown', (e) => {
+    // A press while one is on (its release lost): that one ends first.
+    if (state !== undefined) finish('cancel', e);
+    const s = handlers.start(e);
+    if (s === undefined) return;
+    state = s;
+    pointer = e.pointerId;
+    try {
+      (target as HTMLElement).setPointerCapture?.(e.pointerId);
+    } catch {
+      // A synthetic or already-ended pointer: the moves still come over the target.
+    }
+  });
+  on<PointerEvent>(target, 'pointermove', (e) => {
+    if (state === undefined) return;
+    // No button held: the release went missing; end here.
+    if (e.buttons === 0 && e.pointerType !== 'touch') return finish('cancel', e);
+    handlers.move?.(e, state);
+  });
+  on<PointerEvent>(target, 'pointerup', (e) => finish('up', e));
+  on<PointerEvent>(target, 'pointercancel', (e) => finish('cancel', e));
+  on<PointerEvent>(target, 'lostpointercapture', (e) => finish('cancel', e));
+  scope.onActive((active) => {
+    if (!active) finish('cancel');
+  });
+  scope.onCleanup(() => finish('cancel'));
+  return {
+    get active() {
+      return state !== undefined;
+    },
+    cancel: () => finish('cancel'),
+  };
+}
