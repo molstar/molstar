@@ -18,3 +18,30 @@ export {
   isFlat,
   leaking,
 } from '../../../../sequences/core/_test/model/heap.js';
+
+const gcNow = () => {
+  const gc = (globalThis as { gc?: () => void }).gc;
+  if (!gc) throw new Error('Run with --expose-gc (pnpm test:heap).');
+  gc();
+  gc();
+};
+
+/**
+ * For a step that allocates by design (a keystroke's matches, jsdom's nodes): what it keeps, the heap after a full
+ * collection, over `n` steps and over `4n` more. Flat when neither grew past 1 MB and the longer kept at most 64 KB more
+ * than the shorter (Seq*'s limits, heap.ts). `heapScaling` counts garbage as kept (it collects nothing while it
+ * measures), so it suits only steps that allocate nothing.
+ */
+export function retainedScaling(n: number, step: (i: number) => void): { short: number; long: number; scaled: number } {
+  gcNow();
+  const h0 = process.memoryUsage().heapUsed;
+  for (let i = 0; i < n; i++) step(i);
+  gcNow();
+  const h1 = process.memoryUsage().heapUsed;
+  for (let i = 0; i < 4 * n; i++) step(i);
+  gcNow();
+  const h2 = process.memoryUsage().heapUsed;
+  const short = h1 - h0;
+  const long = h2 - h1;
+  return { short, long, scaled: long - short };
+}

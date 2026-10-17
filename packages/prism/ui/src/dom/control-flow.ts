@@ -408,8 +408,19 @@ export function For<T>(props: {
     });
   };
 
+  // The entries as last placed in full: the same items in another array (a list recomputed to what it was) find them in
+  // order, and nothing is done (the quick tier read 33 KB a step for 200 rows before; hot.quick.ts).
+  let placed: readonly ForEntry<T>[] = [];
+  const unchanged = (items: readonly T[]) => {
+    const n = items.length;
+    if (n === 0 || n !== placed.length) return false;
+    for (let i = 0; i < n; i++) if (placed[i].item !== items[i]) return false;
+    return true;
+  };
+
   const reconcile = (items: readonly T[]) => {
     latest = items;
+    if (unchanged(items)) return;
     const parent = end.parentNode!;
     // Emptied: every entry goes at once, and its nodes in one range.
     if (items.length === 0 && entries.size > 0) {
@@ -466,6 +477,7 @@ export function For<T>(props: {
       ref = entry.first;
     }
     for (let i = 0; i < order.length; i++) order[i].pos = i;
+    placed = deferred ? [] : order;
 
     if (order.length === 0 && props.fallback && !fallback) {
       fallback = owner.child();

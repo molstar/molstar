@@ -16,6 +16,7 @@ import { fuzzyScore, matchPositions } from '../../commands/match.js';
 import type { CommandGroup } from '../../commands/types.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
+import { keepRows } from '../../components/virtual-list/virtual-list.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
@@ -121,6 +122,32 @@ export interface CommandMenuPrefix {
 }
 
 /** A row of the list: a caption, a group to open, a command (or one of its ways in), or a prefix's item. */
+/** A row's identity across lists: what it shows and where. */
+const rowKey = (r: Row): string =>
+  r.kind === 'caption'
+    ? `caption:${r.label}`
+    : r.kind === 'group'
+      ? `group:${r.group.id}:${r.index}`
+      : r.kind === 'item'
+        ? `item:${r.item.label}:${r.index}`
+        : `match:${r.match.command.id}:${r.match.preset?.id ?? ''}:${r.index}:${r.tail ?? ''}`;
+
+/** The same row as before: what its view shows is the same (a query's marks are its own `watch`'s). */
+const sameRow = (a: Row, b: Row): boolean => {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === 'caption') return a.label === (b as typeof a).label;
+  if (a.kind === 'group') return a.group === (b as typeof a).group && a.index === (b as typeof a).index;
+  if (a.kind === 'item') return a.item === (b as typeof a).item && a.index === (b as typeof a).index;
+  const m = b as typeof a;
+  return (
+    a.match.command === m.match.command &&
+    a.match.preset === m.match.preset &&
+    a.match.blocked === m.match.blocked &&
+    a.index === m.index &&
+    a.tail === m.tail
+  );
+};
+
 type Row =
   | { kind: 'caption'; label: string }
   | { kind: 'group'; group: CommandGroup; index: number }
@@ -202,6 +229,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   const prefixes = [...(props.prefixes ?? []), helpPrefix(props, (t) => setText(t))];
   const prefixOf = (t: string) => prefixes.find((p) => t.startsWith(p.char));
 
+  // Keyed by the group browsed too: a row shows its path below it (made with the row).
+  const keepSame = keepRows<Row>((r) => `${group.value ?? ''}|${rowKey(r)}`, sameRow);
   const rows = combineLatest([text.asReadonly, group.asReadonly, manager.commands, manager.groups]).pipe(
     map(([t, g]) => {
       const out: Row[] = [];
@@ -270,6 +299,9 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
       return out;
     }),
+    // A row the same as one before (the same command at the same place) keeps its object: the list keeps its node, and
+    // a keystroke renders only the marks in its title (the quick tier read 1.9 MB a keystroke before; hot.quick.ts).
+    map(keepSame),
     // One computation for its subscribers (the list, `unmatched`, `current`), not one each.
     shareReplay({ bufferSize: 1, refCount: true }),
   );
