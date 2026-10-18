@@ -12,6 +12,7 @@
 import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
+import { mountCanvas, unmountCanvas } from '../canvas-host.js';
 import {
   CanvasContexts,
   followCanvasPresence,
@@ -45,6 +46,35 @@ class FakeIntersectionObserver {
 }
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+/**
+ * The viewer's plugin makes its context in `mountAsync`, as the plugin does: at once (WebGL's `getContext`), but the
+ * plugin has it only a task later (the backend chosen asynchronously). `contexts.peak`: the most live at once.
+ */
+function mountLater(
+  v: ReturnType<typeof fakeViewer>,
+  all: ReturnType<typeof fakeViewer>[],
+  contexts: { peak: number },
+) {
+  const plugin = v.plugin as unknown as Record<string, unknown>;
+  const { canvas3dContext, canvas3d } = plugin;
+  plugin.canvas3dContext = undefined;
+  plugin.canvas3d = undefined;
+  const state = { created: false, mounts: 0 };
+  plugin.mountAsync = async () => {
+    state.mounts++;
+    state.created = true;
+    const live = all.filter((o) => o.created() && !o.isLost()).length;
+    contexts.peak = Math.max(contexts.peak, live);
+    await tick();
+    plugin.canvas3dContext = canvas3dContext;
+    plugin.canvas3d = canvas3d;
+    return true;
+  };
+  plugin.unmount = () => {};
+  v.created = () => state.created;
+  return state;
+}
 
 function fakeViewer(inView: boolean, asyncLoss = false) {
   const root = document.createElement('div');
@@ -143,6 +173,8 @@ function fakeViewer(inView: boolean, asyncLoss = false) {
     control,
     finishRestore,
     isLost: () => lost,
+    /** Whether its context was made (see `mountLater`). */
+    created: () => true,
     show: (on: boolean) => observed.has(root) && observerCallback?.([{ target: root, isIntersecting: on }]),
   };
 }
@@ -430,5 +462,41 @@ describe('canvas presence', () => {
     expect(pausesOutOfView('auto')).toBe(true);
     if (was) Object.defineProperty(nav, 'webdriver', was);
     else delete (nav as { webdriver?: boolean }).webdriver;
+  });
+
+  it('mounts viewers together within the limit while their contexts are made asynchronously', async () => {
+    const contexts = { peak: 0 };
+    const all: ReturnType<typeof fakeViewer>[] = [];
+    for (let i = 0; i < 8; i++) {
+      const v = fakeViewer(true);
+      made.push(v);
+      all.push(v);
+      mountLater(v, all, contexts);
+    }
+    const mounted = all.map((v) => mountCanvas(v.plugin, v.root, { pauseOutOfView: 'always' }));
+    expect(await Promise.all(mounted)).toEqual(all.map(() => true));
+    for (let i = 0; i < 3; i++) await tick();
+    // One past max at most (below the browser's limit); then those followed last go dark.
+    expect(contexts.peak).toBeLessThanOrEqual(CanvasContexts.max + 1);
+    expect(CanvasContexts.stats().live).toBe(CanvasContexts.max);
+    expect(CanvasContexts.stats().dark).toBe(all.length - CanvasContexts.max);
+  });
+
+  it('lets a mount waiting for a slot go when its viewer is unmounted meanwhile', async () => {
+    CanvasContexts.budget = 1;
+    CanvasContexts.max = 1;
+    const contexts = { peak: 0 };
+    const all: ReturnType<typeof fakeViewer>[] = [];
+    const states = [0, 1, 2].map(() => {
+      const v = fakeViewer(true);
+      made.push(v);
+      all.push(v);
+      return mountLater(v, all, contexts);
+    });
+    const mounted = all.map((v) => mountCanvas(v.plugin, v.root, { pauseOutOfView: 'always' }));
+    unmountCanvas(all[2].plugin);
+    expect(await Promise.all(mounted)).toEqual([true, true, false]);
+    expect(states[2].mounts).toBe(0);
+    expect(contexts.peak).toBeLessThanOrEqual(2);
   });
 });

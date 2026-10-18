@@ -24,10 +24,12 @@ import type { Subscription } from 'rxjs';
 // `WEBGL_lose_context`, WebGPU the device destroyed, either freeing the GPU resources), the longest unseen first; a
 // viewer coming into view gets its context back (`Canvas3DContext.restore`, which rebuilds the canvas' resources as
 // after a loss), up to `max` when more viewers than the budget are in view at once; past `max`, the viewers in view
-// followed last give theirs up until a slot frees. The changes of a frame are reconciled together, releases before restores, and a context being restored counts
-// as live until it is: a restore is asynchronous. A viewer just followed is reconciled at once, in the task that made its
-// context: viewers mounted together must not pass the browser's limit before a microtask runs. A viewer in an XR session
-// is left alone.
+// followed last give theirs up until a slot frees. The changes of a frame are reconciled together, releases before
+// restores, and a context being restored counts as live until it is: a restore is asynchronous. The plugin makes its
+// context asynchronously (the backend is chosen first), so a mount is admitted before it starts (`admitCanvas`): a
+// context being made counts as live, and past `max` a mount waits for the one before it to be followed and reconciled
+// (which releases what is past `max`, the newest viewer in view first), so viewers mounted together never pass the
+// browser's limit. A viewer in an XR session is left alone.
 
 interface Waiter {
   resolve(): void;
@@ -102,6 +104,45 @@ function inXr(p: Presence): boolean {
   return p.context.graphics.xr.isPresenting();
 }
 
+/** Contexts being made: admitted mounts not followed yet, counted as live. */
+let creating = 0;
+/** Mounts waiting for a slot, in the order they asked. */
+const admissions: (() => void)[] = [];
+
+function liveCount(): number {
+  let live = 0;
+  for (const p of viewers) if (isLive(p)) live++;
+  return live;
+}
+
+/** One context may be made past `max` (the browser's limit is above it): reconciling it releases one again. */
+function hasRoom(): boolean {
+  return liveCount() + creating <= CanvasContexts.max;
+}
+
+function admitWaiting(): void {
+  while (admissions.length && hasRoom()) {
+    creating++;
+    admissions.shift()!();
+  }
+}
+
+/**
+ * Admits a mount about to make a context: at once while the page has room, else when a slot frees. Call the returned
+ * function once the canvas is followed (or the mount failed): its context then counts by itself.
+ */
+export async function admitCanvas(): Promise<() => void> {
+  if (!admissions.length && hasRoom()) creating++;
+  else await new Promise<void>((resolve) => admissions.push(resolve));
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    creating--;
+    admitWaiting();
+  };
+}
+
 let scheduled = false;
 function schedule(): void {
   if (scheduled) return;
@@ -173,6 +214,7 @@ function reconcile(): void {
       p.plugin.canvas3d?.requestDraw();
     }
   }
+  admitWaiting();
 }
 
 function inViewNow(root: HTMLElement): boolean {
@@ -285,8 +327,8 @@ function observe(root: HTMLElement): void {
 }
 
 /**
- * Starts following the canvas: pauses it out of view and puts its context in the page's budget, at once (call it in the
- * task that made the context). Following it again does nothing.
+ * Starts following the canvas: pauses it out of view and puts its context in the page's budget, at once (call it once the
+ * context is made, before the mount's admission is let go). Following it again does nothing.
  */
 export function followCanvasPresence(plugin: PluginContext): void {
   if (byPlugin.has(plugin)) return;

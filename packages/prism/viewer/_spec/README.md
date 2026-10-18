@@ -171,21 +171,22 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
   view release theirs past it (the longest unseen first), and a viewer coming into view gets its context back (up to
   `max`, 15, when more show at once; past it, those in view followed last go dark until a slot frees), so the page never
   reaches the browser's limit (Chrome 16), past which a dropped context cannot come back. A frame's changes are
-  reconciled together (one observer callback), releases before restores; a viewer is reconciled at once when followed,
-  in the task that made its context (`mountCanvas`), so viewers mounted together never pass the limit; a restore waits
-  for the browser's `webglcontextlost` and counts as live until `webglcontextrestored`. **Work that renders on purpose
-  holds the canvas** (`holdCanvas`: image export, copy and preview, video export, snapshot thumbnails): a released
-  context, or one being restored, is back before the work starts, and what the scene has pending is committed (Canvas3D
-  commits only in its tick, which a stopped loop does not run; a camera transition left under way ends at its target);
-  its loop and context are left alone while held; the release puts the loop back to what being in view says, whoever
-  started it (the screenshot helper starts it after each image). A hold's wait is abortable (`signal`) and fails when
-  the browser refuses the restore; a viewer disposed meanwhile lets it go and frees its slot.
-  `options.ui.pauseOutOfView` (`auto`: on, except in an automated browser, `navigator.webdriver`, where a capture page
-  renders on purpose; `always`; `never`); Node headless has no canvas to follow. In view and at rest the loop sleeps too
-  (`options.ui.pauseWhenIdle`, on: `PluginConfig.General.PauseLoopWhenIdle`): Canvas3D says when a tick had nothing to
-  do (`isIdle`) and when work comes (`wake`: input, a draw requested, a scene, camera or props change); 250 ms idle and
-  the loop asks for no frames until then. A host that moves the camera or the scene past Mol*'s API without
-  `requestDraw` turns it off.
+  reconciled together (one observer callback), releases before restores. The plugin makes its context asynchronously
+  (the backend is chosen first), so `mountCanvas` is admitted first (`admitCanvas`): a context being made counts as
+  live, and past `max` a mount waits until the one before it is followed and reconciled, so viewers mounted together
+  never pass the limit; a released context counts as gone at once (WebGPU reports the loss later); a restore waits for
+  the loss to be reported and counts as live until the context is back. **Work that renders on purpose holds the
+  canvas** (`holdCanvas`: image export, copy and preview, video export, snapshot thumbnails): a released context, or one
+  being restored, is back before the work starts, and what the scene has pending is committed (Canvas3D commits only in
+  its tick, which a stopped loop does not run; a camera transition left under way ends at its target); its loop and
+  context are left alone while held; the release puts the loop back to what being in view says, whoever started it (the
+  screenshot helper starts it after each image). A hold's wait is abortable (`signal`) and fails when the browser
+  refuses the restore; a viewer disposed meanwhile lets it go and frees its slot. `options.ui.pauseOutOfView` (`auto`:
+  on, except in an automated browser, `navigator.webdriver`, where a capture page renders on purpose; `always`;
+  `never`); Node headless has no canvas to follow. In view and at rest the loop sleeps too (`options.ui.pauseWhenIdle`,
+  on: `PluginConfig.General.PauseLoopWhenIdle`): Canvas3D says when a tick had nothing to do (`isIdle`) and when work
+  comes (`wake`: input, a draw requested, a scene, camera or props change); 250 ms idle and the loop asks for no frames
+  until then. A host that moves the camera or the scene past Mol*'s API without `requestDraw` turns it off.
 - **30. Operations that create things have an identity**: what exists is said and not made again unless `copy: true`
   ([api.md](api.md) §1).
 - **31. Colorblind-safe and high-contrast palettes** for the UI and the data

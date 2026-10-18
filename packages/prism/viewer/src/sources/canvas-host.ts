@@ -9,7 +9,7 @@
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import type { PluginContext } from '@molstar/plugin/context';
-import { followCanvasPresence, pausesOutOfView, unfollowCanvasPresence } from './canvas-presence.js';
+import { admitCanvas, followCanvasPresence, pausesOutOfView, unfollowCanvasPresence } from './canvas-presence.js';
 
 // The canvas in a page's viewer. Resizes (README decision 28): the plugin waits out a 50 ms debounce and a 100 ms
 // throttle, and sizing the canvas element clears it, so the frame after is blank until the next draw. Here the host's
@@ -18,6 +18,8 @@ import { followCanvasPresence, pausesOutOfView, unfollowCanvasPresence } from '.
 // clears too). The plugin's own trailing resize goes through the same path. Canvas3D is not touched (decision 28).
 
 const observers = new WeakMap<PluginContext, ResizeObserver>();
+/** The mount under way or done, per plugin: an unmount while a mount waits for a slot cancels it. */
+const mounts = new WeakMap<PluginContext, object>();
 
 /** Mounts the plugin's canvas in `host` (a page's viewer); false when the canvas cannot start (no WebGL). */
 export async function mountCanvas(
@@ -26,20 +28,29 @@ export async function mountCanvas(
   o: { pauseOutOfView?: 'auto' | 'always' | 'never' } = {},
 ): Promise<boolean> {
   const pauses = pausesOutOfView(o.pauseOutOfView ?? 'auto');
-  const mounting = plugin.mountAsync(host);
-  // The WebGL context is made in that call, before its promise settles: it joins the page's budget in the same task, so
-  // viewers mounted together never pass the browser's limit (README decision 29). Again after the await, in case it was not.
-  if (pauses) followCanvasPresence(plugin);
-  const ok = !!(await mounting);
-  if (ok) {
-    smoothResizes(plugin);
-    longPress(plugin);
-    if (pauses) followCanvasPresence(plugin);
-  } else unfollowCanvasPresence(plugin);
-  return ok;
+  const token = {};
+  mounts.set(plugin, token);
+  // The context is made asynchronously (the backend is chosen first): the mount waits for a slot in the page's budget and
+  // its context counts as live until it is followed, so viewers mounted together never pass the browser's limit (README
+  // decision 29).
+  const admitted = pauses ? await admitCanvas() : undefined;
+  try {
+    // Unmounted while waiting for a slot.
+    if (mounts.get(plugin) !== token) return false;
+    const ok = !!(await plugin.mountAsync(host));
+    if (ok) {
+      smoothResizes(plugin);
+      longPress(plugin);
+      if (pauses) followCanvasPresence(plugin);
+    } else unfollowCanvasPresence(plugin);
+    return ok;
+  } finally {
+    admitted?.();
+  }
 }
 
 export function unmountCanvas(plugin: PluginContext): void {
+  mounts.delete(plugin);
   unfollowCanvasPresence(plugin);
   observers.get(plugin)?.disconnect();
   observers.delete(plugin);
