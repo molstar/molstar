@@ -21,8 +21,8 @@ import {
 } from '../canvas-presence.js';
 
 // The canvas' presence (canvas-presence.ts) with fake plugins: a fake canvas context whose release and restore report
-// a task later (as browsers do; a restore can be told to be refused), a canvas that records commits, one
-// IntersectionObserver for the page driven by hand.
+// a task later (as browsers do; a restore can be told to be refused; with `asyncLoss`, as WebGPU, the context reads as
+// lost only then too), a canvas that records commits, one IntersectionObserver for the page driven by hand.
 
 type Entry = { target: Element; isIntersecting: boolean };
 let observerCallback: ((entries: Entry[]) => void) | undefined;
@@ -46,13 +46,14 @@ class FakeIntersectionObserver {
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
-function fakeViewer(inView: boolean) {
+function fakeViewer(inView: boolean, asyncLoss = false) {
   const root = document.createElement('div');
   root.getBoundingClientRect = () =>
     (inView
       ? { width: 100, height: 100, top: 0, left: 0, bottom: 100, right: 100 }
       : { width: 100, height: 100, top: 5000, left: 0, bottom: 5100, right: 100 }) as DOMRect;
   let lost = false;
+  let released = false;
   let lostEventSent = false;
   const contextLost = new Subject<number>();
   const contextRestored = new Subject<number>();
@@ -74,10 +75,15 @@ function fakeViewer(inView: boolean) {
     },
     contextLost,
     contextRestored,
+    get isReleased() {
+      return released;
+    },
     release() {
-      if (lost) return false;
-      lost = true;
+      if (lost || released) return false;
+      released = true;
+      if (!asyncLoss) lost = true;
       setTimeout(() => {
+        lost = true;
         lostEventSent = true;
         contextLost.next(0);
       });
@@ -85,6 +91,7 @@ function fakeViewer(inView: boolean) {
     },
     restore() {
       if (!lostEventSent || control.refuseRestore) return Promise.reject(new Error('restore not allowed'));
+      released = false;
       control.restores++;
       return new Promise<boolean>((resolve) => {
         restoring = resolve;
@@ -142,8 +149,8 @@ function fakeViewer(inView: boolean) {
 
 describe('canvas presence', () => {
   const made: ReturnType<typeof fakeViewer>[] = [];
-  const make = (inView: boolean) => {
-    const v = fakeViewer(inView);
+  const make = (inView: boolean, asyncLoss = false) => {
+    const v = fakeViewer(inView, asyncLoss);
     followCanvasPresence(v.plugin);
     made.push(v);
     return v;
@@ -216,6 +223,23 @@ describe('canvas presence', () => {
     await tick();
     expect(d.isLost()).toBe(false);
     expect([a, b].every((v) => !v.isLost())).toBe(true);
+  });
+
+  it('counts a context released before its loss is reported (WebGPU): not released twice, restored in view', async () => {
+    const [, , c] = [make(true, true), make(true, true), make(true, true)];
+    const d = make(false, true);
+    // d released at mount, its loss not reported yet; a viewer followed now reconciles in this task.
+    const e = make(false, true);
+    expect(CanvasContexts.stats().live).toBeLessThanOrEqual(CanvasContexts.budget);
+    await tick();
+    await tick();
+    expect(d.isLost()).toBe(true);
+    expect(e.isLost()).toBe(true);
+    c.show(false);
+    d.show(true);
+    for (let i = 0; i < 4; i++) await tick();
+    expect(d.isLost()).toBe(false);
+    expect(CanvasContexts.stats().live).toBeLessThanOrEqual(CanvasContexts.budget);
   });
 
   it('lets viewers in view use up to max when more than the budget show', async () => {

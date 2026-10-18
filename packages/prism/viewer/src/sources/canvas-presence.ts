@@ -84,8 +84,9 @@ export const CanvasContexts = {
   },
 };
 
+/** Released counts at once: WebGPU reports the loss only when the device's `lost` settles, a task or more later. */
 function isLost(p: Presence): boolean {
-  return p.context.graphics.isContextLost;
+  return p.context.graphics.isContextLost || !!p.context.isReleased;
 }
 
 function canRelease(p: Presence): boolean {
@@ -108,10 +109,11 @@ function schedule(): void {
   queueMicrotask(reconcile);
 }
 
-/** Whether the context was released (refused, e.g. while the backend changes: it stays live). */
+/** Whether the context was released (refused, e.g. while the backend changes: it stays as it was). */
 function release(p: Presence): boolean {
-  p.released = !!p.context.release?.();
-  return p.released;
+  if (!p.context.release?.()) return false;
+  p.released = true;
+  return true;
 }
 
 /** Refused: it stays released, to be asked again on the next change; work waiting for it is told. */

@@ -16,14 +16,16 @@ import { longPress, PressMs, PressSlop } from '../canvas-host.js';
 // (the hover label shows it). A quick tap, a drag, another pointer kind and a lifted finger do not.
 
 function setup() {
-  const canvas = document.createElement('canvas');
-  document.body.append(canvas);
+  const host = document.createElement('div');
+  const context = { canvas: document.createElement('canvas') };
+  host.append(context.canvas);
+  document.body.append(host);
   const highlightOnly = vi.fn();
   // read asynchronously on every backend
   const identify = vi.fn(() => ({ wait: () => Promise.resolve({ id: 7 }) }));
   const loci = { kind: 'element-loci' };
   const plugin = {
-    canvas3dContext: { canvas },
+    canvas3dContext: context,
     canvas3d: { asyncIdentify: identify, getLoci: vi.fn(() => ({ loci })) },
     managers: { interactivity: { lociHighlights: { highlightOnly } } },
   } as unknown as PluginContext;
@@ -33,9 +35,15 @@ function setup() {
     e.pointerType = init.pointerType ?? 'touch';
     e.clientX = init.x ?? 10;
     e.clientY = init.y ?? 20;
-    canvas.dispatchEvent(e);
+    context.canvas.dispatchEvent(e);
   };
-  return { pointer, highlightOnly, identify, loci };
+  // a backend fallback replaces the canvas element in place
+  const replaceCanvas = () => {
+    const next = document.createElement('canvas');
+    context.canvas.replaceWith(next);
+    context.canvas = next;
+  };
+  return { pointer, replaceCanvas, highlightOnly, identify, loci };
 }
 
 describe('long press on the canvas', () => {
@@ -74,5 +82,13 @@ describe('long press on the canvas', () => {
     t.pointer('pointermove', { x: 10 + PressSlop - 1 });
     await vi.advanceTimersByTimeAsync(PressMs);
     expect(t.highlightOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows the canvas a backend fallback puts in its place', async () => {
+    const t = setup();
+    t.replaceCanvas();
+    t.pointer('pointerdown');
+    await vi.advanceTimersByTimeAsync(PressMs);
+    expect(t.highlightOnly).toHaveBeenCalledWith({ loci: t.loci });
   });
 });

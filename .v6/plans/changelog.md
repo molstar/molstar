@@ -60,7 +60,8 @@ the [API change ledger](breaking-v6-changes.md).
 - The Viewer and the Mesoscale Explorer use WebGPU by default where the adapter has the features WebGL2 has
   (`graphics-backend=auto`, which stays on WebGL2 where blending into float32 targets is missing, e.g. older Firefox);
   `graphics-backend=webgpu` asks for WebGPU, `webgl` for WebGL (WebGL2, else WebGL1), `webgl2` and `webgl1` for that
-  version only. The plugin and library default stays WebGL
+  version only. The plugin and library default stays WebGL. The Prism viewer has the same option
+  (`renderer.graphicsBackend`, `graphics-backend`, `auto` by default) and keeps v5's `prefer-webgl1` (`webgl1`)
 - [Breaking] The `preferWebgl1` option and `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are
   removed: `graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`)
 - Graphics backend switching at runtime, keeping the scene (render objects, markers, camera, props):

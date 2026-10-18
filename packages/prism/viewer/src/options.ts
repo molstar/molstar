@@ -8,6 +8,7 @@
 
 import type { PartialOptions } from './spec.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { GraphicsBackendChoice } from '@molstar/plugin/util/graphics-backends';
 
 // The viewer's options (viewer-spec.md §2.2): one PD definition with three readers, `createPrismViewer({ options })`,
 // the URL (v5's names, app.md §4) and the Settings tab. `sources/compose-plugin.ts` turns a value into config items and
@@ -33,6 +34,18 @@ export const PrismViewerOptions = {
       ['low-power', 'Low power'],
       ['default', 'Default'],
     ]),
+    graphicsBackend: PD.Select<GraphicsBackendChoice>(
+      'auto',
+      [
+        ['auto', 'Automatic'],
+        ['webgpu', 'WebGPU'],
+        ['webgl', 'WebGL'],
+        ['webgl2', 'WebGL 2 only'],
+        ['webgl1', 'WebGL 1 only'],
+      ],
+      { description: 'Automatic: WebGPU where it has the features of WebGL 2, else WebGL; WebGPU falls back to WebGL' },
+    ),
+    /** v5's: `yes` is `graphicsBackend: 'webgl1'`. */
     preferWebgl1: PD.Select<'auto' | 'yes' | 'no'>('auto', [
       ['auto', 'Automatic'],
       ['yes', 'Yes'],
