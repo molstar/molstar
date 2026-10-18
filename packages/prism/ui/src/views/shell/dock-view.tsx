@@ -26,7 +26,7 @@ import { derive } from '../../reactive/state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
-import { faceOf, ItemIcon, staticTitle, ToolMenuRows } from './canvas-chrome.js';
+import { faceOf, ItemIcon, OverlayHost, staticTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout, RailSteps, railStep } from './rail.js';
 import { ViewHost } from './view-host.js';
 
@@ -113,8 +113,20 @@ export function DockView(props: {
               swap={() => pinned}
               fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
             >
-              {(tab) => <DockContent shell={shell} dock={dock} tab={tab} id={panelId} />}
+              {(tab) => (
+                <DockContent
+                  shell={shell}
+                  dock={dock}
+                  tab={tab}
+                  id={panelId}
+                  // A card opens in the right panel's place: the panel stays, paused and inert under it (compact: out of
+                  // the sheet, dock.module.css), and is back as it was when the card closes.
+                  {...(dock.id === 'right' ? { coveredBy: shell.overlay } : {})}
+                />
+              )}
             </Show>
+            {/* Compact, the card itself, in the sheet (shell.md, Compact); the host shows it only there. */}
+            {dock.id === 'right' ? <OverlayHost shell={shell} docked /> : null}
             <Show when={showStrip}>
               {() => {
                 let tablist!: HTMLElement;
@@ -505,8 +517,8 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   const { shell } = props;
   const dock = shell.dock(props.dock);
   // Embedded, nothing is pinned (shell.md §3): no pin to offer.
-  // Only on the desktop: compact (a bottom sheet) and embedded never pin (ShellModel).
-  const pinnable = derive(shell.mode, (m) => m !== 'embedded' && m !== 'compact');
+  // Only on the desktop with the full rail: compact (a bottom sheet), embedded and a compact rail never pin (ShellModel).
+  const pinnable = derive([shell.mode, shell.compactRail], (m, c) => !c && m !== 'embedded' && m !== 'compact');
   return (
     <Show when={pinnable}>
       {() => (

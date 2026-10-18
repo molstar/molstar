@@ -270,6 +270,11 @@ An extension ships one registry entry (format and viewer halves) and, when it ha
 sink, grouping equal lines (a merged copy group's units become `× n`). One label is built per hovered element; when to
 compute and hide it is the `hoverLabel` behavior's.
 
+- **The track's name** (`HoverLabel.track`) comes with a hover inside a named track (a header is titled by it): a host
+  that labels the element itself (Prism: Mol\*'s label of the residue) still says which track and what it holds there.
+  **Each line's provider** is named (`from`, by index), so such a host leaves out what it says itself (`position`,
+  `copies`).
+
 - **The codon.** On a block a streamed layer reaches through a path whose map takes each of the block's elements to
   three positions of its system (a codon step from the nucleotides, `seqspec:model#codon-maps`), the hovered element's
   label gives those positions' letters in reading order (`codon`; an unknown one `·`, a partial codon's known ones),

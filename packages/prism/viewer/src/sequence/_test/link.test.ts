@@ -206,4 +206,55 @@ describe('linking the sequence to a 3D view', () => {
     expect(setHover).toHaveBeenLastCalledWith(null, '3d');
     h.viewers.dispose();
   });
+
+  it("adds the hovered track and Seq*'s lines to Mol*'s label, escaped, and labels again when they change", async () => {
+    const h = headlessViewers();
+    const fake = fakeView();
+    let read: (() => string | undefined) | undefined;
+    const refresh = vi.fn();
+    const dispose = vi.fn();
+    fake.view.annotateHover = (r) => {
+      read = r;
+      return { refresh, dispose };
+    };
+    const stop = linkSequence(h.viewer, () => fake.view);
+    h.structure.set(await hostStructure());
+    await shown(h);
+    expect(read?.()).toBeUndefined();
+    const labels = h.viewer.seq.labels.current;
+    labels.set({
+      title: 'A ALA 12',
+      lines: [
+        { key: 'copies', value: '× 2 (A, B)' },
+        { key: 'pLDDT', value: '91.5' },
+      ],
+      from: ['copies', 'value'],
+      track: 'Confidence <b>',
+    });
+    // The residue's lines are Mol*'s to say: only the track's own.
+    expect(read?.()).toBe('<b>Confidence &lt;b&gt;</b><br/>pLDDT: 91.5');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    // The same lines again: nothing to label again.
+    labels.set({ title: 'A ALA 13', lines: [{ key: 'pLDDT', value: '91.5' }], track: 'Confidence <b>' });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    // A value keyed by the track's name: no track line above it.
+    labels.set({
+      title: 'A ALA 13',
+      lines: [{ key: 'Cα spread', value: '0.037' }],
+      from: ['value'],
+      track: 'Cα spread',
+    });
+    expect(read?.()).toBe('Cα spread: 0.037');
+    // Only the residue's lines: nothing added, not even the track's name.
+    labels.set({ title: 'A ALA 13', lines: [{ key: 'auth', value: '97' }], from: ['position'], track: 'Cα spread' });
+    expect(read?.()).toBeUndefined();
+    // Only a title (Mol* names the residue): nothing added.
+    labels.set({ title: 'A ALA 13', lines: [] });
+    expect(read?.()).toBeUndefined();
+    labels.set(null);
+    expect(refresh).toHaveBeenCalledTimes(3);
+    stop();
+    expect(dispose).toHaveBeenCalledTimes(1);
+    h.viewers.dispose();
+  });
 });

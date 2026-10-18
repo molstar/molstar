@@ -68,10 +68,21 @@ export interface HoverLabel {
   readonly title: string;
   readonly lines: readonly { readonly key: string; readonly value: string }[];
   /**
+   * The provider that wrote each line, by index (`LabelProvider.name`; absent in a label made by hand): a host may show
+   * only some (Prism leaves the residue's, `position` and `copies`, to Mol*'s label).
+   */
+  readonly from?: readonly string[];
+  /**
    * A track header's hover (no tree node): the track's legend, swatches and ramps (seqspec:interaction#the-legend);
    * absent: none.
    */
   readonly legend?: HeaderLegend;
+  /**
+   * The hovered track's name, for a hover inside a track (not its header, which is titled by it); absent: none, or
+   * unnamed. A host that labels the element itself (the Mol* adapter: Mol*'s label of the residue) still names the
+   * track and adds the lines.
+   */
+  readonly track?: string;
 }
 export interface LabelManager {
   /** Providers in priority order; for the live hover, once per hovered element. */
@@ -121,6 +132,9 @@ export class Labels implements LabelManager {
   private titleText: string | null = null;
   private readonly keys: string[] = [];
   private readonly values: string[] = [];
+  /** The provider of each line, and the one writing now. */
+  private readonly from: string[] = [];
+  private writing = '';
   private readonly counts: number[] = [];
   /** What the live label was computed for: the hover's version, the registry's, the view's. */
   private cachedHover = -1;
@@ -153,6 +167,7 @@ export class Labels implements LabelManager {
     line: (k, v) => {
       this.keys.push(k);
       this.values.push(v);
+      this.from.push(this.writing);
     },
     replaceTitle: (t) => {
       this.titleText = t;
@@ -186,6 +201,7 @@ export class Labels implements LabelManager {
     this.titleText = null;
     this.keys.length = 0;
     this.values.length = 0;
+    this.from.length = 0;
     if (view) {
       if (view.set !== this.reachedSet) {
         this.reachedSet = view.set;
@@ -194,7 +210,12 @@ export class Labels implements LabelManager {
       this.lc.set = view.set;
       this.lc.view = view;
       this.lc.section = h.section;
-      for (const p of this.sorted) if (p.applies(h)) p.label(h, this.lc, this.sink);
+      for (const p of this.sorted) {
+        if (!p.applies(h)) continue;
+        this.writing = p.name;
+        p.label(h, this.lc, this.sink);
+      }
+      this.writing = '';
     }
     // A track's header (not a tree's): the full text where the canvas cuts it, then the track's legend (one object
     // per track and view, made once), titled by the track when the text is whole.
@@ -207,7 +228,11 @@ export class Labels implements LabelManager {
       const t = view.resolved.tracks;
       this.titleText ??= t.label[h.track] >= 0 ? view.set.strings.get(t.label[h.track]) : '';
     }
-    const label = this.titleText === null && this.keys.length === 0 && !legend ? null : this.group(legend);
+    const track =
+      view && h.kind !== HoverKind.header && h.track >= 0 && view.resolved.tracks.label[h.track] >= 0
+        ? view.set.strings.get(view.resolved.tracks.label[h.track])
+        : '';
+    const label = this.titleText === null && this.keys.length === 0 && !legend ? null : this.group(legend, track);
     if (live) {
       this.cachedHover = version;
       this.cachedRegistry = registry;
@@ -227,8 +252,9 @@ export class Labels implements LabelManager {
   }
 
   /** Equal lines once, `× n` when repeated (a merged copy group's units): the label's own objects only. */
-  private group(legend: HeaderLegend | null): HoverLabel {
+  private group(legend: HeaderLegend | null, track: string): HoverLabel {
     const lines: { key: string; value: string }[] = [];
+    const from: string[] = [];
     const n = this.counts;
     n.length = 0;
     for (let i = 0; i < this.keys.length; i++) {
@@ -237,11 +263,21 @@ export class Labels implements LabelManager {
       if (j < lines.length) n[j]++;
       else {
         lines.push({ key: this.keys[i], value: this.values[i] });
+        from.push(this.from[i]);
         n.push(1);
       }
     }
     for (let j = 0; j < lines.length; j++) if (n[j] > 1) lines[j].value = `${lines[j].value} × ${n[j]}`;
-    return legend ? { title: this.titleText ?? '', lines, legend } : { title: this.titleText ?? '', lines };
+    const title = this.titleText ?? '';
+    // One object, its optional fields only when present (no spread temporaries: labels.ts' one allocation).
+    const label: { title: string; lines: typeof lines; from: string[]; legend?: HeaderLegend; track?: string } = {
+      title,
+      lines,
+      from,
+    };
+    if (legend) label.legend = legend;
+    if (track) label.track = track;
+    return label;
   }
 
   dispose() {

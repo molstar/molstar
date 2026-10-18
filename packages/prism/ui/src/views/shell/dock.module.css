@@ -194,6 +194,11 @@
   & .splitter {
     display: none;
   }
+
+  /* A card open in the panel's place (the sheet shows the card): the panel, kept as it was, leaves the sheet. */
+  & > .content[inert] {
+    display: none;
+  }
 }
 
 /* Floating: over the canvas, inside the canvas layer. The rail (tab strip, toolbar) sits at the edge, the content card

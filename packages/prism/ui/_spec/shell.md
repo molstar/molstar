@@ -66,7 +66,9 @@ buttons) is the app's. The code is the truth for how.
     when the rounded height or the buttons change.
   - **Compact rail** (`ShellOptions.compactRail`, `toggleRail`): the column hides behind a button in the canvas's corner
     and slides in over the canvas, taking no width; hidden, it is inert and paused. Hiding closes the card and the
-    panel.
+    panel. Nothing pins beside it (`DockState.pinned` false, the layout's pin kept for the full rail; no pin button):
+    pinned, the canvas ended at the panel and the button, in the canvas's corner, moved onto the toolbar. The button
+    sits at the foot of the rail's column, and the canvas's corner (the toolbar) keeps clear of that column.
 - **Theme switch**: the themes beside the rail (`UIThemes`), `ThemeModel` (`shell/theme.ts`) keeps `data-msp-theme`. The
   rail, panel and cards follow the UI theme; the canvas chrome follows the canvas (Glass, below).
 - **Command menu**: opened by the rail's last button and ⌘K / ⇧⌘P (the host listens); modal over the whole shell
@@ -131,8 +133,10 @@ buttons) is the app's. The code is the truth for how.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.
 - **Compact** below `compactWidth` (720px) of the shell's own width (`ResizeObserver`, not media queries): the panel is
-  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; a card fills the
-  canvas. The status and the selection stay on the canvas, as wide: the selection beside the toolbar (wrapping above
+  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; a card opens in
+  the sheet too, in the panel's place (the canvas ends above it, as for a panel; the tab bar under it), flat, with its
+  title and ✕ as a panel's (Story, PAE, an extension's card: floating over the canvas, it hid the structure it is
+  about). The status and the selection stay on the canvas, as wide: the selection beside the toolbar (wrapping above
   it), the status floating above both where the bottom bar is narrow, so neither coming or going resizes the canvas.
 - **Glass and canvas ink.** Everything over the canvas is flat glass whose theme follows the canvas background
   (`model/canvas-theme.ts`: relative luminance, threshold 0.179; a gradient averaged by opacity; transparent: the host's

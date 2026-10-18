@@ -9,6 +9,7 @@
 import { Representation } from '@molstar/graphics/repr/representation';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
+import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureFormat, StructureSource } from '../sequence/molstar/source.js';
@@ -274,6 +275,25 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
             );
           });
           return () => sub.unsubscribe();
+        },
+        annotateHover: (read) => {
+          // After every other provider: the residue first, then the track's lines (sequence.md §10). Only while the
+          // sequence's hover maps: what the link lit is then the 3D highlight of this structure.
+          const provider: LociLabelProvider = {
+            label: (loci) =>
+              hoverMapped.value && StructureElement.Loci.is(loci) && loci.structure.root === target.root
+                ? read()
+                : undefined,
+            priority: -1000,
+          };
+          const labels = plugin.managers.lociLabels;
+          labels.addProvider(provider);
+          return {
+            refresh: () => {
+              if (hoverMapped.value) labels.refresh();
+            },
+            dispose: () => labels.removeProvider(provider),
+          };
         },
         ...(resetCamera ? { resetCamera } : {}),
       };

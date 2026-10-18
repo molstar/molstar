@@ -732,6 +732,10 @@ export class ShellModel extends ReactiveModel {
     if (this.#effectiveMode.value === 'embedded') {
       return { ...state, floating: id === 'right' ? true : state.floating, pinned: false };
     }
+    // A compact rail lies over the canvas and takes no width (shell.md §2): nothing pinned beside it either (the pin is
+    // kept for a full rail). Pinned, the canvas ended at the panel while the rail's button stayed in the canvas's corner,
+    // over the toolbar, and the rail came and went beside a fixed panel.
+    if (this.#viewState.layout.value.compactRail && state.pinned) return { ...state, pinned: false };
     // Compact (a phone): the panel is a bottom sheet, never pinned (the person's pin is kept for the desktop): Escape
     // and a click outside close it, and a card over it is a dialog.
     if (this.#effectiveMode.value === 'compact' && state.pinned) return { ...state, pinned: false };

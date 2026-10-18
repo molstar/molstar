@@ -935,13 +935,16 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
  * The open overlay as a card in the right panel's place (the panel steps aside while it is open). One card while any is
  * open: another one opened swaps its title and body, as a tab swaps a panel's content (no closing and opening again).
  */
-export function OverlayHost(props: { shell: ShellModel }) {
+export function OverlayHost(props: { shell: ShellModel; docked?: boolean }) {
   const { shell } = props;
-  const isOpen = derive(shell.overlay, (o) => !!o);
-  return <Show when={isOpen}>{() => <OverlayCard shell={shell} />}</Show>;
+  // Compact, the card opens in the bottom sheet, in the panel's place (the right dock's `DockView` hosts it, `docked`);
+  // otherwise over the canvas. One host for each: each shows it only in its own layout.
+  const docked = !!props.docked;
+  const isOpen = derive([shell.overlay, shell.mode], (o, m) => !!o && (m === 'compact') === docked);
+  return <Show when={isOpen}>{() => <OverlayCard shell={shell} docked={docked} />}</Show>;
 }
 
-function OverlayCard(props: { shell: ShellModel }) {
+function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
   const { shell } = props;
   /** The overlay open now (the card lives while one is). */
   const current = () => shell.overlay.value as OpenOverlay;
@@ -956,11 +959,11 @@ function OverlayCard(props: { shell: ShellModel }) {
   let cancelFocus: (() => void) | undefined;
   const card = (
     <section
-      class={classes.card}
+      class={props.docked ? classes.cardDocked : classes.card}
       role="dialog"
       aria-labelledby={titleId}
       onKeyDown={(e) => {
-        if (!pinned()) trapTab(e, e.currentTarget);
+        if (!inPlace()) trapTab(e, e.currentTarget);
       }}
     >
       <header class={classes.cardHeader}>
@@ -999,7 +1002,7 @@ function OverlayCard(props: { shell: ShellModel }) {
   ) as HTMLElement;
   // Modal while it floats; its title is the open overlay's (another one swaps it).
   watch([pinnedState, shell.overlay], () => {
-    setAttr(card, 'aria-modal', String(!pinnedState.value));
+    setAttr(card, 'aria-modal', String(!props.docked && !pinnedState.value));
     setText(title, shell.overlay.value?.overlay.title ?? '');
   });
   // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
@@ -1007,6 +1010,8 @@ function OverlayCard(props: { shell: ShellModel }) {
   // workspace like the pinned panel: only its ✕ (or another card or tab) closes it; a persistent card (the Story, read
   // beside the scene) is not closed by a click elsewhere either.
   const pinned = () => shell.dock('right').state.value.pinned;
+  // Part of the layout, not a dialog over it: pinned, or in the compact sheet (Tab leaves it, as it leaves a panel).
+  const inPlace = () => props.docked || pinned();
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || pinned() || !ownsKey(card, e)) return;
