@@ -35,7 +35,7 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
 ## Status
 
 - **Step 0**: `load-animation.golden.test.ts` (in the unit run) and `load-animation.bench.test.ts`; how they work:
-  `packages/mvs/runtime/_spec/performance.md`.
+  `packages/mvs/runtime/_spec/testing.md`.
 - **Step 1**: `ObjectMutator` (`@molstar/core/util/object-mutator`) replaces `produce`; dedup is root identity. exosome
   expansion 396 → 20 ms (795 → 26 MB allocated), motm1 140 → 10 ms; goldens unchanged. Precompiling easing and
   defaults was left: expansion is now 1.6 % of the load.

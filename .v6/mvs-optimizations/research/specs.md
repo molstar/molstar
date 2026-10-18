@@ -19,7 +19,7 @@ code comments cite sections).
 | `README.md`      | the package, the load pipeline in one picture, entries (`loadMVS`, behavior, registry), where the code is |
 | `load.md`        | validate → expand → convert → load virtual → entries; deterministic refs (`!mvs:hash:n`), hash versions, `replaceExisting`; the loading actions, their context and their locality (the unit of reuse, molstar-conversion.md step 4) |
 | `animation.md`   | expansion: the compiled update plan, slot equality and frame dedup, identity across frames, what a frame holds and shares with the base and the previous frame |
-| `performance.md` | budgets per fixture (time, allocation, retained), the bench and how to read it, the goldens               |
+| `testing.md` | budgets per fixture (time, allocation, retained), the bench and how to read it, the goldens               |
 
 ## Questions to settle while writing them
 

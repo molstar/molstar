@@ -5,7 +5,7 @@
  */
 
 /**
- * Objects made once per content, e.g. the color maps of an animation (`animation.md §3`): two of them made for the same
+ * Objects made once per content, e.g. the color maps of an animation (`animation.md §5`): two of them made for the same
  * place are equal only when they are the same object, so comparisons can stop at identity instead of walking them.
  * Two from different places may have equal content; taking them as different costs only reuse (a new transform with
  * the same version), never a wrong result. Never changed after they are made.

@@ -179,7 +179,7 @@ function compileTransitions(root: MVSTree, transitions: MVSAnimationNode<'interp
       caches: transitionGroup.map(() => ({ colorCaches })),
     });
   }
-  // (color maps are made once per content: two different ones are different, `animation.md §3`)
+  // (color maps are made once per content: two different ones are different, `animation.md §5`)
   const mutator = ObjectMutator.create(plan, { equals: (a, b) => !areDistinctCanonical(a, b) && deepEqual(a, b) });
   for (const group of groups) group.current = () => mutator.get(group.slot);
   return { mutator, groups };
@@ -635,7 +635,7 @@ function interpolateColors(
 }
 
 /**
- * A color map transition (`animation.md §3`): the keys in the order they are set, each either a constant color or one of
+ * A color map transition (`animation.md §4`): the keys in the order they are set, each either a constant color or one of
  * a few groups of keys that go from the same start to the same end color. Prepared once per content (base map object,
  * start, end), so transitions with the same colors share it; the maps it returns are kept by their group colors, so
  * equal maps are the same object (frame dedup, hashing, comparisons and memory by identity).
