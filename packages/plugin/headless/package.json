@@ -37,7 +37,8 @@
     "@molstar/graphics": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@types/gl": "catalog:"
+    "@types/gl": "catalog:",
+    "rxjs": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
@@ -46,12 +47,16 @@
   },
   "peerDependencies": {
     "gl": ">=6 <9",
+    "webgpu": ">=0.6 <0.7",
     "canvas": "^2.11.2",
     "pngjs": "^6.0.0",
     "jpeg-js": "^0.4.4"
   },
   "peerDependenciesMeta": {
     "gl": {
+      "optional": true
+    },
+    "webgpu": {
       "optional": true
     },
     "canvas": {

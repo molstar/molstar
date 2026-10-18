@@ -6,8 +6,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -26,14 +26,20 @@ import {
   AnimationSchema,
 } from './schema.js';
 import { MeshShaderCode } from '../shader-code.js';
+import { StorageBufferSpec } from '../compute.js';
 import { ValueCell } from '@molstar/core/util';
 
 export const TextureMeshSchema = {
   ...BaseSchema,
   uGeoTexDim: UniformSpec('v2', 'buffered'),
-  tPosition: TextureSpec('texture', 'rgb', 'float', 'nearest'),
-  tGroup: TextureSpec('texture', 'alpha', 'float', 'nearest'),
-  tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
+  tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tNormal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  /** vertices in pages of the vertex arena instead of the textures (WebGPU), see `computeChunkedIsosurface` */
+  dIsoChunks: DefineSpec('boolean'),
+  sIsoTable: StorageBufferSpec('u32', 'read', ['dIsoChunks']),
+  sIsoPositions: StorageBufferSpec('vec4<f32>', 'read', ['dIsoChunks']),
+  sIsoNormals: StorageBufferSpec('vec2<u32>', 'read', ['dIsoChunks']),
   dVaryingGroup: DefineSpec('boolean'),
   dFlatShaded: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
@@ -53,8 +59,17 @@ export const TextureMeshSchema = {
 export type TextureMeshSchema = typeof TextureMeshSchema;
 export type TextureMeshValues = Values<TextureMeshSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const TextureMeshRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...TextureMeshSchema,
+};
+
 export function TextureMeshRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: TextureMeshValues,
   state: RenderableState,
@@ -62,13 +77,7 @@ export function TextureMeshRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<TextureMeshValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...TextureMeshSchema,
-  };
+  const schema = TextureMeshRenderableSchema;
   const renderValues: TextureMeshValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -76,8 +85,7 @@ export function TextureMeshRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = MeshShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,
@@ -86,5 +94,13 @@ export function TextureMeshRenderable(
     transparency,
   );
 
-  return createRenderable(renderItem, renderValues, state);
+  const renderable = createRenderable(renderItem, renderValues, state);
+  const getItemByteCount = renderable.getByteCount;
+  // with its pages of the shared vertex arena (see `computeChunkedIsosurface`), known once read back
+  return Object.assign(renderable, {
+    getByteCount: () => {
+      const meta = values.meta.ref.value as { chunkByteCount?: number } | undefined;
+      return getItemByteCount() + (values.dIsoChunks.ref.value ? (meta?.chunkByteCount ?? 0) : 0);
+    },
+  });
 }

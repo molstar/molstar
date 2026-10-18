@@ -7,6 +7,7 @@
 
 import { AssetManager } from '@molstar/core/util/assets';
 import { Canvas3D, type Canvas3DProps, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { parseSdf as _parseSdf, type SdfFile } from '@molstar/io/reader/sdf/parser';
 import { Structure } from '@molstar/model/model/structure';
@@ -59,7 +60,7 @@ function main() {
 
   const canvas3ds: Canvas3D[] = [];
 
-  const canvas3dContext = Canvas3DContext.fromCanvas(canvas, new AssetManager());
+  const canvas3dContext = createWebGLCanvas3DContext(canvas, new AssetManager());
   resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
   canvas3dContext.syncPixelScale();
 
@@ -72,7 +73,7 @@ function main() {
   const cids = [6440397, 2244, 2519, 241];
 
   const reprCtx: RepresentationContext = {
-    webgl: canvas3dContext.webgl,
+    graphics: canvas3dContext.graphics,
     colorThemeRegistry: createColorThemeRegistry(),
     sizeThemeRegistry: createSizeThemeRegistry(),
   };

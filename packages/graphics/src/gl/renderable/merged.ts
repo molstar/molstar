@@ -41,13 +41,9 @@ import {
   PointsShaderCode,
   type ShaderCode,
 } from '../shader-code.js';
-import {
-  createGraphicsRenderItem,
-  type Transparency,
-  type GraphicsRenderVariant,
-  type DrawMode,
-} from '../webgl/render-item.js';
-import type { WebGLContext, WebGLStats } from '../webgl/context.js';
+import type { DrawMode, GlobalBindings, GraphicsRenderVariant, Transparency } from '../render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { GraphicsStats } from '../stats.js';
 import {
   type Renderable,
   type RenderableState,
@@ -101,47 +97,47 @@ const BaseTexSpecs: MergedTexSpec[] = [
   {
     tex: 'tColor',
     dim: 'uColorTexDim',
-    itemSize: 3,
-    granularity: (v) => pickGranularity(v.dColorType.ref.value),
+    itemSize: 4,
+    granularity: (v) => pickGranularity(v.colorType.ref.value),
     factor: (v) => (v.dDualColor?.ref.value ? 2 : 1),
   },
-  { tex: 'tSize', dim: 'uSizeTexDim', itemSize: 3, granularity: (v) => pickGranularity(v.dSizeType.ref.value) },
-  { tex: 'tMarker', dim: 'uMarkerTexDim', itemSize: 1, granularity: (v) => pickGranularity(v.dMarkerType.ref.value) },
+  { tex: 'tSize', dim: 'uSizeTexDim', itemSize: 4, granularity: (v) => pickGranularity(v.sizeType.ref.value) },
+  { tex: 'tMarker', dim: 'uMarkerTexDim', itemSize: 1, granularity: (v) => pickGranularity(v.markerType.ref.value) },
   {
     tex: 'tOverpaint',
     dim: 'uOverpaintTexDim',
     itemSize: 4,
-    granularity: (v) => (v.dOverpaint.ref.value ? pickGranularity(v.dOverpaintType.ref.value) : 'none'),
+    granularity: (v) => (v.dOverpaint.ref.value ? pickGranularity(v.overpaintType.ref.value) : 'none'),
   },
   {
     tex: 'tTransparency',
     dim: 'uTransparencyTexDim',
     itemSize: 1,
-    granularity: (v) => (v.dTransparency.ref.value ? pickGranularity(v.dTransparencyType.ref.value) : 'none'),
+    granularity: (v) => (v.dTransparency.ref.value ? pickGranularity(v.transparencyType.ref.value) : 'none'),
   },
   {
     tex: 'tEmissive',
     dim: 'uEmissiveTexDim',
     itemSize: 1,
-    granularity: (v) => (v.dEmissive.ref.value ? pickGranularity(v.dEmissiveType.ref.value) : 'none'),
+    granularity: (v) => (v.dEmissive.ref.value ? pickGranularity(v.emissiveType.ref.value) : 'none'),
   },
   {
     tex: 'tSubstance',
     dim: 'uSubstanceTexDim',
     itemSize: 4,
-    granularity: (v) => (v.dSubstance.ref.value ? pickGranularity(v.dSubstanceType.ref.value) : 'none'),
+    granularity: (v) => (v.dSubstance.ref.value ? pickGranularity(v.substanceType.ref.value) : 'none'),
   },
   {
     tex: 'tClipping',
     dim: 'uClippingTexDim',
     itemSize: 1,
-    granularity: (v) => (v.dClipping.ref.value ? pickGranularity(v.dClippingType.ref.value) : 'none'),
+    granularity: (v) => (v.dClipping.ref.value ? pickGranularity(v.clippingType.ref.value) : 'none'),
   },
   {
     tex: 'tWiggle',
     dim: 'uWiggleTexDim',
     itemSize: 1,
-    granularity: (v) => (v.dWiggle.ref.value ? pickGranularity(v.dWiggleType.ref.value) : 'none'),
+    granularity: (v) => (v.dWiggle.ref.value ? pickGranularity(v.wiggleType.ref.value) : 'none'),
   },
 ];
 
@@ -151,6 +147,8 @@ function getVertexAttributes(schema: RenderableSchema): VertexAttribute[] {
   const ret: VertexAttribute[] = [];
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
+    // `aVertex` (the emulated vertex id of WebGL1) is not member data: the render item fills it with serial ids
+    if (k === 'aVertex') continue;
     if (spec.type === 'attribute' && spec.divisor === 0) {
       ret.push({ key: k, itemSize: spec.itemSize });
     }
@@ -209,12 +207,13 @@ const MergedTypeDescriptors: { [k in MergedType]: MergedTypeDescriptor } = {
     vertexAttributes: getVertexAttributes(LinesSchema),
   },
   points: {
-    drawMode: 'points',
+    drawMode: 'triangles',
     shaderCode: PointsShaderCode,
     schema: PointsSchema,
     hasElements: false,
+    // six vertices per point quad share one position texel, the vertex count is the point count
     vertexTexels: (v) => v.uVertexCount.ref.value,
-    extraTextures: [],
+    extraTextures: [{ tex: 'tPositionGroup', dim: 'uTexDim', itemSize: 4, float: true, granularity: () => 'vertex' }],
     vertexAttributes: getVertexAttributes(PointsSchema),
   },
 };
@@ -242,7 +241,7 @@ export function getMergeKey(values: MergeableValues): string {
   for (const k of keys) {
     parts.push(`${k}:${values[k].ref.value}`);
   }
-  parts.push(`ig:${values.instanceGranularity.ref.value}`);
+  parts.push(`ig:${values.uInstanceGranularity.ref.value}`);
   parts.push(`uLod:${(values.uLod.ref.value as Vec4).join(',')}`);
   const lodLevels = values.lodLevels?.ref.value as LodLevelsValue | undefined;
   parts.push('lod:' + (lodLevels ? lodLevels.map((l) => `${l[0]},${l[1]},${l[2]}`).join(';') : ''));
@@ -258,14 +257,14 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
 
   const first = members[0];
   if (first.dUsePalette?.ref.value) return false;
-  if (!SupportedVertexTypes.includes(first.dColorType.ref.value)) return false;
-  if (first.dSizeType && !SupportedVertexTypes.includes(first.dSizeType.ref.value)) return false;
-  if (first.dOverpaint.ref.value && !SupportedIgTypes.includes(first.dOverpaintType.ref.value)) return false;
-  if (first.dTransparency.ref.value && !SupportedIgTypes.includes(first.dTransparencyType.ref.value)) return false;
-  if (first.dEmissive.ref.value && !SupportedIgTypes.includes(first.dEmissiveType.ref.value)) return false;
-  if (first.dSubstance.ref.value && !SupportedIgTypes.includes(first.dSubstanceType.ref.value)) return false;
-  if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.dClippingType.ref.value)) return false;
-  if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.dWiggleType.ref.value)) return false;
+  if (!SupportedVertexTypes.includes(first.colorType.ref.value)) return false;
+  if (first.sizeType && !SupportedVertexTypes.includes(first.sizeType.ref.value)) return false;
+  if (first.dOverpaint.ref.value && !SupportedIgTypes.includes(first.overpaintType.ref.value)) return false;
+  if (first.dTransparency.ref.value && !SupportedIgTypes.includes(first.transparencyType.ref.value)) return false;
+  if (first.dEmissive.ref.value && !SupportedIgTypes.includes(first.emissiveType.ref.value)) return false;
+  if (first.dSubstance.ref.value && !SupportedIgTypes.includes(first.substanceType.ref.value)) return false;
+  if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
+  if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
 
   const key = getMergeKey(first);
   for (let i = 1, il = members.length; i < il; ++i) {
@@ -282,6 +281,8 @@ export type MergedSegments = {
   instanceCounts: number[];
   /** first vertex (into the merged geometry) per segment */
   vertexBases: number[];
+  /** first drawn vertex per segment, for types without elements (e.g. 6 per point quad with one data vertex per point) */
+  drawBases: number[];
   /** byte offset (into the merged element buffer) per segment */
   elementOffsets: number[];
 };
@@ -317,6 +318,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     instanceBases: new Array(n).fill(0),
     instanceCounts: new Array(n).fill(0),
     vertexBases: new Array(n).fill(0),
+    drawBases: new Array(n).fill(0),
     elementOffsets: new Array(n).fill(0),
   };
 
@@ -327,6 +329,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     aSegment: ValueCell.create(new Float32Array(0)),
     aSegmentSphere: ValueCell.create(new Float32Array(0)),
     aSegmentLod: ValueCell.create(new Float32Array(0)),
+    aVertex: ValueCell.create(new Float32Array(0)),
     drawCount: ValueCell.create(0),
     instanceCount: ValueCell.create(0),
     uVertexCount: ValueCell.create(0),
@@ -478,7 +481,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       const v = members[i];
       const w = Math.max(
         1,
-        v.dMarkerType.ref.value === 'instance'
+        v.markerType.ref.value === 'instance'
           ? v.instanceCount.ref.value
           : v.instanceCount.ref.value * v.uGroupCount.ref.value,
       );
@@ -577,6 +580,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       segments.instanceBases[i] = instanceTotal;
       segments.instanceCounts[i] = instanceCount;
       segments.vertexBases[i] = vertexTotal;
+      segments.drawBases[i] = drawTotal;
       segments.elementOffsets[i] = drawTotal * 4;
       segmentGroupCounts[i] = groupCount;
       segmentGroupInstanceOffsets[i] = groupInstanceBase - instanceTotal * groupCount;
@@ -799,8 +803,32 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
 
 //
 
+const MergedRenderableSchemas = new Map<MergedType, RenderableSchema>();
+
+/** The schema of merged renderables of `type` (one object per type, shared by the items) */
+export function getMergedRenderableSchema(type: MergedType) {
+  let schema = MergedRenderableSchemas.get(type);
+  if (!schema) {
+    schema = {
+      ...GlobalUniformSchema,
+      ...GlobalTextureSchema,
+      ...GlobalDefineSchema,
+      ...InternalSchema,
+      ...MergedTypeDescriptors[type].schema,
+      ...SegmentSchema,
+    };
+    MergedRenderableSchemas.set(type, schema);
+  }
+  return schema;
+}
+
+/** The shader code of merged renderables of `type` */
+export function getMergedShaderCode(type: MergedType) {
+  return MergedTypeDescriptors[type].shaderCode;
+}
+
 export function MergedRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   merged: Merged,
   members: readonly MergeableValues[],
@@ -810,22 +838,14 @@ export function MergedRenderable(
   globals: GlobalDefines,
 ): Renderable<MergeableValues & SegmentValues> {
   const descriptor = MergedTypeDescriptors[merged.type];
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...descriptor.schema,
-    ...SegmentSchema,
-  };
+  const schema = getMergedRenderableSchema(merged.type);
   const renderValues: MergeableValues & SegmentValues & InternalValues & GlobalDefineValues = {
     ...merged.values,
     uObjectId: ValueCell.create(id),
     dLightCount: ValueCell.create(globals.dLightCount),
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     descriptor.drawMode,
     descriptor.shaderCode,
     schema,
@@ -842,7 +862,7 @@ export function MergedRenderable(
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
     const { segments } = merged;
-    segment.first = descriptor.hasElements ? 0 : segments.vertexBases[i];
+    segment.first = descriptor.hasElements ? 0 : segments.drawBases[i];
     segment.offset = segments.elementOffsets[i];
     segment.instanceBase = segments.instanceBases[i];
     return segment;
@@ -873,7 +893,7 @@ export function MergedRenderable(
     cameraPlane: Plane3D,
     frustum: Frustum3D,
     isOccluded: ((s: Sphere3D) => boolean) | null,
-    stats: WebGLStats,
+    stats: GraphicsStats,
     frame: Frame,
   ) {
     // skip recomputation if this renderable was already culled for the current frame
@@ -919,6 +939,7 @@ export function MergedRenderable(
   return {
     id,
     materialId,
+    renderItem,
     values: renderValues,
     state,
 
@@ -928,11 +949,11 @@ export function MergedRenderable(
       lastCullFrame = undefined;
     },
     cullSimple,
-    render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
+    render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
       if (renderValues.uAlpha && renderValues.alpha) {
         ValueCell.updateIfChanged(renderValues.uAlpha, clamp(renderValues.alpha.ref.value * state.alphaFactor, 0, 1));
       }
-      renderItem.render(variant, sharedTexturesCount, mdb.list);
+      renderItem.render(variant, globals, mdb.list);
     },
     getClipInfo: clipInfo.get,
     getByteCount: () => renderItem.getByteCount(),

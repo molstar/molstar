@@ -9,7 +9,7 @@ import { LocationIterator, PositionLocation } from '../../util/location-iterator
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import type { DirectVolumeValues } from '@molstar/graphics/gl/renderable/direct-volume';
 import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { Theme } from '@molstar/graphics/theme/theme';
@@ -58,10 +58,7 @@ export interface DirectVolume {
   setBoundingSphere(boundingSphere: Sphere3D): void;
   hasBoundingSphere(): boolean;
 
-  readonly meta: {
-    /** Called to restore when a webgl context is lost */
-    reset?: () => void;
-  };
+  readonly meta: { [k: string]: unknown };
 }
 
 export namespace DirectVolume {

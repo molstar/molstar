@@ -6,8 +6,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -54,8 +54,17 @@ export const MeshSchema = {
 export type MeshSchema = typeof MeshSchema;
 export type MeshValues = Values<MeshSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const MeshRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...MeshSchema,
+};
+
 export function MeshRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: MeshValues,
   state: RenderableState,
@@ -63,13 +72,7 @@ export function MeshRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<MeshValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...MeshSchema,
-  };
+  const schema = MeshRenderableSchema;
   const renderValues: MeshValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -77,8 +80,7 @@ export function MeshRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = MeshShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

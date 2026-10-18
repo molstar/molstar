@@ -5,7 +5,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat4, type Mat3 } from '@molstar/core/math/linear-algebra';
@@ -76,10 +76,10 @@ export class HandleHelper {
         p.handle.name = props.handle.name;
         if (props.handle.name === 'on') {
           this.scene.clear();
-          this.pixelRatio = this.webgl.pixelRatio;
+          this.pixelRatio = this.graphics.pixelRatio;
           const params = {
             ...props.handle.params,
-            scale: props.handle.params.scale * this.webgl.pixelRatio,
+            scale: props.handle.params.scale * this.graphics.pixelRatio,
             cellSize: 0,
           };
           this.renderObject = createHandleRenderObject(params);
@@ -101,7 +101,7 @@ export class HandleHelper {
   update(camera: Camera, position: Vec3, rotation: Mat3) {
     if (!this.renderObject) return;
 
-    if (this.pixelRatio !== this.webgl.pixelRatio) {
+    if (this.pixelRatio !== this.graphics.pixelRatio) {
       this.setProps(this.props);
     }
 
@@ -143,11 +143,16 @@ export class HandleHelper {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     props: Partial<HandleHelperProps> = {},
   ) {
-    this.scene = Scene.create(webgl, 'blended');
+    this.scene = Scene.create(graphics, 'blended');
     this.setProps(props);
+  }
+
+  setContext(graphics: GraphicsContext) {
+    this.graphics = graphics;
+    this.scene.setContext(graphics);
   }
 }
 

@@ -8,6 +8,7 @@
 import { List } from 'immutable';
 import { UUID } from '@molstar/core/util';
 import { PluginState } from '@molstar/plugin/state';
+import { precompileSnapshots } from '@molstar/plugin/state/precompile';
 import { StatefulPluginComponent } from '../component.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { utf8ByteCount, utf8Write } from '@molstar/core/util/utf8';
@@ -248,6 +249,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         : PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs,
     });
     this.events.changed.next(void 0);
+    // what the other snapshots draw, prepared in the background so that playing them compiles nothing
+    precompileSnapshots(
+      this.plugin,
+      snapshot.entries.map((e) => e.snapshot),
+    );
     if (!current) return;
     const entry = this.getEntry(current);
     const next = entry && entry.snapshot;

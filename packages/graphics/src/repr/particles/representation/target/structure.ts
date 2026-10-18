@@ -12,7 +12,7 @@ import { StructureElement, type Structure } from '@molstar/model/model/structure
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { PhysicalSizeTheme, getPhysicalRadius } from '@molstar/graphics/theme/size/physical';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VisualContext } from '../../../visual.js';
 import { checkSphereImpostorSupport } from '../../../structure/visual/util/common.js';
 import {
@@ -29,8 +29,8 @@ export interface StructureTargetProps {
   tryUseImpostor: boolean;
 }
 
-export function structureTargetUseImpostor(props: StructureTargetProps, webgl?: WebGLContext): boolean {
-  return props.type !== 'blob-surface' && props.tryUseImpostor && checkSphereImpostorSupport(webgl);
+export function structureTargetUseImpostor(props: StructureTargetProps, graphics?: GraphicsContext): boolean {
+  return props.type !== 'blob-surface' && props.tryUseImpostor && checkSphereImpostorSupport(graphics);
 }
 
 /** The scale a size theme contributes to the target's own radii. */
@@ -61,11 +61,11 @@ export function createStructureTargetGeometry(
   structure: Structure,
   theme: Theme,
   props: StructureTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   existing?: Spheres | Mesh,
 ): Spheres | Mesh {
   const elementTheme = { color: theme.color, size: getStructureTargetSizeTheme(theme) };
-  if (structureTargetUseImpostor(props, webgl)) {
+  if (structureTargetUseImpostor(props, graphics)) {
     // Radii are supplied as size data (see `createStructureTargetSizes`), the geometry only holds centers.
     return createStructureElementSphereImpostor(
       ctx,
@@ -113,9 +113,9 @@ export function createStructureTargetSizes(structure: Structure, theme: Theme, s
 export function structureTargetGeometryPropsChanged(
   oldProps: StructureTargetProps,
   newProps: StructureTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): boolean {
-  if (structureTargetUseImpostor(newProps, webgl)) return false;
+  if (structureTargetUseImpostor(newProps, graphics)) return false;
   return newProps.sizeFactor !== oldProps.sizeFactor || newProps.detail !== oldProps.detail;
 }
 
@@ -128,7 +128,7 @@ export function structureTargetMustRecreate(oldProps: StructureTargetProps, newP
 export function structureTargetSizeFactorChanged(
   oldProps: StructureTargetProps,
   newProps: StructureTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): boolean {
-  return structureTargetUseImpostor(newProps, webgl) && newProps.sizeFactor !== oldProps.sizeFactor;
+  return structureTargetUseImpostor(newProps, graphics) && newProps.sizeFactor !== oldProps.sizeFactor;
 }

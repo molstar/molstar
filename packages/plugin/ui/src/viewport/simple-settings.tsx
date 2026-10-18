@@ -26,6 +26,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
     if (!this.plugin.canvas3d) return;
 
     this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+    this.subscribe(this.plugin.events.canvas3d.backendChanged, () => this.forceUpdate());
 
     this.subscribe(
       this.plugin.canvas3d!.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })),
@@ -55,6 +56,8 @@ const LayoutOptions = {
   right: 'Right Panel',
 };
 type LayoutOptions = keyof typeof LayoutOptions;
+
+const BackendLabels: Record<string, string> = { webgpu: 'WebGPU', webgl2: 'WebGL 2', webgl: 'WebGL 1' };
 
 const SimpleSettingsParams = {
   animate: Canvas3DParams.trackball.params.animate,
@@ -93,6 +96,11 @@ const SimpleSettingsParams = {
     resolutionMode: Canvas3DContext.Params.resolutionMode,
     pixelScale: Canvas3DContext.Params.pixelScale,
     transparency: Canvas3DContext.Params.transparency,
+    backend: PD.Select<string>('', [], {
+      label: 'Graphics Backend',
+      description: 'Switching creates the representations again',
+      isHidden: true,
+    }),
   }),
 };
 
@@ -116,6 +124,14 @@ const SimpleSettingsMapping = ParamMapping({
         isFlat: false, // so the presets menu is shown
       });
     }
+    const backends = ctx.graphicsBackends;
+    if (backends.length > 1) {
+      const ids = Array.from(new Set(backends.map((b) => b.id)));
+      Object.assign(params.advanced.params.backend, {
+        options: ids.map((id) => [id, BackendLabels[id] ?? id]),
+        isHidden: false,
+      });
+    }
     return params;
   },
   target(ctx: PluginUIContext) {
@@ -127,7 +143,8 @@ const SimpleSettingsMapping = ParamMapping({
     if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
     if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
     const { pixelScale, transparency, resolutionMode } = ctx.canvas3dContext?.props!;
-    return { canvas: ctx.canvas3d?.props!, layout, resolutionMode, pixelScale, transparency };
+    const backend: string = ctx.canvas3d?.graphics.capabilities.backend ?? '';
+    return { canvas: ctx.canvas3d?.props!, layout, resolutionMode, pixelScale, transparency, backend };
   },
 })({
   values(props, ctx) {
@@ -162,6 +179,7 @@ const SimpleSettingsMapping = ParamMapping({
         resolutionMode: props.resolutionMode,
         pixelScale: props.pixelScale,
         transparency: props.transparency,
+        backend: props.backend,
       },
     };
   },
@@ -192,6 +210,7 @@ const SimpleSettingsMapping = ParamMapping({
     props.resolutionMode = s.advanced.resolutionMode;
     props.pixelScale = s.advanced.pixelScale;
     props.transparency = s.advanced.transparency;
+    props.backend = s.advanced.backend;
   },
   async apply(props, ctx) {
     await PluginCommands.Canvas3D.SetSettings(ctx, { settings: props.canvas });
@@ -218,5 +237,13 @@ const SimpleSettingsMapping = ParamMapping({
       pixelScale: props.pixelScale,
       transparency: props.transparency,
     });
+
+    if (props.backend && props.backend !== ctx.canvas3d?.graphics.capabilities.backend) {
+      const backends = ctx.graphicsBackends.filter((b) => b.id === props.backend);
+      if (!(await ctx.setGraphicsBackends(backends))) {
+        ctx.log.error(`Could not switch to the graphics backend '${props.backend}'`);
+      }
+      ctx.events.canvas3d.settingsUpdated.next(void 0);
+    }
   },
 });

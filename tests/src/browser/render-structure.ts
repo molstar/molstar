@@ -5,7 +5,8 @@
  */
 
 import './index.html';
-import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { CIF, type CifFrame } from '@molstar/io/reader/cif';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { ColorTheme } from '@molstar/graphics/theme/color';
@@ -54,7 +55,7 @@ parent.appendChild(canvas);
 
 const assetManager = new AssetManager();
 
-const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);
 resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
 canvas3dContext.syncPixelScale();
@@ -100,8 +101,9 @@ info.style.color = 'white';
 parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
-canvas3d.input.move.pipe(throttleTime(100)).subscribe(({ x, y }) => {
-  const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
+canvas3d.input.move.pipe(throttleTime(100)).subscribe(async ({ x, y }) => {
+  // the pick data once read (asynchronously on WebGPU)
+  const pickingId = (await canvas3d.asyncIdentify(Vec2.create(x, y))?.wait())?.id;
   let label = '';
   if (pickingId) {
     const reprLoci = canvas3d.getLoci(pickingId);
@@ -150,7 +152,7 @@ async function getStructure(model: Model) {
 }
 
 const reprCtx = {
-  webgl: canvas3d.webgl,
+  graphics: canvas3d.graphics,
   colorThemeRegistry: createColorThemeRegistry(),
   sizeThemeRegistry: createSizeThemeRegistry(),
 };

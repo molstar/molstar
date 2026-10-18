@@ -84,7 +84,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
         return StateObject.Null;
       }
       const repr = AssemblySymmetryRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => AssemblySymmetryParams,
       );
       await repr.createOrUpdate(params, a.data).runInContext(ctx);

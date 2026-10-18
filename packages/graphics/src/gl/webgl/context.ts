@@ -6,18 +6,55 @@
  */
 
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import { checkFramebufferStatus, createNullFramebuffer, type Framebuffer } from './framebuffer.js';
+import { checkFramebufferStatus, createNullFramebuffer, getFramebufferHeight } from './framebuffer.js';
 import { Scheduler } from '@molstar/core/task';
 import { isDebugMode } from '@molstar/core/util/debug';
-import { createExtensions, resetExtensions, type WebGLExtensions } from './extensions.js';
+import { createExtensions, type WebGLExtensions } from './extensions.js';
 import { type WebGLState, createState } from './state.js';
 import { type WebGLResources, createResources } from './resources.js';
-import { type RenderTarget, createRenderTarget } from './render-target.js';
+import { createRenderTarget } from './render-target.js';
+import type { RenderTarget } from '../render-target.js';
 import { Subject } from 'rxjs';
 import { now } from '@molstar/core/util/now';
-import { createNullTexture, type Texture, type TextureFilter } from './texture.js';
-import type { ComputeRenderable } from '../renderable.js';
-import { createTimer, type WebGLTimer } from './timer.js';
+import { PixelData } from '@molstar/core/util/image';
+import { Mat4 } from '@molstar/core/math/linear-algebra';
+import { Viewport } from '@molstar/core/util/viewport';
+import { createNullTexture, type Texture, type TextureFilter } from '../texture.js';
+import type { Framebuffer } from '../framebuffer.js';
+import { createTimer } from './timer.js';
+import {
+  type GraphicsContext,
+  type GraphicsDestroyOptions,
+  type GraphicsXRView,
+  logGraphicsContextInfo,
+  type RenderPassOptions,
+  type RenderPassTarget,
+  type TargetDescriptor,
+} from '../context.js';
+import { endRenderPass } from './render-pass.js';
+import { createGlobalBindings } from './global-bindings.js';
+import { getWebGLCapabilities } from './capabilities.js';
+import { createGraphicsStats } from '../stats.js';
+import type { ComputeRenderVariant, DrawMode, GraphicsRenderVariant, Transparency } from '../render-item.js';
+import type { RenderableSchema, RenderableValues } from '../renderable/schema.js';
+import type { ShaderCode } from '../shader-code.js';
+import {
+  createComputeRenderItem,
+  createGraphicsRenderItem,
+  createWebGLProgramItem,
+  type WebGLRenderItem,
+} from './render-item.js';
+import { createRenderStateApplier } from './render-state.js';
+import { asGLTexture } from './texture.js';
+import { getSharedCopyRenderable } from '../compute/util.js';
+import { RenderState } from '../render-state.js';
+import { registerAtlasIsosurfaceExtraction } from '../compute/marching-cubes/atlas.js';
+import { WebGLAtlasIsosurfaceExtraction } from './compute/marching-cubes/isosurface.js';
+import { registerGrid3dFragmentImplementation } from '../compute/grid3d.js';
+import { WebGLGrid3dFragment } from './compute/grid3d.js';
+import { createWebGLTextureReader } from './texture-reader.js';
+import { registerRenderPassTargetHeight } from './render-pass-target.js';
+import { type DepthRangeConversion, ReversedMinusOneToOne, ReversedZeroToOne } from '../depth-range.js';
 
 export function getGLContext(
   canvas: HTMLCanvasElement,
@@ -104,6 +141,9 @@ function unbindResources(gl: GLRenderingContext) {
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
   }
 }
+
+/** Programs don't depend on the target on WebGL, all targets are alike */
+const WebGLTarget: TargetDescriptor = { key: 'webgl', hasStencil: true };
 
 const tmpPixel = new Uint8Array(1 * 4);
 
@@ -222,49 +262,6 @@ type WebGLShaderPrecisionFormats = ReturnType<typeof getShaderPrecisionFormats>;
 
 //
 
-function createStats() {
-  const stats = {
-    resourceCounts: {
-      attribute: 0,
-      elements: 0,
-      pixelPack: 0,
-      framebuffer: 0,
-      program: 0,
-      renderbuffer: 0,
-      shader: 0,
-      texture: 0,
-      cubeTexture: 0,
-      vertexArray: 0,
-    },
-
-    drawCount: 0,
-    instanceCount: 0,
-    instancedDrawCount: 0,
-
-    calls: {
-      drawInstanced: 0,
-      drawInstancedBase: 0,
-      multiDrawInstancedBase: 0,
-      counts: 0,
-    },
-
-    culled: {
-      lod: 0,
-      frustum: 0,
-      occlusion: 0,
-    },
-
-    cacheHits: {
-      cull: 0,
-    },
-  };
-  return stats;
-}
-
-export type WebGLStats = ReturnType<typeof createStats>;
-
-//
-
 function createParameters(gl: GLRenderingContext, extensions: WebGLExtensions) {
   return {
     maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
@@ -273,6 +270,7 @@ function createParameters(gl: GLRenderingContext, extensions: WebGLExtensions) {
     maxDrawBuffers: extensions.drawBuffers ? (gl.getParameter(extensions.drawBuffers.MAX_DRAW_BUFFERS) as number) : 0,
     maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number,
     maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
+    maxVertexAttribs: gl.getParameter(gl.MAX_VERTEX_ATTRIBS) as number,
   };
 }
 
@@ -281,56 +279,43 @@ export type WebGLParameters = ReturnType<typeof createParameters>;
 //
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
-export interface WebGLContext {
+export interface WebGLContext extends GraphicsContext {
   readonly gl: GLRenderingContext;
   readonly isWebGL2: boolean;
-  readonly pixelRatio: number;
+  /** Whether uniform blocks are backed by uniform buffers, see `WebGLContextProps` */
+  readonly uniformBlocks: boolean;
 
   readonly extensions: WebGLExtensions;
   readonly state: WebGLState;
-  readonly stats: WebGLStats;
   readonly resources: WebGLResources;
-  readonly timer: WebGLTimer;
 
-  readonly maxTextureSize: number;
-  readonly max3dTextureSize: number;
-  readonly maxRenderbufferSize: number;
-  readonly maxDrawBuffers: number;
-  readonly maxTextureImageUnits: number;
   readonly shaderPrecisionFormats: { vertex: WebGLShaderPrecisionFormats; fragment: WebGLShaderPrecisionFormats };
+  /**
+   * How the projection uniforms are mapped to clip depth (see `DepthRangeTag`): reversed `[0, 1]` with
+   * `EXT_clip_control` (as WebGPU, with the precision gain of reversed depth), reversed `[-1, 1]` otherwise; GLSL sees
+   * the former as `clipZeroToOne`
+   */
+  readonly depthRangeConversion: DepthRangeConversion;
 
-  readonly isContextLost: boolean;
-  readonly contextRestored: Subject<now.Timestamp>;
-  setContextLost: () => void;
-  handleContextRestored: (extraResets?: () => void) => void;
+  createGraphicsRenderItem: (
+    drawMode: DrawMode,
+    shaderCode: ShaderCode,
+    schema: RenderableSchema,
+    values: RenderableValues,
+    materialId: number,
+    transparency: Transparency,
+  ) => WebGLRenderItem<GraphicsRenderVariant>;
+  createComputeRenderItem: (
+    drawMode: DrawMode,
+    shaderCode: ShaderCode,
+    schema: RenderableSchema,
+    values: RenderableValues,
+    materialId?: number,
+  ) => WebGLRenderItem<ComputeRenderVariant>;
 
-  readonly xr: {
-    readonly session?: XRSession;
-    readonly changed: Subject<void>;
-    set: (session: XRSession | undefined, options?: { resolutionScale?: number }) => Promise<void>;
-    end: () => Promise<void>;
-  };
-
-  setPixelScale: (value: number) => void;
-
-  /** Cache for compute renderables, managed by consumers */
-  readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> };
-  /** Cache for frambuffers, managed by consumers */
-  readonly namedFramebuffers: { [name: string]: Framebuffer };
-  /** Cache for textures, managed by consumers */
-  readonly namedTextures: { [name: string]: Texture };
-
-  createRenderTarget: (
-    width: number,
-    height: number,
-    depthStencil?: 'none' | 'depth' | 'depth-stencil',
-    type?: 'uint8' | 'float32' | 'fp16',
-    filter?: TextureFilter,
-    format?: 'rgba' | 'alpha',
-  ) => RenderTarget;
-  createDrawTarget: () => RenderTarget;
+  /** Binds the drawing buffer outside of render passes, e.g. for readback */
   bindDrawingBuffer: () => void;
-  getDrawingBufferSize: () => { width: number; height: number };
+  /** Reads from the bound framebuffer, ends the open render pass */
   readPixels: (
     x: number,
     y: number,
@@ -343,19 +328,58 @@ export interface WebGLContext {
   getFenceSync: () => WebGLSync | null;
   checkSyncStatus: (sync: WebGLSync) => boolean;
   deleteSync: (sync: WebGLSync) => void;
-  clear: (red: number, green: number, blue: number, alpha: number) => void;
   checkError: (message?: string) => void;
   checkFramebufferStatus: (message?: string) => void;
-  destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void;
 }
 
-export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
+/** Narrows to the WebGL backend, for code paths that are WebGL-only so far */
+export function isWebGLContext(ctx: GraphicsContext): ctx is WebGLContext {
+  return (ctx as WebGLContext).gl !== undefined;
+}
+
+const ReadRgbaName = 'read-texture-rgba';
+
+/** `texture` (ubyte, single-channel) copied into an rgba texture, the values in `r` */
+function copyToRgbaTexture(ctx: WebGLContext, texture: Texture, width: number, height: number) {
+  const copy = getSharedCopyRenderable(ctx, texture);
+  ctx.namedFramebuffers[ReadRgbaName] ??= ctx.resources.framebuffer();
+  const framebuffer = ctx.namedFramebuffers[ReadRgbaName];
+  ctx.namedTextures[ReadRgbaName] ??= ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+  const rgba = ctx.namedTextures[ReadRgbaName];
+  rgba.define(width, height);
+  rgba.attachFramebuffer(framebuffer, 'color0');
+  ctx.beginRenderPass(framebuffer, { label: 'read texture (rgba copy)' });
+  ctx.setRenderState(RenderState.Default);
+  ctx.setViewport(0, 0, width, height);
+  ctx.setScissor(0, 0, width, height);
+  ctx.clear({ color: [0, 0, 0, 0] });
+  copy.render();
+  return rgba;
+}
+
+export interface WebGLContextProps {
+  readonly pixelScale: number;
+  /** Uniform blocks backed by uniform buffers (WebGL2 only, on by default); off, all uniforms are set one by one */
+  readonly uniformBlocks: boolean;
+}
+
+export function createContext(gl: GLRenderingContext, props: Partial<WebGLContextProps> = {}): WebGLContext {
+  // GPU compute implemented with fragment shaders, reached through neutral entry points
+  registerAtlasIsosurfaceExtraction(WebGLAtlasIsosurfaceExtraction);
+  registerGrid3dFragmentImplementation(WebGLGrid3dFragment);
   const extensions = createExtensions(gl);
+  const capabilities = getWebGLCapabilities(gl, extensions);
   const state = createState(gl, extensions);
-  const stats = createStats();
+  const stats = createGraphicsStats();
   const parameters = createParameters(gl, extensions);
-  const resources = createResources(gl, state, stats, extensions, parameters);
+  const uniformBlocks = isWebGL2(gl) && props.uniformBlocks !== false;
+  const resources = createResources(gl, state, stats, extensions, parameters, uniformBlocks, () => isContextLost);
+  /** for `readTextureAsync`, created on first use */
+  let readFramebuffer: Framebuffer | undefined;
   const timer = createTimer(gl, extensions, stats);
+  state.onRenderPassEnd = timer.passEnd;
+  const renderState = createRenderStateApplier(gl, state, extensions);
+  const drawingBufferHasStencil = !!gl.getContextAttributes()?.stencil;
 
   if (parameters.maxVertexTextureImageUnits < 8) {
     throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
@@ -366,17 +390,40 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     fragment: getShaderPrecisionFormats(gl, 'fragment'),
   };
 
-  if (isDebugMode) {
-    console.log({ parameters, shaderPrecisionFormats });
-  }
+  // fixed for the context's lifetime, the programs are compiled for it
+  const clipZeroToOne = !!extensions.clipControl;
+  const depthRangeConversion = clipZeroToOne ? ReversedZeroToOne : ReversedMinusOneToOne;
+
+  // rectangles have a top-left origin in the neutral API, GL's a bottom-left one: viewport and scissor are kept as
+  // given and applied flipped with the height of the render pass target, when set in a pass and when a pass begins
+  let passTarget: RenderPassTarget = 'drawing-buffer';
+  const getRenderPassTargetHeight = () => {
+    if (passTarget === 'drawing-buffer') return getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).height;
+    if ('getHeight' in passTarget) return passTarget.getHeight();
+    return getFramebufferHeight(passTarget);
+  };
+  const viewport = { x: 0, y: 0, width: 0, height: 0, set: false };
+  const scissor = { x: 0, y: 0, width: 0, height: 0, enabled: false };
+  const applyViewport = () => {
+    if (!viewport.set) return;
+    const { x, y, width, height } = viewport;
+    renderState.setViewport(x, getRenderPassTargetHeight() - y - height, width, height);
+  };
+  const applyScissor = () => {
+    if (!scissor.enabled) return;
+    const { x, y, width, height } = scissor;
+    renderState.setScissor(x, getRenderPassTargetHeight() - y - height, width, height);
+  };
 
   // optimize assuming flats first and last data are same or differences don't matter
   // extension is only available when `FIRST_VERTEX_CONVENTION` is more efficient
   const epv = extensions.provokingVertex;
   epv?.provokingVertex(epv.FIRST_VERTEX_CONVENTION);
+  const ecc = extensions.clipControl;
+  if (clipZeroToOne && ecc) state.clipControl?.(ecc.LOWER_LEFT, ecc.ZERO_TO_ONE);
 
   let isContextLost = false;
-  const contextRestored = new Subject<now.Timestamp>();
+  const contextLost = new Subject<now.Timestamp>();
 
   let pixelScale = props.pixelScale || 1;
 
@@ -391,37 +438,47 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     },
   };
 
-  const renderTargets = new Set<RenderTarget>();
+  // losses and restorations the platform reports for the canvas (none for contexts without one, e.g. headless)
+  const canvas = gl.canvas as HTMLCanvasElement | OffscreenCanvas | undefined;
+  const hasCanvasEvents = typeof canvas?.addEventListener === 'function';
+  /** the pending `recreate`, completed by the restore event */
+  let restoring: { resolve: (restored: boolean) => void } | undefined;
+  /** lost on purpose (`release`): `recreate` asks for the context back */
+  let released: WEBGL_lose_context | undefined;
+  const onContextLost = (e: Event) => {
+    // allows the platform to restore the context
+    e.preventDefault();
+    ctx.setContextLost();
+  };
+  // the restored context of the canvas is used by a new context object (`recreate`), this one stays lost
+  const onContextRestored = () => {
+    if (!ctx.isContextLost) return;
+    const r = restoring;
+    restoring = undefined;
+    r?.resolve(true);
+  };
+  if (hasCanvasEvents) {
+    canvas!.addEventListener('webglcontextlost', onContextLost, false);
+    canvas!.addEventListener('webglcontextrestored', onContextRestored, false);
+  }
 
-  return {
+  const ctx: WebGLContext = {
     gl,
     isWebGL2: isWebGL2(gl),
+    uniformBlocks,
+    depthRangeConversion,
     get pixelRatio() {
       const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
       return dpr * (pixelScale || 1);
     },
 
+    capabilities,
     extensions,
     state,
     stats,
     resources,
     timer,
 
-    get maxTextureSize() {
-      return parameters.maxTextureSize;
-    },
-    get max3dTextureSize() {
-      return parameters.max3dTextureSize;
-    },
-    get maxRenderbufferSize() {
-      return parameters.maxRenderbufferSize;
-    },
-    get maxDrawBuffers() {
-      return parameters.maxDrawBuffers;
-    },
-    get maxTextureImageUnits() {
-      return parameters.maxTextureImageUnits;
-    },
     get shaderPrecisionFormats() {
       return shaderPrecisionFormats;
     },
@@ -430,28 +487,63 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     namedFramebuffers: Object.create(null),
     namedTextures: Object.create(null),
 
+    isProgramSupported: () => true,
+    createGraphicsRenderItem: (drawMode, shaderCode, schema, values, materialId, transparency) => {
+      return createGraphicsRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, transparency);
+    },
+    createProgramItem: (_drawMode, shaderCode, schema, defineValues, _linearTextures, transparency) => {
+      return createWebGLProgramItem(ctx, shaderCode, schema, defineValues, transparency);
+    },
+    createComputeRenderItem: (drawMode, shaderCode, schema, values, materialId) => {
+      return createComputeRenderItem(ctx, drawMode, shaderCode, schema, values, materialId);
+    },
+    createGlobalBindings: (schema, uniforms, textures) => {
+      return createGlobalBindings(ctx, schema, uniforms, textures);
+    },
+
     get isContextLost() {
       return isContextLost || gl.isContextLost();
     },
-    contextRestored,
+    contextLost,
     setContextLost: () => {
       isContextLost = true;
       timer.clear();
+      contextLost.next(now());
     },
-    handleContextRestored: (extraResets?: () => void) => {
-      resetExtensions(gl, extensions);
-
-      state.reset();
-      state.currentMaterialId = -1;
-      state.currentProgramId = -1;
-      state.currentRenderItemId = -1;
-
-      resources.reset();
-      renderTargets.forEach((rt) => rt.reset());
-      extraResets?.();
-
-      isContextLost = false;
-      contextRestored.next(now());
+    recreate: async () => {
+      if (!ctx.isContextLost || !hasCanvasEvents) return undefined;
+      restoring?.resolve(false);
+      const restored = await new Promise<boolean>((resolve) => {
+        restoring = { resolve };
+        const ext = released;
+        released = undefined;
+        if (!ext) return;
+        try {
+          ext.restoreContext();
+        } catch {
+          // refused, e.g. before the loss was reported
+          restoring = undefined;
+          resolve(false);
+        }
+      });
+      // the restored context of the canvas, with the options of this one
+      return restored ? createContext(gl, props) : undefined;
+    },
+    simulateContextLoss: () => {
+      const ext = gl.getExtension('WEBGL_lose_context');
+      if (!ext || ctx.isContextLost) return false;
+      ext.loseContext();
+      setTimeout(() => {
+        if (ctx.isContextLost) ext.restoreContext();
+      }, 1000);
+      return true;
+    },
+    release: () => {
+      const ext = gl.getExtension('WEBGL_lose_context');
+      if (!ext || ctx.isContextLost) return false;
+      released = ext;
+      ext.loseContext();
+      return true;
     },
 
     xr: {
@@ -492,6 +584,17 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
       end: async () => {
         return xr.session?.end();
       },
+      isPresenting: () => !!xr.session && !!xr.layer && xr.session.renderState.baseLayer === xr.layer,
+      getView: (view: XRView, out: GraphicsXRView) => {
+        const { layer } = xr;
+        const vp = layer?.getViewport(view);
+        if (!layer || !vp) return false;
+        // viewports of XR WebGL layers have GL's bottom-left origin (for `gl.viewport`)
+        Viewport.set(out.viewport, vp.x, layer.framebufferHeight - vp.y - vp.height, vp.width, vp.height);
+        // WebGL sessions have projections with GL's clip depth
+        Mat4.fromArray(out.projection, view.projectionMatrix, 0);
+        return true;
+      },
     },
 
     setPixelScale: (value: number) => {
@@ -504,22 +607,14 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
       depthStencil?: 'none' | 'depth' | 'depth-stencil',
       type?: 'uint8' | 'float32' | 'fp16',
       filter?: TextureFilter,
-      format?: 'rgba' | 'alpha',
+      format?: 'rgba' | 'r',
     ) => {
-      const renderTarget = createRenderTarget(gl, resources, width, height, depthStencil, type, filter, format);
-      renderTargets.add(renderTarget);
-      return {
-        ...renderTarget,
-        destroy: () => {
-          renderTarget.destroy();
-          renderTargets.delete(renderTarget);
-        },
-      };
+      return createRenderTarget(gl, resources, width, height, depthStencil, type, filter, format);
     },
     createDrawTarget: () => {
       return {
         id: -1,
-        texture: createNullTexture(gl),
+        texture: createNullTexture(),
         framebuffer: createNullFramebuffer(),
         depthRenderbuffer: null,
 
@@ -531,7 +626,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
           bindDrawingBuffer(gl, xr.layer);
         },
         setSize: () => {},
-        reset: () => {},
         destroy: () => {},
       };
     },
@@ -544,9 +638,56 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
       height: number,
       buffer: Uint8Array | Float32Array | Int32Array,
     ) => {
+      endRenderPass(state);
       readPixels(gl, x, y, width, height, buffer);
     },
     waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
+    readRenderTarget: async (target: RenderTarget, x: number, y: number, width: number, height: number) => {
+      endRenderPass(state);
+      target.bind();
+      const array = new Uint8Array(width * height * 4);
+      // the rectangle has a top-left origin, GL's a bottom-left one
+      readPixels(gl, x, target.getHeight() - y - height, width, height, array);
+      // GL reads rows bottom to top
+      PixelData.flipY(PixelData.create(array, width, height));
+      return array;
+    },
+    readTextureAsync: async (texture: Texture, x: number, y: number, width: number, height: number) => {
+      endRenderPass(state);
+      readFramebuffer ??= resources.framebuffer();
+      texture.attachFramebuffer(readFramebuffer, 'color0');
+      readFramebuffer.bind();
+      const array = new Uint8Array(width * height * 4);
+      // the rectangle has a top-left origin, GL's a bottom-left one
+      readPixels(gl, x, texture.getHeight() - y - height, width, height, array);
+      // GL reads rows bottom to top
+      PixelData.flipY(PixelData.create(array, width, height));
+      return array;
+    },
+    createTextureReader: (options) => createWebGLTextureReader(ctx, options),
+    readTextureData: async (texture: Texture) => {
+      endRenderPass(state);
+      const { format, type } = asGLTexture(texture);
+      const width = texture.getWidth();
+      const height = texture.getHeight();
+      if (type === gl.INT || (isWebGL2(gl) && type === gl.UNSIGNED_INT)) {
+        throw new Error('reading integer textures is not supported');
+      }
+      // float and half float
+      const isFloat = type !== gl.UNSIGNED_BYTE;
+      let source = texture;
+      if (format !== gl.RGBA) {
+        // single-channel formats aren't readable everywhere: copied into rgba, values in `r`
+        if (isFloat) throw new Error('reading single-channel float textures is not supported');
+        source = copyToRgbaTexture(ctx, texture, width, height);
+      }
+      readFramebuffer ??= resources.framebuffer();
+      source.attachFramebuffer(readFramebuffer, 'color0');
+      readFramebuffer.bind();
+      const array = isFloat ? new Float32Array(width * height * 4) : new Uint8Array(width * height * 4);
+      readPixels(gl, 0, 0, width, height, array);
+      return { array, width, height };
+    },
     waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
     getFenceSync: () => {
       return isWebGL2(gl) ? gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) : null;
@@ -564,16 +705,44 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     deleteSync: (sync: WebGLSync) => {
       if (isWebGL2(gl)) gl.deleteSync(sync);
     },
-    clear: (red: number, green: number, blue: number, alpha: number) => {
-      const drs = getDrawingBufferSize(gl, xr.layer);
-      bindDrawingBuffer(gl, xr.layer);
-      state.enable(gl.SCISSOR_TEST);
-      state.depthMask(true);
-      state.colorMask(true, true, true, true);
-      state.clearColor(red, green, blue, alpha);
-      state.viewport(0, 0, drs.width, drs.height);
-      state.scissor(0, 0, drs.width, drs.height);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    setRenderState: renderState.setRenderState,
+    setBlendConstant: (red: number, green: number, blue: number, alpha: number) => {
+      state.blendColor(red, green, blue, alpha);
+    },
+    setViewport: (x: number, y: number, width: number, height: number) => {
+      Object.assign(viewport, { x, y, width, height, set: true });
+      if (state.inRenderPass) applyViewport();
+    },
+    setScissor: (x: number, y: number, width: number, height: number) => {
+      Object.assign(scissor, { x, y, width, height, enabled: true });
+      if (state.inRenderPass) applyScissor();
+    },
+    disableScissor: () => {
+      scissor.enabled = false;
+      renderState.disableScissor();
+    },
+    describeTarget: () => WebGLTarget,
+    beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => {
+      timer.passBegin(target, options?.label);
+      if (target === 'drawing-buffer') bindDrawingBuffer(gl, xr.layer);
+      else target.bind();
+      passTarget = target;
+      applyViewport();
+      applyScissor();
+      state.inRenderPass = true;
+      // draws of the pass set their render state, which the flag masks
+      renderState.setDepthReadOnly(!!options?.depthReadOnly);
+      if (options?.clear) renderState.clear(options.clear);
+    },
+    endRenderPass: () => endRenderPass(state),
+    hasRenderPassStencil: () => {
+      // offscreen targets used for rendering are created with a stencil, the drawing buffer may lack one
+      return drawingBufferHasStencil || gl.getParameter(gl.FRAMEBUFFER_BINDING) !== null;
+    },
+    clear: renderState.clear,
+    flush: () => {
+      endRenderPass(state);
+      gl.flush();
     },
 
     checkError: (message?: string) => {
@@ -583,21 +752,39 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
       checkFramebufferStatus(gl, message);
     },
 
-    destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
-      resources.destroy();
-      unbindResources(gl);
+    destroy: (options?: GraphicsDestroyOptions) => {
+      if (hasCanvasEvents) {
+        canvas!.removeEventListener('webglcontextlost', onContextLost, false);
+        canvas!.removeEventListener('webglcontextrestored', onContextRestored, false);
+      }
+      restoring?.resolve(false);
+      restoring = undefined;
+      // the objects of a lost context are gone with it, and the restored context of the canvas is used by another
+      if (!options?.lost) {
+        resources.destroy();
+        unbindResources(gl);
+      }
 
       xr.session?.removeEventListener('end', xr.clear);
       xr.session?.end();
 
-      contextRestored.complete();
+      contextLost.complete();
       xr.changed.complete();
 
       // to aid GC
-      if (!options?.doNotForceWebGLContextLoss) {
+      if (!options?.doNotForceWebGLContextLoss && !options?.lost) {
         gl.getExtension('WEBGL_lose_context')?.loseContext();
         gl.getExtension('STACKGL_destroy_context')?.destroy();
       }
     },
   };
+  logGraphicsContextInfo(ctx, {
+    parameters,
+    extensions: Object.keys(extensions)
+      .filter((k) => !!extensions[k as keyof typeof extensions])
+      .sort(),
+    shaderPrecisionFormats,
+  });
+  registerRenderPassTargetHeight(ctx, getRenderPassTargetHeight);
+  return ctx;
 }

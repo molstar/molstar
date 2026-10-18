@@ -19,6 +19,7 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
+import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { StructureRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D;
@@ -114,7 +115,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       const data = provider.getData?.(a.data, params.type.params) || a.data;
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
       const repr = provider.factory(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         provider.getParams,
       );
       await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, params);
@@ -176,4 +177,9 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       sizeTheme: t <= 0.5 ? src.sizeTheme : tar.sizeTheme,
     };
   },
+});
+
+registerTransformSignatures(StructureRepresentation3D, (params, ctx) => {
+  const { registry, themes } = ctx.plugin.representation.structure;
+  return getRepresentationSignatures(registry.get(params.type.name), themes, params, ctx);
 });

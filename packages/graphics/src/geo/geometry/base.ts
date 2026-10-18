@@ -7,6 +7,7 @@
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import { ValueCell } from '@molstar/core/util';
 import type { BaseValues } from '@molstar/graphics/gl/renderable/schema';
+import type { DrawIndirect } from '@molstar/graphics/gl/compute';
 import { LocationIterator } from '../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type TransformData, createIdentityTransform } from './transform-data.js';
@@ -208,8 +209,11 @@ export namespace BaseGeometry {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(props.alpha),
       uVertexCount: ValueCell.create(counts.vertexCount),
+      // filled by the render item when used, see `BaseSchema.aVertex`
+      aVertex: ValueCell.create(new Float32Array(0)),
       uGroupCount: ValueCell.create(counts.groupCount),
       drawCount: ValueCell.create(counts.drawCount),
+      drawIndirect: ValueCell.create<DrawIndirect | undefined>(undefined),
       uMetalness: ValueCell.create(props.material.metalness),
       uRoughness: ValueCell.create(props.material.roughness),
       uBumpiness: ValueCell.create(props.material.bumpiness),
@@ -225,7 +229,7 @@ export namespace BaseGeometry {
       uClipObjectScale: ValueCell.create(clip.objects.scale),
       uClipObjectTransform: ValueCell.create(clip.objects.transform),
 
-      instanceGranularity: ValueCell.create(
+      uInstanceGranularity: ValueCell.create(
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
       ),
       uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
@@ -251,7 +255,7 @@ export namespace BaseGeometry {
     ValueCell.update(values.uClipObjectTransform, clip.objects.transform);
 
     ValueCell.updateIfChanged(
-      values.instanceGranularity,
+      values.uInstanceGranularity,
       resolveInstanceGranularity(
         props.instanceGranularity,
         values.uGroupCount.ref.value,

@@ -16,6 +16,7 @@ import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { DefaultPluginUIComponents, DefaultPluginUICustomParamEditors } from '@molstar/plugin-ui/default-ui';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginConfig } from '@molstar/plugin/config';
+import { type GraphicsBackendChoice, getGraphicsBackends } from '@molstar/plugin/util/graphics-backends';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
 import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
 import '@molstar/core/util/polyfill';
@@ -28,7 +29,7 @@ import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { MesoFocusLoci } from '@molstar/mesoscale-explorer/behavior/camera';
 import { type GraphicsMode, MesoscaleState } from '@molstar/mesoscale-explorer/data/state';
 import { MesoSelectLoci } from '@molstar/mesoscale-explorer/behavior/select';
-import type { Transparency } from '@molstar/graphics/gl/webgl/render-item';
+import type { Transparency } from '@molstar/graphics/gl/render-item';
 import {
   LoadModel,
   loadExampleEntry,
@@ -110,7 +111,8 @@ const DefaultMesoscaleExplorerOptions = {
   pixelScale: PluginConfig.General.PixelScale.defaultValue,
   pickScale: PluginConfig.General.PickScale.defaultValue,
   transparency: 'blended' as Transparency,
-  preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
+  /** see `GraphicsBackendChoice` */
+  graphicsBackend: 'auto' as GraphicsBackendChoice,
   allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
   powerPreference: PluginConfig.General.PowerPreference.defaultValue,
   resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
@@ -220,7 +222,7 @@ export class MesoscaleExplorer {
         [PluginConfig.General.PixelScale, o.pixelScale],
         [PluginConfig.General.PickScale, o.pickScale],
         [PluginConfig.General.Transparency, o.transparency],
-        [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
+        [PluginConfig.General.GraphicsBackends, getGraphicsBackends(o.graphicsBackend)],
         [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
         [PluginConfig.General.PowerPreference, o.powerPreference],
         [PluginConfig.General.ResolutionMode, o.resolutionMode],

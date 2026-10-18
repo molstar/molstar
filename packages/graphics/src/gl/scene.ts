@@ -5,8 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { WebGLContext } from './webgl/context.js';
-import { type GraphicsRenderObject, createRenderable } from './render-object.js';
+import type { GraphicsContext } from './context.js';
+import { type GraphicsRenderObject, createRenderable, transferTextures } from './render-object.js';
 import { Object3D } from './object3d.js';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { CommitQueue } from './commit-queue.js';
@@ -15,7 +15,7 @@ import { arraySetRemove } from '@molstar/core/util/array';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import { hash1 } from '@molstar/core/data/util';
 import type { GraphicsRenderable } from './renderable.js';
-import type { Transparency } from './webgl/render-item.js';
+import type { Transparency } from './render-item.js';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { GlobalDefines } from './renderable/schema.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
@@ -92,6 +92,13 @@ interface Scene extends Object3D {
   has: (o: GraphicsRenderObject) => boolean;
   clear: () => void;
   forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void;
+  /**
+   * Draws with `ctx` from now on: disposes the renderables (while the previous context is alive) and creates them
+   * again on `ctx`, with textures loaded from data transferred (`transferTextures`), queued adds stay queued; those
+   * with rendered or computed textures of the previous context (e.g. GPU surfaces) are dropped and returned, their
+   * producers create them again
+   */
+  setContext: (ctx: GraphicsContext) => GraphicsRenderObject[];
   /** Marker average of primitive renderables */
   readonly markerAverage: number;
   /** Emissive average of primitive renderables */
@@ -114,10 +121,11 @@ namespace Scene {
   }
 
   export function create(
-    ctx: WebGLContext,
+    _ctx: GraphicsContext,
     transparency: Transparency = 'blended',
     globals: GlobalDefines = { dColorMarker: true, dLightCount: 1 },
   ): Scene {
+    let ctx = _ctx;
     const renderableMap = new Map<GraphicsRenderObject, GraphicsRenderable>();
     const renderables: GraphicsRenderable[] = [];
     const boundingSphere = Sphere3D();
@@ -210,6 +218,50 @@ namespace Scene {
     }
 
     const commitQueue = new CommitQueue();
+
+    function clear() {
+      for (let i = 0, il = renderables.length; i < il; ++i) {
+        renderables[i].dispose();
+      }
+      renderables.length = 0;
+      primitives.length = 0;
+      volumes.length = 0;
+      renderableMap.clear();
+      boundingSphereDirty = true;
+      boundingSphereVisibleDirty = true;
+    }
+
+    function setContext(value: GraphicsContext) {
+      const dropped: GraphicsRenderObject[] = [];
+      const present = Array.from(renderableMap.keys());
+      const queued: GraphicsRenderObject[] = [];
+      while (true) {
+        const o = commitQueue.tryGetAdd();
+        if (!o) break;
+        queued.push(o);
+      }
+      clear();
+      ctx = value;
+      // drawn again right away, as before (scenes that are not committed per frame, e.g. the helpers', stay complete);
+      // queued adds stay queued, as do queued removes
+      for (const o of present) {
+        if (transferTextures(o, value)) add(o);
+        else dropped.push(o);
+      }
+      for (const o of queued) {
+        if (transferTextures(o, value)) commitQueue.add(o);
+        else dropped.push(o);
+      }
+      renderables.sort(renderableSort);
+      markerAverageDirty = true;
+      emissiveAverageDirty = true;
+      wiggleAverageDirty = true;
+      opacityAverageDirty = true;
+      transparencyMinDirty = true;
+      hasOpaqueDirty = true;
+      hasAnimationDirty = true;
+      return dropped;
+    }
 
     let visibleHash = -1;
     function computeVisibleHash() {
@@ -420,20 +472,11 @@ namespace Scene {
       has: (o: GraphicsRenderObject) => {
         return renderableMap.has(o);
       },
-      clear: () => {
-        for (let i = 0, il = renderables.length; i < il; ++i) {
-          renderables[i].dispose();
-        }
-        renderables.length = 0;
-        primitives.length = 0;
-        volumes.length = 0;
-        renderableMap.clear();
-        boundingSphereDirty = true;
-        boundingSphereVisibleDirty = true;
-      },
+      clear,
       forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => {
         renderableMap.forEach(callbackFn);
       },
+      setContext,
       get count() {
         return renderables.length;
       },

@@ -172,19 +172,23 @@ CLI packages expose checked-in `bin/*.mjs` launchers, so a clean install can lin
 `pnpm build:lib` before using those commands in a source checkout; installed tarballs already contain their compiled
 implementations.
 
-Native `gl` and `canvas` are optional peers. Workspace peer auto-installation is disabled; all ordinary dependencies
+Native `gl`, `canvas` and `webgpu` (Dawn's Node.js bindings, the headless WebGPU backend) are optional peers. Workspace peer auto-installation is disabled; all ordinary dependencies
 remain declared explicitly. Normal installation and `pnpm test` do not install them. Opt in explicitly:
 
 ```sh
 pnpm native:install                    # gl only, for native tests/capture
 pnpm test:native                       # requires the installed backend
 pnpm native:install -- --canvas        # gl + canvas, for the rendering CLI
+pnpm native:install -- --webgpu        # gl + webgpu, for the headless WebGPU tests
 pnpm native:run -- node cli/mvs-render/lib/mvs-render.js --help
 pnpm native:run -- pnpm --dir smoke smoke:headless
 ```
 
-Native modules and their separate npm lockfile live in ignored `.cache/native/`. The setup command leaves workspace
-manifests and `pnpm-lock.yaml` unchanged. `native:run` exposes them to Node commands through `NODE_PATH`. Applications
+Native modules and their separate npm lockfile live in ignored `.cache/native/`. They are optional dependencies there:
+a module that fails to build (e.g. `gl` without prebuilt binaries for the Node version) doesn't keep the others from
+installing. Tests of a backend that is not installed show as skipped. The setup command leaves workspace
+manifests and `pnpm-lock.yaml` unchanged. `native:run` exposes them to Node commands through `NODE_PATH` (ES modules such as `webgpu`, which `import` doesn't
+find there, are resolved with `require.resolve` first). Applications
 using installed packages can instead install the optional peers themselves and continue to inject native modules into
 the headless context. CI explicitly installs `gl` and runs native unit tests under Xvfb. Consumer smoke checks run
 locally.

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,8 @@ export type ClippingData = {
   tClipping: ValueCell<TextureImage<Uint8Array>>;
   uClippingTexDim: ValueCell<Vec2>;
   dClipping: ValueCell<boolean>;
-  dClippingType: ValueCell<string>;
+  /** the type (`ClippingType`); the object uniform `uInstanceGranularity` selects the index */
+  clippingType: ValueCell<string>;
 };
 
 export function applyClippingGroups(array: Uint8Array, start: number, end: number, groups: Clipping.Groups) {
@@ -38,14 +39,14 @@ export function createClipping(count: number, type: ClippingType, clippingData?:
     ValueCell.update(clippingData.tClipping, clipping);
     ValueCell.update(clippingData.uClippingTexDim, Vec2.create(clipping.width, clipping.height));
     ValueCell.updateIfChanged(clippingData.dClipping, count > 0);
-    ValueCell.updateIfChanged(clippingData.dClippingType, type);
+    ValueCell.updateIfChanged(clippingData.clippingType, type);
     return clippingData;
   } else {
     return {
       tClipping: ValueCell.create(clipping),
       uClippingTexDim: ValueCell.create(Vec2.create(clipping.width, clipping.height)),
       dClipping: ValueCell.create(count > 0),
-      dClippingType: ValueCell.create(type),
+      clippingType: ValueCell.create<string>(type),
     };
   }
 }
@@ -62,7 +63,7 @@ export function createEmptyClipping(clippingData?: ClippingData): ClippingData {
       tClipping: ValueCell.create(emptyClippingTexture),
       uClippingTexDim: ValueCell.create(Vec2.create(1, 1)),
       dClipping: ValueCell.create(false),
-      dClippingType: ValueCell.create('groupInstance'),
+      clippingType: ValueCell.create<string>('groupInstance'),
     };
   }
 }

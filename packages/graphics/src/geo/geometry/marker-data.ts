@@ -16,7 +16,8 @@ export type MarkerData = {
   uMarkerTexDim: ValueCell<Vec2>;
   markerAverage: ValueCell<number>;
   markerStatus: ValueCell<number>;
-  dMarkerType: ValueCell<string>;
+  /** the type (`MarkerType`); the object uniform `uInstanceGranularity` selects the index */
+  markerType: ValueCell<string>;
 };
 
 const MarkerCountLut = new Uint8Array(0x0303 + 1);
@@ -76,7 +77,7 @@ export function createMarkers(count: number, type: MarkerType, markerData?: Mark
     ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
     ValueCell.updateIfChanged(markerData.markerAverage, 0);
     ValueCell.updateIfChanged(markerData.markerStatus, 0);
-    ValueCell.updateIfChanged(markerData.dMarkerType, type);
+    ValueCell.updateIfChanged(markerData.markerType, type);
     return markerData;
   } else {
     const markers = createTextureImage(Math.max(1, count), 1, Uint8Array);
@@ -86,7 +87,7 @@ export function createMarkers(count: number, type: MarkerType, markerData?: Mark
       uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
       markerAverage: ValueCell.create(0),
       markerStatus: ValueCell.create(0),
-      dMarkerType: ValueCell.create(type),
+      markerType: ValueCell.create<string>(type),
     };
   }
 }
@@ -107,7 +108,7 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
       uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
       markerAverage: ValueCell.create(0),
       markerStatus: ValueCell.create(0),
-      dMarkerType: ValueCell.create('groupInstance'),
+      markerType: ValueCell.create<string>('groupInstance'),
     };
   }
 }

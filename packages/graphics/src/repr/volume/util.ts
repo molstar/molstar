@@ -20,6 +20,11 @@ import type { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import type { Image } from '@molstar/graphics/geo/geometry/image/image';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GraphicsFeature } from '@molstar/graphics/gl/capabilities';
+import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
+import { getAtlasIsosurfaceExtraction } from '@molstar/graphics/gl/compute/marching-cubes/atlas';
+import { missingCapabilities } from '../util.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -505,4 +510,33 @@ export function createPeriodicVolume(volume: Volume, min: Vec3, max: Vec3): Volu
     parent: volume,
     instances: [{ transform: Mat4.identity() }],
   };
+}
+
+/**
+ * Why the GPU marching cubes of a volume (isosurface, segment) are not used, if they are not: with compute kernels
+ * (WebGPU) the values in one storage buffer, otherwise (WebGL) `capabilities` and the 2d atlas of the volume (with
+ * `padding`)
+ */
+export function getVolumeGpuFallbackReason(
+  volume: Volume,
+  graphics: GraphicsContext,
+  padding: number,
+  capabilities: readonly GraphicsFeature[],
+) {
+  const cellCount = volume.grid.cells.data.length;
+  // small volumes are about as fast or faster on CPU vs integrated GPU
+  if (cellCount < Math.pow(10, 3)) return `the volume has ${cellCount} cells, fewer than 1000 (as fast on the CPU)`;
+  if (isComputeIsosurfaceSupported(graphics)) {
+    const max = graphics.compute.maxStorageBufferSize;
+    if (cellCount * 4 > max) return `the volume values need ${cellCount * 4} bytes, a storage buffer at most ${max}`;
+    return;
+  }
+  if (!getAtlasIsosurfaceExtraction(graphics)) return 'no compute kernels or fragment-shader marching cubes';
+  const missing = missingCapabilities(graphics, capabilities);
+  if (missing.length) return `missing ${missing.join(', ')}`;
+  // the GPU is much more memory contraint, especially true for integrated GPUs,
+  // fallback to CPU for large volumes
+  const { powerOfTwoSize } = getVolumeTexture2dLayout(volume.grid.cells.space.dimensions as Vec3, padding);
+  const max = graphics.resources.limits.maxTextureSize / 2;
+  if (powerOfTwoSize > max) return `the 2d texture of the volume needs ${powerOfTwoSize}², at most ${max}²`;
 }

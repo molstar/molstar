@@ -17,6 +17,7 @@ import { StateObject } from '@molstar/core/state/object';
 import { Particle } from '@molstar/model/model/particles/particle-list';
 import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { StateTransformer } from '@molstar/core/state';
+import { getShapeRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { ParticleListUnitcell3D };
 type ParticleListUnitcell3D = typeof ParticleListUnitcell3D;
@@ -41,7 +42,7 @@ const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
       const center = Particle.getBoundary(a.data).sphere.center;
       const data = getUnitcellDataFromSymmetry(cell, center, params);
       const repr = UnitcellRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => UnitcellParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -66,3 +67,7 @@ const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
     });
   },
 });
+
+registerTransformSignatures(ParticleListUnitcell3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => UnitcellRepresentation(c, () => UnitcellParams), params, ctx),
+);

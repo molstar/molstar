@@ -19,7 +19,7 @@ import { type Loci as ModelLoci, isEveryLoci } from '@molstar/model/model/loci';
 import type { MarkerAction } from '@molstar/core/util/marker-action';
 import { VisualUpdateState } from '../../../util.js';
 import { Visual, type VisualContext } from '../../../visual.js';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Geometry } from '@molstar/graphics/geo/geometry/geometry';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import {
@@ -370,7 +370,7 @@ export function createTargetGeometry(
   target: ParticleTarget,
   theme: Theme,
   props: ParticleTargetProps,
-  webgl: WebGLContext | undefined,
+  graphics: GraphicsContext | undefined,
   existing?: Geometry,
 ): Geometry | Promise<Geometry> {
   const spheresOrMesh =
@@ -390,13 +390,13 @@ export function createTargetGeometry(
             target.structure,
             theme,
             props as StructureTargetProps,
-            webgl,
+            graphics,
             spheresOrMesh,
           );
     case 'shape':
       return createShapeTargetGeometry(target.shape, existing);
     case 'volume':
-      return createVolumeTargetGeometry(ctx, target.volume, theme, props as VolumeTargetProps, webgl, spheresOrMesh);
+      return createVolumeTargetGeometry(ctx, target.volume, theme, props as VolumeTargetProps, graphics, spheresOrMesh);
   }
 }
 
@@ -404,7 +404,7 @@ export function targetGeometryPropsChanged(
   target: ParticleTarget,
   oldProps: ParticleTargetProps,
   newProps: ParticleTargetProps,
-  webgl: WebGLContext | undefined,
+  graphics: GraphicsContext | undefined,
 ): boolean {
   switch (target.kind) {
     case 'structure':
@@ -413,7 +413,7 @@ export function targetGeometryPropsChanged(
         : structureTargetGeometryPropsChanged(
             oldProps as StructureTargetProps,
             newProps as StructureTargetProps,
-            webgl,
+            graphics,
           );
     case 'shape':
       return false;
@@ -422,7 +422,7 @@ export function targetGeometryPropsChanged(
         target.volume,
         oldProps as VolumeTargetProps,
         newProps as VolumeTargetProps,
-        webgl,
+        graphics,
       );
   }
 }
@@ -446,19 +446,19 @@ function targetSizeFactorChanged(
   target: ParticleTarget,
   oldProps: ParticleTargetProps,
   newProps: ParticleTargetProps,
-  webgl: WebGLContext | undefined,
+  graphics: GraphicsContext | undefined,
 ): boolean {
   switch (target.kind) {
     case 'structure':
       return structureTargetSizeFactorChanged(
         oldProps as StructureTargetProps,
         newProps as StructureTargetProps,
-        webgl,
+        graphics,
       );
     case 'shape':
       return false;
     case 'volume':
-      return volumeTargetSizeFactorChanged(oldProps as VolumeTargetProps, newProps as VolumeTargetProps, webgl);
+      return volumeTargetSizeFactorChanged(oldProps as VolumeTargetProps, newProps as VolumeTargetProps, graphics);
   }
 }
 
@@ -466,9 +466,9 @@ function targetSizeFactorChanged(
 function targetSizeThemeAffectsGeometry(
   target: ParticleTarget,
   props: ParticleTargetProps,
-  webgl: WebGLContext | undefined,
+  graphics: GraphicsContext | undefined,
 ): boolean {
-  return target.kind === 'structure' && !structureTargetUseImpostor(props as StructureTargetProps, webgl);
+  return target.kind === 'structure' && !structureTargetUseImpostor(props as StructureTargetProps, graphics);
 }
 
 // ---- Per-target visual -----------------------------------------------------
@@ -495,7 +495,7 @@ export interface TargetVisual {
   destroy(): void;
 }
 
-export function createTargetVisual(_targetId: number, materialId: number, webgl?: WebGLContext): TargetVisual {
+export function createTargetVisual(_targetId: number, materialId: number, graphics?: GraphicsContext): TargetVisual {
   const updateState = VisualUpdateState.create();
 
   let renderObject: GraphicsRenderObject | undefined;
@@ -593,11 +593,11 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
     const scaleByRadius = targetScaleByRadius(target, props);
 
     const geometryPropsChanged =
-      currentProps && !targetKindChanged ? targetGeometryPropsChanged(target, currentProps, props, webgl) : false;
+      currentProps && !targetKindChanged ? targetGeometryPropsChanged(target, currentProps, props, graphics) : false;
     const colorThemeChanged = !currentTheme || !ColorTheme.areEqual(theme.color, currentTheme.color);
     const sizeThemeChanged = !currentTheme || !SizeTheme.areEqual(theme.size, currentTheme.size);
     const sizeFactorChanged =
-      !!currentProps && !targetKindChanged && targetSizeFactorChanged(target, currentProps, props, webgl);
+      !!currentProps && !targetKindChanged && targetSizeFactorChanged(target, currentProps, props, graphics);
 
     if (
       !renderObject ||
@@ -610,7 +610,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
       updateState.createGeometry =
         targetChanged ||
         geometryPropsChanged ||
-        (sizeThemeChanged && targetSizeThemeAffectsGeometry(target, props, webgl));
+        (sizeThemeChanged && targetSizeThemeAffectsGeometry(target, props, graphics));
       updateState.updateMatrix =
         particlesChanged || targetChanged || targetScaleByRadius(target, currentProps!) !== scaleByRadius;
       // colors/sizes are keyed by instance (via `locationIt`/`positionIt`, built from `particleIndices`),
@@ -632,7 +632,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
 
     let newGeom: Geometry | undefined;
     if (updateState.createGeometry) {
-      const built = createTargetGeometry(ctx, target, theme, props, webgl, geometry);
+      const built = createTargetGeometry(ctx, target, theme, props, graphics, geometry);
       newGeom = isPromiseLike(built) ? await built : built;
     }
 
@@ -647,7 +647,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         // meaning of each index. Stale markers make `getMarkersAverage` read out of bounds
         // (NaN `markerAverage`), which silently drops the visual from the marking pass.
         const instanceCount = OrderedSet.size(particleIndices);
-        const type = renderObject.values.dMarkerType.ref.value as 'instance' | 'groupInstance';
+        const type = renderObject.values.markerType.ref.value as 'instance' | 'groupInstance';
         createMarkers(instanceCount, type, renderObject.values as unknown as MarkerData);
       }
 

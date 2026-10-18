@@ -5,8 +5,8 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { type Renderer, RendererParams } from '@molstar/graphics/gl/renderer';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
@@ -14,6 +14,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DrawPass } from './draw.js';
 import { PostprocessingParams } from './postprocessing.js';
 import { MultiSamplePass, MultiSampleParams, MultiSampleHelper } from './multi-sample.js';
+import { createSupportedPropsLimiter } from './supported-props.js';
 import { Camera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import { PixelData } from '@molstar/core/util/image';
@@ -24,8 +25,10 @@ import type { AssetManager } from '@molstar/core/util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination.js';
 import type { RuntimeContext } from '@molstar/core/task';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
-import { printTimerResults } from '@molstar/graphics/gl/webgl/timer';
+import { printTimerResults } from '@molstar/graphics/gl/timer';
 import { ShaderManager } from '../helper/shader-manager.js';
+import type { RenderContext } from '../util.js';
+import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
 
 export const ImageParams = {
   transparentBackground: PD.Boolean(false),
@@ -39,6 +42,9 @@ export const ImageParams = {
   renderer: PD.Group(RendererParams),
 };
 export type ImageProps = PD.Values<typeof ImageParams>;
+
+/** Renders of `ImagePass.render` after the first one, while renders start pending work */
+const MaxRerenders = 3;
 
 export class ImagePass {
   private _width = 0;
@@ -54,11 +60,12 @@ export class ImagePass {
     return this._colorTarget;
   }
 
-  private readonly drawPass: DrawPass;
-  private readonly illuminationPass: IlluminationPass;
-  private readonly multiSamplePass: MultiSamplePass;
-  private readonly multiSampleHelper: MultiSampleHelper;
-  private readonly helper: Helper;
+  private drawPass!: DrawPass;
+  private illuminationPass!: IlluminationPass;
+  private multiSamplePass!: MultiSamplePass;
+  private multiSampleHelper!: MultiSampleHelper;
+  private helper!: Helper;
+  private limitToSupported!: (props: ImageProps) => void;
 
   get width() {
     return this._width;
@@ -68,8 +75,8 @@ export class ImagePass {
   }
 
   constructor(
-    private webgl: WebGLContext,
-    assetManager: AssetManager,
+    private graphics: GraphicsContext,
+    private assetManager: AssetManager,
     private renderer: Renderer,
     private scene: Scene,
     private camera: Camera,
@@ -77,32 +84,50 @@ export class ImagePass {
     props: Partial<ImageProps>,
   ) {
     this.props = { ...PD.getDefaultValues(ImageParams), ...props };
+    this.init(helper);
+    this.setSize(1024, 768);
+  }
 
-    this.drawPass = new DrawPass(webgl, assetManager, 128, 128, scene.transparency);
-    this.illuminationPass = new IlluminationPass(webgl, this.drawPass);
-    this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
+  private init(helper: Helper) {
+    const { graphics } = this;
+    this.limitToSupported = createSupportedPropsLimiter(graphics);
+    this.limitToSupported(this.props);
+
+    this.drawPass = new DrawPass(graphics, this.assetManager, 128, 128, this.scene.transparency);
+    this.illuminationPass = new IlluminationPass(graphics, this.drawPass);
+    this.multiSamplePass = new MultiSamplePass(graphics, this.drawPass);
     this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 
     this.helper = {
-      camera: new CameraHelper(webgl, this.props.cameraHelper),
+      camera: new CameraHelper(graphics, this.props.cameraHelper),
       debug: helper.debug,
       handle: helper.handle,
       pointer: helper.pointer,
     };
+  }
 
-    this.setSize(1024, 768);
+  /**
+   * Renders with `graphics`, `renderer` and `helper` from now on, the passes are created again (the graphics context
+   * changed, see `Canvas3D.contextChanged`)
+   */
+  setContext(graphics: GraphicsContext, renderer: Renderer, helper: Helper) {
+    this.graphics = graphics;
+    this.renderer = renderer;
+    this.init(helper);
+    const [width, height] = [this._width, this._height];
+    this._width = 0;
+    this._height = 0;
+    this.setSize(width, height);
   }
 
   getByteCount() {
     return this.drawPass.getByteCount() + this.illuminationPass.getByteCount() + this.multiSamplePass.getByteCount();
   }
 
-  updateBackground() {
-    return new Promise<void>((resolve) => {
-      this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background, () => {
-        resolve();
-      });
-    });
+  /** Updates the background to the props and resolves when its images are loaded (pending work, see `render`) */
+  async updateBackground() {
+    this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background);
+    await this.graphics.resources.pending.whenReady();
   }
 
   setSize(width: number, height: number) {
@@ -118,25 +143,73 @@ export class ImagePass {
 
   setProps(props: Partial<ImageProps> = {}) {
     Object.assign(this.props, props);
+    this.limitToSupported(this.props);
     if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
   }
 
   async render(runtime: RuntimeContext) {
+    // `prepare` makes what the render draws with ready, so that no draw is skipped while a WebGPU pipeline compiles;
+    // should a render still start work (it may have settled during the render, e.g. between illumination
+    // iterations), render again, so that the image is complete and doesn't depend on timing
+    const { pending } = this.graphics.resources;
+    for (let i = 0; i <= MaxRerenders; ++i) {
+      await this.prepare();
+      const trackedCount = pending.trackedCount;
+      await this.renderOnce(runtime);
+      if (pending.trackedCount === trackedCount) return;
+      if (isDebugMode) {
+        console.warn(
+          `ImagePass: the render started work 'prepare' missed: ${pending.trackedSince(trackedCount).join(', ')}`,
+        );
+      }
+    }
+    if (isDebugMode) console.warn('ImagePass: rendering again started more work, the image may be incomplete');
+  }
+
+  /**
+   * Makes the pipelines and resources `render` needs ready without drawing anything (see `PassBuilder`): the
+   * programs of the scene's variants, the images of the background and lookups, and the pipelines of every pass the
+   * props enable; resolves when they are
+   */
+  async prepare() {
     this.drawPass.setTransparency(this.scene.transparency);
-    ShaderManager.ensureRequired(this.webgl, this.scene, this.props);
+    ShaderManager.ensureRequired(this.graphics, this.scene, this.props);
+    // the background is updated before the render: the draw pass chooses its clear from the background's state
+    // (`isEnabled`), which the postprocessing pass would only update during the render, and a loaded image enables
+    // its draws
+    await this.updateBackground();
+    const b = createPrepareBuilder(this.graphics, this.renderer);
+    this.plan(b, this.getRenderContext());
+    await b.whenReady();
+  }
+
+  private plan(b: PassBuilder, ctx: RenderContext<Camera>) {
+    if (this.illuminationPass.supported && this.props.illumination.enabled) {
+      this.illuminationPass.plan(b, ctx, this.props, false);
+    } else if (MultiSamplePass.isEnabled(this.props.multiSample)) {
+      this.multiSampleHelper.plan(b, ctx, this.props, false);
+    } else {
+      this.drawPass.plan(b, ctx, this.props, false);
+    }
+  }
+
+  private getRenderContext(): RenderContext<Camera> {
     Camera.copySnapshot(this._camera.state, this.camera.state);
     Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
     this._camera.update();
     this.renderer.setOcclusionTest(null);
     this._frame = createFrame();
-
-    const ctx = {
+    return {
       renderer: this.renderer,
       camera: this._camera,
       scene: this.scene,
       helper: this.helper,
       frame: this._frame,
     };
+  }
+
+  private async renderOnce(runtime: RuntimeContext) {
+    const ctx = this.getRenderContext();
     if (this.illuminationPass.supported && this.props.illumination.enabled) {
       await runtime.update({
         message: 'Tracing...',
@@ -145,17 +218,17 @@ export class ImagePass {
       });
       this.illuminationPass.restart(true);
       while (this.illuminationPass.shouldRender(this.props.illumination)) {
-        if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
+        if (isTimingMode) this.graphics.timer.group('ImagePass.render', { captureStats: true });
         this.illuminationPass.render(ctx, this.props, false);
-        if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
+        if (isTimingMode) this.graphics.timer.groupEnd('ImagePass.render');
         if (runtime.shouldUpdate) {
           await runtime.update({ current: this.illuminationPass.iteration });
         }
-        await this.webgl.waitForGpuCommandsComplete();
+        await this.graphics.waitForGpuCommandsComplete();
       }
       this._colorTarget = this.illuminationPass.colorTarget;
     } else {
-      if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
+      if (isTimingMode) this.graphics.timer.group('ImagePass.render', { captureStats: true });
       if (MultiSamplePass.isEnabled(this.props.multiSample)) {
         this.multiSampleHelper.render(ctx, this.props, false);
         this._colorTarget = this.multiSamplePass.colorTarget;
@@ -163,11 +236,11 @@ export class ImagePass {
         this.drawPass.render(ctx, this.props, false);
         this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
       }
-      if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
+      if (isTimingMode) this.graphics.timer.groupEnd('ImagePass.render');
     }
 
     if (isTimingMode) {
-      const timerResults = this.webgl.timer.resolve();
+      const timerResults = this.graphics.timer.resolve();
       if (timerResults) {
         for (const result of timerResults) {
           printTimerResults([result]);
@@ -183,20 +256,13 @@ export class ImagePass {
   async getImageData(runtime: RuntimeContext, width: number, height: number, viewport?: Viewport) {
     this.setSize(width, height);
     await this.render(runtime);
-    this.colorTarget.bind();
 
     const w = viewport?.width ?? width,
       h = viewport?.height ?? height;
-
-    const array = new Uint8Array(w * h * 4);
-    if (!viewport) {
-      this.webgl.readPixels(0, 0, w, h, array);
-    } else {
-      this.webgl.readPixels(viewport.x, height - viewport.y - viewport.height, w, h, array);
-    }
-    const pixelData = PixelData.create(array, w, h);
-    PixelData.flipY(pixelData);
-    PixelData.divideByAlpha(pixelData);
+    const x = viewport?.x ?? 0;
+    const y = viewport?.y ?? 0;
+    const array = await this.graphics.readRenderTarget(this.colorTarget, x, y, w, h);
+    PixelData.divideByAlpha(PixelData.create(array, w, h));
     return new ImageData(new Uint8ClampedArray(array), w, h);
   }
 }

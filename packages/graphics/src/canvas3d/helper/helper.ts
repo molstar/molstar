@@ -5,7 +5,7 @@
  */
 
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DebugRegistry } from './debug-registry.js';
 import { CameraHelper, CameraHelperParams } from './camera-helper.js';
@@ -28,12 +28,12 @@ export class Helper {
   readonly handle: HandleHelper;
   readonly pointer: PointerHelper;
 
-  constructor(webgl: WebGLContext, scene: Scene, props: Partial<HelperProps> = {}) {
+  constructor(graphics: GraphicsContext, scene: Scene, props: Partial<HelperProps> = {}) {
     const p = { ...DefaultHelperProps, ...props };
 
-    this.debug = new DebugRegistry(webgl, scene);
-    this.camera = new CameraHelper(webgl, p.camera.helper);
-    this.handle = new HandleHelper(webgl, p.handle);
-    this.pointer = new PointerHelper(webgl, p.pointer);
+    this.debug = new DebugRegistry(graphics, scene);
+    this.camera = new CameraHelper(graphics, p.camera.helper);
+    this.handle = new HandleHelper(graphics, p.handle);
+    this.pointer = new PointerHelper(graphics, p.pointer);
   }
 }

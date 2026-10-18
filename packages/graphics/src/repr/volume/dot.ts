@@ -16,7 +16,7 @@ import { type RepresentationContext, type RepresentationParamsGetter, Representa
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { createVolumeCellLocationIterator, eachVolumeLoci } from './util.js';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -57,9 +57,9 @@ export function VolumeSphereVisual(
   volume: Volume,
   key: number,
   props: PD.Values<VolumeSphereParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
     ? VolumeSphereImpostorVisual(materialId)
     : VolumeSphereMeshVisual(materialId);
 }
@@ -87,8 +87,8 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
           (newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0);
       },
       geometryUtils: Spheres.Utils,
-      mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
-        return !props.tryUseImpostor || !webgl;
+      mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -119,8 +119,8 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
           newProps.detail !== currentProps.detail;
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
-        return props.tryUseImpostor && !!webgl;
+      mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

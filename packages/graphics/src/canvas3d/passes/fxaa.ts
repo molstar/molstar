@@ -4,21 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { fxaa_frag } from '@molstar/graphics/gl/shader/fxaa.frag';
 import type { Viewport } from '../camera/util.js';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
-import { isTimingMode } from '@molstar/core/util/debug';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 
 export const FxaaParams = {
   edgeThresholdMin: PD.Numeric(
@@ -44,26 +42,18 @@ export class FxaaPass {
   private readonly renderable: FxaaRenderable;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     input: Texture,
   ) {
-    this.renderable = getFxaaRenderable(webgl, input);
+    this.renderable = getFxaaRenderable(graphics, input);
   }
 
   private updateState(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
     const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
-
-    state.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
+    this.graphics.clear({ color: [0, 0, 0, 1] });
   }
 
   setSize(width: number, height: number) {
@@ -101,22 +91,16 @@ export class FxaaPass {
     }
   }
 
-  render(viewport: Viewport, target: RenderTarget | undefined) {
-    if (isTimingMode) this.webgl.timer.mark('FxaaPass.render');
-    if (target) {
-      target.bind();
-    } else {
-      this.webgl.bindDrawingBuffer();
-    }
-    this.updateState(viewport);
-    this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('FxaaPass.render');
+  render(b: PassBuilder, viewport: Viewport, target: RenderTarget | undefined) {
+    b.begin(target ?? 'drawing-buffer', { label: 'fxaa' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
 //
 
-const FxaaSchema = {
+export const FxaaSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
@@ -126,10 +110,10 @@ const FxaaSchema = {
   dIterations: DefineSpec('number'),
   dSubpixelQuality: DefineSpec('number'),
 };
-const FxaaShaderCode = ShaderCode('fxaa', quad_vert, fxaa_frag);
+export const FxaaShaderCode = ShaderCode('fxaa');
 type FxaaRenderable = ComputeRenderable<Values<typeof FxaaSchema>>;
 
-function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRenderable {
+function getFxaaRenderable(ctx: GraphicsContext, colorTexture: Texture): FxaaRenderable {
   const width = colorTexture.getWidth();
   const height = colorTexture.getHeight();
 
@@ -145,7 +129,7 @@ function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRender
   };
 
   const schema = { ...FxaaSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', FxaaShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', FxaaShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

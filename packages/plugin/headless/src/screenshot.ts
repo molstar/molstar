@@ -21,11 +21,15 @@ import {
 import type { ImagePass, ImageProps } from '@molstar/graphics/canvas3d/passes/image';
 import { Passes } from '@molstar/graphics/canvas3d/passes/passes';
 import { PostprocessingParams, type PostprocessingProps } from '@molstar/graphics/canvas3d/passes/postprocessing';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createContext } from '@molstar/graphics/gl/webgl/context';
+import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
 import { AssetManager } from '@molstar/core/util/assets';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { PixelData } from '@molstar/core/util/image';
 import { InputObserver } from '@molstar/core/util/input/input-observer';
+import { now } from '@molstar/core/util/now';
+import { Subject } from 'rxjs';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 import type { RuntimeContext } from '@molstar/core/task';
 
@@ -37,12 +41,17 @@ export interface JpegBufferRet {
 }
 
 export interface ExternalModules {
-  gl: typeof import('gl');
+  /** for the WebGL backend (the default) */
+  gl?: typeof import('gl');
+  /** for the WebGPU backend, e.g. Dawn's Node.js bindings (the `webgpu` package) */
+  webgpu?: { create(options: string[]): GPU };
   'jpeg-js'?: { encode(image: RawImageData, quality?: number): JpegBufferRet };
   pngjs?: typeof import('pngjs');
 }
 
 export type HeadlessScreenshotHelperOptions = {
+  /** `webgpu` needs `ExternalModules.webgpu` and `HeadlessScreenshotHelper.create` (devices are requested asynchronously) */
+  backend?: 'webgl' | 'webgpu';
   webgl?: WebGLContextAttributes;
   canvas?: Partial<Canvas3DProps>;
   imagePass?: Partial<ImageProps>;
@@ -54,10 +63,107 @@ export type RawImageData = {
   height: number;
 };
 
+/** The contexts of the headless `Canvas3D`s, see `HeadlessScreenshotHelper.canvas3dContext` */
+const HeadlessContexts = new WeakMap<Canvas3D, Canvas3DContext>();
+
+/** `Canvas3D` without canvas and input, rendering with `graphics` */
+function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScreenshotHelperOptions) {
+  const input = InputObserver.create();
+  const attribs = { ...Canvas3DContext.DefaultAttribs };
+  const props = { ...Canvas3DContext.DefaultProps };
+  const assetManager = new AssetManager();
+  let current = graphics;
+  let passes = new Passes(current, assetManager, props);
+  const pixelScale = 1;
+  const syncPixelScale = () => {};
+  const setProps = () => {};
+  // a lost context is replaced by a new one where the backend can create it without a canvas (WebGPU devices), and
+  // Canvas3D is built again on it (`contextChanged` with `restore`); a released one (`release`) only on `restore`
+  const contextLost = new Subject<now.Timestamp>();
+  const contextRestored = new Subject<now.Timestamp>();
+  const contextChanged = new Subject<Canvas3DContext.ContextChange>();
+  let released = false;
+  const replace = (lost: GraphicsContext) =>
+    lost.recreate().then((next) => {
+      if (!next || lost !== current) {
+        next?.destroy({ lost: true });
+        return false;
+      }
+      contextLostSub.unsubscribe();
+      current = next;
+      passes = new Passes(current, assetManager, props);
+      contextLostSub = watch(current);
+      contextChanged.next({ previous: lost, reason: 'restore' });
+      lost.destroy({ lost: true });
+      contextRestored.next(now());
+      return true;
+    });
+  const watch = (lost: GraphicsContext) =>
+    lost.contextLost.subscribe((t) => {
+      contextLost.next(t);
+      if (!released) replace(lost);
+    });
+  let contextLostSub = watch(current);
+  const release = () => {
+    if (released || current.isContextLost) return false;
+    released = true;
+    if (current.release()) return true;
+    released = false;
+    return false;
+  };
+  const restore = async () => {
+    if (!released || !current.isContextLost) return false;
+    released = false;
+    const restored = await replace(current);
+    if (!restored) released = true;
+    return restored;
+  };
+  const dispose = () => {
+    contextLostSub.unsubscribe();
+    input.dispose();
+    current.destroy();
+    contextLost.complete();
+    contextRestored.complete();
+    contextChanged.complete();
+  };
+  const context: Canvas3DContext = {
+    get graphics() {
+      return current;
+    },
+    input,
+    get passes() {
+      return passes;
+    },
+    attribs,
+    props,
+    contextLost,
+    contextRestored,
+    contextChanged,
+    assetManager,
+    pixelScale,
+    syncPixelScale,
+    setProps,
+    release,
+    restore,
+    get isReleased() {
+      return released;
+    },
+    dispose,
+  };
+  const canvas3d = Canvas3D.create(context, options?.canvas ?? defaultCanvas3DParams());
+  HeadlessContexts.set(canvas3d, context);
+  return canvas3d;
+}
+
 /** To render Canvas3D when running in Node.js (without DOM) */
 export class HeadlessScreenshotHelper {
   readonly canvas3d: Canvas3D;
   readonly imagePass: ImagePass;
+
+  /** The context of `canvas3d` when the helper made it (losses, `release` and `restore`) */
+  get canvas3dContext(): Canvas3DContext | undefined {
+    return HeadlessContexts.get(this.canvas3d);
+  }
 
   constructor(
     readonly externalModules: ExternalModules,
@@ -68,44 +174,58 @@ export class HeadlessScreenshotHelper {
     if (canvas3d) {
       this.canvas3d = canvas3d;
     } else {
+      if (options?.backend === 'webgpu') {
+        throw new Error(`the 'webgpu' backend needs 'HeadlessScreenshotHelper.create'`);
+      }
+      if (!this.externalModules.gl) throw new Error(`external module 'gl' is required for the 'webgl' backend`);
       const glContext = this.externalModules.gl(
         this.canvasSize.width,
         this.canvasSize.height,
         options?.webgl ?? defaultWebGLAttributes(),
       );
-      const webgl = createContext(glContext);
-      const input = InputObserver.create();
-      const attribs = { ...Canvas3DContext.DefaultAttribs };
-      const props = { ...Canvas3DContext.DefaultProps };
-      const assetManager = new AssetManager();
-      const passes = new Passes(webgl, assetManager, props);
-      const pixelScale = 1;
-      const syncPixelScale = () => {};
-      const setProps = () => {};
-      const dispose = () => {
-        input.dispose();
-        webgl.destroy();
-      };
-      this.canvas3d = Canvas3D.create(
-        { webgl, input, passes, attribs, props, assetManager, pixelScale, syncPixelScale, setProps, dispose },
-        options?.canvas ?? defaultCanvas3DParams(),
-      );
+      this.canvas3d = createHeadlessCanvas3D(createContext(glContext), options);
     }
 
     this.imagePass = this.canvas3d.getImagePass(options?.imagePass ?? defaultImagePassParams());
     this.imagePass.setSize(this.canvasSize.width, this.canvasSize.height);
   }
 
+  /**
+   * Creates the helper with a new graphics context of `options.backend` (default `webgl`); needed for `webgpu`, which
+   * requests its device asynchronously
+   */
+  static async create(
+    externalModules: ExternalModules,
+    canvasSize: { width: number; height: number },
+    options?: HeadlessScreenshotHelperOptions,
+  ) {
+    if (options?.backend !== 'webgpu')
+      return new HeadlessScreenshotHelper(externalModules, canvasSize, undefined, options);
+    if (!externalModules.webgpu) throw new Error(`external module 'webgpu' is required for the 'webgpu' backend`);
+    const gpu = externalModules.webgpu.create([]);
+    const device = await requestWebGPUDevice('default', gpu);
+    if (!device) throw new Error('no WebGPU adapter available');
+    const graphics = createWebGPUContext(device, {
+      width: canvasSize.width,
+      height: canvasSize.height,
+      // also keeps `gpu` alive with the context, collecting it while its device is in use crashes Dawn's Node.js bindings
+      requestDevice: () => requestWebGPUDevice('default', gpu),
+    });
+    return new HeadlessScreenshotHelper(
+      externalModules,
+      canvasSize,
+      createHeadlessCanvas3D(graphics, options),
+      options,
+    );
+  }
+
   private async getImageData(runtime: RuntimeContext, width: number, height: number): Promise<RawImageData> {
     this.imagePass.setSize(width, height);
     await this.imagePass.render(runtime);
-    this.imagePass.colorTarget.bind();
 
-    const array = new Uint8Array(width * height * 4);
-    this.canvas3d.webgl.readPixels(0, 0, width, height, array);
-    const pixelData = PixelData.create(array, width, height);
-    PixelData.flipY(pixelData);
-    PixelData.divideByAlpha(pixelData);
+    // rows top to bottom
+    const array = await this.canvas3d.graphics.readRenderTarget(this.imagePass.colorTarget, 0, 0, width, height);
+    PixelData.divideByAlpha(PixelData.create(array, width, height));
     // ImageData is not defined in Node.js
     return { data: new Uint8ClampedArray(array), width, height };
   }

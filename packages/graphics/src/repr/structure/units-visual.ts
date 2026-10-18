@@ -17,6 +17,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   type RenderObjectValues,
+  hasForeignTextures,
 } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
@@ -56,11 +57,11 @@ import {
   StructureImageParams,
 } from './params.js';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { isPromiseLike } from '@molstar/core/util/type-helpers';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
 import type { Wiggle } from '@molstar/graphics/theme/wiggle';
+import { getGeometrySignatures, type SignatureContext, type SignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> {}
 
@@ -86,6 +87,8 @@ function createUnitsRenderObject<G extends Geometry>(
 }
 
 interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
+  /** define values the visual decides (e.g. varying groups), for its signatures, see `getGeometrySignatures` */
+  signatureDefines?: (props: PD.Values<P>, graphics?: GraphicsContext) => SignatureDefines;
   defaultProps: PD.Values<P>;
   createGeometry(
     ctx: VisualContext,
@@ -124,7 +127,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     geometry: G,
     props: PD.Values<P>,
     theme: Theme,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => void;
   dispose?: (geometry: G) => void;
 }
@@ -174,7 +177,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
 
-  function prepareUpdate(theme: Theme, props: PD.Values<P>, structureGroup: StructureGroup) {
+  function prepareUpdate(
+    theme: Theme,
+    props: PD.Values<P>,
+    structureGroup: StructureGroup,
+    graphics?: GraphicsContext,
+  ) {
     if (!structureGroup && !currentStructureGroup) {
       throw new Error('missing structureGroup');
     }
@@ -202,6 +210,13 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       newStructureGroup,
       currentStructureGroup,
     );
+
+    // after a backend switch: textures of the previous context are rendered or computed again, geometry relying on what
+    // the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+    if (graphics && renderObject && hasForeignTextures(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
+      updateState.createGeometry = true;
+    }
 
     if (!Structure.areHierarchiesEqual(currentStructureGroup.structure, newStructureGroup.structure)) {
       // console.log('new hierarchy');
@@ -279,9 +294,9 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       }
       if (
         newTheme.color.granularity.startsWith('vertex') ||
-        renderObject.values.dColorType.ref.value.startsWith('vertex') ||
+        renderObject.values.colorType.ref.value.startsWith('vertex') ||
         newTheme.color.granularity.startsWith('volume') ||
-        renderObject.values.dColorType.ref.value.startsWith('volume')
+        renderObject.values.colorType.ref.value.startsWith('volume')
       ) {
         updateState.updateColor = true;
       }
@@ -456,7 +471,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
   function finalize(ctx: VisualContext) {
     if (renderObject) {
-      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.graphics);
     }
   }
 
@@ -471,7 +486,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       return geometryVersion;
     },
     createOrUpdate(ctx: VisualContext, theme: Theme, props: PD.Values<P>, structureGroup?: StructureGroup) {
-      prepareUpdate(theme, props, structureGroup || currentStructureGroup);
+      prepareUpdate(theme, props, structureGroup || currentStructureGroup, ctx.graphics);
       if (updateState.createGeometry) {
         const newGeometry = _createGeometry(
           ctx,
@@ -481,17 +496,15 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
           newProps,
           geometry,
         );
-        if (isPromiseLike(newGeometry)) {
-          return newGeometry.then((g) => {
-            update(g);
-            finalize(ctx);
-          });
-        }
-        update(newGeometry);
-      } else {
-        update();
+        return Visual.withPreparedGeometry(newGeometry, builder.geometryUtils, newTheme, ctx.graphics, (g) => {
+          update(g);
+          finalize(ctx);
+        });
       }
-      finalize(ctx);
+      return Visual.withPreparedGeometry(geometry, builder.geometryUtils, newTheme, ctx.graphics, () => {
+        update();
+        finalize(ctx);
+      });
     },
     getLoci(pickingId: PickingId) {
       if (!renderObject) return EmptyLoci;
@@ -538,26 +551,26 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
       Visual.setTransform(renderObject, matrix, instanceMatrices);
     },
-    setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
     },
-    setTransparency(transparency: Transparency, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setTransparency(transparency: Transparency, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
     },
-    setEmissive(emissive: Emissive, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setEmissive(emissive: Emissive, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
     },
-    setSubstance(substance: Substance, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setSubstance(substance: Substance, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
     },
     setClipping(clipping: Clipping) {
       Visual.setClipping(renderObject, clipping, lociApply, true);
     },
-    setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+    setWiggle(wiggle: Wiggle, graphics?: GraphicsContext) {
       Visual.setWiggle(renderObject, wiggle, lociApply, true);
     },
     setThemeStrength(strength: {
@@ -575,6 +588,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         renderObject.state.disposed = true;
         renderObject = undefined;
       }
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
+      const p = { ...defaultProps, ...props };
+      return getGeometrySignatures(builder.geometryUtils, p, ctx, builder.signatureDefines?.(p, ctx.graphics));
     },
     mustRecreate,
   };

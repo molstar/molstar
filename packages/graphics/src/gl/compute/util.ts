@@ -4,15 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { WebGLContext } from '../webgl/context.js';
-import { createNullTexture, type Texture } from '../webgl/texture.js';
+import type { GraphicsContext } from '../context.js';
+import { createNullTexture, type Texture } from '../texture.js';
 import { ValueCell } from '@molstar/core/util';
-import { ValueSpec, AttributeSpec, UniformSpec, type Values, TextureSpec } from '../renderable/schema.js';
+import { ValueSpec, AttributeSpec, UniformSpec, type Values, TextureSpec, DefineSpec } from '../renderable/schema.js';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { ShaderCode } from '../shader-code.js';
-import { copy_frag } from '../shader/copy.frag.js';
-import { quad_vert } from '../shader/quad.vert.js';
-import { createComputeRenderItem } from '../webgl/render-item.js';
 import { type ComputeRenderable, createComputeRenderable } from '../renderable.js';
 
 export const QuadPositions = new Float32Array([
@@ -46,30 +43,33 @@ export const QuadValues: Values<typeof QuadSchema> = {
 
 //
 
-const CopySchema = {
+export const CopySchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
+  /** pack the red channel (depth) into RGBA, for depth copies into non-float targets */
+  dPackDepth: DefineSpec('boolean'),
 };
-const CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
+export const CopyShaderCode = ShaderCode('copy');
 export type CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>;
 
-export function createCopyRenderable(ctx: WebGLContext, texture: Texture): CopyRenderable {
+export function createCopyRenderable(ctx: GraphicsContext, texture: Texture, packDepth = false): CopyRenderable {
   const values: Values<typeof CopySchema> = {
     ...QuadValues,
     tColor: ValueCell.create(texture),
     uTexSize: ValueCell.create(Vec2.create(texture.getWidth(), texture.getHeight())),
+    dPackDepth: ValueCell.create(packDepth),
   };
 
   const schema = { ...CopySchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', CopyShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', CopyShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 const SharedCopyName = 'shared-copy';
 
-export function getSharedCopyRenderable(ctx: WebGLContext, texture: Texture) {
+export function getSharedCopyRenderable(ctx: GraphicsContext, texture: Texture) {
   if (!ctx.namedComputeRenderables[SharedCopyName]) {
     ctx.namedComputeRenderables[SharedCopyName] = createCopyRenderable(ctx, createNullTexture());
   }
@@ -81,74 +81,4 @@ export function getSharedCopyRenderable(ctx: WebGLContext, texture: Texture) {
   );
   copy.update();
   return copy;
-}
-
-//
-
-const ReadTextureName = 'read-texture';
-const ReadAlphaTextureName = 'read-alpha-texture';
-
-export function readTexture<T extends Uint8Array | Float32Array | Int32Array = Uint8Array>(
-  ctx: WebGLContext,
-  texture: Texture,
-  array?: T,
-) {
-  const { gl, resources } = ctx;
-  if (!array && texture.type !== gl.UNSIGNED_BYTE) throw new Error('unsupported texture type');
-
-  if (!ctx.namedFramebuffers[ReadTextureName]) {
-    ctx.namedFramebuffers[ReadTextureName] = resources.framebuffer();
-  }
-  const framebuffer = ctx.namedFramebuffers[ReadTextureName];
-
-  const width = texture.getWidth();
-  const height = texture.getHeight();
-  if (!array) array = new Uint8Array(width * height * 4) as T;
-  framebuffer.bind();
-  texture.attachFramebuffer(framebuffer, 0);
-  ctx.readPixels(0, 0, width, height, array);
-
-  return { array, width, height };
-}
-
-export function readAlphaTexture(ctx: WebGLContext, texture: Texture) {
-  const { gl, state, resources } = ctx;
-  if (texture.type !== gl.UNSIGNED_BYTE) throw new Error('unsupported texture type');
-
-  const width = texture.getWidth();
-  const height = texture.getHeight();
-
-  const copy = getSharedCopyRenderable(ctx, texture);
-  state.currentRenderItemId = -1;
-
-  if (!ctx.namedFramebuffers[ReadAlphaTextureName]) {
-    ctx.namedFramebuffers[ReadAlphaTextureName] = resources.framebuffer();
-  }
-  const framebuffer = ctx.namedFramebuffers[ReadAlphaTextureName];
-  framebuffer.bind();
-
-  if (!ctx.namedTextures[ReadAlphaTextureName]) {
-    ctx.namedTextures[ReadAlphaTextureName] = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
-  }
-  const copyTex = ctx.namedTextures[ReadAlphaTextureName];
-  copyTex.define(width, height);
-  copyTex.attachFramebuffer(framebuffer, 0);
-
-  state.disable(gl.CULL_FACE);
-  state.enable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.enable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.clearColor(0, 0, 0, 0);
-  state.blendFunc(gl.ONE, gl.ONE);
-  state.blendEquation(gl.FUNC_ADD);
-  state.viewport(0, 0, width, height);
-  state.scissor(0, 0, width, height);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  copy.render();
-
-  const array = new Uint8Array(width * height * 4);
-  ctx.readPixels(0, 0, width, height, array);
-
-  return { array, width, height };
 }

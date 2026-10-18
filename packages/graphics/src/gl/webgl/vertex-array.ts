@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { Program } from './program.js';
-import type { ElementsBuffer, AttributeBuffers } from './buffer.js';
+import { type ElementsBuffer, type AttributeBuffers, bindAttributeBuffers } from './buffer.js';
 import type { WebGLExtensions } from './extensions.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { GLRenderingContext } from './compat.js';
+import type { WebGLState } from './state.js';
+import type { AttributeLayout } from '../attribute-layout.js';
 
 const getNextVertexArrayId = idFactory();
 
@@ -37,25 +38,26 @@ export interface VertexArray {
 
   bind: () => void;
   update: () => void;
-  reset: () => void;
   destroy: () => void;
 }
 
+/** valid for all programs whose schema has `layout`, see `getAttributeLayout` */
 export function createVertexArray(
   gl: GLRenderingContext,
+  state: WebGLState,
   extensions: WebGLExtensions,
-  program: Program,
+  layout: AttributeLayout,
   attributeBuffers: AttributeBuffers,
   elementsBuffer?: ElementsBuffer,
 ): VertexArray {
   const id = getNextVertexArrayId();
-  let vertexArray = getVertexArray(extensions);
-  let vertexArrayObject = getVertexArrayObject(extensions);
+  const vertexArray = getVertexArray(extensions);
+  const vertexArrayObject = getVertexArrayObject(extensions);
 
   function update() {
     vertexArrayObject.bindVertexArray(vertexArray);
     if (elementsBuffer) elementsBuffer.bind();
-    program.bindAttributes(attributeBuffers);
+    bindAttributeBuffers(state, layout, attributeBuffers);
     vertexArrayObject.bindVertexArray(null);
     isReady = true;
   }
@@ -70,11 +72,6 @@ export function createVertexArray(
       vertexArrayObject.bindVertexArray(vertexArray);
     },
     update,
-    reset: () => {
-      vertexArray = getVertexArray(extensions);
-      vertexArrayObject = getVertexArrayObject(extensions);
-      isReady = false;
-    },
     destroy: () => {
       if (destroyed) return;
       if (elementsBuffer) {

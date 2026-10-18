@@ -146,6 +146,285 @@ no longer exported by the graphics transform-data module.
 tokenizer retains its type re-export, so the mapped tokenizer import remains valid. `openRead` now lives in
 `@molstar/common-server/open-read`; the volume server's mapped common/file module retains its re-export and behavior.
 
+## WebGL context capabilities and limits
+
+`WebGLContext` implements the backend-neutral `GraphicsContext` (`@molstar/graphics/gl/context`). Feature checks use
+`webgl.capabilities` (`GraphicsCapabilities`, `@molstar/graphics/gl/capabilities`) instead of `webgl.extensions` or
+`webgl.isWebGL2`, e.g. `capabilities.fragDepth`, `capabilities.floatRenderTarget` (was `extensions.colorBufferFloat`),
+`capabilities.multipleRenderTargets` (was `extensions.drawBuffers`), `capabilities.texture3d` and
+`capabilities.flatInterpolation` (were `isWebGL2`). `extensions` and `isWebGL2` remain for WebGL-specific code. New
+capabilities `integerTextures` and `mixedAttachmentFormats` replace `isWebGL2` checks for `int` textures and for
+framebuffers with attachments of different formats.
+
+Depth texture types and depth renderbuffer formats are precision preferences: on WebGL1 `float`/`float-stencil` fall
+back to `ushort`/`uint24-8` and `depth32f`/`depth32f-stencil8` to `depth16`/`depth-stencil` instead of throwing. `alpha`
+render targets fall back to `rgba` on WebGL1, `Texture.mipmap()` is a no-op for non-power-of-two textures on WebGL1, and
+`resources.getValueChannel(texture)` returns the channel holding the value of `alpha` format textures.
+
+The limit getters `maxTextureSize`, `max3dTextureSize`, `maxRenderbufferSize`, `maxDrawBuffers` and
+`maxTextureImageUnits` were removed from `WebGLContext`; use `webgl.resources.limits.*`.
+
+Backend-neutral resource types moved out of `@molstar/graphics/gl/webgl/*`:
+
+| Symbols                                                                                                                                                                                              | v6 import                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `Texture`, `Textures`, `TextureValues`, `TextureKind`, `TextureType`, `TextureFormat`, `TextureFilter`, `TextureAttachment`, `createNullTexture`, `isNullTexture`, `decodeImage`, `CubeFaces`        | `@molstar/graphics/gl/texture`       |
+| `Framebuffer`                                                                                                                                                                                        | `@molstar/graphics/gl/framebuffer`   |
+| `Renderbuffer`, `RenderbufferFormat`, `RenderbufferAttachment`                                                                                                                                       | `@molstar/graphics/gl/renderbuffer`  |
+| `RenderTarget`                                                                                                                                                                                       | `@molstar/graphics/gl/render-target` |
+| `ArrayType`, `AttributeItemSize`, `AttributeKind`, `AttributeValues`, `ElementsType`, `ElementsKind`, `UsageHint`, `DataType`                                                                        | `@molstar/graphics/gl/buffer`        |
+| `TimerResult`, `printTimerResults`, `GraphicsTimer` (was `WebGLTimer`)                                                                                                                               | `@molstar/graphics/gl/timer`         |
+| `GraphicsStats` (was `WebGLStats`)                                                                                                                                                                   | `@molstar/graphics/gl/stats`         |
+| `DrawMode`, `Transparency`, `GraphicsRenderVariant(s)`, `ComputeRenderVariant(s)`, `ProgramVariant`, `RenderItem`, `GraphicsRenderItem`, `ComputeRenderItem`, `MultiDrawBaseData`, `GraphicsProgram` | `@molstar/graphics/gl/render-item`   |
+| `UniformBuffer`, `UniformKind`, `UniformsList`, `UniformValues`, ...                                                                                                                                 | `@molstar/graphics/gl/uniform`       |
+
+The neutral `Texture` has no WebGL fields (`target`, `format`, `internalFormat`, `type`, `filter`) and no
+`bind`/`unbind`; WebGL code uses `GLTexture` from `@molstar/graphics/gl/webgl/texture`. `createNullTexture` takes no
+arguments.
+
+`RepresentationContext.webgl` and `VisualContext.webgl` are renamed to `graphics` and typed `GraphicsContext`, e.g.
+`provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, getParams)`. Visual callbacks (`mustRecreate`,
+`processValues`, `setOverpaint`/`setTransparency`/`setEmissive`/`setSubstance`/`setWiggle`), visual constructors
+(`visualCtor(materialId, data, props, graphics)`) and `applyMesh*Smoothing` take a `GraphicsContext`; use
+`isWebGLContext` from `@molstar/graphics/gl/webgl/context` for WebGL-only code paths.
+
+Render items are created through the context: `createGraphicsRenderItem(ctx, ...)` and
+`createComputeRenderItem(ctx, ...)` from `@molstar/graphics/gl/webgl/render-item` become
+`ctx.createGraphicsRenderItem(...)` and `ctx.createComputeRenderItem(...)`. `RenderItem.getProgram` and
+`Renderable.getProgram` return the neutral `GraphicsProgram` (`id`, `variant`, `isReady`, `link`, `finalize`); the WebGL
+`Program` extends it. `namedComputeRenderables` is part of `GraphicsContext`. The renderable constructors
+(`MeshRenderable`, ...), `createRenderable`, `Scene.create` and the camera, handle, pointer, shader and XR helpers take
+a `GraphicsContext`.
+
+Extensions take a `GraphicsContext` named `graphics` instead of a `WebGLContext` named `webgl`: debug-helpers
+constructors (and `DebugRegistry.ctx`), sb-ncbr `TunnelShapeParams.graphics` (was `webgl`), alpha-orbitals
+`createSphericalCollocationGrid`/`createSphericalCollocationDensityGrid` and geo-export `RenderObjectExporter.add` and
+`AddMeshInput.graphics` (was `webgl`). `canComputeGrid3dOnGPU(graphics, computable)` accepts a `GraphicsContext` and the
+computable of `createGrid3dComputeRenderable` (true on WebGPU for specs with WGSL code, `wgsl`), and computables take a
+`GraphicsContext`; geo-export texture readback throws without a WebGL context.
+
+Texture readback is asynchronous and backend-neutral: `GraphicsContext.readTextureData(texture)` reads a whole 2d color
+texture (data order, four values per texel; ubyte, float and half float). `readTexture` and `readSingleChannelTexture`
+(`@molstar/graphics/gl/compute/util`, WebGL, synchronous) were removed; the geo-export `MeshExporter.getInterpolated*`
+helpers return promises. `TextureMesh.meta.webgl` was removed: the position iterator of texture meshes uses
+`meta.vertexData`, read back with `TextureMesh.readVertexData` (visuals do it before colors per vertex).
+
+The fragment-shader GPU compute is WebGL backend code: `gl/compute/histogram-pyramid/{reduction,sum}` and
+`gl/compute/marching-cubes/{active-voxels,isosurface,tables}` moved to `@molstar/graphics/gl/webgl/compute/…`, and
+`getGrid3dComputeFrag`/`getGrid3dComputeSchema` to `@molstar/graphics/gl/webgl/compute/grid3d`. Neutral code reaches
+them through `getAtlasIsosurfaceExtraction(graphics)` (`@molstar/graphics/gl/compute/marching-cubes/atlas`) and
+`createGrid3dComputeRenderable`, which use what the backend of the context registered. `canComputeGrid3dOnGPU(graphics)`
+without a computable reports whether fragment shaders are available (a backend registered grid3d). `KernelCode` takes
+optional `sources` (`wgsl`) for kernels generated at runtime.
+
+Picking and Hi-Z read their textures through `GraphicsContext.createTextureReader({ format })`
+(`@molstar/graphics/gl/texture-reader`, `rgba8` or `r32f`, a new member every context implements). `PickBuffers`
+(`canvas3d/passes/pick`) is a class over a `TextureReader` (with an `asynchronous` getter) instead of an interface with
+WebGL and WebGPU implementations; `checkAsyncPickingSupport` takes the `PickBuffers` instead of the context;
+`PickPass.bindObject`/`bindInstance`/`bindGroup`/`bindDepth` were removed (use `PickPass.getTextures()`). `HiZPass`
+works on WebGPU too; `HiZSchema` has a `uTexSize` uniform (the size of the level rendered).
+
+`GraphicsCapabilities.floatBlend` (new) is rendering into float32 color targets with blending (WebGL: `EXT_float_blend`,
+WebGPU: `float32-blendable`); `floatRenderTarget` is rendering without blending, always on WebGPU (it meant
+`float32-blendable` there). Wboit, dpoit and illumination need `floatBlend`, as do the float32 fallbacks of blended
+targets without half-float ones (multi-sample, marking, the Gaussian density). `requestWebGPUDevice` and
+`createWebGPUBackend` take `features` (`'optional'`, the default, or `'none'`).
+
+`GaussianDensityGPU` (`@molstar/graphics/geo/gaussian-density/gpu`, the WebGL density read back into a CPU field) was
+removed; it had no callers. Use `computeGaussianDensity` (`@molstar/core/math/geometry/gaussian-density`, CPU) for a
+field, or `computeGaussianDensityTexture` (`@molstar/graphics/geo/gaussian-density`) for a GPU texture.
+
+Fixed-function state goes through the context instead of `webgl.state` and `gl` calls: `ctx.setRenderState(state)` with
+a neutral `RenderState` (`@molstar/graphics/gl/render-state`: blend, color write mask, depth, stencil, cull, front face;
+unset fields reset to the defaults, presets `RenderState.Default`/`Additive`/`Premultiplied`/`Alpha`/`Constant`),
+`ctx.setViewport`, `ctx.setScissor`/`ctx.disableScissor`, `ctx.setBlendConstant`, `ctx.clear({ color, depth, stencil })`
+(within the scissor rectangle, ignoring write masks, integer attachments included) and `ctx.flush()`.
+`WebGLContext.clear(red, green, blue, alpha)` (bind and clear the drawing buffer) was removed. Draw buffers are set with
+`framebuffer.setDrawBuffers(count)` (kept on context restore) instead of the `drawBuffers` extension, and
+`texture.copyFromFramebuffer(framebuffer, x, y, width, height, dstX, dstY)` replaces `GLTexture.bind` +
+`copyTexSubImage2D`. Most passes (`DrawPass`, postprocessing, antialiasing, bloom, DOF, marking, multi-sample,
+illumination, tracing, WBOIT, DPOIT, background) take a `GraphicsContext`. `ShadowPass.webgl` is renamed to `graphics`.
+
+Drawing happens in render passes: `ctx.beginRenderPass(target, { clear })` (a render target, framebuffer or
+`'drawing-buffer'`) and `ctx.endRenderPass()` replace binding targets before drawing. `bindDrawingBuffer` moved from
+`GraphicsContext` to `WebGLContext` (readback only). Copies, readback, attachment changes and `flush` end the open pass;
+in debug mode draws and clears outside of a pass throw.
+
+`Renderer.create` takes a `GraphicsContext`. `GraphicsRenderable.render(variant, globals)` and
+`RenderItem.render(variant, globals?, mdbDataList?)` take `GlobalBindings`
+(`ctx.createGlobalBindings(schema, uniforms, textures)`) instead of the number of shared textures; global uniforms and
+shared textures are applied by the render items.
+
+Shader sources compose their chunks in TS instead of `#include`: import the chunk modules from
+`@molstar/graphics/gl/webgl/shader/chunks/*` and interpolate them (`` `${common}` ``); registering a program throws on
+`#include`. Conditionals are resolved by a strict TS preprocessor (`@molstar/graphics/gl/shader-preprocessor`) before
+compilation: `#if`/`#elif` support `defined`, `!`, `&&`, `||`, parentheses and integer comparisons of integer literals
+and defines with integer values, plus `#ifdef`/`#ifndef`/`#else`/`#endif`, object- and function-like `#define` and
+`#undef`; anything else (arithmetic in expressions, undefined names in evaluated expressions, other directives such as
+`#extension` or `#version` in sources) throws a `ShaderPreprocessorError`.
+
+Points are drawn as quads (two triangles per point) with the point data read from a texture: `PointsValues` have
+`tPositionGroup`, `uTexDim`, `centerBuffer` and `groupBuffer` instead of the `aPosition` and `aGroup` attributes,
+`drawCount` is `pointCount * 6` (`uVertexCount` stays the point count), and `Points` has `shaderData`. The point size is
+no longer limited by the GPU point size range. Texture formats follow WebGPU: `rgb` is removed from `TextureFormat`, and
+`alpha` is renamed `r` (also for `RenderTargetFormat` and `pixelPack`). `r` textures are `R8`/`R16F`/`R32F`/`R32I` on
+WebGL2 and `LUMINANCE` on WebGL1; shaders read the value from `.r` (previously `.a` for 8-bit data). Color, palette and
+size textures (`tColor`, `tPalette`, `tSize`) have 4 channels per item (colors with an opaque alpha, sizes packed into
+`rgb` as before), so code reading their arrays uses a stride of 4. `resources.getValueChannel` is removed:
+`extractIsosurface`, `createIsosurfaceBuffers` and `calcActiveVoxels` take the `valueChannel` (`red` or `alpha`) of the
+volume texture after it. `readAlphaTexture` is renamed `readSingleChannelTexture` and returns the values in `.r`.
+
+The GLSL define for the `aVertex` vertex id emulation is `emulateVertexId` (set where `gl_VertexID` is unusable),
+replacing `noNonInstancedActiveAttribs`; `usedIf` conditions referring to it change accordingly.
+
+The global texture `tDepth` is only the opaque scene depth; depth with alpha packed into `rgba` (front transparent depth
+for the emissive variant, marking depth) is bound as `tDepthAlpha`, and custom shaders reading packed depth with alpha
+from `tDepth` switch to `tDepthAlpha`.
+
+`Canvas3DContext` has a `graphics: GraphicsContext` field (custom implementations of the interface add it) and an async
+`Canvas3DContext.create(canvas, assetManager, backends, attribs, props)` that takes the backends to try in order
+(`WebGL2Backend`, `WebGLBackend` from `@molstar/graphics/gl/webgl/backend`, `WebGPUBackend` from
+`@molstar/graphics/gl/webgpu/backend`). `Canvas3DContext.fromCanvas` moved to
+`createWebGLCanvas3DContext(canvas, assetManager, attribs, props)` in `@molstar/graphics/canvas3d/webgl`, so that
+importing `Canvas3D` doesn't bundle the WebGL backend;
+`Canvas3DContext.fromGraphics(canvas, graphics, assetManager, attribs, props)` wraps a context created otherwise. The
+plugin's default backends (without `PluginConfig.General.GraphicsBackends`) come from
+`@molstar/graphics/gl/backends/default` (the WebGL set); builds without WebGL alias that module to
+`@molstar/graphics/gl/backends/webgpu`.
+
+`Canvas3D` and `Canvas3DContext` have a `graphics: GraphicsContext` field; `Canvas3D.webgl` and `Canvas3DContext.webgl`
+were removed (narrow `graphics` with `isWebGLContext` from `@molstar/graphics/gl/webgl/context` where WebGL is
+required). The WebGL context handles the loss and restore events of its canvas itself; `GraphicsContext.recreate` is
+implemented by every backend (a new context replacing a lost one; on WebGL once the browser restored the context),
+`simulateContextLoss()` loses the context for debugging, `release()` loses it on purpose to free its GPU resources
+(WebGL `WEBGL_lose_context`, WebGPU the device destroyed; custom implementations add it), and `destroy` takes `GraphicsDestroyOptions` (`doNotForceWebGLContextLoss`). The passes and
+pick helpers take a `GraphicsContext`; `PickBuffers` (a class, see the picking paragraph above) is created with
+`createPickBuffers(graphics, pickPass, maxAsyncReadLag?)`. `GraphicsContext` has `readRenderTarget` (async readback of
+render targets, rows top to bottom) and `waitForGpuCommandsComplete`.
+
+## Image textures and pending work
+
+`loadImageTexture(src, cell, texture)` is removed; use `resources.loadImage(texture, source, cell?, label?)` of the
+graphics context, which returns a promise and is tracked in `resources.pending` (`isReady`, `whenReady`, `settled`).
+`ImagePass.render` waits for pending work, `Canvas3D` redraws when it settles.
+
+## Program descriptors and GLSL sources
+
+GLSL sources moved from `@molstar/graphics/gl/shader/*` to `@molstar/graphics/gl/webgl/shader/*`. `ShaderCode` is a
+descriptor without sources: `ShaderCode(name, extensions?, ignoreDefine?)` (no `vert`, `frag` and `outTypes`); each
+backend looks the sources up by the program name, which must be unique. Custom GLSL programs register their sources with
+`registerGlslProgram(name, vert, frag, outTypes?)` from `@molstar/graphics/gl/webgl/programs`. The GLSL assembly
+(`addShaderDefines`, `getContextDefineLookup`, `stripUniformDeclarations`, `stripSamplerDeclarations`,
+`stripAttributeDeclarations`, `ShaderUniformDeclarations`) moved to `@molstar/graphics/gl/webgl/shader-code`;
+`addShaderDefines` returns the GLSL sources (`{ vert, frag }`). The program names `accumulate` are now
+`trace-accumulate` (tracing) and `color-smoothing-accumulate` (texture mesh color smoothing).
+
+## Color type define
+
+The `dColorType` define of renderables has the values `uniform`, `texture`, `grid` and `direct`: the color types read
+from `tColor` by index (instance, group, groupInstance, vertex, vertexInstance) share `texture`, the grid types (volume,
+volumeInstance) share `grid`, one program each, and the object uniform `uColorIndexType` selects the index or the grid
+position (`ColorTypeIndex` in `@molstar/graphics/geo/geometry/color-data`). The color type itself is the value `colorType` of `ColorData`. Code that
+set `dColorType` directly (custom geometry or renderables) sets the color type with `setColorType(values, type)`, which
+keeps the three in step; code that read the type from `dColorType` reads `colorType`. Custom shaders test
+`dColorType_texture` or `dColorType_grid` and branch on `uColorIndexType`.
+
+## Size type define
+
+As the color type: `dSizeType` has the values `uniform` and `texture`; the size types read from `tSize` by index
+(instance, group, groupInstance, vertex, vertexInstance) share `texture`, and the object uniform `uSizeIndexType`
+selects the index (`SizeTypeIndex` in `@molstar/graphics/geo/geometry/size-data`). The size type itself is the value
+`sizeType` of `SizeData`, set with `setSizeType(values, type)`; code that read the type from `dSizeType` reads
+`sizeType`. Custom shaders test `dSizeType_texture` and branch on `uSizeIndexType`.
+
+## Instance granularity
+
+The instance granularity is the object uniform `uInstanceGranularity` (was the value `instanceGranularity`): the marker
+and layer data are read per instance or per group instance by it at runtime, one program for both. The defines
+`dMarkerType`, `dClippingType` and `dWiggleType` are removed; `dOverpaintType`, `dTransparencyType`, `dEmissiveType`
+and `dSubstanceType` have the values `texture` (instance and groupInstance), `vertexInstance` and `volumeInstance`
+(`getLayerTypeDefine` in `@molstar/graphics/geo/geometry/layer-type`). The types themselves are the values
+`markerType`, `overpaintType`, `transparencyType`, `emissiveType`, `substanceType`, `clippingType` and `wiggleType`;
+code that set a layer's type define sets the type with `setOverpaintType(values, type)` (and the other layers' setters),
+code that read the type from the define reads the value. Custom shaders test `d…Type_texture` and select the index
+with `uInstanceGranularity`.
+
+## Context loss and headless WebGPU
+
+`GraphicsContext` has a `contextLost` subject (emitted by `setContextLost`), `recreate()` for a new context replacing a
+lost one (WebGPU: a new device) and `release()`; custom implementations of the interface add them.
+`Canvas3DContext.contextLost` forwards the context's losses, also on WebGL; a lost context is replaced and everything
+built again on it (`contextRestored`). `Canvas3DContext.release()` frees the GPU resources of a canvas on purpose (e.g.
+out of view), reported as a loss but not restored until `restore()`, on both backends (`isReleased`). `requestWebGPUDevice(powerPreference, gpu?)` takes the `GPU` to use (e.g. Dawn's in Node.js) and
+`WebGPUContextOptions.requestDevice` replaces lost devices. Headless: `ExternalModules.gl` is optional, `webgpu` (e.g.
+the `webgpu` package) enables the WebGPU backend with `HeadlessScreenshotHelperOptions.backend` and the async
+`HeadlessScreenshotHelper.create` / `HeadlessPluginContext.create`; images are read with `readRenderTarget` on both
+backends.
+
+## Graphics backend option of the Viewer and the Mesoscale Explorer
+
+The `preferWebgl1` option and the `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are removed:
+`graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`) asks for WebGL1. The default is `graphicsBackend: 'auto'`
+(WebGPU where it has the features of WebGL2, else WebGL2, then WebGL1), which does not read
+`PluginConfig.General.PreferWebGl1`. The Prism viewer keeps `prefer-webgl1` as `graphics-backend=webgl1`.
+
+## Picking results
+
+`Canvas3D.identify(target)` returns `PickResult`, i.e. `PickData | 'pending' | undefined` (was `PickData | undefined`):
+`'pending'` where the backend reads pick data asynchronously (WebGPU) and the read for the current scene and camera
+hasn't returned yet, so that it is no longer mistaken for "nothing at the target". Callers that use the result directly
+check for `'pending'`, or await `canvas3d.asyncIdentify(target)?.wait()`, which resolves with the pick data on every
+backend (`AsyncPickData` has a `wait()` next to `tryGet()`). On WebGL, which reads synchronously, `identify` never
+returns `'pending'`.
+
+## GPU timer groups
+
+`GraphicsTimer.mark`/`markEnd` are replaced by `group`/`groupEnd` (no aliases). Only render passes are timed: a group
+sums the passes that begin inside it and lists them as leaves (`pass <label>`), named by the new `label` option of
+`beginRenderPass` (derived from the target otherwise). Groups must begin and end outside of passes (checked in debug
+mode); a group without passes reports its GPU time as `NaN` (printed as `n/a`). The `Renderer.*` timings and other
+timings inside passes were removed, and timings of a single pass became the label of that pass.
+
+## Reversed depth
+
+Depth is reversed on both backends: the near plane at depth 1, the far plane (and the background, the cleared depth) at
+0, so nearer fragments have greater depth. Camera projections stay GL projections; the backends convert the projection
+uniforms, which are tagged with `UniformSpec.depthRange` (`'projection'` or `'inverse'`, `@molstar/graphics/gl/depth-range`):
+custom renderable schemas holding a projection or its inverse add the tag. Custom shaders follow the new convention:
+background tests compare with 0 (was 1), depth compares and min/max of depths flip, packed depth of the far plane is
+zeros (was ones), and `perspectiveDepthToViewZ`/`orthographicDepthToViewZ` (GLSL and WGSL chunks) take reversed depth.
+Depth render states of custom passes use `greater`/`greater-equal` and clear depth to 0. `PickBuffers.getDepth` still
+returns GL window depth (near 0, far 1), for `cameraUnproject`. With `EXT_clip_control` WebGL clips depth to `[0, 1]`
+(GLSL defines `clipZeroToOne`): custom GLSL converts between clip z / w and window depth with `clipZToDepth` and
+`depthToClipZ` (common chunk) instead of `* 0.5 + 0.5` and `* 2.0 - 1.0`, and vertex shaders writing clip z keep it
+inside the context's range.
+
+## Top-left window origin
+
+Window positions and rectangles have a top-left origin (y down) everywhere outside the WebGL backend, as in the
+browser (CSS, pointer events, `ImageData`):
+- `Viewport` and `Camera.viewport`; `cameraProject`, `cameraUnproject`, `Camera.project`, `Camera.unproject` and
+  `getRay` take and return window coordinates with y down (consumers that converted with `height - y` drop it).
+- `GraphicsContext.setViewport`, `setScissor`, `readRenderTarget` and `readTextureAsync` (rows top to bottom, as
+  before), texture readers (rows now top to bottom, were bottom to top) and `Texture.copyFromFramebuffer`.
+- The `static-frame` and `relative-frame` viewport params of `Canvas3D` count `y` from the top.
+- Uniforms holding a window rectangle or uv offset are tagged with `UniformSpec.windowRect` (`bounds`, `rect`, `pixels`,
+  `offset`, `@molstar/graphics/gl/window-rect`) and flipped by WebGL where it binds them; custom passes tag theirs.
+  GLSL keeps GL's bottom-left `gl_FragCoord`; WGSL works top-left (`fragmentUv`, `read_<name>` without a flip,
+  `screenSpaceToViewSpace` with y down). The Hi-Z uniform `uOffset` became `uRect` (corner and extent).
+- `GraphicsXR` has `isPresenting()` and `getView(view, out)` (the view's viewport, top-left, and projection with GL's
+  clip depth); `StereoCamera.update` takes `{ pose, graphics }` (the context's `GraphicsXR`) instead of
+  `{ pose, layer }` (an `XRWebGLLayer`); custom implementations of the interface add both.
+- Data rendered into tiles of a texture by rectangles (Gaussian density, color smoothing atlases) is placed by texel
+  rows from the bottom, converted explicitly; the WebGL backend's own compute converts its texel rectangles internally.
+
+## SSAO at half resolution
+
+`SsaoParams.resolutionScale` defaults to 0.5 (was 1): the occlusion is computed at half the resolution of the drawing
+buffer and upsampled with the depth (postprocessing, illumination compose and the marking overlay). The scale is now at
+most that of CSS pixels (`min(resolutionScale, 1 / pixelRatio)`, was `resolutionScale / pixelRatio`), so that the
+default stays at half resolution on high pixel ratios. Set 1 for the previous full-resolution occlusion.
+
 ## External color themes
 
 `ColorTheme.createRegistry()` in graphics no longer includes `external-structure` or `external-volume`, and the special

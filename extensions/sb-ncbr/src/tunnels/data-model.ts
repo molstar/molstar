@@ -4,7 +4,6 @@
  * @author Dušan Veľký <dvelky@mail.muni.cz>
  */
 
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -102,7 +101,6 @@ export interface Tunnel {
 }
 
 export const TunnelShapeParams = {
-  webgl: PD.Value<WebGLContext | null>(null),
   colorTheme: PD.Color(Color(0xff0000)),
   visual: PD.MappedStatic('mesh', {
     mesh: PD.Group({ resolution: PD.Numeric(2) }),

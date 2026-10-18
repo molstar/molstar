@@ -5,29 +5,33 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
-import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import {
+  DefineSpec,
+  MaxLightCount,
+  TextureSpec,
+  UniformSpec,
+  type Values,
+} from '@molstar/graphics/gl/renderable/schema';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
 import { ValueCell } from '@molstar/core/util';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import type { Camera, ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
-import { trace_frag } from '@molstar/graphics/gl/shader/illumination/trace.frag';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color/color';
-import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
-import { accumulate_frag } from '@molstar/graphics/gl/shader/illumination/accumulate.frag';
+import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { now } from '@molstar/core/util/now';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { DrawPass } from './draw.js';
@@ -89,27 +93,25 @@ export class TracingPass {
   private readonly accumulateRenderable: AccumulateRenderable;
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     private readonly drawPass: DrawPass,
   ) {
     const {
-      extensions: { drawBuffers, colorBufferHalfFloat, textureHalfFloat },
+      capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
       resources,
-      isWebGL2,
-    } = webgl;
+    } = graphics;
 
     const { depthTextureOpaque } = drawPass;
     const width = depthTextureOpaque.getWidth();
     const height = depthTextureOpaque.getHeight();
 
-    if (isWebGL2) {
+    if (mixedAttachmentFormats) {
       this.shadedTextureOpaque = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.shadedTextureOpaque.define(width, height);
 
-      this.normalTextureOpaque =
-        colorBufferHalfFloat && textureHalfFloat
-          ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-          : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      this.normalTextureOpaque = halfFloatRenderTarget
+        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
       this.normalTextureOpaque.define(width, height);
 
       this.colorTextureOpaque = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -128,25 +130,19 @@ export class TracingPass {
     }
 
     this.framebuffer = resources.framebuffer();
-
-    this.framebuffer.bind();
-    drawBuffers!.drawBuffers([
-      drawBuffers!.COLOR_ATTACHMENT0,
-      drawBuffers!.COLOR_ATTACHMENT1,
-      drawBuffers!.COLOR_ATTACHMENT2,
-    ]);
+    this.framebuffer.setDrawBuffers(3);
 
     this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
     this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
     this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
 
-    this.thicknessTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
-    this.holdTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
-    this.accumulateTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
-    this.composeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.thicknessTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+    this.holdTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
+    this.accumulateTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
+    this.composeTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.traceRenderable = getTraceRenderable(
-      webgl,
+      graphics,
       this.colorTextureOpaque,
       this.normalTextureOpaque,
       this.shadedTextureOpaque,
@@ -154,7 +150,7 @@ export class TracingPass {
       this.accumulateTarget.texture,
       this.drawPass.depthTextureOpaque,
     );
-    this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);
+    this.accumulateRenderable = getAccumulateRenderable(graphics, this.holdTarget.texture);
   }
 
   getByteCount() {
@@ -169,26 +165,28 @@ export class TracingPass {
     );
   }
 
-  private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
-    if (isTimingMode) this.webgl.timer.mark('TracePass.renderInput');
-    const { gl, state } = this.webgl;
+  private renderInput(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('TracePass.renderInput');
 
-    this.framebuffer.bind();
     this.drawPass.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
-    renderer.clear(true);
-    renderer.renderTracing(scene.primitives, camera);
+    b.begin(this.framebuffer, { label: 'tracing input' });
+    if (b.drawing) renderer.clear(true);
+    b.renderer({ name: 'tracing' }, scene.primitives, () => renderer.renderTracing(scene.primitives, camera));
 
     //
 
     if (props.thicknessMode === 'auto') {
-      this.thicknessTarget.bind();
-      state.clearColor(0, 0, 0, 0);
-      state.clearDepth(0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      renderer.renderDepthOpaqueBack(scene.primitives, camera);
-      state.clearDepth(1);
+      b.begin(this.thicknessTarget, {
+        label: 'thickness',
+        // the farthest back faces (`renderDepthOpaqueBack`), depth reversed: cleared to the near plane (packed as ones)
+        clear: { color: [1, 1, 1, 1], depth: 1 },
+      });
+      b.renderer({ name: 'depthOpaqueBack' }, scene.primitives, () =>
+        renderer.renderDepthOpaqueBack(scene.primitives, camera),
+      );
     }
-    if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
+    if (timing) this.graphics.timer.groupEnd('TracePass.renderInput');
   }
 
   setSize(width: number, height: number) {
@@ -216,35 +214,11 @@ export class TracingPass {
     }
   }
 
-  reset() {
-    const { drawBuffers } = this.webgl.extensions;
-
-    this.framebuffer.bind();
-    drawBuffers!.drawBuffers([
-      drawBuffers!.COLOR_ATTACHMENT0,
-      drawBuffers!.COLOR_ATTACHMENT1,
-      drawBuffers!.COLOR_ATTACHMENT2,
-    ]);
-
-    this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
-    this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
-    this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
-
-    this.restart(true);
-  }
-
   private clearAdjustedProps = true;
 
   restart(clearAdjustedProps = false) {
-    const { gl, state } = this.webgl;
-
-    this.accumulateTarget.bind();
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    this.composeTarget.bind();
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.beginRenderPass(this.accumulateTarget, { label: 'trace clear', clear: { color: [0, 0, 0, 0] } });
+    this.graphics.beginRenderPass(this.composeTarget, { label: 'trace clear', clear: { color: [0, 0, 0, 0] } });
 
     if (clearAdjustedProps) {
       this.prevTime = 0;
@@ -320,41 +294,53 @@ export class TracingPass {
     };
   }
 
+  /**
+   * Traces a frame (`b`, see `PassBuilder`); preparing keeps the quality adapted to the frame times so far, which only
+   * changes uniforms (defines on WebGL1)
+   */
   render(
+    b: PassBuilder,
     ctx: RenderContext<Camera>,
     transparentBackground: boolean,
     props: TracingProps,
     iteration: number,
     forceRenderInput: boolean,
   ) {
-    const { rendersPerFrame, refineSteps, steps } = this.getAdjustedProps(props, iteration);
+    const { values } = this.traceRenderable;
+    const { rendersPerFrame, refineSteps, steps } = b.drawing
+      ? this.getAdjustedProps(props, iteration)
+      : {
+          rendersPerFrame: values.uRendersPerFrame.ref.value,
+          refineSteps: values.uRefineSteps.ref.value,
+          steps: values.uSteps.ref.value,
+        };
 
-    if (isTimingMode) {
-      this.webgl.timer.mark('TracePass.render', {
+    if (isTimingMode && b.drawing) {
+      this.graphics.timer.group('TracePass.render', {
         note: `${rendersPerFrame} rendersPerFrame, ${refineSteps} refineSteps, ${steps} steps`,
       });
     }
 
     const { renderer, camera, scene, frame } = ctx;
-    const { gl, state } = this.webgl;
     const { x, y, width, height } = camera.viewport;
 
     if (iteration === 0 || forceRenderInput) {
       // render color & depth
       renderer.setTransparentBackground(transparentBackground);
-      renderer.setDrawingBufferSize(this.composeTarget.getWidth(), this.composeTarget.getHeight());
-      renderer.setPixelRatio(this.webgl.pixelRatio);
-      renderer.setViewport(x, y, width, height);
-      renderer.update(camera, scene, frame);
-      this.renderInput(renderer, camera, scene, props);
+      if (b.drawing) {
+        renderer.setDrawingBufferSize(this.composeTarget.getWidth(), this.composeTarget.getHeight());
+        renderer.setPixelRatio(this.graphics.pixelRatio);
+        renderer.setViewport(x, y, width, height);
+        renderer.update(camera, scene, frame);
+      }
+      this.renderInput(b, renderer, camera, scene, props);
     }
 
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.disable(gl.CULL_FACE);
-    state.depthMask(false);
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    if (b.drawing) {
+      this.graphics.setRenderState(RenderState.Default);
+      this.graphics.setViewport(x, y, width, height);
+      this.graphics.setScissor(x, y, width, height);
+    }
 
     const invProjection = Mat4.identity();
     Mat4.invert(invProjection, camera.projection);
@@ -370,11 +356,13 @@ export class TracingPass {
     );
 
     // trace
-    this.holdTarget.bind();
+    b.begin(this.holdTarget, { label: 'trace' });
     let needsUpdateTrace = false;
     ValueCell.update(this.traceRenderable.values.uFrameNo, iteration);
-    if (this.traceRenderable.values.dRendersPerFrame.ref.value !== rendersPerFrame) {
-      ValueCell.update(this.traceRenderable.values.dRendersPerFrame, rendersPerFrame);
+    // the adapted quality (see `getAdjustedProps`) is loop bound uniforms, so adapting it compiles nothing (but on
+    // WebGL1, where they are defines: `update` takes them, see `needsUpdateTrace`)
+    if (this.traceRenderable.values.uRendersPerFrame.ref.value !== rendersPerFrame) {
+      ValueCell.update(this.traceRenderable.values.uRendersPerFrame, rendersPerFrame);
       needsUpdateTrace = true;
     }
     ValueCell.update(this.traceRenderable.values.uProjection, camera.projection);
@@ -411,12 +399,12 @@ export class TracingPass {
       ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
       needsUpdateTrace = true;
     }
-    if (this.traceRenderable.values.dSteps.ref.value !== steps) {
-      ValueCell.update(this.traceRenderable.values.dSteps, steps);
+    if (this.traceRenderable.values.uSteps.ref.value !== steps) {
+      ValueCell.update(this.traceRenderable.values.uSteps, steps);
       needsUpdateTrace = true;
     }
-    if (this.traceRenderable.values.dRefineSteps.ref.value !== refineSteps) {
-      ValueCell.update(this.traceRenderable.values.dRefineSteps, refineSteps);
+    if (this.traceRenderable.values.uRefineSteps.ref.value !== refineSteps) {
+      ValueCell.update(this.traceRenderable.values.uRefineSteps, refineSteps);
       needsUpdateTrace = true;
     }
     ValueCell.updateIfChanged(this.traceRenderable.values.uRayDistance, props.rayDistance);
@@ -434,20 +422,18 @@ export class TracingPass {
     ValueCell.updateIfChanged(this.traceRenderable.values.uShadowSoftness, props.shadowSoftness);
     ValueCell.updateIfChanged(this.traceRenderable.values.uShadowThickness, props.shadowThickness);
     if (needsUpdateTrace) this.traceRenderable.update();
-    if (isTimingMode) this.webgl.timer.mark('TracePass.renderTrace');
-    this.traceRenderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderTrace');
+    b.quad(this.traceRenderable, RenderState.Default);
 
     // accumulate
-    this.accumulateTarget.bind();
-    this.accumulateRenderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('TracePass.render');
+    b.begin(this.accumulateTarget, { label: 'trace accumulate' });
+    b.quad(this.accumulateRenderable, RenderState.Default);
+    if (isTimingMode && b.drawing) this.graphics.timer.groupEnd('TracePass.render');
   }
 }
 
 //
 
-const TraceSchema = {
+export const TraceSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -464,25 +450,26 @@ const TraceSchema = {
   uFogFar: UniformSpec('f'),
   uFogColor: UniformSpec('v3'),
 
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uBounds: UniformSpec('v4'),
+  uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
+  uBounds: { ...UniformSpec('v4'), windowRect: 'bounds' as const },
 
-  uLightDirection: UniformSpec('v3[]'),
-  uLightColor: UniformSpec('v3[]'),
+  uLightDirection: UniformSpec('v3[]', undefined, undefined, MaxLightCount, 'dLightCount'),
+  uLightColor: UniformSpec('v3[]', undefined, undefined, MaxLightCount, 'dLightCount'),
   dLightCount: DefineSpec('number'),
   uAmbientColor: UniformSpec('v3'),
   uExposure: UniformSpec('f'),
 
   uFrameNo: UniformSpec('i'),
-  dRendersPerFrame: DefineSpec('number'),
+  /** loop bounds: uniforms where loops take them, defines on WebGL1 */
+  uRendersPerFrame: { ...UniformSpec('i'), loopBound: true },
 
   dBounces: DefineSpec('number'),
-  dSteps: DefineSpec('number'),
-  dRefineSteps: DefineSpec('number'),
+  uSteps: { ...UniformSpec('i'), loopBound: true },
+  uRefineSteps: { ...UniformSpec('i'), loopBound: true },
   uRayDistance: UniformSpec('f'),
 
-  dThicknessMode: DefineSpec('string'),
+  dThicknessMode: DefineSpec('string', ['auto', 'fixed']),
   uMinThickness: UniformSpec('f'),
   uThicknessFactor: UniformSpec('f'),
   uThickness: UniformSpec('f'),
@@ -491,11 +478,11 @@ const TraceSchema = {
   uShadowSoftness: UniformSpec('f'),
   uShadowThickness: UniformSpec('f'),
 };
-const TraceShaderCode = ShaderCode('trace', quad_vert, trace_frag);
+export const TraceShaderCode = ShaderCode('trace');
 type TraceRenderable = ComputeRenderable<Values<typeof TraceSchema>>;
 
 function getTraceRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   colorTexture: Texture,
   normalTexture: Texture,
   shadedTexture: Texture,
@@ -531,11 +518,11 @@ function getTraceRenderable(
     uExposure: ValueCell.create(1),
 
     uFrameNo: ValueCell.create(0),
-    dRendersPerFrame: ValueCell.create(1),
+    uRendersPerFrame: ValueCell.create(1),
 
     dBounces: ValueCell.create(4),
-    dSteps: ValueCell.create(32),
-    dRefineSteps: ValueCell.create(4),
+    uSteps: ValueCell.create(32),
+    uRefineSteps: ValueCell.create(4),
     uRayDistance: ValueCell.create(256),
 
     dThicknessMode: ValueCell.create('auto'),
@@ -549,23 +536,23 @@ function getTraceRenderable(
   };
 
   const schema = { ...TraceSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', TraceShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', TraceShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const AccumulateSchema = {
+export const AccumulateSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
   uWeight: UniformSpec('f'),
 };
-const AccumulateShaderCode = ShaderCode('accumulate', quad_vert, accumulate_frag);
+export const AccumulateShaderCode = ShaderCode('trace-accumulate');
 type AccumulateRenderable = ComputeRenderable<Values<typeof AccumulateSchema>>;
 
-function getAccumulateRenderable(ctx: WebGLContext, colorTexture: Texture): AccumulateRenderable {
+function getAccumulateRenderable(ctx: GraphicsContext, colorTexture: Texture): AccumulateRenderable {
   const values: Values<typeof AccumulateSchema> = {
     ...QuadValues,
     tColor: ValueCell.create(colorTexture),
@@ -574,7 +561,7 @@ function getAccumulateRenderable(ctx: WebGLContext, colorTexture: Texture): Accu
   };
 
   const schema = { ...AccumulateSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', AccumulateShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', AccumulateShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

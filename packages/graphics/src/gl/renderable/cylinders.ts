@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -58,8 +58,17 @@ export const CylindersSchema = {
 export type CylindersSchema = typeof CylindersSchema;
 export type CylindersValues = Values<CylindersSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const CylindersRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...CylindersSchema,
+};
+
 export function CylindersRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: CylindersValues,
   state: RenderableState,
@@ -67,13 +76,7 @@ export function CylindersRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<CylindersValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...CylindersSchema,
-  };
+  const schema = CylindersRenderableSchema;
   const renderValues: CylindersValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -81,8 +84,7 @@ export function CylindersRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = CylindersShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

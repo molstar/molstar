@@ -10,8 +10,7 @@ import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { type PositionData, Sphere3D, Box3D, GridLookup3D, fillGridDim } from '@molstar/core/math/geometry';
 import { type Boundary, getBoundary } from '@molstar/core/math/geometry/boundary';
 import {
@@ -93,14 +92,12 @@ export async function createTunnelShape(options: {
   color: Color;
   resolution: number;
   sampleRate: number;
-  webgl: WebGLContext | undefined;
   prev?: Shape<Mesh>;
 }) {
   const tunnel = options.tunnel;
   const mesh = await createTunnelMesh(tunnel.data, {
     detail: options.resolution,
     sampleRate: options.sampleRate,
-    webgl: options.webgl,
     prev: options.prev?.geometry,
   });
 
@@ -205,7 +202,6 @@ async function createTunnelMesh(
   options: {
     detail: number;
     sampleRate: number;
-    webgl?: WebGLContext;
     prev?: Mesh;
   },
 ) {
@@ -241,12 +237,8 @@ async function createTunnelMesh(
   Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
 
   Mesh.transform(surface, transform);
-  if (options.webgl && !options.webgl.isWebGL2) {
-    Mesh.uniformTriangleGroup(surface);
-    ValueCell.updateIfChanged(surface.varyingGroup, false);
-  } else {
-    ValueCell.updateIfChanged(surface.varyingGroup, true);
-  }
+  // made uniform per triangle where the context lacks flat interpolation (`Mesh.Utils.makeCompatible`)
+  ValueCell.updateIfChanged(surface.varyingGroup, true);
 
   const sphere = Sphere3D.expand(Sphere3D(), bounds.sphere, maxRadius);
   surface.setBoundingSphere(sphere);

@@ -7,24 +7,21 @@
  * Partially adapted from three.js, The MIT License, Copyright © 2010-2024 three.js authors
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import { type Texture, createNullTexture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import { type Texture, createNullTexture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
 import type { Viewport } from '../camera/util.js';
 import type { ICamera } from '../camera.js';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { isTimingMode } from '@molstar/core/util/debug';
-import { composite_frag } from '@molstar/graphics/gl/shader/bloom/composite.frag';
-import { luminosity_frag } from '@molstar/graphics/gl/shader/bloom/luminosity.frag';
-import { blur_frag } from '@molstar/graphics/gl/shader/bloom/blur.frag';
 import { memoize1 } from '@molstar/core/util/memoize';
 import type { PostprocessingProps } from './postprocessing.js';
 
@@ -66,36 +63,36 @@ export class BloomPass {
   private readonly compositeRenderable: CompositeRenderable;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     width: number,
     height: number,
   ) {
-    this.emissiveTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+    this.emissiveTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
 
-    this.luminosityTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
-    this.compositeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.luminosityTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.compositeTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     let blurWidth = Math.round(width / 2);
     let blurHeight = Math.round(height / 2);
     for (let i = 0; i < MipCount; ++i) {
-      this.horizontalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
-      this.verticalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
+      this.horizontalBlurTargets[i] = graphics.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
+      this.verticalBlurTargets[i] = graphics.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
       blurWidth = Math.round(blurWidth / 2);
       blurHeight = Math.round(blurHeight / 2);
     }
 
     const nullTexture = createNullTexture();
     this.luminosityRenderable = getLuminosityRenderable(
-      webgl,
+      graphics,
       nullTexture,
       nullTexture,
       nullTexture,
       nullTexture,
       nullTexture,
     );
-    this.blurRenderable = getBlurRenderable(webgl, nullTexture);
+    this.blurRenderable = getBlurRenderable(graphics, nullTexture);
     this.compositeRenderable = getCompositeRenderable(
-      webgl,
+      graphics,
       width,
       height,
       this.verticalBlurTargets[0].texture,
@@ -204,26 +201,27 @@ export class BloomPass {
   }
 
   /** Writes bloom to `compositeTarget`; caller blends it. */
-  render(viewport: Viewport) {
-    if (isTimingMode) this.webgl.timer.mark('BloomPass.render');
-    const { gl, state } = this.webgl;
+  render(b: PassBuilder, viewport: Viewport) {
+    const { graphics } = this;
+    const timing = isTimingMode && b.drawing;
+    if (timing) graphics.timer.group('BloomPass.render');
     const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    const state = RenderState.Default;
+    if (b.drawing) {
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+    }
 
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
-    this.luminosityTarget.bind();
-    this.luminosityRenderable.render();
+    b.begin(this.luminosityTarget, { label: 'bloom luminosity' });
+    b.quad(this.luminosityRenderable, state);
 
     for (let i = 0; i < MipCount; ++i) {
       const blurWidth = this.horizontalBlurTargets[i].getWidth();
       const blurHeight = this.horizontalBlurTargets[i].getHeight();
-      state.viewport(0, 0, blurWidth, blurHeight);
-      state.scissor(0, 0, blurWidth, blurHeight);
+      if (b.drawing) {
+        graphics.setViewport(0, 0, blurWidth, blurHeight);
+        graphics.setScissor(0, 0, blurWidth, blurHeight);
+      }
 
       ValueCell.update(this.blurRenderable.values.dKernelRadius, BlurKernelSizes[i]);
       ValueCell.update(this.blurRenderable.values.uGaussianCoefficients, getBlurCoefficients(BlurKernelSizes[i]));
@@ -232,36 +230,38 @@ export class BloomPass {
         Vec2.set(this.blurRenderable.values.uTexSizeInv.ref.value, 1 / blurWidth, 1 / blurHeight),
       );
 
-      this.horizontalBlurTargets[i].bind();
+      b.begin(this.horizontalBlurTargets[i], { label: 'bloom blur' });
       ValueCell.update(
         this.blurRenderable.values.tInput,
         i === 0 ? this.luminosityTarget.texture : this.verticalBlurTargets[i - 1].texture,
       );
       ValueCell.update(this.blurRenderable.values.uDirection, BlurDirectionX);
       this.blurRenderable.update();
-      this.blurRenderable.render();
+      b.quad(this.blurRenderable, state);
 
-      this.verticalBlurTargets[i].bind();
+      b.begin(this.verticalBlurTargets[i], { label: 'bloom blur' });
       ValueCell.update(this.blurRenderable.values.tInput, this.horizontalBlurTargets[i].texture);
       ValueCell.update(this.blurRenderable.values.uDirection, BlurDirectionY);
       this.blurRenderable.update();
-      this.blurRenderable.render();
+      b.quad(this.blurRenderable, state);
     }
 
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    if (b.drawing) {
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+    }
 
-    this.compositeTarget.bind();
+    b.begin(this.compositeTarget, { label: 'bloom composite' });
     this.compositeRenderable.update();
-    this.compositeRenderable.render();
+    b.quad(this.compositeRenderable, state);
 
-    if (isTimingMode) this.webgl.timer.markEnd('BloomPass.render');
+    if (timing) graphics.timer.groupEnd('BloomPass.render');
   }
 }
 
 //
 
-const LuminositySchema = {
+export const LuminositySchema = {
   ...QuadSchema,
   tColorOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tColorTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -282,11 +282,11 @@ const LuminositySchema = {
   uOpaqueFogged: UniformSpec('b'),
   dMode: DefineSpec('string', ['luminosity', 'emissive']),
 };
-const LuminosityShaderCode = ShaderCode('Bloom Luminosity', quad_vert, luminosity_frag);
+export const LuminosityShaderCode = ShaderCode('Bloom Luminosity');
 type LuminosityRenderable = ComputeRenderable<Values<typeof LuminositySchema>>;
 
 function getLuminosityRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   colorOpaqueTexture: Texture,
   colorTransparentTexture: Texture,
   emissiveTexture: Texture,
@@ -319,7 +319,7 @@ function getLuminosityRenderable(
   };
 
   const schema = { ...LuminositySchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', LuminosityShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', LuminosityShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
@@ -340,19 +340,19 @@ const BlurKernelSizes = [3, 5, 7, 9, 11];
 const BlurDirectionX = Vec2.create(1, 0);
 const BlurDirectionY = Vec2.create(0, 1);
 
-const BlurSchema = {
+export const BlurSchema = {
   ...QuadSchema,
   tInput: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
 
   uDirection: UniformSpec('v2'),
-  uGaussianCoefficients: UniformSpec('f[]'),
+  uGaussianCoefficients: UniformSpec('f[]', undefined, undefined, Math.max(...BlurKernelSizes), 'dKernelRadius'),
   dKernelRadius: DefineSpec('number'),
 };
-const BlurShaderCode = ShaderCode('Bloom Blur', quad_vert, blur_frag);
+export const BlurShaderCode = ShaderCode('Bloom Blur');
 type BlurRenderable = ComputeRenderable<Values<typeof BlurSchema>>;
 
-function getBlurRenderable(ctx: WebGLContext, inputTexture: Texture): BlurRenderable {
+function getBlurRenderable(ctx: GraphicsContext, inputTexture: Texture): BlurRenderable {
   const width = inputTexture.getWidth();
   const height = inputTexture.getHeight();
 
@@ -367,14 +367,14 @@ function getBlurRenderable(ctx: WebGLContext, inputTexture: Texture): BlurRender
   };
 
   const schema = { ...BlurSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', BlurShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', BlurShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const CompositeSchema = {
+export const CompositeSchema = {
   ...QuadSchema,
   tBlur1: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tBlur2: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -385,14 +385,14 @@ const CompositeSchema = {
 
   uBloomStrength: UniformSpec('f'),
   uBloomRadius: UniformSpec('f'),
-  uBloomFactors: UniformSpec('f[]'),
-  uBloomTints: UniformSpec('v3[]'),
+  uBloomFactors: UniformSpec('f[]', undefined, undefined, 5),
+  uBloomTints: UniformSpec('v3[]', undefined, undefined, 5),
 };
-const CompositeShaderCode = ShaderCode('Bloom Composite', quad_vert, composite_frag);
+export const CompositeShaderCode = ShaderCode('Bloom Composite');
 type CompositeRenderable = ComputeRenderable<Values<typeof CompositeSchema>>;
 
 function getCompositeRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   width: number,
   height: number,
   blurTexture1: Texture,
@@ -418,7 +418,7 @@ function getCompositeRenderable(
   };
 
   const schema = { ...CompositeSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', CompositeShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', CompositeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

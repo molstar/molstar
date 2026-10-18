@@ -35,6 +35,14 @@ describe('unknownUrlParameters', () => {
 });
 
 describe('optionsFromUrl', () => {
+  it('reads the graphics backend: one of its five, else the default (auto)', () => {
+    expect(optionsFromUrl('?graphics-backend=webgpu').renderer?.graphicsBackend).toBe('webgpu');
+    expect(optionsFromUrl('?graphics-backend=webgl1').renderer?.graphicsBackend).toBe('webgl1');
+    expect(optionsFromUrl('?graphics-backend=vulkan').renderer?.graphicsBackend).toBeUndefined();
+    expect(resolveOptions(optionsFromUrl('')).renderer.graphicsBackend).toBe('auto');
+    expect(unknownUrlParameters('?graphics-backend=webgpu', [])).toEqual([]);
+  });
+
   it('reads the splash: one of its four, else the default', () => {
     expect(optionsFromUrl('?splash=light').ui?.splash).toBe('light');
     expect(optionsFromUrl('?splash=off').ui?.splash).toBe('off');

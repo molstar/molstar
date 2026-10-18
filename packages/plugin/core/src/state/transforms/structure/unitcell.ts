@@ -11,6 +11,7 @@ import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetr
 import type { PluginContext } from '@molstar/plugin/context';
 import { Task } from '@molstar/core/task';
 import { StateObject, StateTransformer } from '@molstar/core/state';
+import { getShapeRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { ModelUnitcell3D };
 type ModelUnitcell3D = typeof ModelUnitcell3D;
@@ -33,7 +34,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
       if (!symmetry) return StateObject.Null;
       const data = getUnitcellData(a.data, symmetry.spacegroup.cell, params);
       const repr = UnitcellRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => UnitcellParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -55,3 +56,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     });
   },
 });
+
+registerTransformSignatures(ModelUnitcell3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => UnitcellRepresentation(c, () => UnitcellParams), params, ctx),
+);

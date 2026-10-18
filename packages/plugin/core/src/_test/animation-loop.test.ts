@@ -22,7 +22,7 @@ function setup(pauseWhenIdle: boolean) {
   const canvas = {
     isIdle: false,
     wake: new Subject<void>(),
-    webgl: { xr: { session: undefined } },
+    xr: { isPresenting: new BehaviorSubject(false) },
     // As Canvas3D: the last callback asked for is kept, asked for again on `resume`, and cleared by a cancel.
     last: undefined as FrameRequestCallback | undefined,
     resume() {

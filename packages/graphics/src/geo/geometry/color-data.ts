@@ -13,7 +13,7 @@ import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { LocationIterator } from '../util/location-iterator.js';
 import { NullLocation } from '@molstar/model/model/location';
 import type { LocationColor, ColorTheme, ColorVolume } from '@molstar/graphics/theme/color';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 
 export type ColorTypeLocation = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
 export type ColorTypeGrid = 'volume' | 'volumeInstance';
@@ -30,9 +30,70 @@ export type ColorData = {
   uColorTexDim: ValueCell<Vec2>;
   uColorGridDim: ValueCell<Vec3>;
   uColorGridTransform: ValueCell<Vec4>;
+  uColorIndexType: ValueCell<number>;
   dColorType: ValueCell<string>;
+  /** the `ColorType` */
+  colorType: ValueCell<string>;
   dUsePalette: ValueCell<boolean>;
 };
+
+/**
+ * How the color types that share a define read their data (`uColorIndexType`): one program for each of 'texture' (the
+ * index of `tColor`) and 'grid' (the position `tColorGrid` is sampled at), the shaders select at runtime
+ */
+export const ColorTypeIndex: { readonly [T in ColorType]?: number } = {
+  instance: 0,
+  group: 1,
+  groupInstance: 2,
+  vertex: 3,
+  vertexInstance: 4,
+  volume: 0,
+  volumeInstance: 1,
+};
+
+const ColorTypeDefines: { readonly [T in ColorType]: string } = {
+  uniform: 'uniform',
+  instance: 'texture',
+  group: 'texture',
+  groupInstance: 'texture',
+  vertex: 'texture',
+  vertexInstance: 'texture',
+  volume: 'grid',
+  volumeInstance: 'grid',
+  direct: 'direct',
+};
+
+/**
+ * The define value of the color type `type`: the types read from `tColor` by index share 'texture', the grid types
+ * share 'grid' (see `ColorTypeIndex`)
+ */
+export function getColorTypeDefine(type: ColorType | string): string {
+  return ColorTypeDefines[type as ColorType] ?? type;
+}
+
+/** Sets the color type `type` (a `ColorType`), its define and index (`ColorTypeIndex`) of `values` */
+export function setColorType(
+  values: Pick<ColorData, 'colorType' | 'dColorType' | 'uColorIndexType'>,
+  type: ColorType | string,
+) {
+  ValueCell.updateIfChanged(values.colorType, type);
+  ValueCell.updateIfChanged(values.dColorType, getColorTypeDefine(type));
+  ValueCell.updateIfChanged(values.uColorIndexType, ColorTypeIndex[type as ColorType] ?? 0);
+}
+
+/** The values of the color type `type` (its define and index, see `setColorType`) */
+function createColorType(type: ColorType) {
+  return {
+    uColorIndexType: ValueCell.create(ColorTypeIndex[type] ?? 0),
+    dColorType: ValueCell.create(getColorTypeDefine(type)),
+    colorType: ValueCell.create<string>(type),
+  };
+}
+
+/** Whether colors of `type` are sampled at vertex positions (the position iterator of `createColors`) */
+export function isPositionColorType(type: ColorType) {
+  return type === 'vertex' || type === 'vertexInstance';
+}
 
 export function createColors(
   locationIt: LocationIterator,
@@ -100,18 +161,20 @@ function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<Textu
         isSynced = false;
         break;
       }
+      o += 1;
     }
   }
 
   if (isSynced) return;
 
-  const array = new Uint8Array(palette.colors.length * 3);
+  const array = new Uint8Array(palette.colors.length * 4);
   let o = 0;
   for (const c of palette.colors) {
     const [r, g, b] = Color.toRgb(c);
     array[o++] = r;
     array[o++] = g;
     array[o++] = b;
+    array[o++] = 255;
   }
 
   ValueCell.update(cell, { array, height: 1, width: palette.colors.length, filter: palette.filter });
@@ -122,20 +185,20 @@ function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<Textu
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
   if (colorData) {
     ValueCell.update(colorData.uColor, Color.toVec3Normalized(colorData.uColor.ref.value, value));
-    ValueCell.updateIfChanged(colorData.dColorType, 'uniform');
+    setColorType(colorData, 'uniform');
     return colorData;
   } else {
     return {
       uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
-      tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tColor: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       tColorGrid: ValueCell.create(createNullTexture()),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
-      tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create('uniform'),
+      ...createColorType('uniform'),
       dUsePalette: ValueCell.create(false),
     };
   }
@@ -158,7 +221,7 @@ export function createTextureColor(
   if (colorData) {
     ValueCell.update(colorData.tColor, colors);
     ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height));
-    ValueCell.updateIfChanged(colorData.dColorType, type);
+    setColorType(colorData, type);
     return colorData;
   } else {
     return {
@@ -167,14 +230,20 @@ export function createTextureColor(
       tColorGrid: ValueCell.create(createNullTexture()),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
-      tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create(type),
+      ...createColorType(type),
       dUsePalette: ValueCell.create(false),
     };
   }
+}
+
+/** Writes `color` as opaque rgba */
+function setColor(array: Uint8Array, offset: number, color: Color) {
+  Color.toArray(color, array, offset);
+  array[offset + 3] = 255;
 }
 
 /** Creates color texture with color for each instance */
@@ -182,14 +251,14 @@ function createInstanceColor(locationIt: LocationIterator, color: LocationColor,
   const { instanceCount } = locationIt;
   const colors = createTextureImage(
     Math.max(1, instanceCount),
-    3,
+    4,
     Uint8Array,
     colorData && colorData.tColor.ref.value.array,
   );
   locationIt.reset();
   while (locationIt.hasNext) {
     const { location, isSecondary, instanceIndex } = locationIt.move();
-    Color.toArray(color(location, isSecondary), colors.array, instanceIndex * 3);
+    setColor(colors.array, instanceIndex * 4, color(location, isSecondary));
     locationIt.skipInstance();
   }
   return createTextureColor(colors, 'instance', colorData);
@@ -200,16 +269,16 @@ function createGroupColor(locationIt: LocationIterator, color: LocationColor, co
   const { groupCount, hasLocation2 } = locationIt;
   const colors = createTextureImage(
     Math.max(1, groupCount * (hasLocation2 ? 2 : 1)),
-    3,
+    4,
     Uint8Array,
     colorData && colorData.tColor.ref.value.array,
   );
   locationIt.reset();
-  const indexMultiplier = hasLocation2 ? 6 : 3;
+  const indexMultiplier = hasLocation2 ? 8 : 4;
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const { location, location2, isSecondary, groupIndex } = locationIt.move();
-    Color.toArray(color(location, isSecondary), colors.array, groupIndex * indexMultiplier);
-    if (hasLocation2) Color.toArray(color(location2, isSecondary), colors.array, groupIndex * indexMultiplier + 3);
+    setColor(colors.array, groupIndex * indexMultiplier, color(location, isSecondary));
+    if (hasLocation2) setColor(colors.array, groupIndex * indexMultiplier + 4, color(location2, isSecondary));
   }
   return createTextureColor(colors, 'group', colorData);
 }
@@ -222,13 +291,13 @@ function createGroupInstanceColor(
 ): ColorData {
   const { groupCount, instanceCount, hasLocation2 } = locationIt;
   const count = instanceCount * groupCount * (hasLocation2 ? 2 : 1);
-  const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createTextureImage(Math.max(1, count), 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
   locationIt.reset();
-  const indexMultiplier = hasLocation2 ? 6 : 3;
+  const indexMultiplier = hasLocation2 ? 8 : 4;
   while (locationIt.hasNext) {
     const { location, location2, isSecondary, index } = locationIt.move();
-    Color.toArray(color(location, isSecondary), colors.array, index * indexMultiplier);
-    if (hasLocation2) Color.toArray(color(location2, isSecondary), colors.array, index * indexMultiplier + 3);
+    setColor(colors.array, index * indexMultiplier, color(location, isSecondary));
+    if (hasLocation2) setColor(colors.array, index * indexMultiplier + 4, color(location2, isSecondary));
   }
   return createTextureColor(colors, 'groupInstance', colorData);
 }
@@ -238,7 +307,7 @@ function createVertexColor(locationIt: LocationIterator, color: LocationColor, c
   const { groupCount, stride } = locationIt;
   const colors = createTextureImage(
     Math.max(1, groupCount),
-    3,
+    4,
     Uint8Array,
     colorData && colorData.tColor.ref.value.array,
   );
@@ -248,7 +317,7 @@ function createVertexColor(locationIt: LocationIterator, color: LocationColor, c
     const { location, isSecondary, groupIndex } = locationIt.move();
     const c = color(location, isSecondary);
     for (let i = 0; i < stride; ++i) {
-      Color.toArray(c, colors.array, (groupIndex + i) * 3);
+      setColor(colors.array, (groupIndex + i) * 4, c);
     }
   }
   return createTextureColor(colors, 'vertex', colorData);
@@ -262,13 +331,13 @@ function createVertexInstanceColor(
 ): ColorData {
   const { groupCount, instanceCount, stride } = locationIt;
   const count = instanceCount * groupCount;
-  const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createTextureImage(Math.max(1, count), 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const { location, isSecondary, index } = locationIt.move();
     const c = color(location, isSecondary);
     for (let i = 0; i < stride; ++i) {
-      Color.toArray(c, colors.array, (index + i) * 3);
+      setColor(colors.array, (index + i) * 4, c);
     }
   }
   return createTextureColor(colors, 'vertexInstance', colorData);
@@ -285,20 +354,20 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
     ValueCell.update(colorData.uColorTexDim, Vec2.create(width, height));
     ValueCell.update(colorData.uColorGridDim, Vec3.clone(dimension));
     ValueCell.update(colorData.uColorGridTransform, Vec4.clone(transform));
-    ValueCell.updateIfChanged(colorData.dColorType, type);
+    setColorType(colorData, type);
     return colorData;
   } else {
     return {
       uColor: ValueCell.create(Vec3()),
-      tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tColor: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       tColorGrid: ValueCell.create(colors),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
-      tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       uColorTexDim: ValueCell.create(Vec2.create(width, height)),
       uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
       uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
-      dColorType: ValueCell.create(type),
+      ...createColorType(type),
       dUsePalette: ValueCell.create(false),
     };
   }
@@ -309,20 +378,20 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
 /** Creates direct color */
 function createDirectColor(colorData?: ColorData): ColorData {
   if (colorData) {
-    ValueCell.updateIfChanged(colorData.dColorType, 'direct');
+    setColorType(colorData, 'direct');
     return colorData;
   } else {
     return {
       uColor: ValueCell.create(Vec3()),
-      tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tColor: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       tColorGrid: ValueCell.create(createNullTexture()),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
-      tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+      tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
       uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create('direct'),
+      ...createColorType('direct'),
       dUsePalette: ValueCell.create(false),
     };
   }

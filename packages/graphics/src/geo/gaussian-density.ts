@@ -1,8 +1,8 @@
 import type { Box3D, PositionData } from '@molstar/core/math/geometry';
 import type { GaussianDensityProps } from '@molstar/core/math/geometry/gaussian-density';
 import type { Mat4, Vec3, Vec2 } from '@molstar/core/math/linear-algebra';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Task } from '@molstar/core/task/task';
 import { GaussianDensityTexture2d, GaussianDensityTexture3d } from './gaussian-density/gpu.js';
 
@@ -24,10 +24,18 @@ export function computeGaussianDensityTexture(
   box: Box3D,
   radius: (index: number) => number,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
-  return _computeGaussianDensityTexture(webgl.isWebGL2 ? '3d' : '2d', position, box, radius, props, webgl, texture);
+  return _computeGaussianDensityTexture(
+    graphics.capabilities.texture3d ? '3d' : '2d',
+    position,
+    box,
+    radius,
+    props,
+    graphics,
+    texture,
+  );
 }
 
 export function computeGaussianDensityTexture2d(
@@ -35,10 +43,10 @@ export function computeGaussianDensityTexture2d(
   box: Box3D,
   radius: (index: number) => number,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
-  return _computeGaussianDensityTexture('2d', position, box, radius, props, webgl, texture);
+  return _computeGaussianDensityTexture('2d', position, box, radius, props, graphics, texture);
 }
 
 export function computeGaussianDensityTexture3d(
@@ -46,10 +54,10 @@ export function computeGaussianDensityTexture3d(
   box: Box3D,
   radius: (index: number) => number,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
-  return _computeGaussianDensityTexture('2d', position, box, radius, props, webgl, texture);
+  return _computeGaussianDensityTexture('2d', position, box, radius, props, graphics, texture);
 }
 
 function _computeGaussianDensityTexture(
@@ -58,12 +66,12 @@ function _computeGaussianDensityTexture(
   box: Box3D,
   radius: (index: number) => number,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
   return Task.create('Gaussian Density', async (ctx) => {
     return type === '2d'
-      ? GaussianDensityTexture2d(webgl, position, box, radius, false, props, texture)
-      : GaussianDensityTexture3d(webgl, position, box, radius, props, texture);
+      ? GaussianDensityTexture2d(graphics, position, box, radius, false, props, texture)
+      : GaussianDensityTexture3d(graphics, position, box, radius, props, texture);
   });
 }

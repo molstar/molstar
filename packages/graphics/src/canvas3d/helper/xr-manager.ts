@@ -6,7 +6,7 @@
 
 import { BehaviorSubject, Subject, type Subscription } from 'rxjs';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
@@ -124,9 +124,8 @@ export class XRManager {
     const point = Vec3();
     const ray = getRayFromPose(targetRayPose, view);
     if (Plane3D.intersectRay3D(point, plane, ray)) {
-      const { height } = camera.viewport;
       const v = cameraProject(Vec4(), point, camera.viewport, camera.projectionView);
-      const screen = Vec2.create(Math.floor(v[0]), height - Math.floor(v[1]));
+      const screen = Vec2.create(Math.floor(v[0]), Math.floor(v[1]));
       return { point, screen };
     }
   }
@@ -161,8 +160,8 @@ export class XRManager {
       Mat4.fromQuat(camera.headRotation, hq);
     }
 
-    const { depthFar, depthNear, baseLayer } = xrSession.renderState;
-    if (!baseLayer) return false;
+    if (!this.graphics.xr.isPresenting()) return false;
+    const { depthFar, depthNear } = xrSession.renderState;
 
     if (depthFar !== camera.far || depthNear !== camera.near) {
       xrSession.updateRenderState({
@@ -171,7 +170,7 @@ export class XRManager {
       });
     }
 
-    stereoCamera.update({ pose: xrPose, layer: baseLayer });
+    stereoCamera.update({ pose: xrPose, graphics: this.graphics.xr });
     const camLeft = stereoCamera.left;
 
     const cameraTarget = Vec3.scale(Vec3(), camLeft.state.target, camLeft.scale);
@@ -195,7 +194,7 @@ export class XRManager {
             const { width, height } = camLeft.viewport;
             const x = ((axes[0] + 1) / 2) * width;
             const y = ((axes[1] + 1) / 2) * height;
-            const ray = camLeft.getRay(Ray3D(), x, height - y);
+            const ray = camLeft.getRay(Ray3D(), x, y);
             screenTouches.push({ x, y, ray });
           }
           continue;
@@ -274,9 +273,9 @@ export class XRManager {
   private async setSession(xrSession: XRSession | undefined) {
     if (this.xrSession === xrSession) return;
 
-    await this.webgl.xr.set(xrSession, { resolutionScale: this.props.resolutionScale });
+    await this.graphics.xr.set(xrSession, { resolutionScale: this.props.resolutionScale });
 
-    this.xrSession = this.webgl.xr.session;
+    this.xrSession = this.graphics.xr.session;
     this.prevInput = {};
     this.hit = undefined;
 
@@ -303,7 +302,7 @@ export class XRManager {
   }
 
   async end() {
-    await this.webgl.xr.end();
+    await this.graphics.xr.end();
   }
 
   private checkSupported = async () => {
@@ -338,6 +337,22 @@ export class XRManager {
     await this.setSession(session);
   }
 
+  private subscribeSessionChanged() {
+    const { xr } = this.graphics;
+    return xr.changed.subscribe(async () => {
+      await this.setSession(xr.session);
+      this.sessionChanged.next();
+    });
+  }
+
+  /** Uses `graphics` from now on, not while presenting */
+  setContext(graphics: GraphicsContext) {
+    if (this.xrSession) throw new Error('cannot change the graphics context while presenting');
+    this.sessionChangedSub.unsubscribe();
+    this.graphics = graphics;
+    this.sessionChangedSub = this.subscribeSessionChanged();
+  }
+
   dispose() {
     this.hoverSub.unsubscribe();
     this.keyUpSub.unsubscribe();
@@ -352,7 +367,7 @@ export class XRManager {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private input: InputObserver,
     private scene: Scene,
     private camera: Camera,
@@ -369,10 +384,7 @@ export class XRManager {
       this.hit = position;
     });
 
-    this.sessionChangedSub = webgl.xr.changed.subscribe(async () => {
-      await this.setSession(webgl.xr.session);
-      this.sessionChanged.next();
-    });
+    this.sessionChangedSub = this.subscribeSessionChanged();
 
     this.checkSupported();
     this.xr?.addEventListener('devicechange', this.checkSupported);

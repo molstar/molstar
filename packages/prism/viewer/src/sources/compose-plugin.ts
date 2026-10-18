@@ -12,6 +12,7 @@ import { FocusLoci as CameraFocusLoci, NoPrimaryFocusLociBindings } from '@molst
 import { FocusLoci as RepresentationFocusLoci } from '@molstar/plugin/behavior/dynamic/representation';
 import { PluginConfig, type PluginConfigItem } from '@molstar/plugin/config';
 import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
+import { getGraphicsBackends } from '@molstar/plugin/util/graphics-backends';
 import type { PrismViewerOptionValues } from '../options.js';
 import type { PrismViewerPluginParts, ViewerExtension } from '../spec.js';
 
@@ -104,7 +105,10 @@ function focusBehaviors(
 export function optionsConfig(o: PrismViewerOptionValues): [PluginConfigItem, unknown][] {
   const r = o.renderer;
   const d = o.data;
+  // v5's prefer-webgl1 wins: the backends listed, the plugin's own WebGL1 preference is not read
+  const backend = r.preferWebgl1 === 'yes' ? 'webgl1' : r.graphicsBackend;
   const items: [PluginConfigItem, unknown][] = [
+    [PluginConfig.General.GraphicsBackends, getGraphicsBackends(backend)],
     [PluginConfig.General.PixelScale, r.pixelScale],
     [PluginConfig.General.PickScale, r.pickScale],
     [PluginConfig.General.ResolutionMode, r.resolutionMode],

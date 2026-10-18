@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
 import { type HiZRenderable, createHiZRenderable } from '@molstar/graphics/gl/compute/hi-z';
-import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { RenderState } from '@molstar/graphics/gl/render-state';
 import { fasterLog2 as _fasterLog2 } from '@molstar/core/math/approx';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec4 } from '@molstar/core/math/linear-algebra';
@@ -20,19 +21,20 @@ import type { Camera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import type { DrawPass } from './draw.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { PixelPackBuffer } from '@molstar/graphics/gl/webgl/buffer';
+import type { TextureReader } from '@molstar/graphics/gl/texture-reader';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
 const v4set = Vec4.set;
 const fasterLog2 = _fasterLog2;
 
+// depth is reversed: the near plane at depth 1, the far plane at 0
 function perspectiveDepthToViewZ(depth: number, near: number, far: number) {
-  return (near * far) / ((far - near) * depth - far);
+  return -(near * far) / (near + (far - near) * depth);
 }
 
 function orthographicDepthToViewZ(depth: number, near: number, far: number) {
-  return depth * (near - far) - near;
+  return depth * (far - near) - far;
 }
 
 function depthToViewZ(depth: number, near: number, far: number, projection: Mat4) {
@@ -90,7 +92,9 @@ type LevelData = {
 }[];
 
 export const HiZParams = {
-  enabled: PD.Boolean(false, { description: 'Hierarchical Z-buffer occlusion culling. Only available for WebGL2.' }),
+  enabled: PD.Boolean(false, {
+    description: 'Hierarchical Z-buffer occlusion culling. Needs asynchronous texture reads (WebGL2 or WebGPU).',
+  }),
   maxFrameLag: PD.Numeric(
     10,
     { min: 1, max: 30, step: 1 },
@@ -117,13 +121,16 @@ export class HiZPass {
   private readonly vp = Vec3();
 
   private readonly levelData: LevelData = [];
-  private readonly fb: Framebuffer;
-  private readonly buf: PixelPackBuffer;
+  /** `minLevel` the `levelData` offsets and `tex` size were computed for */
+  private layoutMinLevel = -1;
+  private readonly reader: TextureReader<Float32Array>;
   private readonly tex: Texture;
   private readonly renderable: HiZRenderable;
+  private readonly renderBuilder: PassBuilder;
   private readonly supported: boolean;
 
-  private sync: WebGLSync | null = null;
+  /** whether a read of `tex` was started and is pending */
+  private reading = false;
   private buffer = new Float32Array(0);
   private frameLag = 0;
   private ready = false;
@@ -134,7 +141,7 @@ export class HiZPass {
     if (!this.supported) return 0;
     return (
       this.tex.getByteCount() +
-      this.buf.getByteCount() +
+      this.reader.getByteCount() +
       this.levelData.reduce((sum, l) => sum + l.texture.getByteCount(), 0)
     );
   }
@@ -142,13 +149,8 @@ export class HiZPass {
   clear() {
     if (!this.supported) return;
 
-    const { gl } = this.webgl;
-    if (!isWebGL2(gl)) return;
-
-    if (this.sync !== null) {
-      gl.deleteSync(this.sync);
-      this.sync = null;
-    }
+    this.reader.reset();
+    this.reading = false;
     this.frameLag = 0;
     this.ready = false;
 
@@ -159,108 +161,114 @@ export class HiZPass {
   }
 
   render(camera: Camera) {
+    this.plan(this.renderBuilder, camera);
+  }
+
+  /**
+   * What `render` draws, see `PassBuilder`; preparing covers the first level (from the scene depth) and one of the
+   * following ones (each from the level before), and keeps the reading state
+   */
+  plan(b: PassBuilder, camera: Camera) {
     if (!this.supported || !this.props.enabled) return;
+    const { pending } = this.graphics.resources;
+    if (b.drawing) {
+      if (this.reading) return;
+      // draws are skipped while work is pending (e.g. a pipeline compiling), levels missing them would occlude
+      // everything
+      if (!pending.isReady()) return;
 
-    const { gl, state } = this.webgl;
-    if (!isWebGL2(gl) || this.sync !== null) return;
+      this.nextNear = camera.near;
+      this.nextFar = camera.far;
+      Mat4.copy(this.nextView, camera.view);
+      Mat4.copy(this.nextProjection, camera.projection);
+    }
 
-    this.nextNear = camera.near;
-    this.nextFar = camera.far;
-    Mat4.copy(this.nextView, camera.view);
-    Mat4.copy(this.nextProjection, camera.projection);
+    const { graphics } = this;
+    const timing = isTimingMode && b.drawing;
+    if (timing) graphics.timer.group('hi-Z');
 
-    if (isTimingMode) this.webgl.timer.mark('hi-Z');
-
-    state.disable(gl.CULL_FACE);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.disable(gl.SCISSOR_TEST);
-    state.depthMask(false);
-    state.colorMask(true, true, true, true);
-    state.clearColor(0, 0, 0, 0);
+    if (b.drawing) {
+      graphics.setRenderState(RenderState.Default);
+      graphics.disableScissor();
+    }
+    const trackedCount = pending.trackedCount;
 
     //
 
     const v = this.renderable.values;
-    const s = Math.pow(
-      2,
-      Math.ceil(Math.log(Math.max(gl.drawingBufferWidth, gl.drawingBufferHeight)) / Math.log(2)) - 1,
-    );
+    const drawingBuffer = graphics.getDrawingBufferSize();
+    const s = Math.pow(2, Math.ceil(Math.log(Math.max(drawingBuffer.width, drawingBuffer.height)) / Math.log(2)) - 1);
 
-    for (let i = 0, il = this.levelData.length; i < il; ++i) {
+    const levels = b.drawing ? this.levelData.length : Math.min(this.levelData.length, 2);
+    for (let i = 0; i < levels; ++i) {
       const td = this.levelData[i];
-      td.framebuffer.bind();
+      b.begin(td.framebuffer, { label: 'hi-z' });
+      ValueCell.update(v.uTexSize, td.size);
 
       if (i > 0) {
         ValueCell.update(v.uInvSize, td.invSize);
-        ValueCell.update(v.uOffset, Vec2.set(v.uOffset.ref.value, 0, 0));
+        ValueCell.update(v.uRect, Vec4.set(v.uRect.ref.value, 0, 0, 1, 1));
         ValueCell.update(v.tPreviousLevel, this.levelData[i - 1].texture);
       } else {
         ValueCell.update(v.uInvSize, Vec2.set(v.uInvSize.ref.value, 1 / s, 1 / s));
+        // the level covers `td.size / s` of the drawing buffer from the top-left corner of the viewport
         ValueCell.update(
-          v.uOffset,
-          Vec2.set(
-            v.uOffset.ref.value,
-            this.viewport.x / gl.drawingBufferWidth,
-            this.viewport.y / gl.drawingBufferHeight,
+          v.uRect,
+          Vec4.set(
+            v.uRect.ref.value,
+            this.viewport.x / drawingBuffer.width,
+            this.viewport.y / drawingBuffer.height,
+            td.size[0] / s,
+            td.size[1] / s,
           ),
         );
         ValueCell.update(v.tPreviousLevel, this.drawPass.depthTextureOpaque);
       }
 
-      state.currentRenderItemId = -1;
-      state.viewport(0, 0, td.size[0], td.size[1]);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      if (b.drawing) {
+        graphics.setViewport(0, 0, td.size[0], td.size[1]);
+        graphics.clear({ color: [0, 0, 0, 0] });
+      }
       this.renderable.update();
-      this.renderable.render();
+      b.quad(this.renderable, RenderState.Default);
 
-      if (i >= this.props.minLevel) {
-        this.tex.bind(0);
-        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, td.offset, 0, 0, 0, td.size[0], td.size[1]);
-        this.tex.unbind(0);
+      if (b.drawing && i >= this.props.minLevel) {
+        this.tex.copyFromFramebuffer(td.framebuffer, 0, 0, td.size[0], td.size[1], td.offset, 0);
       }
     }
 
     //
 
-    this.tex.attachFramebuffer(this.fb, 0);
-    const hw = this.tex.getWidth();
-    const hh = this.tex.getHeight();
+    if (b.drawing && pending.trackedCount === trackedCount) {
+      this.reader.start([this.tex], 0, 0, this.tex.getWidth(), this.tex.getHeight());
+      this.reading = true;
+      this.frameLag = 0;
+    }
 
-    this.buf.read(0, 0, hw, hh);
-
-    this.sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    gl.flush();
-
-    if (isTimingMode) this.webgl.timer.markEnd('hi-Z');
+    if (timing) graphics.timer.groupEnd('hi-Z');
   }
 
   /** A readback under way: `tick` polls it. */
   get isPending() {
-    return this.sync !== null;
+    return this.supported && this.props.enabled && this.reading;
   }
 
   tick() {
-    if (!this.supported || !this.props.enabled || this.sync === null) return;
+    if (!this.supported || !this.props.enabled || !this.reading) return;
 
-    const { gl } = this.webgl;
-    if (!isWebGL2(gl)) return;
-
-    const res = gl.clientWaitSync(this.sync, 0, 0);
-    if (res === gl.WAIT_FAILED || this.frameLag >= this.props.maxFrameLag) {
+    const status = this.reader.check([this.buffer]);
+    if (status === 'failed' || (status === 'pending' && this.frameLag >= this.props.maxFrameLag)) {
       // console.log(`failed to get buffer data after ${this.frameLag + 1} frames`);
-      gl.deleteSync(this.sync);
-      this.sync = null;
+      this.reader.reset();
+      this.reading = false;
       this.frameLag = 0;
       this.ready = false;
-    } else if (res === gl.TIMEOUT_EXPIRED) {
+    } else if (status === 'pending') {
       this.frameLag += 1;
       // console.log(`waiting for buffer data for ${this.frameLag} frames`);
     } else {
-      this.buf.getSubData(this.buffer);
       // console.log(`got buffer data after ${this.frameLag + 1} frames`);
-      gl.deleteSync(this.sync);
-      this.sync = null;
+      this.reading = false;
       this.frameLag = 0;
       this.ready = true;
 
@@ -320,16 +328,15 @@ export class HiZPass {
 
     if (dx + 1 >= ts || dy + 1 >= ts) return false;
 
-    const di = (ts - dy - 1) * dw + dx + offset;
+    // rows top to bottom, the levels side by side at the top of the texture
+    const di = dy * dw + dx + offset;
     if (z > depthToViewZ(this.buffer[di], near, far, projection)) return false;
 
-    // const di1 = (ts - dy - 1) * dw + dx + 1 + offset;
     if (z > depthToViewZ(this.buffer[di + 1], near, far, projection)) return false;
 
-    const di2 = (ts - dy + 1 - 1) * dw + dx + offset;
+    const di2 = (dy - 1) * dw + dx + offset;
     if (z > depthToViewZ(this.buffer[di2], near, far, projection)) return false;
 
-    // const di3 = (ts - dy + 1 - 1) * dw + dx + 1 + offset;
     if (z > depthToViewZ(this.buffer[di2 + 1], near, far, projection)) return false;
 
     return true;
@@ -344,9 +351,10 @@ export class HiZPass {
 
     Viewport.set(this.viewport, x, y, width, height);
     const levels = Math.ceil(Math.log(Math.max(width, height)) / Math.log(2));
-    if (levels === this.levelData.length) return;
+    if (levels === this.levelData.length && this.layoutMinLevel === this.props.minLevel) return;
 
     const { minLevel } = this.props;
+    this.layoutMinLevel = minLevel;
     this.buffer = new Float32Array(Math.pow(2, levels - minLevel) * Math.pow(2, levels - 1 - minLevel));
     this.tex.define(Math.pow(2, levels - minLevel), Math.pow(2, levels - 1 - minLevel));
 
@@ -357,11 +365,11 @@ export class HiZPass {
 
     this.levelData.length = 0;
     for (let i = 0; i < levels; ++i) {
-      const framebuffer = this.webgl.resources.framebuffer();
+      const framebuffer = this.graphics.resources.framebuffer();
       const levelSize = Math.pow(2, levels - i - 1);
       const size = Vec2.create(levelSize, levelSize);
       const invSize = Vec2.create(1 / levelSize, 1 / levelSize);
-      const texture = this.webgl.resources.texture('image-float32', 'alpha', 'float', 'nearest');
+      const texture = this.graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
       texture.define(levelSize, levelSize);
       texture.attachFramebuffer(framebuffer, 0);
       this.levelData.push({ texture, framebuffer, size, invSize, offset: 0 });
@@ -442,25 +450,20 @@ export class HiZPass {
   private showRect(p: Vec4, occluded: boolean) {
     if (!this.canDebug(this.debug)) return;
 
-    const {
-      gl: { drawingBufferHeight },
-      pixelRatio,
-    } = this.webgl;
+    const { pixelRatio } = this.graphics;
     const {
       viewport: { x, y, width, height },
     } = this;
     const minx = (p[0] * width + x) / pixelRatio;
-    const miny = (p[1] * height - y) / pixelRatio;
+    const miny = (p[1] * height + y) / pixelRatio;
     const maxx = (p[2] * width + x) / pixelRatio;
-    const maxy = (p[3] * height - y) / pixelRatio;
-
-    const oy = (drawingBufferHeight - height) / pixelRatio;
+    const maxy = (p[3] * height + y) / pixelRatio;
 
     Object.assign(this.debug.rect.style, {
       border: occluded ? 'solid red' : 'solid green',
       display: 'block',
       left: `${minx}px`,
-      top: `${miny + oy}px`,
+      top: `${miny}px`,
       width: `${maxx - minx}px`,
       height: `${maxy - miny}px`,
     });
@@ -483,7 +486,7 @@ export class HiZPass {
     data.fill(255);
     for (let y = 0; y < th; ++y) {
       for (let x = 0; x < tw; ++x) {
-        const i = (th - y - 1) * tw + x;
+        const i = y * tw + x;
         const v = this.buffer[y * dw + x + offset] * 255;
         data[i * 4 + 0] = v;
         data[i * 4 + 3] = 255 - v;
@@ -497,11 +500,11 @@ export class HiZPass {
 
     const {
       viewport: { x, y, width, height },
-      webgl: { pixelRatio },
+      graphics: { pixelRatio },
     } = this;
     Object.assign(this.debug.container.style, {
       display: 'block',
-      bottom: `${y / pixelRatio}px`,
+      top: `${y / pixelRatio}px`,
       left: `${x / pixelRatio}px`,
       width: `${width / pixelRatio}px`,
       height: `${height / pixelRatio}px`,
@@ -527,24 +530,13 @@ export class HiZPass {
 
   //
 
-  reset() {
-    this.sync = null;
-    this.ready = false;
-    this.frameLag = 0;
-    this.levelData.length = 0;
-
-    const { x, y, width, height } = this.viewport;
-    this.setViewport(x, y, width, height);
-  }
-
   dispose() {
     if (!this.supported) return;
 
     this.clear();
 
-    this.fb.destroy();
+    this.reader.dispose();
     this.tex.destroy();
-    this.buf.destroy();
     this.renderable.dispose();
 
     for (const td of this.levelData) {
@@ -554,40 +546,31 @@ export class HiZPass {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private drawPass: DrawPass,
     canvas: HTMLCanvasElement | undefined,
     props: Partial<HiZProps>,
   ) {
+    this.renderBuilder = createRenderBuilder(graphics);
     this.props = { ...PD.getDefaultValues(HiZParams), ...props };
 
-    const { gl, extensions } = webgl;
-    if (!isWebGL2(gl) || !extensions.colorBufferFloat) {
-      if (isDebugMode) {
-        console.log('Missing webgl2 and/or colorBufferFloat support required for "Hi-Z"');
-      }
+    if (!graphics.capabilities.floatRenderTarget) {
+      if (isDebugMode) console.log('Missing float render targets required for "Hi-Z"');
       this.supported = false;
       return;
     }
-
-    this.fb = webgl.resources.framebuffer();
-    this.tex = webgl.resources.texture('image-float32', 'alpha', 'float', 'nearest');
-
-    // check red/float reading support
-    this.tex.attachFramebuffer(this.fb, 0);
-    const implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
-    const implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
-    if (implFormat !== gl.RED || implType !== gl.FLOAT) {
-      if (isDebugMode) {
-        console.log('Missing red/float reading support required for "Hi-Z"');
-      }
+    const reader = graphics.createTextureReader({ format: 'r32f' });
+    if (!reader.asynchronous) {
+      if (isDebugMode) console.log('Missing asynchronous texture reads (WebGL2) required for "Hi-Z"');
+      reader.dispose();
       this.supported = false;
       return;
     }
 
     this.supported = true;
-    this.buf = webgl.resources.pixelPack('alpha', 'float');
-    this.renderable = createHiZRenderable(webgl, this.drawPass.depthTextureOpaque);
+    this.reader = reader;
+    this.tex = graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
+    this.renderable = createHiZRenderable(graphics, this.drawPass.depthTextureOpaque);
 
     if (isDebugMode && canvas) {
       this.initDebug(canvas);

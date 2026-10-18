@@ -7,47 +7,55 @@
 import { type ProgramProps, createProgram, type Program } from './program.js';
 import { type ShaderType, createShader, type Shader, type ShaderProps } from './shader.js';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import { type Framebuffer, createFramebuffer } from './framebuffer.js';
+import { createFramebuffer } from './framebuffer.js';
 import type { WebGLExtensions } from './extensions.js';
 import type { WebGLState } from './state.js';
 import {
   type AttributeBuffer,
-  type UsageHint,
-  type ArrayType,
-  type AttributeItemSize,
   createAttributeBuffer,
   type ElementsBuffer,
   createElementsBuffer,
-  type ElementsType,
   type AttributeBuffers,
   type PixelPackBuffer,
   createPixelPackBuffer,
 } from './buffer.js';
+import type { ArrayType, AttributeItemSize, ElementsType, UsageHint } from '../buffer.js';
 import { createReferenceCache, type ReferenceItem } from '@molstar/core/util/reference-cache';
-import type { WebGLParameters, WebGLStats } from './context.js';
+import type { WebGLParameters } from './context.js';
+import type { GraphicsStats } from '../stats.js';
 import { hashString, hashFnv32a } from '@molstar/core/data/util';
 import type { DefineValues, ShaderCode } from '../shader-code.js';
 import type { RenderableSchema } from '../renderable/schema.js';
+import { createRenderbuffer } from './renderbuffer.js';
+import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
+import { createTexture, createCubeTexture, type GLTexture, registerGLTexture } from './texture.js';
 import {
-  createRenderbuffer,
-  type Renderbuffer,
-  type RenderbufferAttachment,
-  type RenderbufferFormat,
-} from './renderbuffer.js';
-import {
-  type Texture,
-  type TextureKind,
-  type TextureFormat,
-  type TextureType,
-  type TextureFilter,
-  createTexture,
   type CubeFaces,
-  createCubeTexture,
-} from './texture.js';
+  decodeImage,
+  type Texture,
+  type TextureFilter,
+  type TextureFormat,
+  type TextureKind,
+  type TextureType,
+} from '../texture.js';
+import { ValueCell } from '@molstar/core/util';
+import { createPendingWork } from '../pending-work.js';
 import { type VertexArray, createVertexArray } from './vertex-array.js';
+import {
+  createUniformArena,
+  createUniformBuffer,
+  createUniformRingBuffer,
+  type UniformArena,
+} from './uniform-buffer.js';
+import type { UniformBuffer } from '../uniform.js';
+import type { UniformBlockLayout } from '../uniform-layout.js';
+import type { AttributeLayout } from '../attribute-layout.js';
+import { getShaderDeclarations } from './shader-declarations.js';
+import { getDefineValuesLookup } from '../renderable/schema.js';
 import { now } from '@molstar/core/util/now';
-import type { ProgramVariant } from './render-item.js';
+import type { ProgramVariant, RenderItem } from '../render-item.js';
 import { isTimingMode } from '@molstar/core/util/debug';
+import type { GraphicsLimits, GraphicsResources, PipelineRequest } from '../context.js';
 
 function defineValueHash(v: boolean | number | string): number {
   return typeof v === 'boolean' ? (v ? 1 : 0) : typeof v === 'number' ? v * 10000 : hashString(v);
@@ -67,58 +75,43 @@ function wrapCached<T extends Resource>(resourceItem: ReferenceItem<T>) {
 //
 
 interface Resource {
-  reset: () => void;
   destroy: () => void;
 }
 
-type ResourceName = keyof WebGLStats['resourceCounts'];
+type ResourceName = keyof GraphicsStats['resourceCounts'];
 
-type ByteCounts = {
-  texture: number;
-  cubeTexture: number;
-  attribute: number;
-  elements: number;
-  pixelPack: number;
-  renderbuffer: number;
-};
-
-export interface WebGLResources {
+export interface WebGLResources extends GraphicsResources {
   attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => AttributeBuffer;
   elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer;
   pixelPack: (format: TextureFormat, type: TextureType) => PixelPackBuffer;
-  framebuffer: () => Framebuffer;
   program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program;
-  renderbuffer: (
-    format: RenderbufferFormat,
-    attachment: RenderbufferAttachment,
-    width: number,
-    height: number,
-  ) => Renderbuffer;
   shader: (type: ShaderType, source: string) => Shader;
-  texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => Texture;
-  cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => Texture;
-  vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray;
+  texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => GLTexture;
+  cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => GLTexture;
+  vertexArray: (
+    layout: AttributeLayout,
+    attributeBuffers: AttributeBuffers,
+    elementsBuffer?: ElementsBuffer,
+  ) => VertexArray;
 
-  getByteCounts: () => ByteCounts;
-
-  linkPrograms: (variants?: ProgramVariant[]) => void;
-  finalizePrograms: (variants?: ProgramVariant[], isSynchronous?: boolean) => boolean;
-
-  reset: () => void;
   destroy: () => void;
 }
 
 export function createResources(
   gl: GLRenderingContext,
   state: WebGLState,
-  stats: WebGLStats,
+  stats: GraphicsStats,
   extensions: WebGLExtensions,
   parameters: WebGLParameters,
+  uniformBlocks: boolean,
+  /** whether the context is lost: its objects are gone, also once the canvas' context is restored (on the same `gl`) */
+  isLost: () => boolean = () => false,
 ): WebGLResources {
   const sets: { [k in ResourceName]: Set<Resource> } = {
     attribute: new Set<Resource>(),
     elements: new Set<Resource>(),
     pixelPack: new Set<Resource>(),
+    uniform: new Set<Resource>(),
     framebuffer: new Set<Resource>(),
     program: new Set<Resource>(),
     renderbuffer: new Set<Resource>(),
@@ -126,6 +119,9 @@ export function createResources(
     texture: new Set<Resource>(),
     cubeTexture: new Set<Resource>(),
     vertexArray: new Set<Resource>(),
+    // compute resources, WebGPU only
+    storageBuffer: new Set<Resource>(),
+    kernel: new Set<Resource>(),
   };
 
   function wrap<T extends Resource>(name: ResourceName, resource: T) {
@@ -134,7 +130,9 @@ export function createResources(
     return {
       ...resource,
       destroy: () => {
-        resource.destroy();
+        if (!sets[name].has(resource)) return;
+        // deleting objects of a lost context through the restored `gl` is an error (INVALID_OPERATION)
+        if (!isLost()) resource.destroy();
         sets[name].delete(resource);
         stats.resourceCounts[name] -= 1;
       },
@@ -153,7 +151,34 @@ export function createResources(
     return wrapCached(shaderCache.get({ type, source }));
   }
 
+  const ownTextures = new WeakSet<Texture>();
   const pendingPrograms = new Set<Program>();
+  const pending = createPendingWork();
+
+  /** programs linking in parallel (`KHR_parallel_shader_compile`), pending work until they finished */
+  const compilingPrograms = new Set<Program>();
+  let compiled: (() => void) | undefined;
+  function pollCompiling() {
+    for (const p of compilingPrograms) if (p.isCompiled()) compilingPrograms.delete(p);
+    if (compilingPrograms.size > 0) {
+      setTimeout(pollCompiling, 4);
+    } else {
+      compiled?.();
+      compiled = undefined;
+    }
+  }
+  function trackCompiling(program: Program) {
+    if (!extensions.parallelShaderCompile || program.isCompiled()) return;
+    compilingPrograms.add(program);
+    if (compiled) return;
+    pending.track(new Promise<void>((resolve) => (compiled = resolve)), 'programs');
+    setTimeout(pollCompiling, 0);
+  }
+  function clearCompiling() {
+    compilingPrograms.clear();
+    compiled?.();
+    compiled = undefined;
+  }
   const programCache = createReferenceCache(
     (props: ProgramProps) => {
       const array = [props.shaderCode.id];
@@ -163,10 +188,18 @@ export function createResources(
           array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value));
         }
       });
+      // generated declarations (incl. attribute locations) depend on the schema
+      const declarations = getShaderDeclarations(
+        props.schema,
+        isWebGL2(gl),
+        getDefineValuesLookup(props.defineValues),
+        uniformBlocks,
+      );
+      array.push(hashString(declarations.vert), hashString(declarations.frag));
       return hashFnv32a(array).toString();
     },
     (props: ProgramProps) => {
-      const program = createProgram(gl, state, extensions, parameters, getShader, props);
+      const program = createProgram(gl, state, extensions, parameters, getShader, props, uniformBlocks);
       if (program.variant !== 'compute') {
         pendingPrograms.add(program);
       }
@@ -178,7 +211,37 @@ export function createResources(
     },
   );
 
+  let uniformArena: UniformArena | undefined;
+  function getUniformArena() {
+    if (!isWebGL2(gl)) {
+      throw new Error('WebGL2 is required for uniform buffers');
+    }
+    if (!uniformArena) uniformArena = createUniformArena(gl, state);
+    return uniformArena;
+  }
+
+  function uniformBuffer(layout: UniformBlockLayout) {
+    return wrap('uniform', createUniformBuffer(getUniformArena(), layout));
+  }
+
+  const materialUniformBufferCache = createReferenceCache(
+    (props: { materialId: number; layout: UniformBlockLayout }) => `${props.materialId}|${props.layout.hash}`,
+    (props: { materialId: number; layout: UniformBlockLayout }) => uniformBuffer(props.layout),
+    (buffer: UniformBuffer) => {
+      buffer.destroy();
+    },
+  );
+
+  const limits: GraphicsLimits = {
+    maxTextureSize: parameters.maxTextureSize,
+    max3dTextureSize: parameters.max3dTextureSize,
+    maxRenderbufferSize: parameters.maxRenderbufferSize,
+    maxDrawBuffers: parameters.maxDrawBuffers,
+    maxTextureImageUnits: parameters.maxTextureImageUnits,
+  };
+
   return {
+    limits,
     attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => {
       return wrap('attribute', createAttributeBuffer(gl, state, extensions, array, itemSize, divisor, usageHint));
     },
@@ -191,24 +254,47 @@ export function createResources(
       }
       return wrap('pixelPack', createPixelPackBuffer(gl, extensions, format, type));
     },
+    uniformBuffer,
+    uniformRingBuffer: (layout: UniformBlockLayout) => {
+      return wrap('uniform', createUniformRingBuffer(getUniformArena(), layout));
+    },
+    materialUniformBuffer: (materialId: number, layout: UniformBlockLayout) => {
+      // -1 means unique material, no sharing possible
+      if (materialId === -1) return uniformBuffer(layout);
+      return wrapCached(materialUniformBufferCache.get({ materialId, layout }));
+    },
     framebuffer: () => {
-      return wrap('framebuffer', createFramebuffer(gl));
+      return wrap('framebuffer', createFramebuffer(gl, extensions, state));
     },
     program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
       return wrapCached(programCache.get({ defineValues, shaderCode, schema }));
     },
     renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => {
-      return wrap('renderbuffer', createRenderbuffer(gl, format, attachment, width, height));
+      return wrap('renderbuffer', createRenderbuffer(gl, format, attachment, width, height, state));
     },
     shader: getShader,
     texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => {
-      return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
+      const texture = registerGLTexture(
+        wrap('texture', createTexture(gl, extensions, kind, format, type, filter, state)),
+      );
+      ownTextures.add(texture);
+      return texture;
     },
-    cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => {
-      return wrap('cubeTexture', createCubeTexture(gl, faces, mipmaps, onload));
+    ownsTexture: (texture: Texture) => ownTextures.has(texture),
+    cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => {
+      // settles once: a face that fails to load reports an error of its own
+      let settle: (() => void) | undefined;
+      pending.track(new Promise<void>((resolve) => (settle = resolve)), 'cube texture');
+      // `onload` before settling, so that work waiting for the faces sees what `onload` did
+      const texture = createCubeTexture(gl, faces, mipmaps, (errored) => {
+        onload?.(errored);
+        settle?.();
+        settle = undefined;
+      });
+      return registerGLTexture(wrap('cubeTexture', texture));
     },
-    vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
-      return wrap('vertexArray', createVertexArray(gl, extensions, program, attributeBuffers, elementsBuffer));
+    vertexArray: (layout: AttributeLayout, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
+      return wrap('vertexArray', createVertexArray(gl, state, extensions, layout, attributeBuffers, elementsBuffer));
     },
 
     getByteCounts: () => {
@@ -237,19 +323,41 @@ export function createResources(
         pixelPack += (r as PixelPackBuffer).getByteCount();
       });
 
+      const uniform = uniformArena?.getByteCount() ?? 0;
+
       let renderbuffer = 0;
       sets.renderbuffer.forEach((r) => {
         renderbuffer += (r as Renderbuffer).getByteCount();
       });
 
-      return { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer };
+      // no storage buffers on WebGL
+      return { texture, cubeTexture, attribute, elements, pixelPack, uniform, renderbuffer, storageBuffer: 0 };
+    },
+
+    pending,
+    loadImage: (texture: Texture, source: string, cell?: ValueCell<Texture>, label = 'image') => {
+      const load = decodeImage(source).then((image) => {
+        // uploaded with `UNPACK_COLORSPACE_CONVERSION_WEBGL` `NONE`
+        texture.load(image);
+        if (cell) ValueCell.update(cell, texture);
+      });
+      return pending.track(load, label);
     },
 
     linkPrograms: (variants?: ProgramVariant[]) => {
       for (const p of pendingPrograms) {
         if (variants && !variants.includes(p.variant)) continue;
         p.link();
+        trackCompiling(p);
       }
+    },
+    preparePipelines: (requests: Iterable<PipelineRequest>) => {
+      for (const { item, variant } of requests) {
+        const program = (item as RenderItem<ProgramVariant>).getProgram(variant) as Program;
+        program.link();
+        trackCompiling(program);
+      }
+      return pending.whenReady();
     },
     finalizePrograms: (variants?: ProgramVariant[], isSynchronous?: boolean) => {
       let isReady = true;
@@ -289,22 +397,13 @@ export function createResources(
       return linkStatus;
     },
 
-    reset: () => {
-      sets.attribute.forEach((r) => r.reset());
-      sets.elements.forEach((r) => r.reset());
-      sets.pixelPack.forEach((r) => r.reset());
-      sets.framebuffer.forEach((r) => r.reset());
-      sets.renderbuffer.forEach((r) => r.reset());
-      sets.shader.forEach((r) => r.reset());
-      sets.program.forEach((r) => r.reset());
-      sets.vertexArray.forEach((r) => r.reset());
-      sets.texture.forEach((r) => r.reset());
-      sets.cubeTexture.forEach((r) => r.reset());
-    },
     destroy: () => {
+      clearCompiling();
+      pending.clear();
       sets.attribute.forEach((r) => r.destroy());
       sets.elements.forEach((r) => r.destroy());
       sets.pixelPack.forEach((r) => r.destroy());
+      sets.uniform.forEach((r) => r.destroy());
       sets.framebuffer.forEach((r) => r.destroy());
       sets.renderbuffer.forEach((r) => r.destroy());
       sets.shader.forEach((r) => r.destroy());
@@ -315,6 +414,8 @@ export function createResources(
 
       shaderCache.clear();
       programCache.clear();
+      materialUniformBufferCache.clear();
+      uniformArena?.destroy();
       pendingPrograms.clear();
     },
   };

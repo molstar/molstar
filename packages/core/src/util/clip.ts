@@ -36,6 +36,9 @@ export namespace Clip {
 
   export type Variant = 'instance' | 'pixel';
 
+  /** additional objects are ignored */
+  export const MaxObjectCount = 16;
+
   export type Objects = {
     count: number;
     type: number[];
@@ -95,7 +98,7 @@ export namespace Clip {
   const mB = Mat4();
 
   export function getClip(props: Props, clip?: Clip): Clip {
-    const count = props.objects.length;
+    const count = Math.min(props.objects.length, MaxObjectCount);
     const { type, invert, position, rotation, scale, transform } = clip?.objects || createClipObjects(count);
     for (let i = 0; i < count; ++i) {
       const p = props.objects[i];

@@ -18,7 +18,7 @@ import {
   type MarkerInfo,
 } from '@molstar/core/util/marker-action';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { updateTransformData } from '@molstar/graphics/geo/geometry/transform-data';
@@ -38,8 +38,10 @@ import {
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import { getMarkersAverage } from '@molstar/graphics/geo/geometry/marker-data';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { Geometry } from '@molstar/graphics/geo/geometry/geometry';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { Geometry, GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
+import { GeometryRequest } from '@molstar/graphics/geo/geometry/request';
+import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import { getColorSmoothingProps, hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
 import {
   applyMeshEmissiveSmoothing,
@@ -56,6 +58,8 @@ import {
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { applySubstanceMaterial, clearSubstance, createSubstance } from '@molstar/graphics/geo/geometry/substance-data';
 import type { LocationCallback } from './util.js';
+import type { SignatureContext } from './signatures.js';
+import type { ObjectSignature } from '@molstar/graphics/gl/precompile';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
 import {
   applyEmissiveValue,
@@ -73,7 +77,7 @@ import {
 
 export interface VisualContext {
   readonly runtime: RuntimeContext;
-  readonly webgl?: WebGLContext;
+  readonly graphics?: GraphicsContext;
 }
 
 export { Visual };
@@ -91,12 +95,12 @@ interface Visual<D, P extends PD.Params> {
   setPickable: (pickable: boolean) => void;
   setColorOnly: (colorOnly: boolean) => void;
   setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void;
-  setOverpaint: (overpaint: Overpaint, webgl?: WebGLContext) => void;
-  setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void;
-  setEmissive: (emissive: Emissive, webgl?: WebGLContext) => void;
-  setSubstance: (substance: Substance, webgl?: WebGLContext) => void;
+  setOverpaint: (overpaint: Overpaint, graphics?: GraphicsContext) => void;
+  setTransparency: (transparency: Transparency, graphics?: GraphicsContext) => void;
+  setEmissive: (emissive: Emissive, graphics?: GraphicsContext) => void;
+  setSubstance: (substance: Substance, graphics?: GraphicsContext) => void;
   setClipping: (clipping: Clipping) => void;
-  setWiggle: (wiggle: Wiggle, webgl?: WebGLContext) => void;
+  setWiggle: (wiggle: Wiggle, graphics?: GraphicsContext) => void;
   setThemeStrength: (strength: {
     overpaint: number;
     transparency: number;
@@ -105,9 +109,34 @@ interface Visual<D, P extends PD.Params> {
     wiggle: number;
   }) => void;
   destroy: () => void;
-  mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean;
+  mustRecreate?: (data: D, props: PD.Values<P>, graphics?: GraphicsContext) => boolean;
+  /**
+   * The signatures of the objects the visual may create with `props` in `ctx`, without data (see
+   * `getGeometrySignatures`)
+   */
+  getSignatures?(props: PD.Values<P>, ctx: SignatureContext): ObjectSignature[];
 }
 namespace Visual {
+  /**
+   * Runs `update` with `geometry` (created, possibly asynchronously, or kept) once it is prepared for `theme`
+   * (`GeometryUtils.prepare`, e.g. GPU data read back for the position iterator); synchronous where creating and
+   * preparing are
+   */
+  export function withPreparedGeometry<G extends Geometry>(
+    geometry: G | Promise<G>,
+    utils: GeometryUtils<G>,
+    theme: Theme,
+    graphics: GraphicsContext | undefined,
+    update: (geometry: G) => void,
+  ): Promise<void> | void {
+    const prepared = (g: G): Promise<void> | void => {
+      const preparing = utils.prepare?.(g, GeometryRequest.fromTheme(theme), graphics);
+      if (preparing) return preparing.then(() => update(g));
+      update(g);
+    };
+    return isPromiseLike(geometry) ? geometry.then(prepared) : prepared(geometry);
+  }
+
   export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) => boolean;
 
   export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
@@ -144,7 +173,7 @@ namespace Visual {
       markerStatus,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -225,7 +254,7 @@ namespace Visual {
   type SmoothingContext = {
     geometry: Geometry;
     props: PD.Values<any>;
-    webgl?: WebGLContext;
+    graphics?: GraphicsContext;
   };
 
   export function setOverpaint(
@@ -239,11 +268,10 @@ namespace Visual {
 
     const {
       tOverpaint,
-      dOverpaintType,
       dOverpaint,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -267,26 +295,25 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tOverpaint, tOverpaint.ref.value);
-    ValueCell.updateIfChanged(dOverpaintType, type);
     ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
 
     if (overpaint.layers.length === 0) return;
     if (type === 'instance') return;
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-      const { geometry, props, webgl } = smoothing;
+      const { geometry, props, graphics } = smoothing;
       if (geometry.kind === 'mesh') {
         const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
+          applyMeshOverpaintSmoothing(renderObject.values as any, csp, graphics, overpaintTexture);
           (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
         }
-      } else if (webgl && geometry.kind === 'texture-mesh') {
+      } else if (graphics && geometry.kind === 'texture-mesh') {
         const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
+          applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp, graphics, overpaintTexture);
           (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
         }
       }
@@ -304,13 +331,12 @@ namespace Visual {
 
     const {
       tTransparency,
-      dTransparencyType,
       transparencyAverage,
       transparencyMin,
       dTransparency,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -336,26 +362,25 @@ namespace Visual {
     ValueCell.update(tTransparency, tTransparency.ref.value);
     ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
     ValueCell.updateIfChanged(transparencyMin, getTransparencyMin(array, count));
-    ValueCell.updateIfChanged(dTransparencyType, type);
     ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
 
     if (transparency.layers.length === 0) return;
     if (type === 'instance') return;
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-      const { geometry, props, webgl } = smoothing;
+      const { geometry, props, graphics } = smoothing;
       if (geometry.kind === 'mesh') {
         const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
+          applyMeshTransparencySmoothing(renderObject.values as any, csp, graphics, transparencyTexture);
           (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
         }
-      } else if (webgl && geometry.kind === 'texture-mesh') {
+      } else if (graphics && geometry.kind === 'texture-mesh') {
         const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyTextureMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
+          applyTextureMeshTransparencySmoothing(renderObject.values as any, csp, graphics, transparencyTexture);
           (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
         }
       }
@@ -373,12 +398,11 @@ namespace Visual {
 
     const {
       tEmissive,
-      dEmissiveType,
       emissiveAverage,
       dEmissive,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -403,26 +427,25 @@ namespace Visual {
     }
     ValueCell.update(tEmissive, tEmissive.ref.value);
     ValueCell.updateIfChanged(emissiveAverage, getEmissiveAverage(array, count));
-    ValueCell.updateIfChanged(dEmissiveType, type);
     ValueCell.updateIfChanged(dEmissive, emissive.layers.length > 0);
 
     if (emissive.layers.length === 0) return;
     if (type === 'instance') return;
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-      const { geometry, props, webgl } = smoothing;
+      const { geometry, props, graphics } = smoothing;
       if (geometry.kind === 'mesh') {
         const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
+          applyMeshEmissiveSmoothing(renderObject.values as any, csp, graphics, emissiveTexture);
           (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
         }
-      } else if (webgl && geometry.kind === 'texture-mesh') {
+      } else if (graphics && geometry.kind === 'texture-mesh') {
         const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
+          applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp, graphics, emissiveTexture);
           (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
         }
       }
@@ -440,11 +463,10 @@ namespace Visual {
 
     const {
       tSubstance,
-      dSubstanceType,
       dSubstance,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -468,26 +490,25 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tSubstance, tSubstance.ref.value);
-    ValueCell.updateIfChanged(dSubstanceType, type);
     ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
 
     if (substance.layers.length === 0) return;
     if (type === 'instance') return;
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-      const { geometry, props, webgl } = smoothing;
+      const { geometry, props, graphics } = smoothing;
       if (geometry.kind === 'mesh') {
         const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
+          applyMeshSubstanceSmoothing(renderObject.values as any, csp, graphics, substanceTexture);
           (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
         }
-      } else if (webgl && geometry.kind === 'texture-mesh') {
+      } else if (graphics && geometry.kind === 'texture-mesh') {
         const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
+          applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp, graphics, substanceTexture);
           (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
         }
       }
@@ -504,11 +525,10 @@ namespace Visual {
 
     const {
       tClipping,
-      dClippingType,
       dClipping,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -533,7 +553,6 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tClipping, tClipping.ref.value);
-    ValueCell.updateIfChanged(dClippingType, type);
     ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
   }
 
@@ -547,12 +566,11 @@ namespace Visual {
 
     const {
       tWiggle,
-      dWiggleType,
       wiggleAverage,
       dWiggle,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -577,7 +595,6 @@ namespace Visual {
     }
     ValueCell.update(tWiggle, tWiggle.ref.value);
     ValueCell.updateIfChanged(wiggleAverage, getWiggleAverage(array, count));
-    ValueCell.updateIfChanged(dWiggleType, type);
     ValueCell.updateIfChanged(dWiggle, wiggle.layers.length > 0);
   }
 

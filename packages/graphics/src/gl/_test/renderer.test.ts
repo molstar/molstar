@@ -32,14 +32,18 @@ describe('renderer', () => {
     expect(ctx.gl.drawingBufferHeight).toBe(32);
 
     expect(ctx.stats.resourceCounts.attribute).toBe(0);
-    expect(ctx.stats.resourceCounts.texture).toBe(1);
+    expect(ctx.stats.resourceCounts.texture).toBe(2);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
     expect(ctx.stats.resourceCounts.program).toBe(0);
     expect(ctx.stats.resourceCounts.shader).toBe(0);
 
+    // applied in render passes, flipped to GL's bottom-left origin
     renderer.setViewport(0, 0, 64, 48);
+    ctx.beginRenderPass('drawing-buffer');
+    expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[1]).toBe(32 - 48);
     expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64);
     expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48);
+    ctx.endRenderPass();
   });
 
   it('points', async () => {
@@ -52,16 +56,16 @@ describe('renderer', () => {
 
     scene.add(points);
     scene.commit();
-    expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
-    expect(ctx.stats.resourceCounts.texture).toBe(11);
-    expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 5 : 0);
+    expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 2 : 3);
+    expect(ctx.stats.resourceCounts.texture).toBe(13);
+    expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 1 : 0);
     expect(ctx.stats.resourceCounts.program).toBe(5);
     expect(ctx.stats.resourceCounts.shader).toBe(10);
 
     scene.remove(points);
     scene.commit();
     expect(ctx.stats.resourceCounts.attribute).toBe(0);
-    expect(ctx.stats.resourceCounts.texture).toBe(1);
+    expect(ctx.stats.resourceCounts.texture).toBe(2);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
     expect(ctx.stats.resourceCounts.program).toBe(5);
     expect(ctx.stats.resourceCounts.shader).toBe(10);
@@ -89,9 +93,9 @@ describe('renderer', () => {
     sceneDpoit.add(points);
     sceneDpoit.commit();
 
-    expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 12 : 15);
-    expect(ctx.stats.resourceCounts.texture).toBe(31);
-    expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 15 : 0);
+    expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 6 : 9);
+    expect(ctx.stats.resourceCounts.texture).toBe(35);
+    expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 3 : 0);
     expect(ctx.stats.resourceCounts.program).toBe(7);
     expect(ctx.stats.resourceCounts.shader).toBe(14);
   });

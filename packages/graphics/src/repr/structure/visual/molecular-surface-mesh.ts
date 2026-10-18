@@ -27,13 +27,14 @@ import type { VisualUpdateState } from '../../util.js';
 import { CommonSurfaceParams } from './util/common.js';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { applyMeshColorSmoothing } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '@molstar/graphics/geo/geometry/base';
 import { ValueCell } from '@molstar/core/util';
 import { ComplexMeshVisual, type ComplexVisual } from '../complex-visual.js';
 import { Tensor } from '@molstar/core/math/linear-algebra/tensor';
+import { getSurfaceSignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export const MolecularSurfaceMeshParams = {
   ...UnitsMeshParams,
@@ -80,7 +81,7 @@ async function createMolecularSurfaceMesh(
   }
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {
@@ -98,6 +99,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
   return UnitsMeshVisual<MolecularSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(MolecularSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createMolecularSurfaceMesh,
       createLocationIterator: ElementIterator.fromGroup,
       getLoci: getElementLoci,
@@ -131,12 +133,12 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         geometry: Mesh,
         props: PD.Values<MolecularSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
         }
       },
@@ -177,7 +179,7 @@ async function createStructureMolecularSurfaceMesh(
   }
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {
@@ -195,6 +197,7 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
   return ComplexMeshVisual<MolecularSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(MolecularSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createStructureMolecularSurfaceMesh,
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,
@@ -228,12 +231,12 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
         geometry: Mesh,
         props: PD.Values<MolecularSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
         }
       },

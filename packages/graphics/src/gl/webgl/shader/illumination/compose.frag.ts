@@ -1,0 +1,275 @@
+import { common } from '../chunks/common.glsl.js';
+
+export const compose_frag = `
+precision highp float;
+precision highp sampler2D;
+
+${common}
+
+float getViewZ(const in float depth) {
+    #if dOrthographic == 1
+        return orthographicDepthToViewZ(depth, uNear, uFar);
+    #else
+        return perspectiveDepthToViewZ(depth, uNear, uFar);
+    #endif
+}
+
+float getDepthOpaque(const in vec2 coords) {
+    #ifdef depthTextureSupport
+        return texture2D(tDepthOpaque, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepthOpaque, coords));
+    #endif
+}
+
+float getDepthTransparent(const in vec2 coords) {
+    #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
+        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
+    #else
+        return 0.0;
+    #endif
+}
+
+bool isBackground(const in float depth) {
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
+}
+
+// occlusion at \`coords\` of a pixel at view z \`viewZ\`, depth-aware upsampled from a lower SSAO resolution
+float getSsao(vec2 coords, float viewZ) {
+    #ifdef dOcclusionUpsample
+        return getSsaoUpsampled(tSsaoDepth, uOcclusionTexSize, coords, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepth, coords));
+    #endif
+}
+
+float getSsaoTransparent(vec2 coords, float viewZ) {
+    #ifdef dOcclusionUpsample
+        return getSsaoUpsampled(tSsaoDepthTransparent, uOcclusionTexSize, coords, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepthTransparent, coords));
+    #endif
+}
+
+//
+
+// TODO: investigate
+// https://interplayoflight.wordpress.com/2022/03/26/raytraced-global-illumination-denoising/
+
+//
+
+#define INV_SQRT_OF_2PI 0.39894228040143267793994605993439  // 1.0/SQRT_OF_2PI
+#define INV_PI 0.31830988618379067153776752674503
+
+// https://github.com/BrutPitt/glslSmartDeNoise
+//
+//  smartDeNoise - parameters
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//  sampler2D tex     - sampler image / texture
+//  vec2 uv           - actual fragment coord
+//  float sigma  >  0 - sigma Standard Deviation
+//  float kSigma >= 0 - sigma coefficient
+//      kSigma * sigma  -->  radius of the circular kernel
+//  float threshold   - edge sharpening threshold
+
+float NormalWeightStrength = 6.0;
+
+vec4 smartDeNoise(sampler2D tex, vec2 uv) {
+    float sigma = 3.0;
+    float kSigma = 2.0;
+    float threshold = uDenoiseThreshold;
+
+    vec4 centrPx = texture2D(tex, uv);
+    if (threshold == 0.0) return centrPx;
+
+    float invSigmaQx2 = 0.5 / (sigma * sigma);      // 1.0 / (sigma^2 * 2.0)
+    float invSigmaQx2PI = INV_PI * invSigmaQx2;    // 1.0 / (sqrt(PI) * sigma)
+
+    float invThresholdSqx2 = 0.5 / (threshold * threshold);     // 1.0 / (sigma^2 * 2.0)
+    float invThresholdSqrt2PI = INV_SQRT_OF_2PI / threshold;   // 1.0 / (sqrt(2*PI) * sigma)
+
+    float zBuff = 0.0;
+    vec4 colorBuff = vec4(0.0);
+
+    vec3 normal = texture2D(tNormal, uv).xyz;
+
+    for (int x = -6; x <= 6; ++x) {
+        for (int y = -6; y <= 6; ++y) {
+            vec2 d = vec2(float(x), float(y));
+
+            float blurFactor = exp(-dot(d , d) * invSigmaQx2) * invSigmaQx2PI;
+            vec2 uvSample = uv + d / uTexSize;
+
+            vec3 normalSample = texture2D(tNormal, uvSample).xyz;
+            float normalW = saturate(dot(normal, normalSample));
+            normalW = pow(normalW, NormalWeightStrength);
+            blurFactor *= normalW;
+
+            vec4 walkPx = texture2D(tex, uvSample);
+
+            vec4 dC = walkPx - centrPx;
+            float deltaFactor = exp(-dot(dC, dC) * invThresholdSqx2) * invThresholdSqrt2PI * blurFactor;
+
+            zBuff += deltaFactor;
+            colorBuff += deltaFactor * walkPx;
+        }
+    }
+
+    if (zBuff <= EPSILON) {
+        return centrPx;
+    }
+
+    return colorBuff / zBuff;
+}
+
+int squaredOutlineScale = dOutlineScale * dOutlineScale;
+void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparent, out float opaqueDepth, out float transparentDepth, out float alpha) {
+    vec2 invTexSize = 1.0 / uTexSize;
+
+    hasOpaque = false;
+    hasTransparent = false;
+    opaqueDepth = 0.0;
+    transparentDepth = 0.0;
+    alpha = 0.0;
+    for (int y = -dOutlineScale; y <= dOutlineScale; y++) {
+        for (int x = -dOutlineScale; x <= dOutlineScale; x++) {
+            if (x * x + y * y > squaredOutlineScale) {
+                continue;
+            }
+
+            vec2 sampleCoords = coords + vec2(float(x), float(y)) * invTexSize;
+
+            vec4 sampleOutlineCombined = texture2D(tOutlines, sampleCoords);
+            float sampleOpaqueDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
+            float sampleTransparentDepth = sampleOutlineCombined.a;
+            vec2 sampleFlagWithAlpha = unpack2x4(sampleOutlineCombined.r);
+
+            float sampleFlag = sampleFlagWithAlpha.x;
+            float sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
+
+            if ((sampleFlag > 0.20 && sampleFlag < 0.30) || (sampleFlag > 0.70 && sampleFlag < 0.80)) { // transparent || both
+                if (sampleOpaqueDepth > opaqueDepth) {
+                    hasOpaque = true;
+                    opaqueDepth = sampleOpaqueDepth;
+                }
+            }
+
+            if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth > transparentDepth) { // transparent || both
+                hasTransparent = true;
+                transparentDepth = sampleTransparentDepth;
+                alpha = sampleAlpha;
+            }
+        }
+    }
+}
+
+void main() {
+    vec2 coords = gl_FragCoord.xy / uTexSize;
+
+    #ifdef dDenoise
+        vec4 color = smartDeNoise(tColor, coords);
+    #else
+        vec4 color = texture2D(tColor, coords);
+    #endif
+
+    float opaqueDepth = getDepthOpaque(coords);
+    float backgroundViewZ = 2.0 * uFar;
+    float opaqueSelfViewZ = isBackground(opaqueDepth) ? backgroundViewZ : getViewZ(opaqueDepth);
+    float fogFactor = smoothstep(uFogNear, uFogFar, abs(opaqueSelfViewZ));
+    float fogAlpha = 1.0 - fogFactor;
+
+    float transparentDepth = 0.0;
+    #ifdef dBlendTransparency
+        bool blendTransparency = true;
+        vec4 transparentColor = texture2D(tTransparentColor, coords);
+
+        transparentDepth = getDepthTransparent(coords);
+    #endif
+
+    float alpha = 1.0;
+    if (!uTransparentBackground) {
+        // mix opaque objects with background color
+        color.rgb = mix(color.rgb, uFogColor, fogFactor);
+    } else {
+        // pre-multiplied alpha expected for transparent background
+        alpha = fogAlpha;
+        color.rgb *= fogAlpha;
+    }
+
+    #if defined(dOcclusionEnable)
+        if (!isBackground(opaqueDepth)) {
+            float occlusionFactor = getSsao(coords, opaqueSelfViewZ);
+
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+            } else {
+                color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+            }
+        }
+        #ifdef dBlendTransparency
+            if (!isBackground(transparentDepth)) {
+                float viewDist = abs(getViewZ(transparentDepth));
+                float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+                float occlusionFactor = getSsaoTransparent(coords, getViewZ(transparentDepth));
+                transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
+            }
+        #endif
+    #endif
+
+    #ifdef dOutlineEnable
+        bool hasOpaque;
+        bool hasTransparent;
+        float outlineOpaqueDepth;
+        float outlineTransparentDepth;
+        float outlineAlpha;
+        getOutline(coords, hasOpaque, hasTransparent, outlineOpaqueDepth, outlineTransparentDepth, outlineAlpha);
+
+        if (hasOpaque) {
+            float viewDist = abs(getViewZ(outlineOpaqueDepth));
+            float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            if (!uTransparentBackground) {
+                color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
+            } else {
+                alpha = 1.0 - fogFactor;
+                color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
+            }
+        }
+
+        #ifdef dBlendTransparency
+            if (hasTransparent) {
+                if (hasOpaque && outlineOpaqueDepth > outlineTransparentDepth) {
+                    blendTransparency = false;
+                } else {
+                    float finalOutlineAlpha = clamp(outlineAlpha * 2.0, 0.0, 1.0);
+                    float viewDist = abs(getViewZ(outlineTransparentDepth));
+                    float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+                    float finalAlpha = max(transparentColor.a, finalOutlineAlpha * (1.0 - fogFactor));
+                    transparentColor.a = finalAlpha;
+                    transparentColor.rgb = uOutlineColor * finalAlpha;
+                }
+            }
+        #endif
+    #endif
+
+    #ifdef dBlendTransparency
+        if (blendTransparency) {
+            if (transparentColor.a != 0.0) {
+                // blending
+                color = transparentColor + color * (1.0 - transparentColor.a);
+                alpha = transparentColor.a + alpha * (1.0 - transparentColor.a);
+            }
+        }
+    #endif
+
+    #ifdef dBloomEnable
+        vec4 bloom = texture2D(tBloom, coords);
+        // additive glow over geometry and background alike; alpha just covers the premultiplied rgb
+        color.rgb += bloom.rgb;
+        alpha = min(max(alpha, max(color.r, max(color.g, color.b))), 1.0);
+    #endif
+
+    gl_FragColor = vec4(color.rgb, alpha);
+}
+`;

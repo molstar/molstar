@@ -95,10 +95,10 @@ export class AlphaOrbitalsExample {
 
     this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-    if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
+    if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.graphics)) {
       PluginCommands.Toast.Show(this.plugin, {
         title: 'Error',
-        message: `Browser/device does not support required WebGL extension (OES_texture_float).`,
+        message: `Browser/device does not support computing orbitals on the GPU.`,
       });
       return;
     }

@@ -35,4 +35,14 @@ describe('camera', () => {
     cameraUnproject(po, c, vp, invProj);
     expect(Vec3.equals(po, pi)).toBe(true);
   });
+
+  it('window coordinates have a top-left origin', () => {
+    const proj = Mat4.ortho(Mat4(), -1, 1, 1, -1, 1, 100);
+    const vp = Viewport.create(10, 20, 100, 100);
+    const c = Vec4();
+    // up in view space is up on screen, i.e. a smaller window y
+    cameraProject(c, Vec3.create(0, 0.5, -10), vp, proj);
+    expect(c[0]).toBeCloseTo(60);
+    expect(c[1]).toBeCloseTo(45);
+  });
 });

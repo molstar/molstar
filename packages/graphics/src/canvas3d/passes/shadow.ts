@@ -7,22 +7,26 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
-import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
+import {
+  TextureSpec,
+  type Values,
+  UniformSpec,
+  DefineSpec,
+  MaxLightCount,
+} from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { isTimingMode } from '@molstar/core/util/debug';
 import { getTransformedLightDirection, type Light } from '@molstar/graphics/gl/renderer';
-import { shadows_frag } from '@molstar/graphics/gl/shader/shadows.frag';
 import type { PostprocessingProps } from './postprocessing.js';
 
 export const ShadowParams = {
@@ -45,13 +49,13 @@ export class ShadowPass {
   private invHeadRotation = Mat4.identity();
 
   constructor(
-    readonly webgl: WebGLContext,
+    readonly graphics: GraphicsContext,
     width: number,
     height: number,
     depthTextureOpaque: Texture,
   ) {
-    this.target = webgl.createRenderTarget(width, height, 'none');
-    this.renderable = getShadowsRenderable(webgl, depthTextureOpaque);
+    this.target = graphics.createRenderTarget(width, height, 'none');
+    this.renderable = getShadowsRenderable(graphics, depthTextureOpaque);
   }
 
   getByteCount() {
@@ -118,22 +122,20 @@ export class ShadowPass {
     }
   }
 
-  render() {
-    if (isTimingMode) this.webgl.timer.mark('ShadowPass.render');
-    this.target.bind();
-    this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('ShadowPass.render');
+  render(b: PassBuilder) {
+    b.begin(this.target, { label: 'shadows' });
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
-const ShadowsSchema = {
+export const ShadowsSchema = {
   ...QuadSchema,
   tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
 
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uBounds: UniformSpec('v4'),
+  uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
+  uBounds: { ...UniformSpec('v4'), windowRect: 'bounds' as const },
 
   dOrthographic: DefineSpec('number'),
   uNear: UniformSpec('f'),
@@ -143,14 +145,15 @@ const ShadowsSchema = {
   uMaxDistance: UniformSpec('f'),
   uTolerance: UniformSpec('f'),
 
-  uLightDirection: UniformSpec('v3[]'),
-  uLightColor: UniformSpec('v3[]'),
+  uLightDirection: UniformSpec('v3[]', undefined, undefined, MaxLightCount, 'dLightCount'),
+  uLightColor: UniformSpec('v3[]', undefined, undefined, MaxLightCount, 'dLightCount'),
   dLightCount: DefineSpec('number'),
   uAmbientColor: UniformSpec('v3'),
 };
+export const ShadowsShaderCode = ShaderCode('shadows');
 type ShadowsRenderable = ComputeRenderable<Values<typeof ShadowsSchema>>;
 
-function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): ShadowsRenderable {
+function getShadowsRenderable(ctx: GraphicsContext, depthTexture: Texture): ShadowsRenderable {
   const width = depthTexture.getWidth();
   const height = depthTexture.getHeight();
 
@@ -178,8 +181,7 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
   };
 
   const schema = { ...ShadowsSchema };
-  const shaderCode = ShaderCode('shadows', quad_vert, shadows_frag);
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', ShadowsShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

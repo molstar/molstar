@@ -6,19 +6,40 @@
 
 import type { RenderableState, Renderable } from './renderable.js';
 import { idFactory } from '@molstar/core/util/id-factory';
-import type { WebGLContext } from './webgl/context.js';
-import { type DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume.js';
-import { type MeshValues, MeshRenderable } from './renderable/mesh.js';
-import { type PointsValues, PointsRenderable } from './renderable/points.js';
-import { type LinesValues, LinesRenderable } from './renderable/lines.js';
-import { type SpheresValues, SpheresRenderable } from './renderable/spheres.js';
-import { type TextValues, TextRenderable } from './renderable/text.js';
-import { type TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh.js';
-import { type ImageValues, ImageRenderable } from './renderable/image.js';
-import { CylindersRenderable, type CylindersValues } from './renderable/cylinders.js';
-import type { Transparency } from './webgl/render-item.js';
-import type { GlobalDefines } from './renderable/schema.js';
+import type { GraphicsContext } from './context.js';
+import {
+  type DirectVolumeValues,
+  DirectVolumeRenderable,
+  DirectVolumeRenderableSchema,
+} from './renderable/direct-volume.js';
+import { type MeshValues, MeshRenderable, MeshRenderableSchema } from './renderable/mesh.js';
+import { type PointsValues, PointsRenderable, PointsRenderableSchema } from './renderable/points.js';
+import { type LinesValues, LinesRenderable, LinesRenderableSchema } from './renderable/lines.js';
+import { type SpheresValues, SpheresRenderable, SpheresRenderableSchema } from './renderable/spheres.js';
+import { type TextValues, TextRenderable, TextRenderableSchema } from './renderable/text.js';
+import {
+  type TextureMeshValues,
+  TextureMeshRenderable,
+  TextureMeshRenderableSchema,
+} from './renderable/texture-mesh.js';
+import { type ImageValues, ImageRenderable, ImageRenderableSchema } from './renderable/image.js';
+import { CylindersRenderable, CylindersRenderableSchema, type CylindersValues } from './renderable/cylinders.js';
+import type { Transparency } from './render-item.js';
+import type { GlobalDefines, RenderableSchema } from './renderable/schema.js';
+import {
+  CylindersShaderCode,
+  DirectVolumeShaderCode,
+  ImageShaderCode,
+  LinesShaderCode,
+  MeshShaderCode,
+  PointsShaderCode,
+  type ShaderCode,
+  SpheresShaderCode,
+  TextShaderCode,
+} from './shader-code.js';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
+import { isNullTexture, type Texture, transferTexture } from './texture.js';
+import { ValueCell } from '@molstar/core/util/value-cell';
 import {
   canMergeValues,
   createMergedValues,
@@ -26,6 +47,9 @@ import {
   type Merged,
   type MergeableValues,
   MergedRenderable,
+  type MergedType,
+  getMergedRenderableSchema,
+  getMergedShaderCode,
 } from './renderable/merged.js';
 
 const getNextId = idFactory(0, 0x7fffffff);
@@ -142,8 +166,100 @@ export function createMergedRenderObject<T extends RenderObjectType>(
   };
 }
 
+function isTexture(x: unknown): x is Texture {
+  return typeof x === 'object' && x !== null && typeof (x as Texture).attachFramebuffer === 'function';
+}
+
+/** The value cells of `o` (and of its members) holding textures not owned by `graphics` */
+function getForeignTextureCells(o: GraphicsRenderObject, graphics: GraphicsContext): ValueCell<Texture>[] {
+  const cells: ValueCell<Texture>[] = [];
+  const add = (values: object) => {
+    for (const k in values) {
+      const cell = (values as Record<string, ValueCell<unknown> | undefined>)[k];
+      const v = cell?.ref?.value;
+      if (isTexture(v) && !isNullTexture(v) && !graphics.resources.ownsTexture(v)) {
+        if (!cells.includes(cell as ValueCell<Texture>)) cells.push(cell as ValueCell<Texture>);
+      }
+    }
+  };
+  if (isMergedRenderObject(o)) for (const m of o.members) add(m.values);
+  add(o.values);
+  return cells;
+}
+
+/** Whether values of `o` hold textures of another graphics context than `graphics` */
+export function hasForeignTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  return getForeignTextureCells(o, graphics).length > 0;
+}
+
+/**
+ * Replaces textures of another context in the values of `o` by textures of `graphics` with the same contents, where
+ * they were loaded from data (see `transferTexture`); false if some were rendered or computed (e.g. GPU surfaces),
+ * which their producers create again
+ */
+export function transferTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  let complete = true;
+  for (const cell of getForeignTextureCells(o, graphics)) {
+    const texture = transferTexture(cell.ref.value, graphics);
+    if (texture) ValueCell.update(cell, texture);
+    else complete = false;
+  }
+  return complete;
+}
+
+/** What the programs of a renderable are made of: the kind of its render object, and whether it is merged */
+export interface RenderableKind {
+  readonly type: RenderObjectType;
+  /** a merged render object (`SegmentSchema` added) */
+  readonly merged: boolean;
+}
+
+const RenderablePrograms: { [T in RenderObjectType]: { shaderCode: ShaderCode; schema: RenderableSchema } } = {
+  mesh: { shaderCode: MeshShaderCode, schema: MeshRenderableSchema },
+  points: { shaderCode: PointsShaderCode, schema: PointsRenderableSchema },
+  spheres: { shaderCode: SpheresShaderCode, schema: SpheresRenderableSchema },
+  cylinders: { shaderCode: CylindersShaderCode, schema: CylindersRenderableSchema },
+  text: { shaderCode: TextShaderCode, schema: TextRenderableSchema },
+  lines: { shaderCode: LinesShaderCode, schema: LinesRenderableSchema },
+  'direct-volume': { shaderCode: DirectVolumeShaderCode, schema: DirectVolumeRenderableSchema },
+  image: { shaderCode: ImageShaderCode, schema: ImageRenderableSchema },
+  'texture-mesh': { shaderCode: MeshShaderCode, schema: TextureMeshRenderableSchema },
+};
+
+/**
+ * The shader code and schema the renderables of `kind` create their programs from (the same objects), `undefined`
+ * for a kind that can't be merged
+ */
+export function getRenderableProgramSource(kind: RenderableKind) {
+  if (!kind.merged) return RenderablePrograms[kind.type];
+  if (!isMergeableType(kind.type)) return;
+  const type = kind.type as MergedType;
+  return { shaderCode: getMergedShaderCode(type), schema: getMergedRenderableSchema(type) };
+}
+
+const RenderableKinds = new WeakMap<Renderable<any>, RenderableKind>();
+
+/** The kind `renderable` was created as, see `createRenderable` */
+export function getRenderableKind(renderable: Renderable<any>): RenderableKind | undefined {
+  return RenderableKinds.get(renderable);
+}
+
 export function createRenderable<T extends RenderObjectType>(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
+  o: GraphicsRenderObject<T>,
+  transparency: Transparency,
+  globals: GlobalDefines,
+): Renderable<any> {
+  const renderable = _createRenderable(ctx, o, transparency, globals);
+  RenderableKinds.set(renderable, {
+    type: isMergedRenderObject(o) ? o.merged.type : o.type,
+    merged: isMergedRenderObject(o),
+  });
+  return renderable;
+}
+
+function _createRenderable<T extends RenderObjectType>(
+  ctx: GraphicsContext,
   o: GraphicsRenderObject<T>,
   transparency: Transparency,
   globals: GlobalDefines,

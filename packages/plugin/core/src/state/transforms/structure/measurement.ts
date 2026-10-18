@@ -20,6 +20,7 @@ import {
   type OrientationData,
 } from '@molstar/graphics/repr/shape/loci/orientation';
 import { PlaneParams, PlaneRepresentation, type PlaneData } from '@molstar/graphics/repr/shape/loci/plane';
+import { getShapeRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { StructureSelectionsDistance3D };
 type StructureSelectionsDistance3D = typeof StructureSelectionsDistance3D;
@@ -39,7 +40,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Distance', async (ctx) => {
       const data = getDistanceDataFromStructureSelections(a.data);
       const repr = DistanceRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => DistanceParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -75,7 +76,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Angle', async (ctx) => {
       const data = getAngleDataFromStructureSelections(a.data);
       const repr = AngleRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => AngleParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -111,7 +112,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Dihedral', async (ctx) => {
       const data = getDihedralDataFromStructureSelections(a.data);
       const repr = DihedralRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => DihedralParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -147,7 +148,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Label', async (ctx) => {
       const data = getLabelDataFromStructureSelections(a.data);
       const repr = LabelRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => LabelParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -193,7 +194,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Orientation', async (ctx) => {
       const data = getOrientationDataFromStructureSelections(a.data);
       const repr = OrientationRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => OrientationParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -229,7 +230,7 @@ const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Plane', async (ctx) => {
       const data = getPlaneDataFromStructureSelections(a.data);
       const repr = PlaneRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => PlaneParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -292,3 +293,22 @@ export function getPlaneDataFromStructureSelections(
 ): PlaneData {
   return { locis: s.map((v) => v.loci) };
 }
+
+registerTransformSignatures(StructureSelectionsDistance3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => DistanceRepresentation(c, () => DistanceParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsAngle3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => AngleRepresentation(c, () => AngleParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsDihedral3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => DihedralRepresentation(c, () => DihedralParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsLabel3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => LabelRepresentation(c, () => LabelParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsOrientation3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => OrientationRepresentation(c, () => OrientationParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsPlane3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => PlaneRepresentation(c, () => PlaneParams), params, ctx),
+);

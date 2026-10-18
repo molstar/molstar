@@ -32,9 +32,9 @@ export function prepareMask(mask: ViewMask): PreparedMask {
   return { projectionView, viewport, normPolygon, inverted: !!mask.inverted };
 }
 
-/** Projects a world-space point to normalised [0,1] canvas coords (Y flipped), written to `out`. */
+/** Projects a world-space point to normalised [0,1] canvas coords (top-left origin), written to `out`. */
 export function projectToNormInPlace(worldPos: Vec3, prepared: PreparedMask, out: [number, number]): void {
   cameraProject(tmpVec4, worldPos, prepared.viewport, prepared.projectionView);
   out[0] = tmpVec4[0] / prepared.viewport.width;
-  out[1] = 1 - tmpVec4[1] / prepared.viewport.height;
+  out[1] = tmpVec4[1] / prepared.viewport.height;
 }

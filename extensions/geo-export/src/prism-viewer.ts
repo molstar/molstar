@@ -119,7 +119,7 @@ export class GeoExportApi extends ApiArea {
                 current: i,
                 max: il,
               });
-              await exporter.add(objects[i], canvas3d.webgl, rt);
+              await exporter.add(objects[i], canvas3d.graphics, rt);
             }
             return exporter.getBlob(rt);
           }),

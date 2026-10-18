@@ -14,6 +14,7 @@ import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
 import { hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { OverpaintStructureRepresentation3DFromScript };
 type OverpaintStructureRepresentation3DFromScript = typeof OverpaintStructureRepresentation3DFromScript;
@@ -151,3 +152,6 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(OverpaintStructureRepresentation3DFromScript, 'overpaint');
+registerTransformLayer(OverpaintStructureRepresentation3DFromBundle, 'overpaint');

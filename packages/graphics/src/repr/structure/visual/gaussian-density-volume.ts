@@ -29,6 +29,7 @@ import {
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { UnitsDirectVolumeParams, type UnitsVisual, UnitsDirectVolumeVisual } from '../units-visual.js';
 import { omitObjectKeys } from '@molstar/core/util/object';
+import { isGaussianDensityTextureSupported } from '@molstar/graphics/geo/gaussian-density/gpu';
 
 function createGaussianDensityVolume(
   ctx: VisualContext,
@@ -37,12 +38,9 @@ function createGaussianDensityVolume(
   props: Omit<GaussianDensityProps, 'floodfill'>,
   directVolume?: DirectVolume,
 ): DirectVolume {
-  const { webgl } = ctx;
-  if (!webgl) {
-    // gpu gaussian density also needs blendMinMax but there is no fallback here so
-    // we allow it here with the results that there is no group id assignment and
-    // hence no group-based coloring or picking
-    throw new Error('GaussianDensityVolume requires `webgl`');
+  const graphics = ctx.graphics;
+  if (!graphics || !isGaussianDensityTextureSupported(graphics)) {
+    throw new Error('GaussianDensityVolume requires the GPU gaussian density');
   }
 
   const axisOrder = Vec3.create(0, 1, 2);
@@ -50,7 +48,13 @@ function createGaussianDensityVolume(
 
   const create = (directVolume?: DirectVolume) => {
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = computeStructureGaussianDensityTexture(structure, theme.size, props, webgl, oldTexture);
+    const densityTextureData = computeStructureGaussianDensityTexture(
+      structure,
+      theme.size,
+      props,
+      graphics,
+      oldTexture,
+    );
     const { transform, texture, bbox, gridDim } = densityTextureData;
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
@@ -75,12 +79,7 @@ function createGaussianDensityVolume(
     return vol;
   };
 
-  const vol = create(directVolume);
-  vol.meta.reset = () => {
-    create(vol);
-  };
-
-  return vol;
+  return create(directVolume);
 }
 
 export const GaussianDensityVolumeParams = {
@@ -97,6 +96,8 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
     {
       defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
       createGeometry: createGaussianDensityVolume,
+      // the density packs the group with the value
+      signatureDefines: () => ({ dPackedGroup: [true] }),
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,
       eachLocation: eachSerialElement,
@@ -131,12 +132,9 @@ function createUnitsGaussianDensityVolume(
   props: Omit<GaussianDensityProps, 'floodfill'>,
   directVolume?: DirectVolume,
 ): DirectVolume {
-  const { webgl } = ctx;
-  if (!webgl) {
-    // gpu gaussian density also needs blendMinMax but there is no fallback here so
-    // we allow it here with the results that there is no group id assignment and
-    // hence no group-based coloring or picking
-    throw new Error('GaussianDensityVolume requires `webgl`');
+  const graphics = ctx.graphics;
+  if (!graphics || !isGaussianDensityTextureSupported(graphics)) {
+    throw new Error('GaussianDensityVolume requires the GPU gaussian density');
   }
 
   const axisOrder = Vec3.create(0, 1, 2);
@@ -144,7 +142,14 @@ function createUnitsGaussianDensityVolume(
 
   const create = (directVolume?: DirectVolume) => {
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = computeUnitGaussianDensityTexture(structure, unit, theme.size, props, webgl, oldTexture);
+    const densityTextureData = computeUnitGaussianDensityTexture(
+      structure,
+      unit,
+      theme.size,
+      props,
+      graphics,
+      oldTexture,
+    );
     const { transform, texture, bbox, gridDim } = densityTextureData;
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
@@ -168,12 +173,7 @@ function createUnitsGaussianDensityVolume(
     return vol;
   };
 
-  const vol = create(directVolume);
-  vol.meta.reset = () => {
-    create(vol);
-  };
-
-  return vol;
+  return create(directVolume);
 }
 
 export const UnitsGaussianDensityVolumeParams = {
@@ -190,6 +190,8 @@ export function UnitsGaussianDensityVolumeVisual(materialId: number): UnitsVisua
     {
       defaultProps: PD.getDefaultValues(UnitsGaussianDensityVolumeParams),
       createGeometry: createUnitsGaussianDensityVolume,
+      // the density packs the group with the value
+      signatureDefines: () => ({ dPackedGroup: [true] }),
       createLocationIterator: ElementIterator.fromGroup,
       getLoci: getElementLoci,
       eachLocation: eachElement,

@@ -4,6 +4,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -59,6 +60,11 @@ import {
   PrimitivePositionT,
 } from '@molstar/mvs-builder/tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component.js';
+import {
+  getShapeSignatures,
+  registerShapeGeometry,
+  registerTransformSignatures,
+} from '@molstar/plugin/state/precompile';
 
 type PrimitivesParams = MolstarNode<'primitives'>['params'];
 
@@ -342,6 +348,13 @@ export const MVSShapeRepresentation3D = MVSTransform({
     });
   },
 });
+
+registerShapeGeometry(MVSBuildPrimitiveShape, (params: { kind: 'mesh' | 'labels' | 'lines' }) => [
+  params.kind === 'labels' ? Text.Utils : params.kind === 'lines' ? Lines.Utils : Mesh.Utils,
+]);
+registerTransformSignatures(MVSShapeRepresentation3D, (params, ctx) =>
+  getShapeSignatures(ctx.tree.transforms.get(ctx.transform.parent), params, ctx),
+);
 
 const SnapshotKey = PD.Text('', {
   isEssential: true,

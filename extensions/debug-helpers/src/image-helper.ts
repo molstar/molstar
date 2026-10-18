@@ -7,7 +7,7 @@
 import { createRenderObject, type GraphicsRenderObject, getNextMaterialId } from '@molstar/graphics/gl/render-object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { Color } from '@molstar/core/util/color';
 import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
@@ -45,7 +45,7 @@ export class ImageHelper implements DebugHelper<ImageHelperProps> {
   private _props: ImageHelperProps;
   private renderObjects = new Map<number, { roList: GraphicsRenderObject[]; version: number }>();
 
-  constructor(ctx: WebGLContext, parent: Scene, props: Partial<ImageHelperProps>) {
+  constructor(ctx: GraphicsContext, parent: Scene, props: Partial<ImageHelperProps>) {
     this.scene = Scene.create(ctx, 'blended');
     this.parent = parent;
     this._props = { ...PD.getDefaultValues(ImageHelperParams), ...props };

@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { type ThemeRegistryContext, Theme } from '@molstar/graphics/theme/theme';
@@ -30,11 +30,13 @@ import { Substance } from '@molstar/graphics/theme/substance';
 import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { Location } from '@molstar/model/model/location';
+import { getQualitySignatures, type SignatureContext } from './signatures.js';
+import type { ObjectSignature } from '@molstar/graphics/gl/precompile';
 
 export type RepresentationProps = { [k: string]: any };
 
 export interface RepresentationContext {
-  readonly webgl?: WebGLContext;
+  readonly graphics?: GraphicsContext;
   readonly colorThemeRegistry: ColorTheme.Registry;
   readonly sizeThemeRegistry: SizeTheme.Registry;
 }
@@ -214,6 +216,16 @@ interface Representation<D, P extends PD.Params = PD.Params, S extends Represent
   getAllLoci: () => ModelLoci[];
   eachLocation: (cb: LocationCallback) => void;
   mark: (loci: ModelLoci, action: MarkerAction) => boolean;
+  /**
+   * Creates and updates visuals with `graphics` from now on (the graphics context changed, see
+   * `Canvas3D.contextChanged`); the next `createOrUpdate` creates again what holds resources of the previous context
+   */
+  setGraphics?: (graphics: GraphicsContext) => void;
+  /**
+   * The signatures of the objects the representation may create with `props` in `ctx`, without data (see
+   * `getGeometrySignatures`)
+   */
+  getSignatures?(props: PD.Values<P>, ctx: SignatureContext): ObjectSignature[];
   destroy: () => void;
 }
 namespace Representation {
@@ -490,6 +502,22 @@ namespace Representation {
         for (let i = 0, il = reprList.length; i < il; ++i) {
           reprList[i].setTheme(theme);
         }
+      },
+      setGraphics(graphics: GraphicsContext) {
+        for (let i = 0, il = reprList.length; i < il; ++i) {
+          reprList[i].setGraphics?.(graphics);
+        }
+      },
+      getSignatures(props: PD.Values<P>, ctx: SignatureContext) {
+        const { visuals } = props;
+        return getQualitySignatures(props, (p) => {
+          const signatures: ObjectSignature[] = [];
+          for (let i = 0, il = reprList.length; i < il; ++i) {
+            if (visuals && !visuals.includes(reprMap[i])) continue;
+            signatures.push(...(reprList[i].getSignatures?.(p, ctx) ?? []));
+          }
+          return signatures;
+        });
       },
       destroy() {
         for (let i = 0, il = reprList.length; i < il; ++i) {

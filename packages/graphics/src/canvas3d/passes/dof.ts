@@ -5,21 +5,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import { type Texture, createNullTexture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import { type Texture, createNullTexture } from '@molstar/graphics/gl/texture';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { dof_frag } from '@molstar/graphics/gl/shader/dof.frag';
 import type { Viewport } from '../camera/util.js';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
-import { isTimingMode } from '@molstar/core/util/debug';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import type { PostprocessingProps } from './postprocessing.js';
@@ -52,14 +50,14 @@ export class DofPass {
   private readonly renderable: DofRenderable;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     width: number,
     height: number,
   ) {
-    this.target = webgl.createRenderTarget(width, height, 'none');
+    this.target = graphics.createRenderTarget(width, height, 'none');
 
     const nullTexture = createNullTexture();
-    this.renderable = getDofRenderable(webgl, nullTexture, nullTexture, nullTexture);
+    this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture);
   }
 
   getByteCount() {
@@ -67,19 +65,11 @@ export class DofPass {
   }
 
   private updateState(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
     const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
-
-    state.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
+    this.graphics.clear({ color: [0, 0, 0, 1] });
   }
 
   setSize(width: number, height: number) {
@@ -134,7 +124,7 @@ export class DofPass {
     ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
     ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
 
-    const blurSize = Math.round(props.blurSize * this.webgl.pixelRatio);
+    const blurSize = Math.round(props.blurSize * this.graphics.pixelRatio);
     if (this.renderable.values.dBlurSize.ref.value !== blurSize) {
       ValueCell.update(this.renderable.values.dBlurSize, blurSize);
       needsUpdate = true;
@@ -158,31 +148,25 @@ export class DofPass {
     }
   }
 
-  render(viewport: Viewport, target: undefined | RenderTarget) {
-    if (isTimingMode) this.webgl.timer.mark('DofPass.render');
-    if (target) {
-      target.bind();
-    } else {
-      this.webgl.bindDrawingBuffer();
-    }
-    this.updateState(viewport);
-    this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('DofPass.render');
+  render(b: PassBuilder, viewport: Viewport, target: undefined | RenderTarget) {
+    b.begin(target ?? 'drawing-buffer', { label: 'dof' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
 //
 
-const DofSchema = {
+export const DofSchema = {
   ...QuadSchema,
   tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
 
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uBounds: UniformSpec('v4'),
+  uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
+  uBounds: { ...UniformSpec('v4'), windowRect: 'bounds' as const },
   uCenter: UniformSpec('v3'),
   uMode: UniformSpec('i'),
 
@@ -196,11 +180,11 @@ const DofSchema = {
   uPPM: UniformSpec('f'),
 };
 
-const DofShaderCode = ShaderCode('dof', quad_vert, dof_frag);
+export const DofShaderCode = ShaderCode('dof');
 type DofRenderable = ComputeRenderable<Values<typeof DofSchema>>;
 
 function getDofRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   colorTexture: Texture,
   depthTextureOpaque: Texture,
   depthTextureTransparent: Texture,
@@ -232,7 +216,7 @@ function getDofRenderable(
   };
 
   const schema = { ...DofSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', DofShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', DofShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

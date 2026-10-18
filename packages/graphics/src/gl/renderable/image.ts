@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   AttributeSpec,
   type Values,
@@ -37,7 +37,7 @@ export const ImageSchema = {
   uImageTexDim: UniformSpec('v2'),
   tImageTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
   tGroupTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
-  tValueTex: TextureSpec('image-float32', 'alpha', 'float', 'linear'),
+  tValueTex: TextureSpec('image-float32', 'r', 'float', 'linear'),
 
   uTrimType: UniformSpec('i'),
   uTrimCenter: UniformSpec('v3'),
@@ -53,8 +53,17 @@ export const ImageSchema = {
 export type ImageSchema = typeof ImageSchema;
 export type ImageValues = Values<ImageSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const ImageRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...ImageSchema,
+};
+
 export function ImageRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: ImageValues,
   state: RenderableState,
@@ -62,13 +71,7 @@ export function ImageRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<ImageValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...ImageSchema,
-  };
+  const schema = ImageRenderableSchema;
   const renderValues: ImageValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -76,8 +79,7 @@ export function ImageRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = ImageShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

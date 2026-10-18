@@ -46,8 +46,8 @@ export class ViewportScreenshotHelper extends PluginComponent {
   private createParams() {
     let max = 8192;
     if (this.plugin.canvas3d) {
-      const { webgl } = this.plugin.canvas3d;
-      max = Math.floor(Math.min(webgl.maxRenderbufferSize, webgl.maxTextureSize) / 2);
+      const { limits } = this.plugin.canvas3d.graphics.resources;
+      max = Math.floor(Math.min(limits.maxRenderbufferSize, limits.maxTextureSize) / 2);
     }
     return {
       resolution: PD.MappedStatic(
@@ -139,9 +139,10 @@ export class ViewportScreenshotHelper extends PluginComponent {
   }
 
   private getCanvasSize() {
+    const size = this.plugin.canvas3d?.graphics.getDrawingBufferSize();
     return {
-      width: this.plugin.canvas3d?.webgl.gl.drawingBufferWidth || 0,
-      height: this.plugin.canvas3d?.webgl.gl.drawingBufferHeight || 0,
+      width: size?.width || 0,
+      height: size?.height || 0,
     };
   }
 
@@ -172,7 +173,12 @@ export class ViewportScreenshotHelper extends PluginComponent {
         aoProps.name === 'on'
           ? {
               name: 'on',
-              params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio, transparentThreshold: 1 },
+              params: {
+                ...aoProps.params,
+                samples: 128,
+                resolutionScale: c.graphics.pixelRatio,
+                transparentThreshold: 1,
+              },
             }
           : aoProps,
     } as PostprocessingProps;
@@ -196,14 +202,14 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
   private createPass(isPreview: boolean) {
     const c = this.plugin.canvas3d!;
-    const { colorBufferFloat, textureFloat } = c.webgl.extensions;
+    const { floatRenderTarget } = c.graphics.capabilities;
     return c.getImagePass({
       transparentBackground: this.values.transparent,
       cameraHelper: { axes: this.values.axes },
       multiSample: {
         ...c.props.multiSample,
         mode: isPreview ? 'off' : 'on',
-        sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
+        sampleLevel: floatRenderTarget ? 4 : 2,
         reuseOcclusion: false,
       },
       postprocessing: this.getPostprocessingProps(),

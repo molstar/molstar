@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -47,8 +47,17 @@ export const LinesSchema = {
 export type LinesSchema = typeof LinesSchema;
 export type LinesValues = Values<LinesSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const LinesRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...LinesSchema,
+};
+
 export function LinesRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: LinesValues,
   state: RenderableState,
@@ -56,13 +65,7 @@ export function LinesRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<LinesValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...LinesSchema,
-  };
+  const schema = LinesRenderableSchema;
   const renderValues: LinesValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -70,8 +73,7 @@ export function LinesRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = LinesShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

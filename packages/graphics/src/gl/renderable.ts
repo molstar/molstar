@@ -4,15 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { Program } from './webgl/program.js';
 import type { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema.js';
 import type {
-  GraphicsRenderItem,
   ComputeRenderItem,
+  GlobalBindings,
+  GraphicsProgram,
+  GraphicsRenderItem,
   GraphicsRenderVariant,
   MultiDrawBaseData,
   Transparency,
-} from './webgl/render-item.js';
+} from './render-item.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { idFactory } from '@molstar/core/util/id-factory';
 import { clamp } from '@molstar/core/math/interpolate';
@@ -20,7 +21,7 @@ import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
-import type { WebGLStats } from './webgl/context.js';
+import type { GraphicsStats } from './stats.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { Clip } from '@molstar/core/util/clip';
@@ -60,6 +61,8 @@ export type RenderableState = {
 export interface Renderable<T extends RenderableValues> {
   readonly id: number;
   readonly materialId: number;
+  /** For pipeline requests (`resources.preparePipelines`) */
+  readonly renderItem: GraphicsRenderItem;
   readonly values: T;
   readonly state: RenderableState;
 
@@ -67,16 +70,16 @@ export interface Renderable<T extends RenderableValues> {
     cameraPlane: Plane3D,
     frustum: Frustum3D,
     isOccluded: ((s: Sphere3D) => boolean) | null,
-    stats: WebGLStats,
+    stats: GraphicsStats,
     frame: Frame,
   ) => void;
   uncull: () => void;
   cullSimple: (d: number, radius: number, scale: number) => void;
-  render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void;
+  render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => void;
   /** Cached clip info, `undefined` if there are no clip objects */
   getClipInfo: () => ClipInfo | undefined;
   getByteCount: () => number;
-  getProgram: (variant: GraphicsRenderVariant) => Program;
+  getProgram: (variant: GraphicsRenderVariant) => GraphicsProgram;
   setTransparency: (transparency: Transparency) => void;
   update: () => void;
   dispose: () => void;
@@ -164,7 +167,7 @@ export interface SegmentedMdbList {
     cameraPlane: Plane3D,
     frustum: Frustum3D,
     isOccluded: ((s: Sphere3D) => boolean) | null,
-    stats: WebGLStats,
+    stats: GraphicsStats,
     wholeSegmentFallback: boolean,
   ) => boolean;
   /** append draw entries for the whole segment without culling */
@@ -272,7 +275,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     cameraPlane: Plane3D,
     frustum: Frustum3D,
     isOccluded: ((s: Sphere3D) => boolean) | null,
-    stats: WebGLStats,
+    stats: GraphicsStats,
     wholeSegmentFallback: boolean,
   ): boolean {
     const drawCount = values.drawCount.ref.value;
@@ -473,6 +476,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
   return {
     id,
     materialId: renderItem.materialId,
+    renderItem,
     values,
     state,
 
@@ -480,7 +484,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
       cameraPlane: Plane3D,
       frustum: Frustum3D,
       isOccluded: ((s: Sphere3D) => boolean) | null,
-      stats: WebGLStats,
+      stats: GraphicsStats,
       frame: Frame,
     ) => {
       // skip recomputation if this renderable was already culled for the current frame
@@ -515,11 +519,11 @@ export function createRenderable<T extends GraphicsRenderableValues>(
 
       cullEnabled = true;
     },
-    render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
+    render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
       if (values.uAlpha && values.alpha) {
         ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
       }
-      renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdb.list : undefined);
+      renderItem.render(variant, globals, cullEnabled ? mdb.list : undefined);
     },
     getClipInfo: clipInfo.get,
     getByteCount: () => renderItem.getByteCount(),
@@ -613,6 +617,8 @@ export function createClipInfoCache(values: BaseValues): ClipInfoCache {
 export interface ComputeRenderable<T extends RenderableValues> {
   readonly id: number;
   readonly values: T;
+  /** For pipeline requests (`resources.preparePipelines`) */
+  readonly renderItem: ComputeRenderItem;
 
   render: () => void;
   update: () => void;
@@ -626,10 +632,11 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(
   return {
     id: getNextRenderableId(),
     values,
+    renderItem,
 
     render: () => {
       renderItem.getProgram('compute').finalize(true);
-      renderItem.render('compute', 0);
+      renderItem.render('compute');
     },
     update: () => renderItem.update(),
     dispose: () => renderItem.destroy(),

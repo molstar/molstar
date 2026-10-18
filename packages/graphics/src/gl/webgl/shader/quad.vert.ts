@@ -1,0 +1,14 @@
+/**
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+export const quad_vert = `
+precision highp float;
+
+void main(void) {
+    vec2 position = aPosition * uQuadScale - vec2(1.0, 1.0) + uQuadScale;
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+`;

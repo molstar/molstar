@@ -16,9 +16,11 @@
     "./canvas3d/_test/*": null,
     "./formats/shape/_test/*": null,
     "./geo/geometry/_test/*": null,
+    "./geo/geometry/texture-mesh/_test/*": null,
     "./gl/_test/*": null,
     "./repr/_test/*": null,
     "./repr/particles/representation/_test/*": null,
+    "./repr/shape/_test/*": null,
     "./repr/volume/_test/*": null,
     "./theme/_test/*": null
   },

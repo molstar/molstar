@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -58,8 +58,17 @@ export const SpheresSchema = {
 export type SpheresSchema = typeof SpheresSchema;
 export type SpheresValues = Values<SpheresSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const SpheresRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...SpheresSchema,
+};
+
 export function SpheresRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: SpheresValues,
   state: RenderableState,
@@ -67,13 +76,7 @@ export function SpheresRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<SpheresValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...SpheresSchema,
-  };
+  const schema = SpheresRenderableSchema;
   const renderValues: SpheresValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -81,8 +84,7 @@ export function SpheresRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = SpheresShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

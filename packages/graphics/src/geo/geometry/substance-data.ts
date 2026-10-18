@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,10 +7,11 @@
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Material } from '@molstar/core/util/material';
+import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 
-export type SubstanceType = 'instance' | 'groupInstance' | 'volumeInstance';
+export type SubstanceType = LayerType;
 
 export type SubstanceData = {
   tSubstance: ValueCell<TextureImage<Uint8Array>>;
@@ -20,6 +21,9 @@ export type SubstanceData = {
   tSubstanceGrid: ValueCell<Texture>;
   uSubstanceGridDim: ValueCell<Vec3>;
   uSubstanceGridTransform: ValueCell<Vec4>;
+  /** the layer type (`SubstanceType`) */
+  substanceType: ValueCell<string>;
+  /** its define (`getLayerTypeDefine`) */
   dSubstanceType: ValueCell<string>;
   uSubstanceStrength: ValueCell<number>;
 };
@@ -37,6 +41,15 @@ export function clearSubstance(array: Uint8Array, start: number, end: number) {
   return true;
 }
 
+/** Sets the layer type `type` and its define (`getLayerTypeDefine`) of `values` */
+export function setSubstanceType(
+  values: Pick<SubstanceData, 'substanceType' | 'dSubstanceType'>,
+  type: SubstanceType | string,
+) {
+  ValueCell.updateIfChanged(values.substanceType, type);
+  ValueCell.updateIfChanged(values.dSubstanceType, getLayerTypeDefine(type));
+}
+
 export function createSubstance(count: number, type: SubstanceType, substanceData?: SubstanceData): SubstanceData {
   const substance = createTextureImage(
     Math.max(1, count),
@@ -48,7 +61,7 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
     ValueCell.update(substanceData.tSubstance, substance);
     ValueCell.update(substanceData.uSubstanceTexDim, Vec2.create(substance.width, substance.height));
     ValueCell.updateIfChanged(substanceData.dSubstance, count > 0);
-    ValueCell.updateIfChanged(substanceData.dSubstanceType, type);
+    setSubstanceType(substanceData, type);
     return substanceData;
   } else {
     return {
@@ -59,7 +72,8 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
       tSubstanceGrid: ValueCell.create(createNullTexture()),
       uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dSubstanceType: ValueCell.create(type),
+      substanceType: ValueCell.create<string>(type),
+      dSubstanceType: ValueCell.create(getLayerTypeDefine(type)),
       uSubstanceStrength: ValueCell.create(1),
     };
   }
@@ -80,7 +94,8 @@ export function createEmptySubstance(substanceData?: SubstanceData): SubstanceDa
       tSubstanceGrid: ValueCell.create(createNullTexture()),
       uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dSubstanceType: ValueCell.create('groupInstance'),
+      substanceType: ValueCell.create<string>('groupInstance'),
+      dSubstanceType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uSubstanceStrength: ValueCell.create(1),
     };
   }

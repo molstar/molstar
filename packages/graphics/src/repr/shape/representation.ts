@@ -8,6 +8,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 import { Geometry, type GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
 import { resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
 import { Representation } from '../representation.js';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Shape, ShapeGroup } from '@molstar/model/model/shape';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, createRenderObject, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
@@ -26,6 +27,7 @@ import { Visual } from '../visual.js';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { isDebugMode } from '@molstar/core/util/debug';
+import { getGeometrySignatures, type SignatureContext } from '../signatures.js';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>
   extends Representation<D, P> {}
@@ -42,6 +44,11 @@ export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> 
   modifyProps?: (props: Partial<PD.Values<P>>) => Partial<PD.Values<P>>;
   /** Hook to modify representation state */
   modifyState?: (state: Partial<Representation.State>) => Partial<Representation.State>;
+  /**
+   * The graphics context the shape is drawn with: geometry relying on what it lacks is changed (see
+   * `GeometryUtils.isCompatible`); `setGraphics` replaces it
+   */
+  graphics?: GraphicsContext;
 }
 
 export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(
@@ -62,6 +69,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
   let currentProps: PD.Values<P> = PD.getDefaultValues(currentParams);
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
+  let graphics = builder.graphics;
 
   if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state));
 
@@ -118,6 +126,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
       if (shape) {
         _shape = shape;
         Object.assign(_theme, ShapeUtils.getTheme(_shape));
+      }
+
+      // geometry relying on what the context lacks (e.g. varying groups without flat interpolation) is changed
+      if (graphics && _shape && geometryUtils.isCompatible?.(_shape.geometry, graphics) === false) {
+        geometryUtils.makeCompatible?.(_shape.geometry, graphics);
+        if (!updateState.createNew) {
+          updateState.createGeometry = true;
+          updateState.updateColor = true;
+          updateState.updateSize = true;
+        }
       }
 
       if (updateState.createNew) {
@@ -327,6 +345,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         );
       }
     },
+    setGraphics(value: GraphicsContext) {
+      graphics = value;
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
+      getGeometrySignatures(geometryUtils, { ...PD.getDefaultValues(currentParams), ...props }, ctx),
     destroy() {
       renderObjects.length = 0;
       if (_renderObject) {

@@ -5,6 +5,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sassPlugin } from 'esbuild-sass-plugin';
+import { getBackendSetAlias } from './backend-sets.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2).filter((arg) => arg !== '--');
@@ -20,6 +21,8 @@ const metafile = args.includes('--metafile');
 const serve = dev || args.includes('--serve');
 const port = Number(value('--port', '1338'));
 const kind = value('--kind');
+/** also builds the variants of `molstar.variants` (e.g. the Viewer with one graphics backend) into `build/<variant>/` */
+const variants = args.includes('--variants');
 if (kind && !['app', 'example'].includes(kind)) throw new Error('--kind must be app or example.');
 const positional = [];
 for (let i = 0; i < args.length; i++) {
@@ -107,7 +110,7 @@ if (args.includes('--help') || unknownTargets.length || !selected.length) {
   if (!args.includes('--help') && unknownTargets.length) console.error(`Unknown targets: ${unknownTargets.join(', ')}`);
   const usage = kind
     ? `Usage: pnpm dev:${kind}s [-- <name> ...] [--port <port>] (no names watches all)`
-    : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] | --all [--prd|--dev]';
+    : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] [--variants] | --all [--prd|--dev] [--variants]';
   console.log(usage);
   console.log(
     `Available browser ${kind ? `${kind}s` : 'apps/examples'}: ${apps.map((p) => (kind ? path.basename(p.path) : p.path)).join(', ')}`,
@@ -188,11 +191,12 @@ function entryFor(pkg, config) {
   if (fs.existsSync(raw + 'x')) return raw + 'x';
   throw new Error(`${pkg.name}: configured entry does not exist: ${path.relative(root, raw)}`);
 }
-async function buildPackage(rawPkg) {
+/** `variant`: a name of `molstar.variants`, whose value is the backend set the build keeps (see `backend-sets.mjs`) */
+async function buildPackage(rawPkg, variant) {
   const pkg = pkgInfo(rawPkg),
     cfg = pkg.config;
   const dir = path.join(root, pkg.path),
-    outdir = path.join(dir, 'build');
+    outdir = variant ? path.join(dir, 'build', variant) : path.join(dir, 'build');
   const entry = entryFor(pkg, cfg);
   await fs.promises.mkdir(outdir, { recursive: true });
   const filename = cfg.filename ?? (pkg.kind === 'example' ? 'index.js' : 'molstar.js');
@@ -224,6 +228,10 @@ async function buildPackage(rawPkg) {
     sourcemap: !production,
     conditions: ['molstar-src', 'import', 'default'],
     external: ['crypto', 'fs', 'path', 'stream'],
+    // the workspace sources (the working directory is the repository root)
+    alias: variant
+      ? getBackendSetAlias(cfg.variants[variant], (m) => `./packages/graphics/src/gl/backends/${m}.ts`)
+      : undefined,
     plugins: [
       sourceJsExtensionPlugin,
       zodEnglishOnlyPlugin,
@@ -328,10 +336,17 @@ async function buildPackage(rawPkg) {
       contexts.push(ctx);
     } else await esbuild.build(themeOptions);
   }
-  console.log(`${dev ? 'Watching' : 'Built'} ${pkg.name} → ${path.relative(root, outdir)}`);
+  console.log(
+    `${dev ? 'Watching' : 'Built'} ${pkg.name}${variant ? ` (${variant})` : ''} → ${path.relative(root, outdir)}`,
+  );
 }
 const contexts = [];
-await Promise.all(selected.map(buildPackage));
+await Promise.all(selected.map((p) => buildPackage(p)));
+if (variants && !dev) {
+  for (const p of selected) {
+    for (const variant of Object.keys(pkgInfo(p).config.variants ?? {})) await buildPackage(p, variant);
+  }
+}
 if (serve) {
   const mime = {
     '.html': 'text/html',

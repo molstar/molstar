@@ -12,6 +12,7 @@ import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
 import { StateTransformer } from '@molstar/core/state';
+import { getShapeSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { ShapeRepresentation3D };
 type ShapeRepresentation3D = typeof ShapeRepresentation3D;
@@ -27,10 +28,10 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
   canAutoUpdate() {
     return true;
   },
-  apply({ a, params }) {
+  apply({ a, params }, plugin: PluginContext) {
     return Task.create('Shape Representation', async (ctx) => {
       const props = { ...PD.getDefaultValues(a.data.params), ...params };
-      const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
+      const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils, { graphics: plugin.canvas3d?.graphics });
       await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
       return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
     });
@@ -43,4 +44,9 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
       return StateTransformer.UpdateResult.Updated;
     });
   },
+});
+
+registerTransformSignatures(ShapeRepresentation3D, (params, ctx) => {
+  const parent = ctx.tree.transforms.get(ctx.transform.parent);
+  return getShapeSignatures(parent, params, ctx);
 });

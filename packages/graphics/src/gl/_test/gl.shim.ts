@@ -600,6 +600,9 @@ export function createGl(
         case gl.MAX_RENDERBUFFER_SIZE:
           return 2048;
 
+        case gl.MAX_VERTEX_ATTRIBS:
+          return 16;
+
         case gl.ACTIVE_TEXTURE:
         case gl.ALPHA_BITS:
         case gl.BLEND_DST_ALPHA:
@@ -615,7 +618,6 @@ export function createGl(
         case gl.FRONT_FACE:
         case gl.GENERATE_MIPMAP_HINT:
         case gl.GREEN_BITS:
-        case gl.MAX_VERTEX_ATTRIBS:
         case gl.PACK_ALIGNMENT:
         case gl.RED_BITS:
         case gl.SAMPLE_BUFFERS:

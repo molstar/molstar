@@ -158,7 +158,7 @@ export const Fifty: StoryObj = {
       const readout = document.createElement('code');
       const update = () => {
         const s = CanvasContexts.stats();
-        readout.textContent = `viewers ${s.viewers} · in view ${s.inView} · live WebGL contexts ${s.live} (budget ${CanvasContexts.budget}) · in view without one ${s.dark}`;
+        readout.textContent = `viewers ${s.viewers} · in view ${s.inView} · live graphics contexts ${s.live} (budget ${CanvasContexts.budget}) · in view without one ${s.dark}`;
       };
       const timer = setInterval(update, 500);
       onCleanup(() => clearInterval(timer));

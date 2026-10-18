@@ -12,6 +12,7 @@ import { Emissive } from '@molstar/graphics/theme/emissive';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
 import { hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { EmissiveStructureRepresentation3DFromScript };
 type EmissiveStructureRepresentation3DFromScript = typeof EmissiveStructureRepresentation3DFromScript;
@@ -145,3 +146,6 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(EmissiveStructureRepresentation3DFromScript, 'emissive');
+registerTransformLayer(EmissiveStructureRepresentation3DFromBundle, 'emissive');

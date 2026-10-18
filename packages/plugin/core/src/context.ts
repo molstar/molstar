@@ -15,6 +15,8 @@ import {
   DefaultCanvas3DParams,
   type PartialCanvas3DProps,
 } from '@molstar/graphics/canvas3d/canvas3d';
+import { getDefaultGraphicsBackends } from '@molstar/graphics/gl/backends/default';
+import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
@@ -246,6 +248,8 @@ export class PluginContext {
     task: this.managers.task.events,
     canvas3d: {
       settingsUpdated: this.ev(),
+      /** after the graphics backend changed (`setGraphicsBackends`, or a fallback after a context was lost for good) */
+      backendChanged: this.ev(),
     },
   } as const;
 
@@ -300,27 +304,37 @@ export class PluginContext {
   }
 
   async initViewerAsync(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
-    return this._initViewer(canvas, container, canvas3dContext);
+    return await this._initViewer(canvas, container, canvas3dContext);
   }
 
   async initContainerAsync(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
-    return this._initContainer(options);
+    return await this._initContainer(options);
   }
 
   async mountAsync(
     target: HTMLElement,
     initOptions?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean },
   ) {
-    return this._mount(target, initOptions);
+    return await this._mount(target, initOptions);
   }
 
+  /** The container being made: mounts while it is made (e.g. a component mounted twice) wait for the same one. */
+  private containerInit?: Promise<boolean>;
+
   private _initContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
-    if (this.container) return true;
+    if (this.container) return Promise.resolve(true);
+    this.containerInit ??= this._createContainer(options).finally(() => {
+      this.containerInit = undefined;
+    });
+    return this.containerInit;
+  }
+
+  private async _createContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
     const container = new PluginContainer({
       checkeredCanvasBackground: options?.checkeredCanvasBackground,
       canvas: options?.canvas3dContext?.canvas,
     });
-    if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
+    if (!(await this._initViewer(container.canvas, container.parent, options?.canvas3dContext))) {
       return false;
     }
     if (options?.checkeredCanvasBackground) {
@@ -334,13 +348,13 @@ export class PluginContext {
    * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
    * If initContainer wasn't called separately before, initOptions will be passed to it.
    */
-  private _mount(
+  private async _mount(
     target: HTMLElement,
     initOptions?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean },
   ) {
     if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-    if (!this._initContainer(initOptions)) return false;
+    if (!(await this._initContainer(initOptions))) return false;
     this.container?.mount(target);
     this.handleResize();
     return true;
@@ -350,19 +364,24 @@ export class PluginContext {
     this.container?.unmount();
   }
 
-  private _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+  private async _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
     try {
       this.layout.setRoot(container);
       if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
       if (!canvas3dContext) {
-        canvas3dContext = Canvas3DContext.fromCanvas(
+        const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
+        const backends =
+          this.config.get(PluginConfig.General.GraphicsBackends) ?? getDefaultGraphicsBackends({ preferWebGl1 });
+        this._graphicsBackends = backends;
+        canvas3dContext = await Canvas3DContext.create(
           canvas,
           this.managers.asset,
+          backends,
           {
             antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
             preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
-            preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
+            preferWebGl1,
             failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
             powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
             handleResize: this.handleResize,
@@ -374,6 +393,11 @@ export class PluginContext {
             resolutionMode: this.config.get(PluginConfig.General.ResolutionMode) || 'auto',
           },
         );
+        // Disposed while the context was made (asynchronously): it is ours to free, and nothing is built on it.
+        if (this.disposed) {
+          canvas3dContext.dispose();
+          return false;
+        }
       }
       (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
       (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
@@ -411,6 +435,15 @@ export class PluginContext {
       );
       this.subs.push(this.canvas3d!.xr.requestFailed.subscribe((e) => this.log.error(`WebXR request failed: ${e}`)));
       this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
+      this.subs.push(
+        this.canvas3d!.contextChanged.subscribe(({ reason }) => {
+          const backend = this.canvas3d?.graphics.capabilities.backend;
+          if (reason === 'fallback') this.log.warn(`Graphics context lost, continuing with ${backend}`);
+          else if (reason === 'restore') this.log.info(`Graphics context restored (${backend})`);
+          else this.log.info(`Graphics backend: ${backend}`);
+          this.events.canvas3d.backendChanged.next(void 0);
+        }),
+      );
 
       this.handleResize();
 
@@ -422,6 +455,23 @@ export class PluginContext {
       Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[1](e));
       return false;
     }
+  }
+
+  private _graphicsBackends: readonly GraphicsBackendDescriptor[] = [];
+
+  /** The backends the context was created from (none when the context was passed in), see `setGraphicsBackends` */
+  get graphicsBackends(): readonly GraphicsBackendDescriptor[] {
+    return this._graphicsBackends;
+  }
+
+  /**
+   * Switches the graphics backend to the first of `backends` that can be created (e.g. a subset of
+   * `graphicsBackends`), keeping the scene (see `Canvas3DContext.setBackend`); false, keeping the current backend, if
+   * none can be created
+   */
+  async setGraphicsBackends(backends: readonly GraphicsBackendDescriptor[]) {
+    if (!this.canvas3dContext?.setBackend) return false;
+    return this.canvas3dContext.setBackend(backends);
   }
 
   handleResize = () => {

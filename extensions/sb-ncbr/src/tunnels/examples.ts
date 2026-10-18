@@ -17,7 +17,6 @@ export const URL = `${DB_URL}${SUB_DB}/${CHANNEL}`;
 
 export async function runVisualizeTunnels(plugin: PluginContext, url: string = URL) {
   const update = plugin.build();
-  const webgl = plugin.canvas3dContext?.webgl;
 
   const response = await (await fetch(url)).json();
 
@@ -34,9 +33,7 @@ export async function runVisualizeTunnels(plugin: PluginContext, url: string = U
     .toRoot()
     .apply(TunnelsFromRawData, { data: tunnels })
     .apply(SelectTunnel)
-    .apply(TunnelShapeProvider, {
-      webgl,
-    })
+    .apply(TunnelShapeProvider)
     .apply(ShapeRepresentation3D);
 
   await update.commit();
@@ -44,7 +41,6 @@ export async function runVisualizeTunnels(plugin: PluginContext, url: string = U
 
 export async function runVisualizeTunnel(plugin: PluginContext) {
   const update = plugin.build();
-  const webgl = plugin.canvas3dContext?.webgl;
 
   const response = await (await fetch(URL)).json();
 
@@ -53,9 +49,7 @@ export async function runVisualizeTunnel(plugin: PluginContext) {
   update
     .toRoot()
     .apply(TunnelFromRawData, { data: { data: tunnel.Profile, props: { id: tunnel.Id, type: tunnel.Type } } })
-    .apply(TunnelShapeProvider, {
-      webgl,
-    })
+    .apply(TunnelShapeProvider)
     .apply(ShapeRepresentation3D);
 
   await update.commit();

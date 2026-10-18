@@ -132,6 +132,7 @@ import {
 } from '@molstar/mvs/tree/molstar/molstar-tree';
 import { MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { validateMolQLTree } from '@molstar/mvs/runtime-validation';
+import { precompileSnapshots } from '@molstar/plugin/state/precompile';
 
 export interface MVSLoadOptions {
   /** Add snapshots from MVS into current snapshot list, instead of replacing the list. */
@@ -222,6 +223,11 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     for (const entry of entries) {
       plugin.managers.snapshot.add(entry);
     }
+    // what the snapshots draw, prepared in the background so that playing them compiles nothing
+    precompileSnapshots(
+      plugin,
+      entries.map((e) => e.snapshot),
+    );
 
     if (entries.length > 0) {
       let indexToApply = options.defaultSnapshotIndex ?? 0;

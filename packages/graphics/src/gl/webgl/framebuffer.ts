@@ -6,6 +6,10 @@
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
+import type { Framebuffer } from '../framebuffer.js';
+import type { WebGLExtensions } from './extensions.js';
+import { endRenderPass } from './render-pass.js';
+import type { WebGLState } from './state.js';
 
 const getNextFramebufferId = idFactory();
 
@@ -41,14 +45,6 @@ export function checkFramebufferStatus(gl: GLRenderingContext, message?: string)
   }
 }
 
-export interface Framebuffer {
-  readonly id: number;
-
-  bind: () => void;
-  reset: () => void;
-  destroy: () => void;
-}
-
 function getFramebuffer(gl: GLRenderingContext) {
   const framebuffer = gl.createFramebuffer();
   if (framebuffer === null) {
@@ -57,8 +53,49 @@ function getFramebuffer(gl: GLRenderingContext) {
   return framebuffer;
 }
 
-export function createFramebuffer(gl: GLRenderingContext): Framebuffer {
-  let _framebuffer = getFramebuffer(gl);
+/** The height of the attachments of framebuffers, to flip rectangles to GL's bottom-left origin */
+const AttachmentHeights = new WeakMap<Framebuffer, () => number>();
+
+/** Records the height of an attachment of `framebuffer` (all attachments have the same size) */
+export function setFramebufferHeight(framebuffer: Framebuffer, getHeight: () => number) {
+  AttachmentHeights.set(framebuffer, getHeight);
+}
+
+/** The height of the attachments of `framebuffer`, 0 without attachments */
+export function getFramebufferHeight(framebuffer: Framebuffer) {
+  return AttachmentHeights.get(framebuffer)?.() ?? 0;
+}
+
+/** GL framebuffers with an integer texture as first color attachment, cleared with `clearBufferiv` */
+const IntegerColorFramebuffers = new WeakSet<WebGLFramebuffer>();
+
+/** Records whether the first color attachment of the bound framebuffer is an integer texture */
+export function setIntegerColorAttachment(gl: GLRenderingContext, isInteger: boolean) {
+  const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+  if (!framebuffer) return;
+  if (isInteger) IntegerColorFramebuffers.add(framebuffer);
+  else IntegerColorFramebuffers.delete(framebuffer);
+}
+
+/** Whether the first color attachment of the bound framebuffer is an integer texture */
+export function hasIntegerColorAttachment(gl: GLRenderingContext) {
+  const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+  return !!framebuffer && IntegerColorFramebuffers.has(framebuffer);
+}
+
+function setDrawBuffers(extensions: WebGLExtensions, count: number) {
+  const { drawBuffers } = extensions;
+  if (!drawBuffers) {
+    if (count > 1) throw new Error('multiple draw buffers not supported');
+    return;
+  }
+  const buffers: number[] = [];
+  for (let i = 0; i < count; ++i) buffers.push(drawBuffers.COLOR_ATTACHMENT0 + i);
+  drawBuffers.drawBuffers(buffers);
+}
+
+export function createFramebuffer(gl: GLRenderingContext, extensions: WebGLExtensions, state: WebGLState): Framebuffer {
+  const _framebuffer = getFramebuffer(gl);
 
   let destroyed = false;
 
@@ -66,8 +103,10 @@ export function createFramebuffer(gl: GLRenderingContext): Framebuffer {
     id: getNextFramebufferId(),
 
     bind: () => gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer),
-    reset: () => {
-      _framebuffer = getFramebuffer(gl);
+    setDrawBuffers: (count: number) => {
+      endRenderPass(state);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer);
+      setDrawBuffers(extensions, count);
     },
     destroy: () => {
       if (destroyed) return;
@@ -84,7 +123,7 @@ export function createNullFramebuffer(): Framebuffer {
     id: getNextFramebufferId(),
 
     bind: () => {},
-    reset: () => {},
+    setDrawBuffers: () => {},
     destroy: () => {},
   };
 }

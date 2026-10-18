@@ -55,12 +55,7 @@ float L4(vec3 p, float a0, float a1, float a2, float a3, float a4, float a5, flo
 }
 
 float alpha(float offset, float f) {
-    #ifdef WEBGL1
-        // in webgl1, the value is in the alpha channel!
-        return texture2D(tAlpha, vec2(offset * f, 0.5)).a;
-    #else
-        return texture2D(tAlpha, vec2(offset * f, 0.5)).x;
-    #endif
+    return texture2D(tAlpha, vec2(offset * f, 0.5)).r;
 }
 
 float Y(int L, vec3 X, float aO, float fA) {

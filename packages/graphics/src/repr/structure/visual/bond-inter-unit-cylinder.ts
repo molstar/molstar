@@ -32,7 +32,7 @@ import {
 } from './util/bond.js';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { EmptyLocationIterator } from '@molstar/graphics/geo/util/location-iterator';
@@ -242,9 +242,9 @@ export function InterUnitBondCylinderVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<InterUnitBondCylinderParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
     ? InterUnitBondCylinderImpostorVisual(materialId)
     : InterUnitBondCylinderMeshVisual(materialId);
 }
@@ -307,8 +307,12 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
           state.updateSize = true;
         }
       },
-      mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-        return !props.tryUseImpostor || !webgl;
+      mustRecreate: (
+        structure: Structure,
+        props: PD.Values<InterUnitBondCylinderParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -369,8 +373,12 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
           state.updateSize = true;
         }
       },
-      mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-        return props.tryUseImpostor && !!webgl;
+      mustRecreate: (
+        structure: Structure,
+        props: PD.Values<InterUnitBondCylinderParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

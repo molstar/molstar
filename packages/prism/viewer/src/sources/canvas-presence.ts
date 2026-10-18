@@ -4,8 +4,10 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { Subscription } from 'rxjs';
 
@@ -15,16 +17,19 @@ import type { Subscription } from 'rxjs';
 // leaves it no area on screen), the plugin's animation loop stops without drawing; in view again, it starts and draws once
 // what changed meanwhile.
 //
-// WebGL contexts are the page's: a browser keeps only so many live (Chrome 16) and drops the oldest when one more is
-// made, and a context it dropped cannot be restored. So the page's viewers share a budget (`CanvasContexts.budget`,
-// below the browser's limit) and the page never reaches the limit: past the budget, the contexts of viewers out of view
-// are released (`WEBGL_lose_context.loseContext`), the longest unseen first; a viewer coming into view gets its context
-// back (`restoreContext`; Mol*'s Canvas3D restores its resources on `webglcontextrestored`), up to `max` when more
-// viewers than the budget are in view at once; past `max`, the viewers in view followed last give theirs up until a slot
-// frees. The changes of a frame are reconciled together, releases before restores, and a context being restored counts
-// as live until it is: a restore is asynchronous. A viewer just followed is reconciled at once, in the task that made its
-// context: viewers mounted together must not pass the browser's limit before a microtask runs. A viewer in an XR session
-// is left alone.
+// Graphics contexts are the page's: a browser keeps only so many WebGL contexts live (Chrome 16) and drops the oldest
+// when one more is made, and a context it dropped cannot be restored; a WebGPU device holds its GPU memory until
+// destroyed. So the page's viewers share a budget (`CanvasContexts.budget`, below the browser's limit) and the page never
+// reaches the limit: past the budget, the contexts of viewers out of view are released (`Canvas3DContext.release`: WebGL
+// `WEBGL_lose_context`, WebGPU the device destroyed, either freeing the GPU resources), the longest unseen first; a
+// viewer coming into view gets its context back (`Canvas3DContext.restore`, which rebuilds the canvas' resources as
+// after a loss), up to `max` when more viewers than the budget are in view at once; past `max`, the viewers in view
+// followed last give theirs up until a slot frees. The changes of a frame are reconciled together, releases before
+// restores, and a context being restored counts as live until it is: a restore is asynchronous. The plugin makes its
+// context asynchronously (the backend is chosen first), so a mount is admitted before it starts (`admitCanvas`): a
+// context being made counts as live, and past `max` a mount waits for the one before it to be followed and reconciled
+// (which releases what is past `max`, the newest viewer in view first), so viewers mounted together never pass the
+// browser's limit. A viewer in an XR session is left alone.
 
 interface Waiter {
   resolve(): void;
@@ -34,7 +39,8 @@ interface Waiter {
 interface Presence {
   readonly plugin: PluginContext;
   readonly root: HTMLElement;
-  readonly lose: WEBGL_lose_context | null;
+  /** The canvas' contexts: those that can't be released (`Canvas3DContext.release`) are left out of the budget. */
+  readonly context: Canvas3DContext;
   /** The order it was followed in: past `max`, those in view followed last give their contexts up first. */
   readonly order: number;
   visible: boolean;
@@ -44,7 +50,7 @@ interface Presence {
   released: boolean;
   /** A restore asked for and not done yet: counted as live. */
   restoring: boolean;
-  /** The browser has told it the context is lost (`webglcontextlost`): a restore before that is refused. */
+  /** The loss has been reported (`Canvas3DContext.contextLost`): a restore before that is refused. */
   lostSeen: boolean;
   /** Held by work that renders on purpose (an export, a thumbnail): its loop and context are left alone. */
   holds: number;
@@ -59,7 +65,7 @@ const byRoot = new Map<Element, Presence>();
 let followed = 0;
 
 /**
- * The page's WebGL contexts: `budget` kept live (viewers out of view release theirs past it), `max` the most ever live,
+ * The page's graphics contexts: `budget` kept live (viewers out of view release theirs past it), `max` the most ever live,
  * below the browser's limit (Chrome's is 16; past it the browser drops a context that cannot come back), which viewers
  * in view may use when more than `budget` of them show at once.
  */
@@ -80,8 +86,13 @@ export const CanvasContexts = {
   },
 };
 
+/** Released counts at once: WebGPU reports the loss only when the device's `lost` settles, a task or more later. */
 function isLost(p: Presence): boolean {
-  return !!p.plugin.canvas3d?.webgl.isContextLost;
+  return p.context.graphics.isContextLost || !!p.context.isReleased;
+}
+
+function canRelease(p: Presence): boolean {
+  return !!p.context.release && !!p.context.restore;
 }
 
 /** Holds a context now or soon (a restore under way). */
@@ -90,7 +101,46 @@ function isLive(p: Presence): boolean {
 }
 
 function inXr(p: Presence): boolean {
-  return !!p.plugin.canvas3d?.webgl.xr.session;
+  return p.context.graphics.xr.isPresenting();
+}
+
+/** Contexts being made: admitted mounts not followed yet, counted as live. */
+let creating = 0;
+/** Mounts waiting for a slot, in the order they asked. */
+const admissions: (() => void)[] = [];
+
+function liveCount(): number {
+  let live = 0;
+  for (const p of viewers) if (isLive(p)) live++;
+  return live;
+}
+
+/** One context may be made past `max` (the browser's limit is above it): reconciling it releases one again. */
+function hasRoom(): boolean {
+  return liveCount() + creating <= CanvasContexts.max;
+}
+
+function admitWaiting(): void {
+  while (admissions.length && hasRoom()) {
+    creating++;
+    admissions.shift()!();
+  }
+}
+
+/**
+ * Admits a mount about to make a context: at once while the page has room, else when a slot frees. Call the returned
+ * function once the canvas is followed (or the mount failed): its context then counts by itself.
+ */
+export async function admitCanvas(): Promise<() => void> {
+  if (!admissions.length && hasRoom()) creating++;
+  else await new Promise<void>((resolve) => admissions.push(resolve));
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    creating--;
+    admitWaiting();
+  };
 }
 
 let scheduled = false;
@@ -100,9 +150,18 @@ function schedule(): void {
   queueMicrotask(reconcile);
 }
 
-function release(p: Presence): void {
+/** Whether the context was released (refused, e.g. while the backend changes: it stays as it was). */
+function release(p: Presence): boolean {
+  if (!p.context.release?.()) return false;
   p.released = true;
-  p.lose!.loseContext();
+  return true;
+}
+
+/** Refused: it stays released, to be asked again on the next change; work waiting for it is told. */
+function restoreRefused(p: Presence, e: unknown): void {
+  p.released = true;
+  p.restoring = false;
+  for (const w of p.waiters.splice(0)) w.reject(e);
 }
 
 /** The frame's changes together: loops stopped out of view, releases to make room, then restores and loops started. */
@@ -114,16 +173,15 @@ function reconcile(): void {
     if (loop.isAnimating) loop.stop({ noDraw: true });
   }
   const wanted = [...viewers].filter(
-    (p) => (p.visible || p.holds > 0) && isLost(p) && p.released && p.lostSeen && !p.restoring && p.lose,
+    (p) => (p.visible || p.holds > 0) && isLost(p) && p.released && p.lostSeen && !p.restoring && canRelease(p),
   );
   let live = 0;
   for (const p of viewers) if (isLive(p)) live++;
-  const releasable = (p: Presence) => !p.holds && !p.restoring && !isLost(p) && !!p.lose && !inXr(p);
+  const releasable = (p: Presence) => !p.holds && !p.restoring && !isLost(p) && canRelease(p) && !inXr(p);
   const unseen = [...viewers].filter((p) => !p.visible && releasable(p)).sort((a, b) => a.seen - b.seen);
   for (const p of unseen) {
     if (live + wanted.length <= CanvasContexts.budget) break;
-    release(p);
-    live--;
+    if (release(p)) live--;
   }
   // More in view than the page may hold (many viewers shown or mounted at once): those followed last go dark until a
   // slot frees, rather than the browser dropping one for good.
@@ -131,8 +189,7 @@ function reconcile(): void {
     const shown = [...viewers].filter((p) => p.visible && releasable(p)).sort((a, b) => b.order - a.order);
     for (const p of shown) {
       if (live <= CanvasContexts.max) break;
-      release(p);
-      live--;
+      if (release(p)) live--;
     }
   }
   for (const p of wanted) {
@@ -141,15 +198,13 @@ function reconcile(): void {
     p.released = false;
     p.restoring = true;
     live++;
-    try {
-      p.lose!.restoreContext();
-    } catch (e) {
-      // Refused: it stays released, to be asked again on the next change; work waiting for it is told.
-      p.released = true;
-      p.restoring = false;
-      live--;
-      for (const w of p.waiters.splice(0)) w.reject(e);
-    }
+    // Asynchronous: `contextRestored` follows a restore that succeeds.
+    p.context.restore!().then(
+      (restored) => {
+        if (!restored) restoreRefused(p, new Error('Graphics context not restored'));
+      },
+      (e) => restoreRefused(p, e),
+    );
   }
   for (const p of viewers) {
     if (!p.visible || p.holds || isLost(p)) continue;
@@ -159,6 +214,7 @@ function reconcile(): void {
       p.plugin.canvas3d?.requestDraw();
     }
   }
+  admitWaiting();
 }
 
 function inViewNow(root: HTMLElement): boolean {
@@ -271,21 +327,21 @@ function observe(root: HTMLElement): void {
 }
 
 /**
- * Starts following the canvas: pauses it out of view and puts its context in the page's budget, at once (call it in the
- * task that made the context). Following it again does nothing.
+ * Starts following the canvas: pauses it out of view and puts its context in the page's budget, at once (call it once the
+ * context is made, before the mount's admission is let go). Following it again does nothing.
  */
 export function followCanvasPresence(plugin: PluginContext): void {
   if (byPlugin.has(plugin)) return;
   const root = plugin.layout.root;
-  const webgl = plugin.canvas3d?.webgl;
-  if (!root || !webgl) return;
+  const context = plugin.canvas3dContext;
+  if (!root || !context || !plugin.canvas3d) return;
   // In view now? One read at mount: the observer answers a frame later, and a page making many viewers at once must not
   // pass the browser's limit meanwhile.
   const visible = inViewNow(root);
   const p: Presence = {
     plugin,
     root,
-    lose: webgl.gl.getExtension('WEBGL_lose_context'),
+    context,
     order: followed++,
     visible,
     seen: visible ? performance.now() : 0,
@@ -299,7 +355,7 @@ export function followCanvasPresence(plugin: PluginContext): void {
   viewers.add(p);
   byPlugin.set(plugin, p);
   byRoot.set(root, p);
-  const lost = plugin.canvas3dContext?.contextLost;
+  const lost = context.contextLost;
   if (lost) {
     p.subscriptions.push(
       lost.subscribe(() => {
@@ -308,15 +364,18 @@ export function followCanvasPresence(plugin: PluginContext): void {
       }),
     );
   }
-  p.subscriptions.push(
-    webgl.contextRestored.subscribe(() => {
-      p.restoring = false;
-      p.lostSeen = false;
-      for (const w of p.waiters.splice(0)) w.resolve();
-      plugin.canvas3d?.requestDraw();
-      schedule();
-    }),
-  );
+  const restored = context.contextRestored;
+  if (restored) {
+    p.subscriptions.push(
+      restored.subscribe(() => {
+        p.restoring = false;
+        p.lostSeen = false;
+        for (const w of p.waiters.splice(0)) w.resolve();
+        plugin.canvas3d?.requestDraw();
+        schedule();
+      }),
+    );
+  }
   observe(root);
   reconcile();
 }

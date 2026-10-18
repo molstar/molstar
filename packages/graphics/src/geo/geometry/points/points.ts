@@ -5,8 +5,8 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { type Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { transformPositionArray, type GroupMapping, createGroupMapping } from '../../util.js';
+import { type Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { transformPositionArray, type GroupMapping } from '../../util.js';
 import type { GeometryUtils } from '../geometry.js';
 import { createColors } from '../color-data.js';
 import { createMarkers } from '../marker-data.js';
@@ -14,10 +14,7 @@ import { createSizes } from '../size-data.js';
 import type { TransformData } from '../transform-data.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  calculateInvariantBoundingSphere,
-  calculateTransformBoundingSphere,
-} from '@molstar/graphics/gl/renderable/util';
+import { type TextureImage, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
@@ -26,12 +23,12 @@ import type { Color } from '@molstar/core/util/color';
 import { BaseGeometry, resolveInstanceGranularity } from '../base.js';
 import { createEmptyOverpaint } from '../overpaint-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
-import { hashFnv32a } from '@molstar/core/data/util';
 import { createEmptyClipping } from '../clipping-data.js';
 import { createEmptySubstance } from '../substance-data.js';
 import { createEmptyEmissive } from '../emissive-data.js';
 import { createEmptyWiggle } from '../wiggle-data.js';
 import { getAnimationParam, createAnimationValues, updateAnimationValues } from '../animation.js';
+import { createCenterGroupData } from '../center-group.js';
 
 /** Point cloud */
 export interface Points {
@@ -52,9 +49,19 @@ export interface Points {
 
   setBoundingSphere(boundingSphere: Sphere3D): void;
   hasBoundingSphere(): boolean;
+
+  shaderData: Points.ShaderData;
 }
 
 export namespace Points {
+  /** Data read by the shaders, points are drawn as quads of 6 vertices that pull their center and group */
+  export interface ShaderData {
+    /** center xyz and group per point */
+    readonly positionGroup: ValueCell<TextureImage<Float32Array>>;
+    readonly texDim: ValueCell<Vec2>;
+    update(): void;
+  }
+
   export function create(centers: Float32Array, groups: Float32Array, pointCount: number, points?: Points): Points {
     return points ? update(centers, groups, pointCount, points) : fromArrays(centers, groups, pointCount);
   }
@@ -65,46 +72,31 @@ export namespace Points {
     return create(cb, gb, 0, points);
   }
 
-  function hashCode(points: Points) {
-    return hashFnv32a([points.pointCount, points.centerBuffer.ref.version, points.groupBuffer.ref.version]);
-  }
-
   function fromArrays(centers: Float32Array, groups: Float32Array, pointCount: number): Points {
-    const boundingSphere = Sphere3D();
-    let groupMapping: GroupMapping;
-
-    let currentHash = -1;
-    let currentGroup = -1;
+    const data = createCenterGroupData(centers, groups, () => points.pointCount);
 
     const points = {
       kind: 'points' as const,
       pointCount,
-      centerBuffer: ValueCell.create(centers),
-      groupBuffer: ValueCell.create(groups),
+      centerBuffer: data.centerBuffer,
+      groupBuffer: data.groupBuffer,
       get boundingSphere() {
-        const newHash = hashCode(points);
-        if (newHash !== currentHash) {
-          const b = calculateInvariantBoundingSphere(points.centerBuffer.ref.value, points.pointCount, 1);
-          Sphere3D.copy(boundingSphere, b);
-          currentHash = newHash;
-        }
-        return boundingSphere;
+        return data.getBoundingSphere();
       },
       get groupMapping() {
-        if (points.groupBuffer.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(points.groupBuffer.ref.value, points.pointCount);
-          currentGroup = points.groupBuffer.ref.version;
-        }
-        return groupMapping;
+        return data.getGroupMapping();
       },
-      setBoundingSphere(sphere: Sphere3D) {
-        Sphere3D.copy(boundingSphere, sphere);
-        currentHash = hashCode(points);
-      },
-      hasBoundingSphere() {
-        return currentHash === hashCode(points);
+      setBoundingSphere: data.setBoundingSphere,
+      hasBoundingSphere: data.hasBoundingSphere,
+      shaderData: {
+        positionGroup: data.positionGroup,
+        texDim: data.texDim,
+        update() {
+          data.updatePositionGroup();
+        },
       },
     };
+    points.shaderData.update();
     return points;
   }
 
@@ -112,6 +104,7 @@ export namespace Points {
     points.pointCount = pointCount;
     ValueCell.update(points.centerBuffer, centers);
     ValueCell.update(points.groupBuffer, groups);
+    points.shaderData.update();
     return points;
   }
 
@@ -119,6 +112,7 @@ export namespace Points {
     const c = points.centerBuffer.ref.value;
     transformPositionArray(t, c, 0, points.pointCount);
     ValueCell.update(points.centerBuffer, c);
+    points.shaderData.update();
   }
 
   //
@@ -192,7 +186,8 @@ export namespace Points {
     const clipping = createEmptyClipping();
     const wiggle = createEmptyWiggle();
 
-    const counts = { drawCount: points.pointCount, vertexCount: points.pointCount, groupCount, instanceCount };
+    // each point is a quad of two triangles, the vertex count is the number of points (data per point)
+    const counts = { drawCount: points.pointCount * 2 * 3, vertexCount: points.pointCount, groupCount, instanceCount };
 
     const invariantBoundingSphere = Sphere3D.clone(points.boundingSphere);
     const boundingSphere = calculateTransformBoundingSphere(
@@ -205,8 +200,10 @@ export namespace Points {
     return {
       dGeometryType: ValueCell.create('points'),
 
-      aPosition: points.centerBuffer,
-      aGroup: points.groupBuffer,
+      uTexDim: points.shaderData.texDim,
+      tPositionGroup: points.shaderData.positionGroup,
+      centerBuffer: points.centerBuffer,
+      groupBuffer: points.groupBuffer,
       boundingSphere: ValueCell.create(boundingSphere),
       invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
       uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),

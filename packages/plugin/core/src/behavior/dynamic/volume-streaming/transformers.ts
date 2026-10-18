@@ -348,7 +348,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
       const provider = IsosurfaceRepresentationProvider;
       const props = params.type.params || {};
       const repr = provider.factory(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.volume.themes },
         provider.getParams,
       );
       repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));

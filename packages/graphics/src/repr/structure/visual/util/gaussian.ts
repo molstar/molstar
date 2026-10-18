@@ -9,8 +9,12 @@ import type { Unit, Structure } from '@molstar/model/model/structure';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { GaussianDensityTexture, GaussianDensityTexture2d } from '@molstar/graphics/geo/gaussian-density/gpu';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isComputeGaussianDensitySupported } from '@molstar/graphics/gl/compute/gaussian-density';
+import type { ComputeContext } from '@molstar/graphics/gl/compute';
+import { Box3D } from '@molstar/core/math/geometry';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import {
   getUnitConformationAndRadius,
   getStructureConformationAndRadius,
@@ -50,8 +54,29 @@ export type GaussianDensityProps = typeof DefaultGaussianDensityProps;
 
 //
 
-export function getTextureMaxCells(webgl: WebGLContext, structure?: Structure) {
-  const d = webgl.maxTextureSize / 3;
+/**
+ * Cells of a 3d density computed with kernels (WebGPU), by a device limit as the 2d atlas of WebGL
+ * (`getTextureMaxCells`): the marching cubes keep a u32 count and offset per cell in storage buffers, so a cell
+ * count beyond `maxStorageBufferSize / 4` fails to extract. That is 2²⁵ cells with the core limits (128 MiB storage
+ * bindings, a 256 MiB rgba fp16 density), more with the adapter's (requested by default), where the GPU memory, not
+ * reported by WebGPU, is the practical limit
+ */
+export function getComputeDensityMaxCells(compute: ComputeContext) {
+  return Math.floor(compute.maxStorageBufferSize / 4);
+}
+
+/**
+ * As `ensureReasonableResolution`, for the 3d density computed with kernels: limited by all cells of the grid, not by
+ * the slices of a 2d atlas (sized by the 2d texture limit, which is smaller on WebGPU)
+ */
+function ensureComputeResolution<T>(box: Box3D, props: { resolution: number } & T, compute: ComputeContext) {
+  const size = Box3D.size(Vec3(), box);
+  const minResolution = Math.cbrt((size[0] * size[1] * size[2]) / getComputeDensityMaxCells(compute));
+  return props.resolution < minResolution ? { ...props, resolution: minResolution } : props;
+}
+
+export function getTextureMaxCells(graphics: GraphicsContext, structure?: Structure) {
+  const d = graphics.resources.limits.maxTextureSize / 3;
   return (d * d) / Math.max(1, structure ? structure.units.length / 16 : 1);
 }
 
@@ -75,12 +100,15 @@ export function computeUnitGaussianDensityTexture(
   unit: Unit,
   sizeTheme: SizeTheme<any>,
   props: Omit<GaussianDensityProps, 'floodfill'>,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
+  growTexture?: boolean,
 ) {
   const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-  const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(webgl, structure));
-  return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
+  const p = isComputeGaussianDensitySupported(graphics)
+    ? ensureComputeResolution(boundary.box, props, graphics.compute)
+    : ensureReasonableResolution(boundary.box, props, getTextureMaxCells(graphics, structure));
+  return GaussianDensityTexture(graphics, position, boundary.box, radius, p, texture, growTexture);
 }
 
 export function computeUnitGaussianDensityTexture2d(
@@ -89,12 +117,12 @@ export function computeUnitGaussianDensityTexture2d(
   sizeTheme: SizeTheme<any>,
   powerOfTwo: boolean,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
   const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-  const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(webgl, structure));
-  return GaussianDensityTexture2d(webgl, position, boundary.box, radius, powerOfTwo, p, texture);
+  const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(graphics, structure));
+  return GaussianDensityTexture2d(graphics, position, boundary.box, radius, powerOfTwo, p, texture);
 }
 
 //
@@ -115,12 +143,15 @@ export function computeStructureGaussianDensityTexture(
   structure: Structure,
   sizeTheme: SizeTheme<any>,
   props: Omit<GaussianDensityProps, 'floodfill'>,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
+  growTexture?: boolean,
 ) {
   const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
-  const p = ensureReasonableResolution(boundary.box, props);
-  return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
+  const p = isComputeGaussianDensitySupported(graphics)
+    ? ensureComputeResolution(boundary.box, props, graphics.compute)
+    : ensureReasonableResolution(boundary.box, props);
+  return GaussianDensityTexture(graphics, position, boundary.box, radius, p, texture, growTexture);
 }
 
 export function computeStructureGaussianDensityTexture2d(
@@ -128,11 +159,11 @@ export function computeStructureGaussianDensityTexture2d(
   sizeTheme: SizeTheme<any>,
   powerOfTwo: boolean,
   props: GaussianDensityProps,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
   const { box } = structure.lookup3d.boundary;
   const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
   const p = ensureReasonableResolution(boundary.box, props);
-  return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);
+  return GaussianDensityTexture2d(graphics, position, box, radius, powerOfTwo, p, texture);
 }

@@ -215,12 +215,21 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
     const ext = gl.getExtension('WEBGL_color_buffer_float');
     if (ext === null) {
       // test as support may not be advertised by browsers
-      gl.getExtension('OES_texture_float');
+      if (gl.getExtension('OES_texture_float') === null) return null;
       return testColorBuffer(gl, gl.FLOAT) ? { RGBA32F: 0x8814 } : null;
     }
     gl.getExtension('EXT_float_blend');
     return { RGBA32F: ext.RGBA32F_EXT };
   }
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_float_blend/
+ */
+export interface COMPAT_float_blend {}
+
+export function getFloatBlend(gl: GLRenderingContext): COMPAT_float_blend | null {
+  return gl.getExtension('EXT_float_blend') === null ? null : {};
 }
 
 /**
@@ -239,7 +248,7 @@ export function getColorBufferHalfFloat(gl: GLRenderingContext): COMPAT_color_bu
     const ext = gl.getExtension('EXT_color_buffer_half_float');
     if (ext === null) {
       // test as support may not be advertised by browsers
-      gl.getExtension('OES_texture_half_float');
+      if (gl.getExtension('OES_texture_half_float') === null) return null;
       return testColorBuffer(gl, 0x8d61) ? { RGBA16F: 0x881a } : null;
     }
     gl.getExtension('EXT_float_blend');

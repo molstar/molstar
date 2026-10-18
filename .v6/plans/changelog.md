@@ -52,6 +52,34 @@ the [API change ledger](breaking-v6-changes.md).
 - [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
   `@molstar/query-language/language/expression`
 
+## Graphics
+
+- WebGPU backend next to WebGL1/2: all representations, transparency modes, postprocessing, picking and illumination;
+  Gaussian surfaces, isosurfaces, color smoothing and other GPU paths as compute shaders (indirect draws, no readback of
+  the vertex count); context loss restored in place on both backends
+- The Viewer and the Mesoscale Explorer use WebGPU by default where the adapter has the features WebGL2 has
+  (`graphics-backend=auto`, which stays on WebGL2 where blending into float32 targets is missing, e.g. older Firefox);
+  `graphics-backend=webgpu` asks for WebGPU, `webgl` for WebGL (WebGL2, else WebGL1), `webgl2` and `webgl1` for that
+  version only. The plugin and library default stays WebGL. The Prism viewer has the same option
+  (`renderer.graphicsBackend`, `graphics-backend`, `auto` by default) and keeps v5's `prefer-webgl1` (`webgl1`)
+- [Breaking] The `preferWebgl1` option and `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are
+  removed: `graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`)
+- Graphics backend switching at runtime, keeping the scene (render objects, markers, camera, props):
+  `Canvas3DContext.setBackend` (a new canvas element takes the place of the old one), `Canvas3D.contextChanged`,
+  `Representation.setGraphics`; in the plugin `PluginContext.setGraphicsBackends` and a Graphics Backend setting in the
+  viewport settings (advanced) where it was created with more than one backend
+- [Breaking] `Canvas3D.identify` returns `'pending'` while pick data is still being read (WebGPU reads it
+  asynchronously), instead of the `undefined` of "nothing found"; `canvas3d.asyncIdentify(target)?.wait()` resolves with
+  the pick data on every backend, see the [API change ledger](breaking-v6-changes.md)
+- [Breaking] Rendering code uses a backend-neutral `GraphicsContext` (`canvas3d.graphics`); `Canvas3D.webgl` and
+  `Canvas3DContext.webgl` are removed, see the [API change ledger](breaking-v6-changes.md) for the other changes
+- [Breaking] Fewer shader programs: the color and size types read by index share one program each, the grid color
+  types another, and the instance granularity selects the marker and layer data's index at runtime (the object uniform
+  `uInstanceGranularity`), so changing it compiles nothing; custom renderables and shaders follow, see the
+  [API change ledger](breaking-v6-changes.md)
+- Fix images and direct volumes with instance granularity: markers were read per group instance, and direct volumes
+  ignored overpaint
+
 ## MVS selectors through model indices
 
 - New MolQL generator `element-schema` (`structure.generator.element-schema`, `sel.atom.element-schema` in MolScript)

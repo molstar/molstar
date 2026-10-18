@@ -16,14 +16,17 @@ import { longPress, PressMs, PressSlop } from '../canvas-host.js';
 // (the hover label shows it). A quick tap, a drag, another pointer kind and a lifted finger do not.
 
 function setup() {
-  const canvas = document.createElement('canvas');
-  document.body.append(canvas);
+  const host = document.createElement('div');
+  const context = { canvas: document.createElement('canvas') };
+  host.append(context.canvas);
+  document.body.append(host);
   const highlightOnly = vi.fn();
-  const identify = vi.fn(() => ({ id: 7 }));
+  // read asynchronously on every backend
+  const identify = vi.fn(() => ({ wait: () => Promise.resolve({ id: 7 }) }));
   const loci = { kind: 'element-loci' };
   const plugin = {
-    canvas3dContext: { canvas },
-    canvas3d: { identify, getLoci: vi.fn(() => ({ loci })) },
+    canvas3dContext: context,
+    canvas3d: { asyncIdentify: identify, getLoci: vi.fn(() => ({ loci })) },
     managers: { interactivity: { lociHighlights: { highlightOnly } } },
   } as unknown as PluginContext;
   longPress(plugin);
@@ -32,9 +35,15 @@ function setup() {
     e.pointerType = init.pointerType ?? 'touch';
     e.clientX = init.x ?? 10;
     e.clientY = init.y ?? 20;
-    canvas.dispatchEvent(e);
+    context.canvas.dispatchEvent(e);
   };
-  return { pointer, highlightOnly, identify, loci };
+  // a backend fallback replaces the canvas element in place
+  const replaceCanvas = () => {
+    const next = document.createElement('canvas');
+    context.canvas.replaceWith(next);
+    context.canvas = next;
+  };
+  return { pointer, replaceCanvas, highlightOnly, identify, loci };
 }
 
 describe('long press on the canvas', () => {
@@ -44,34 +53,42 @@ describe('long press on the canvas', () => {
     document.body.innerHTML = '';
   });
 
-  it('highlights what is under a finger held still', () => {
+  it('highlights what is under a finger held still', async () => {
     const t = setup();
     t.pointer('pointerdown');
-    vi.advanceTimersByTime(PressMs - 1);
+    await vi.advanceTimersByTimeAsync(PressMs - 1);
     expect(t.highlightOnly).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
+    await vi.advanceTimersByTimeAsync(1);
     expect(t.identify).toHaveBeenCalled();
     expect(t.highlightOnly).toHaveBeenCalledWith({ loci: t.loci });
   });
 
-  it('does not for a tap, a lifted finger, a drag past the slop, or a mouse', () => {
+  it('does not for a tap, a lifted finger, a drag past the slop, or a mouse', async () => {
     const t = setup();
     t.pointer('pointerdown');
     t.pointer('pointerup');
-    vi.advanceTimersByTime(PressMs * 2);
+    await vi.advanceTimersByTimeAsync(PressMs * 2);
     t.pointer('pointerdown');
     t.pointer('pointermove', { x: 10 + PressSlop + 1 });
-    vi.advanceTimersByTime(PressMs * 2);
+    await vi.advanceTimersByTimeAsync(PressMs * 2);
     t.pointer('pointerdown', { pointerType: 'mouse' });
-    vi.advanceTimersByTime(PressMs * 2);
+    await vi.advanceTimersByTimeAsync(PressMs * 2);
     expect(t.highlightOnly).not.toHaveBeenCalled();
   });
 
-  it('allows a small tremor of the finger', () => {
+  it('allows a small tremor of the finger', async () => {
     const t = setup();
     t.pointer('pointerdown');
     t.pointer('pointermove', { x: 10 + PressSlop - 1 });
-    vi.advanceTimersByTime(PressMs);
+    await vi.advanceTimersByTimeAsync(PressMs);
     expect(t.highlightOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows the canvas a backend fallback puts in its place', async () => {
+    const t = setup();
+    t.replaceCanvas();
+    t.pointer('pointerdown');
+    await vi.advanceTimersByTimeAsync(PressMs);
+    expect(t.highlightOnly).toHaveBeenCalledWith({ loci: t.loci });
   });
 });

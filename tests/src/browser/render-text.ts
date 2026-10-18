@@ -5,7 +5,8 @@
  */
 
 import './index.html';
-import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
 import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { ParamDefinition, ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -26,7 +27,7 @@ parent.appendChild(canvas);
 
 const assetManager = new AssetManager();
 
-const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);
 resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
 canvas3dContext.syncPixelScale();
