@@ -10,6 +10,7 @@ import { UpdateTarget } from '@molstar/mvs/load-generic';
 export const IsHiddenCustomStateExtension: MolstarLoadingExtension<{}> = {
   id: 'ww-pdb/is-hidden-custom-state',
   description: 'Allow updating initial visibility of nodes',
+  local: true,
   createExtensionContext: () => ({}),
   action: (updateTarget, node) => {
     if (!node.custom || !node.custom?.is_hidden) return;

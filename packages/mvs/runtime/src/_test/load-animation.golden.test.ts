@@ -26,6 +26,7 @@ import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { generateStateTransition } from '@molstar/mvs/helpers/animation';
 import { loadMVS } from '@molstar/mvs/load';
+import { SubtreeMemo } from '@molstar/mvs/load-generic';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 
 const Fixtures = ['features', 'motm1', 'exosome'];
@@ -99,7 +100,10 @@ async function computeGoldens(name: string): Promise<Goldens> {
 
     vi.spyOn(Math, 'random').mockImplementation(mulberry32(1));
     // (`keepCamera`: the plugin has no canvas)
+    const fallbacks = SubtreeMemo.stats.fallbacks;
     await loadMVS(plugin, data, { keepCamera: true, doNotReportErrors: true });
+    // (a replayed subtree never had to be loaded again: the rules of `load.md §4` hold for the fixtures)
+    expect(SubtreeMemo.stats.fallbacks).toBe(fallbacks);
     const loaded = plugin.managers.snapshot.state.entries.toArray().map((entry) => ({
       base: stateTreeHash(entry.snapshot.data),
       frames: (entry.snapshot.transition?.frames ?? []).map(

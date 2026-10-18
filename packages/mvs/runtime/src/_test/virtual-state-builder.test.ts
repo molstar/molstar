@@ -15,7 +15,15 @@ import {
   TransformStructureConformation,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
-import { jsonEqual, shareEqualParts, VirtualStateBuilder } from '../load-generic.js';
+import {
+  jsonEqual,
+  type LoadingActions,
+  loadTreeVirtual,
+  shareEqualParts,
+  SubtreeMemo,
+  UpdateTarget,
+  VirtualStateBuilder,
+} from '../load-generic.js';
 
 const Transform = { name: 'components', params: { translation: [1, 2, 3], angle: 0, axis: [0, 0, 1] } } as any;
 
@@ -106,6 +114,48 @@ describe('VirtualStateBuilder', () => {
       true,
       true,
     ]);
+
+    plugin.dispose();
+  });
+});
+
+describe('loadTreeVirtual with a SubtreeMemo', () => {
+  // a toy tree: every child of the root downloads its url, every grandchild parses
+  const actions: LoadingActions<any, {}> = {
+    root: (parent) => parent,
+    file: (parent, node: any) => UpdateTarget.apply(parent, Download, { url: node.params.url, isBinary: true }),
+    cif: (parent) => UpdateTarget.apply(parent, ParseCif, {}),
+  } as any;
+  const file = (url: string) => ({ kind: 'file', params: { url }, children: [{ kind: 'cif' }] });
+
+  it('replays unchanged units with the same output, and loads again when a replay does not fit', async () => {
+    const plugin = new PluginContext({ registry: [], behaviors: [] });
+    await plugin.init();
+    const load = (tree: any, memo?: SubtreeMemo) => {
+      if (memo) memo.units = new Set(tree.children);
+      return loadTreeVirtual(plugin, tree, actions, {}, { replaceExisting: true, subtreeMemo: memo }).data!.tree;
+    };
+    const memo = new SubtreeMemo(() => true);
+    const a = file('https://example.org/a.bcif');
+    const b = file('https://example.org/b.bcif');
+    const stats0 = { ...SubtreeMemo.stats };
+
+    const first = load({ kind: 'root', children: [a, b] }, memo);
+    expect(first).toEqual(load({ kind: 'root', children: [a, b] }));
+
+    // b changed: a is replayed, b loaded
+    const b2 = file('https://example.org/b2.bcif');
+    const second = load({ kind: 'root', children: [a, b2] }, memo);
+    expect(second).toEqual(load({ kind: 'root', children: [a, b2] }));
+    expect(second.transforms[1]).toBe(first.transforms[1]);
+    expect(SubtreeMemo.stats.replayed - stats0.replayed).toBe(1);
+
+    // a new unit before a takes the ref a was given: the replay does not fit, the tree is loaded again
+    const c = file('https://example.org/c.bcif');
+    const third = load({ kind: 'root', children: [c, a, b2] }, memo);
+    expect(third).toEqual(load({ kind: 'root', children: [c, a, b2] }));
+    expect(SubtreeMemo.stats.fallbacks - stats0.fallbacks).toBe(1);
+    expect(memo.fallbacks).toBe(1);
 
     plugin.dispose();
   });

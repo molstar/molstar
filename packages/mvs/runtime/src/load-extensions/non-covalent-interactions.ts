@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -16,6 +16,7 @@ export const NonCovalentInteractionsExtension: MolstarLoadingExtension<{}> = {
   id: 'wwpdb/non-covalent-interactions',
   description:
     'Allow showing non-covalent interactions around components with molstar_show_non_covalent_interactions additional property',
+  local: true,
   createExtensionContext: () => ({}),
   action: (updateTarget, node, context, extContext) => {
     if (node.kind !== 'component' && node.kind !== 'component_from_uri' && node.kind !== 'component_from_source')

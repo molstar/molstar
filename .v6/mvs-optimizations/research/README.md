@@ -29,7 +29,7 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
 | 1    | compiled update plan instead of mutative; value-level dedup (done)                          | `helpers/animation.ts`   | expansion 396 ms → tens of ms            |
 | 2    | local waste: memoized ref hashes, no per-frame camera/canvas; cheap ids (done)               | `load*.ts`, `core/util`  | −25–35 %                                 |
 | 3    | emit serialized transforms directly; reuse whole transforms from the previous frame (done)  | `load-generic.ts`        | most of the 57 %; retained 77 → few MB   |
-| 4    | memoize conversion and loading by subtree identity, per structure unit (if still on top)    | `tree/`, `load-generic`  | per-frame cost ∝ changed units           |
+| 4    | memoize conversion and loading by subtree identity, per unit (done)                         | `tree/`, `load-generic`  | per-frame cost ∝ changed units           |
 | 5    | (open) frames computed at playback                                                          | `plugin/core` state      | animation load ≈ plan compilation        |
 
 ## Status
@@ -49,10 +49,18 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
   included; a frame reuses the transforms equal (as JSON) to the previous frame's or the snapshot's, and changed params
   share their equal parts. Goldens unchanged. exosome `loadMVS` ~800 ms (from 1,803), retained 19 MB (from 77); motm1
   ~270 ms (from 736), 4.9 MB (from 25). An API change after all: `UpdateTarget.update`/`commit` removed (ledger).
-- **Now on top** (exosome, ~800 ms): the loading actions ~300 ms, `serialize` ~200 ms (mostly `jsonEqual` over the
-  ~67 unchanged transforms of each frame), `convertMvsToMolstar` ~185 ms. All three are per-frame work on parts that
-  did not change: step 4 (reuse by MVS subtree identity, per structure unit) removes them for unchanged units. The
-  target of steps 1–3 (exosome < 400 ms, motm1 < 150 ms) is not met without it.
+- **Step 4**: `convertMvsToMolstarMemo` memoizes conversion below the top nodes by MVS node; `SubtreeMemo` records the
+  loading of each unit (a converted subtree right below a top node) and replays it while the unit object is the same:
+  refs, transforms, serialized objects. Units are the granularity because the loading actions read their subtree; top
+  nodes and units with `label_from_*` load every frame; a replay that does not fit falls back to a full load. Goldens
+  unchanged, no fallback on the fixtures. exosome ~510 ms (61k units replayed, 20k loaded), motm1 ~200 ms.
+- **Overall** (Node, no canvas): exosome 1,803 → ~510 ms (3.5×), 3.27 GB → 0.9 GB allocated, 77 → 19 MB kept; motm1
+  736 → ~200 ms (3.7×), 25 → 4.9 MB.
+- **Now on top** (exosome): `serialize` ~170 ms (`jsonEqual` of the transforms loaded again: the top nodes' every
+  frame, with params like the annotation and tooltip lists), the top nodes' actions ~140 ms (`structure` and `model`
+  walk the whole structure subtree, `makeNearestReprMap` the whole tree), the top-part conversion ~60 ms. Next if
+  needed: memoize what the top nodes compute from their units (tooltips, labels, annotations, nearest representation)
+  by unit identity, so a structure's own transforms compare by identity; measure in the browser with a canvas first.
 
 Steps 1–3 were planned without an API change; step 3 removed `UpdateTarget.update`. Target after 1–3: exosome under 400 ms, motm1 under 150 ms, retained under 10 MB; the
 bench gains a row per step. `_spec` files are written as each area is touched ([specs.md](specs.md)).

@@ -19,7 +19,6 @@ import {
 import { UUID } from '@molstar/core/util';
 import { stringHash } from '@molstar/mvs/helpers/utils';
 import type { Kind, Subtree, SubtreeOfKind, Tree } from '@molstar/mvs-builder/tree/generic/tree-schema';
-import { dfs } from '@molstar/mvs-builder/tree/generic/tree-utils';
 
 /** Function responsible for loading a tree node `node` into Mol*.
  * Should apply changes within `updateParent.update` but not commit them.
@@ -44,6 +43,12 @@ export interface LoadingExtension<TTree extends Tree, TContext, TExtensionContex
   createExtensionContext: (tree: TTree, context: TContext) => TExtensionContext;
   /** Runs after the tree is loaded */
   disposeExtensionContext?: (extensionContext: TExtensionContext, tree: TTree, context: TContext) => void;
+  /**
+   * The action reads only its node (kind, params, custom) and keeps nothing in the extension or loading context: what it
+   * does to a subtree can be replayed when the subtree did not change (`load.md §4`). An extension without it turns
+   * subtree reuse off.
+   */
+  local?: boolean;
   /** Runs on every node of the tree */
   action: (
     updateTarget: UpdateTarget,
@@ -65,7 +70,44 @@ export interface LoadTreeVirtualOptions<TTree extends Tree, TContext> {
    * JSON) is that object, version included, instead of a new one with a newly hashed version.
    */
   reuse?: StateTree.Serialized[];
+  /** Replays the unit subtrees that did not change since an earlier tree (`load.md §4`). */
+  subtreeMemo?: SubtreeMemo<TTree>;
 }
+
+/**
+ * What loading each "unit" subtree did, to replay it when the next tree has the same subtree object (`load.md §4`). The
+ * caller sets `units` before each load: the subtrees whose identity means "unchanged" (`convertMvsToMolstarMemo`), none
+ * nested in another; `isReusable` excludes units whose loading reads outside them.
+ */
+export class SubtreeMemo<TTree extends Tree = Tree> {
+  /** Counts over all memos, for tests and the bench: units replayed, units loaded, loads redone after a mismatch. */
+  static readonly stats = { replayed: 0, loaded: 0, fallbacks: 0 };
+  readonly records = new WeakMap<object, SubtreeRecord>();
+  units: Set<object> = new Set();
+  /** Loads replayed in full after a mismatch (`SubtreeReuseMismatch`): 0 when the rules of `load.md §4` hold. */
+  fallbacks = 0;
+  /** Recorded in the current load: their serialized transforms are known after `serialize`. */
+  readonly pending: SubtreeRecord[] = [];
+  constructor(readonly isReusable: (node: Subtree<TTree>) => boolean) {}
+}
+
+export interface SubtreeRecord {
+  /** The target the subtree was loaded under. */
+  parentRef: StateTransform.Ref;
+  /** The transforms the subtree added, in order, and what they serialized to. */
+  applies: { parent: StateTransform.Ref; transformer: StateTransformer; ref: StateTransform.Ref }[];
+  serialized?: StateTransform.Serialized[];
+  /** Ref counters taken: hash, number, hash, number, ... */
+  hashes: (string | number)[];
+  /** MVS ref → transform ref */
+  refMap: [string, string][];
+  created: Set<StateTransform.Ref>;
+  /** False when the loading of the subtree touched transforms it did not add. */
+  reusable: boolean;
+}
+
+/** A replayed subtree does not fit the tree it was replayed into; the load is done again without reuse. */
+export class SubtreeReuseMismatch extends Error {}
 
 export function loadTreeVirtual<TTree extends Tree, TContext>(
   plugin: PluginContext,
@@ -79,8 +121,23 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     options?.replaceExisting ?? false,
     options?.refHashCache,
   );
-  loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
-  const stateSnapshot: State.Snapshot = { tree: updateRoot.builder.serialize(options?.reuse) };
+  const memo = options?.subtreeMemo;
+  if (memo && !(options?.extensions ?? []).every((e) => e.local)) {
+    options = { ...options, subtreeMemo: undefined };
+  }
+  let serialized: StateTree.Serialized;
+  try {
+    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
+    serialized = updateRoot.builder.serialize(options?.reuse);
+    if (memo) finishRecords(memo, serialized);
+  } catch (e) {
+    if (!(e instanceof SubtreeReuseMismatch) || !memo) throw e;
+    memo.fallbacks++;
+    SubtreeMemo.stats.fallbacks++;
+    memo.pending.length = 0;
+    return loadTreeVirtual(plugin, tree, loadingActions, context, { ...options, subtreeMemo: undefined });
+  }
+  const stateSnapshot: State.Snapshot = { tree: serialized };
   const pluginStateSnapshot: PluginState.Snapshot = { id: UUID.create22(), data: stateSnapshot };
   return pluginStateSnapshot;
 }
@@ -101,7 +158,8 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
     extCtx: ext.createExtensionContext(tree, context),
   }));
   const mvsRefMap = new Map<string, string>();
-  dfs<TTree>(tree, (node, parent) => {
+  const { builder, targetManager } = updateRoot;
+  const visitNode = (node: Subtree<TTree>, parent: Subtree<TTree> | undefined) => {
     const kind: Kind<typeof node> = node.kind;
     let msNode: UpdateTarget | undefined;
     const updateParent = parent ? mapping.get(parent) : updateRoot;
@@ -112,6 +170,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
         if (msNode && node.ref) {
           UpdateTarget.tag(msNode, mvsRefTags(node.ref));
           mvsRefMap.set(node.ref, msNode.selector.ref);
+          builder.recording?.refMap.push([node.ref, msNode.selector.ref]);
         }
         mapping.set(node, msNode);
       } else {
@@ -124,13 +183,70 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
         ext.action(msNode ?? updateParent, node, context, extCtx);
       }
     }
-  });
+  };
+
+  const memo = options?.subtreeMemo;
+  const visit = (node: Subtree<TTree>, parent: Subtree<TTree> | undefined) => {
+    const updateParent = memo?.units.has(node) && parent ? mapping.get(parent) : undefined;
+    if (!updateParent) {
+      visitNode(node, parent);
+      for (const child of node.children ?? []) visit(child as Subtree<TTree>, node);
+      return;
+    }
+    // a unit (`load.md §4`): replay what loading it did last time, or load it and record that
+    const record = memo!.records.get(node);
+    if (record?.reusable && record.serialized && record.parentRef === updateParent.selector.ref) {
+      for (let i = 0; i < record.hashes.length; i += 2) {
+        targetManager.takeRef(record.hashes[i] as string, record.hashes[i + 1] as number);
+      }
+      for (let i = 0; i < record.applies.length; i++) {
+        const { parent: p, transformer, ref } = record.applies[i];
+        builder.applySerialized(p, transformer, ref, record.serialized[i]);
+      }
+      for (const [mvsRef, ref] of record.refMap) mvsRefMap.set(mvsRef, ref);
+      SubtreeMemo.stats.replayed++;
+      return;
+    }
+    const recording: SubtreeRecord = {
+      parentRef: updateParent.selector.ref,
+      applies: [],
+      hashes: [],
+      refMap: [],
+      created: new Set(),
+      reusable: memo!.isReusable(node),
+    };
+    builder.recording = recording;
+    targetManager.recording = recording;
+    try {
+      visitNode(node, parent);
+      for (const child of node.children ?? []) visit(child as Subtree<TTree>, node);
+    } finally {
+      builder.recording = undefined;
+      targetManager.recording = undefined;
+    }
+    memo!.records.set(node, recording);
+    memo!.pending.push(recording);
+    SubtreeMemo.stats.loaded++;
+  };
+  visit(tree as Subtree<TTree>, undefined);
 
   for (const target of updateRoot.targetManager.allTargets) {
     UpdateTarget.dependsOn(target, mvsRefMap);
   }
 
   extensionContexts.forEach((e) => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
+}
+
+/** The serialized transforms of the subtrees recorded in this load. */
+function finishRecords(memo: SubtreeMemo<any>, tree: StateTree.Serialized) {
+  if (!memo.pending.length) return;
+  const byRef = new Map(tree.transforms.map((t) => [t.ref, t]));
+  for (const record of memo.pending) {
+    const serialized = record.applies.map((a) => byRef.get(a.ref)!);
+    if (serialized.every((s) => s)) record.serialized = serialized;
+    else record.reusable = false;
+  }
+  memo.pending.length = 0;
 }
 
 /** A wrapper for building a Mol* state tree, with deterministic transform refs (`load.md §2`).
@@ -219,6 +335,8 @@ export const UpdateTarget = {
 interface VirtualNode {
   transform: StateTransform;
   children: StateTransform.Ref[];
+  /** Replayed (`load.md §4`): what it serializes to. */
+  serialized?: StateTransform.Serialized;
 }
 
 /**
@@ -233,6 +351,8 @@ export class VirtualStateBuilder {
   /** Added or changed: their version is the hash of the params. */
   private readonly affected = new Set<StateTransform.Ref>();
   readonly rootRef: StateTransform.Ref;
+  /** The unit subtree being loaded, if any (`load.md §4`). */
+  recording: SubtreeRecord | undefined = undefined;
 
   constructor(state: State, replaceExisting: boolean) {
     const tree = state.tree;
@@ -251,6 +371,12 @@ export class VirtualStateBuilder {
     const node = this.nodes.get(ref);
     if (!node) throw new Error(`Could not find node '${ref}'.`);
     return node;
+  }
+
+  /** A change of an existing transform: not replayable when the unit being recorded did not add it. */
+  private changed(ref: StateTransform.Ref) {
+    if (this.nodes.get(ref)?.serialized) throw new SubtreeReuseMismatch(`Replayed transform '${ref}' changed.`);
+    if (this.recording && !this.recording.created.has(ref)) this.recording.reusable = false;
   }
 
   private decoratorRoot(ref: StateTransform.Ref): StateTransform.Ref {
@@ -280,8 +406,38 @@ export class VirtualStateBuilder {
     params: any,
     options: Partial<StateTransform.Options>,
   ): StateTransform.Ref {
+    if (transformer.definition.isDecorator && this.nodes.get(parent)?.serialized) {
+      throw new SubtreeReuseMismatch(`Replayed transform '${parent}' changed.`);
+    }
+    const ref = this.place(parent, transformer, params, options);
+    if (this.recording) {
+      this.recording.applies.push({ parent, transformer, ref });
+      this.recording.created.add(ref);
+    }
+    return ref;
+  }
+
+  /** `apply` of a transform recorded earlier, whose serialized form is known (`load.md §4`). */
+  applySerialized(
+    parent: StateTransform.Ref,
+    transformer: StateTransformer,
+    ref: StateTransform.Ref,
+    serialized: StateTransform.Serialized,
+  ) {
+    this.place(parent, transformer, undefined, { ref });
+    this.node(ref).serialized = serialized;
+    this.affected.delete(ref);
+  }
+
+  private place(
+    parent: StateTransform.Ref,
+    transformer: StateTransformer,
+    params: any,
+    options: Partial<StateTransform.Options>,
+  ): StateTransform.Ref {
     if (transformer.definition.isDecorator) {
       // StateBuilder.To.insert: the new transform takes over the children of `parent`
+      if (this.recording && !this.recording.created.has(parent)) this.recording.reusable = false;
       const node = this.node(parent);
       const children = node.children;
       const t = transformer.apply(parent, params, options);
@@ -305,6 +461,7 @@ export class VirtualStateBuilder {
     const node = this.node(ref);
     const updated = StateTransform.withTags(node.transform, stringArrayUnion(node.transform.tags, tags));
     if (arrayEqual(node.transform.tags, updated.tags)) return;
+    this.changed(ref);
     node.transform = updated;
     this.affected.add(ref);
   }
@@ -313,6 +470,7 @@ export class VirtualStateBuilder {
     const node = this.node(ref);
     const updated = StateTransform.withDependsOn(node.transform, stringArrayUnion(node.transform.dependsOn, dependsOn));
     if (arrayEqual(node.transform.dependsOn, updated.dependsOn)) return;
+    this.changed(ref);
     node.transform = updated;
     this.affected.add(ref);
   }
@@ -320,6 +478,7 @@ export class VirtualStateBuilder {
   updateState(ref: StateTransform.Ref, state: Partial<StateTransform.State>) {
     const node = this.node(ref);
     if (!StateTransform.isStateChange(node.transform.state, state)) return;
+    this.changed(ref);
     node.transform = StateTransform.withState(node.transform, state);
     this.affected.add(ref);
   }
@@ -340,8 +499,13 @@ export class VirtualStateBuilder {
     const transforms: StateTransform.Serialized[] = [];
     const reuseMaps: (Map<string, StateTransform.Serialized> | undefined)[] = reuse ? reuse.map(() => undefined) : [];
     const visit = (ref: StateTransform.Ref) => {
-      const { transform, children } = this.node(ref);
-      if (!this.affected.has(ref)) {
+      const { transform, children, serialized } = this.node(ref);
+      if (serialized) {
+        if (serialized.parent !== transform.parent) {
+          throw new SubtreeReuseMismatch(`Replayed transform '${ref}' is under another parent.`);
+        }
+        transforms.push(serialized);
+      } else if (!this.affected.has(ref)) {
         transforms.push(StateTransform.toJSON(transform));
       } else {
         let found: StateTransform.Serialized | undefined;
@@ -531,11 +695,21 @@ class TargetManager {
       });
     }
   }
+  /** The unit subtree being loaded, if any (`load.md §4`). */
+  recording: SubtreeRecord | undefined = undefined;
+
   /** Return ref for a new node with given `hash`; update the counter accordingly. */
   private nextRef(hash: string): string {
     this._counter[hash] ??= 0;
     const idNumber = this._counter[hash]++;
+    this.recording?.hashes.push(hash, idNumber);
     return `!mvs:${hash}:${idNumber}`;
+  }
+
+  /** Take the ref `!mvs:<hash>:<n>` again in a replay; it must be the next one (`load.md §4`). */
+  takeRef(hash: string, n: number) {
+    if ((this._counter[hash] ?? 0) !== n) throw new SubtreeReuseMismatch(`Ref counter of ${hash} is not ${n}.`);
+    this._counter[hash] = n + 1;
   }
   /** Return ref for a new node based on parent and desired suffix. */
   getChildRef(parent: StateObjectSelector, suffix: string): string {

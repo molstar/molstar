@@ -47,3 +47,35 @@ Rules that follow:
   order, `undefined` and non-finite numbers matter. Transformers with `customSerialization` are never reused (their
   version hashes the raw params, which a serialized transform does not keep).
 - The output is the same as before reuse: the goldens (`performance.md §2`) compare refs, params and versions.
+
+## 4. Unchanged subtrees between frames
+
+Frames of an animation differ in a few params; with the update plan ([animation.md](animation.md) §2) the MVS subtrees
+nothing changed in are the same objects frame after frame. Two memos per snapshot use that:
+
+- **Conversion** (`convertMvsToMolstarMemo`, `MolstarConversionMemo`): the top nodes (`root`, `download`, `parse` and
+  their children) go through `convertMvsToMolstar` as before; a node below them converts to a copy of itself with
+  defaults and resolved URIs whatever its parent or siblings (no rule, no condensing applies there), so it is memoized
+  by MVS node. Its "units" are the converted subtrees right below the top nodes: a unit that is the same object as in an
+  earlier frame has the same MVS source. `_test/conversion-memo.test.ts` checks it against `convertMvsToMolstar` on
+  every frame of the fixtures.
+- **Loading** (`SubtreeMemo`): loading a unit is recorded — the transforms it added (parent, transformer, ref, and after
+  serialization what each serialized to), the ref counters it took, the MVS refs it mapped. When the same unit object
+  comes again under the same parent target, the record is replayed: the same refs are taken, the transforms are placed
+  with the builder's rules but serialize to the recorded objects, nothing is computed or compared.
+
+Why units and not finer: the loading actions of a node read its subtree (children colors, transforms, clips), so a unit
+reads only itself. What reads outside is excluded:
+
+- the top nodes read their whole subtree (`structure`: labels, tooltips; `model`: annotations; `root`:
+  `makeNearestReprMap`) — they are loaded every frame;
+- `label_from_uri` / `label_from_source` read the nearest representation, which may be a sibling's — a unit containing
+  one is loaded every frame (`isReusableSubtree`);
+- a unit whose loading changes a transform it did not add (tags or state on its parent, a decorator inserted above
+  others) is not replayable (`SubtreeRecord.reusable`);
+- the camera and canvas are collected from the whole tree: no memo with `include_camera` / `include_canvas`;
+- loading extensions must be `local` (read only their node, keep nothing in a context); one that is not turns the memo
+  off.
+
+A replay that does not fit (another ref counter, a replayed transform moved or changed) throws `SubtreeReuseMismatch`
+and the tree is loaded again without the memo (`SubtreeMemo.stats.fallbacks`; the goldens require 0).

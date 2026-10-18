@@ -783,6 +783,7 @@ the [API change ledger](breaking-v6-changes.md).
   URL-safe base64 characters and unique
 - MVS animation frames are built without a `StateBuilder`, from a ref-hash cache, and reuse the transforms they share
   with the previous frame or their snapshot; frames keep a camera and canvas only with `include_camera` /
-  `include_canvas`. Loading motm1 2.7× and exosome 2.2× faster than before this work, 4–5× less memory kept
+  `include_canvas`; subtrees a frame did not change are converted and loaded once and replayed after. Loading motm1
+  and exosome 3.5–3.7× faster than before this work, 4–5× less memory kept
 - [Breaking] `@molstar/mvs/load-generic`: `UpdateTarget.update` and `UpdateTarget.commit` are removed
   (`UpdateTarget.updateState` for loading extensions); see the API change ledger

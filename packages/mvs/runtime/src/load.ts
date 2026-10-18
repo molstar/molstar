@@ -84,7 +84,13 @@ import { type ShapeFormat, shapeRepresentationProps, shapeTransforms } from '@mo
 import { IsHiddenCustomStateExtension } from '@molstar/mvs/load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from '@molstar/mvs/load-extensions/non-covalent-interactions';
 import { VolumeStreamingExtension } from '@molstar/mvs/load-extensions/volume-streaming';
-import { type LoadingActions, type LoadingExtension, loadTreeVirtual, UpdateTarget } from '@molstar/mvs/load-generic';
+import {
+  type LoadingActions,
+  type LoadingExtension,
+  loadTreeVirtual,
+  SubtreeMemo,
+  UpdateTarget,
+} from '@molstar/mvs/load-generic';
 import {
   type AnnotationFromSourceKind,
   type AnnotationFromUriKind,
@@ -110,7 +116,12 @@ import {
 import { MVSData, type MVSData_States, type Snapshot, SnapshotMetadata } from '@molstar/mvs-builder/mvs-data';
 import { type MVSAnimationNode, MVSAnimationSchema } from '@molstar/mvs-builder/tree/animation/animation-tree';
 import { validateTree } from '@molstar/mvs-builder/tree/generic/tree-validation';
-import { convertMvsToMolstar, mvsSanityCheck } from '@molstar/mvs/tree/molstar/conversion';
+import {
+  convertMvsToMolstar,
+  convertMvsToMolstarMemo,
+  createMolstarConversionMemo,
+  mvsSanityCheck,
+} from '@molstar/mvs/tree/molstar/conversion';
 import {
   type MolstarNode,
   type MolstarNodeParams,
@@ -246,11 +257,23 @@ async function assignStateTransition(
   const includeCamera = !!transitions.tree.params?.include_camera;
   const includeCanvas = !!transitions.tree.params?.include_canvas;
   const parentData = parentEntry.snapshot.data!;
+  // (a subtree that is the same object as in an earlier frame converts and loads as then, `load.md §4`; not with
+  // camera or canvas, which the loading context collects from the whole tree)
+  const memoize = !includeCamera && !includeCanvas;
+  const conversionMemo = createMolstarConversionMemo(options.sourceUrl);
+  const subtreeMemo = new SubtreeMemo<MolstarTree>(isReusableSubtree);
 
   let previousData: State.Snapshot | undefined;
   for (let i = 0; i < transitions.frames.length; i++) {
     const frame = transitions.frames[i];
-    const molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
+    let molstarTree: MolstarTree;
+    if (memoize) {
+      const converted = convertMvsToMolstarMemo(frame[0], conversionMemo);
+      molstarTree = converted.tree;
+      subtreeMemo.units = converted.units;
+    } else {
+      molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
+    }
     // (a frame's transforms that equal the previous frame's or the snapshot's are those objects, `load.md §3`)
     const reuse = previousData ? [previousData.tree, parentData.tree] : [parentData.tree];
     let data: State.Snapshot;
@@ -274,6 +297,7 @@ async function assignStateTransition(
         extensions: options.extensions ?? BuiltinLoadingExtensions,
         refHashCache: options.refHashCache,
         reuse,
+        subtreeMemo: memoize ? subtreeMemo : undefined,
       }).data!;
     }
     previousData = data;
@@ -295,6 +319,18 @@ async function assignStateTransition(
   }
 
   parentEntry.snapshot.transition = animation;
+}
+
+/** Kinds whose loading reads outside their subtree (the nearest representation, `makeNearestReprMap`). */
+const NonLocalKinds = new Set<string>(['label_from_uri', 'label_from_source']);
+
+/** A unit subtree can be replayed unless loading it reads outside it (`load.md §4`). */
+function isReusableSubtree(node: MolstarSubtree): boolean {
+  if (NonLocalKinds.has(node.kind)) return false;
+  for (const child of (node.children ?? []) as MolstarSubtree[]) {
+    if (!isReusableSubtree(child)) return false;
+  }
+  return true;
 }
 
 interface MolstarTreeLoadOptions extends MVSLoadOptions {

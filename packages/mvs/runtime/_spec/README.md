@@ -6,11 +6,11 @@ format's documentation for authors is external (molstar.org/mol-view-spec-docs).
 without reading all of it. Code comments cite its sections (`animation.md §2`). The code is the truth for how. Being
 written along the load optimizations (`.v6/mvs-optimizations/`): files are added as their area is reworked.
 
-| File                             | What it covers                                                                       |
-| -------------------------------- | ------------------------------------------------------------------------------------ |
-| [load.md](load.md)               | the pipeline per snapshot and frame, refs, the virtual builder, reuse between frames |
-| [animation.md](animation.md)     | expanding a snapshot's animation into frames: the update plan, frame dedup, identity |
-| [performance.md](performance.md) | the fixtures, the goldens, the bench, the numbers to keep                            |
+| File                             | What it covers                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [load.md](load.md)               | the pipeline per snapshot and frame, refs, the virtual builder, reuse and replay between frames |
+| [animation.md](animation.md)     | expanding a snapshot's animation into frames: the update plan, frame dedup, identity            |
+| [performance.md](performance.md) | the fixtures, the goldens, the bench, the numbers to keep                                       |
 
 ## The load pipeline
 

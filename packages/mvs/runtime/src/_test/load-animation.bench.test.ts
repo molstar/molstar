@@ -30,6 +30,7 @@ import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { generateStateTransition } from '@molstar/mvs/helpers/animation';
 import { loadMVS } from '@molstar/mvs/load';
+import { SubtreeMemo } from '@molstar/mvs/load-generic';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 import { convertMvsToMolstar } from '@molstar/mvs/tree/molstar/conversion';
 
@@ -110,8 +111,16 @@ describe.skipIf(!Enabled)('MVS animation load bench', () => {
       lines.push(fmt('convertMvsToMolstar (frames)', convert));
 
       // 3. the whole load (validation, expansion, conversion, Molstar tree -> state snapshot, camera)
+      const stats0 = { ...SubtreeMemo.stats };
       const load = await measure(() => loadMVS(plugin, data, LoadOptions));
-      lines.push(fmt('loadMVS', load));
+      const units = (k: keyof typeof stats0) => (SubtreeMemo.stats[k] - stats0[k]) / NRuns;
+      lines.push(
+        fmt(
+          'loadMVS',
+          load,
+          `(units: ${units('replayed')} replayed, ${units('loaded')} loaded, ${units('fallbacks')} fallbacks)`,
+        ),
+      );
 
       // retained: the snapshot entries the load leaves in the manager
       plugin.managers.snapshot.clear();
