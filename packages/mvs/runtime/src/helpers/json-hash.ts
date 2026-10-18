@@ -94,8 +94,8 @@ function partOf(value: unknown, cache: WeakMap<object, string>): string | undefi
     }
     text += '}';
   }
-  if (text.length <= MaxLiteralLength) return text;
-  const result = '#' + murmurHash3_128(text, 42);
+  // (small parts stay text, cached too: the same objects come back frame after frame)
+  const result = text.length <= MaxLiteralLength ? text : '#' + murmurHash3_128(text, 42);
   cache.set(obj, result);
   return result;
 }

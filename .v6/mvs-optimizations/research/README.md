@@ -87,5 +87,13 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
   Now ~4.7 s and 95 MB (Node, `loadMVS`). Left: io-ts validation of the document ~0.85 s, versions ~0.75 s, conversion
   ~0.8 s, expansion ~0.8 s. Not measured in a browser.
 
+- **Toward 2× on the story** (4.7 → ~2.45 s, output identical: goldens, and the story's whole `loadMVS` output, cameras
+  included, compared with HEAD's): validation fast path (`isCertainlyValid`, compiled per io-ts type; 1 s → 0.25 s);
+  `download` subtrees as units with records by position, `model`/`structure` never replayed own-only; the snapshot
+  through its frames' memos; later candidates rejected by version before any walk; replayed transforms placed inline;
+  color plans reused for equal raw maps (360 fades, 3 distinct). Fixtures: motm1 ~150 ms, exosome ~350 ms. Left
+  (Node): sharing walks ~0.2 s (memory), versions ~0.4 s, replays ~0.3 s, validation ~0.25 s. A different hash layout
+  (smaller literal parts) would make versions of large params cheaper but changes them; not done to keep the output.
+
 Steps 1–3 were planned without an API change; step 3 removed `UpdateTarget.update`. Target after 1–3: exosome under 400 ms, motm1 under 150 ms, retained under 10 MB; the
 bench gains a row per step. `_spec` files are written as each area is touched ([specs.md](specs.md)).

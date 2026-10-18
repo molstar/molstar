@@ -28,14 +28,14 @@ documents too large to keep; `MVS_BENCH_LOAD_ONLY=1` measures `loadMVS` alone, f
 | Fixture  | Stage                     | Baseline (`0050f1464`) |             Now |
 | -------- | ------------------------- | ---------------------: | --------------: |
 | exosome  | `generateStateTransition` |         396 ms, 795 MB |    20 ms, 24 MB |
-| exosome  | `loadMVS`                 |      1,803 ms, 3.27 GB | ~360 ms, 800 MB |
-| exosome  | retained                  |                  77 MB |           18 MB |
+| exosome  | `loadMVS`                 |      1,803 ms, 3.27 GB | ~350 ms, 868 MB |
+| exosome  | retained                  |                  77 MB |         14.7 MB |
 | motm1    | `generateStateTransition` |         140 ms, 312 MB |    11 ms, 15 MB |
-| motm1    | `loadMVS`                 |        736 ms, 1.40 GB | ~175 ms, 452 MB |
-| motm1    | retained                  |                  25 MB |          4.8 MB |
-| features | `loadMVS`                 |        587 ms, 1.29 GB | ~280 ms, 654 MB |
-| story\*  | `loadMVS`                 |        39 s\*\*, 43 GB |   ~4.7 s, 17 GB |
-| story\*  | retained                  |                1.56 GB |           95 MB |
+| motm1    | `loadMVS`                 |        736 ms, 1.40 GB | ~150 ms, 447 MB |
+| motm1    | retained                  |                  25 MB |          4.2 MB |
+| features | `loadMVS`                 |        587 ms, 1.29 GB | ~285 ms, 733 MB |
+| story\*  | `loadMVS`                 |        39 s\*\*, 43 GB | ~2.45 s, 5.4 GB |
+| story\*  | retained                  |                1.56 GB |           84 MB |
 
 \* "Terms of entrapment", an MVSX of 16 snapshots and a 118 MB `index.mvsj` (22,546 frames; a primitive of 10,596 lines
 whose colors flash in 360 fades): not a fixture, measured from a local copy (`MVS_BENCH_FIXTURES=<path>`,

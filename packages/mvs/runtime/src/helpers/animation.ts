@@ -601,6 +601,12 @@ function interpolateColors(
     return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
   }
 
+  if (cacheEntry.colorMap) return ColorMapPlan.at(cacheEntry.colorMap, t);
+  if (isColorMap(start) && isColorMap(end) && isColorMap(baseColors)) {
+    const plan = ColorMapPlan.fromRaw(baseColors, start, end);
+    if (plan) return ColorMapPlan.at((cacheEntry.colorMap = plan), t);
+  }
+
   const startColors = (cacheEntry.startColors ??= decodeSplitColors(start, baseColors));
   const endColors = (cacheEntry.endColors ??= decodeSplitColors(end, undefined));
 
@@ -643,9 +649,45 @@ interface ColorMapPlan {
   maps: Map<string, Record<number | string, ColorT>>;
 }
 
-const ColorMapPlans = new WeakMap<object, Map<string, ColorMapPlan>>();
+const ColorMapPlans = new WeakMap<object, { plans: ColorMapPlan[]; keyOrders: string[][] }>();
+/** By base map: the start and end maps a plan was made from */
+interface RawColorMapEntry {
+  start: Record<string, unknown>;
+  end: Record<string, unknown>;
+  startKeys: string[];
+  endKeys: string[];
+  plan: ColorMapPlan;
+}
+const RawColorMaps = new WeakMap<object, RawColorMapEntry[]>();
+
+/** The same keys in the same order with the same values. */
+function rawMapsEqual(ka: string[], a: Record<string, unknown>, kb: string[], b: Record<string, unknown>): boolean {
+  if (a === b) return true;
+  if (ka.length !== kb.length) return false;
+  for (let i = 0; i < ka.length; i++) {
+    if (ka[i] !== kb[i] || a[ka[i]] !== b[kb[i]]) return false;
+  }
+  return true;
+}
+
+function arraysEqual<T>(a: ArrayLike<T>, b: ArrayLike<T>): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+function tupleEqual(a: [Color, Color], b: [Color, Color]) {
+  return a === b || (a[0] === b[0] && a[1] === b[1]);
+}
 /** The maps made over a base map, by content: equal maps from different transitions are the same object. */
 const ColorMapsByContent = new WeakMap<object, Map<string, Record<number | string, ColorT>>>();
+
+function isColorMap(x: unknown): x is Record<number | string, ColorT> {
+  return typeof x === 'object' && x !== null;
+}
+
+type AddColorMapKey = (key: string, constant: ColorT | undefined, from?: [Color, Color], to?: [Color, Color]) => void;
 
 const ColorMapPlan = {
   get(
@@ -654,6 +696,89 @@ const ColorMapPlan = {
     end: DecodedSplitColors | undefined,
   ): ColorMapPlan {
     // the keys in the order the earlier loops set them: start keys not in an end map, then the end map's keys
+    return ColorMapPlan.make(base, (add) => {
+      if (end?.kind === 'dict') {
+        for (const key of Object.keys(start)) {
+          if (!(key in end.dict)) add(key, SplitColor.toHexStyle(...start[key]));
+        }
+        for (const key of Object.keys(end.dict)) {
+          if (key in start) add(key, undefined, start[key], end.dict[key]);
+          else add(key, SplitColor.toHexStyle(...end.dict[key]));
+        }
+      } else if (end?.kind === 'value') {
+        for (const key of Object.keys(start)) add(key, undefined, start[key], end.value);
+      } else {
+        for (const key of Object.keys(start)) add(key, SplitColor.toHexStyle(...start[key]));
+      }
+    });
+  },
+  /**
+   * The plan for these start and end maps as written: the plan of an earlier transition with equal maps (same keys in
+   * the same order, equal values; documents repeat the same fades many times), else `fromSameKeys`.
+   */
+  fromRaw(
+    base: Record<number | string, ColorT>,
+    start: Record<number | string, ColorT>,
+    end: Record<number | string, ColorT>,
+  ): ColorMapPlan | undefined {
+    let seen = RawColorMaps.get(base);
+    if (!seen) RawColorMaps.set(base, (seen = []));
+    const startKeys = Object.keys(start);
+    const endKeys = Object.keys(end);
+    for (let k = 0; k < seen.length; k++) {
+      const entry = seen[k];
+      if (
+        rawMapsEqual(entry.endKeys, entry.end, endKeys, end) &&
+        rawMapsEqual(entry.startKeys, entry.start, startKeys, start)
+      ) {
+        // (the most recent match first: fades repeat in runs)
+        if (k > 0) seen.unshift(...seen.splice(k, 1));
+        return entry.plan;
+      }
+    }
+    const plan = ColorMapPlan.fromSameKeys(base, start, end);
+    if (plan) seen.unshift({ start, end, startKeys, endKeys, plan });
+    return plan;
+  },
+  /**
+   * `get` for start and end maps over the same keys, which the base's keys are among (a map fading as a whole): every key
+   * goes from its start to its end color, in the end map's key order, read in one pass from the maps as they are.
+   */
+  fromSameKeys(
+    base: Record<number | string, ColorT>,
+    start: Record<number | string, ColorT>,
+    end: Record<number | string, ColorT>,
+  ): ColorMapPlan | undefined {
+    const endKeys = Object.keys(end);
+    let startCount = 0;
+    for (const key in start) if (Object.hasOwn(start, key)) startCount++;
+    if (startCount !== endKeys.length) return undefined;
+    const n = endKeys.length;
+    const start0 = n > 0 ? start[endKeys[0]] : undefined;
+    const end0 = n > 0 ? end[endKeys[0]] : undefined;
+    let uniform = n > 0;
+    for (const key of endKeys) {
+      if (!Object.hasOwn(start, key)) return undefined;
+      if (uniform && (start[key] !== start0 || end[key] !== end0)) uniform = false;
+    }
+    for (const key in base) if (Object.hasOwn(base, key) && !Object.hasOwn(end, key)) return undefined;
+    if (uniform) {
+      // (one start and one end color for every key: one group)
+      const from = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), start0);
+      const to = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), end0);
+      return ColorMapPlan.intern(base, endKeys, new Array(n).fill(undefined), new Int32Array(n), [
+        { start: from, end: to },
+      ]);
+    }
+    return ColorMapPlan.make(base, (add) => {
+      for (const key of endKeys) {
+        const from = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), start[key]);
+        const to = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), end[key]);
+        add(key, undefined, from, to);
+      }
+    });
+  },
+  make(base: Record<number | string, ColorT>, entries: (add: AddColorMapKey) => void): ColorMapPlan {
     const keys: string[] = [];
     const constants: (ColorT | undefined)[] = [];
     const groupOf: number[] = [];
@@ -677,32 +802,35 @@ const ColorMapPlan = {
       }
       groupOf.push(g);
     };
-    if (end?.kind === 'dict') {
-      for (const key of Object.keys(start)) {
-        if (!(key in end.dict)) add(key, SplitColor.toHexStyle(...start[key]));
+    entries(add);
+    return ColorMapPlan.intern(base, keys, constants, Int32Array.from(groupOf), groups);
+  },
+  /** The plan of this content over `base`: an existing one when equal (compared as arrays, no strings built). */
+  intern(
+    base: Record<number | string, ColorT>,
+    keys: string[],
+    constants: (ColorT | undefined)[],
+    group: Int32Array,
+    groups: ColorMapPlan['groups'],
+  ): ColorMapPlan {
+    let registry = ColorMapPlans.get(base);
+    if (!registry) ColorMapPlans.set(base, (registry = { plans: [], keyOrders: [] }));
+    let keysIndex = registry.keyOrders.findIndex((k) => arraysEqual(k, keys));
+    if (keysIndex < 0) keysIndex = registry.keyOrders.push(keys) - 1;
+    const keysId = `${keysIndex}`;
+    for (const plan of registry.plans) {
+      if (
+        plan.keysId === keysId &&
+        plan.groups.length === groups.length &&
+        plan.groups.every((g, i) => tupleEqual(g.start, groups[i].start) && tupleEqual(g.end, groups[i].end)) &&
+        arraysEqual(plan.group, group) &&
+        arraysEqual(plan.constants, constants)
+      ) {
+        return plan;
       }
-      for (const key of Object.keys(end.dict)) {
-        if (key in start) add(key, undefined, start[key], end.dict[key]);
-        else add(key, SplitColor.toHexStyle(...end.dict[key]));
-      }
-    } else if (end?.kind === 'value') {
-      for (const key of Object.keys(start)) add(key, undefined, start[key], end.value);
-    } else {
-      for (const key of Object.keys(start)) add(key, SplitColor.toHexStyle(...start[key]));
     }
-
-    let byContent = ColorMapPlans.get(base);
-    if (!byContent) ColorMapPlans.set(base, (byContent = new Map()));
-    const keysId = murmurHash3_128(keys.join(','), 42);
-    const signature = murmurHash3_128(
-      `${keysId}|${constants.join(',')}|${groupOf.join(',')}|${groups.map((g) => `${g.start}>${g.end}`).join(';')}`,
-      42,
-    );
-    let plan = byContent.get(signature);
-    if (!plan) {
-      plan = { base, keys, keysId, constants, group: Int32Array.from(groupOf), groups, maps: new Map() };
-      byContent.set(signature, plan);
-    }
+    const plan: ColorMapPlan = { base, keys, keysId, constants, group, groups, maps: new Map() };
+    registry.plans.push(plan);
     return plan;
   },
   at(plan: ColorMapPlan, t: number): Record<number | string, ColorT> {

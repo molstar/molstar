@@ -6,6 +6,7 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '@molstar/core/util/object';
+import { canonicalJsonString } from '@molstar/mvs-builder/json';
 import { addParamDefaults } from '@molstar/mvs-builder/tree/generic/params-schema';
 import {
   type ConversionRules,
@@ -176,10 +177,18 @@ export interface MolstarConversionMemo {
   readonly values: WeakMap<object, object>;
   /** Converted params of nodes without params, by kind */
   readonly defaultParams: Map<string, object>;
+  /** Converted `download` subtrees under the root, by MVS node, with the units inside them */
+  readonly downloads: WeakMap<object, { node: MolstarSubtree; units: MolstarSubtree[] }>;
 }
 
 export function createMolstarConversionMemo(sourceUrl: string | undefined): MolstarConversionMemo {
-  return { sourceUrl, subtrees: new WeakMap(), values: new WeakMap(), defaultParams: new Map() };
+  return {
+    sourceUrl,
+    subtrees: new WeakMap(),
+    values: new WeakMap(),
+    defaultParams: new Map(),
+    downloads: new WeakMap(),
+  };
 }
 
 const UnitToken = '\u0000mvs-unit:';
@@ -193,7 +202,45 @@ export function convertMvsToMolstarMemo(
   mvsTree: MVSTree,
   memo: MolstarConversionMemo,
 ): { tree: MolstarTree; units: Set<MolstarSubtree> } {
-  // the top part goes through the rules, with each unit as a leaf placeholder (its ref is a token)
+  const children = (mvsTree.children ?? []) as any[];
+  // each `download` under the root converts on its own unless it has a twin, which the rules condense with it
+  const downloadKeys = new Set<string>();
+  let twins = false;
+  for (const child of children) {
+    if (child.kind !== 'download') continue;
+    const key = canonicalJsonString(addParamDefaults(MVSTreeSchema.nodes.download.params, (child as any).params));
+    if (downloadKeys.has(key)) twins = true;
+    downloadKeys.add(key);
+  }
+  if (twins) return convertTopPart(mvsTree, memo);
+
+  const units = new Set<MolstarSubtree>();
+  const tree = convertMvsToMolstar({ ...mvsTree, children: [] } as MVSTree, memo.sourceUrl);
+  tree.children = children.map((child) => {
+    if (child.kind !== 'download') {
+      const unit = convertUnit(child, memo);
+      units.add(unit);
+      return unit;
+    }
+    let download = memo.downloads.get(child);
+    if (!download) {
+      const converted = convertTopPart({ kind: 'root', children: [child] } as MVSTree, memo);
+      if (converted.tree.children?.length !== 1) return convertTopPart(mvsTree, memo) as never;
+      download = { node: converted.tree.children[0] as MolstarSubtree, units: Array.from(converted.units) };
+      memo.downloads.set(child, download);
+    }
+    units.add(download.node);
+    for (const u of download.units) units.add(u);
+    return download.node;
+  }) as MolstarTree['children'];
+  return { tree, units };
+}
+
+/** The top part through the rules (`convertMvsToMolstar`), with each unit as a leaf placeholder (its ref is a token). */
+function convertTopPart(
+  mvsTree: MVSTree,
+  memo: MolstarConversionMemo,
+): { tree: MolstarTree; units: Set<MolstarSubtree> } {
   const units: MVSTree[] = [];
   const top = (node: MVSTree): MVSTree => {
     if (!node.children) return node;

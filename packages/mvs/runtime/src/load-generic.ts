@@ -89,15 +89,20 @@ export class SubtreeMemo<TTree extends Tree = Tree> {
   /** Counts over all memos, for tests and the bench: subtrees replayed, nodes replayed without their subtree, nodes loaded, loads redone after a mismatch. */
   static readonly stats = { replayed: 0, replayedOwn: 0, loaded: 0, fallbacks: 0 };
   units: Set<object> = new Set();
-  /** By the position of a unit in `units`: the record of its last load. */
-  unitRecords: (SubtreeRecord | undefined)[] = [];
+  /** By the position of a unit in the tree (child indices from the root): the record of its last load. */
+  unitRecords = new Map<string, SubtreeRecord>();
   /** Loads replayed in full after a mismatch (`SubtreeReuseMismatch`): 0 when the rules of `load.md §4` hold. */
   fallbacks = 0;
   /** Recorded in the current load: their serialized transforms are known after `serialize`. */
   readonly pending: SubtreeRecord[] = [];
   /** The record of each transform added in the current load. */
   readonly owners = new Map<StateTransform.Ref, SubtreeRecord>();
-  constructor(readonly isReusable: (node: Subtree<TTree>) => boolean) {}
+  constructor(
+    readonly isReusable: (node: Subtree<TTree>) => boolean,
+    /** Nodes whose own transforms may be replayed while something below them changed; not those that read deeper
+     * than their own inputs or write context for their descendants (`load.md §4`) */
+    readonly isOwnReplayable: (node: Subtree<TTree>) => boolean = () => true,
+  ) {}
 }
 
 /** What a node's loading action and the extensions read (`load.md §4`): the node, and its children without an action. */
@@ -160,7 +165,7 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     const unitRecords = loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
     serialized = updateRoot.builder.serialize(options?.reuse);
     if (memo) {
-      finishRecords(memo, serialized);
+      finishRecords(memo, updateRoot.builder);
       memo.unitRecords = unitRecords!;
     }
   } catch (e) {
@@ -223,17 +228,17 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
   };
 
   const memo = options?.subtreeMemo;
-  const unitIndex = memo ? new Map(Array.from(memo.units, (u, i) => [u, i])) : undefined;
-  const unitRecords: (SubtreeRecord | undefined)[] = [];
+  const unitRecords = new Map<string, SubtreeRecord>();
 
-  const visit = (node: Subtree<TTree>, parent: Subtree<TTree> | undefined) => {
-    const i = parent ? unitIndex?.get(node) : undefined;
-    if (i !== undefined) {
-      unitRecords[i] = visitInUnit(node, parent!, memo!.unitRecords[i]);
+  const visit = (node: Subtree<TTree>, parent: Subtree<TTree> | undefined, path: string) => {
+    if (parent && memo?.units.has(node)) {
+      const record = visitInUnit(node, parent, memo.unitRecords.get(path));
+      if (record) unitRecords.set(path, record);
       return;
     }
     visitNode(node, parent);
-    for (const child of node.children ?? []) visit(child as Subtree<TTree>, node);
+    const children = (node.children ?? []) as Subtree<TTree>[];
+    for (let i = 0; i < children.length; i++) visit(children[i], node, `${path}.${i}`);
   };
 
   const ownInputs = (node: Subtree<TTree>): OwnInputs => {
@@ -289,7 +294,8 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
     const updateParent = mapping.get(parent);
     if (!updateParent) {
       visitNode(node, parent);
-      for (const child of node.children ?? []) visit(child as Subtree<TTree>, node);
+      const children = (node.children ?? []) as Subtree<TTree>[];
+      for (let i = 0; i < children.length; i++) visit(children[i], node, '');
       return undefined;
     }
     const parentRef = updateParent.selector.ref;
@@ -301,7 +307,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
     }
 
     let record: SubtreeRecord;
-    if (fits && previous!.reusable && isSameOwnInputs(previous!.own, node)) {
+    if (fits && previous!.reusable && memo!.isOwnReplayable(node) && isSameOwnInputs(previous!.own, node)) {
       // the same own inputs: the node's own transforms are the recorded ones; its children are visited
       replayOwn(previous!);
       if (previous!.hasAction) {
@@ -363,7 +369,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
     return record;
   };
 
-  visit(tree as Subtree<TTree>, undefined);
+  visit(tree as Subtree<TTree>, undefined, '');
 
   for (const target of updateRoot.targetManager.allTargets) {
     UpdateTarget.dependsOn(target, mvsRefMap);
@@ -374,11 +380,10 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
 }
 
 /** The serialized transforms of the subtrees recorded in this load. */
-function finishRecords(memo: SubtreeMemo<any>, tree: StateTree.Serialized) {
+function finishRecords(memo: SubtreeMemo<any>, builder: VirtualStateBuilder) {
   if (!memo.pending.length) return;
-  const byRef = new Map(tree.transforms.map((t) => [t.ref, t]));
   for (const record of memo.pending) {
-    const serialized = record.applies.map((a) => byRef.get(a.ref)!);
+    const serialized = record.applies.map((a) => builder.serializedOf(a.ref)!);
     if (serialized.every((s) => s)) record.serialized = serialized;
     else record.reusable = false;
   }
@@ -477,6 +482,8 @@ export const UpdateTarget = {
 interface VirtualNode {
   transform: StateTransform;
   children: StateTransform.Ref[];
+  /** What the last `serialize` wrote for it */
+  out?: StateTransform.Serialized;
   /** Replayed (`load.md §4`): what it serializes to. */
   serialized?: StateTransform.Serialized;
 }
@@ -582,7 +589,15 @@ export class VirtualStateBuilder {
     ref: StateTransform.Ref,
     serialized: StateTransform.Serialized,
   ) {
-    this.place(parent, transformer, undefined, { ref });
+    if (!transformer.definition.isDecorator && !this.nodes.has(ref)) {
+      // (the common case, inline: a new transform under the parent's decorator root)
+      const p = this.decoratorRoot(parent);
+      this.node(p).children.push(ref);
+      const transform = { parent: p, transformer, ref, state: {}, version: '' } as unknown as StateTransform;
+      this.nodes.set(ref, { transform, children: [], serialized });
+      return;
+    }
+    this.place(parent, transformer, undefined, { ref }, true);
     this.node(ref).serialized = serialized;
     this.affected.delete(ref);
   }
@@ -592,13 +607,19 @@ export class VirtualStateBuilder {
     transformer: StateTransformer,
     params: any,
     options: Partial<StateTransform.Options>,
+    /** A replayed transform: only its place in the tree matters, it serializes to the recorded one */
+    replayed = false,
   ): StateTransform.Ref {
+    const create = (p: StateTransform.Ref): StateTransform =>
+      replayed
+        ? ({ parent: p, transformer, ref: options.ref!, state: {}, version: '' } as unknown as StateTransform)
+        : transformer.apply(p, params, options);
     if (transformer.definition.isDecorator) {
       // StateBuilder.To.insert: the new transform takes over the children of `parent`
       this.touched(parent);
       const node = this.node(parent);
       const children = node.children;
-      const t = transformer.apply(parent, params, options);
+      const t = create(parent);
       node.children = [];
       this.add(t);
       const inserted = this.node(t.ref);
@@ -610,7 +631,7 @@ export class VirtualStateBuilder {
       this.affected.add(parent);
       return t.ref;
     }
-    const t = transformer.apply(this.decoratorRoot(parent), params, options);
+    const t = create(this.decoratorRoot(parent));
     this.add(t);
     return t.ref;
   }
@@ -652,12 +673,18 @@ export class VirtualStateBuilder {
     node.children = [];
   }
 
+  /** What the last `serialize` wrote for `ref`. */
+  serializedOf(ref: StateTransform.Ref): StateTransform.Serialized | undefined {
+    return this.nodes.get(ref)?.out;
+  }
+
   /** The serialized tree in pre-order; transforms equal to one in `reuse` are that one (`load.md §3`). */
   serialize(reuse?: StateTree.Serialized[]): StateTree.Serialized {
     const transforms: StateTransform.Serialized[] = [];
     const reuseMaps: (Map<string, StateTransform.Serialized> | undefined)[] = reuse ? reuse.map(() => undefined) : [];
     const visit = (ref: StateTransform.Ref) => {
-      const { transform, children, serialized } = this.node(ref);
+      const node = this.node(ref);
+      const { transform, children, serialized } = node;
       if (serialized) {
         if (serialized.parent !== transform.parent) {
           throw new SubtreeReuseMismatch(`Replayed transform '${ref}' is under another parent.`);
@@ -669,6 +696,19 @@ export class VirtualStateBuilder {
         let found: StateTransform.Serialized | undefined;
         let closest: StateTransform.Serialized | undefined;
         let shared: any;
+        /** The transform to serialize, with its version: made once the closest candidate is not equal */
+        let versioned: StateTransform | undefined;
+        const withVersion = () => {
+          let t = transform;
+          if (shared !== undefined && shared !== t.params) t = { ...t, params: shared };
+          if (closest) {
+            if (t.tags && arrayEqual(t.tags, closest.tags)) t = { ...t, tags: closest.tags };
+            if (t.dependsOn && arrayEqual(t.dependsOn, closest.dependsOn)) t = { ...t, dependsOn: closest.dependsOn };
+          }
+          // (of the shared params: their old parts have their hashes cached)
+          setParamsVersion(t, this.hashCache);
+          return t;
+        };
         if (reuse) {
           const index = transforms.length;
           for (let i = 0; i < reuse.length && !found; i++) {
@@ -684,25 +724,19 @@ export class VirtualStateBuilder {
                 // one walk: equal → the candidate; else the params with its equal parts (memory of long animations)
                 shared = shareEqualParts(transform.params, candidate.params);
                 if (shared === candidate.params && isSameTransformMeta(transform, candidate)) found = candidate;
-                continue;
+              } else if (isSameTransform(transform, candidate)) {
+                found = candidate;
               }
+              continue;
             }
-            if (isSameTransform(transform, candidate)) found = candidate;
+            // the other candidates: a different version is different JSON (`jsonHash`), only an equal one is compared
+            versioned ??= withVersion();
+            if (candidate.version === versioned.version && isSameTransform(transform, candidate)) found = candidate;
           }
         }
-        if (found) {
-          transforms.push(found);
-        } else {
-          let t = transform;
-          if (shared !== undefined && shared !== t.params) t = { ...t, params: shared };
-          if (closest) {
-            if (t.tags && arrayEqual(t.tags, closest.tags)) t = { ...t, tags: closest.tags };
-            if (t.dependsOn && arrayEqual(t.dependsOn, closest.dependsOn)) t = { ...t, dependsOn: closest.dependsOn };
-          }
-          setParamsVersion(t, this.hashCache);
-          transforms.push(StateTransform.toJSON(t));
-        }
+        transforms.push(found ?? StateTransform.toJSON(versioned ?? withVersion()));
       }
+      node.out = transforms[transforms.length - 1];
       for (const c of children) visit(c);
     };
     visit(this.rootRef);
@@ -951,11 +985,12 @@ class TargetManager {
   }
   /** Return ref for a new node based on parent and desired suffix. */
   getChildRef(parent: StateObjectSelector, suffix: string): string {
-    const hashBase = parent.ref.replace(/^!mvs:/, '') + ':' + suffix;
-    let hash = this.hashCache.get(hashBase);
+    // (keyed without the regex, which ran for every transform of every frame)
+    const key = `${parent.ref}\u0000${suffix}`;
+    let hash = this.hashCache.get(key);
     if (hash === undefined) {
-      hash = stringHash(hashBase);
-      this.hashCache.set(hashBase, hash);
+      hash = stringHash(parent.ref.replace(/^!mvs:/, '') + ':' + suffix);
+      this.hashCache.set(key, hash);
     }
     const result = this.nextRef(hash);
     return result;

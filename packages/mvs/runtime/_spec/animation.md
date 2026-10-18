@@ -66,6 +66,11 @@ one of a few groups of keys that go from the same start to the same end color. A
 map is looked up by those colors, then by the whole content (`ColorMapsByContent`, per base map), so equal maps from any
 transition of a snapshot are the same object. Decoded colors are cached by string (a map repeats a few colors).
 
+Preparing a plan reads the raw start and end maps once: a transition whose maps equal those of an earlier one (same keys
+in the same order, the same strings; documents repeat a few fades many times) takes that plan after one comparison
+(`fromRaw`); maps over the same keys build it in one pass (`fromSameKeys`); plans with equal arrays are one object
+(`intern`).
+
 Why: a story flashing 10,596 line colors in 360 fades built a new map at every step of every fade and kept one in every
 frame: 1.5 GB kept, most of a 39 s load. With one object per distinct map, slot comparison, frame dedup, hashing and
 sharing stop at identity.

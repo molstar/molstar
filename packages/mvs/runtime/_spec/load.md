@@ -47,6 +47,10 @@ Rules that follow:
   `undefined` and non-finite numbers matter. Transformers with `customSerialization` are never reused (their version
   hashes the raw params, which a serialized transform does not keep). Distinct `CanonicalValues` (§5 of
   [animation.md](animation.md)) compare as different without a walk.
+- **Order of the checks**: the closest candidate (the previous frame's) is compared and shared in one walk
+  (`shareEqualParts`); when it differs, the version is computed (it is needed anyway), and a further candidate (the
+  snapshot's) with another version is rejected without a walk — a different hash is different JSON — only an equal one
+  is confirmed by `jsonEqual`. The version is of the shared params, whose old parts have their hashes cached.
 - **Versions** (`setParamsVersion`, `jsonHash`): equal JSON, equal version, as `useHashVersion`. Small params (up to 256
   JSON entries) hash their JSON text, which is `hashMurmur128o`; larger ones hash from the hashes of their parts, kept
   per object for the load (`jsonHashCache`), so a part shared with an earlier frame (coordinate lists, a color map) is
@@ -98,6 +102,19 @@ What reads outside is excluded:
 
 A replay that does not fit (another ref counter, a replayed transform moved or changed) throws `SubtreeReuseMismatch`
 and the tree is loaded again without the memo (`SubtreeMemo.stats.fallbacks`; the goldens require 0).
+
+**Downloads as units.** Each `download` under the root converts on its own (`convertMvsToMolstarMemo`, memoized by MVS
+node with the units inside it) unless a twin download would be condensed with it (then the whole top part converts as
+one). So a frame that changed nothing under a download replays the whole download: parse, structure, model and all, with
+their records. `model` and `structure` read their whole subtree (and `model` writes the annotation ids its descendants
+read), so they are replayed only as part of an unchanged subtree, never their own transforms alone (`isOwnReplayable`,
+`DeepKinds`).
+
+**The snapshot itself** is converted and loaded through the same memos as its frames: unchanged parts are the same
+objects in the snapshot and the frames (comparisons stop at identity), and the first frame replays from it.
+
+**Records by position**: a unit's record is found by the child indices from the root (the same in every frame of a
+snapshot), not by its order among the units, which changes as downloads become units or not.
 
 ## 5. What the top nodes read from their units
 
