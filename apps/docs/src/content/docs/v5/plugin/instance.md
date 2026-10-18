@@ -322,13 +322,8 @@ async function init() {
 - See [Browser Tests](https://github.com/molstar/molstar/tree/master/src/tests/browser) for example usage.
 
 ```ts
-import { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
-import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
-import { AssetManager } from '@molstar/core/util/assets';
-
 const canvas = document.getElementById('canvas'); // parent <canvas> element
-// WebGL; `Canvas3DContext.create(canvas, assetManager, backends)` takes the backends to try, e.g. WebGPU first
-const canvas3d = Canvas3D.create(createWebGLCanvas3DContext(canvas, new AssetManager()));
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
 canvas3d.animate();
 // use the canvas3d object here
 ```

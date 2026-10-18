@@ -318,8 +318,18 @@ export class PluginContext {
     return await this._mount(target, initOptions);
   }
 
-  private async _initContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
-    if (this.container) return true;
+  /** The container being made: mounts while it is made (e.g. a component mounted twice) wait for the same one. */
+  private containerInit?: Promise<boolean>;
+
+  private _initContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
+    if (this.container) return Promise.resolve(true);
+    this.containerInit ??= this._createContainer(options).finally(() => {
+      this.containerInit = undefined;
+    });
+    return this.containerInit;
+  }
+
+  private async _createContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
     const container = new PluginContainer({
       checkeredCanvasBackground: options?.checkeredCanvasBackground,
       canvas: options?.canvas3dContext?.canvas,
@@ -383,6 +393,11 @@ export class PluginContext {
             resolutionMode: this.config.get(PluginConfig.General.ResolutionMode) || 'auto',
           },
         );
+        // Disposed while the context was made (asynchronously): it is ours to free, and nothing is built on it.
+        if (this.disposed) {
+          canvas3dContext.dispose();
+          return false;
+        }
       }
       (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
       (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);

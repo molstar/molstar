@@ -5,6 +5,9 @@ around it. Each plan's Status section has the details; this index lists where ea
 [minimum-capabilities.md](minimum-capabilities.md) (targets and minimum specs) and
 [neutral-conventions.md](neutral-conventions.md) (the neutral API follows WebGPU, WebGL adapts).
 
+Open follow-ups from the review of the WebGPU branch (correctness, memory, one decision):
+[../../webgpu/followup.md](../../webgpu/followup.md).
+
 ## Done
 
 - [backend-split.md](backend-split.md): backend-neutral interfaces, so that WebGL and WebGPU backends sit side by side.

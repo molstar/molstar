@@ -298,7 +298,7 @@ required). The WebGL context handles the loss and restore events of its canvas i
 implemented by every backend (a new context replacing a lost one; on WebGL once the browser restored the context),
 `simulateContextLoss()` loses the context for debugging, `release()` loses it on purpose to free its GPU resources
 (WebGL `WEBGL_lose_context`, WebGPU the device destroyed; custom implementations add it), and `destroy` takes `GraphicsDestroyOptions` (`doNotForceWebGLContextLoss`). The passes and
-pick helpers take a `GraphicsContext`; `PickBuffers` is an interface created with
+pick helpers take a `GraphicsContext`; `PickBuffers` (a class, see the picking paragraph above) is created with
 `createPickBuffers(graphics, pickPass, maxAsyncReadLag?)`. `GraphicsContext` has `readRenderTarget` (async readback of
 render targets, rows top to bottom) and `waitForGpuCommandsComplete`.
 
@@ -360,6 +360,13 @@ out of view), reported as a loss but not restored until `restore()`, on both bac
 the `webgpu` package) enables the WebGPU backend with `HeadlessScreenshotHelperOptions.backend` and the async
 `HeadlessScreenshotHelper.create` / `HeadlessPluginContext.create`; images are read with `readRenderTarget` on both
 backends.
+
+## Graphics backend option of the Viewer and the Mesoscale Explorer
+
+The `preferWebgl1` option and the `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are removed:
+`graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`) asks for WebGL1. The default is `graphicsBackend: 'auto'`
+(WebGPU where it has the features of WebGL2, else WebGL2, then WebGL1), which does not read
+`PluginConfig.General.PreferWebGl1`. The Prism viewer keeps `prefer-webgl1` as `graphics-backend=webgl1`.
 
 ## Picking results
 
