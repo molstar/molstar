@@ -272,20 +272,14 @@ async function assignStateTransition(
   const includeCanvas = !!transitions.tree.params?.include_canvas;
   const parentData = parentEntry.snapshot.data!;
   // (a subtree that is the same object as in an earlier frame or the snapshot converts and loads as then, `load.md §4`)
-  const memoize = true;
   const { conversion: conversionMemo, subtree: subtreeMemo } = memos;
 
   let previousData: State.Snapshot | undefined;
   for (let i = 0; i < transitions.frames.length; i++) {
     const frame = transitions.frames[i];
-    let molstarTree: MolstarTree;
-    if (memoize) {
-      const converted = convertMvsToMolstarMemo(frame[0], conversionMemo);
-      molstarTree = converted.tree;
-      subtreeMemo.units = converted.units;
-    } else {
-      molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
-    }
+    const converted = convertMvsToMolstarMemo(frame[0], conversionMemo);
+    const molstarTree = converted.tree;
+    subtreeMemo.units = converted.units;
     // (a frame's transforms that equal the previous frame's or the snapshot's are those objects, `load.md §3`)
     const reuse = previousData ? [previousData.tree, parentData.tree] : [parentData.tree];
     let data: State.Snapshot;
@@ -297,7 +291,7 @@ async function assignStateTransition(
         molstarTree,
         parent.animation,
         { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
-        { ...options, reuse, subtreeMemo: memoize ? subtreeMemo : undefined },
+        { ...options, reuse, subtreeMemo },
       );
       data = entry.snapshot.data!;
       camera = entry.snapshot.camera;
@@ -305,14 +299,15 @@ async function assignStateTransition(
     } else {
       // (only the state tree: the camera and canvas of a frame are not kept without include_camera / include_canvas)
       const context = MolstarLoadingContext.create();
-      if (memoize) context.units = subtreeMemo.units;
+      context.units = subtreeMemo.units;
       data = loadTreeVirtual(plugin, molstarTree, MolstarLoadingActions, context, {
         replaceExisting: true,
         extensions: options.extensions ?? BuiltinLoadingExtensions,
         refHashCache: options.refHashCache,
         jsonHashCache: options.jsonHashCache,
         reuse,
-        subtreeMemo: memoize ? subtreeMemo : undefined,
+        subtreeMemo,
+        resetContext: MolstarLoadingContext.reset,
       }).data!;
     }
     previousData = data;
@@ -409,6 +404,7 @@ function molstarTreeToEntry(
     jsonHashCache: options.jsonHashCache,
     reuse: options.reuse,
     subtreeMemo: options.subtreeMemo,
+    resetContext: MolstarLoadingContext.reset,
   });
   snapshot.canvas3d = {
     props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
@@ -473,6 +469,14 @@ export const MolstarLoadingContext = {
       annotationMap: new Map(),
       camera: { focuses: [] },
     };
+  },
+  /** Clears what loading wrote, for loading the same tree again (`loadTreeVirtual`'s `resetContext`); keeps `units`. */
+  reset(context: MolstarLoadingContext): void {
+    context.annotationMap.clear();
+    context.nearestReprMap = undefined;
+    context.camera = { focuses: [] };
+    context.canvas = undefined;
+    context.transition = undefined;
   },
 };
 

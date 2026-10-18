@@ -215,24 +215,29 @@ export function convertMvsToMolstarMemo(
   if (twins) return convertTopPart(mvsTree, memo);
 
   const units = new Set<MolstarSubtree>();
-  const tree = convertMvsToMolstar({ ...mvsTree, children: [] } as MVSTree, memo.sourceUrl);
-  tree.children = children.map((child) => {
+  const converted: MolstarSubtree[] = [];
+  for (const child of children) {
     if (child.kind !== 'download') {
       const unit = convertUnit(child, memo);
       units.add(unit);
-      return unit;
+      converted.push(unit);
+      continue;
     }
     let download = memo.downloads.get(child);
     if (!download) {
-      const converted = convertTopPart({ kind: 'root', children: [child] } as MVSTree, memo);
-      if (converted.tree.children?.length !== 1) return convertTopPart(mvsTree, memo) as never;
-      download = { node: converted.tree.children[0] as MolstarSubtree, units: Array.from(converted.units) };
+      const own = convertTopPart({ kind: 'root', children: [child] } as MVSTree, memo);
+      // (a download that is not one Molstar download, e.g. none without a `parse`, two for two formats: the whole
+      // top part, as `convertMvsToMolstar` makes it)
+      if (own.tree.children?.length !== 1) return convertTopPart(mvsTree, memo);
+      download = { node: own.tree.children[0] as MolstarSubtree, units: Array.from(own.units) };
       memo.downloads.set(child, download);
     }
     units.add(download.node);
     for (const u of download.units) units.add(u);
-    return download.node;
-  }) as MolstarTree['children'];
+    converted.push(download.node);
+  }
+  const tree = convertMvsToMolstar({ ...mvsTree, children: [] } as MVSTree, memo.sourceUrl);
+  tree.children = converted as MolstarTree['children'];
   return { tree, units };
 }
 

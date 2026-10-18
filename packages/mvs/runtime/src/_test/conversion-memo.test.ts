@@ -46,4 +46,50 @@ describe('convertMvsToMolstarMemo', () => {
       }
     });
   }
+
+  describe('downloads that do not convert to one Molstar download', () => {
+    const structure = (format: string) => ({
+      kind: 'parse',
+      params: { format },
+      children: [
+        {
+          kind: 'structure',
+          params: { type: 'model' },
+          children: [
+            {
+              kind: 'component',
+              params: { selector: 'polymer' },
+              children: [{ kind: 'representation', params: { type: 'cartoon' } }],
+            },
+          ],
+        },
+      ],
+    });
+    const canvas = { kind: 'canvas', params: { background_color: 'white' } };
+    const cases: [string, any[]][] = [
+      ['a download without a parse', [{ kind: 'download', params: { url: 'a.bcif' } }, canvas]],
+      [
+        'two parses of different binary-ness',
+        [{ kind: 'download', params: { url: 'a.cif' }, children: [structure('bcif'), structure('mmcif')] }, canvas],
+      ],
+      [
+        'twin downloads',
+        [
+          { kind: 'download', params: { url: 'a.bcif' }, children: [structure('bcif')] },
+          canvas,
+          { kind: 'download', params: { url: 'a.bcif' }, children: [structure('bcif')] },
+        ],
+      ],
+    ];
+    for (const [name, children] of cases) {
+      it(name, () => {
+        const tree = { kind: 'root', children } as any;
+        const memo = createMolstarConversionMemo(undefined);
+        const expected = JSON.stringify(convertMvsToMolstar(tree, undefined));
+        expect(JSON.stringify(convertMvsToMolstarMemo(tree, memo).tree)).toBe(expected);
+        // again with the memo filled
+        expect(JSON.stringify(convertMvsToMolstarMemo(tree, memo).tree)).toBe(expected);
+      });
+    }
+  });
 });

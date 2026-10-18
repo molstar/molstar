@@ -101,7 +101,9 @@ What reads outside is excluded:
   off.
 
 A replay that does not fit (another ref counter, a replayed transform moved or changed) throws `SubtreeReuseMismatch`
-and the tree is loaded again without the memo (`SubtreeMemo.stats.fallbacks`; the goldens require 0).
+and the tree is loaded again without the memo (`SubtreeMemo.stats.fallbacks`; the goldens require 0). The context is
+cleared first (`resetContext`, `MolstarLoadingContext.reset`): what the attempt wrote (camera focuses, annotation ids)
+would be there twice. Without a `resetContext` the memo is not used, nor with an extension that is not `local`.
 
 **Downloads as units.** Each `download` under the root converts on its own (`convertMvsToMolstarMemo`, memoized by MVS
 node with the units inside it) unless a twin download would be condensed with it (then the whole top part converts as

@@ -792,7 +792,7 @@ the [API change ledger](breaking-v6-changes.md).
   (`UpdateTarget.updateState` for loading extensions); see the API change ledger
 - MVS animations with large color maps (thousands of keys interpolated as a whole): each distinct map is made once and
   shared by every frame and transition that has it; transform versions of large params hash from their parts. A story
-  of 22,546 frames over a 118 MB document loads in ~2.5 s (Node) instead of failing after minutes, keeping ~85 MB
+  of 22,546 frames over a 118 MB document loads in ~2.5 s (Node) instead of failing after minutes, keeping ~95 MB
   instead of 1.6 GB
 - MolQL validation of MVS trees skips values that cannot hold an expression (color maps, coordinate lists): 0.8 s → 3
   ms on that story

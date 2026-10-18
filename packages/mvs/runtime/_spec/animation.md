@@ -66,6 +66,11 @@ one of a few groups of keys that go from the same start to the same end color. A
 map is looked up by those colors, then by the whole content (`ColorMapsByContent`, per base map), so equal maps from any
 transition of a snapshot are the same object. Decoded colors are cached by string (a map repeats a few colors).
 
+The plans, the raw maps they were made from and the maps by content are kept per animation (`ColorCaches`, held by its
+transitions), so they are released after the expansion; only the maps the frames hold stay. A step whose base map is not
+the plan's (a map slot inside another animated slot, where the base changes from step to step) gets a new map over its
+own base, as every step did before plans.
+
 Preparing a plan reads the raw start and end maps once: a transition whose maps equal those of an earlier one (same keys
 in the same order, the same strings; documents repeat a few fades many times) takes that plan after one comparison
 (`fromRaw`); maps over the same keys build it in one pass (`fromSameKeys`); plans with equal arrays are one object

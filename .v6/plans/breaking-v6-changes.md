@@ -788,3 +788,7 @@ MVS-loaded transform versions (`VirtualStateBuilder`) are `jsonHash` of the para
 (up to 256 JSON entries), a hash of the parts' hashes for larger ones; equal params still have equal versions.
 `ObjectMutator.create(plan, { equals })` takes the slot equality (default `deepEqual`).
 
+`LoadTreeVirtualOptions.resetContext` (`@molstar/mvs/load-generic`) clears what loading wrote into the context before a
+load is redone without `subtreeMemo`; `subtreeMemo` is used only with it (`MolstarLoadingContext.reset` for the MVS
+loader).
+

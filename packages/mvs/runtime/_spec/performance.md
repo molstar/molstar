@@ -35,7 +35,7 @@ documents too large to keep; `MVS_BENCH_LOAD_ONLY=1` measures `loadMVS` alone, f
 | motm1    | retained                  |                  25 MB |          4.2 MB |
 | features | `loadMVS`                 |        587 ms, 1.29 GB | ~285 ms, 733 MB |
 | story\*  | `loadMVS`                 |        39 s\*\*, 43 GB | ~2.45 s, 5.4 GB |
-| story\*  | retained                  |                1.56 GB |           84 MB |
+| story\*  | retained                  |                1.56 GB |           96 MB |
 
 \* "Terms of entrapment", an MVSX of 16 snapshots and a 118 MB `index.mvsj` (22,546 frames; a primitive of 10,596 lines
 whose colors flash in 360 fades): not a fixture, measured from a local copy (`MVS_BENCH_FIXTURES=<path>`,

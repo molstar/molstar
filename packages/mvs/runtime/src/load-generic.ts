@@ -76,6 +76,11 @@ export interface LoadTreeVirtualOptions<TTree extends Tree, TContext> {
   reuse?: StateTree.Serialized[];
   /** Replays the unit subtrees that did not change since an earlier tree (`load.md §4`). */
   subtreeMemo?: SubtreeMemo<TTree>;
+  /**
+   * Clears what loading wrote into `context`, before the tree is loaded again without the memo after a replay that did
+   * not fit (`SubtreeReuseMismatch`). Required by `subtreeMemo` (without it the memo is not used).
+   */
+  resetContext?: (context: TContext) => void;
 }
 
 /**
@@ -156,10 +161,11 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     options?.refHashCache,
     options?.jsonHashCache,
   );
-  const memo = options?.subtreeMemo;
-  if (memo && !(options?.extensions ?? []).every((e) => e.local)) {
+  // (the memo only with local extensions, and a context that can be cleared for the load without it)
+  if (options?.subtreeMemo && (!options.resetContext || !(options.extensions ?? []).every((e) => e.local))) {
     options = { ...options, subtreeMemo: undefined };
   }
+  const memo = options?.subtreeMemo;
   let serialized: StateTree.Serialized;
   try {
     const unitRecords = loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
@@ -174,6 +180,8 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     SubtreeMemo.stats.fallbacks++;
     memo.pending.length = 0;
     memo.owners.clear();
+    // (what the attempt wrote into the context would be written again)
+    options!.resetContext!(context);
     return loadTreeVirtual(plugin, tree, loadingActions, context, { ...options, subtreeMemo: undefined });
   }
   const stateSnapshot: State.Snapshot = { tree: serialized };
@@ -232,7 +240,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
 
   const visit = (node: Subtree<TTree>, parent: Subtree<TTree> | undefined, path: string) => {
     if (parent && memo?.units.has(node)) {
-      const record = visitInUnit(node, parent, memo.unitRecords.get(path));
+      const record = visitInUnit(node, parent, memo.unitRecords.get(path), path);
       if (record) unitRecords.set(path, record);
       return;
     }
@@ -290,12 +298,13 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
     node: Subtree<TTree>,
     parent: Subtree<TTree>,
     previous: SubtreeRecord | undefined,
+    path: string,
   ): SubtreeRecord | undefined => {
     const updateParent = mapping.get(parent);
     if (!updateParent) {
       visitNode(node, parent);
       const children = (node.children ?? []) as Subtree<TTree>[];
-      for (let i = 0; i < children.length; i++) visit(children[i], node, '');
+      for (let i = 0; i < children.length; i++) visit(children[i], node, `${path}.${i}`);
       return undefined;
     }
     const parentRef = updateParent.selector.ref;
@@ -363,7 +372,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(
 
     const children = (node.children ?? []) as Subtree<TTree>[];
     for (let j = 0; j < children.length; j++) {
-      record.children[j] = visitInUnit(children[j], node, previous?.children[j]);
+      record.children[j] = visitInUnit(children[j], node, previous?.children[j], `${path}.${j}`);
     }
     record.subtreeReusable = record.reusable && record.children.every((c) => c?.subtreeReusable);
     return record;
@@ -799,11 +808,9 @@ function isSameSerializedState(state: StateTransform.State, serialized: StateTra
   return n === (serialized ? Object.keys(serialized).length : 0);
 }
 
-/** `JSON.stringify(a) === JSON.stringify(b)`, without building the strings; false for distinct `CanonicalValues`. */
+/** `JSON.stringify(a) === JSON.stringify(b)`, without building the strings. */
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  // (taken as different only when made for the same place, else costs only reuse: `CanonicalValues`)
-  if (areDistinctCanonical(a, b)) return false;
   if (typeof (a as any)?.toJSON === 'function' || typeof (b as any)?.toJSON === 'function') {
     return JSON.stringify(a) === JSON.stringify(b);
   }
@@ -840,7 +847,9 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
 
 /**
  * `fresh` with each part that is `jsonEqual` to the same part of `old` replaced by that part of `old`; plain objects and
- * arrays on the way are copied, never written. Same JSON as `fresh`.
+ * arrays on the way are copied, never written. Same JSON as `fresh`. `old` itself when all of it is equal: for the
+ * serializer, the candidate is reused. Distinct `CanonicalValues` are not walked but taken as different, which can only
+ * miss sharing or reuse (the same JSON and version are written either way).
  */
 export function shareEqualParts(fresh: any, old: any): any {
   if (fresh === old) return old;

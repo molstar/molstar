@@ -127,20 +127,35 @@ describe('VirtualStateBuilder', () => {
 });
 
 describe('loadTreeVirtual with a SubtreeMemo', () => {
-  // a toy tree: every child of the root downloads its url, every grandchild parses
-  const actions: LoadingActions<any, {}> = {
+  // a toy tree: every child of the root downloads its url (and notes it in the context), every grandchild parses
+  type Context = { seen: string[] };
+  const actions: LoadingActions<any, Context> = {
     root: (parent) => parent,
-    file: (parent, node: any) => UpdateTarget.apply(parent, Download, { url: node.params.url, isBinary: true }),
+    file: (parent, node: any, context: Context) => {
+      context.seen.push(node.params.url);
+      return UpdateTarget.apply(parent, Download, { url: node.params.url, isBinary: true });
+    },
     cif: (parent) => UpdateTarget.apply(parent, ParseCif, {}),
+    // notes itself in the context, adds no transform
+    mark: (parent, node: any, context: Context) => {
+      context.seen.push('mark');
+      return parent;
+    },
   } as any;
+  const resetContext = (context: Context) => {
+    context.seen.length = 0;
+  };
   const file = (url: string) => ({ kind: 'file', params: { url }, children: [{ kind: 'cif' }] });
 
   it('replays unchanged units with the same output, and loads again when a replay does not fit', async () => {
     const plugin = new PluginContext({ registry: [], behaviors: [] });
     await plugin.init();
+    let context: Context = { seen: [] };
     const load = (tree: any, memo?: SubtreeMemo) => {
       if (memo) memo.units = new Set(tree.children);
-      return loadTreeVirtual(plugin, tree, actions, {}, { replaceExisting: true, subtreeMemo: memo }).data!.tree;
+      context = { seen: [] };
+      return loadTreeVirtual(plugin, tree, actions, context, { replaceExisting: true, subtreeMemo: memo, resetContext })
+        .data!.tree;
     };
     const memo = new SubtreeMemo(() => true);
     const a = file('https://example.org/a.bcif');
@@ -177,9 +192,42 @@ describe('loadTreeVirtual with a SubtreeMemo', () => {
     // takes one): the replay does not fit, the tree is loaded again
     const fourth = load({ kind: 'root', children: [{ kind: 'note', children: [] }, a2, b2] }, memo);
     expect(fourth).toEqual(load({ kind: 'root', children: [{ kind: 'note', children: [] }, a2, b2] }));
-    expect(SubtreeMemo.stats.fallbacks - stats0.fallbacks).toBe(1);
     expect(memo.fallbacks).toBe(1);
+    // a node that writes into the context before a replay that does not fit: the load without the memo starts from a
+    // cleared context, so what the attempt wrote is not there twice
+    const fallbacks = memo.fallbacks;
+    const withFallback = load({ kind: 'root', children: [{ kind: 'mark' }, a2, b2] }, memo);
+    expect(memo.fallbacks).toBe(fallbacks + 1);
+    expect(context.seen).toEqual(['mark', 'https://example.org/a.bcif', 'https://example.org/b2.bcif']);
+    expect(withFallback).toEqual(load({ kind: 'root', children: [{ kind: 'mark' }, a2, b2] }));
 
+    plugin.dispose();
+  });
+});
+
+describe('loadTreeVirtual with a SubtreeMemo it cannot use', () => {
+  it('loads without it: no reset for the context, or an extension that is not local', async () => {
+    const plugin = new PluginContext({ registry: [], behaviors: [] });
+    await plugin.init();
+    const actions: LoadingActions<any, {}> = {
+      root: (parent) => parent,
+      file: (parent, node: any) => UpdateTarget.apply(parent, Download, { url: node.params.url, isBinary: true }),
+    } as any;
+    const tree = { kind: 'root', children: [{ kind: 'file', params: { url: 'https://example.org/a.bcif' } }] };
+    const notLocal = { id: 'x', description: 'x', createExtensionContext: () => ({}), action: () => {} };
+    const cases = [
+      { subtreeMemo: new SubtreeMemo(() => true) },
+      { subtreeMemo: new SubtreeMemo(() => true), resetContext: () => {}, extensions: [notLocal] },
+    ];
+    for (const options of cases) {
+      const loaded0 = SubtreeMemo.stats.loaded;
+      for (let i = 0; i < 2; i++) {
+        options.subtreeMemo.units = new Set(tree.children);
+        loadTreeVirtual(plugin, tree as any, actions, {}, { replaceExisting: true, ...options });
+      }
+      expect(SubtreeMemo.stats.loaded).toBe(loaded0);
+      expect(options.subtreeMemo.unitRecords).toBeInstanceOf(Map);
+    }
     plugin.dispose();
   });
 });
