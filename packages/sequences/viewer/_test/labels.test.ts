@@ -235,4 +235,22 @@ describe('the value line: what the layer draws, read from its prepared state', (
       ['13'],
     ]);
   });
+
+  it("names the hovered track and each line's provider, aligned with the lines (a host shows only some)", async () => {
+    const b = createSeqViewSpec();
+    const a = b.data.sequence({ ref: 'a', label: 'A', value: 'MKVLATGHEKLV' });
+    b.view({ ref: 'v', label: 'V' })
+      .block({ sequence: a })
+      .track({ ref: 'dense', label: 'Dense track' })
+      .values({ data: ann(b, 'dense', a, { value: Array.from({ length: 12 }, (_, i) => i / 10) }) });
+    const t = await driven(b.getDocument(), { renderers: prepared() });
+    t.pointer('move', 'v.main', t.xOf('v.main', 0, 3), t.yOf('v.main', 'dense'));
+    const label = t.ctx.labels.current.value;
+    expect(label?.track).toBe('Dense track');
+    expect(label?.from).toHaveLength(label?.lines.length ?? -1);
+    const by = (provider: string) => label?.lines.filter((_, k) => label.from?.[k] === provider).map((l) => l.key);
+    expect(by('value')).toEqual(['dense']);
+    // The residue's own lines, if any, are the position provider's: none of the value's.
+    expect(by('position')).not.toContain('dense');
+  });
 });

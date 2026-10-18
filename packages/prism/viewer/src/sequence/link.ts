@@ -11,13 +11,19 @@ import { Extents } from '@molstar/seq-core/model';
 import { StructureLink } from './molstar/link.js';
 import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from './molstar/link-views.js';
 import type { MarksView } from '../sources/marks.js';
-import { lociSize } from '@molstar/seq-viewer';
+import { type HoverLabel, lociSize } from '@molstar/seq-viewer';
 import type { SequenceViewer } from './model.js';
 
 /** The 3D view the sequence links to: Seq*'s contract and, optionally, the camera's reset to the whole structure. */
 export interface SequenceView3D extends StructureView3D {
   /** The default framing of the structure (below the sequence band), animated; absent: the camera is left alone. */
   resetCamera?(): void;
+  /**
+   * Adds `read()` to the 3D label of what a mapped sequence hover lights (Mol*'s label providers, sequence.md §10):
+   * the hovered track and its lines under Mol*'s label of the residue. `refresh` labels the highlight again when the
+   * lines changed and the highlight did not (another track over the same residue). Absent: the label is Mol*'s alone.
+   */
+  annotateHover?(read: () => string | undefined): { refresh(): void; dispose(): void };
 }
 
 /** Selection origins of the person's own moves in the sequence view (the rest: 3D, data, API, replays). */
@@ -57,6 +63,7 @@ export function linkSequence(
     link = StructureLink.attach(seq.systems, '3d', shown.structure, set, shown.complex);
     const stop = linkViews(seq, view, link, options);
     const stopMarks = options?.marks ? showMarks(seq, link, shown.structure, options.marks) : undefined;
+    const stopLabel = view.annotateHover ? annotateHover(seq, view.annotateHover) : undefined;
     // Whether the selection held something: the reset follows only the move that empties it, not an empty selection again.
     let held = false;
     const sub = seq.selection.current.subscribe((sel) => {
@@ -75,6 +82,7 @@ export function linkSequence(
       sub.unsubscribe();
       stop();
       stopMarks?.();
+      stopLabel?.();
     };
   });
   return () => {
@@ -125,4 +133,58 @@ function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: S
     for (const c of channels) seq.highlight.clear(c);
     if (hovering) seq.hover.setLoci(null, '3d');
   };
+}
+
+/**
+ * Seq*'s label of a mapped hover as the extra lines of Mol*'s label (sequence.md §10): the track's name, then Seq*'s
+ * own lines (an annotation, its fields, a value), never its title or the residue's lines (Mol* names the residue). Escaped: the
+ * text comes from loaded documents and Mol*'s labels are HTML. The lines are made once per Seq* label (edge rate) and
+ * read by the provider at Mol*'s label time; a new Seq* label over the same highlight labels it again.
+ */
+function annotateHover(seq: SequenceViewer['seq'], annotate: NonNullable<SequenceView3D['annotateHover']>) {
+  let html: string | undefined;
+  const handle = annotate(() => html);
+  const sub = seq.labels.current.subscribe((label) => {
+    const next = label ? sequenceLabelHtml(label) : undefined;
+    if (next === html) return;
+    html = next;
+    handle.refresh();
+  });
+  return () => {
+    sub.unsubscribe();
+    handle.dispose();
+  };
+}
+
+/** Escaped for Mol*'s label HTML, on one line: a line break would make the label Markdown to Prism (`hoverRich`). */
+const escapeHtml = (s: string) =>
+  s.replace(/\s+/g, ' ').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * Seq*'s providers that label the residue itself (its name and numbers, its copies, its stored letter): Mol*'s label
+ * says that, so their lines are left out (sequence.md §10). What stays is the track's own: an annotation, a value; and
+ * `copies: varies` (the copies differ here), which Mol*'s label of one residue cannot say.
+ */
+const ResidueProviders: ReadonlySet<string> = new Set(['position', 'copies']);
+const residueLine = (from: string | undefined, l: { readonly key: string; readonly value: string }) =>
+  !!from && ResidueProviders.has(from) && !(from === 'copies' && l.value === 'varies');
+
+/**
+ * A Seq* label's track and its own lines as Mol*'s label HTML (`<b>track</b>`, then `key: value` a line): none of the
+ * residue's lines, and no track line when a line already names it (a value keyed by the track's annotation). Nothing
+ * of the track's own: nothing added.
+ */
+export function sequenceLabelHtml(label: HoverLabel): string | undefined {
+  const lines: string[] = [];
+  let named = false;
+  for (let i = 0; i < label.lines.length; i++) {
+    const l = label.lines[i];
+    const from = label.from?.[i];
+    if (residueLine(from, l)) continue;
+    if (label.track && l.key === label.track) named = true;
+    lines.push(escapeHtml(l.value ? `${l.key}: ${l.value}` : l.key));
+  }
+  if (!lines.length) return undefined;
+  if (label.track && !named) lines.unshift(`<b>${escapeHtml(label.track)}</b>`);
+  return lines.join('<br/>');
 }

@@ -153,6 +153,22 @@ describe('ShellModel', () => {
     expect(shell.dock('right').state.value.pinned).toBe(true);
   });
 
+  it('pins nothing beside a compact rail, and keeps the pin for the full rail', () => {
+    const viewState = new ViewStateManager();
+    const shell = new ShellModel({ viewState });
+    shell.registerTabs([tab('a')]);
+    shell.show('a');
+    shell.setCompactRail(true);
+    expect(shell.dock('right').state.value.pinned).toBe(false);
+    expect(viewState.layout.value.docks.right.pinned).toBe(true);
+    shell.setCompactRail(false);
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+    // Docked (not floating), there is no compact rail to give way to: the pin stays.
+    viewState.setDock('right', { floating: false });
+    shell.setCompactRail(true);
+    expect(shell.dock('right').state.value.pinned).toBe(true);
+  });
+
   it('hides a tab without unregistering it, and shows it again where it was', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('a', { order: 1 }), tab('b', { order: 2 }), tab('c', { order: 3 })]);

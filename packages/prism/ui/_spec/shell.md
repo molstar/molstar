@@ -66,7 +66,9 @@ buttons) is the app's. The code is the truth for how.
     when the rounded height or the buttons change.
   - **Compact rail** (`ShellOptions.compactRail`, `toggleRail`): the column hides behind a button in the canvas's corner
     and slides in over the canvas, taking no width; hidden, it is inert and paused. Hiding closes the card and the
-    panel.
+    panel. Nothing pins beside it (`DockState.pinned` false, the layout's pin kept for the full rail; no pin button):
+    pinned, the canvas ended at the panel and the button, in the canvas's corner, moved onto the toolbar. The button
+    sits at the foot of the rail's column, and the canvas's corner (the toolbar) keeps clear of that column.
 - **Theme switch**: the themes beside the rail (`UIThemes`), `ThemeModel` (`shell/theme.ts`) keeps `data-msp-theme`. The
   rail, panel and cards follow the UI theme; the canvas chrome follows the canvas (Glass, below).
 - **Command menu**: opened by the rail's last button and ⌘K / ⇧⌘P (the host listens); modal over the whole shell
@@ -80,8 +82,11 @@ buttons) is the app's. The code is the truth for how.
   `focus`). A section otherwise opens as the person left it (`sectionOpen`/`setSectionOpen`).
 - **Cards** (`ShellOverlay`: `title`, `render`, `persistent?`, `fill?`), one at a time, take the right panel's place,
   full height, whether the panel is open or not; over the open panel they swap in without a transition and the panel
-  steps aside. A card closes on Esc, its ✕, or a pointer down outside it (not on the canvas or the bar at its bottom,
-  which act on the scene and stay usable; not a `persistent` one). Panels and cards share one header.
+  steps aside (inert and paused, `coveredBy`; a docked desktop panel is beside the card, not under it, and stays live).
+  A card closes on Esc, its ✕, or a pointer down outside it (not on the canvas or the bar at its bottom, which act on
+  the scene and stay usable; not a `persistent` one). Panels and cards share one header. One card element, placed over
+  the canvas or, compact, in the sheet's `CardSlot`, and moved between them as the layout changes (its view, state and
+  focus kept); no slot (compact and expanded, or no panel tabs) leaves it over the canvas, the canvas's width.
 - **Pages** (`ShellPage`, `openPage`): a full-size opaque card over the canvas for what needs room (the agent's
   Inspector), with its own header; Esc closes it, focus goes back; opening one closes a card.
 - **Hidden panels.** A panel is mounted only while it is its dock's active tab (`Show` in `DockView`). What the shell
@@ -131,9 +136,12 @@ buttons) is the app's. The code is the truth for how.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.
 - **Compact** below `compactWidth` (720px) of the shell's own width (`ResizeObserver`, not media queries): the panel is
-  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; a card fills the
-  canvas. The status and the selection stay on the canvas, as wide: the selection beside the toolbar (wrapping above
-  it), the status floating above both where the bottom bar is narrow, so neither coming or going resizes the canvas.
+  a bottom sheet (`min(45cqh, 420px)`) with its `compactBar` tabs, the items without a group, and More; a card opens in
+  the sheet too, in the panel's place (the canvas ends above it, as for a panel; the tab bar under it), flat, with its
+  title and ✕ as a panel's (Story, PAE, an extension's card: floating over the canvas, it hid the structure it is
+  about). The panel it covers leaves the sheet (`data-covered`) and is back as it was when the card closes. The status
+  and the selection stay on the canvas, as wide: the selection beside the toolbar (wrapping above it), the status
+  floating above both where the bottom bar is narrow, so neither coming or going resizes the canvas.
 - **Glass and canvas ink.** Everything over the canvas is flat glass whose theme follows the canvas background
   (`model/canvas-theme.ts`: relative luminance, threshold 0.179; a gradient averaged by opacity; transparent: the host's
   fallback) and is tinted from the canvas color (`ShellView`'s `ink`, a `CanvasInk`, sets `data-msp-theme` and

@@ -216,7 +216,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     justify-content: space-around;
   }
 
-  & .msp-shell-dock-splitter {
+  & .msp-shell-dock-splitter, &[data-covered] > .msp-shell-dock-content {
     display: none;
   }
 }

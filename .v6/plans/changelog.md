@@ -757,3 +757,20 @@ the [API change ledger](breaking-v6-changes.md).
   `refs`, the frame cells to step (empty: all, as before).
 - Prism: Enter in a text or number field of an action (Home's Download Structure, the selection's and animation's
   forms) applies it, as in Mol\* v5.
+
+## Prism and Seq\*: the sequence's lines in the hover label, layouts
+
+- Prism: hovering a sequence track that maps into the structure shows Mol\*'s label of the residue and, under it, the
+  track's own data there: an annotation and its fields, a value (under the track's name unless the line names it). The
+  residue's own lines from Seq\* (numbers, copies) are left to Mol\*'s label. The link adds them through a Mol\* loci
+  label provider, so any reader of `labels.highlight` gets them; `LociLabelProvider` is unchanged,
+  `LociLabelManager.refresh()` is new. Seq\*'s `HoverLabel` gains `track` (the hovered track's name) and `from` (each
+  line's provider)
+- Prism: a compact rail pins nothing beside it (the pin is kept for the full rail): the rail's button no longer lands
+  on the canvas toolbar, and the rail no longer comes and goes beside a fixed panel
+- Prism: in the narrow layout a card (Story, PAE, an extension's) opens in the bottom sheet in the panel's place, as a
+  panel does (the canvas ends above it, the tab bar stays under it), instead of covering the canvas; the panel it
+  covers is kept and is back when the card closes
+- Prism: Storybook's Viewer › Layouts shows every major layout (desktop floating, pinned, docked, expanded; the compact
+  rail; embedded; tablet and phone), each with a panel or a card open, in a frame of the device's size that shrinks to
+  fit the page

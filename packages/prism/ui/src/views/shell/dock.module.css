@@ -194,6 +194,12 @@
   & .splitter {
     display: none;
   }
+
+  /* A card open in the panel's place (the sheet shows the card): the panel, kept as it was, leaves the sheet. Not by
+     `[inert]`: a closing panel is inert too, and keeps its close animation. */
+  &[data-covered] > .content {
+    display: none;
+  }
 }
 
 /* Floating: over the canvas, inside the canvas layer. The rail (tab strip, toolbar) sits at the edge, the content card

@@ -9,6 +9,7 @@
 import { Representation } from '@molstar/graphics/repr/representation';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
+import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureFormat, StructureSource } from '../sequence/molstar/source.js';
@@ -65,14 +66,28 @@ function formatOf(plugin: PluginContext, s: StructureRef): StructureFormat | und
   return data?.obj?.data instanceof Uint8Array ? 'bcif' : 'mmcif';
 }
 
-/** Runs writes one after another; a write still waiting when a newer one comes is dropped. */
-function channel(): (write: () => Promise<unknown>) => void {
+/** Writes, one after another; a write still waiting when a newer one comes is dropped. */
+interface Channel {
+  (write: () => Promise<unknown>): void;
+  /** A write is queued or running: what it writes is not in the plugin yet. */
+  readonly pending: boolean;
+}
+
+function channel(): Channel {
   let tail: Promise<unknown> = Promise.resolve();
   let latest = 0;
-  return (write) => {
+  let open = 0;
+  const send = (write: () => Promise<unknown>) => {
     const id = ++latest;
-    tail = tail.then(() => (id === latest ? write() : undefined)).catch(() => undefined);
+    open++;
+    tail = tail
+      .then(() => (id === latest ? write() : undefined))
+      .catch(() => undefined)
+      .finally(() => {
+        open--;
+      });
   };
+  return Object.defineProperty(send, 'pending', { get: () => open > 0 }) as Channel;
 }
 
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
@@ -274,6 +289,27 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
             );
           });
           return () => sub.unsubscribe();
+        },
+        annotateHover: (read) => {
+          // After every other provider: the residue first, then the track's lines (sequence.md §10). Only while the
+          // sequence's hover maps: what the link lit is then the 3D highlight of this structure.
+          const provider: LociLabelProvider = {
+            label: (loci) =>
+              hoverMapped.value && StructureElement.Loci.is(loci) && loci.structure.root === target.root
+                ? read()
+                : undefined,
+            priority: -1000,
+          };
+          const labels = plugin.managers.lociLabels;
+          labels.addProvider(provider);
+          return {
+            // A highlight on its way labels itself with the latest lines when it lands: labelling the one before it
+            // with them would pair the last residue with the new track lines, and label twice.
+            refresh: () => {
+              if (hoverMapped.value && !highlight.pending) labels.refresh();
+            },
+            dispose: () => labels.removeProvider(provider),
+          };
         },
         ...(resetCamera ? { resetCamera } : {}),
       };

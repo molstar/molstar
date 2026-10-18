@@ -742,11 +742,29 @@
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
 }
 
-/* Compact: no side panel to stand in for; a card fills the canvas. */
+/* Compact with no sheet to take it (expanded, or no panel tabs): over the canvas, its width. */
 :where([data-mode="compact"]) .card {
   left: var(--msp-canvas-edge);
   right: var(--msp-canvas-edge);
   width: auto;
+}
+
+/* The compact sheet's place for a card (`CardSlot`): only what the card is. */
+.cardSlot {
+  display: contents;
+}
+
+/* Compact: in the bottom sheet, in the panel's place (dock-view.tsx `DockView`, dock.module.css `.compact`): its height
+   and its flat look; the canvas ends above it, as for a panel. Over the canvas, a card hid what it is about (a story's
+   scene, a PAE plot's structure). */
+.cardDocked {
+  display: flex;
+  flex-direction: column;
+  height: min(45cqh, 420px);
+  min-height: 0;
+  overflow: hidden;
+  /* Its size is its place's, and it clips: what changes inside stays inside (styling.md §5). */
+  contain: content;
 }
 
 /* A task in overlay mode: everything waits under a scrim; one card says what runs and how far. */
