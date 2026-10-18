@@ -625,7 +625,9 @@ function interpolateColors(
       return start;
     }
   } else {
-    throw new Error('Missing start value for color interpolation');
+    // no start value (a key the target's color map does not have, no `start`): nothing to interpolate, the property is
+    // left as it is (as before split coloring, which made this an error and broke documents that relied on it)
+    return undefined;
   }
 }
 
