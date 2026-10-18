@@ -61,7 +61,11 @@ beforeAll(async () => {
   audit.observe(document.body);
   expectOk(await core.api.load.files({ files: [cbs()] }));
   expectOk(await core.api.load.files({ files: [ensemble(5)] }));
-  // Settled: the loads' late work (the sequence's structure, its document) done before the session, every run.
+  // Settled: the loads' late work (the sequence's structure, its document) done before the session, every run. The
+  // sequence's runtime is its own chunk, imported when a structure is shown (a cold import takes longer than `quiet`'s
+  // gap): wait for it, or its views mount in the session (the link adds its label provider, which tells the hover
+  // label, a derive that comes out the same), and `quiet` only sees what follows.
+  await core.views.sequence?.load();
   await audit.quiet(300, 5000);
 });
 
