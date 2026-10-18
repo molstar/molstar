@@ -55,7 +55,7 @@ import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginState } from '@molstar/plugin/state';
-import { StateObjectSelector, StateTree } from '@molstar/core/state';
+import { type State, StateObjectSelector, StateTree } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Clip } from '@molstar/core/util/clip';
 import { ScratchMemory } from '@molstar/core/util/int-buffer';
@@ -84,7 +84,13 @@ import { type ShapeFormat, shapeRepresentationProps, shapeTransforms } from '@mo
 import { IsHiddenCustomStateExtension } from '@molstar/mvs/load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from '@molstar/mvs/load-extensions/non-covalent-interactions';
 import { VolumeStreamingExtension } from '@molstar/mvs/load-extensions/volume-streaming';
-import { type LoadingActions, type LoadingExtension, loadTreeVirtual, UpdateTarget } from '@molstar/mvs/load-generic';
+import {
+  type LoadingActions,
+  type LoadingExtension,
+  loadTreeVirtual,
+  SubtreeMemo,
+  UpdateTarget,
+} from '@molstar/mvs/load-generic';
 import {
   type AnnotationFromSourceKind,
   type AnnotationFromUriKind,
@@ -110,7 +116,13 @@ import {
 import { MVSData, type MVSData_States, type Snapshot, SnapshotMetadata } from '@molstar/mvs-builder/mvs-data';
 import { type MVSAnimationNode, MVSAnimationSchema } from '@molstar/mvs-builder/tree/animation/animation-tree';
 import { validateTree } from '@molstar/mvs-builder/tree/generic/tree-validation';
-import { convertMvsToMolstar, mvsSanityCheck } from '@molstar/mvs/tree/molstar/conversion';
+import {
+  convertMvsToMolstar,
+  convertMvsToMolstarMemo,
+  createMolstarConversionMemo,
+  type MolstarConversionMemo,
+  mvsSanityCheck,
+} from '@molstar/mvs/tree/molstar/conversion';
 import {
   type MolstarNode,
   type MolstarNodeParams,
@@ -162,6 +174,8 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
     const multiData: MVSData_States = data.kind === 'multiple' ? data : MVSData.stateToStates(data);
     const entries: PluginStateSnapshotManager.Entry[] = [];
+    // (refs are the same in every snapshot and frame: their hashes are computed once per load, `load.md §2`)
+    const loadOptions: MolstarTreeLoadOptions = { ...options, refHashCache: new Map(), jsonHashCache: new WeakMap() };
     for (let i = 0; i < multiData.snapshots.length; i++) {
       const snapshot = multiData.snapshots[i];
       const previousSnapshot = i > 0 ? multiData.snapshots[i - 1] : multiData.snapshots[multiData.snapshots.length - 1];
@@ -172,16 +186,28 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         validateMolQLTree(snapshot.animation, 'Animation', plugin);
       }
       if (options.sanityChecks) mvsSanityCheck(snapshot.root);
-      const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
+      // (an animated snapshot is converted and loaded through the memos of its frames, so its frames share its
+      // objects and replay what did not change from it, `load.md §4`)
+      const memos = snapshot.animation?.children?.length ? createFrameMemos(snapshot, options.sourceUrl) : undefined;
+      let molstarTree: MolstarTree;
+      if (memos) {
+        const converted = convertMvsToMolstarMemo(snapshot.root, memos.conversion);
+        molstarTree = converted.tree;
+        memos.subtree.units = converted.units;
+      } else {
+        molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
+      }
       validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar', plugin);
       const entry = molstarTreeToEntry(
         plugin,
         molstarTree,
         snapshot.animation,
         { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
-        options,
+        { ...loadOptions, subtreeMemo: memos?.subtree },
       );
-      await assignStateTransition(ctx, plugin, entry, snapshot, options, i, multiData.snapshots.length);
+      if (memos) {
+        await assignStateTransition(ctx, plugin, entry, snapshot, loadOptions, memos, i, multiData.snapshots.length);
+      }
       entries.push({
         ...entry,
         _transientData: { sourceMvsSnapshot: snapshot },
@@ -235,7 +261,8 @@ async function assignStateTransition(
   plugin: PluginContext,
   parentEntry: PluginStateSnapshotManager.Entry,
   parent: Snapshot,
-  options: MVSLoadOptions,
+  options: MolstarTreeLoadOptions,
+  memos: FrameMemos,
   snapshotIndex: number,
   snapshotCount: number,
 ) {
@@ -247,25 +274,55 @@ async function assignStateTransition(
     loop: !!transitions.tree.params?.loop,
     frames: [],
   };
+  const includeCamera = !!transitions.tree.params?.include_camera;
+  const includeCanvas = !!transitions.tree.params?.include_canvas;
+  const parentData = parentEntry.snapshot.data!;
+  // (a subtree that is the same object as in an earlier frame or the snapshot converts and loads as then, `load.md §4`)
+  const { conversion: conversionMemo, subtree: subtreeMemo } = memos;
 
+  let previousData: State.Snapshot | undefined;
   for (let i = 0; i < transitions.frames.length; i++) {
     const frame = transitions.frames[i];
-    const molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
-    const entry = molstarTreeToEntry(
-      plugin,
-      molstarTree,
-      parent.animation,
-      { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
-      options,
-    );
-
-    StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
+    const converted = convertMvsToMolstarMemo(frame[0], conversionMemo);
+    const molstarTree = converted.tree;
+    subtreeMemo.units = converted.units;
+    // (a frame's transforms that equal the previous frame's or the snapshot's are those objects, `load.md §3`)
+    const reuse = previousData ? [previousData.tree, parentData.tree] : [parentData.tree];
+    let data: State.Snapshot;
+    let camera: PluginState.Snapshot['camera'];
+    let canvas3d: PluginState.Snapshot['canvas3d'];
+    if (includeCamera || includeCanvas) {
+      const entry = molstarTreeToEntry(
+        plugin,
+        molstarTree,
+        parent.animation,
+        { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
+        { ...options, reuse, subtreeMemo },
+      );
+      data = entry.snapshot.data!;
+      camera = entry.snapshot.camera;
+      canvas3d = entry.snapshot.canvas3d;
+    } else {
+      // (only the state tree: the camera and canvas of a frame are not kept without include_camera / include_canvas)
+      const context = MolstarLoadingContext.create();
+      context.units = subtreeMemo.units;
+      data = loadTreeVirtual(plugin, molstarTree, MolstarLoadingActions, context, {
+        replaceExisting: true,
+        extensions: options.extensions ?? BuiltinLoadingExtensions,
+        refHashCache: options.refHashCache,
+        jsonHashCache: options.jsonHashCache,
+        reuse,
+        subtreeMemo,
+        resetContext: MolstarLoadingContext.reset,
+      }).data!;
+    }
+    previousData = data;
 
     animation.frames.push({
       durationInMs: frame[1],
-      data: entry.snapshot.data!,
-      camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
-      canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
+      data,
+      camera: includeCamera ? camera : undefined,
+      canvas3d: includeCanvas ? canvas3d : undefined,
     });
 
     if (ctx.shouldUpdate) {
@@ -280,17 +337,80 @@ async function assignStateTransition(
   parentEntry.snapshot.transition = animation;
 }
 
+interface FrameMemos {
+  conversion: MolstarConversionMemo;
+  subtree: SubtreeMemo<MolstarTree>;
+}
+
+/** The memos an animated snapshot and its frames share (`load.md §4`); with camera or canvas kept in the frames, the
+ * nodes that write them into the loading context are loaded every frame. */
+function createFrameMemos(snapshot: Snapshot, sourceUrl: string | undefined): FrameMemos {
+  const params = snapshot.animation?.params;
+  const withContext = !!params?.include_camera || !!params?.include_canvas;
+  return {
+    conversion: createMolstarConversionMemo(sourceUrl),
+    subtree: new SubtreeMemo<MolstarTree>(
+      withContext ? isReusableNodeWithContext : isReusableNode,
+      isOwnReplayableNode,
+    ),
+  };
+}
+
+/** Kinds whose loading reads outside their subtree (the nearest representation, `makeNearestReprMap`). */
+const NonLocalKinds = new Set<string>(['label_from_uri', 'label_from_source']);
+
+/** A node's loading can be replayed unless it reads outside the node and its children (`load.md §4`). */
+function isReusableNode(node: MolstarSubtree): boolean {
+  return !NonLocalKinds.has(node.kind);
+}
+
+/**
+ * Kinds whose action reads deeper than the node and its children without an action, or writes context its descendants
+ * read: `model` (annotations of the whole structure, `annotationMap`), `structure` (labels and tooltips of the whole
+ * structure), `root`. Replayed only as part of a whole unchanged subtree, never their own transforms alone.
+ */
+const DeepKinds = new Set<string>(['root', 'model', 'structure']);
+
+function isOwnReplayableNode(node: MolstarSubtree): boolean {
+  return !DeepKinds.has(node.kind);
+}
+
+/** Kinds whose action writes the camera, canvas or transition into the loading context (and adds no transform). */
+const ContextKinds = new Set<string>(['focus', 'camera', 'canvas', 'transition']);
+
+/** `isReusableNode` when the camera or canvas of a frame is kept: the context is collected again every frame. */
+function isReusableNodeWithContext(node: MolstarSubtree): boolean {
+  return isReusableNode(node) && !ContextKinds.has(node.kind);
+}
+
+interface MolstarTreeLoadOptions extends MVSLoadOptions {
+  /** Ref hashes shared by the snapshots and frames of a load. */
+  refHashCache?: Map<string, string>;
+  /** Hashes of params parts for transform versions, shared by the snapshots and frames of a load. */
+  jsonHashCache?: WeakMap<object, string>;
+  /** Serialized trees whose equal transforms are reused (`loadTreeVirtual`). */
+  reuse?: StateTree.Serialized[];
+  /** Replays unchanged unit subtrees (`loadTreeVirtual`); its `units` are the tree's. */
+  subtreeMemo?: SubtreeMemo<MolstarTree>;
+}
+
 function molstarTreeToEntry(
   plugin: PluginContext,
   tree: MolstarTree,
   animation: MVSAnimationNode<'animation'> | undefined,
   metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
-  options: { keepCamera?: boolean; keepCameraOrientation?: boolean; extensions?: MolstarLoadingExtension<any>[] },
+  options: MolstarTreeLoadOptions,
 ) {
   const context = MolstarLoadingContext.create();
+  if (options.subtreeMemo) context.units = options.subtreeMemo.units;
   const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, {
     replaceExisting: true,
     extensions: options?.extensions ?? BuiltinLoadingExtensions,
+    refHashCache: options.refHashCache,
+    jsonHashCache: options.jsonHashCache,
+    reuse: options.reuse,
+    subtreeMemo: options.subtreeMemo,
+    resetContext: MolstarLoadingContext.reset,
   });
   snapshot.canvas3d = {
     props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
@@ -338,14 +458,16 @@ function molstarTreeToEntry(
 export interface MolstarLoadingContext {
   /** Maps `*_from_[uri|source]` nodes to annotationId they should reference */
   annotationMap: Map<MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, string>;
-  /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node */
-  nearestReprMap?: Map<MolstarNode, MolstarNode<'representation'>>;
+  /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node; computed when first read */
+  nearestReprMap?: { get(node: MolstarNode): MolstarNode<'representation'> | undefined };
   camera: {
     cameraParams?: MolstarNodeParams<'camera'>;
     focuses: { target: StateObjectSelector; params: MolstarNodeParams<'focus'> }[];
   };
   canvas?: MolstarNode<'canvas'>;
   transition?: MolstarNode<'transition'>;
+  /** The unit subtrees of the tree (`convertMvsToMolstarMemo`): what is collected from them is cached (`load.md §5`) */
+  units?: Set<object>;
 }
 export const MolstarLoadingContext = {
   create(): MolstarLoadingContext {
@@ -354,12 +476,22 @@ export const MolstarLoadingContext = {
       camera: { focuses: [] },
     };
   },
+  /** Clears what loading wrote, for loading the same tree again (`loadTreeVirtual`'s `resetContext`); keeps `units`. */
+  reset(context: MolstarLoadingContext): void {
+    context.annotationMap.clear();
+    context.nearestReprMap = undefined;
+    context.camera = { focuses: [] };
+    context.canvas = undefined;
+    context.transition = undefined;
+  },
 };
 
 /** Loading actions for loading a `MolstarTree`, per node kind. */
 const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> = {
   root(updateParent: UpdateTarget, node: MolstarNode<'root'>, context: MolstarLoadingContext): UpdateTarget {
-    context.nearestReprMap = makeNearestReprMap(node);
+    // (walks the whole tree: only when a label needs it, `load.md §5`)
+    let map: Map<MolstarNode, MolstarNode<'representation'>> | undefined;
+    context.nearestReprMap = { get: (n) => (map ??= makeNearestReprMap(node)).get(n) };
     return updateParent;
   },
   download(updateParent: UpdateTarget, node: MolstarNode<'download'>): UpdateTarget {

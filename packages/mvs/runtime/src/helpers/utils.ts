@@ -5,7 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { hashString } from '@molstar/core/data/util';
 import { StateObject } from '@molstar/core/state';
 import { range } from '@molstar/core/util/array';
 import { Color } from '@molstar/core/util/color';
@@ -31,15 +30,16 @@ export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {
   return elements.filter((x) => x !== undefined && x !== null) as T[];
 }
 
-/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be' */
-function stringHash32(input: string): string {
-  const uint32hash = hashString(input) >>> 0; // >>>0 converts to uint32, LOL
-  return uint32hash.toString(16).padStart(8, '0');
-}
 /** Create an 16-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be544330be'*/
 export function stringHash(input: string): string {
-  const reversed = input.split('').reverse().join('');
-  return stringHash32(input) + stringHash32(reversed);
+  // = stringHash32(input) + stringHash32(reversed input), in one pass over the UTF-16 code units
+  let h = 0;
+  let r = 0;
+  for (let i = 0, l = input.length; i < l; i++) {
+    h = ((h << 5) - h + input.charCodeAt(i)) | 0;
+    r = ((r << 5) - r + input.charCodeAt(l - 1 - i)) | 0;
+  }
+  return (h >>> 0).toString(16).padStart(8, '0') + (r >>> 0).toString(16).padStart(8, '0');
 }
 
 /** Return type of elements in a set */

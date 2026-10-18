@@ -23,6 +23,7 @@ import {
   tuple,
   union,
 } from '../generic/field-schema.js';
+import { PrimitiveFieldTypes } from '../generic/field-schema.js';
 import type { ValueFor } from '../generic/field-schema.js';
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -572,6 +573,10 @@ export const ColorT = new iots.Type<ColorT>(
   (value) => value,
 );
 export type ColorT = ColorNameT | HexColorT | `${string}/${string}`; // This is not ideal, but kinda enough for useful autocomplete and catching typos. Specifying the type more accurately would slow down intellisense (`${ColorNameT | HexColorT}/${ColorNameT | HexColorT}` would cause generating all combinations under the hood).
+PrimitiveFieldTypes.add(HexColorT);
+PrimitiveFieldTypes.add(ColorNameT);
+PrimitiveFieldTypes.add(ColorT);
+
 function isColorT(str: any): str is ColorT {
   if (typeof str !== 'string') return false;
   if (str.includes('/')) {

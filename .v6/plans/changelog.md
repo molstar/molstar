@@ -801,3 +801,30 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism: Storybook's Viewer › Layouts shows every major layout (desktop floating, pinned, docked, expanded; the compact
   rail; embedded; tablet and phone), each with a panel or a card open, in a frame of the device's size that shrinks to
   fit the page
+- Fix: a card pinned beside the canvas (the Story, export, canvas settings) is full height and flat again; it had kept
+  the floating card's margins and corners since the card moved into a wrapper of its own
+
+## MVS load
+
+- Expanding MVS animations into frames no longer uses `produce` (mutative): a compiled update plan
+  (`ObjectMutator`, `@molstar/core/util/object-mutator`) copies only what changed; ~20× faster for long animations, identical frames
+- `UUID.create22` is a random per-process prefix and a counter instead of a random id per call: ~70× faster, still 22
+  URL-safe base64 characters and unique
+- MVS animation frames are built without a `StateBuilder`, from a ref-hash cache, and reuse the transforms they share
+  with the previous frame or their snapshot; frames keep a camera and canvas only with `include_camera` /
+  `include_canvas`; subtrees a frame did not change are converted and loaded once and replayed after. What structure and
+  model nodes collect from unchanged subtrees is cached. A node whose own inputs did not change replays its own transforms. Loading motm1 4× and exosome 5× faster than before this
+  work, 4–5× less memory kept
+- [Breaking] `@molstar/mvs/load-generic`: `UpdateTarget.update` and `UpdateTarget.commit` are removed
+  (`UpdateTarget.updateState` for loading extensions); see the API change ledger
+- MVS animations with large color maps (thousands of keys interpolated as a whole): each distinct map is made once and
+  shared by every frame and transition that has it; transform versions of large params hash from their parts. A story
+  of 22,546 frames over a 118 MB document loads in ~2.5 s (Node) instead of failing after minutes, keeping ~95 MB
+  instead of 1.6 GB
+- MolQL validation of MVS trees skips values that cannot hold an expression (color maps, coordinate lists): 0.8 s → 3
+  ms on that story
+- MVS animation frames with `include_camera` / `include_canvas` take the same incremental path
+- MVS: unchanged `download` subtrees of animation frames are replayed whole, the animated snapshot itself shares the
+  frames' memos, and color fades repeated with the same maps share one plan
+- MVS tree validation checks known value types without io-ts contexts (a sound fast path; `decode` still reports the
+  errors): 1 s → 0.25 s on the 118 MB story

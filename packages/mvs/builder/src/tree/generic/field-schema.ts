@@ -100,6 +100,9 @@ export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
  *
  * (it looks stupid to repeat the list of values but it will result in nicer type bundle (for MolViewStories))
  */
+/** Custom field types whose values are primitives (strings, numbers, booleans): their values hold nothing nested. */
+export const PrimitiveFieldTypes = new WeakSet<iots.Mixed>();
+
 export function literal<V extends string | number | boolean>(...values: V[]) {
   if (values.length === 0) {
     throw new Error(`literal type must have at least one value`);
@@ -107,7 +110,7 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
   const typeName =
     values.length === 1 ? onelinerJsonString(values[0]) : `(${values.map((v) => onelinerJsonString(v)).join(' | ')})`;
   const valueSet = new Set(values);
-  return new iots.Type<V>(
+  const type = new iots.Type<V>(
     typeName,
     ((value: any) => valueSet.has(value)) as any,
     (value, ctx) =>
@@ -116,6 +119,8 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         : iots.failure(value, ctx, `"${value}" is not a valid value for literal type ${typeName}`),
     (value) => value,
   );
+  PrimitiveFieldTypes.add(type);
+  return type;
 }
 
 interface FieldBase<V extends AllowedValueTypes = any, R extends boolean = boolean> {
@@ -166,6 +171,7 @@ export type ValueFor<F extends Field | iots.Any> =
  * Return description of validation issues, if `value` has wrong type. */
 export function fieldValidationIssues<F extends Field>(field: F, value: any): string[] | undefined {
   if (value === undefined && !field.required) return undefined; // Value undefined treated as if field not even present (unlike null)
+  if (isCertainlyValid(field.type, value)) return undefined;
   const validation = field.type.decode(value);
   if (validation._tag === 'Right') {
     return undefined;
@@ -207,4 +213,126 @@ function stringifyError(v: any) {
     return v > 0 ? 'Infinity' : '-Infinity';
   }
   return JSON.stringify(v);
+}
+
+/**
+ * `type.decode(value)` would succeed, decided without io-ts's validation contexts and results (`true` only when
+ * certain; `false` sends the value to `decode`, which also reports the errors). Large documents carry color maps and
+ * coordinate lists of thousands of entries, where `decode` allocates per entry. Custom types are decided by `decode`,
+ * once per primitive value (a document repeats a few colors many times).
+ */
+export function isCertainlyValid(type: iots.Mixed, value: unknown): boolean {
+  return checkerOf(type)(value);
+}
+
+type Checker = (value: unknown) => boolean;
+const Checkers = new WeakMap<iots.Mixed, Checker>();
+
+/** The check of `isCertainlyValid` for `type`, made once per type (no type tests per value). */
+function checkerOf(type: iots.Mixed): Checker {
+  let checker = Checkers.get(type);
+  if (!checker) {
+    // (a placeholder while it is made, for recursive types)
+    Checkers.set(type, (value) => checkerOf(type)(value));
+    checker = makeChecker(type);
+    Checkers.set(type, checker);
+  }
+  return checker;
+}
+
+function makeChecker(type: iots.Mixed): Checker {
+  if (type instanceof iots.StringType) return (v) => typeof v === 'string';
+  if (type instanceof iots.NumberType) return (v) => typeof v === 'number';
+  if (type instanceof iots.BooleanType) return (v) => typeof v === 'boolean';
+  if (type instanceof iots.NullType) return (v) => v === null;
+  if (type instanceof iots.UnionType) {
+    const types = type.types as iots.Mixed[];
+    const checks = types.map(checkerOf);
+    // (e.g. the keys of a map, `int | str`: any string passes)
+    const anyString = types.some((t) => t instanceof iots.StringType);
+    return (v) => {
+      if (anyString && typeof v === 'string') return true;
+      for (const check of checks) if (check(v)) return true;
+      return false;
+    };
+  }
+  if (type instanceof iots.RefinementType) {
+    const base = checkerOf(type.type);
+    const predicate = type.predicate;
+    return (v) => base(v) && predicate(v);
+  }
+  if (type instanceof iots.ArrayType) {
+    const item = checkerOf(type.type);
+    return (v) => {
+      if (!Array.isArray(v)) return false;
+      for (let i = 0; i < v.length; i++) if (!item(v[i])) return false;
+      return true;
+    };
+  }
+  if (type instanceof iots.TupleType) {
+    const items = (type.types as iots.Mixed[]).map(checkerOf);
+    return (v) => {
+      if (!Array.isArray(v) || v.length !== items.length) return false;
+      for (let i = 0; i < items.length; i++) if (!items[i](v[i])) return false;
+      return true;
+    };
+  }
+  if (type instanceof iots.DictionaryType) {
+    const domain = checkerOf(type.domain);
+    const codomain = checkerOf(type.codomain);
+    return (v) => {
+      if (!isRecord(v)) return false;
+      const keys = Object.keys(v);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!domain(key) || !codomain(v[key])) return false;
+      }
+      return true;
+    };
+  }
+  if (type instanceof iots.InterfaceType || type instanceof iots.PartialType) {
+    const partial = type instanceof iots.PartialType;
+    const props = Object.entries(type.props as Record<string, iots.Mixed>).map(
+      ([key, t]) => [key, checkerOf(t)] as const,
+    );
+    return (v) => {
+      if (!isRecord(v)) return false;
+      for (const [key, check] of props) {
+        const x = v[key];
+        if (partial && x === undefined) continue;
+        if (!check(x)) return false;
+      }
+      return true;
+    };
+  }
+  if (type instanceof iots.IntersectionType) {
+    const checks = (type.types as iots.Mixed[]).map(checkerOf);
+    return (v) => {
+      for (const check of checks) if (!check(v)) return false;
+      return true;
+    };
+  }
+  // a custom type: decided by `decode`, once per primitive value; objects go to `decode` in full
+  const decoded = new Map<unknown, boolean>();
+  // (the last value: maps repeat a color in runs)
+  let last: unknown;
+  let lastValid = false;
+  return (v) => {
+    if (v === last) return lastValid;
+    if (v !== null && typeof v === 'object') return false;
+    let valid = decoded.get(v);
+    if (valid === undefined) {
+      if (decoded.size > 10_000) decoded.clear();
+      valid = type.decode(v)._tag === 'Right';
+      decoded.set(v, valid);
+    }
+    last = v;
+    lastValid = valid;
+    return valid;
+  };
+}
+
+/** As io-ts's `UnknownRecord.is`. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Object.prototype.toString.call(value) === '[object Object]';
 }

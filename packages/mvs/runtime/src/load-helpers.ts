@@ -218,49 +218,97 @@ function transformProps(node: MolstarSubtree, kind: 'transform' | 'instance') {
   return result;
 }
 
+/**
+ * The items `own` gives for the nodes of `tree`, in DFS order. The items of a unit subtree (`context.units`, `load.md
+ * §5`) are cached by its node object: a Molstar subtree is not changed after conversion, `own` depends only on the node,
+ * its parent and the annotation ids (a function of params), and the units an animation frame did not change are the
+ * same objects, so a frame walks only what changed.
+ */
+function collectSubtree<T>(
+  cache: WeakMap<object, readonly T[]>,
+  tree: MolstarSubtree,
+  context: MolstarLoadingContext,
+  own: (node: MolstarSubtree, parent: MolstarSubtree | undefined) => T | undefined,
+): T[] {
+  const out: T[] = [];
+  const units = context.units;
+  const visit = (node: MolstarSubtree, parent: MolstarSubtree | undefined, into: T[]) => {
+    // (a tooltip's or label's item depends on its parent: never cached alone)
+    if (units?.has(node) && node.kind !== 'tooltip' && node.kind !== 'label') {
+      let items = cache.get(node);
+      if (!items) {
+        const computed: T[] = [];
+        visitOwn(node, parent, computed);
+        cache.set(node, (items = computed));
+      }
+      for (const x of items) into.push(x);
+      return;
+    }
+    visitOwn(node, parent, into);
+  };
+  const visitOwn = (node: MolstarSubtree, parent: MolstarSubtree | undefined, into: T[]) => {
+    const item = own(node, parent);
+    if (item !== undefined) into.push(item);
+    for (const child of (node.children ?? []) as MolstarSubtree[]) visit(child, node, into);
+  };
+  visit(tree, undefined, out);
+  return out;
+}
+
+interface AnnotationReference {
+  node: MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>;
+  key: string;
+  spec: MVSAnnotationSpec;
+}
+const AnnotationReferenceCache = new WeakMap<object, readonly AnnotationReference[]>();
+
+function annotationReference(node: MolstarSubtree): AnnotationReference | undefined {
+  let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
+  if (AnnotationFromUriKinds.has(node.kind as any)) {
+    const p = (node as MolstarNode<AnnotationFromUriKind>).params;
+    spec = {
+      source: { name: 'url', params: { url: p.uri, format: p.format } },
+      schema: p.schema,
+      cifBlock: blockSpec(p.block_header, p.block_index),
+      cifCategory: p.category_name,
+      fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({
+        standardName: key,
+        actualName: value,
+      })),
+    };
+  } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
+    const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
+    spec = {
+      source: { name: 'source-cif', params: {} },
+      schema: p.schema,
+      cifBlock: blockSpec(p.block_header, p.block_index),
+      cifCategory: p.category_name,
+      fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({
+        standardName: key,
+        actualName: value,
+      })),
+    };
+  }
+  if (!spec) return undefined;
+  const key = canonicalJsonString(spec as any);
+  return {
+    node: node as MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>,
+    key,
+    spec: { ...spec, id: stringHash(key) },
+  };
+}
+
 /** Collect distinct annotation specs from all nodes in `tree` and set `context.annotationMap[node]` to respective annotationIds */
 export function collectAnnotationReferences(
   tree: Subtree<MolstarTree>,
   context: MolstarLoadingContext,
 ): MVSAnnotationSpec[] {
-  const distinctSpecs: { [key: string]: MVSAnnotationSpec } = {};
-  dfs(tree, (node) => {
-    let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
-    if (AnnotationFromUriKinds.has(node.kind as any)) {
-      const p = (node as MolstarNode<AnnotationFromUriKind>).params;
-      spec = {
-        source: { name: 'url', params: { url: p.uri, format: p.format } },
-        schema: p.schema,
-        cifBlock: blockSpec(p.block_header, p.block_index),
-        cifCategory: p.category_name,
-        fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({
-          standardName: key,
-          actualName: value,
-        })),
-      };
-    } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
-      const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
-      spec = {
-        source: { name: 'source-cif', params: {} },
-        schema: p.schema,
-        cifBlock: blockSpec(p.block_header, p.block_index),
-        cifCategory: p.category_name,
-        fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({
-          standardName: key,
-          actualName: value,
-        })),
-      };
-    }
-    if (spec) {
-      const key = canonicalJsonString(spec as any);
-      distinctSpecs[key] ??= { ...spec, id: stringHash(key) };
-      context.annotationMap.set(
-        node as MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>,
-        distinctSpecs[key].id,
-      );
-    }
-  });
-  return Object.values(distinctSpecs);
+  const distinctSpecs = new Map<string, MVSAnnotationSpec>();
+  for (const { node, key, spec } of collectSubtree(AnnotationReferenceCache, tree, context, annotationReference)) {
+    if (!distinctSpecs.has(key)) distinctSpecs.set(key, spec);
+    context.annotationMap.set(node, distinctSpecs.get(key)!.id);
+  }
+  return Array.from(distinctSpecs.values());
 }
 function blockSpec(header: string | null | undefined, index: number | null | undefined): MVSAnnotationSpec['cifBlock'] {
   if (isDefined(header)) {
@@ -270,46 +318,44 @@ function blockSpec(header: string | null | undefined, index: number | null | und
   }
 }
 
+const AnnotationTooltipCache = new WeakMap<object, readonly MVSAnnotationTooltipsProps['tooltips'][number][]>();
+
 /** Collect annotation tooltips from all nodes in `tree` and map them to annotationIds. */
 export function collectAnnotationTooltips(
   tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
 ): MVSAnnotationTooltipsProps['tooltips'] {
-  const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
-  dfs(tree, (node) => {
-    if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
-      const annotationId = context.annotationMap.get(node);
-      if (annotationId) {
-        annotationTooltips.push({
-          annotationId,
-          fieldName: node.params.field_name,
-          textFormat: node.params.text_format,
-        });
-      }
-    }
+  const annotationTooltips = collectSubtree(AnnotationTooltipCache, tree, context, (node) => {
+    if (node.kind !== 'tooltip_from_uri' && node.kind !== 'tooltip_from_source') return undefined;
+    const annotationId = context.annotationMap.get(node);
+    if (!annotationId) return undefined;
+    return { annotationId, fieldName: node.params.field_name, textFormat: node.params.text_format };
   });
   return arrayDistinct(annotationTooltips);
 }
+
+const InlineTooltipCache = new WeakMap<object, readonly CustomTooltipsProps['tooltips'][number][]>();
+
 /** Collect inline tooltips from all nodes in `tree`. */
 export function collectInlineTooltips(
   tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
 ): CustomTooltipsProps['tooltips'] {
-  const inlineTooltips: CustomTooltipsProps['tooltips'] = [];
-  dfs(tree, (node, parent) => {
-    if (node.kind === 'tooltip') {
+  const inlineTooltips = collectSubtree<CustomTooltipsProps['tooltips'][number]>(
+    InlineTooltipCache,
+    tree,
+    context,
+    (node, parent) => {
+      if (node.kind !== 'tooltip') return undefined;
       if (parent?.kind === 'component') {
-        inlineTooltips.push({
-          text: node.params.text,
-          selector: componentPropsFromSelector(parent.params.selector),
-        });
+        return { text: node.params.text, selector: componentPropsFromSelector(parent.params.selector) };
       } else if (parent?.kind === 'component_from_uri' || parent?.kind === 'component_from_source') {
         const p = componentFromXProps(parent, context);
         if (isDefined(p.annotationId) && isDefined(p.fieldName) && isDefined(p.fieldValues)) {
-          inlineTooltips.push({
+          return {
             text: node.params.text,
             selector: {
-              name: 'annotation',
+              name: 'annotation' as const,
               params: {
                 annotationId: p.annotationId,
                 fieldName: p.fieldName,
@@ -317,41 +363,46 @@ export function collectInlineTooltips(
                 label: p.label || 'Annotation',
               },
             },
-          });
+          };
         }
       }
-    }
-  });
+      return undefined;
+    },
+  );
   return inlineTooltips;
 }
+
+const InlineLabelCache = new WeakMap<object, readonly CustomLabelTextProps['items'][number][]>();
+
 /** Collect inline labels from all nodes in `tree`. */
 export function collectInlineLabels(
   tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
 ): CustomLabelTextProps['items'] {
-  const inlineLabels: CustomLabelTextProps['items'] = [];
-  dfs(tree, (node, parent) => {
-    if (node.kind === 'label') {
+  const inlineLabels = collectSubtree<CustomLabelTextProps['items'][number]>(
+    InlineLabelCache,
+    tree,
+    context,
+    (node, parent) => {
+      if (node.kind !== 'label') return undefined;
       if (parent?.kind === 'component') {
-        inlineLabels.push({
+        return {
           text: node.params.text,
           position: {
-            name: 'selection',
-            params: {
-              selector: componentPropsFromSelector(parent.params.selector),
-            },
+            name: 'selection' as const,
+            params: { selector: componentPropsFromSelector(parent.params.selector) },
           },
-        });
+        };
       } else if (parent?.kind === 'component_from_uri' || parent?.kind === 'component_from_source') {
         const p = componentFromXProps(parent, context);
         if (isDefined(p.annotationId) && isDefined(p.fieldName) && isDefined(p.fieldValues)) {
-          inlineLabels.push({
+          return {
             text: node.params.text,
             position: {
-              name: 'selection',
+              name: 'selection' as const,
               params: {
                 selector: {
-                  name: 'annotation',
+                  name: 'annotation' as const,
                   params: {
                     annotationId: p.annotationId,
                     fieldName: p.fieldName,
@@ -361,11 +412,12 @@ export function collectInlineLabels(
                 },
               },
             },
-          });
+          };
         }
       }
-    }
-  });
+      return undefined;
+    },
+  );
   return inlineLabels;
 }
 
