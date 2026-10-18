@@ -6,10 +6,11 @@
 
 /**
  * Goldens of loading the animation fixtures (`_test/fixtures/*.mvsj`): the MVS frames `generateStateTransition` makes
- * and the state snapshots `loadMVS` makes from them, as a hash of each frame's canonical JSON and its duration. They
- * pin the output while the load is optimized (`.v6/mvs-optimizations`): any change of a value, a key, a ref, a
- * version, or of which time steps merge into one frame shows as a different hash at that frame. `Math.random` (noise)
- * is seeded. Regenerate after an intended change of the output:
+ * and the state snapshots `loadMVS` makes from them, with their durations (`testing.md §2`). A frame is a fingerprint:
+ * a hash of its canonical JSON with the numbers left out (keys, strings, refs, which transforms there are), and the
+ * numbers as a count and sums compared with a relative tolerance, since math functions (`sin`, `pow`) can differ in
+ * the last bit between platforms. Versions, hashes of exact numbers, are replaced by their equality pattern (the n-th
+ * distinct version of the snapshot). `Math.random` (noise) is seeded. Regenerate after an intended change of the output:
  *
  *   MVS_UPDATE_GOLDENS=1 pnpm test:unit packages/mvs/runtime/src/_test/load-animation.golden.test.ts
  */
@@ -35,34 +36,73 @@ const Fixtures = ['features', 'motm1', 'exosome'];
 const Update = process.env.MVS_UPDATE_GOLDENS === '1';
 const FixtureDir = path.join(import.meta.dirname, 'fixtures');
 
-/** [durationMs, hash] per frame */
-type FrameGoldens = [number, string][];
-/** [durationMs, hash of the state tree, hash of the camera and canvas (with `include_camera` / `include_canvas`)] */
-type LoadedFrameGoldens = [number, string, string][];
+/** [hash of the JSON without numbers, how many numbers, their sum, their position-weighted sum, the sum of |x|] */
+type Fingerprint = [string, number, number, number, number];
+/** [durationMs, the MVS tree] per frame */
+type FrameGoldens = [number, Fingerprint][];
+/** [durationMs, the state tree, the camera and canvas (with `include_camera` / `include_canvas`)] per frame */
+type LoadedFrameGoldens = [number, Fingerprint, Fingerprint][];
 interface Goldens {
   /** per snapshot: the MVS frames, `[]` without an animation */
   expanded: FrameGoldens[];
   /** per snapshot: the state tree of the snapshot itself and of its transition's frames */
-  loaded: { base: string; frames: LoadedFrameGoldens }[];
+  loaded: { base: Fingerprint; frames: LoadedFrameGoldens }[];
 }
 
-function canonicalJson(value: unknown): string {
+/** Canonical JSON (sorted keys) with each finite number written as `#` and pushed to `numbers`. */
+function canonicalJson(value: unknown, numbers: number[]): string {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    numbers.push(value);
+    return '#';
+  }
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (Array.isArray(value)) return `[${value.map((v) => canonicalJson(v, numbers)).join(',')}]`;
   const keys = Object.keys(value)
     .filter((k) => (value as any)[k] !== undefined)
     .sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as any)[k])}`).join(',')}}`;
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as any)[k], numbers)}`).join(',')}}`;
 }
 
-function hash(value: unknown) {
-  return createHash('sha1').update(canonicalJson(value)).digest('hex').slice(0, 16);
+function fingerprint(value: unknown): Fingerprint {
+  const numbers: number[] = [];
+  const text = canonicalJson(value, numbers);
+  let sum = 0;
+  let weighted = 0;
+  let abs = 0;
+  for (let i = 0; i < numbers.length; i++) {
+    sum += numbers[i];
+    weighted += numbers[i] * ((i % 97) + 1);
+    abs += Math.abs(numbers[i]);
+  }
+  return [createHash('sha1').update(text).digest('hex').slice(0, 16), numbers.length, sum, weighted, abs];
 }
 
-/** The state tree without the root's `version`, which is the plugin's (a fresh id per plugin). */
-function stateTreeHash(data: { tree: { transforms: any[] } } | undefined) {
-  if (!data) return 'none';
-  return hash(data.tree.transforms.map((t) => (t.ref === t.parent ? { ...t, version: undefined } : t)));
+/** The same JSON but for the last bits of numbers. */
+function sameFingerprint(a: Fingerprint, b: Fingerprint) {
+  const tolerance = 1e-9 * (Math.max(a[4], b[4]) + 1);
+  return (
+    a[0] === b[0] &&
+    a[1] === b[1] &&
+    Math.abs(a[2] - b[2]) <= tolerance &&
+    Math.abs(a[3] - b[3]) <= 97 * tolerance &&
+    Math.abs(a[4] - b[4]) <= tolerance
+  );
+}
+
+/**
+ * The state tree with each version as its index among the distinct versions met so far in `versions` (shared by a
+ * snapshot and its frames), and without the root's version (the plugin's, a fresh id per plugin).
+ */
+function stateTreeFingerprint(data: { tree: { transforms: any[] } } | undefined, versions: Map<string, number>) {
+  if (!data) return fingerprint('none');
+  return fingerprint(
+    data.tree.transforms.map((t) => {
+      if (t.ref === t.parent) return { ...t, version: undefined };
+      let v = versions.get(t.version);
+      if (v === undefined) versions.set(t.version, (v = versions.size));
+      return { ...t, version: `v${v}` };
+    }),
+  );
 }
 
 function mulberry32(seed: number) {
@@ -120,7 +160,7 @@ async function computeGoldens(name: string): Promise<Goldens> {
         const result: FrameGoldens[] = [];
         for (let i = 0; i < snapshots.length; i++) {
           const transition = await generateStateTransition(ctx, snapshots[i], i, snapshots.length);
-          result.push((transition?.frames ?? []).map(([tree, duration]) => [duration, hash(tree)]));
+          result.push((transition?.frames ?? []).map(([tree, duration]) => [duration, fingerprint(tree)]));
         }
         return result;
       }),
@@ -131,17 +171,20 @@ async function computeGoldens(name: string): Promise<Goldens> {
     await loadMVS(plugin, data, { doNotReportErrors: true });
     // (a replayed subtree never had to be loaded again: the rules of `load.md §4` hold for the fixtures)
     expect(SubtreeMemo.stats.fallbacks).toBe(fallbacks);
-    const loaded = plugin.managers.snapshot.state.entries.toArray().map((entry) => ({
-      base: stateTreeHash(entry.snapshot.data),
-      frames: (entry.snapshot.transition?.frames ?? []).map(
-        (f) =>
-          [
-            f.durationInMs,
-            stateTreeHash(f.data),
-            hash({ camera: f.camera, canvas3d: f.canvas3d }),
-          ] as LoadedFrameGoldens[number],
-      ),
-    }));
+    const loaded = plugin.managers.snapshot.state.entries.toArray().map((entry) => {
+      const versions = new Map<string, number>();
+      return {
+        base: stateTreeFingerprint(entry.snapshot.data, versions),
+        frames: (entry.snapshot.transition?.frames ?? []).map(
+          (f) =>
+            [
+              f.durationInMs,
+              stateTreeFingerprint(f.data, versions),
+              fingerprint({ camera: f.camera, canvas3d: f.canvas3d }),
+            ] as LoadedFrameGoldens[number],
+        ),
+      };
+    });
     return { expanded, loaded };
   } finally {
     plugin.dispose();
@@ -163,16 +206,29 @@ describe('MVS animation load goldens', () => {
         return;
       }
       const expected: Goldens = JSON.parse(fs.readFileSync(goldenPath, 'utf8'));
+      const near = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * (Math.abs(b) + 1);
       expect(actual.expanded.map((s) => s.length)).toEqual(expected.expanded.map((s) => s.length));
       for (let i = 0; i < expected.expanded.length; i++) {
-        expect(actual.expanded[i], `${name}: expanded frames of snapshot ${i}`).toEqual(expected.expanded[i]);
+        const frame = expected.expanded[i].findIndex(
+          ([d, f], j) => !near(actual.expanded[i][j][0], d) || !sameFingerprint(actual.expanded[i][j][1], f),
+        );
+        expect(frame, `${name}: snapshot ${i}, first differing MVS frame`).toBe(-1);
       }
       expect(actual.loaded.length).toBe(expected.loaded.length);
       for (let i = 0; i < expected.loaded.length; i++) {
-        expect(actual.loaded[i].base, `${name}: state of snapshot ${i}`).toBe(expected.loaded[i].base);
-        expect(actual.loaded[i].frames, `${name}: transition frames of snapshot ${i}`).toEqual(
-          expected.loaded[i].frames,
+        expect(sameFingerprint(actual.loaded[i].base, expected.loaded[i].base), `${name}: state of snapshot ${i}`).toBe(
+          true,
         );
+        expect(actual.loaded[i].frames.length, `${name}: frames of snapshot ${i}`).toBe(
+          expected.loaded[i].frames.length,
+        );
+        const frame = expected.loaded[i].frames.findIndex(
+          ([d, state, view], j) =>
+            !near(actual.loaded[i].frames[j][0], d) ||
+            !sameFingerprint(actual.loaded[i].frames[j][1], state) ||
+            !sameFingerprint(actual.loaded[i].frames[j][2], view),
+        );
+        expect(frame, `${name}: snapshot ${i}, first differing state frame`).toBe(-1);
       }
     });
   }
