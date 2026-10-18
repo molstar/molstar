@@ -829,3 +829,15 @@ the [API change ledger](breaking-v6-changes.md).
   frames' memos, and color fades repeated with the same maps share one plan
 - MVS tree validation checks known value types without io-ts contexts (a sound fast path; `decode` still reports the
   errors): 1 s → 0.25 s on the 118 MB story
+
+## State
+
+- Fix: a node below a Null object that is evaluated again because a dependency changed no longer fails the update
+  (`Cannot set properties of undefined`) when it has children added in the same update; they get cells
+- Fix: a dependency with no cell (below a Null object, or deleted while a dependency derived from params kept its
+  dependent) no longer fails the update or leaves the dependent with an object made from a disposed one: the dependent
+  is evaluated again and is in error (`Unresolved dependency.`) until a cell of that ref exists, then it is linked and
+  evaluated again, in the same update
+- Fix: a dependency that has no object after this pass (below a new Null object or an error, or evaluated below a
+  Null object) no longer stalls its dependent and fails the whole update (`Unresolved dependency: … (waiting on: …)`);
+  the dependent alone is in error

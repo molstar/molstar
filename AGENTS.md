@@ -10,7 +10,7 @@ not).
 
 | Path                                 | What                                                                                                                                |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                                             |
+| `packages/{core,io,model,graphics}`  | library layers, imports one way: `plugin → graphics → model → io → core`; state [_spec](packages/core/src/state/_spec/README.md)    |
 | `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                                              |
 | `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                                                      |
 | `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                                                   |
