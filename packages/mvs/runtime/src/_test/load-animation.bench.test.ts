@@ -126,6 +126,8 @@ describe.skipIf(!Enabled)('MVS animation load bench', () => {
       let nFrames = 0;
       let nTransforms = 0;
       let nOwnParams = 0;
+      const distinct = new Set<object>();
+      let distinctJson = 0;
       for (const entry of plugin.managers.snapshot.state.entries) {
         const base = new Map(entry.snapshot.data?.tree.transforms.map((t) => [t.ref, t.params]));
         for (const frame of entry.snapshot.transition?.frames ?? []) {
@@ -133,12 +135,17 @@ describe.skipIf(!Enabled)('MVS animation load bench', () => {
           for (const t of frame.data.tree.transforms) {
             nTransforms++;
             if (base.get(t.ref) !== t.params) nOwnParams++;
+            if (!distinct.has(t)) {
+              distinct.add(t);
+              distinctJson += JSON.stringify(t).length;
+            }
           }
         }
       }
       lines.push(
         `${'frames'.padEnd(34)} ${nFrames} frames, ${(nTransforms / Math.max(1, nFrames)).toFixed(1)} transforms per frame, ` +
-          `${(nOwnParams / Math.max(1, nFrames)).toFixed(1)} with params of their own`,
+          `${(nOwnParams / Math.max(1, nFrames)).toFixed(1)} with params of their own; ` +
+          `${distinct.size} distinct transform objects, ${(distinctJson / 1e6).toFixed(1)} MB as JSON`,
       );
 
       if (ProfileDir) {

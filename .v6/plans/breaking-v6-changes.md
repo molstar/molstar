@@ -765,3 +765,18 @@ through the indices of the model instead of a MolScript query on every atom for 
 - The `Coordinates` type is core's (`@molstar/seq-core/translate`); the viewer re-exports it and `isCoordinates` as
   before.
 - Prism's saved sequence state (`prism-viewer.sequence`) is version 3 (adds `edits`); versions 1 and 2 still read.
+
+## MVS loading: `UpdateTarget` builds a serialized tree (breaking)
+
+`@molstar/mvs/load-generic`: `UpdateTarget` no longer wraps a `StateBuilder`. Its `update` field and
+`UpdateTarget.commit` are removed; it has `builder: VirtualStateBuilder`, which builds the serialized state tree directly
+(the same output as `StateTree.toJSON(update.getTree({ useHashVersion: true }))`, `packages/mvs/runtime/_spec/load.md`).
+A loading extension that used `updateTarget.update.to(updateTarget.selector).updateState(state)` calls
+`UpdateTarget.updateState(updateTarget, state)`; `UpdateTarget.apply`, `tag`, `dependsOn`, `setMvsDependencies` and
+`deleteChildren` are unchanged. `UpdateTarget.create` takes an optional ref-hash cache, `loadTreeVirtual` options gain
+`refHashCache` and `reuse` (`LoadTreeVirtualOptions`). `UpdateTarget.selector` is a selector on the plugin's data state
+whose cell does not exist (as before: nothing is committed).
+
+`UUID.create22` (`@molstar/core/util/uuid`) returns a per-process random prefix and a counter: still 22 URL-safe base64
+characters and unique, but consecutive ids share their first 14 characters and are not random per call.
+

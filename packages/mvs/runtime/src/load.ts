@@ -55,7 +55,7 @@ import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginState } from '@molstar/plugin/state';
-import { StateObjectSelector, StateTree } from '@molstar/core/state';
+import { type State, StateObjectSelector, StateTree } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Clip } from '@molstar/core/util/clip';
 import { ScratchMemory } from '@molstar/core/util/int-buffer';
@@ -161,6 +161,8 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
     const multiData: MVSData_States = data.kind === 'multiple' ? data : MVSData.stateToStates(data);
     const entries: PluginStateSnapshotManager.Entry[] = [];
+    // (refs are the same in every snapshot and frame: their hashes are computed once per load, `load.md §2`)
+    const loadOptions: MolstarTreeLoadOptions = { ...options, refHashCache: new Map() };
     for (let i = 0; i < multiData.snapshots.length; i++) {
       const snapshot = multiData.snapshots[i];
       const previousSnapshot = i > 0 ? multiData.snapshots[i - 1] : multiData.snapshots[multiData.snapshots.length - 1];
@@ -178,9 +180,9 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         molstarTree,
         snapshot.animation,
         { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
-        options,
+        loadOptions,
       );
-      await assignStateTransition(ctx, plugin, entry, snapshot, options, i, multiData.snapshots.length);
+      await assignStateTransition(ctx, plugin, entry, snapshot, loadOptions, i, multiData.snapshots.length);
       entries.push({
         ...entry,
         _transientData: { sourceMvsSnapshot: snapshot },
@@ -229,7 +231,7 @@ async function assignStateTransition(
   plugin: PluginContext,
   parentEntry: PluginStateSnapshotManager.Entry,
   parent: Snapshot,
-  options: MVSLoadOptions,
+  options: MolstarTreeLoadOptions,
   snapshotIndex: number,
   snapshotCount: number,
 ) {
@@ -241,25 +243,46 @@ async function assignStateTransition(
     loop: !!transitions.tree.params?.loop,
     frames: [],
   };
+  const includeCamera = !!transitions.tree.params?.include_camera;
+  const includeCanvas = !!transitions.tree.params?.include_canvas;
+  const parentData = parentEntry.snapshot.data!;
 
+  let previousData: State.Snapshot | undefined;
   for (let i = 0; i < transitions.frames.length; i++) {
     const frame = transitions.frames[i];
     const molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
-    const entry = molstarTreeToEntry(
-      plugin,
-      molstarTree,
-      parent.animation,
-      { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
-      options,
-    );
-
-    StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
+    // (a frame's transforms that equal the previous frame's or the snapshot's are those objects, `load.md §3`)
+    const reuse = previousData ? [previousData.tree, parentData.tree] : [parentData.tree];
+    let data: State.Snapshot;
+    let camera: PluginState.Snapshot['camera'];
+    let canvas3d: PluginState.Snapshot['canvas3d'];
+    if (includeCamera || includeCanvas) {
+      const entry = molstarTreeToEntry(
+        plugin,
+        molstarTree,
+        parent.animation,
+        { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
+        { ...options, reuse },
+      );
+      data = entry.snapshot.data!;
+      camera = entry.snapshot.camera;
+      canvas3d = entry.snapshot.canvas3d;
+    } else {
+      // (only the state tree: the camera and canvas of a frame are not kept without include_camera / include_canvas)
+      data = loadTreeVirtual(plugin, molstarTree, MolstarLoadingActions, MolstarLoadingContext.create(), {
+        replaceExisting: true,
+        extensions: options.extensions ?? BuiltinLoadingExtensions,
+        refHashCache: options.refHashCache,
+        reuse,
+      }).data!;
+    }
+    previousData = data;
 
     animation.frames.push({
       durationInMs: frame[1],
-      data: entry.snapshot.data!,
-      camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
-      canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
+      data,
+      camera: includeCamera ? camera : undefined,
+      canvas3d: includeCanvas ? canvas3d : undefined,
     });
 
     if (ctx.shouldUpdate) {
@@ -274,17 +297,26 @@ async function assignStateTransition(
   parentEntry.snapshot.transition = animation;
 }
 
+interface MolstarTreeLoadOptions extends MVSLoadOptions {
+  /** Ref hashes shared by the snapshots and frames of a load. */
+  refHashCache?: Map<string, string>;
+  /** Serialized trees whose equal transforms are reused (`loadTreeVirtual`). */
+  reuse?: StateTree.Serialized[];
+}
+
 function molstarTreeToEntry(
   plugin: PluginContext,
   tree: MolstarTree,
   animation: MVSAnimationNode<'animation'> | undefined,
   metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
-  options: { keepCamera?: boolean; keepCameraOrientation?: boolean; extensions?: MolstarLoadingExtension<any>[] },
+  options: MolstarTreeLoadOptions,
 ) {
   const context = MolstarLoadingContext.create();
   const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, {
     replaceExisting: true,
     extensions: options?.extensions ?? BuiltinLoadingExtensions,
+    refHashCache: options.refHashCache,
+    reuse: options.reuse,
   });
   snapshot.canvas3d = {
     props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,

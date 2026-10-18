@@ -24,12 +24,14 @@ check the expanded frames (computed before any other consumer runs) did not chan
 `MVS_BENCH_PROFILE=<dir>` writes a `.cpuprofile` per fixture). Node, no canvas, `keepCamera`: the camera and canvas work
 of a browser load is not in it.
 
-| Fixture | Stage                     | Baseline (`0050f1464`) |               Now |
-| ------- | ------------------------- | ---------------------: | ----------------: |
-| exosome | `generateStateTransition` |         396 ms, 795 MB |      20 ms, 26 MB |
-| exosome | `loadMVS`                 |      1,803 ms, 3.27 GB | 1,243 ms, 2.25 GB |
-| motm1   | `generateStateTransition` |         140 ms, 312 MB |      10 ms, 14 MB |
-| motm1   | `loadMVS`                 |        736 ms, 1.40 GB |   524 ms, 1.01 GB |
-| exosome | retained                  |                  77 MB |             77 MB |
+| Fixture  | Stage                     | Baseline (`0050f1464`) |              Now |
+| -------- | ------------------------- | ---------------------: | ---------------: |
+| exosome  | `generateStateTransition` |         396 ms, 795 MB |     20 ms, 24 MB |
+| exosome  | `loadMVS`                 |      1,803 ms, 3.27 GB | ~800 ms, 1.69 GB |
+| exosome  | retained                  |                  77 MB |            19 MB |
+| motm1    | `generateStateTransition` |         140 ms, 312 MB |     11 ms, 15 MB |
+| motm1    | `loadMVS`                 |        736 ms, 1.40 GB |  ~270 ms, 595 MB |
+| motm1    | retained                  |                  25 MB |           4.9 MB |
+| features | `loadMVS`                 |        587 ms, 1.29 GB |  ~270 ms, 649 MB |
 
-Update the "Now" column with every change that moves it.
+Times vary ±5 % between runs. Update the "Now" column with every change that moves it.
