@@ -143,11 +143,11 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   position: absolute;
   overflow: hidden;
 
-  [data-right-panel="open"] > & {
+  [data-right-panel="open"] & {
     animation: none;
   }
 
-  [data-pinned] > & {
+  [data-pinned] & {
     top: 0;
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
     background: var(--msp-pinned-bg);

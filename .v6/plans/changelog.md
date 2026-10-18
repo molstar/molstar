@@ -774,6 +774,8 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism: Storybook's Viewer › Layouts shows every major layout (desktop floating, pinned, docked, expanded; the compact
   rail; embedded; tablet and phone), each with a panel or a card open, in a frame of the device's size that shrinks to
   fit the page
+- Fix: a card pinned beside the canvas (the Story, export, canvas settings) is full height and flat again; it had kept
+  the floating card's margins and corners since the card moved into a wrapper of its own
 
 ## MVS load
 
