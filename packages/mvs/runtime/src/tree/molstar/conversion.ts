@@ -172,10 +172,14 @@ const TopParentKinds = new Set<string>(['root', 'download', 'parse']);
 export interface MolstarConversionMemo {
   readonly sourceUrl: string | undefined;
   readonly subtrees: WeakMap<object, MolstarSubtree>;
+  /** Converted params and custom by the MVS object: a node converted again because a descendant changed keeps them */
+  readonly values: WeakMap<object, object>;
+  /** Converted params of nodes without params, by kind */
+  readonly defaultParams: Map<string, object>;
 }
 
 export function createMolstarConversionMemo(sourceUrl: string | undefined): MolstarConversionMemo {
-  return { sourceUrl, subtrees: new WeakMap() };
+  return { sourceUrl, subtrees: new WeakMap(), values: new WeakMap(), defaultParams: new Map() };
 }
 
 const UnitToken = '\u0000mvs-unit:';
@@ -224,28 +228,42 @@ export function convertMvsToMolstarMemo(
   return { tree, units: converted };
 }
 
+function memoized<T extends object>(memo: MolstarConversionMemo, key: object, compute: () => T): T {
+  let value = memo.values.get(key) as T | undefined;
+  if (!value) memo.values.set(key, (value = compute()));
+  return value;
+}
+
+/** The params of a unit node with defaults and resolved URIs; the same object for the same MVS params object. */
+function convertUnitParams(kind: string, mvsParams: any, memo: MolstarConversionMemo): any {
+  const schema = (MVSTreeSchema.nodes as any)[kind] as { params: any } | undefined;
+  if (!schema && !mvsParams) return undefined;
+  const compute = () => {
+    const params: any = schema ? (addParamDefaults as any)(schema.params, mvsParams) : { ...mvsParams };
+    if (memo.sourceUrl) {
+      for (const name in params) {
+        if (name !== 'uri' && name !== 'url') continue;
+        const uri = params[name];
+        if (typeof uri === 'string') params[name] = resolveUri(uri, memo.sourceUrl, windowUrl());
+      }
+    }
+    return params;
+  };
+  if (mvsParams) return memoized(memo, mvsParams, compute);
+  let params = memo.defaultParams.get(kind);
+  if (!params) memo.defaultParams.set(kind, (params = compute()));
+  return params;
+}
+
 /** What `convertMvsToMolstar` makes of a node below the top nodes: defaults, URIs, copies, children always an array. */
 function convertUnit(node: MVSTree, memo: MolstarConversionMemo): MolstarSubtree {
   const cached = memo.subtrees.get(node);
   if (cached) return cached;
   const n = node as { kind: string; params?: any; custom?: any; ref?: string; children?: MVSTree[] };
-  const schema = (MVSTreeSchema.nodes as any)[n.kind] as { params: any } | undefined;
-  const params: any = schema
-    ? (addParamDefaults as any)(schema.params, n.params)
-    : n.params
-      ? { ...n.params }
-      : undefined;
-  if (memo.sourceUrl && params) {
-    for (const name in params) {
-      if (name !== 'uri' && name !== 'url') continue;
-      const uri = params[name];
-      if (typeof uri === 'string') params[name] = resolveUri(uri, memo.sourceUrl, windowUrl());
-    }
-  }
   const result = {
     kind: n.kind,
-    params,
-    custom: n.custom ? { ...n.custom } : undefined,
+    params: convertUnitParams(n.kind, n.params, memo),
+    custom: n.custom ? memoized(memo, n.custom, () => ({ ...n.custom })) : undefined,
     ref: n.ref,
     children: n.children ? n.children.map((c) => convertUnit(c, memo)) : [],
   } as unknown as MolstarSubtree;

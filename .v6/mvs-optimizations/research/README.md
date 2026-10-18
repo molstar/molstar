@@ -60,12 +60,17 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
   `shareEqualParts` decides equality in its one walk, so a changed transform is compared and shared in one pass. Goldens
   unchanged. exosome ~510 → ~400 ms, motm1 ~200 → ~180 ms. A cache on every node made the non-memo path (features:
   frames with camera) 18 % slower: the caches are keyed by unit objects only.
-- **Overall** (Node, no canvas): exosome 1,803 → ~400 ms (4.5×), 3.27 → 0.85 GB allocated, 77 → 19 MB kept; motm1
-  736 → ~180 ms (4×), 25 → 4.9 MB.
-- **Now on top** (exosome): the units loaded again (~7 of ~23 per frame: the components whose representation changed)
-  — their actions ~60 ms and serializing their changed transforms ~100 ms; the top conversion ~45 ms; expansion ~20 ms.
-  Next if needed: finer units (a representation's own inputs rather than its component's subtree), frames with
-  `include_camera` (features) in the memo path by recording the camera context per unit, and a browser measurement.
+- **Finer units**: records per node, found by position; a node replays its whole subtree when it is the same object,
+  or only its own transforms when its own inputs are (kind, params, custom, ref, children without an action, child
+  kinds): converted params/custom keep identity through the conversion memo. The rule this rests on, that an action
+  reads only those, is in `load.md` §4. Goldens unchanged, no fallbacks. exosome ~400 → ~360 ms (per load: 97k
+  subtrees replayed, 20k own replays, 31k nodes loaded), motm1 ~180 → ~175 ms.
+- **Overall** (Node, no canvas): exosome 1,803 → ~360 ms (5×), 3.27 → 0.8 GB allocated, 77 → 18 MB kept; motm1 736 →
+  ~175 ms (4.2×), 25 → 4.8 MB.
+- **Now on top** (exosome, spread thin): serializing the changed representations ~110 ms (`shareEqualParts` of their
+  large params), conversion ~65 ms (the top part ~40), replays ~30 ms, the `structure` action and collections ~40 ms,
+  expansion ~20 ms. Not measured: a browser load with a canvas; frames with `include_camera` (features) still take the
+  full path.
 
 Steps 1–3 were planned without an API change; step 3 removed `UpdateTarget.update`. Target after 1–3: exosome under 400 ms, motm1 under 150 ms, retained under 10 MB; the
 bench gains a row per step. `_spec` files are written as each area is touched ([specs.md](specs.md)).

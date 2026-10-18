@@ -57,23 +57,34 @@ nothing changed in are the same objects frame after frame. Two memos per snapsho
   children of `download` and `parse`) go through `convertMvsToMolstar` as before, each unit a placeholder of a kind with
   no schema; a node below them, or a child of `root` other than `download`, converts to a copy of itself with defaults
   and resolved URIs whatever its parent or siblings (no rule, no condensing applies there), so it is memoized by MVS
-  node. Its "units" are those subtrees (components under a structure; `primitives`, `canvas`, `camera` under the root):
-  a unit that is the same object as in an earlier frame has the same MVS source. `_test/conversion-memo.test.ts` checks
-  it against `convertMvsToMolstar` on every frame of the fixtures.
-- **Loading** (`SubtreeMemo`): loading a unit is recorded — the transforms it added (parent, transformer, ref, and after
-  serialization what each serialized to), the ref counters it took, the MVS refs it mapped. When the same unit object
-  comes again under the same parent target, the record is replayed: the same refs are taken, the transforms are placed
-  with the builder's rules but serialize to the recorded objects, nothing is computed or compared.
+  node, and its converted `params` and `custom` by the MVS objects: a node converted again because something below it
+  changed keeps them. Its "units" are those subtrees (components under a structure; `primitives`, `canvas`, `camera`
+  under the root), in the same order in every frame. `_test/conversion-memo.test.ts` checks it against
+  `convertMvsToMolstar` on every frame of the fixtures.
+- **Loading** (`SubtreeMemo`): loading each node of a unit is recorded — its own inputs (below), the transforms its
+  action and the extensions added (parent, transformer, ref, and after serialization what each serialized to), the ref
+  counters taken, the MVS refs mapped, the target its action returned, and the records of its children. A node finds its
+  last record by position (the unit's index, then child indices) and, under the same parent target:
+  - the same node object → the whole subtree is replayed: refs taken again, transforms placed with the builder's rules
+    but serializing to the recorded objects, nothing computed or compared;
+  - the same own inputs → only its own transforms are replayed, its target restored for its children, which are visited
+    one by one (a representation whose emissive changed reloads alone, not its component);
+  - otherwise it is loaded and recorded.
 
-Why units and not finer: the loading actions of a node read its subtree (children colors, transforms, clips), so a unit
-reads only itself. What reads outside is excluded:
+**Own inputs**: a loading action, and an extension, read only their node (kind, params, custom, ref) and the node's
+children that have no action of their own (colors, opacity, clips, transforms, instances, primitives, tooltips, labels)
+plus the children's kinds (`isPhantomComponent`); never children with an action (a component's representations). So a
+node whose own inputs are the same objects adds the same transforms. A new loading action must keep to it, or its node
+kind be excluded like `label_from_*` below.
+
+What reads outside is excluded:
 
 - the top nodes read their whole subtree (`structure`: labels, tooltips; `model`: annotations) — they are loaded every
   frame, from what §5 caches per unit;
-- `label_from_uri` / `label_from_source` read the nearest representation, which may be a sibling's — a unit containing
-  one is loaded every frame (`isReusableSubtree`);
-- a unit whose loading changes a transform it did not add (tags or state on its parent, a decorator inserted above
-  others) is not replayable (`SubtreeRecord.reusable`);
+- `label_from_uri` / `label_from_source` read the nearest representation, which may be a sibling's — loaded every frame
+  (`isReusableNode`), and so is no subtree containing one replayed whole;
+- a node whose loading changes a transform it did not add (tags or state on its parent, a decorator inserted above
+  others) is not replayable, nor is the node that added it (`SubtreeRecord.reusable`);
 - the camera and canvas are collected from the whole tree: no memo with `include_camera` / `include_canvas`;
 - loading extensions must be `local` (read only their node, keep nothing in a context); one that is not turns the memo
   off.

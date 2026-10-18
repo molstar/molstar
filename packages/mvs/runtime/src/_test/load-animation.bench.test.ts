@@ -118,7 +118,7 @@ describe.skipIf(!Enabled)('MVS animation load bench', () => {
         fmt(
           'loadMVS',
           load,
-          `(units: ${units('replayed')} replayed, ${units('loaded')} loaded, ${units('fallbacks')} fallbacks)`,
+          `(${units('replayed')} subtrees replayed, ${units('replayedOwn')} own replays, ${units('loaded')} nodes loaded, ${units('fallbacks')} fallbacks)`,
         ),
       );
 

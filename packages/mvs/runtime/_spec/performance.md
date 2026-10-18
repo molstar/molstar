@@ -27,11 +27,11 @@ of a browser load is not in it.
 | Fixture  | Stage                     | Baseline (`0050f1464`) |             Now |
 | -------- | ------------------------- | ---------------------: | --------------: |
 | exosome  | `generateStateTransition` |         396 ms, 795 MB |    20 ms, 24 MB |
-| exosome  | `loadMVS`                 |      1,803 ms, 3.27 GB | ~400 ms, 845 MB |
-| exosome  | retained                  |                  77 MB |           19 MB |
+| exosome  | `loadMVS`                 |      1,803 ms, 3.27 GB | ~360 ms, 800 MB |
+| exosome  | retained                  |                  77 MB |           18 MB |
 | motm1    | `generateStateTransition` |         140 ms, 312 MB |    11 ms, 15 MB |
-| motm1    | `loadMVS`                 |        736 ms, 1.40 GB | ~180 ms, 458 MB |
-| motm1    | retained                  |                  25 MB |          4.9 MB |
+| motm1    | `loadMVS`                 |        736 ms, 1.40 GB | ~175 ms, 452 MB |
+| motm1    | retained                  |                  25 MB |          4.8 MB |
 | features | `loadMVS`                 |        587 ms, 1.29 GB | ~275 ms, 624 MB |
 
 Times vary ±5 % between runs. Update the "Now" column with every change that moves it.

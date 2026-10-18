@@ -261,7 +261,7 @@ async function assignStateTransition(
   // camera or canvas, which the loading context collects from the whole tree)
   const memoize = !includeCamera && !includeCanvas;
   const conversionMemo = createMolstarConversionMemo(options.sourceUrl);
-  const subtreeMemo = new SubtreeMemo<MolstarTree>(isReusableSubtree);
+  const subtreeMemo = new SubtreeMemo<MolstarTree>(isReusableNode);
 
   let previousData: State.Snapshot | undefined;
   for (let i = 0; i < transitions.frames.length; i++) {
@@ -326,13 +326,9 @@ async function assignStateTransition(
 /** Kinds whose loading reads outside their subtree (the nearest representation, `makeNearestReprMap`). */
 const NonLocalKinds = new Set<string>(['label_from_uri', 'label_from_source']);
 
-/** A unit subtree can be replayed unless loading it reads outside it (`load.md §4`). */
-function isReusableSubtree(node: MolstarSubtree): boolean {
-  if (NonLocalKinds.has(node.kind)) return false;
-  for (const child of (node.children ?? []) as MolstarSubtree[]) {
-    if (!isReusableSubtree(child)) return false;
-  }
-  return true;
+/** A node's loading can be replayed unless it reads outside the node and its children (`load.md §4`). */
+function isReusableNode(node: MolstarSubtree): boolean {
+  return !NonLocalKinds.has(node.kind);
 }
 
 interface MolstarTreeLoadOptions extends MVSLoadOptions {

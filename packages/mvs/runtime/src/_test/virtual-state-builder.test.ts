@@ -150,10 +150,26 @@ describe('loadTreeVirtual with a SubtreeMemo', () => {
     expect(second.transforms[1]).toBe(first.transforms[1]);
     expect(SubtreeMemo.stats.replayed - stats0.replayed).toBe(1);
 
-    // a new unit before a takes the ref a was given: the replay does not fit, the tree is loaded again
+    // a's child is a new object: a's own inputs are the same objects, and so are the child's (none): both replay their own
+    // transforms, nothing is loaded
+    const a2 = { ...a, children: [{ kind: 'cif' }] };
+    const ownBefore = SubtreeMemo.stats.replayedOwn;
+    const loadedBefore = SubtreeMemo.stats.loaded;
+    const own = load({ kind: 'root', children: [a2, b2] }, memo);
+    expect(own).toEqual(load({ kind: 'root', children: [a2, b2] }));
+    expect(SubtreeMemo.stats.replayedOwn - ownBefore).toBe(2);
+    expect(SubtreeMemo.stats.loaded - loadedBefore).toBe(0);
+    expect(own.transforms[1]).toBe(first.transforms[1]);
+
+    // a unit moved: at its position before, loaded again (no replay of another node's record)
     const c = file('https://example.org/c.bcif');
-    const third = load({ kind: 'root', children: [c, a, b2] }, memo);
-    expect(third).toEqual(load({ kind: 'root', children: [c, a, b2] }));
+    const third = load({ kind: 'root', children: [c, a2, b2] }, memo);
+    expect(third).toEqual(load({ kind: 'root', children: [c, a2, b2] }));
+
+    // the same unit at the same position, but its ref counter is not the recorded one (the unit before it no longer
+    // takes one): the replay does not fit, the tree is loaded again
+    const fourth = load({ kind: 'root', children: [{ kind: 'note', children: [] }, a2, b2] }, memo);
+    expect(fourth).toEqual(load({ kind: 'root', children: [{ kind: 'note', children: [] }, a2, b2] }));
     expect(SubtreeMemo.stats.fallbacks - stats0.fallbacks).toBe(1);
     expect(memo.fallbacks).toBe(1);
 
