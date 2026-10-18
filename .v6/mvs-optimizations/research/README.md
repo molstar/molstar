@@ -54,13 +54,18 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
   refs, transforms, serialized objects. Units are the granularity because the loading actions read their subtree; top
   nodes and units with `label_from_*` load every frame; a replay that does not fit falls back to a full load. Goldens
   unchanged, no fallback on the fixtures. exosome ~510 ms (61k units replayed, 20k loaded), motm1 ~200 ms.
-- **Overall** (Node, no canvas): exosome 1,803 → ~510 ms (3.5×), 3.27 GB → 0.9 GB allocated, 77 → 19 MB kept; motm1
-  736 → ~200 ms (3.7×), 25 → 4.9 MB.
-- **Now on top** (exosome): `serialize` ~170 ms (`jsonEqual` of the transforms loaded again: the top nodes' every
-  frame, with params like the annotation and tooltip lists), the top nodes' actions ~140 ms (`structure` and `model`
-  walk the whole structure subtree, `makeNearestReprMap` the whole tree), the top-part conversion ~60 ms. Next if
-  needed: memoize what the top nodes compute from their units (tooltips, labels, annotations, nearest representation)
-  by unit identity, so a structure's own transforms compare by identity; measure in the browser with a canvas first.
+- **Top nodes** (after step 4): `model`/`structure` collect annotations, tooltips and labels through a cache per unit
+  object (`collectSubtree`); `nearestReprMap` is lazy; root children other than `download` (primitives, canvas,
+  camera) are units; unit placeholders have a kind with no schema (the top conversion only copies them);
+  `shareEqualParts` decides equality in its one walk, so a changed transform is compared and shared in one pass. Goldens
+  unchanged. exosome ~510 → ~400 ms, motm1 ~200 → ~180 ms. A cache on every node made the non-memo path (features:
+  frames with camera) 18 % slower: the caches are keyed by unit objects only.
+- **Overall** (Node, no canvas): exosome 1,803 → ~400 ms (4.5×), 3.27 → 0.85 GB allocated, 77 → 19 MB kept; motm1
+  736 → ~180 ms (4×), 25 → 4.9 MB.
+- **Now on top** (exosome): the units loaded again (~7 of ~23 per frame: the components whose representation changed)
+  — their actions ~60 ms and serializing their changed transforms ~100 ms; the top conversion ~45 ms; expansion ~20 ms.
+  Next if needed: finer units (a representation's own inputs rather than its component's subtree), frames with
+  `include_camera` (features) in the memo path by recording the camera context per unit, and a browser measurement.
 
 Steps 1–3 were planned without an API change; step 3 removed `UpdateTarget.update`. Target after 1–3: exosome under 400 ms, motm1 under 150 ms, retained under 10 MB; the
 bench gains a row per step. `_spec` files are written as each area is touched ([specs.md](specs.md)).

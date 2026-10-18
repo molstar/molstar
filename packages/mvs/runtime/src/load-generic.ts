@@ -510,6 +510,7 @@ export class VirtualStateBuilder {
       } else {
         let found: StateTransform.Serialized | undefined;
         let closest: StateTransform.Serialized | undefined;
+        let shared: any;
         if (reuse) {
           const index = transforms.length;
           for (let i = 0; i < reuse.length && !found; i++) {
@@ -519,24 +520,23 @@ export class VirtualStateBuilder {
               candidate = reuseMaps[i]!.get(ref);
             }
             if (!candidate) continue;
+            if (!closest) {
+              closest = candidate;
+              if (canShareParams(transform, candidate)) {
+                // one walk: equal → the candidate; else the params with its equal parts (memory of long animations)
+                shared = shareEqualParts(transform.params, candidate.params);
+                if (shared === candidate.params && isSameTransformMeta(transform, candidate)) found = candidate;
+                continue;
+              }
+            }
             if (isSameTransform(transform, candidate)) found = candidate;
-            else closest ??= candidate;
           }
         }
         if (found) {
           transforms.push(found);
         } else {
           let t = transform;
-          if (
-            closest &&
-            closest.transformer === t.transformer.id &&
-            !t.transformer.definition.customSerialization &&
-            t.params
-          ) {
-            // the parts of the params equal to the previous ones are those objects (memory of long animations)
-            const params = shareEqualParts(t.params, closest.params);
-            if (params !== t.params) t = { ...t, params };
-          }
+          if (shared !== undefined && shared !== t.params) t = { ...t, params: shared };
           if (closest) {
             if (t.tags && arrayEqual(t.tags, closest.tags)) t = { ...t, tags: closest.tags };
             if (t.dependsOn && arrayEqual(t.dependsOn, closest.dependsOn)) t = { ...t, dependsOn: closest.dependsOn };
@@ -554,14 +554,31 @@ export class VirtualStateBuilder {
 
 /** `t` would serialize to `s` with the same hash version (`load.md §3`). */
 function isSameTransform(t: StateTransform, s: StateTransform.Serialized) {
+  if (!isSameTransformMeta(t, s)) return false;
+  // the version is the hash of `JSON.stringify(t.params ?? {})`; `s.params` is `t.params`, or undefined for none
+  if ((t.params === undefined || t.params === null) !== (s.params === undefined || s.params === null)) return false;
+  return jsonEqual(t.params ?? {}, s.params ?? {});
+}
+
+/** All but the params of `isSameTransform`. */
+function isSameTransformMeta(t: StateTransform, s: StateTransform.Serialized) {
   if (t.transformer.id !== s.transformer || t.parent !== s.parent) return false;
   // (params serialized by the transformer: the hash is of the raw params, which `s` does not keep)
   if (t.transformer.definition.customSerialization) return false;
   if (!arrayEqual(t.tags, s.tags) || !arrayEqual(t.dependsOn, s.dependsOn)) return false;
-  if (!isSameSerializedState(t.state, s.state)) return false;
-  // the version is the hash of `JSON.stringify(t.params ?? {})`; `s.params` is `t.params`, or undefined for none
-  if ((t.params === undefined || t.params === null) !== (s.params === undefined || s.params === null)) return false;
-  return jsonEqual(t.params ?? {}, s.params ?? {});
+  return isSameSerializedState(t.state, s.state);
+}
+
+/** `s.params` is what `t.params` would serialize to (no custom serialization), and both are objects. */
+function canShareParams(t: StateTransform, s: StateTransform.Serialized) {
+  return (
+    t.transformer.id === s.transformer &&
+    !t.transformer.definition.customSerialization &&
+    typeof t.params === 'object' &&
+    t.params !== null &&
+    typeof s.params === 'object' &&
+    s.params !== null
+  );
 }
 
 function isSameSerializedState(state: StateTransform.State, serialized: StateTransform.Serialized['state']) {
@@ -616,23 +633,49 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
  * arrays on the way are copied, never written. Same JSON as `fresh`.
  */
 export function shareEqualParts(fresh: any, old: any): any {
-  if (fresh === old || jsonEqual(fresh, old)) return old;
-  if (!isPlainContainer(fresh) || !isPlainContainer(old) || Array.isArray(fresh) !== Array.isArray(old)) return fresh;
+  if (fresh === old) return old;
+  if (!isPlainContainer(fresh) || !isPlainContainer(old) || Array.isArray(fresh) !== Array.isArray(old)) {
+    return jsonEqual(fresh, old) ? old : fresh;
+  }
+  // one walk: `equal` stays true while every part is `old`'s (then `fresh` is JSON-equal to `old`)
   let copy: any;
+  let equal: boolean;
   if (Array.isArray(fresh)) {
-    for (let i = 0; i < fresh.length; i++) {
-      if (i >= old.length) break;
-      const v = shareEqualParts(fresh[i], old[i]);
-      if (v !== fresh[i]) (copy ??= fresh.slice())[i] = v;
+    equal = fresh.length === old.length;
+    for (let i = 0; i < fresh.length && i < old.length; i++) {
+      // (in arrays, values JSON leaves out are null: compared as such)
+      const f = isJsonOmitted(fresh[i]) ? null : fresh[i];
+      const o = isJsonOmitted(old[i]) ? null : old[i];
+      const v = shareEqualParts(f, o);
+      if (v !== o) equal = false;
+      if (v !== f) (copy ??= fresh.slice())[i] = v;
     }
   } else {
-    for (const k of Object.keys(fresh)) {
-      if (!(k in old)) continue;
-      const v = shareEqualParts(fresh[k], old[k]);
-      if (v !== fresh[k]) (copy ??= { ...fresh })[k] = v;
+    const keysF = Object.keys(fresh);
+    const keysO = Object.keys(old);
+    let i = 0;
+    let j = 0;
+    equal = true;
+    while (i < keysF.length || j < keysO.length) {
+      while (i < keysF.length && isJsonOmitted(fresh[keysF[i]])) i++;
+      while (j < keysO.length && isJsonOmitted(old[keysO[j]])) j++;
+      if (i === keysF.length && j === keysO.length) break;
+      if (i === keysF.length || j === keysO.length || keysF[i] !== keysO[j]) {
+        equal = false;
+        break;
+      }
+      i++;
+      j++;
+    }
+    for (const k of keysF) {
+      const f = fresh[k];
+      if (isJsonOmitted(f) || !(k in old)) continue;
+      const v = shareEqualParts(f, old[k]);
+      if (v !== old[k]) equal = false;
+      if (v !== f) (copy ??= { ...fresh })[k] = v;
     }
   }
-  return copy ?? fresh;
+  return equal ? old : (copy ?? fresh);
 }
 
 function isPlainContainer(x: unknown): boolean {

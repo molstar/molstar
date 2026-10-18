@@ -188,7 +188,11 @@ describe('jsonEqual', () => {
       [[], {}],
     ];
     for (const [a, b] of cases) {
-      expect(jsonEqual(a, b), JSON.stringify([a, b])).toBe(JSON.stringify(a) === JSON.stringify(b));
+      const same = JSON.stringify(a) === JSON.stringify(b);
+      expect(jsonEqual(a, b), JSON.stringify([a, b])).toBe(same);
+      // shareEqualParts decides equality in the same walk: the old value exactly when the JSON is equal
+      expect(shareEqualParts(a, b) === b, JSON.stringify([a, b])).toBe(same);
+      expect(JSON.stringify(shareEqualParts(a, b))).toBe(JSON.stringify(a));
     }
   });
 });

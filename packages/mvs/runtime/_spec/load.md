@@ -53,12 +53,13 @@ Rules that follow:
 Frames of an animation differ in a few params; with the update plan ([animation.md](animation.md) §2) the MVS subtrees
 nothing changed in are the same objects frame after frame. Two memos per snapshot use that:
 
-- **Conversion** (`convertMvsToMolstarMemo`, `MolstarConversionMemo`): the top nodes (`root`, `download`, `parse` and
-  their children) go through `convertMvsToMolstar` as before; a node below them converts to a copy of itself with
-  defaults and resolved URIs whatever its parent or siblings (no rule, no condensing applies there), so it is memoized
-  by MVS node. Its "units" are the converted subtrees right below the top nodes: a unit that is the same object as in an
-  earlier frame has the same MVS source. `_test/conversion-memo.test.ts` checks it against `convertMvsToMolstar` on
-  every frame of the fixtures.
+- **Conversion** (`convertMvsToMolstarMemo`, `MolstarConversionMemo`): the top nodes (`root`, `download`, `parse`, the
+  children of `download` and `parse`) go through `convertMvsToMolstar` as before, each unit a placeholder of a kind with
+  no schema; a node below them, or a child of `root` other than `download`, converts to a copy of itself with defaults
+  and resolved URIs whatever its parent or siblings (no rule, no condensing applies there), so it is memoized by MVS
+  node. Its "units" are those subtrees (components under a structure; `primitives`, `canvas`, `camera` under the root):
+  a unit that is the same object as in an earlier frame has the same MVS source. `_test/conversion-memo.test.ts` checks
+  it against `convertMvsToMolstar` on every frame of the fixtures.
 - **Loading** (`SubtreeMemo`): loading a unit is recorded — the transforms it added (parent, transformer, ref, and after
   serialization what each serialized to), the ref counters it took, the MVS refs it mapped. When the same unit object
   comes again under the same parent target, the record is replayed: the same refs are taken, the transforms are placed
@@ -67,8 +68,8 @@ nothing changed in are the same objects frame after frame. Two memos per snapsho
 Why units and not finer: the loading actions of a node read its subtree (children colors, transforms, clips), so a unit
 reads only itself. What reads outside is excluded:
 
-- the top nodes read their whole subtree (`structure`: labels, tooltips; `model`: annotations; `root`:
-  `makeNearestReprMap`) — they are loaded every frame;
+- the top nodes read their whole subtree (`structure`: labels, tooltips; `model`: annotations) — they are loaded every
+  frame, from what §5 caches per unit;
 - `label_from_uri` / `label_from_source` read the nearest representation, which may be a sibling's — a unit containing
   one is loaded every frame (`isReusableSubtree`);
 - a unit whose loading changes a transform it did not add (tags or state on its parent, a decorator inserted above
@@ -79,3 +80,20 @@ reads only itself. What reads outside is excluded:
 
 A replay that does not fit (another ref counter, a replayed transform moved or changed) throws `SubtreeReuseMismatch`
 and the tree is loaded again without the memo (`SubtreeMemo.stats.fallbacks`; the goldens require 0).
+
+## 5. What the top nodes read from their units
+
+The top nodes are loaded every frame, and some read their whole subtree. They read it through a cache or lazily:
+
+- `model` (`collectAnnotationReferences`), `structure` (`collectAnnotationTooltips`, `collectInlineTooltips`,
+  `collectInlineLabels`): `collectSubtree` walks the tree and takes the items of a unit (`context.units`) from a cache
+  keyed by the unit object. An item depends only on its node, its parent (a tooltip's or label's component, inside the
+  unit) and annotation ids (`stringHash` of the spec: a function of params), and a converted subtree is never changed,
+  so the cached items stand. They are the same objects frame after frame: the `CustomModelProperties` and
+  `CustomStructureProperties` params of two frames compare by identity below their wrappers.
+- `root`: `context.nearestReprMap` is computed on its first `get` (a structure with inline labels, a `label_from_*`),
+  not every frame.
+- Outside the frame memo (`context.units` unset: snapshots, frames with camera or canvas) nothing is cached: every node
+  would be new, and caching every node made those loads 18 % slower.
+
+Why: with units replayed, these walks over every node were the largest per-frame cost left (exosome: ~140 ms of ~530).

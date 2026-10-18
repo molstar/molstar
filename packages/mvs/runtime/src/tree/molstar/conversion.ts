@@ -159,13 +159,15 @@ export function convertMvsToMolstar(mvsTree: MVSTree, sourceUrl: string | undefi
   return condensed;
 }
 
-/** Kinds whose children are converted by the rules (split, condensed); below them a node converts on its own. */
+/** Kinds whose children are converted by the rules (split, condensed); below them a node converts on its own, and so
+ * do the root's children other than `download`. */
 const TopParentKinds = new Set<string>(['root', 'download', 'parse']);
 
 /**
  * Converted subtrees by MVS node, across the frames of an animation (`load.md §4`). A node whose parent is not `root`,
- * `download` or `parse` converts to a copy of itself with defaults and resolved URIs, whatever its parent and siblings
- * (no rule and no condensing applies below), so an MVS subtree that is the same object converts to the same object.
+ * `download` or `parse`, or a child of `root` other than `download`, converts to a copy of itself with defaults and
+ * resolved URIs, whatever its parent and siblings (no rule and no condensing applies there), so an MVS subtree that is
+ * the same object converts to the same object.
  */
 export interface MolstarConversionMemo {
   readonly sourceUrl: string | undefined;
@@ -179,9 +181,9 @@ export function createMolstarConversionMemo(sourceUrl: string | undefined): Mols
 const UnitToken = '\u0000mvs-unit:';
 
 /**
- * `convertMvsToMolstar`, with the subtrees below the top nodes (`root`, `download`, `parse` and their children) taken
- * from `memo` when the MVS subtree is the same object. Returns the tree and its "units": the converted subtrees right
- * below the top nodes, whose identity says that their MVS source did not change.
+ * `convertMvsToMolstar`, with the subtrees below the top nodes (`root`, `download`, `parse`, the children of `download`
+ * and `parse`) taken from `memo` when the MVS subtree is the same object. Returns the tree and its "units": the
+ * converted subtrees right below the top nodes, whose identity says that their MVS source did not change.
  */
 export function convertMvsToMolstarMemo(
   mvsTree: MVSTree,
@@ -193,14 +195,11 @@ export function convertMvsToMolstarMemo(
     if (!node.children) return node;
     const isTopParent = TopParentKinds.has(node.kind);
     const children = node.children.map((child) => {
-      if (isTopParent) return top(child as MVSTree);
+      // (a child of the root other than `download` has no rule and no twin to condense with: a unit too)
+      if (isTopParent && (node.kind !== 'root' || child.kind === 'download')) return top(child as MVSTree);
       units.push(child as MVSTree);
-      return {
-        kind: child.kind,
-        params: child.params,
-        custom: child.custom,
-        ref: UnitToken + (units.length - 1),
-      } as any;
+      // (a kind with no schema, rule or condensing: the conversion only copies it)
+      return { kind: UnitToken, ref: UnitToken + (units.length - 1) } as any;
     });
     return { ...node, children } as MVSTree;
   };

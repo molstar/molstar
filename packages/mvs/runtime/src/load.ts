@@ -292,7 +292,9 @@ async function assignStateTransition(
       canvas3d = entry.snapshot.canvas3d;
     } else {
       // (only the state tree: the camera and canvas of a frame are not kept without include_camera / include_canvas)
-      data = loadTreeVirtual(plugin, molstarTree, MolstarLoadingActions, MolstarLoadingContext.create(), {
+      const context = MolstarLoadingContext.create();
+      if (memoize) context.units = subtreeMemo.units;
+      data = loadTreeVirtual(plugin, molstarTree, MolstarLoadingActions, context, {
         replaceExisting: true,
         extensions: options.extensions ?? BuiltinLoadingExtensions,
         refHashCache: options.refHashCache,
@@ -400,14 +402,16 @@ function molstarTreeToEntry(
 export interface MolstarLoadingContext {
   /** Maps `*_from_[uri|source]` nodes to annotationId they should reference */
   annotationMap: Map<MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, string>;
-  /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node */
-  nearestReprMap?: Map<MolstarNode, MolstarNode<'representation'>>;
+  /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node; computed when first read */
+  nearestReprMap?: { get(node: MolstarNode): MolstarNode<'representation'> | undefined };
   camera: {
     cameraParams?: MolstarNodeParams<'camera'>;
     focuses: { target: StateObjectSelector; params: MolstarNodeParams<'focus'> }[];
   };
   canvas?: MolstarNode<'canvas'>;
   transition?: MolstarNode<'transition'>;
+  /** The unit subtrees of the tree (`convertMvsToMolstarMemo`): what is collected from them is cached (`load.md §5`) */
+  units?: Set<object>;
 }
 export const MolstarLoadingContext = {
   create(): MolstarLoadingContext {
@@ -421,7 +425,9 @@ export const MolstarLoadingContext = {
 /** Loading actions for loading a `MolstarTree`, per node kind. */
 const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> = {
   root(updateParent: UpdateTarget, node: MolstarNode<'root'>, context: MolstarLoadingContext): UpdateTarget {
-    context.nearestReprMap = makeNearestReprMap(node);
+    // (walks the whole tree: only when a label needs it, `load.md §5`)
+    let map: Map<MolstarNode, MolstarNode<'representation'>> | undefined;
+    context.nearestReprMap = { get: (n) => (map ??= makeNearestReprMap(node)).get(n) };
     return updateParent;
   },
   download(updateParent: UpdateTarget, node: MolstarNode<'download'>): UpdateTarget {

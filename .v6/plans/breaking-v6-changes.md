@@ -780,3 +780,7 @@ whose cell does not exist (as before: nothing is committed).
 `UUID.create22` (`@molstar/core/util/uuid`) returns a per-process random prefix and a counter: still 22 URL-safe base64
 characters and unique, but consecutive ids share their first 14 characters and are not random per call.
 
+`MolstarLoadingContext.nearestReprMap` (`@molstar/mvs/load`) is `{ get(node) }`, computed on its first `get`, instead
+of a `Map`; `MolstarLoadingContext.units` and `LoadingExtension.local` are new (`packages/mvs/runtime/_spec/load.md`
+§4–5).
+
