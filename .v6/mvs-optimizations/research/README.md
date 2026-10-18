@@ -72,5 +72,20 @@ each frame into a Mol\* state snapshot — to a fraction of today's, measured on
   expansion ~20 ms. Not measured: a browser load with a canvas; frames with `include_camera` (features) still take the
   full path.
 
+- **The story** ("Terms of entrapment", 118 MB `index.mvsj`, 16 snapshots, 22,546 frames): did not load ("Missing
+  start value for color interpolation": split coloring had turned a no-op into an error; fixed, also in
+  `CHANGELOG.md`). After the fix: 39 s and 1.56 GB kept, 43 GB allocated (Node), from a primitive of 10,596 lines
+  whose `group_colors` map flashes between three colors in 360 fades. Then, each change checked frame by frame against
+  HEAD's expansion (seeded noise) and by the goldens:
+  - versions: `jsonHash` (parts' hashes, cached per object for the load) instead of hashing ~1 MB of JSON per changed
+    transform (18 s);
+  - color maps: one plan per content, one map object per distinct content (`ColorMapPlan`, `CanonicalValues`), decoded
+    colors cached; distinct canonical maps compare as different without a walk (slot equality, sharing, `jsonEqual`);
+  - MolQL validation: primitives and types that cannot hold MolQL are not walked (0.8 s → 3 ms);
+  - frames with `include_camera` in the memo path (context-writing nodes load every frame), checked by camera and canvas
+    hashes in the goldens.
+  Now ~4.7 s and 95 MB (Node, `loadMVS`). Left: io-ts validation of the document ~0.85 s, versions ~0.75 s, conversion
+  ~0.8 s, expansion ~0.8 s. Not measured in a browser.
+
 Steps 1–3 were planned without an API change; step 3 removed `UpdateTarget.update`. Target after 1–3: exosome under 400 ms, motm1 under 150 ms, retained under 10 MB; the
 bench gains a row per step. `_spec` files are written as each area is touched ([specs.md](specs.md)).

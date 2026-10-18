@@ -784,3 +784,7 @@ characters and unique, but consecutive ids share their first 14 characters and a
 of a `Map`; `MolstarLoadingContext.units` and `LoadingExtension.local` are new (`packages/mvs/runtime/_spec/load.md`
 §4–5).
 
+MVS-loaded transform versions (`VirtualStateBuilder`) are `jsonHash` of the params: `hashMurmur128o` for small params
+(up to 256 JSON entries), a hash of the parts' hashes for larger ones; equal params still have equal versions.
+`ObjectMutator.create(plan, { equals })` takes the slot equality (default `deepEqual`).
+

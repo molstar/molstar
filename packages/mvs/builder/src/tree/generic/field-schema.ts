@@ -100,6 +100,9 @@ export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
  *
  * (it looks stupid to repeat the list of values but it will result in nicer type bundle (for MolViewStories))
  */
+/** Custom field types whose values are primitives (strings, numbers, booleans): their values hold nothing nested. */
+export const PrimitiveFieldTypes = new WeakSet<iots.Mixed>();
+
 export function literal<V extends string | number | boolean>(...values: V[]) {
   if (values.length === 0) {
     throw new Error(`literal type must have at least one value`);
@@ -107,7 +110,7 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
   const typeName =
     values.length === 1 ? onelinerJsonString(values[0]) : `(${values.map((v) => onelinerJsonString(v)).join(' | ')})`;
   const valueSet = new Set(values);
-  return new iots.Type<V>(
+  const type = new iots.Type<V>(
     typeName,
     ((value: any) => valueSet.has(value)) as any,
     (value, ctx) =>
@@ -116,6 +119,8 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         : iots.failure(value, ctx, `"${value}" is not a valid value for literal type ${typeName}`),
     (value) => value,
   );
+  PrimitiveFieldTypes.add(type);
+  return type;
 }
 
 interface FieldBase<V extends AllowedValueTypes = any, R extends boolean = boolean> {

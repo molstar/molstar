@@ -43,10 +43,17 @@ Rules that follow:
 
 - Serialized transforms in snapshots and frames are shared and must not be mutated (the plugin reads them; `fromJSON`
   makes new transforms around the same params objects, as with `StateTree.reuseTransformParams` before).
-- Equality is `JSON.stringify` equality, not `deepEqual`: the version is a hash of `JSON.stringify(params)`, so key
-  order, `undefined` and non-finite numbers matter. Transformers with `customSerialization` are never reused (their
-  version hashes the raw params, which a serialized transform does not keep).
-- The output is the same as before reuse: the goldens (`performance.md §2`) compare refs, params and versions.
+- Equality is `JSON.stringify` equality, not `deepEqual`: the version is a hash of the params' JSON, so key order,
+  `undefined` and non-finite numbers matter. Transformers with `customSerialization` are never reused (their version
+  hashes the raw params, which a serialized transform does not keep). Distinct `CanonicalValues` (§5 of
+  [animation.md](animation.md)) compare as different without a walk.
+- **Versions** (`setParamsVersion`, `jsonHash`): equal JSON, equal version, as `useHashVersion`. Small params (up to 256
+  JSON entries) hash their JSON text, which is `hashMurmur128o`; larger ones hash from the hashes of their parts, kept
+  per object for the load (`jsonHashCache`), so a part shared with an earlier frame (coordinate lists, a color map) is
+  not walked again. Why: hashing the whole JSON of each changed transform was 39 % of a story whose primitives carry ~1
+  MB of params (18 s of 46).
+- The output is the same as before reuse: the goldens (`performance.md §2`) compare refs, params, versions, and the
+  camera and canvas of frames.
 
 ## 4. Unchanged subtrees between frames
 

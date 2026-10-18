@@ -21,8 +21,9 @@ check the expanded frames (computed before any other consumer runs) did not chan
 ## 3. Bench
 
 `src/_test/load-animation.bench.test.ts`, skipped unless `MVS_BENCH=1` (`--silent=false` to see the table;
-`MVS_BENCH_PROFILE=<dir>` writes a `.cpuprofile` per fixture). Node, no canvas, `keepCamera`: the camera and canvas work
-of a browser load is not in it.
+`MVS_BENCH_PROFILE=<dir>` writes a `.cpuprofile` per fixture; `MVS_BENCH_FIXTURES` takes `.mvsj` paths too, for
+documents too large to keep; `MVS_BENCH_LOAD_ONLY=1` measures `loadMVS` alone, for those). Node, no canvas,
+`keepCamera`: the camera and canvas work of a browser load is not in it.
 
 | Fixture  | Stage                     | Baseline (`0050f1464`) |             Now |
 | -------- | ------------------------- | ---------------------: | --------------: |
@@ -32,6 +33,13 @@ of a browser load is not in it.
 | motm1    | `generateStateTransition` |         140 ms, 312 MB |    11 ms, 15 MB |
 | motm1    | `loadMVS`                 |        736 ms, 1.40 GB | ~175 ms, 452 MB |
 | motm1    | retained                  |                  25 MB |          4.8 MB |
-| features | `loadMVS`                 |        587 ms, 1.29 GB | ~275 ms, 624 MB |
+| features | `loadMVS`                 |        587 ms, 1.29 GB | ~280 ms, 654 MB |
+| story\*  | `loadMVS`                 |        39 s\*\*, 43 GB |   ~4.7 s, 17 GB |
+| story\*  | retained                  |                1.56 GB |           95 MB |
+
+\* "Terms of entrapment", an MVSX of 16 snapshots and a 118 MB `index.mvsj` (22,546 frames; a primitive of 10,596 lines
+whose colors flash in 360 fades): not a fixture, measured from a local copy (`MVS_BENCH_FIXTURES=<path>`,
+`MVS_BENCH_LOAD_ONLY=1`, `NODE_OPTIONS=--max-old-space-size=16000`). \*\* after steps 1–4 and the missing-start-color
+fix; it did not load before the fix.
 
 Times vary ±5 % between runs. Update the "Now" column with every change that moves it.

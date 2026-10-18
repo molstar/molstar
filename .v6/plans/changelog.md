@@ -788,3 +788,10 @@ the [API change ledger](breaking-v6-changes.md).
   work, 4–5× less memory kept
 - [Breaking] `@molstar/mvs/load-generic`: `UpdateTarget.update` and `UpdateTarget.commit` are removed
   (`UpdateTarget.updateState` for loading extensions); see the API change ledger
+- MVS animations with large color maps (thousands of keys interpolated as a whole): each distinct map is made once and
+  shared by every frame and transition that has it; transform versions of large params hash from their parts. A story
+  of 22,546 frames over a 118 MB document loads in ~5 s instead of failing after minutes, keeping ~95 MB instead of
+  1.6 GB
+- MolQL validation of MVS trees skips values that cannot hold an expression (color maps, coordinate lists): 0.8 s → 3
+  ms on that story
+- MVS animation frames with `include_camera` / `include_canvas` take the same incremental path

@@ -53,3 +53,26 @@ Rules that follow:
 Values computed per step go into frames, so each changed vector, matrix or color map is a fresh object; intermediate
 math uses module scratch (`TransformState`, `RotationState`, …). Per transition caches (decoded colors, palette
 function, rotation axis/angle) are per group, by transition index.
+
+**A color with no start value** (no `start`, no previous end, the property missing — e.g. a key the target's color map
+does not have): nothing to interpolate, the property is left as it is. Split coloring had made this an error ("Missing
+start value for color interpolation"), which broke documents that relied on it.
+
+## 4. Color maps
+
+A color map transition (`group_colors`, a palette's `colors`: a dictionary of colors, thousands of keys in large
+documents) is prepared once per content (`ColorMapPlan`): the keys in the order they are set, each a constant color or
+one of a few groups of keys that go from the same start to the same end color. A step computes one color per group; the
+map is looked up by those colors, then by the whole content (`ColorMapsByContent`, per base map), so equal maps from any
+transition of a snapshot are the same object. Decoded colors are cached by string (a map repeats a few colors).
+
+Why: a story flashing 10,596 line colors in 360 fades built a new map at every step of every fade and kept one in every
+frame: 1.5 GB kept, most of a 39 s load. With one object per distinct map, slot comparison, frame dedup, hashing and
+sharing stop at identity.
+
+## 5. Canonical values
+
+The maps of §4 are `CanonicalValues`: made once per content, never changed. Two different ones made for the same slot
+have different content, so `areDistinctCanonical` lets the slot comparison (`ObjectMutator`'s `equals`),
+`shareEqualParts` and `jsonEqual` answer without walking them. Two from different slots may be equal; taking them as
+different costs only reuse (a new transform with the same version), never a wrong frame.

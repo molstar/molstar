@@ -17,6 +17,8 @@ import {
   StateTree,
 } from '@molstar/core/state';
 import { UUID } from '@molstar/core/util';
+import { areDistinctCanonical } from '@molstar/mvs/helpers/canonical-values';
+import { jsonHash } from '@molstar/mvs/helpers/json-hash';
 import { stringHash } from '@molstar/mvs/helpers/utils';
 import type { Kind, Subtree, SubtreeOfKind, Tree } from '@molstar/mvs-builder/tree/generic/tree-schema';
 
@@ -64,6 +66,8 @@ export interface LoadTreeVirtualOptions<TTree extends Tree, TContext> {
   extensions?: LoadingExtension<TTree, TContext, any>[];
   /** Ref hashes kept between calls (`load.md §2`): one map for all the snapshots and frames of a load. */
   refHashCache?: Map<string, string>;
+  /** Hashes of the parts of params (`jsonHash`) kept between calls: one map for all the snapshots and frames of a load. */
+  jsonHashCache?: WeakMap<object, string>;
   /**
    * Serialized trees whose transforms may be reused (`load.md §3`), in order of preference (the previous frame, then
    * the snapshot): a transform equal to one of them (ref, transformer, parent, tags, dependsOn, state, and params as
@@ -145,6 +149,7 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     plugin,
     options?.replaceExisting ?? false,
     options?.refHashCache,
+    options?.jsonHashCache,
   );
   const memo = options?.subtreeMemo;
   if (memo && !(options?.extensions ?? []).every((e) => e.local)) {
@@ -399,8 +404,13 @@ export interface UpdateTarget {
 }
 export const UpdateTarget = {
   /** Create a new update, with `selector` pointing to the root. */
-  create(plugin: PluginContext, replaceExisting: boolean, refHashCache?: Map<string, string>): UpdateTarget {
-    const builder = new VirtualStateBuilder(plugin.state.data, replaceExisting);
+  create(
+    plugin: PluginContext,
+    replaceExisting: boolean,
+    refHashCache?: Map<string, string>,
+    jsonHashCache?: WeakMap<object, string>,
+  ): UpdateTarget {
+    const builder = new VirtualStateBuilder(plugin.state.data, replaceExisting, jsonHashCache);
     return {
       builder,
       selector: new StateObjectSelector(builder.rootRef, plugin.state.data),
@@ -488,7 +498,12 @@ export class VirtualStateBuilder {
   /** The record that added each transform in this load, when recording (`load.md §4`). */
   owners: Map<StateTransform.Ref, SubtreeRecord> | undefined = undefined;
 
-  constructor(state: State, replaceExisting: boolean) {
+  constructor(
+    state: State,
+    replaceExisting: boolean,
+    /** Hashes of params parts for the versions (`jsonHash`) */
+    private readonly hashCache: WeakMap<object, string> = new WeakMap(),
+  ) {
     const tree = state.tree;
     this.rootRef = tree.root.ref;
     this.nodes.set(tree.root.ref, { transform: tree.root, children: [] });
@@ -684,7 +699,7 @@ export class VirtualStateBuilder {
             if (t.tags && arrayEqual(t.tags, closest.tags)) t = { ...t, tags: closest.tags };
             if (t.dependsOn && arrayEqual(t.dependsOn, closest.dependsOn)) t = { ...t, dependsOn: closest.dependsOn };
           }
-          StateTransform.setParamsHashVersion(t);
+          setParamsVersion(t, this.hashCache);
           transforms.push(StateTransform.toJSON(t));
         }
       }
@@ -694,6 +709,22 @@ export class VirtualStateBuilder {
     return { transforms };
   }
 }
+
+/**
+ * The version of an added or changed transform: `jsonHash` of its params (`load.md §3`), as `useHashVersion` hashes
+ * them (`StateTransform.setParamsHashVersion`), but from the hashes of their parts, so shared parts are not hashed again.
+ */
+function setParamsVersion(t: StateTransform, cache: WeakMap<object, string>) {
+  let version: string;
+  try {
+    version = jsonHash(t.params ?? EmptyParams, cache);
+  } catch {
+    const toJSON = t.transformer.definition.customSerialization?.toJSON ?? ((p: any) => p);
+    version = jsonHash(toJSON(t.params ?? EmptyParams), cache);
+  }
+  (t as { version: string }).version = version;
+}
+const EmptyParams = {};
 
 /** `t` would serialize to `s` with the same hash version (`load.md §3`). */
 function isSameTransform(t: StateTransform, s: StateTransform.Serialized) {
@@ -734,9 +765,11 @@ function isSameSerializedState(state: StateTransform.State, serialized: StateTra
   return n === (serialized ? Object.keys(serialized).length : 0);
 }
 
-/** `JSON.stringify(a) === JSON.stringify(b)`, without building the strings. */
+/** `JSON.stringify(a) === JSON.stringify(b)`, without building the strings; false for distinct `CanonicalValues`. */
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
+  // (taken as different only when made for the same place, else costs only reuse: `CanonicalValues`)
+  if (areDistinctCanonical(a, b)) return false;
   if (typeof (a as any)?.toJSON === 'function' || typeof (b as any)?.toJSON === 'function') {
     return JSON.stringify(a) === JSON.stringify(b);
   }
@@ -777,6 +810,7 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
  */
 export function shareEqualParts(fresh: any, old: any): any {
   if (fresh === old) return old;
+  if (areDistinctCanonical(fresh, old)) return fresh;
   if (!isPlainContainer(fresh) || !isPlainContainer(old) || Array.isArray(fresh) !== Array.isArray(old)) {
     return jsonEqual(fresh, old) ? old : fresh;
   }
@@ -786,9 +820,14 @@ export function shareEqualParts(fresh: any, old: any): any {
   if (Array.isArray(fresh)) {
     equal = fresh.length === old.length;
     for (let i = 0; i < fresh.length && i < old.length; i++) {
-      // (in arrays, values JSON leaves out are null: compared as such)
-      const f = isJsonOmitted(fresh[i]) ? null : fresh[i];
-      const o = isJsonOmitted(old[i]) ? null : old[i];
+      const f = fresh[i];
+      const o = old[i];
+      if (f === o) continue;
+      if (typeof f !== 'object' || f === null || typeof o !== 'object' || o === null) {
+        // a primitive (inline: color maps and coordinate lists are long); in arrays JSON writes omitted values as null
+        if (arrayLeafJson(f) !== arrayLeafJson(o)) equal = false;
+        continue;
+      }
       const v = shareEqualParts(f, o);
       if (v !== o) equal = false;
       if (v !== f) (copy ??= fresh.slice())[i] = v;
@@ -812,7 +851,14 @@ export function shareEqualParts(fresh: any, old: any): any {
     }
     for (const k of keysF) {
       const f = fresh[k];
-      if (isJsonOmitted(f) || !(k in old)) continue;
+      if (typeof f !== 'object' || f === null) {
+        // a primitive (inline: color maps are long); omitted ones are in neither key sequence
+        if (isJsonOmitted(f)) continue;
+        const o = old[k];
+        if (f !== o && ((typeof o === 'object' && o !== null) || jsonPrimitive(f) !== jsonPrimitive(o))) equal = false;
+        continue;
+      }
+      if (!(k in old)) continue;
       const v = shareEqualParts(f, old[k]);
       if (v !== old[k]) equal = false;
       if (v !== f) (copy ??= { ...fresh })[k] = v;
@@ -826,6 +872,12 @@ function isPlainContainer(x: unknown): boolean {
   if (Array.isArray(x)) return true;
   const proto = Object.getPrototypeOf(x);
   return proto === Object.prototype || proto === null;
+}
+
+/** What JSON writes for a primitive array element (omitted values are null) */
+function arrayLeafJson(x: unknown) {
+  if (typeof x === 'object') return x === null ? null : x;
+  return isJsonOmitted(x) ? null : jsonPrimitive(x);
 }
 
 function isJsonOmitted(x: unknown) {

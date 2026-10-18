@@ -136,7 +136,10 @@ class DisjointMutator<T> implements ObjectMutator<T> {
   private readonly dirty: Uint8Array;
   private root: T;
 
-  constructor(readonly plan: ObjectMutatorPlan<T>) {
+  constructor(
+    readonly plan: ObjectMutatorPlan<T>,
+    private readonly equals: (a: unknown, b: unknown) => boolean,
+  ) {
     const n = plan.slotNodes.length;
     this.sourceValues = new Array(n);
     this.dead = new Array(n);
@@ -169,7 +172,7 @@ class DisjointMutator<T> implements ObjectMutator<T> {
       const value = this.isSet[s] ? this.pending[s] : this.sourceValues[s];
       this.isSet[s] = 0;
       this.pending[s] = undefined;
-      if (this.dead[s] || value === this.current[s] || deepEqual(value, this.current[s])) continue;
+      if (this.dead[s] || value === this.current[s] || this.equals(value, this.current[s])) continue;
       this.current[s] = value;
       changed = true;
       for (let node = plan.slotNodes[s]; node >= 0 && !dirty[node]; node = plan.parents[node]) dirty[node] = 1;
@@ -255,8 +258,9 @@ export const ObjectMutator = {
   plan<T>(source: T): ObjectMutator.Plan<T> {
     return new ObjectMutatorPlan(source);
   },
-  create<T>(plan: ObjectMutator.Plan<T>): ObjectMutator<T> {
-    return plan.isDisjoint ? new DisjointMutator(plan) : new SequentialMutator(plan);
+  /** `equals` compares a slot's value with the previous one (`deepEqual` by default); the plan not disjoint, whole trees */
+  create<T>(plan: ObjectMutator.Plan<T>, options?: { equals?: (a: unknown, b: unknown) => boolean }): ObjectMutator<T> {
+    return plan.isDisjoint ? new DisjointMutator(plan, options?.equals ?? deepEqual) : new SequentialMutator(plan);
   },
 };
 

@@ -7,12 +7,15 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
+import { murmurHash3_128 } from '@molstar/core/data/util/hash-functions';
 import { EasingFunctions } from '@molstar/core/math/easing';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
 import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { Color } from '@molstar/core/util/color';
+import { deepEqual } from '@molstar/core/util';
 import { ObjectMutator } from '@molstar/core/util/object-mutator';
+import { areDistinctCanonical, CanonicalValues } from './canonical-values.js';
 import {
   makeContinuousPaletteCheckpoints,
   type MVSContinuousPaletteProps,
@@ -100,6 +103,7 @@ interface InterpolationCacheEntry {
   paletteFn?: PaletteFunction;
   startColors?: DecodedSplitColors;
   endColors?: DecodedSplitColors;
+  colorMap?: ColorMapPlan;
   rotation?: { axis: Vec3; angle: number; start: Quat; end: Quat };
 }
 
@@ -172,7 +176,8 @@ function compileTransitions(root: MVSTree, transitions: MVSAnimationNode<'interp
       caches: transitionGroup.map(() => ({})),
     });
   }
-  const mutator = ObjectMutator.create(plan);
+  // (color maps are made once per content: two different ones are different, `animation.md §3`)
+  const mutator = ObjectMutator.create(plan, { equals: (a, b) => !areDistinctCanonical(a, b) && deepEqual(a, b) });
   for (const group of groups) group.current = () => mutator.get(group.slot);
   return { mutator, groups };
 }
@@ -548,6 +553,19 @@ type DecodedSplitColors =
   | { kind: 'dict'; dict: Record<string, [Color, Color]> }
   | { kind: 'value'; value: [Color, Color] };
 
+/** Decoded colors by string (color maps repeat a few colors many times); the same tuple for the same string. */
+const DecodedColors = new Map<unknown, [Color, Color]>();
+const DecodedColorsStrict = new Map<unknown, [Color, Color]>();
+function decodeCached(cache: Map<unknown, [Color, Color]>, decode: (c: any) => [Color, Color] | undefined, c: unknown) {
+  let decoded = cache.get(c);
+  if (!decoded) {
+    if (cache.size > 10_000) cache.clear();
+    decoded = decode(c) ?? _fallbackSplitColor;
+    cache.set(c, decoded);
+  }
+  return decoded;
+}
+
 function decodeSplitColors(
   color: ColorT | Record<number | string, ColorT> | undefined,
   baseColors: Record<number | string, ColorT> | undefined,
@@ -558,11 +576,11 @@ function decodeSplitColors(
     const ret: Record<number | string, [Color, Color]> = {};
     if (baseColors) {
       for (const key of Object.keys(baseColors)) {
-        ret[key] = SplitColor.decode(baseColors[key]) ?? _fallbackSplitColor;
+        ret[key] = decodeCached(DecodedColors, (c) => SplitColor.decode(c), baseColors[key]);
       }
     }
     for (const key of Object.keys(color)) {
-      ret[key] = SplitColor.decodeStrict(color[key]) ?? _fallbackSplitColor;
+      ret[key] = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), color[key]);
     }
     return { kind: 'dict', dict: ret };
   }
@@ -589,33 +607,8 @@ function interpolateColors(
   if (startColors?.kind === 'dict') {
     if (baseColors === undefined || baseColors === null) throw new Error('Missing color value in the target node');
     if (typeof baseColors !== 'object') throw new Error('Cannot interpolate from scalar color to color mapping');
-
-    const ret: Record<number | string, ColorT> = Array.isArray(baseColors)
-      ? (baseColors.slice() as Record<number, ColorT>)
-      : { ...baseColors };
-
-    if (endColors?.kind === 'dict') {
-      for (const key of Object.keys(startColors.dict)) {
-        if (!(key in endColors.dict)) {
-          ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
-        } // else will be set in the next step
-      }
-      for (const key of Object.keys(endColors.dict)) {
-        ret[key] =
-          key in startColors.dict
-            ? interpolateSplitColor(startColors.dict[key], endColors.dict[key], t)
-            : SplitColor.toHexStyle(...endColors.dict[key]);
-      }
-    } else if (endColors?.kind === 'value') {
-      for (const key of Object.keys(startColors.dict)) {
-        ret[key] = interpolateSplitColor(startColors.dict[key], endColors.value, t);
-      }
-    } else {
-      for (const key of Object.keys(startColors.dict)) {
-        ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
-      }
-    }
-    return ret;
+    const plan = (cacheEntry.colorMap ??= ColorMapPlan.get(baseColors, startColors.dict, endColors));
+    return ColorMapPlan.at(plan, t);
   } else if (startColors?.kind === 'value') {
     if (endColors?.kind === 'dict') {
       throw new Error('Cannot interpolate from scalar color to color mapping');
@@ -630,6 +623,119 @@ function interpolateColors(
     return undefined;
   }
 }
+
+/**
+ * A color map transition (`animation.md §3`): the keys in the order they are set, each either a constant color or one of
+ * a few groups of keys that go from the same start to the same end color. Prepared once per content (base map object,
+ * start, end), so transitions with the same colors share it; the maps it returns are kept by their group colors, so
+ * equal maps are the same object (frame dedup, hashing, comparisons and memory by identity).
+ */
+interface ColorMapPlan {
+  base: Record<number | string, ColorT>;
+  keys: string[];
+  /** Hash of `keys` (their order) */
+  keysId: string;
+  /** Per key: its constant color, or undefined when it is in a group */
+  constants: (ColorT | undefined)[];
+  /** Per key: its group, or -1 */
+  group: Int32Array;
+  groups: { start: [Color, Color]; end: [Color, Color] }[];
+  maps: Map<string, Record<number | string, ColorT>>;
+}
+
+const ColorMapPlans = new WeakMap<object, Map<string, ColorMapPlan>>();
+/** The maps made over a base map, by content: equal maps from different transitions are the same object. */
+const ColorMapsByContent = new WeakMap<object, Map<string, Record<number | string, ColorT>>>();
+
+const ColorMapPlan = {
+  get(
+    base: Record<number | string, ColorT>,
+    start: Record<string, [Color, Color]>,
+    end: DecodedSplitColors | undefined,
+  ): ColorMapPlan {
+    // the keys in the order the earlier loops set them: start keys not in an end map, then the end map's keys
+    const keys: string[] = [];
+    const constants: (ColorT | undefined)[] = [];
+    const groupOf: number[] = [];
+    const groups: ColorMapPlan['groups'] = [];
+    // (by the decoded tuples, the same object per color string: `decodeCached`)
+    const groupIndex = new Map<[Color, Color], Map<[Color, Color], number>>();
+    const add = (key: string, constant: ColorT | undefined, from?: [Color, Color], to?: [Color, Color]) => {
+      keys.push(key);
+      constants.push(constant);
+      if (constant !== undefined) {
+        groupOf.push(-1);
+        return;
+      }
+      let byEnd = groupIndex.get(from!);
+      if (!byEnd) groupIndex.set(from!, (byEnd = new Map()));
+      let g = byEnd.get(to!);
+      if (g === undefined) {
+        g = groups.length;
+        groups.push({ start: from!, end: to! });
+        byEnd.set(to!, g);
+      }
+      groupOf.push(g);
+    };
+    if (end?.kind === 'dict') {
+      for (const key of Object.keys(start)) {
+        if (!(key in end.dict)) add(key, SplitColor.toHexStyle(...start[key]));
+      }
+      for (const key of Object.keys(end.dict)) {
+        if (key in start) add(key, undefined, start[key], end.dict[key]);
+        else add(key, SplitColor.toHexStyle(...end.dict[key]));
+      }
+    } else if (end?.kind === 'value') {
+      for (const key of Object.keys(start)) add(key, undefined, start[key], end.value);
+    } else {
+      for (const key of Object.keys(start)) add(key, SplitColor.toHexStyle(...start[key]));
+    }
+
+    let byContent = ColorMapPlans.get(base);
+    if (!byContent) ColorMapPlans.set(base, (byContent = new Map()));
+    const keysId = murmurHash3_128(keys.join(','), 42);
+    const signature = murmurHash3_128(
+      `${keysId}|${constants.join(',')}|${groupOf.join(',')}|${groups.map((g) => `${g.start}>${g.end}`).join(';')}`,
+      42,
+    );
+    let plan = byContent.get(signature);
+    if (!plan) {
+      plan = { base, keys, keysId, constants, group: Int32Array.from(groupOf), groups, maps: new Map() };
+      byContent.set(signature, plan);
+    }
+    return plan;
+  },
+  at(plan: ColorMapPlan, t: number): Record<number | string, ColorT> {
+    const colors = plan.groups.map((g) => interpolateSplitColor(g.start, g.end, t));
+    const id = colors.join('|');
+    let map = plan.maps.get(id);
+    if (map) return map;
+    // the content: the keys' order, and each key's color as an index into the distinct colors
+    const { keys, constants, group } = plan;
+    const values: ColorT[] = new Array(keys.length);
+    const distinct = new Map<ColorT, number>();
+    let content = '';
+    for (let i = 0; i < keys.length; i++) {
+      const value = group[i] >= 0 ? colors[group[i]] : constants[i]!;
+      values[i] = value;
+      let d = distinct.get(value);
+      if (d === undefined) distinct.set(value, (d = distinct.size));
+      content += d + ',';
+    }
+    const contentId = `${plan.keysId}|${Array.from(distinct.keys()).join(',')}|${murmurHash3_128(content, 42)}`;
+    let byContent = ColorMapsByContent.get(plan.base);
+    if (!byContent) ColorMapsByContent.set(plan.base, (byContent = new Map()));
+    map = byContent.get(contentId);
+    if (!map) {
+      map = Array.isArray(plan.base) ? (plan.base.slice() as Record<number, ColorT>) : { ...plan.base };
+      for (let i = 0; i < keys.length; i++) map[keys[i]] = values[i];
+      byContent.set(contentId, map);
+      CanonicalValues.add(map);
+    }
+    plan.maps.set(id, map);
+    return map;
+  },
+};
 
 function interpolateSplitColor(start: [Color, Color], end: [Color, Color], t: number): ColorT {
   const out0 = Color.interpolate(start[0], end[0], t);

@@ -24,6 +24,8 @@ import { PluginSpec } from '@molstar/plugin/spec';
 import { Task } from '@molstar/core/task';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
+import { Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { generateStateTransition } from '@molstar/mvs/helpers/animation';
 import { loadMVS } from '@molstar/mvs/load';
 import { SubtreeMemo } from '@molstar/mvs/load-generic';
@@ -35,11 +37,13 @@ const FixtureDir = path.join(import.meta.dirname, 'fixtures');
 
 /** [durationMs, hash] per frame */
 type FrameGoldens = [number, string][];
+/** [durationMs, hash of the state tree, hash of the camera and canvas (with `include_camera` / `include_canvas`)] */
+type LoadedFrameGoldens = [number, string, string][];
 interface Goldens {
   /** per snapshot: the MVS frames, `[]` without an animation */
   expanded: FrameGoldens[];
   /** per snapshot: the state tree of the snapshot itself and of its transition's frames */
-  loaded: { base: string; frames: FrameGoldens }[];
+  loaded: { base: string; frames: LoadedFrameGoldens }[];
 }
 
 function canonicalJson(value: unknown): string {
@@ -71,9 +75,33 @@ function mulberry32(seed: number) {
   };
 }
 
+/** Enough of a canvas for the camera and canvas props of snapshots and frames (`createPluginStateSnapshotCamera`). */
+function stubCanvas3D() {
+  const snapshot = {
+    mode: 'perspective',
+    fov: Math.PI / 4,
+    position: [0, 0, 100],
+    up: [0, 1, 0],
+    target: [0, 0, 0],
+    radius: 20,
+    radiusMax: 20,
+    fog: 50,
+    clipFar: true,
+    minNear: 5,
+    minFar: 0,
+  };
+  return {
+    props: PD.getDefaultValues(Canvas3DParams),
+    setProps() {},
+    dispose() {},
+    camera: { state: snapshot, getSnapshot: () => ({ ...snapshot }) },
+  };
+}
+
 async function createPlugin() {
   const plugin = new PluginContext({ registry: [MVSRuntimeRegistry], behaviors: [PluginSpec.Behavior(MolViewSpec)] });
   await plugin.init();
+  (plugin as any).canvas3d = stubCanvas3D();
   // (applying a snapshot would download the structures)
   const dispatch = plugin.commands.dispatch.bind(plugin.commands);
   plugin.commands.dispatch = ((cmd: any, params: any) =>
@@ -99,15 +127,19 @@ async function computeGoldens(name: string): Promise<Goldens> {
     );
 
     vi.spyOn(Math, 'random').mockImplementation(mulberry32(1));
-    // (`keepCamera`: the plugin has no canvas)
     const fallbacks = SubtreeMemo.stats.fallbacks;
-    await loadMVS(plugin, data, { keepCamera: true, doNotReportErrors: true });
+    await loadMVS(plugin, data, { doNotReportErrors: true });
     // (a replayed subtree never had to be loaded again: the rules of `load.md §4` hold for the fixtures)
     expect(SubtreeMemo.stats.fallbacks).toBe(fallbacks);
     const loaded = plugin.managers.snapshot.state.entries.toArray().map((entry) => ({
       base: stateTreeHash(entry.snapshot.data),
       frames: (entry.snapshot.transition?.frames ?? []).map(
-        (f) => [f.durationInMs, stateTreeHash(f.data)] as [number, string],
+        (f) =>
+          [
+            f.durationInMs,
+            stateTreeHash(f.data),
+            hash({ camera: f.camera, canvas3d: f.canvas3d }),
+          ] as LoadedFrameGoldens[number],
       ),
     }));
     return { expanded, loaded };

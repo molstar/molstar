@@ -8,6 +8,7 @@ import { expressionValidationIssues } from '@molstar/query-language/language/val
 import type { ExpressionValidationOptions } from '@molstar/query-language/language/validation';
 import type { Tree, TreeSchema } from './tree/generic/tree-schema.js';
 import * as iots from 'io-ts';
+import { PrimitiveFieldTypes } from './tree/generic/field-schema.js';
 import { MolQLExpressionT, PrimitiveMolQLExpressionT } from './tree/mvs/param-types.js';
 
 export interface MolQLValidationOptions extends ExpressionValidationOptions {
@@ -43,7 +44,12 @@ export function visitMolQLExpressions(
   path = 'tree',
 ): void {
   const visitParams = (value: unknown, path: string, type?: iots.Mixed) => {
+    // (only objects can hold an expression: primitives return before any type check, which matters for large color
+    // maps, whose values would each be matched against the many cases of a color type, and coordinate lists)
+    if (value === null || typeof value !== 'object') return;
     if (type) {
+      // (a type that cannot hold an expression is not walked: no `is` checks of large values against it)
+      if (!mayContainMolQL(type)) return;
       if (type === MolQLExpressionT || type === PrimitiveMolQLExpressionT) {
         if (value && typeof value === 'object' && Object.hasOwn(value, 'molql')) {
           visit((value as { molql: unknown }).molql, `${path}.molql`);
@@ -70,7 +76,10 @@ export function visitMolQLExpressions(
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach((item, i) => visitParams(item, `${path}[${i}]`));
+      for (let i = 0; i < value.length; i++) {
+        const item = value[i];
+        if (item && typeof item === 'object') visitParams(item, `${path}[${i}]`);
+      }
     } else if (value && typeof value === 'object') {
       const object = value as Record<string, unknown>;
       if (
@@ -80,7 +89,10 @@ export function visitMolQLExpressions(
         visit(object.molql, `${path}.molql`);
         return;
       }
-      for (const key of Object.keys(object)) visitParams(object[key], `${path}.${key}`);
+      for (const key of Object.keys(object)) {
+        const item = object[key];
+        if (item && typeof item === 'object') visitParams(item, `${path}.${key}`);
+      }
     }
   };
   const visitNode = (node: Tree, path: string) => {
@@ -93,4 +105,46 @@ export function visitMolQLExpressions(
     node.children?.forEach((child, i) => visitNode(child, `${path}.children[${i}]`));
   };
   visitNode(tree, path);
+}
+
+const MayContainMolQL = new WeakMap<iots.Mixed, boolean>();
+
+/** Whether a value of `type` can hold a MolQL expression; conservative (true) for types it does not know. */
+function mayContainMolQL(type: iots.Mixed): boolean {
+  const cached = MayContainMolQL.get(type);
+  if (cached !== undefined) return cached;
+  MayContainMolQL.set(type, true); // (a recursive type, while it is being decided)
+  let result: boolean;
+  if (type === MolQLExpressionT || type === PrimitiveMolQLExpressionT) {
+    result = true;
+  } else if (
+    type instanceof iots.UnionType ||
+    type instanceof iots.IntersectionType ||
+    type instanceof iots.TupleType
+  ) {
+    result = (type.types as iots.Mixed[]).some(mayContainMolQL);
+  } else if (type instanceof iots.ArrayType) {
+    result = mayContainMolQL(type.type);
+  } else if (type instanceof iots.DictionaryType) {
+    result = mayContainMolQL(type.codomain);
+  } else if (type instanceof iots.InterfaceType || type instanceof iots.PartialType) {
+    result = Object.values(type.props as Record<string, iots.Mixed>).some(mayContainMolQL);
+  } else if (
+    PrimitiveFieldTypes.has(type) ||
+    type instanceof iots.StringType ||
+    type instanceof iots.NumberType ||
+    type instanceof iots.BooleanType ||
+    type instanceof iots.NullType ||
+    type instanceof iots.UndefinedType ||
+    type instanceof iots.LiteralType ||
+    type instanceof iots.KeyofType
+  ) {
+    result = false;
+  } else if (type instanceof iots.RefinementType) {
+    result = mayContainMolQL(type.type);
+  } else {
+    result = true;
+  }
+  MayContainMolQL.set(type, result);
+  return result;
 }

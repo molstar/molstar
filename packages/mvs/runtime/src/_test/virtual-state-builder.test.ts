@@ -15,6 +15,7 @@ import {
   TransformStructureConformation,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { jsonHash } from '../helpers/json-hash.js';
 import {
   jsonEqual,
   type LoadingActions,
@@ -64,7 +65,13 @@ describe('VirtualStateBuilder', () => {
       dependsOn: (ref, refs) => builder.to(ref).dependsOn(refs),
       updateState: (ref, state) => builder.to(ref).updateState(state),
     });
-    const expected = StateTree.toJSON(builder.getTree({ useHashVersion: true }));
+    // (the same transforms; the versions of those added are `jsonHash` of their params instead of `hashMurmur128o`)
+    const root = plugin.state.data.tree.root.ref;
+    const expected = {
+      transforms: StateTree.toJSON(builder.getTree({ useHashVersion: true })).transforms.map((t) =>
+        t.ref === root ? t : { ...t, version: jsonHash(t.params ?? {}, new WeakMap()) },
+      ),
+    };
 
     const virtual = new VirtualStateBuilder(plugin.state.data, true);
     edits({
