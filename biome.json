@@ -23,7 +23,8 @@
       "!**/_generated/**",
       "!packages/sequences/**/_test/**/*.json",
       "!packages/prism/viewer/src/_stories/**/fixtures/**",
-      "!packages/prism/viewer/src/**/_test/fixtures/**"
+      "!packages/prism/viewer/src/**/_test/fixtures/**",
+      "!packages/mvs/runtime/src/_test/fixtures/**"
     ]
   },
   "formatter": {

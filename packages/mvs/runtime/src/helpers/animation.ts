@@ -11,9 +11,8 @@ import { EasingFunctions } from '@molstar/core/math/easing';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
 import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
-import { deepEqual } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color';
-import { produce } from '@molstar/core/util/produce';
+import { ObjectMutator } from '@molstar/core/util/object-mutator';
 import {
   makeContinuousPaletteCheckpoints,
   type MVSContinuousPaletteProps,
@@ -29,6 +28,7 @@ import { addDefaults } from '@molstar/mvs-builder/tree/generic/tree-utils';
 import type { MVSTree } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { ColorT, EasingT } from '@molstar/mvs-builder/tree/mvs/param-types';
 
+/** Expand the animation of `snapshot` into MVS trees, one per distinct frame, each with its duration (`animation.md §1`). */
 export async function generateStateTransition(
   ctx: RuntimeContext,
   snapshot: Snapshot,
@@ -50,17 +50,16 @@ export async function generateStateTransition(
   const dt = tree.params?.frame_time_ms ?? 1000 / 60;
   const N = Math.ceil(duration / dt);
 
-  const nodeMap = makeNodeMap(snapshot.root, new Map(), []);
-  const cache = new Map<any, InterpolationCacheEntry>();
-
-  const transitionGroups = groupTranstions(transitions);
+  const { mutator, groups } = compileTransitions(snapshot.root, transitions);
 
   let prevRoot: MVSTree | undefined;
   for (let i = 0; i <= N; i++) {
     const t = i * dt;
-    const root = createSnapshot(snapshot.root, transitionGroups, t, cache, nodeMap);
+    for (const group of groups) evaluateGroup(group, t, mutator);
+    // (the mutator returns the previous frame's root when no value changed)
+    const root = mutator.commit();
 
-    if (root === prevRoot || (prevRoot && deepEqual(root, prevRoot))) {
+    if (root === prevRoot) {
       frames[frames.length - 1][1] += dt;
     } else {
       frames.push([root, dt]);
@@ -112,7 +111,7 @@ function getTransitionKey(transition: MVSAnimationNode<'interpolate'>) {
   return `${transition.params.target_ref}:${prop}`;
 }
 
-function groupTranstions(transitions: MVSAnimationNode<'interpolate'>[]) {
+function groupTransitions(transitions: MVSAnimationNode<'interpolate'>[]) {
   const map = new Map<string, MVSAnimationNode<'interpolate'>[]>();
   const groups: MVSAnimationNode<'interpolate'>[][] = [];
   for (const t of transitions) {
@@ -134,65 +133,73 @@ function groupTranstions(transitions: MVSAnimationNode<'interpolate'>[]) {
   return groups;
 }
 
-function createSnapshot(
-  tree: MVSTree,
-  transitionGroups: MVSAnimationNode<'interpolate'>[][],
-  time: number,
-  cache: Map<any, InterpolationCacheEntry>,
-  nodeMap: Map<string, (string | number)[]>,
-) {
-  let modified = false;
-  const ret = produce(tree, (draft) => {
-    for (const transitionGroup of transitionGroups) {
-      const pivot = transitionGroup[0];
-      const nodePath = nodeMap.get(pivot.params.target_ref);
-      if (!nodePath) continue;
+/** The transitions of one property of one node (same `target_ref` and `property`), sorted by start. */
+interface TransitionGroup {
+  /** Where the property is in the snapshot tree. */
+  slot: number;
+  /** The property's value in the frame being built. */
+  current: () => any;
+  transitions: MVSAnimationNode<'interpolate'>[];
+  startMs: number[];
+  caches: InterpolationCacheEntry[];
+}
 
-      const node = select(draft, nodePath, 0);
-      const target = pivot.params.property[0] === 'custom' ? node?.custom : node?.params;
-      if (!target) continue;
+/** Resolve each group's target once into a slot of an `ObjectMutator` over the snapshot tree. */
+function compileTransitions(root: MVSTree, transitions: MVSAnimationNode<'interpolate'>[]) {
+  const nodeMap = makeNodeMap(root, new Map(), []);
+  const plan = ObjectMutator.plan(root);
+  const groups: TransitionGroup[] = [];
+  for (const transitionGroup of groupTransitions(transitions)) {
+    const pivot = transitionGroup[0];
+    const nodePath = nodeMap.get(pivot.params.target_ref);
+    if (!nodePath) continue;
 
-      const offset = pivot.params.property[0] === 'custom' ? 1 : 0;
+    const property = pivot.params.property;
+    const isCustom = property[0] === 'custom';
+    const node = select(root, nodePath, 0);
+    const target = isCustom ? node?.custom : node?.params;
+    // (a target missing in the snapshot tree: the group is skipped, as when it was resolved on every frame)
+    if (!target) continue;
 
-      let transition: MVSAnimationNode<'interpolate'> = pivot;
-      let previous: MVSAnimationNode<'interpolate'> | undefined;
+    plan.pushPrefix(...nodePath, isCustom ? 'custom' : 'params');
+    const slot = plan.slot(typeof property === 'string' ? property : property.slice(isCustom ? 1 : 0));
+    plan.popPrefix();
+    groups.push({
+      slot,
+      current: undefined as any,
+      transitions: transitionGroup,
+      startMs: transitionGroup.map((t) => t.params.start_ms ?? 0),
+      caches: transitionGroup.map(() => ({})),
+    });
+  }
+  const mutator = ObjectMutator.create(plan);
+  for (const group of groups) group.current = () => mutator.get(group.slot);
+  return { mutator, groups };
+}
 
-      for (let i = transitionGroup.length - 1; i > 0; i--) {
-        const current = transitionGroup[i];
-        const currentStart = current.params.start_ms ?? 0;
-        if (time >= currentStart) {
-          transition = current;
-          previous = i > 0 ? transitionGroup[i - 1] : undefined;
-          break;
-        }
-      }
-
-      if (!cache.has(transition)) {
-        cache.set(transition, {});
-      }
-
-      const cacheEntry: InterpolationCacheEntry = cache.get(transition)!;
-
-      const startTime: number = transition.params.start_ms ?? 0;
-      const durationMs: number = transition.params.duration_ms ?? 0;
-      const t = (time - startTime) / durationMs;
-
-      let next: any;
-      if (transition.params.kind === 'transform_matrix') {
-        next = processTransformMatrix(transition, target, clamp(t, 0, 1), cacheEntry, offset, previous);
-      } else {
-        next = processScalarLike(transition, target, t, cacheEntry, offset, previous);
-      }
-
-      if (next === undefined) {
-        continue;
-      }
-
-      modified = true;
-      assign(target, transition.params.property, next, offset);
+/** Set the value of the group's property at `time`. */
+function evaluateGroup(group: TransitionGroup, time: number, mutator: ObjectMutator<MVSTree>) {
+  let index = 0;
+  for (let i = group.transitions.length - 1; i > 0; i--) {
+    if (time >= group.startMs[i]) {
+      index = i;
+      break;
     }
-  });
-  return modified ? ret : tree;
+  }
+  const transition = group.transitions[index];
+  const previous = index > 0 ? group.transitions[index - 1] : undefined;
+  const cacheEntry = group.caches[index];
+
+  const startTime = group.startMs[index];
+  const durationMs: number = transition.params.duration_ms ?? 0;
+  const t = (time - startTime) / durationMs;
+
+  const current = group.current;
+  const next =
+    transition.params.kind === 'transform_matrix'
+      ? processTransformMatrix(transition, current, clamp(t, 0, 1), cacheEntry, previous)
+      : processScalarLike(transition, current, t, cacheEntry, previous);
+  if (next !== undefined) mutator.set(group.slot, next);
 }
 
 function applyFrequency(t: number, frequency: number, alternate: boolean) {
@@ -218,17 +225,15 @@ function getPreviousScalarEnd(previous: MVSAnimationNode<'interpolate'> | undefi
 
 function processScalarLike(
   transition: MVSAnimationNode<'interpolate'>,
-  target: any,
+  current: () => any,
   time: number,
   cacheEntry: InterpolationCacheEntry,
-  offset: number,
   previous: MVSAnimationNode<'interpolate'> | undefined,
 ) {
   if (transition.params.kind === 'transform_matrix') return;
   if (previous && previous.params.kind === 'transform_matrix') return;
 
-  const startValue =
-    transition.params.start ?? getPreviousScalarEnd(previous) ?? select(target, transition.params.property, offset);
+  const startValue = transition.params.start ?? getPreviousScalarEnd(previous) ?? current();
   if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
     cacheEntry.paletteFn = makePaletteFunction(transition);
   }
@@ -268,7 +273,7 @@ function processScalarLike(
       return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
     }
 
-    const baseColors = typeof startValue === 'object' ? select(target, transition.params.property, offset) : undefined;
+    const baseColors = typeof startValue === 'object' ? current() : undefined;
     return interpolateColors(startValue, endValue, t, cacheEntry, baseColors);
   }
 }
@@ -292,16 +297,15 @@ const TransformState = {
 };
 function processTransformMatrix(
   transition: MVSAnimationNode<'interpolate'>,
-  target: any,
+  current: () => any,
   time: number,
   cache: InterpolationCacheEntry,
-  offset: number,
   previous: MVSAnimationNode<'interpolate'> | undefined,
 ) {
   if (transition.params.kind !== 'transform_matrix') return;
   if (previous && previous.params.kind !== 'transform_matrix') return;
 
-  const transform = select(target, transition.params.property, offset) ?? Mat4.identity();
+  const transform = current() ?? Mat4.identity();
 
   const startRotation =
     transition.params.rotation_start ??
@@ -647,25 +651,6 @@ function select(params: any, path: string | (string | number)[], offset: number)
   }
 
   return f;
-}
-
-function assign(params: any, path: string | (string | number)[], value: any, offset: number) {
-  if (!params) return;
-
-  if (typeof path === 'string') {
-    params[path] = value;
-    return;
-  }
-
-  let f = params;
-  for (let i = offset; i < path.length; i++) {
-    if (!f) break;
-    if (i === path.length - 1) {
-      f[path[i]] = value;
-    } else {
-      f = f[path[i]];
-    }
-  }
 }
 
 function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentPath: (string | number)[]) {
